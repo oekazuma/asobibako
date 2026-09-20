@@ -42,8 +42,9 @@ body {
 
 .half.top {
   transform: rotate(180deg);
-  border-bottom: 2px solid var(--line);
 }
+
+.half.bottom { border-top: 2px solid var(--line); }
 
 .panel {
   display: flex;

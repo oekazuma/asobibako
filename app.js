@@ -7,8 +7,10 @@ const seats = [[bottom, 1], [top, 2]];
 
 let cleanup = null;
 let current = null;
+let shownAt = 0;
 
 function clearScreen() {
+  shownAt = performance.now();
   if (cleanup) cleanup();
   cleanup = null;
   for (const [el] of seats) {
@@ -33,7 +35,12 @@ function h(tag, className, text) {
 
 function button(text, onClick) {
   const el = h('button', null, text);
-  el.addEventListener('click', onClick);
+  el.addEventListener('click', () => {
+    // pointerdown で決着した指を離すと、その座標に現れたボタンへ合成 click が届いて
+    // 結果画面が一瞬で飛ばされる。描画直後の click は捨てる
+    if (performance.now() - shownAt < 300) return;
+    onClick();
+  });
   return el;
 }
 
