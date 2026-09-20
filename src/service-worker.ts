@@ -2,22 +2,28 @@
 /// <reference lib="esnext" />
 /// <reference lib="webworker" />
 
-import { build, files, version } from '$service-worker';
+import { build, files, prerendered, version } from '$service-worker';
 
 const sw = globalThis.self as unknown as ServiceWorkerGlobalScope;
 
 const CACHE = `table-duel-${version}`;
-const ASSETS = [...build, ...files];
+const ASSETS = [...build, ...files, ...prerendered];
 
 sw.addEventListener('install', (event) => {
-	event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)));
+	event.waitUntil(
+		caches
+			.open(CACHE)
+			.then((cache) => cache.addAll(ASSETS))
+			.then(() => sw.skipWaiting()),
+	);
 });
 
 sw.addEventListener('activate', (event) => {
 	event.waitUntil(
 		caches
 			.keys()
-			.then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))),
+			.then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+			.then(() => sw.clients.claim()),
 	);
 });
 

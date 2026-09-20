@@ -30,11 +30,14 @@
 		capture(event);
 		pads[player].add(event.pointerId);
 		ready[player] = true;
+		// マウスは同時に1点しか置けないので、PC では片側を押しただけで始められるようにする
+		if (event.pointerType === 'mouse') ready[1] = ready[2] = true;
 	}
 
 	function padUp(event: PointerEvent, player: Player) {
 		pads[player].delete(event.pointerId);
 		ready[player] = pads[player].size > 0;
+		if (event.pointerType === 'mouse') ready[1] = ready[2] = false;
 	}
 
 	function start() {
