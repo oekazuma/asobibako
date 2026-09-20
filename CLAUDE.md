@@ -22,7 +22,9 @@ pnpm icon                     # static/icon-180/192/512.png を再生成
 
 ## 構成
 
-ゲーム 1 本は `src/lib/games/<id>/` にまとめ、`src/lib/games.ts` の配列に登録する。ルールは DOM に依存しない `engine.ts` に閉じて vitest で検証し、`.svelte` は描画と Pointer Events の配線だけを持つ。タイトル画面・スタート導線・結果表示・再戦は `src/routes/+page.svelte` が持ち、ゲームは `onfinish(1 | 2)` を呼ぶだけでよい（1 が手前、2 が向かい）。
+ゲーム 1 本は `src/lib/games/<id>/` にまとめ、`src/lib/games.ts` の配列に登録する。ルールは DOM に依存しない `engine.ts` に閉じて vitest で検証し、`.svelte` は描画と Pointer Events の配線だけを持つ。画面の切り替えは `src/routes/+page.svelte`、タイトルと結果の見た目は `src/lib/components/` にあり、ゲームは `onfinish(1 | 2)` を呼ぶだけでよい。プレイヤー番号の型は `src/lib/player.ts`（1 が手前、2 が向かい）で、特定のゲームの engine には依存しない。
+
+コンポーネントは 200 行未満に保つ（`architecture/component-size`、抑制コメントは使っていない）。上下 2 分割のレイアウト（`.board` / `.half` と向かい側の 180 度回転）は画面をまたぐので `src/app.css` の共通クラスに置く。
 
 盤面は上下 2 分割で、上半分を `rotate(180deg)` する。境界線の移動は `transform` だけで表現し、レイアウトを毎フレーム起こさない。玉の寿命はタイマーを持たず、スポーンの周期で `expire()` が落とす。
 

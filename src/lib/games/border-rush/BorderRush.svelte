@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { sfx, wake } from '$lib/audio.svelte';
-  import { createState, expire, HOLD_MS, ORB_LIFE_MS, pop, spawnOrb, type Orb, type Player } from './engine';
+  import type { Player } from '$lib/player';
+  import Orbs from './Orbs.svelte';
+  import { createState, expire, HOLD_MS, ORB_LIFE_MS, pop, spawnOrb, type Orb } from './engine';
 
   let { onfinish }: { onfinish: (winner: Player) => void } = $props();
 
@@ -70,9 +72,6 @@
     }
   }
 
-  const label = (orb: Orb, by: Player) =>
-    `プレイヤー${by}の${orb.kind === 'hold' ? '長押しの玉' : orb.kind === 'contest' ? '奪い合いの玉' : '玉'}`;
-
   // $effect だと tick() が game を読むぶん依存に入り、玉が出るたび interval が張り直される
   onMount(() => {
     tick();
@@ -88,34 +87,7 @@
   <div class="zone p2"></div>
   <div class="zone p1"></div>
 
-  {#each game.orbs as orb (orb.id)}
-    {#if orb.owner !== null}
-      <button
-        class="orb {orb.kind} p{orb.owner}"
-        class:holding={holding.includes(orb.id)}
-        style:left="{orb.x * 100}%"
-        style:top="{orb.y * 100}%"
-        aria-label={label(orb, orb.owner)}
-        onpointerdown={(e) => grab(e, orb, orb.owner as Player)}
-        onpointerup={() => endHold(orb.id)}
-        onpointercancel={() => endHold(orb.id)}
-      >
-        {#if orb.kind === 'hold'}<span class="fill"></span>{/if}
-      </button>
-    {/if}
-  {/each}
-
-  <div class="border-layer">
-    {#each game.orbs as orb (orb.id)}
-      {#if orb.owner === null}
-        <div class="contest" style:left="{orb.x * 100}%">
-          <button class="contest-half top" aria-label={label(orb, 2)} onpointerdown={(e) => grab(e, orb, 2)}></button>
-          <button class="contest-half bottom" aria-label={label(orb, 1)} onpointerdown={(e) => grab(e, orb, 1)}
-          ></button>
-        </div>
-      {/if}
-    {/each}
-  </div>
+  <Orbs orbs={game.orbs} {holding} ongrab={grab} onrelease={endHold} />
 
   <p class="sr-only" role="status">
     下側の陣地 {Math.round((1 - game.border) * 100)}パーセント
@@ -147,130 +119,9 @@
     box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.85);
   }
 
-  .orb {
-    position: absolute;
-    width: max(52px, 10dvh);
-    height: max(52px, 10dvh);
-    padding: 0;
-    border: none;
-    border-radius: 50%;
-    translate: -50% -50%;
-    animation: life var(--life) linear forwards;
-    touch-action: none;
-    cursor: pointer;
-  }
-
-  .orb.p1 {
-    background: var(--p1);
-  }
-
-  .orb.p2 {
-    background: var(--p2);
-  }
-
-  .orb.hold {
-    background: transparent;
-    border: 6px solid currentColor;
-    display: grid;
-    place-items: center;
-  }
-
-  .orb.hold.p1 {
-    color: var(--p1);
-  }
-
-  .orb.hold.p2 {
-    color: var(--p2);
-  }
-
-  .fill {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background: currentColor;
-    transform: scale(0);
-  }
-
-  .orb.holding .fill {
-    animation: fill var(--hold) linear forwards;
-  }
-
-  .border-layer {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    transform: translateY(calc((var(--b) - 0.5) * 100%));
-    transition: transform 160ms ease-out;
-  }
-
-  .contest {
-    position: absolute;
-    top: 50%;
-    width: max(58px, 11dvh);
-    height: max(58px, 11dvh);
-    translate: -50% -50%;
-    pointer-events: auto;
-    animation: life var(--life) linear forwards;
-  }
-
-  .contest-half {
-    position: absolute;
-    left: 0;
-    width: 100%;
-    height: 50%;
-    padding: 0;
-    border: none;
-    background: var(--gold);
-    touch-action: none;
-    cursor: pointer;
-  }
-
-  .contest-half.top {
-    top: 0;
-    border-radius: 999px 999px 0 0;
-    box-shadow: inset 0 3px 0 var(--p2);
-  }
-
-  .contest-half.bottom {
-    bottom: 0;
-    border-radius: 0 0 999px 999px;
-    box-shadow: inset 0 -3px 0 var(--p1);
-  }
-
-  @keyframes life {
-    0% {
-      transform: scale(0.4);
-      opacity: 0;
-    }
-    10% {
-      transform: scale(1);
-      opacity: 1;
-    }
-    80% {
-      transform: scale(1);
-      opacity: 1;
-    }
-    100% {
-      transform: scale(0.6);
-      opacity: 0.35;
-    }
-  }
-
-  @keyframes fill {
-    to {
-      transform: scale(1);
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
-    .zone,
-    .border-layer {
+    .zone {
       transition: none;
-    }
-
-    .orb,
-    .contest {
-      animation-name: none;
     }
   }
 </style>

@@ -1,4 +1,5 @@
-export type Player = 1 | 2;
+import type { Player } from '$lib/player';
+
 export type OrbKind = 'tap' | 'hold' | 'contest';
 
 export interface Orb {

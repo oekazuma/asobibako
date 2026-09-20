@@ -1,6 +1,6 @@
 import type { Component } from 'svelte';
 import BorderRush from './games/border-rush/BorderRush.svelte';
-import type { Player } from './games/border-rush/engine';
+import type { Player } from './player';
 
 export interface GameDef {
   id: string;

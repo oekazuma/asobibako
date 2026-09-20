@@ -46,9 +46,9 @@ export const games: GameDef[] = [
 ];
 ```
 
-タイトル画面・スタート導線・結果表示・再戦はルート (`src/routes/+page.svelte`) が持つ。ゲーム側は自分の描画と入力だけを見ればよい。
+画面の切り替えはルート (`src/routes/+page.svelte`) が持ち、タイトルと結果の見た目は `src/lib/components/` にある。上下 2 分割のレイアウト (`.board` / `.half`) は `src/app.css` の共通クラス。ゲーム側は自分の描画と入力だけを見ればよい。
 
-ゲームロジックは DOM に依存しない純粋なモジュールに分け (`engine.ts`)、コンポーネントは描画と Pointer Events の処理だけを担当する。
+ゲームロジックは DOM に依存しない純粋なモジュールに分け (`engine.ts`)、コンポーネントは描画と Pointer Events の処理だけを担当する。コンポーネントは 200 行未満に保つ (`architecture/component-size`)。
 
 ## 開発
 

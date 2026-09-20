@@ -45,3 +45,42 @@ button {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* 盤面は上下 2 分割。画面上側のプレイヤー 2 は 180 度回して見る */
+.board {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.half {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 1.6dvh, 18px);
+  padding: max(12px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
+  border: none;
+  background: var(--bg);
+  text-align: center;
+  touch-action: none;
+  transition: background-color 140ms;
+}
+
+.half.p2 {
+  transform: rotate(180deg);
+  box-shadow: inset 0 -2px 0 #262c39;
+}
+
+button.half {
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .half {
+    transition: none;
+  }
+}
