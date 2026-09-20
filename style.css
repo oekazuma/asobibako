@@ -80,7 +80,7 @@ button:active { background: #262b37; }
 .half.lose { background: #3b1414; }
 .half.draw { background: #22262f; }
 
-.half.tap-wait { background: #3b2a0d; }
+.half.tap-wait { background: #5c3f0d; }
 .half.tap-go { background: #14532d; }
 
 .big { font-size: clamp(32px, 9vh, 90px); font-weight: 700; letter-spacing: .1em; }
