@@ -1,0 +1,45 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":disablePeerDependencies"],
+  "minimumReleaseAge": "3 days",
+  "labels": ["renovate"],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": true
+  },
+  "rangeStrategy": "bump",
+  "platformAutomerge": true,
+  "packageRules": [
+    {
+      "description": "自分のツールは pnpm 側の minimumReleaseAgeExclude と同じく待たずに取り込む",
+      "matchPackageNames": ["svelte-vitals{/,}**", "@svelte-vitals{/,}**"],
+      "minimumReleaseAge": null
+    },
+    {
+      "description": "Auto-merge everything except major updates (those need review) — CI still has to pass first.",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true
+    },
+    {
+      "groupName": "devDependencies",
+      "matchDepTypes": ["devDependencies"]
+    },
+    {
+      "groupName": "linters",
+      "matchPackageNames": ["eslint{/,}**", "@eslint{/,}**", "typescript-eslint{/,}**", "globals{/,}**"]
+    },
+    {
+      "groupName": "typescript",
+      "matchPackageNames": ["typescript"]
+    },
+    {
+      "groupName": "Svelte",
+      "matchPackageNames": ["@sveltejs/{/,}**", "svelte{/,}**"]
+    },
+    {
+      "description": "video/（README の紹介動画を作る Remotion プロジェクト）は CI が検査しないので更新 PR を出さない",
+      "matchFileNames": ["video/**"],
+      "enabled": false
+    }
+  ]
+}

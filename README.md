@@ -16,11 +16,11 @@ Safari の共有メニューから「ホーム画面に追加」するとフル�
 
 画面中央の境界線が 2 人の陣地を分ける。自分の陣地に出る玉を消すと境界線が相手側へ押し込まれ、相手の端まで押し切ったら勝ち。
 
-| 玉 | 操作 | 押し込む量 |
-| --- | --- | --- |
-| 塗りつぶした丸 | タップ | 小 |
-| 二重の輪 | ゲージが溜まるまで長押し | 中 |
-| 境界線上の金の丸 | どちらのプレイヤーでも取れる。先に触った方が取る | 大 |
+| 玉               | 操作                                             | 押し込む量 |
+| ---------------- | ------------------------------------------------ | ---------- |
+| 塗りつぶした丸   | タップ                                           | 小         |
+| 二重の輪         | ゲージが溜まるまで長押し                         | 中         |
+| 境界線上の金の丸 | どちらのプレイヤーでも取れる。先に触った方が取る | 大         |
 
 境界線が動くと、相手側に取り残された玉は消える。負けている側は陣地が狭いぶん玉が密集するため、連打で押し返しやすい。
 
@@ -31,18 +31,18 @@ Safari の共有メニューから「ホーム画面に追加」するとフル�
 ```svelte
 <!-- src/lib/games/my-game/MyGame.svelte -->
 <script lang="ts">
-	import type { Player } from '$lib/games/border-rush/engine';
+  import type { Player } from '$lib/games/border-rush/engine';
 
-	// 勝者が決まったら onfinish(1 | 2) を呼ぶ。1 が手前、2 が向かい
-	let { onfinish }: { onfinish: (winner: Player) => void } = $props();
+  // 勝者が決まったら onfinish(1 | 2) を呼ぶ。1 が手前、2 が向かい
+  let { onfinish }: { onfinish: (winner: Player) => void } = $props();
 </script>
 ```
 
 ```ts
 // src/lib/games.ts
 export const games: GameDef[] = [
-	{ id: 'border-rush', name: 'せめぎあい', component: BorderRush },
-	{ id: 'my-game', name: '表示名', component: MyGame },
+  { id: 'border-rush', name: 'せめぎあい', component: BorderRush },
+  { id: 'my-game', name: '表示名', component: MyGame }
 ];
 ```
 
@@ -53,20 +53,27 @@ export const games: GameDef[] = [
 ## 開発
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev        # http://localhost:5173/table-duel/
 ```
 
-| コマンド | 内容 |
-| --- | --- |
-| `npm run dev` | 開発サーバー |
-| `npm run build` | 静的ビルド (`build/`)。`BASE_PATH` でサブパスを指定する |
-| `npm run preview` | ビルド結果の確認 |
-| `npm run check` | svelte-check による型チェック |
-| `npm test` | ゲームルールの単体テスト |
+| コマンド       | 内容                                                                    |
+| -------------- | ----------------------------------------------------------------------- |
+| `pnpm dev`     | 開発サーバー                                                            |
+| `pnpm build`   | 静的ビルド (`build/`)。`BASE_PATH` でサブパスを指定する                 |
+| `pnpm preview` | ビルド結果の確認 (Service Worker はビルドでのみ有効)                    |
+| `pnpm lint`    | prettier / eslint / markuplint                                          |
+| `pnpm format`  | prettier --write                                                        |
+| `pnpm check`   | svelte-check と scripts の型チェック                                    |
+| `pnpm test`    | vitest の watch。`pnpm test:run` で一括実行                             |
+| `pnpm vitals`  | svelte-vitals の全体スキャン                                            |
+| `pnpm verify`  | lint / check / test:run / vitals / build をまとめて実行 (CI と同じ判定) |
+| `pnpm icon`    | `static/icon-*.png` を再生成する                                        |
 
-サブパス配下で配信するため、アセットは `$app/paths` 経由か `%sveltekit.assets%` で参照する。絶対パスを直書きすると 404 になる。
+依存は `pnpm-workspace.yaml` の catalog で一元管理し、Renovate が minor/patch を自動マージする。
+
+サブパス配下で配信するため、アセットは `$app/paths` 経由か `%sveltekit.assets%` で参照する。絶対パスを直書きすると 404 になる。GitHub Pages はヘッダを出せないので、CSP は `<meta http-equiv>` で配る (`vite.config.ts`)。
 
 ## 公開
 
-`main` への push で GitHub Actions がビルドし、GitHub Pages へデプロイする。Pages のソースは GitHub Actions に設定してある。
+`main` への push で GitHub Actions がビルドし、GitHub Pages へデプロイする (`BASE_PATH=/<リポジトリ名>`)。公開先を変えるときは `BASE_PATH=/other pnpm build` のように base を変え、`static/manifest.webmanifest` の `start_url` と `scope` を合わせる。

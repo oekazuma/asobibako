@@ -22,5 +22,8 @@ Thumbs.db
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-# Local tooling
-.claude/
+
+# Claude Code
+.superpowers/
+.claude/worktrees/
+.pnpm-store/

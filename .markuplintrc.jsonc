@@ -1,0 +1,42 @@
+{
+  "extends": ["markuplint:recommended-svelte"],
+  "parser": {
+    "\\.svelte$": "@markuplint/svelte-parser",
+    "\\.html$": "@markuplint/svelte-parser/kit"
+  },
+  "specs": {
+    "\\.svelte$": "@markuplint/svelte-spec"
+  },
+  "rules": {
+    // Svelte の onclick={fn} は文字列のインラインハンドラではなくイベントリスナー
+    "security/no-event-handler-attr": false,
+    // @markuplint/rules 5.0.0 のこの規則は自己閉じ（tagCloseChar "/>"）を見ないので、
+    // ファイル末尾の自己閉じタグを未閉じと誤検知する。本当に閉じ忘れていれば Svelte コンパイラが止める
+    "html-standard/no-unclosed-element-at-eof": false,
+    "no-unknown-attr": {
+      "options": {
+        // onpointer*: Pointer Events は HTML 仕様の GlobalEventHandlers に無く html-spec も持っていない（綴り違いは svelte-check が拒む）
+        "ignoreAttrNamePrefix": ["onpointer"]
+      }
+    }
+  },
+  "overrides": {
+    // SvelteKit の殻 HTML
+    "src/app.html": {
+      "rules": {
+        // 見出しは各ページが置く
+        "require-h1": false
+      },
+      "nodeRules": [
+        {
+          // 対面プレイ中に指が触れてピンチズームが入ると盤面がずれるため user-scalable=no を使う。
+          // 盤面は touch-action: none なので CSS だけでは画面全体のズームを止められない
+          "selector": "meta[name='viewport']",
+          "rules": {
+            "no-restricted-attr": false
+          }
+        }
+      ]
+    }
+  }
+}
