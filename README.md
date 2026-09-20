@@ -2,65 +2,71 @@
 
 iPad をテーブルに置き、画面の上下から 2 人が同時に操作して遊ぶ対戦ゲーム集 (PWA)。
 
+https://oekazuma.github.io/table-duel/
+
 ## 遊び方
 
-1. ブラウザで開く
-2. iPad を 2 人の間に縦向きで置く
-3. どちらかがゲームを選ぶ (メニューは上下どちらからも読める向きで出る)
-
-手前が**プレイヤー 1**、向かいが**プレイヤー 2**。上半分は CSS で 180 度回転している。
+iPad を 2 人の間に置き、両方のプレイヤーが自分側の画面を長押しするとゲームが始まる。手前が**プレイヤー 1**、向かいが**プレイヤー 2**。画面の上半分は 180 度回転しているので、どちらからでも読める。
 
 Safari の共有メニューから「ホーム画面に追加」するとフルスクリーンで起動し、オフラインでも動く。
 
 ## 収録ゲーム
 
-| ゲーム | 内容 |
-| --- | --- |
-| 反射タップ | 画面が緑に光ったら先にタップ。光る前に押すとお手つきで負け |
+### せめぎあい (border-rush)
+
+画面中央の境界線が 2 人の陣地を分ける。自分の陣地に出る玉を消すと境界線が相手側へ押し込まれ、相手の端まで押し切ったら勝ち。
+
+| 玉 | 操作 | 押し込む量 |
+| --- | --- | --- |
+| 塗りつぶした丸 | タップ | 小 |
+| 二重の輪 | ゲージが溜まるまで長押し | 中 |
+| 境界線上の金の丸 | どちらのプレイヤーでも取れる。先に触った方が取る | 大 |
+
+境界線が動くと、相手側に取り残された玉は消える。負けている側は陣地が狭いぶん玉が密集するため、連打で押し返しやすい。
 
 ## ゲームを追加する
 
-`games/` に 1 ファイル追加し、`games/index.js` の配列に足すだけ。
+`src/lib/games/<id>/` にコンポーネントを置き、`src/lib/games.ts` の配列に 1 行足す。
 
-```js
-// games/my-game.js
-export default {
-  id: 'my-game',
-  name: '表示名',
-  desc: 'メニューに出る1行説明',
+```svelte
+<!-- src/lib/games/my-game/MyGame.svelte -->
+<script lang="ts">
+	import type { Player } from '$lib/games/border-rush/engine';
 
-  mount({ top, bottom, finish }) {
-    // top / bottom は各プレイヤーの領域 (DOM 要素)。中身は自由に構築する。
-    // finish(winner, note) で決着。winner は 1 (手前) / 2 (向かい) / 0 (引き分け)、
-    // note は結果画面に出る補足文字列 (省略可)。
-    // クリーンアップ関数を返すと、画面遷移時に呼ばれる。
-    return () => {};
-  },
-};
+	// 勝者が決まったら onfinish(1 | 2) を呼ぶ。1 が手前、2 が向かい
+	let { onfinish }: { onfinish: (winner: Player) => void } = $props();
+</script>
 ```
 
-```js
-// games/index.js
-import tapDuel from './tap-duel.js';
-import myGame from './my-game.js';
-
-export const games = [tapDuel, myGame];
+```ts
+// src/lib/games.ts
+export const games: GameDef[] = [
+	{ id: 'border-rush', name: 'せめぎあい', component: BorderRush },
+	{ id: 'my-game', name: '表示名', component: MyGame },
+];
 ```
 
-`top` / `bottom` の CSS クラスは画面遷移のたびに `half top` / `half bottom` にリセットされるので、ゲーム側で付けたクラスを自分で消す必要はない。
+タイトル画面・スタート導線・結果表示・再戦はルート (`src/routes/+page.svelte`) が持つ。ゲーム側は自分の描画と入力だけを見ればよい。
 
-2 人同時タッチは `pointerdown` を各領域に登録すれば動く (`touch-action: none` を全体にかけてある)。
+ゲームロジックは DOM に依存しない純粋なモジュールに分け (`engine.ts`)、コンポーネントは描画と Pointer Events の処理だけを担当する。
 
 ## 開発
 
-ビルド不要。静的ファイルだけ。
-
 ```bash
-npx serve .
+npm install
+npm run dev
 ```
 
-Service Worker はネットワーク優先・キャッシュフォールバック。ファイルを追加したら `sw.js` の `ASSETS` と `CACHE` のバージョンを更新する。
+| コマンド | 内容 |
+| --- | --- |
+| `npm run dev` | 開発サーバー |
+| `npm run build` | 静的ビルド (`build/`)。`BASE_PATH` でサブパスを指定する |
+| `npm run preview` | ビルド結果の確認 |
+| `npm run check` | svelte-check による型チェック |
+| `npm test` | ゲームルールの単体テスト |
+
+サブパス配下で配信するため、アセットは `$app/paths` 経由か `%sveltekit.assets%` で参照する。絶対パスを直書きすると 404 になる。
 
 ## 公開
 
-`main` ブランチのルートを GitHub Pages が配信する。
+`main` への push で GitHub Actions がビルドし、GitHub Pages へデプロイする。Pages のソースは GitHub Actions に設定してある。
