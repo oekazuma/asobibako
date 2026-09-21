@@ -96,7 +96,7 @@
   });
 </script>
 
-<main class="board" class:settling>
+<main class="stage" class:settling>
   {#if screen === 'playing'}
     {#key round}
       <Game onfinish={finish} />

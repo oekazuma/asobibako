@@ -51,8 +51,9 @@
 <style>
   .orb {
     position: absolute;
-    width: max(52px, 10dvh);
-    height: max(52px, 10dvh);
+    /* 盤面の高さに対する割合にする。ルールの余白（engine.ts）と合わせ、盤面を回しても大きさが変わらないように */
+    height: max(52px, 10%);
+    aspect-ratio: 1;
     padding: 0;
     border: none;
     border-radius: 50%;
@@ -101,8 +102,8 @@
   .contest {
     position: absolute;
     top: 50%;
-    width: max(58px, 11dvh);
-    height: max(58px, 11dvh);
+    height: max(58px, 11%);
+    aspect-ratio: 1;
     translate: -50% -50%;
     pointer-events: auto;
     animation: life var(--life) linear forwards;

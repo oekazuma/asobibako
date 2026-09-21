@@ -92,8 +92,10 @@ function ensureMatches(state: GameState) {
 function refill(state: GameState, now: number, rand: () => number) {
   while (state.chips.length < CHIP_COUNT) {
     const matches = state.chips.filter((c) => c.color === state.target && !c.chameleon).length;
-    const chameleon = rand() < CHAMELEON_CHANCE;
-    const color = matches < MIN_MATCH && !chameleon ? state.target : pick(COLORS, rand);
+    // 色が変わり続ける玉はお題の数に入らないので、お題の色がそろうまでは出さない
+    const short = matches < MIN_MATCH;
+    const chameleon = !short && rand() < CHAMELEON_CHANCE;
+    const color = short ? state.target : pick(COLORS, rand);
     const [x, y] = place(state, rand);
     state.chips.push({ id: nextId++, color, x, y, heldBy: null, chameleon, recolorAt: now + CHAMELEON_MS });
   }

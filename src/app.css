@@ -46,8 +46,11 @@ button {
   white-space: nowrap;
 }
 
-/* 盤面は上下 2 分割。画面上側のプレイヤー 2 は 180 度回して見る */
-.board {
+/*
+ * ゲーム画面の外枠（GameShell）。上下 2 分割で、画面上側のプレイヤー 2 は 180 度回して見る。
+ * 各ゲームの盤面は自分のコンポーネントの中で .board などの名前を使うので、ここは別の名前にしておく
+ */
+.stage {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -77,6 +80,24 @@ button {
 
 button.half {
   cursor: pointer;
+}
+
+/*
+ * 横向きのタブレットでも、ゲーム中は盤面を 90 度回して縦長に使う。
+ * 上下に分けた各陣地が浅い帯にならず、2 人は画面の短い辺に向かい合って座る。
+ * 盤面の上辺が画面の右に来る向き（時計回り）で、指の座標変換は board-input.ts がこの向きを前提にしている。
+ * マウスの PC は開発・確認用なので回さない
+ */
+@media (orientation: landscape) and (pointer: coarse) {
+  .stage {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100dvh;
+    height: 100dvw;
+    transform-origin: top left;
+    transform: rotate(90deg) translateY(-100%);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

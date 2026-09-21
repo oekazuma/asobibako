@@ -26,13 +26,19 @@ pnpm icon                     # static/icon-180/192/512.png を再生成
 
 タイトル（両者の長押しでスタート）・結果・再戦・一覧へ戻る・ミュートは `src/lib/components/GameShell.svelte` が全ゲーム共通で持ち、ゲームは `onfinish(1 | 2)` を呼ぶだけでよい。プレイヤー番号の型は `src/lib/player.ts`（1 が手前、2 が向かい）で、特定のゲームには依存しない。ルールは DOM に依存しない純粋なモジュール（border-rush なら `engine.ts`）に閉じて vitest で検証し、`.svelte` は描画と Pointer Events の配線だけを持つ。
 
-コンポーネントは 200 行未満に保つ（`architecture/component-size`、抑制コメントは使っていない）。上下 2 分割のレイアウト（`.board` / `.half` と向かい側の 180 度回転）は画面をまたぐので `src/app.css` の共通クラスに置く。全体に `touch-action: none` をかけているので、スクロールが要る一覧画面は自分をスクロール領域にして `touch-action: pan-y` を許す。
+コンポーネントは 200 行未満に保つ（`architecture/component-size`、抑制コメントは使っていない）。上下 2 分割のレイアウト（`.stage` / `.half` と向かい側の 180 度回転）は画面をまたぐので `src/app.css` の共通クラスに置く。全体に `touch-action: none` をかけているので、スクロールが要る一覧画面は自分をスクロール領域にして `touch-action: pan-y` を許す。
 
 border-rush の盤面は、境界線の移動を `transform` だけで表現し、レイアウトを毎フレーム起こさない。玉の寿命はタイマーを持たず、スポーンの周期で `expire()` が落とす。
 
 盤面の上を指で操作するゲームは、共通の `src/lib/board-input.ts`（指の追跡・盤面座標への変換・リサイズ監視。中で `src/lib/fingers.ts` を使う）と `src/lib/loop.ts`（dt を抑えた `requestAnimationFrame` ループ）に載せる。得点の丸表示は `src/lib/components/Pips.svelte`。
 
 bomb-relay と hockey は物理があるのでループで動かす。ルールと物理はそれぞれの `engine.ts` に閉じ、はじく速さは `fingers.ts` の `velocity()` で出す。hockey は速いパックと速く振ったマレットがすり抜けないよう、動く量に応じて 1 フレームを細かく分けて当たり判定し、そのあいだのマレット位置は前のフレームから補間する。爆弾の位置・脈・熱はループが DOM に直接書き、Svelte の状態にはメーター・持ち主・爆発のように変化が少ないものだけを載せる。座標は盤面の幅・高さに対する 0..1 で、距離と速さは高さを 1 とした単位に揃えている（縦向き・横向きで手触りを変えないため）。
+
+## 横向き
+
+横向きのタッチ端末では、ゲーム画面の外枠（`.stage`）だけを CSS で時計回りに 90 度回し、盤面を縦長に保つ（`app.css` の `@media (orientation: landscape) and (pointer: coarse)`）。各ゲームは縦長の盤面だけを前提にしてよい。指の座標は `BoardInput` が外接矩形と盤面そのものの大きさの食い違いから回転を見つけて直し、描画の位置は盤面そのものの大きさ（`offsetWidth` / `offsetHeight`）で書く。盤面の中の大きさは画面基準の `dvh` ではなく、盤面の高さに対する `%` で指定する（回すと `dvh` は盤面の幅を指してしまうため）。
+
+外枠のクラスを `.board` にすると各ゲームの盤面（`.board`）にも効いて高さが潰れるので、共通のクラスはゲームで使わない名前にする。
 
 ## 更新
 

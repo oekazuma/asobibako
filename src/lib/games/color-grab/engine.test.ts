@@ -22,7 +22,7 @@ const chipOf = (state: GameState, color: (typeof COLORS)[number]) => {
 
 describe('color-grab engine', () => {
   it('玉は中央の帯に出て、お題の色がいつも 2 個以上ある', () => {
-    for (let r = 0; r < 20; r++) {
+    for (let r = 0; r < 200; r++) {
       const state = createState(0.75, 0);
       expect(state.chips).toHaveLength(6);
       for (const chip of state.chips) {
@@ -68,7 +68,7 @@ describe('color-grab engine', () => {
   });
 
   it('お題は時間で必ず別の色に変わり、変わった直後も取れる玉が 2 個以上ある', () => {
-    for (let r = 0; r < 20; r++) {
+    for (let r = 0; r < 200; r++) {
       const state = createState(1, 0);
       const before = state.target;
       const event = step(state, 60_000);
