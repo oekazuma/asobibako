@@ -23,6 +23,8 @@ export interface GameMeta {
   description: string;
   players: number;
   minutes: string;
+  /** 一覧のカードに出す小さな絵。一覧に載るので、軽い CSS だけの部品にする */
+  Thumb: Component;
   /** 一覧画面に全ゲームの本体を載せないよう、遊ぶときに読み込む */
   load: () => Promise<GameModule>;
 }

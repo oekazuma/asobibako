@@ -26,9 +26,8 @@
     aspect-ratio: 1;
     border-radius: 50%;
     background: var(--c);
-    box-shadow:
-      0 0 0 3px rgb(255 255 255 / 0.25),
-      0 4px 10px rgb(0 0 0 / 0.35);
+    border: 4px solid #fff;
+    box-shadow: 0 5px 0 rgb(43 45 66 / 0.2);
     color: rgb(0 0 0 / 0.55);
     font-size: 4dvh;
     line-height: 1;
@@ -41,14 +40,14 @@
   .held {
     scale: 1.18;
     box-shadow:
-      0 0 0 4px #fff,
-      0 10px 22px rgb(0 0 0 / 0.45);
+      0 0 0 4px var(--ink),
+      0 12px 18px rgb(43 45 66 / 0.3);
     z-index: 1;
   }
 
   /* 色が変わり続ける玉は、点線の縁で「変わる玉」だと分かるようにする */
   .chameleon {
-    outline: 3px dashed rgb(255 255 255 / 0.85);
+    outline: 3px dashed var(--ink);
     outline-offset: 3px;
   }
 </style>

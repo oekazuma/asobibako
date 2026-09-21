@@ -137,12 +137,14 @@
 
   .zone.p2 {
     top: 0;
-    background: var(--zone-2);
+    background: var(--dots), var(--zone-2);
   }
 
   .zone.p1 {
     bottom: 0;
-    background: var(--zone-1);
-    box-shadow: inset 0 3px 0 rgb(255 255 255 / 0.85);
+    background: var(--dots), var(--zone-1);
+    box-shadow:
+      inset 0 6px 0 #fff,
+      inset 0 10px 0 rgb(43 45 66 / 0.08);
   }
 </style>

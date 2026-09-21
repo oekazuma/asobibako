@@ -12,6 +12,6 @@
 
   .howto-mark.puck {
     width: clamp(10px, 1.6dvh, 16px);
-    background: #cfd6e4;
+    background: var(--ink);
   }
 </style>

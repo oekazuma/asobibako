@@ -109,12 +109,12 @@
 
   .zone.p2 {
     top: 0;
-    background: var(--zone-2);
+    background: var(--dots), var(--zone-2);
   }
 
   .zone.p1 {
     bottom: 0;
-    background: var(--zone-1);
+    background: var(--dots), var(--zone-1);
   }
 
   .band {
@@ -123,8 +123,8 @@
     right: 0;
     top: var(--band-top);
     height: var(--band-height);
-    border-block: 2px dashed rgb(255 255 255 / 0.35);
-    background: rgb(255 255 255 / 0.06);
+    border-block: 3px dashed rgb(43 45 66 / 0.18);
+    background: rgb(255 255 255 / 0.7);
   }
 
   .flash {
@@ -132,7 +132,7 @@
     left: 0;
     right: 0;
     height: calc(50% - var(--band-height) / 2);
-    background: #fff;
+    background: var(--gold);
     animation: flash 500ms ease-out forwards;
     pointer-events: none;
   }
@@ -146,7 +146,7 @@
   }
 
   .flash.bad {
-    background: #ef4444;
+    background: var(--p2);
   }
 
   @keyframes flash {

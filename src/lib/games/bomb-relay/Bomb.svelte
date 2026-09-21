@@ -25,7 +25,8 @@
     height: var(--size);
     aspect-ratio: 1;
     border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #69708a, #1b1e27 62%);
+    border: 4px solid #fff;
+    background: radial-gradient(circle at 35% 30%, #6d7390, #2b2d42 62%);
     box-shadow: 0 0 calc(8px + var(--heat) * 36px) calc(var(--heat) * 12px)
       rgb(255 90 40 / calc(0.25 + var(--heat) * 0.6));
     pointer-events: none;

@@ -31,14 +31,15 @@
     height: 50%;
   }
 
+  /* 氷のような白いリンクに、各陣地の色をほんのり乗せる */
   .zone.p2 {
     top: 0;
-    background: var(--zone-2);
+    background: linear-gradient(to top, #fff, var(--p2-soft));
   }
 
   .zone.p1 {
     bottom: 0;
-    background: var(--zone-1);
+    background: linear-gradient(to bottom, #fff, var(--p1-soft));
   }
 
   .center-line {
@@ -46,8 +47,8 @@
     top: 50%;
     left: 0;
     right: 0;
-    height: 3px;
-    background: rgb(255 255 255 / 0.8);
+    height: 5px;
+    background: rgb(43 45 66 / 0.2);
     translate: 0 -50%;
   }
 
@@ -57,7 +58,7 @@
     left: 50%;
     height: 22%;
     aspect-ratio: 1;
-    border: 3px solid rgb(255 255 255 / 0.5);
+    border: 5px solid rgb(43 45 66 / 0.14);
     border-radius: 50%;
     translate: -50% -50%;
   }
@@ -66,7 +67,7 @@
     position: absolute;
     left: 50%;
     width: var(--goal-w);
-    height: 10px;
+    height: 14px;
     translate: -50% 0;
   }
 
@@ -87,7 +88,7 @@
   .flash {
     position: absolute;
     inset: 0;
-    background: #fff;
+    background: var(--gold);
     animation: flash 450ms ease-out forwards;
   }
 

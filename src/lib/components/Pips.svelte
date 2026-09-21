@@ -48,26 +48,26 @@
   }
 
   .pip {
-    width: 22px;
-    height: 22px;
-    border: 2px solid #ffffff55;
+    width: 24px;
+    height: 24px;
+    border: 3px solid #fff;
     border-radius: 50%;
+    background: rgb(43 45 66 / 0.12);
+    box-shadow: 0 2px 0 rgb(43 45 66 / 0.15);
     transition:
       background-color 160ms,
-      scale 160ms;
+      scale 260ms var(--spring);
   }
 
   .p1 .on {
     background: var(--p1);
-    border-color: var(--p1);
   }
 
   .p2 .on {
     background: var(--p2);
-    border-color: var(--p2);
   }
 
   .on {
-    scale: 1.1;
+    scale: 1.2;
   }
 </style>

@@ -55,9 +55,10 @@
     height: max(52px, 10%);
     aspect-ratio: 1;
     padding: 0;
-    border: none;
+    border: 4px solid #fff;
     border-radius: 50%;
     background: currentColor;
+    box-shadow: 0 5px 0 rgb(43 45 66 / 0.2);
     translate: -50% -50%;
     animation: life var(--life) linear forwards;
     touch-action: none;
@@ -75,8 +76,8 @@
   .orb.hold {
     display: grid;
     place-items: center;
-    border: 6px solid currentColor;
-    background: transparent;
+    border: 7px solid currentColor;
+    background: #fff;
   }
 
   .fill {
@@ -115,7 +116,7 @@
     width: 100%;
     height: 50%;
     padding: 0;
-    border: none;
+    border: 4px solid #fff;
     background: var(--gold);
     touch-action: none;
     cursor: pointer;
@@ -123,14 +124,18 @@
 
   .contest-half.top {
     top: 0;
+    border-bottom: none;
     border-radius: 999px 999px 0 0;
-    box-shadow: inset 0 3px 0 var(--p2);
+    box-shadow: inset 0 5px 0 var(--p2);
   }
 
   .contest-half.bottom {
     bottom: 0;
+    border-top: none;
     border-radius: 0 0 999px 999px;
-    box-shadow: inset 0 -3px 0 var(--p1);
+    box-shadow:
+      inset 0 -5px 0 var(--p1),
+      0 5px 0 rgb(43 45 66 / 0.2);
   }
 
   @keyframes life {

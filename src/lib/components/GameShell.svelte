@@ -123,13 +123,15 @@
     translate: 0 -50%;
     display: grid;
     place-items: center;
-    width: 44px;
-    height: 44px;
-    border: 1px solid #262c39;
+    width: 48px;
+    height: 48px;
+    border: 3px solid #fff;
     border-radius: 50%;
-    background: #171c26;
-    color: var(--fg);
+    background: var(--card);
+    box-shadow: var(--lift);
+    color: var(--ink);
     font-size: 18px;
+    font-weight: 800;
     text-decoration: none;
     cursor: pointer;
   }

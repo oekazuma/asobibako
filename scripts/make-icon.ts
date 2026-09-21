@@ -6,12 +6,12 @@ import { writeFileSync } from 'node:fs';
 
 type RGB = [number, number, number];
 
-const P1: RGB = [45, 212, 191];
-const P2: RGB = [251, 146, 60];
-const GOLD: RGB = [251, 191, 36];
-const ZONE_1: RGB = [12, 47, 44];
-const ZONE_2: RGB = [58, 34, 16];
-const LINE: RGB = [255, 255, 255];
+const P1: RGB = [31, 155, 255];
+const P2: RGB = [255, 77, 94];
+const GOLD: RGB = [255, 194, 51];
+const ZONE_1: RGB = [217, 238, 255];
+const ZONE_2: RGB = [255, 224, 227];
+const WHITE: RGB = [255, 255, 255];
 
 const table = Array.from({ length: 256 }, (_, n) => {
   let c = n;
@@ -37,10 +37,18 @@ const chunk = (type: string, data: Buffer) => {
 const pixel = (x: number, y: number, size: number): RGB => {
   const border = size * 0.5;
   const inside = (cx: number, cy: number, r: number) => (x - cx) ** 2 + (y - cy) ** 2 <= r * r;
-  if (inside(size * 0.5, border, size * 0.13)) return GOLD;
-  if (Math.abs(y - border) < size * 0.012) return LINE;
-  if (inside(size * 0.3, size * 0.28, size * 0.085)) return P2;
-  if (inside(size * 0.7, size * 0.72, size * 0.085)) return P1;
+  // 玉は白いふちで囲む（アプリの部品と同じ見た目）
+  const ring = size * 0.022;
+  const orbs: [number, number, number, RGB][] = [
+    [size * 0.5, border, size * 0.13, GOLD],
+    [size * 0.3, size * 0.28, size * 0.095, P2],
+    [size * 0.7, size * 0.72, size * 0.095, P1]
+  ];
+  for (const [cx, cy, r, color] of orbs) {
+    if (inside(cx, cy, r)) return color;
+    if (inside(cx, cy, r + ring)) return WHITE;
+  }
+  if (Math.abs(y - border) < size * 0.018) return WHITE;
   return y < border ? ZONE_2 : ZONE_1;
 };
 

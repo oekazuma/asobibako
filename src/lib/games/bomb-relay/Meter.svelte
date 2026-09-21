@@ -17,9 +17,10 @@
     height: 18px;
     translate: -50% 0;
     overflow: hidden;
-    border: 2px solid #ffffff33;
+    border: 3px solid #fff;
     border-radius: 999px;
-    background: #00000055;
+    background: rgb(43 45 66 / 0.12);
+    box-shadow: 0 3px 0 rgb(43 45 66 / 0.15);
   }
 
   .meter.p1 {
@@ -45,7 +46,10 @@
     background: var(--p2);
   }
 
+  /* 持っているあいだは、手元のメーターが光る */
   .filling {
-    border-color: #fff;
+    box-shadow:
+      0 0 0 4px var(--gold),
+      0 3px 0 rgb(43 45 66 / 0.15);
   }
 </style>

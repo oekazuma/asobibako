@@ -39,7 +39,7 @@
 <section class="update" class:ready={updated.current} aria-live="polite">
   {#if updated.current}
     <p class="state">あたらしいバージョンがあります</p>
-    <button class="primary" onclick={update} disabled={updating}>{updating ? '更新中…' : '最新版に更新'}</button>
+    <button class="pill gold" onclick={update} disabled={updating}>{updating ? '更新中…' : '最新版に更新'}</button>
   {:else}
     <p class="state">{checking ? '確認しています…' : checked ? '確認しました（最新版です）' : '最新版です'}</p>
     <button class="check" onclick={check} disabled={checking}>あたらしいバージョンがないか確認する</button>
@@ -56,48 +56,42 @@
     justify-content: center;
     gap: 8px 14px;
     max-width: 960px;
-    margin: 0 auto 24px;
-    padding: 12px 16px;
-    border: 1px solid #262c39;
-    border-radius: 14px;
+    margin: 0 auto 26px;
+    padding: 12px 18px;
+    border: 3px solid #fff;
+    border-radius: 20px;
+    background: rgb(255 255 255 / 0.7);
+    color: var(--ink-soft);
     font-size: 13px;
+    font-weight: 700;
     text-align: center;
   }
 
   /* 新版があるときだけ目立たせる */
   .ready {
-    border-color: var(--gold);
-    background: rgb(251 191 36 / 0.1);
-  }
-
-  .state {
-    opacity: 0.8;
+    background: #fff3c4;
+    box-shadow: 0 6px 0 var(--gold);
+    color: var(--ink);
   }
 
   .ready .state {
-    font-weight: 700;
-    opacity: 1;
-  }
-
-  button {
-    border-radius: 999px;
-    cursor: pointer;
-  }
-
-  .primary {
-    padding: 10px 22px;
-    border: none;
-    background: var(--gold);
-    color: #1b1e27;
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 800;
+  }
+
+  .ready .pill {
+    padding: 10px 24px;
+    font-size: 16px;
   }
 
   .check {
     padding: 6px 14px;
-    border: 1px solid #39404f;
-    background: transparent;
+    border: 2px solid var(--card-edge);
+    border-radius: 999px;
+    background: var(--card);
     font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
   }
 
   button:disabled {
@@ -107,11 +101,12 @@
 
   .version {
     flex-basis: 100%;
-    opacity: 0.5;
+    font-size: 11px;
+    opacity: 0.7;
   }
 
   .error {
     flex-basis: 100%;
-    color: #fca5a5;
+    color: var(--p2-deep);
   }
 </style>

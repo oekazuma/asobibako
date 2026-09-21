@@ -1,11 +1,35 @@
 :root {
-  --bg: #101319;
-  --p1: #2dd4bf;
-  --p2: #fb923c;
-  --zone-1: #0c2f2c;
-  --zone-2: #3a2210;
-  --gold: #fbbf24;
-  --fg: #f4f6fa;
+  /* 地の色と文字 */
+  --bg: #fff7e8;
+  --bg-dot: #ffe6bf;
+  --ink: #2b2d42;
+  --ink-soft: #6b6f86;
+  --card: #ffffff;
+  --card-edge: #ecdcc2;
+
+  /* プレイヤーの色。1P は青、2P は赤。淡い色は陣地、濃い色は立体の影 */
+  --p1: #1f9bff;
+  --p1-deep: #0b6fcc;
+  --p1-soft: #d9eeff;
+  --p2: #ff4d5e;
+  --p2-deep: #d02c3e;
+  --p2-soft: #ffe0e3;
+  --zone-1: var(--p1-soft);
+  --zone-2: var(--p2-soft);
+
+  --gold: #ffc233;
+  --gold-deep: #e39a00;
+
+  /* 陣地に敷く白い水玉。背景色の上に重ねて使う */
+  --dots: radial-gradient(circle, rgb(255 255 255 / 0.65) 3px, transparent 3.5px) 0 0 / 26px 26px;
+
+  /* ぽってりした部品の影。下に厚みを出してから、ぼかした影を落とす */
+  --lift: 0 6px 0 rgb(43 45 66 / 0.18), 0 12px 24px rgb(43 45 66 / 0.12);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --font:
+    'Hiragino Maru Gothic ProN', 'ヒラギノ丸ゴ ProN', ui-rounded, 'Arial Rounded MT Bold', 'Hiragino Sans',
+    'Noto Sans JP', sans-serif;
 }
 
 * {
@@ -27,9 +51,9 @@ body {
 
 body {
   background: var(--bg);
-  color: var(--fg);
-  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
-  font-synthesis: none;
+  color: var(--ink);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
 }
 
 button {
@@ -46,6 +70,62 @@ button {
   white-space: nowrap;
 }
 
+/* 白いふち取りのある太い文字（タイトル・勝敗など）。ふちを先に塗って文字を上に重ねる */
+.sticker {
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.22em #fff;
+  text-shadow: 0 0.07em 0 rgb(43 45 66 / 0.1);
+}
+
+/* ぽってりしたボタン。下の厚みを押すと沈む */
+.pill {
+  --face: var(--ink);
+  --edge: #111;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 30px;
+  border: 3px solid #fff;
+  border-radius: 999px;
+  background: var(--face);
+  box-shadow:
+    0 6px 0 var(--edge),
+    0 12px 20px rgb(43 45 66 / 0.18);
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition:
+    translate 90ms,
+    box-shadow 90ms;
+}
+
+.pill:active {
+  translate: 0 4px;
+  box-shadow:
+    0 2px 0 var(--edge),
+    0 6px 12px rgb(43 45 66 / 0.18);
+}
+
+.pill.p1 {
+  --face: var(--p1);
+  --edge: var(--p1-deep);
+}
+
+.pill.p2 {
+  --face: var(--p2);
+  --edge: var(--p2-deep);
+}
+
+.pill.gold {
+  --face: var(--gold);
+  --edge: var(--gold-deep);
+  color: var(--ink);
+}
+
 /*
  * ゲーム画面の外枠（GameShell）。上下 2 分割で、画面上側のプレイヤー 2 は 180 度回して見る。
  * 各ゲームの盤面は自分のコンポーネントの中で .board などの名前を使うので、ここは別の名前にしておく
@@ -56,9 +136,11 @@ button {
   flex-direction: column;
   height: 100dvh;
   overflow: hidden;
+  background: var(--bg);
 }
 
 .half {
+  position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -68,14 +150,14 @@ button {
   padding: max(12px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
   border: none;
   background: var(--bg);
+  color: var(--ink);
   text-align: center;
   touch-action: none;
-  transition: background-color 140ms;
+  transition: background-color 160ms;
 }
 
 .half.p2 {
   transform: rotate(180deg);
-  box-shadow: inset 0 -2px 0 #262c39;
 }
 
 button.half {
@@ -101,34 +183,42 @@ button.half {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .half {
+  .half,
+  .pill {
     transition: none;
   }
 }
 
 /* タイトル画面の遊び方（各ゲームの Howto.svelte）。記号の見た目だけは各ゲームが持つ */
 .howto-rule {
-  font-size: clamp(12px, 1.9dvh, 17px);
-  opacity: 0.75;
+  font-size: clamp(13px, 2dvh, 18px);
+  font-weight: 700;
+  color: var(--ink-soft);
 }
 
 .howto-legend {
   display: flex;
-  gap: clamp(12px, 3vw, 28px);
-  font-size: clamp(11px, 1.6dvh, 15px);
-  opacity: 0.85;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  font-size: clamp(11px, 1.6dvh, 14px);
 }
 
 .howto-item {
   display: flex;
   align-items: center;
   gap: 6px;
+  padding: 5px 12px 5px 6px;
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: 0 3px 0 rgb(43 45 66 / 0.1);
+  font-weight: 700;
 }
 
 .howto-mark {
   display: grid;
   place-items: center;
-  width: clamp(14px, 2.2dvh, 22px);
+  width: clamp(16px, 2.4dvh, 24px);
   aspect-ratio: 1;
   border-radius: 50%;
 }

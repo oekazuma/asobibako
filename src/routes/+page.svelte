@@ -10,20 +10,25 @@
 
 <main class="menu">
   <header>
-    <h1>Table Duel</h1>
-    <p>iPad をテーブルに置いて、向かい合って遊ぶ 2 人対戦ゲーム集</p>
+    <h1 class="logo sticker"><span class="a">Table</span> <span class="b">Duel</span></h1>
+    <p class="lead">iPad をテーブルに置いて、向かい合って あそぼう！</p>
   </header>
 
   <AppUpdate />
 
   <ul class="cards">
-    {#each games as game (game.id)}
-      <li>
+    {#each games as game, i (game.id)}
+      <li style:--delay="{i * 70}ms">
         <a class="card" href={resolve('/games/[id]', { id: game.id })}>
-          <span class="band" aria-hidden="true"></span>
-          <h2>{game.name}</h2>
-          <span class="desc">{game.description}</span>
-          <span class="meta">{game.players}人 ・ {game.minutes}</span>
+          <div class="thumb"><game.Thumb /></div>
+          <div class="body">
+            <h2>{game.name}</h2>
+            <p class="desc">{game.description}</p>
+            <p class="meta">
+              <span class="chip">{game.players}人</span>
+              <span class="chip">{game.minutes}</span>
+            </p>
+          </div>
         </a>
       </li>
     {/each}
@@ -36,84 +41,141 @@
     height: 100dvh;
     overflow-y: auto;
     touch-action: pan-y;
-    padding: max(32px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
-      max(32px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+    padding: max(36px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
+      max(36px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+    background:
+      radial-gradient(circle, var(--bg-dot) 3px, transparent 3.5px) 0 0 / 28px 28px,
+      var(--bg);
   }
 
   header {
     max-width: 960px;
-    margin: 0 auto 28px;
+    margin: 0 auto 24px;
     text-align: center;
   }
 
-  h1 {
-    font-size: clamp(28px, 5vw, 44px);
-    font-weight: 800;
-    letter-spacing: 0.1em;
+  .logo {
+    font-size: clamp(40px, 8vw, 72px);
+    line-height: 1.1;
   }
 
-  header p {
-    margin-top: 8px;
+  .logo .a {
+    color: var(--p1);
+  }
+
+  .logo .b {
+    color: var(--p2);
+  }
+
+  .lead {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 6px 18px;
+    border-radius: 999px;
+    background: var(--card);
+    box-shadow: 0 3px 0 var(--card-edge);
+    color: var(--ink-soft);
     font-size: clamp(13px, 2vw, 16px);
-    opacity: 0.7;
+    font-weight: 700;
   }
 
   .cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 340px));
     justify-content: center;
-    gap: 16px;
+    gap: 22px;
     max-width: 960px;
     margin: 0 auto;
     list-style: none;
   }
 
+  li {
+    animation: rise 480ms var(--spring) var(--delay) both;
+  }
+
   .card {
     display: flex;
     flex-direction: column;
-    gap: 8px;
     height: 100%;
-    padding: 0 0 18px;
     overflow: hidden;
-    border: 1px solid #262c39;
-    border-radius: 16px;
-    background: #171c26;
+    border: 4px solid #fff;
+    border-radius: 26px;
+    background: var(--card);
+    box-shadow:
+      0 8px 0 var(--card-edge),
+      0 16px 28px rgb(43 45 66 / 0.1);
     color: inherit;
     text-decoration: none;
+    transition:
+      translate 90ms,
+      box-shadow 90ms;
   }
 
   .card:active {
-    background: #1f2533;
+    translate: 0 6px;
+    box-shadow:
+      0 2px 0 var(--card-edge),
+      0 6px 14px rgb(43 45 66 / 0.1);
   }
 
-  .band {
-    height: 56px;
-    margin-bottom: 6px;
-    background: linear-gradient(to bottom, var(--zone-2) 50%, var(--zone-1) 50%);
-    box-shadow: inset 0 -28px 0 -26px rgba(255, 255, 255, 0.85);
+  .thumb {
+    display: block;
+    height: 128px;
+    border-radius: 20px 20px 0 0;
+    overflow: hidden;
   }
 
-  h2,
-  .desc,
-  .meta {
-    padding: 0 18px;
+  .body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 18px 18px;
   }
 
   h2 {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 800;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
   }
 
   .desc {
+    color: var(--ink-soft);
     font-size: 14px;
+    font-weight: 700;
     line-height: 1.6;
-    opacity: 0.8;
   }
 
   .meta {
+    display: flex;
+    gap: 6px;
     margin-top: auto;
-    font-size: 13px;
-    opacity: 0.6;
+    padding-top: 4px;
+  }
+
+  .chip {
+    padding: 3px 12px;
+    border-radius: 999px;
+    background: var(--bg);
+    color: var(--ink-soft);
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  @keyframes rise {
+    from {
+      translate: 0 24px;
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    li {
+      animation: none;
+    }
+
+    .card {
+      transition: none;
+    }
   }
 </style>

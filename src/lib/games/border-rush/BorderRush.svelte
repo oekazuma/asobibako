@@ -109,14 +109,17 @@
   }
 
   .zone.p2 {
-    background: var(--zone-2);
+    background: var(--dots), var(--zone-2);
     transform: translateY(calc((var(--b) - 1) * 100%));
   }
 
   .zone.p1 {
-    background: var(--zone-1);
+    background: var(--dots), var(--zone-1);
     transform: translateY(calc(var(--b) * 100%));
-    box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.85);
+    /* 境界線は太い白線に薄い影を添えて、明るい陣地の上でもはっきり見せる */
+    box-shadow:
+      inset 0 6px 0 #fff,
+      inset 0 10px 0 rgb(43 45 66 / 0.08);
   }
 
   @media (prefers-reduced-motion: reduce) {

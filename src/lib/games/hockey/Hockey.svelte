@@ -118,8 +118,9 @@
 
   .puck {
     height: var(--puck);
-    background: radial-gradient(circle at 35% 30%, #fff, #cfd6e4 55%, #8a93a6);
-    box-shadow: 0 3px 8px rgb(0 0 0 / 0.5);
+    border: 3px solid #fff;
+    background: radial-gradient(circle at 35% 30%, #6d7390, #2b2d42 62%);
+    box-shadow: 0 4px 0 rgb(43 45 66 / 0.25);
   }
 
   /* 得点のあと、次のパックが動き出すまでは点滅させて「まだ触れない」ことを伝える */
@@ -129,10 +130,10 @@
 
   .mallet {
     height: var(--mallet);
-    border: 5px solid rgb(255 255 255 / 0.9);
+    border: 5px solid #fff;
     box-shadow:
-      inset 0 0 0 10px rgb(0 0 0 / 0.18),
-      0 6px 14px rgb(0 0 0 / 0.45);
+      inset 0 0 0 10px rgb(0 0 0 / 0.12),
+      0 6px 0 rgb(43 45 66 / 0.22);
   }
 
   .mallet.p1 {
