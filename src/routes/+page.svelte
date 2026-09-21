@@ -1,5 +1,6 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
+  import AppUpdate from '$lib/components/AppUpdate.svelte';
   import { games } from '$lib/games';
 </script>
 
@@ -12,6 +13,8 @@
     <h1>Table Duel</h1>
     <p>iPad をテーブルに置いて、向かい合って遊ぶ 2 人対戦ゲーム集</p>
   </header>
+
+  <AppUpdate />
 
   <ul class="cards">
     {#each games as game (game.id)}

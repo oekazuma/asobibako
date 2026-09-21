@@ -1,0 +1,23 @@
+/** 新しい Service Worker を取りに行き、取り込み（オフライン用の保存）が終わってから読み直す */
+export async function updateApp(): Promise<void> {
+  const registration = await navigator.serviceWorker?.getRegistration();
+  if (registration) {
+    await registration.update();
+    const worker = registration.installing ?? registration.waiting;
+    if (worker) {
+      await new Promise<void>((done) => {
+        // 取り込みが終わらないまま待ち続けないよう、30 秒で見切って読み直す
+        const timer = setTimeout(done, 30_000);
+        worker.addEventListener('statechange', () => {
+          if (worker.state !== 'activated' && worker.state !== 'redundant') return;
+          clearTimeout(timer);
+          done();
+        });
+      });
+    }
+  } else {
+    const keys = (await caches?.keys()) ?? [];
+    await Promise.all(keys.filter((k) => k.startsWith('table-duel-')).map((k) => caches.delete(k)));
+  }
+  location.reload();
+}

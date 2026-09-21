@@ -34,6 +34,10 @@ border-rush の盤面は、境界線の移動を `transform` だけで表現し�
 
 bomb-relay と hockey は物理があるのでループで動かす。ルールと物理はそれぞれの `engine.ts` に閉じ、はじく速さは `fingers.ts` の `velocity()` で出す。hockey は速いパックと速く振ったマレットがすり抜けないよう、動く量に応じて 1 フレームを細かく分けて当たり判定し、そのあいだのマレット位置は前のフレームから補間する。爆弾の位置・脈・熱はループが DOM に直接書き、Svelte の状態にはメーター・持ち主・爆発のように変化が少ないものだけを載せる。座標は盤面の幅・高さに対する 0..1 で、距離と速さは高さを 1 とした単位に揃えている（縦向き・横向きで手触りを変えないため）。
 
+## 更新
+
+新版の検知は SvelteKit の `version.pollInterval`（5 分）と、画面が前面に戻ったときの `updated.check()`（`+layout.svelte`、1 分に 1 回まで）で行う。ホーム画面のアプリはページ遷移が少なくポーリングも止まりがちなため。一覧の `AppUpdate.svelte` は、新版があるときだけ「最新版に更新」を出し、`src/lib/pwa.ts` の `updateApp()` が新しい Service Worker の取り込みを待ってから読み直す（30 秒で見切る）。
+
 ## 入力
 
 2 人が同時に触るので、入力は必ず `pointerdown` と `pointerId` で扱う。長押しは `setPointerCapture`（合成イベントでは失敗しうるので try/catch）。`touch-action: none` と `user-select: none` を全体にかけ、iOS の長押しメニュー・選択・ダブルタップズームを封じる。
