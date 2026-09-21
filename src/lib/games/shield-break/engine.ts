@@ -25,9 +25,7 @@ export interface GameState {
 }
 
 export type ShieldEvent =
-  | { type: 'beat'; outcome: Outcome }
-  | { type: 'empty'; player: Player }
-  | { type: 'win'; player: Player };
+  { type: 'beat'; outcome: Outcome } | { type: 'empty'; player: Player } | { type: 'win'; player: Player };
 
 export const LIFE = 3;
 export const MAX_ENERGY = 3;
