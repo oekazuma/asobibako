@@ -1,4 +1,4 @@
-import type { Player } from '$lib/player';
+import { sideOf, type Player } from '$lib/player';
 
 /**
  * 座標は x が盤面の幅、y が高さに対する 0..1。
@@ -45,8 +45,6 @@ const RESPAWN_S = 1.2;
 const DROP_SPEED = 0.7;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-
-export const sideOf = (y: number): Player => (y >= 0.5 ? 1 : 2);
 
 /** 爆弾の「生きてきた長さ」。2 人が同じように見られる唯一の危険度の手がかり */
 export const heat = (bomb: Bomb) => Math.min(1, bomb.age / FUSE_MAX);

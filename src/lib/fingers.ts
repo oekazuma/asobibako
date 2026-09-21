@@ -1,5 +1,4 @@
-import type { Player } from '$lib/player';
-import { sideOf } from './engine';
+import { sideOf, type Player } from './player';
 
 export interface Sample {
   t: number;

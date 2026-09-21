@@ -1,12 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { sfx, wake } from '$lib/audio.svelte';
+  import { Fingers, velocity } from '$lib/fingers';
   import type { GameProps } from '$lib/games';
   import type { Player } from '$lib/player';
   import Blast from './Blast.svelte';
   import Bomb from './Bomb.svelte';
   import { createState, heat, moveHeld, step, throwBomb, tryCatch } from './engine';
-  import { Fingers, velocity } from './fingers';
   import Meter from './Meter.svelte';
   import { sounds } from './sounds';
 
