@@ -17,11 +17,7 @@
 
 {#snippet face(player: Player)}
   <!-- 向かい側は手前側を 180 度回した写しなので、見出しとして数えるのは手前側だけ -->
-  {#if player === 1}
-    <h1 class="title">{gameName}</h1>
-  {:else}
-    <span class="title">{gameName}</span>
-  {/if}
+  <svelte:element this={player === 1 ? 'h1' : 'span'} class="title">{gameName}</svelte:element>
   <span class="rule">自分の玉を消して境界線を押し込む</span>
   <span class="legend">
     <span class="item"><span class="mark tap"></span>タップ</span>

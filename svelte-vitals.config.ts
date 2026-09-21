@@ -1,19 +1,10 @@
 import { defineConfig } from 'svelte-vitals';
 
-// 個人用・検索対象外（noindex）の PWA なので、共有向けメタデータや SEO 配信の規則は対象外にする
 export default defineConfig({
   failOn: 'warning',
+  // 個人用・検索対象外（noindex）の PWA なので、検索結果の見え方にしか効かない SEO 規則は対象外にする
+  seo: { indexable: false },
   rules: {
-    'seo/canonical-url': 'off',
-    'seo/og-title': 'off',
-    'seo/og-description': 'off',
-    'seo/og-image': 'off',
-    'seo/og-url': 'off',
-    'seo/twitter-card': 'off',
-    'seo/json-ld': 'off',
-    'seo/sitemap-xml': 'off',
-    'seo/sitemap-in-robots': 'off',
-    'seo/description-length': 'off',
     // ディレクトリ名は kebab-case（src/lib/games/border-rush など）
     'architecture/directory-naming': {
       options: { directories: { 'src/lib/*': 'kebab-case' } }
