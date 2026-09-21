@@ -6,7 +6,9 @@ https://oekazuma.github.io/table-duel/
 
 ## 遊び方
 
-iPad を 2 人の間に置き、両方のプレイヤーが自分側の画面を長押しするとゲームが始まる。手前が**プレイヤー 1**、向かいが**プレイヤー 2**。画面の上半分は 180 度回転しているので、どちらからでも読める。
+トップ (`/`) がゲームの一覧。遊びたいゲームを選ぶと、そのゲームのタイトル画面になる。
+
+iPad を 2 人の間に置き、両方のプレイヤーが自分側の画面を長押しするとゲームが始まる。手前が**プレイヤー 1**、向かいが**プレイヤー 2**。画面の上半分は 180 度回転しているので、どちらからでも読める。タイトル画面と結果画面の左端の ✕ で一覧に戻る。
 
 Safari の共有メニューから「ホーム画面に追加」するとフルスクリーンで起動し、オフラインでも動く。
 
@@ -26,29 +28,44 @@ Safari の共有メニューから「ホーム画面に追加」するとフル�
 
 ## ゲームを追加する
 
-`src/lib/games/<id>/` にコンポーネントを置き、`src/lib/games.ts` の配列に 1 行足す。
+1 本のゲームは `src/lib/games/<id>/` に閉じる。既存のゲームのコードには触らない。
 
-```svelte
-<!-- src/lib/games/my-game/MyGame.svelte -->
-<script lang="ts">
-  import type { Player } from '$lib/games/border-rush/engine';
+1. 対戦本体のコンポーネントを置く。勝者が決まったら `onfinish(1 | 2)` を 1 回呼ぶ (1 が手前、2 が向かい)
 
-  // 勝者が決まったら onfinish(1 | 2) を呼ぶ。1 が手前、2 が向かい
-  let { onfinish }: { onfinish: (winner: Player) => void } = $props();
-</script>
-```
+   ```svelte
+   <script lang="ts">
+     import type { GameProps } from '$lib/games';
 
-```ts
-// src/lib/games.ts
-export const games: GameDef[] = [
-  { id: 'border-rush', name: 'せめぎあい', component: BorderRush },
-  { id: 'my-game', name: '表示名', component: MyGame }
-];
-```
+     let { onfinish }: GameProps = $props();
+   </script>
+   ```
 
-画面の切り替えはルート (`src/routes/+page.svelte`) が持ち、タイトルと結果の見た目は `src/lib/components/` にある。上下 2 分割のレイアウト (`.board` / `.half`) は `src/app.css` の共通クラス。ゲーム側は自分の描画と入力だけを見ればよい。
+2. タイトル画面に上下それぞれ出す遊び方を `Howto.svelte` に書く。1 行のルールと凡例くらいに留める
+3. `meta.ts` に一覧用の情報と読み込み方を書く
 
-ゲームロジックは DOM に依存しない純粋なモジュールに分け (`engine.ts`)、コンポーネントは描画と Pointer Events の処理だけを担当する。コンポーネントは 200 行未満に保つ (`architecture/component-size`)。
+   ```ts
+   import type { GameMeta } from '$lib/games';
+
+   export default {
+     id: 'my-game', // URL (/games/my-game) になるので kebab-case
+     name: '表示名',
+     description: '一覧のカードに出す 1 文',
+     players: 2,
+     minutes: '1分',
+     load: async () => ({
+       Game: (await import('./MyGame.svelte')).default,
+       Howto: (await import('./Howto.svelte')).default
+     })
+   } satisfies GameMeta;
+   ```
+
+4. `src/lib/games.ts` の `games` 配列に 1 行足す
+
+一覧のカードと `/games/<id>` のページはこれだけでできる (プリレンダーの対象も `games` 配列から作る)。ゲーム本体は遊ぶときに読み込むので、ゲームを増やしても一覧画面は重くならない。
+
+タイトル画面 (両者の長押しでスタート)・結果画面・再戦・一覧へ戻る・ミュートは `src/lib/components/GameShell.svelte` が全ゲームぶん持つ。上下 2 分割のレイアウト (`.board` / `.half`) は `src/app.css` の共通クラス。
+
+ゲームのルールは DOM に依存しない純粋なモジュールに分け (border-rush なら `engine.ts`)、コンポーネントは描画と Pointer Events の処理だけを担当する。コンポーネントは 200 行未満に保つ (`architecture/component-size`)。
 
 ## 開発
 

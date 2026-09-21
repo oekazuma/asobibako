@@ -22,17 +22,19 @@ pnpm icon                     # static/icon-180/192/512.png を再生成
 
 ## 構成
 
-ゲーム 1 本は `src/lib/games/<id>/` にまとめ、`src/lib/games.ts` の配列に登録する。ルールは DOM に依存しない `engine.ts` に閉じて vitest で検証し、`.svelte` は描画と Pointer Events の配線だけを持つ。画面の切り替えは `src/routes/+page.svelte`、タイトルと結果の見た目は `src/lib/components/` にあり、ゲームは `onfinish(1 | 2)` を呼ぶだけでよい。プレイヤー番号の型は `src/lib/player.ts`（1 が手前、2 が向かい）で、特定のゲームの engine には依存しない。
+`/` はゲーム一覧、`/games/[id]` は動的ルート 1 つで全ゲームを受ける（`+page.ts` の `entries` が `src/lib/games.ts` の `games` から全ゲームをプリレンダーする）。ゲーム 1 本は `src/lib/games/<id>/` に閉じ、対戦本体・`Howto.svelte`（タイトル画面の遊び方）・`meta.ts`（一覧用の情報と `load()`）を持つ。本体は `load()` の動的 import で遊ぶときに読み込み、一覧画面には載せない。追加は `games` 配列に 1 行足すだけで、既存のゲームには触らない。
 
-コンポーネントは 200 行未満に保つ（`architecture/component-size`、抑制コメントは使っていない）。上下 2 分割のレイアウト（`.board` / `.half` と向かい側の 180 度回転）は画面をまたぐので `src/app.css` の共通クラスに置く。
+タイトル（両者の長押しでスタート）・結果・再戦・一覧へ戻る・ミュートは `src/lib/components/GameShell.svelte` が全ゲーム共通で持ち、ゲームは `onfinish(1 | 2)` を呼ぶだけでよい。プレイヤー番号の型は `src/lib/player.ts`（1 が手前、2 が向かい）で、特定のゲームには依存しない。ルールは DOM に依存しない純粋なモジュール（border-rush なら `engine.ts`）に閉じて vitest で検証し、`.svelte` は描画と Pointer Events の配線だけを持つ。
 
-盤面は上下 2 分割で、上半分を `rotate(180deg)` する。境界線の移動は `transform` だけで表現し、レイアウトを毎フレーム起こさない。玉の寿命はタイマーを持たず、スポーンの周期で `expire()` が落とす。
+コンポーネントは 200 行未満に保つ（`architecture/component-size`、抑制コメントは使っていない）。上下 2 分割のレイアウト（`.board` / `.half` と向かい側の 180 度回転）は画面をまたぐので `src/app.css` の共通クラスに置く。全体に `touch-action: none` をかけているので、スクロールが要る一覧画面は自分をスクロール領域にして `touch-action: pan-y` を許す。
+
+border-rush の盤面は、境界線の移動を `transform` だけで表現し、レイアウトを毎フレーム起こさない。玉の寿命はタイマーを持たず、スポーンの周期で `expire()` が落とす。
 
 ## 入力
 
 2 人が同時に触るので、入力は必ず `pointerdown` と `pointerId` で扱う。長押しは `setPointerCapture`（合成イベントでは失敗しうるので try/catch）。`touch-action: none` と `user-select: none` を全体にかけ、iOS の長押しメニュー・選択・ダブルタップズームを封じる。
 
-`pointerdown` で決着させた直後は、指を離した位置に現れたボタンへ iOS Safari が合成 `click` を飛ばす。`preventDefault()` では止まらないので、画面を描画してから 350ms はボタン入力を捨てる（`src/routes/+page.svelte` の `shownAt`）。
+`pointerdown` で決着させた直後は、指を離した位置に現れたボタンへ iOS Safari が合成 `click` を飛ばす。`preventDefault()` では止まらず、リンクは SvelteKit のルーターが先に拾うので、決着から 350ms は結果画面と端のボタンを `pointer-events: none` にして当たり判定ごと消す（`GameShell.svelte` の `settling`）。
 
 机に置いて遊ぶため Wake Lock で画面を保つ。`AudioContext` は iOS では操作イベント内で `resume()` しないと無音のままなので、最初のタッチで `wake()` を呼ぶ。
 

@@ -1,82 +1,116 @@
 <script lang="ts">
-  import { sfx, wake } from '$lib/audio.svelte';
-  import ResultScreen from '$lib/components/ResultScreen.svelte';
-  import TitleScreen from '$lib/components/TitleScreen.svelte';
+  import { resolve } from '$app/paths';
   import { games } from '$lib/games';
-  import type { Player } from '$lib/player';
-
-  const game = games[0];
-  const Game = game.component;
-
-  let screen = $state<'title' | 'playing' | 'result'>('title');
-  let winner = $state<Player>(1);
-  let round = $state(0);
-  /** 決着タップで指を離した位置にボタンが現れると合成 click が着弾してしまう */
-  let shownAt = $state(0);
-
-  const ready = $state<Record<Player, boolean>>({ 1: false, 2: false });
-  const pads: Record<Player, Set<number>> = { 1: new Set(), 2: new Set() };
-
-  /** 合成イベントや既に解放されたポインタでは失敗するが、掴み自体は続行してよい */
-  function capture(event: PointerEvent) {
-    try {
-      (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-    } catch {
-      // noop
-    }
-  }
-
-  function padDown(event: PointerEvent, player: Player) {
-    event.preventDefault();
-    wake();
-    capture(event);
-    pads[player].add(event.pointerId);
-    ready[player] = true;
-    // マウスは同時に1点しか置けないので、PC では片側を押しただけで始められるようにする
-    if (event.pointerType === 'mouse') ready[1] = ready[2] = true;
-  }
-
-  function padUp(event: PointerEvent, player: Player) {
-    pads[player].delete(event.pointerId);
-    ready[player] = pads[player].size > 0;
-    if (event.pointerType === 'mouse') ready[1] = ready[2] = false;
-  }
-
-  function start() {
-    sfx.start();
-    ready[1] = ready[2] = false;
-    pads[1].clear();
-    pads[2].clear();
-    round += 1;
-    screen = 'playing';
-  }
-
-  function finish(won: Player) {
-    winner = won;
-    shownAt = Date.now();
-    screen = 'result';
-  }
-
-  function again() {
-    if (Date.now() - shownAt < 350) return;
-    start();
-  }
-
-  $effect(() => {
-    if (screen !== 'title' || !ready[1] || !ready[2]) return;
-    const t = setTimeout(start, 550);
-    return () => clearTimeout(t);
-  });
 </script>
 
-<main class="board">
-  {#if screen === 'playing'}
-    {#key round}
-      <Game onfinish={finish} />
-    {/key}
-  {:else if screen === 'title'}
-    <TitleScreen gameName={game.name} {ready} onpaddown={padDown} onpadup={padUp} />
-  {:else}
-    <ResultScreen {winner} onagain={again} />
-  {/if}
+<svelte:head>
+  <title>Table Duel — iPad をはさんで 2 人で遊ぶ対戦ゲーム集</title>
+</svelte:head>
+
+<main class="menu">
+  <header>
+    <h1>Table Duel</h1>
+    <p>iPad をテーブルに置いて、向かい合って遊ぶ 2 人対戦ゲーム集</p>
+  </header>
+
+  <ul class="cards">
+    {#each games as game (game.id)}
+      <li>
+        <a class="card" href={resolve('/games/[id]', { id: game.id })}>
+          <span class="band" aria-hidden="true"></span>
+          <h2>{game.name}</h2>
+          <span class="desc">{game.description}</span>
+          <span class="meta">{game.players}人 ・ {game.minutes}</span>
+        </a>
+      </li>
+    {/each}
+  </ul>
 </main>
+
+<style>
+  /* 全体は touch-action: none なので、一覧だけは自分をスクロール領域にして縦スクロールを許す */
+  .menu {
+    height: 100dvh;
+    overflow-y: auto;
+    touch-action: pan-y;
+    padding: max(32px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
+      max(32px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  }
+
+  header {
+    max-width: 960px;
+    margin: 0 auto 28px;
+    text-align: center;
+  }
+
+  h1 {
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 800;
+    letter-spacing: 0.1em;
+  }
+
+  header p {
+    margin-top: 8px;
+    font-size: clamp(13px, 2vw, 16px);
+    opacity: 0.7;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 340px));
+    justify-content: center;
+    gap: 16px;
+    max-width: 960px;
+    margin: 0 auto;
+    list-style: none;
+  }
+
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+    padding: 0 0 18px;
+    overflow: hidden;
+    border: 1px solid #262c39;
+    border-radius: 16px;
+    background: #171c26;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .card:active {
+    background: #1f2533;
+  }
+
+  .band {
+    height: 56px;
+    margin-bottom: 6px;
+    background: linear-gradient(to bottom, var(--zone-2) 50%, var(--zone-1) 50%);
+    box-shadow: inset 0 -28px 0 -26px rgba(255, 255, 255, 0.85);
+  }
+
+  h2,
+  .desc,
+  .meta {
+    padding: 0 18px;
+  }
+
+  h2 {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+  }
+
+  .desc {
+    font-size: 14px;
+    line-height: 1.6;
+    opacity: 0.8;
+  }
+
+  .meta {
+    margin-top: auto;
+    font-size: 13px;
+    opacity: 0.6;
+  }
+</style>
