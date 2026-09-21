@@ -84,3 +84,30 @@ button.half {
     transition: none;
   }
 }
+
+/* タイトル画面の遊び方（各ゲームの Howto.svelte）。記号の見た目だけは各ゲームが持つ */
+.howto-rule {
+  font-size: clamp(12px, 1.9dvh, 17px);
+  opacity: 0.75;
+}
+
+.howto-legend {
+  display: flex;
+  gap: clamp(12px, 3vw, 28px);
+  font-size: clamp(11px, 1.6dvh, 15px);
+  opacity: 0.85;
+}
+
+.howto-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.howto-mark {
+  display: grid;
+  place-items: center;
+  width: clamp(14px, 2.2dvh, 22px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+}

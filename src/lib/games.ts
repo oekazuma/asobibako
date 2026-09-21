@@ -1,4 +1,5 @@
 import type { Component } from 'svelte';
+import bombRelay from './games/bomb-relay/meta';
 import borderRush from './games/border-rush/meta';
 import type { Player } from './player';
 
@@ -24,4 +25,4 @@ export interface GameMeta {
   load: () => Promise<GameModule>;
 }
 
-export const games: GameMeta[] = [borderRush];
+export const games: GameMeta[] = [borderRush, bombRelay];

@@ -27,7 +27,8 @@ export function wake(): void {
   if (ctx.state === 'suspended') void ctx.resume();
 }
 
-function tone(freq: number, ms: number, type: OscillatorType = 'triangle', gain = 0.14, delay = 0) {
+/** 各ゲームの効果音はこの部品を組み合わせて、ゲームのフォルダ側で定義する */
+export function tone(freq: number, ms: number, type: OscillatorType = 'triangle', gain = 0.14, delay = 0) {
   if (!ctx || audio.muted) return;
   const at = ctx.currentTime + delay / 1000;
   const osc = ctx.createOscillator();
@@ -39,6 +40,36 @@ function tone(freq: number, ms: number, type: OscillatorType = 'triangle', gain 
   osc.connect(amp).connect(ctx.destination);
   osc.start(at);
   osc.stop(at + ms / 1000);
+}
+
+/** 周波数を from から to へ滑らせる（投げる・吹き飛ぶ音） */
+export function sweep(from: number, to: number, ms: number, gain = 0.12) {
+  if (!ctx || audio.muted) return;
+  const at = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const amp = ctx.createGain();
+  osc.frequency.setValueAtTime(from, at);
+  osc.frequency.exponentialRampToValueAtTime(to, at + ms / 1000);
+  amp.gain.setValueAtTime(gain, at);
+  amp.gain.exponentialRampToValueAtTime(0.0001, at + ms / 1000);
+  osc.connect(amp).connect(ctx.destination);
+  osc.start(at);
+  osc.stop(at + ms / 1000);
+}
+
+/** 減衰するホワイトノイズ（爆発音） */
+export function noise(ms: number, gain = 0.3) {
+  if (!ctx || audio.muted) return;
+  const length = Math.floor((ctx.sampleRate * ms) / 1000);
+  const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / length) ** 2;
+  const src = ctx.createBufferSource();
+  const amp = ctx.createGain();
+  src.buffer = buffer;
+  amp.gain.value = gain;
+  src.connect(amp).connect(ctx.destination);
+  src.start();
 }
 
 export const sfx = {

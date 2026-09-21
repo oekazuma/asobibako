@@ -30,11 +30,13 @@ pnpm icon                     # static/icon-180/192/512.png を再生成
 
 border-rush の盤面は、境界線の移動を `transform` だけで表現し、レイアウトを毎フレーム起こさない。玉の寿命はタイマーを持たず、スポーンの周期で `expire()` が落とす。
 
+bomb-relay は物理があるので `requestAnimationFrame` のループで動かす。ルールと物理は `engine.ts`、指の追跡とはじく速さの計算は `fingers.ts` に分けてある。爆弾の位置・脈・熱はループが DOM に直接書き、Svelte の状態にはメーター・持ち主・爆発のように変化が少ないものだけを載せる。座標は盤面の幅・高さに対する 0..1 で、距離と速さは高さを 1 とした単位に揃えている（縦向き・横向きで手触りを変えないため）。
+
 ## 入力
 
 2 人が同時に触るので、入力は必ず `pointerdown` と `pointerId` で扱う。長押しは `setPointerCapture`（合成イベントでは失敗しうるので try/catch）。`touch-action: none` と `user-select: none` を全体にかけ、iOS の長押しメニュー・選択・ダブルタップズームを封じる。
 
-`pointerdown` で決着させた直後は、指を離した位置に現れたボタンへ iOS Safari が合成 `click` を飛ばす。`preventDefault()` では止まらず、リンクは SvelteKit のルーターが先に拾うので、決着から 350ms は結果画面と端のボタンを `pointer-events: none` にして当たり判定ごと消す（`GameShell.svelte` の `settling`）。
+決着した指を離した位置に結果画面のボタンが現れると、iOS Safari はそこへ合成 `click` を飛ばす。`preventDefault()` では止まらず、リンクは SvelteKit のルーターが先に拾う。そこで決着後は、画面上の指がすべて離れてから 350ms（取りこぼしに備えて最長 3 秒）経つまで、結果画面と端のボタンを `pointer-events: none` にして当たり判定ごと消す（`GameShell.svelte` の `settling`）。爆弾を握ったまま勝つゲームもあるので、決着の時刻からではなく指が離れた時刻から数える。
 
 机に置いて遊ぶため Wake Lock で画面を保つ。`AudioContext` は iOS では操作イベント内で `resume()` しないと無音のままなので、最初のタッチで `wake()` を呼ぶ。
 

@@ -7,7 +7,7 @@
 {#each [2, 1] as const as player (player)}
   <div class="half result p{player}" class:won={winner === player}>
     <span class="outcome" role="status">{winner === player ? 'WIN' : 'LOSE'}</span>
-    <span class="sub">{winner === player ? '相手を押し切った' : '押し切られた'}</span>
+    <span class="sub">{winner === player ? 'あなたの かち！' : 'あなたの まけ'}</span>
     <button class="again" onclick={onagain}>もう一度</button>
   </div>
 {/each}
