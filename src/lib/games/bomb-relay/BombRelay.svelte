@@ -1,8 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { sfx, wake } from '$lib/audio.svelte';
-  import { Fingers, velocity } from '$lib/fingers';
+  import { sfx } from '$lib/audio.svelte';
+  import { BoardInput } from '$lib/board-input';
+  import { velocity } from '$lib/fingers';
   import type { GameProps } from '$lib/games';
+  import { animate } from '$lib/loop';
   import type { Player } from '$lib/player';
   import Blast from './Blast.svelte';
   import Bomb from './Bomb.svelte';
@@ -20,51 +22,27 @@
   let boom = $state<{ id: number; side: Player; x: number; y: number } | null>(null);
 
   const game = createState(1);
-  const fingers = new Fingers();
   /** 爆弾を持っている指の pointerId */
   let holder: number | null = null;
-  let rect = { left: 0, top: 0, width: 1, height: 1 };
   let beat = 0;
 
-  const toBoard = (e: PointerEvent) => ({
-    x: (e.clientX - rect.left) / rect.width,
-    y: (e.clientY - rect.top) / rect.height
-  });
-
-  function down(e: PointerEvent) {
-    e.preventDefault();
-    wake();
-    try {
-      board.setPointerCapture(e.pointerId);
-    } catch {
-      // 合成イベントでは捕捉できないが、指の追跡自体は続けられる
+  const input = new BoardInput({
+    up: (e, finger) => {
+      if (e.pointerId !== holder) return;
+      holder = null;
+      heldBy = null;
+      // OS のジェスチャーで取り上げられた指は、はじいたことにしない
+      const { vx, vy } = e.type === 'pointercancel' ? { vx: 0, vy: 0 } : velocity(finger.trail);
+      if (throwBomb(game, vx, vy) > 1) sounds.throw();
     }
-    const p = toBoard(e);
-    fingers.down(e.pointerId, p.x, p.y, e.timeStamp);
-  }
-
-  function move(e: PointerEvent) {
-    const p = toBoard(e);
-    fingers.move(e.pointerId, p.x, p.y, e.timeStamp);
-  }
-
-  function up(e: PointerEvent) {
-    const p = toBoard(e);
-    const finger = fingers.up(e.pointerId, p.x, p.y, e.timeStamp);
-    if (!finger || e.pointerId !== holder) return;
-    holder = null;
-    heldBy = null;
-    // OS のジェスチャーで取り上げられた指は、はじいたことにしない
-    const { vx, vy } = e.type === 'pointercancel' ? { vx: 0, vy: 0 } : velocity(finger.trail);
-    if (throwBomb(game, vx, vy) > 1) sounds.throw();
-  }
+  });
 
   function frame(dt: number) {
     if (holder !== null) {
-      const finger = fingers.all.get(holder);
+      const finger = input.fingers.all.get(holder);
       if (finger) moveHeld(game, finger.x, finger.y);
     } else if (game.bomb) {
-      for (const [id, finger] of fingers.all) {
+      for (const [id, finger] of input.fingers.all) {
         if (!tryCatch(game, finger.side, finger.x, finger.y)) continue;
         holder = id;
         heldBy = finger.side;
@@ -99,31 +77,17 @@
     beat += dt * (1.2 + 5 * h);
     if (Math.floor(beat) !== before) sounds.tick(h);
     const pulse = 1 + (0.04 + 0.1 * h) * Math.max(0, Math.sin((beat % 1) * Math.PI));
-    bombEl.style.transform = `translate(${bomb.x * rect.width}px, ${bomb.y * rect.height}px) translate(-50%, -50%) scale(${pulse})`;
+    const [px, py] = input.px(bomb.x, bomb.y);
+    bombEl.style.transform = `translate(${px}px, ${py}px) translate(-50%, -50%) scale(${pulse})`;
     bombEl.style.setProperty('--heat', h.toFixed(3));
   }
 
   onMount(() => {
-    const measure = () => {
-      rect = board.getBoundingClientRect();
-      game.aspect = rect.width / rect.height;
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(board);
-
-    let raf = 0;
-    let last = performance.now();
-    const loop = (now: number) => {
-      // タブが裏に回った復帰直後などに、爆弾が一気にワープしないよう 1 フレームの長さを抑える
-      frame(Math.min(0.05, (now - last) / 1000));
-      last = now;
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
+    const unobserve = input.observe(board, (aspect) => (game.aspect = aspect));
+    const stop = animate(frame);
     return () => {
-      cancelAnimationFrame(raf);
-      observer.disconnect();
+      stop();
+      unobserve();
     };
   });
 
@@ -133,10 +97,10 @@
 <div
   class="board"
   bind:this={board}
-  onpointerdown={down}
-  onpointermove={move}
-  onpointerup={up}
-  onpointercancel={up}
+  onpointerdown={input.down}
+  onpointermove={input.move}
+  onpointerup={input.up}
+  onpointercancel={input.up}
   role="application"
   aria-label="ばくだんリレーの盤面"
 >

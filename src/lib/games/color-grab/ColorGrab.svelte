@@ -1,13 +1,14 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { sfx, wake } from '$lib/audio.svelte';
-  import { Fingers } from '$lib/fingers';
+  import { sfx } from '$lib/audio.svelte';
+  import { BoardInput } from '$lib/board-input';
+  import Pips from '$lib/components/Pips.svelte';
   import type { GameProps } from '$lib/games';
+  import { animate } from '$lib/loop';
   import type { Player } from '$lib/player';
   import Chip from './Chip.svelte';
-  import { BAND, createState, drop, grab, moveChip, step } from './engine';
+  import { BAND, createState, drop, GOAL, grab, moveChip, step } from './engine';
   import { NAME } from './palette';
-  import Pips from './Pips.svelte';
   import { sounds } from './sounds';
   import Target from './Target.svelte';
 
@@ -17,73 +18,40 @@
   const game = $state(createState(1, performance.now()));
   let flash = $state<{ id: number; player: Player; good: boolean } | null>(null);
 
-  const fingers = new Fingers();
-  let rect = { left: 0, top: 0, width: 1, height: 1 };
-
-  const toBoard = (e: PointerEvent) => ({
-    x: (e.clientX - rect.left) / rect.width,
-    y: (e.clientY - rect.top) / rect.height
+  const input = new BoardInput({
+    down: (e) => {
+      const id = Number((e.target as HTMLElement).closest<HTMLElement>('[data-chip]')?.dataset.chip);
+      if (id && grab(game, id, e.pointerId)) sounds.grab();
+    },
+    up: (e, _finger, x, y) => {
+      const chip = game.chips.find((c) => c.heldBy === e.pointerId);
+      if (!chip) return;
+      moveChip(game, chip.id, x, y);
+      const result = drop(game, chip.id);
+      if (result?.type === 'claim') {
+        flash = { id: (flash?.id ?? 0) + 1, player: result.player, good: result.good };
+        if (result.good) sounds.good();
+        else sounds.bad();
+      } else if (result?.type === 'win') {
+        sfx.finish();
+        onfinish(result.player);
+      }
+    }
   });
 
-  function down(e: PointerEvent) {
-    e.preventDefault();
-    wake();
-    try {
-      board.setPointerCapture(e.pointerId);
-    } catch {
-      // 合成イベントでは捕捉できないが、指の追跡自体は続けられる
-    }
-    const p = toBoard(e);
-    fingers.down(e.pointerId, p.x, p.y, e.timeStamp);
-    const id = Number((e.target as HTMLElement).closest<HTMLElement>('[data-chip]')?.dataset.chip);
-    if (id && grab(game, id, e.pointerId)) sounds.grab();
-  }
-
-  function move(e: PointerEvent) {
-    const p = toBoard(e);
-    fingers.move(e.pointerId, p.x, p.y, e.timeStamp);
-  }
-
-  function up(e: PointerEvent) {
-    const p = toBoard(e);
-    fingers.up(e.pointerId, p.x, p.y, e.timeStamp);
-    const chip = game.chips.find((c) => c.heldBy === e.pointerId);
-    if (!chip) return;
-    moveChip(game, chip.id, p.x, p.y);
-    const result = drop(game, chip.id);
-    if (result?.type === 'claim') {
-      flash = { id: (flash?.id ?? 0) + 1, player: result.player, good: result.good };
-      if (result.good) sounds.good();
-      else sounds.bad();
-    } else if (result?.type === 'win') {
-      sfx.finish();
-      onfinish(result.player);
-    }
-  }
-
   onMount(() => {
-    const measure = () => {
-      rect = board.getBoundingClientRect();
-      game.aspect = rect.width / rect.height;
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(board);
-
-    let raf = 0;
-    const loop = (now: number) => {
+    const unobserve = input.observe(board, (aspect) => (game.aspect = aspect));
+    const stop = animate((_dt, now) => {
       for (const chip of game.chips) {
         if (chip.heldBy === null) continue;
-        const finger = fingers.all.get(chip.heldBy);
+        const finger = input.fingers.all.get(chip.heldBy);
         if (finger) moveChip(game, chip.id, finger.x, finger.y);
       }
       if (step(game, now)?.type === 'target') sounds.target();
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
+    });
     return () => {
-      cancelAnimationFrame(raf);
-      observer.disconnect();
+      stop();
+      unobserve();
     };
   });
 </script>
@@ -91,10 +59,10 @@
 <div
   class="board"
   bind:this={board}
-  onpointerdown={down}
-  onpointermove={move}
-  onpointerup={up}
-  onpointercancel={up}
+  onpointerdown={input.down}
+  onpointermove={input.move}
+  onpointerup={input.up}
+  onpointercancel={input.up}
   role="application"
   aria-label="いろとりの盤面"
   style:--band-top="{BAND[0] * 100}%"
@@ -116,8 +84,8 @@
     <Chip {chip} />
   {/each}
 
-  <Pips player={2} score={game.scores[2]} />
-  <Pips player={1} score={game.scores[1]} />
+  <Pips player={2} score={game.scores[2]} goal={GOAL} />
+  <Pips player={1} score={game.scores[1]} goal={GOAL} />
 
   <p class="sr-only" role="status">
     お題は{NAME[game.target]}。手前 {game.scores[1]}点、向かい {game.scores[2]}点

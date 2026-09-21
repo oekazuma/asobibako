@@ -2,6 +2,7 @@ import type { Component } from 'svelte';
 import bombRelay from './games/bomb-relay/meta';
 import borderRush from './games/border-rush/meta';
 import colorGrab from './games/color-grab/meta';
+import hockey from './games/hockey/meta';
 import type { Player } from './player';
 
 export interface GameProps {
@@ -26,4 +27,4 @@ export interface GameMeta {
   load: () => Promise<GameModule>;
 }
 
-export const games: GameMeta[] = [borderRush, bombRelay, colorGrab];
+export const games: GameMeta[] = [borderRush, bombRelay, colorGrab, hockey];

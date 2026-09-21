@@ -1,13 +1,18 @@
 <script lang="ts">
   import type { Player } from '$lib/player';
-  import { GOAL } from './engine';
 
-  let { player, score }: { player: Player; score: number } = $props();
+  /** corner: 辺の中央ではなく、各プレイヤーから見て左の隅に寄せる（辺の中央をゴールなどに使うゲーム向け） */
+  let {
+    player,
+    score,
+    goal,
+    corner = false
+  }: { player: Player; score: number; goal: number; corner?: boolean } = $props();
 </script>
 
 <!-- 各プレイヤーの手元の辺に、取った数を丸で並べる。向かい側は 180 度回す -->
-<div class="pips p{player}">
-  {#each Array.from({ length: GOAL }, (_, i) => i) as i (i)}
+<div class="pips p{player}" class:corner>
+  {#each Array.from({ length: goal }, (_, i) => i) as i (i)}
     <span class="pip" class:on={i < score}></span>
   {/each}
 </div>
@@ -28,6 +33,18 @@
   .pips.p2 {
     top: max(16px, env(safe-area-inset-top));
     rotate: 180deg;
+  }
+
+  /* 向かい側は 180 度回しているので、その人から見た左は画面の右になる */
+  .corner.p1 {
+    left: max(16px, env(safe-area-inset-left));
+    translate: none;
+  }
+
+  .corner.p2 {
+    left: auto;
+    right: max(16px, env(safe-area-inset-right));
+    translate: none;
   }
 
   .pip {
