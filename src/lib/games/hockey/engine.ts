@@ -52,8 +52,8 @@ export const PUCK_R = 0.035;
 export const MALLET_R = 0.055;
 /** ゴールの口の幅（盤面の幅に対する割合） */
 export const GOAL_W = 0.4;
-/** 1 人が同時に使えるマレットの数。これ以上の指は無視し、指を並べて壁にできないようにする */
-export const MALLETS_PER_PLAYER = 2;
+/** 1 人が使えるマレットの数。先に置いた指だけがマレットになり、ほかの指は無視する */
+export const MALLETS_PER_PLAYER = 1;
 
 const MAX_SPEED = 2.8;
 const MAX_MALLET_SPEED = 6;
@@ -93,7 +93,8 @@ export function clampMallet(state: GameState, player: Player, x: number, y: numb
 }
 
 /**
- * 盤面に置かれている指からマレットを作り直す。各プレイヤーの先に置いた 2 本だけを使う。
+ * 盤面に置かれている指からマレットを作り直す。各プレイヤーの先に置いた指だけを使い、
+ * その指を離せば、同じ陣地に残っている次の指がマレットになる。
  * 速さは前のフレームからの移動で出す
  */
 export function updateMallets(state: GameState, fingers: Iterable<Finger>, dt: number): void {

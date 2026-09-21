@@ -66,7 +66,7 @@ describe('hockey engine', () => {
     expect(y2).toBeLessThan(0.5);
   });
 
-  it(`1 人 ${MALLETS_PER_PLAYER} 本まで。それ以上の指はマレットにならない`, () => {
+  it('マレットは 1 人 1 本。先に置いた指だけがマレットになる', () => {
     const state = createState(1);
     updateMallets(
       state,
@@ -74,11 +74,30 @@ describe('hockey engine', () => {
         { id: 1, side: 1, x: 0.2, y: 0.8 },
         { id: 2, side: 1, x: 0.5, y: 0.8 },
         { id: 3, side: 1, x: 0.8, y: 0.8 },
-        { id: 4, side: 2, x: 0.5, y: 0.2 }
+        { id: 4, side: 2, x: 0.5, y: 0.2 },
+        { id: 5, side: 2, x: 0.8, y: 0.2 }
       ],
       1 / 60
     );
-    expect(state.mallets.map((m) => m.id)).toEqual([1, 2, 4]);
+    expect(MALLETS_PER_PLAYER).toBe(1);
+    expect(state.mallets.map((m) => m.id)).toEqual([1, 4]);
+  });
+
+  it('マレットの指を離すと、同じ陣地に残っている指が次のマレットになる', () => {
+    const state = createState(1);
+    updateMallets(
+      state,
+      [
+        { id: 1, side: 1, x: 0.2, y: 0.8 },
+        { id: 2, side: 1, x: 0.8, y: 0.8 }
+      ],
+      1 / 60
+    );
+    updateMallets(state, [{ id: 2, side: 1, x: 0.8, y: 0.8 }], 1 / 60);
+    expect(state.mallets.map((m) => m.id)).toEqual([2]);
+    // 新しくマレットになった指は、その場に置いたのと同じ扱いで、勢いは持たない
+    expect(state.mallets[0].vx).toBe(0);
+    expect(state.mallets[0].vy).toBe(0);
   });
 
   it(`${GOAL} 点で勝ち、それ以降は動かない`, () => {
