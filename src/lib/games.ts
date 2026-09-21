@@ -4,6 +4,7 @@ import borderRush from './games/border-rush/meta';
 import bugRush from './games/bug-rush/meta';
 import fishPull from './games/fish-pull/meta';
 import hockey from './games/hockey/meta';
+import lightning from './games/lightning/meta';
 import type { Player } from './player';
 
 export interface GameProps {
@@ -30,4 +31,4 @@ export interface GameMeta {
   load: () => Promise<GameModule>;
 }
 
-export const games: GameMeta[] = [borderRush, bombRelay, hockey, fishPull, bugRush];
+export const games: GameMeta[] = [borderRush, bombRelay, hockey, fishPull, bugRush, lightning];
