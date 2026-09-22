@@ -4,20 +4,22 @@
   import { BoardInput } from '$lib/board-input';
   import type { SoloProps } from '$lib/games';
   import { animate } from '$lib/loop';
-  import { createState, step, WORLD_H, WORLD_W, type CampEvent } from './engine';
+  import { createState, step, type CampEvent } from './engine';
   import { CampFx } from './effects';
-  import { ground, paint } from './paint';
+  import { overlay } from './overlay';
+  import { CampWorld } from './world3d';
   import { sounds } from './sounds';
 
   let { level, onfinish }: SoloProps = $props();
 
-  /** 画面の幅に映す雪原の幅。キャンプの端のパッドまで見えるよう、横は全部映して縦だけ追いかける */
-  const VIEW_W = WORLD_W;
   /** 指をこれだけ（ピクセル）ずらすと全速力 */
   const STICK = 60;
   let board: HTMLDivElement;
+  /** 3D の雪原と、その上に文字・火花・雪を重ねる 2D の canvas */
+  let gl: HTMLCanvasElement;
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D | null = null;
+  let world: CampWorld | undefined;
   // level はゲームごと作り直されるので、最初の値だけ使えばよい
   const fresh = () => createState(level);
   const game = fresh();
@@ -26,8 +28,6 @@
   /** 仮想スティック。指を置いた位置からずらした向きへ歩く */
   let stick: { id: number; x: number; y: number } | null = null;
   const fx = new CampFx();
-  /** 動かない地面は、大きさが変わったときだけ描き直す */
-  let bg: HTMLCanvasElement | undefined;
   let now = 0;
 
   const input = new BoardInput({
@@ -46,13 +46,7 @@
     canvas.width = Math.round(w * devicePixelRatio);
     canvas.height = Math.round(h * devicePixelRatio);
     ctx = canvas.getContext('2d');
-    const scale = (w / VIEW_W) * devicePixelRatio;
-    bg ??= document.createElement('canvas');
-    bg.width = Math.round(WORLD_W * scale);
-    bg.height = Math.round(WORLD_H * scale);
-    const b = bg.getContext('2d')!;
-    b.scale(scale, scale);
-    ground(b);
+    world?.resize(w, h);
   }
 
   function stickVector() {
@@ -87,21 +81,15 @@
     if (goal !== home.cost - home.paid) goal = home.cost - home.paid;
     if (!ctx) return;
     const [w, h] = input.px(1, 1);
-    const scale = w / VIEW_W;
-    const halfH = h / scale / 2;
-    const cam = {
-      x: Math.min(WORLD_W - VIEW_W / 2, Math.max(VIEW_W / 2, game.hero.x)),
-      y: Math.min(WORLD_H - halfH, Math.max(halfH, game.hero.y)),
-      scale
-    };
+    world?.update(game, dt, now, move);
+    world?.render();
     ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
     ctx.clearRect(0, 0, w, h);
-    paint(ctx, game, w, h, cam, bg, now, move.x !== 0 || move.y !== 0);
-    ctx.save();
-    ctx.translate(w / 2 - cam.x * scale, h / 2 - cam.y * scale);
-    ctx.scale(scale, scale);
-    fx.drawWorld(ctx);
-    ctx.restore();
+    if (world) {
+      const to = (x: number, y: number, z: number) => world!.project(x, y, z, w, h);
+      overlay(ctx, game, to);
+      fx.drawWorld(ctx, (x, y) => to(x, y, 0.08));
+    }
     fx.drawSnow(ctx, w, h);
     if (stick) {
       ctx.beginPath();
@@ -116,11 +104,13 @@
   }
 
   onMount(() => {
+    world = new CampWorld(gl, game);
     const unobserve = input.observe(board, resize);
     const stop = animate(frame);
     return () => {
       stop();
       unobserve();
+      world?.dispose();
     };
   });
 </script>
@@ -135,6 +125,7 @@
   role="application"
   aria-label="雪原サバイバルの雪原"
 >
+  <canvas bind:this={gl}></canvas>
   <canvas bind:this={canvas}></canvas>
   <div class="hud">
     <span class="chip sticker">レベル {level}</span>

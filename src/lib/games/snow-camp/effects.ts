@@ -1,4 +1,4 @@
-import { Floaters, Particles } from '$lib/fx';
+import { Floaters, Particles, type Projector } from '$lib/fx';
 import { FIRE, MONEY, type CampEvent, type GameState } from './engine';
 
 const CONFETTI = ['#ffc233', '#1f9bff', '#ff4d5e', '#58c46b'];
@@ -87,10 +87,10 @@ export class CampFx {
     }
   }
 
-  /** ctx は雪原の座標で描ける変換にしておく */
-  drawWorld(ctx: CanvasRenderingContext2D): void {
-    this.particles.draw(ctx);
-    this.floaters.draw(ctx);
+  /** to は雪原の位置を画面へ写す関数 */
+  drawWorld(ctx: CanvasRenderingContext2D, to: Projector): void {
+    this.particles.draw(ctx, to);
+    this.floaters.draw(ctx, to);
   }
 
   /** ctx は画面のピクセル */

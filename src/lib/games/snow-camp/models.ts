@@ -1,0 +1,164 @@
+import * as THREE from 'three';
+
+/**
+ * 雪原の 3D の部品。座標は雪原の単位のまま（x が横、z が雪原の y、y が高さ）。
+ * 絵文字や画像は使わず、球・円柱・円すいなどの組み合わせで作る
+ */
+
+const materials = new Map<string, THREE.MeshStandardMaterial>();
+
+export function mat(color: string, extra: THREE.MeshStandardMaterialParameters = {}) {
+  const key = color + JSON.stringify(extra);
+  let m = materials.get(key);
+  if (!m) {
+    m = new THREE.MeshStandardMaterial({ color, roughness: 0.75, ...extra });
+    materials.set(key, m);
+  }
+  return m;
+}
+
+function mesh(geometry: THREE.BufferGeometry, color: string, x = 0, y = 0, z = 0, extra = {}) {
+  const m = new THREE.Mesh(geometry, mat(color, extra));
+  m.position.set(x, y, z);
+  m.castShadow = true;
+  return m;
+}
+
+const sphere = (r: number) => new THREE.SphereGeometry(r, 20, 14);
+const cyl = (r1: number, r2: number, h: number, seg = 16) => new THREE.CylinderGeometry(r1, r2, h, seg);
+
+/** 帽子とマフラーの主人公。legs は歩くときに振る */
+export function person(coat: string, hat: string) {
+  const g = new THREE.Group();
+  const legs: THREE.Mesh[] = [];
+  for (const dx of [-0.012, 0.012]) {
+    const leg = mesh(cyl(0.009, 0.009, 0.035), '#3b3f5c', dx, 0.018, 0);
+    legs.push(leg);
+    g.add(leg);
+  }
+  g.add(mesh(new THREE.CapsuleGeometry(0.024, 0.03, 6, 14), coat, 0, 0.06, 0));
+  g.add(mesh(new THREE.TorusGeometry(0.018, 0.007, 8, 18), '#ff4d5e', 0, 0.083, 0).rotateX(Math.PI / 2));
+  g.add(mesh(sphere(0.022), '#ffd7b5', 0, 0.105, 0));
+  for (const dx of [-0.008, 0.008]) g.add(mesh(sphere(0.0035), '#2b2d42', dx, 0.108, 0.02));
+  g.add(mesh(cyl(0.004, 0.023, 0.03), hat, 0, 0.13, 0));
+  g.add(mesh(sphere(0.008), '#ffffff', 0, 0.147, 0));
+  return { group: g, legs };
+}
+
+export function bear() {
+  const g = new THREE.Group();
+  const fur = '#8a5a3b';
+  g.add(mesh(sphere(0.05).scale(1, 0.85, 1.2), fur, 0, 0.055, 0));
+  for (const [dx, dz] of [
+    [-0.03, -0.035],
+    [0.03, -0.035],
+    [-0.03, 0.035],
+    [0.03, 0.035]
+  ])
+    g.add(mesh(cyl(0.013, 0.013, 0.03), fur, dx, 0.015, dz));
+  g.add(mesh(sphere(0.034), fur, 0, 0.1, 0.05));
+  g.add(mesh(sphere(0.016).scale(1, 0.8, 1), '#d9b38c', 0, 0.093, 0.08));
+  g.add(mesh(sphere(0.006), '#2b2d42', 0, 0.098, 0.095));
+  for (const dx of [-0.013, 0.013]) g.add(mesh(sphere(0.005), '#2b2d42', dx, 0.11, 0.078));
+  for (const dx of [-0.024, 0.024]) g.add(mesh(sphere(0.012), fur, dx, 0.13, 0.045));
+  return g;
+}
+
+export function rabbit() {
+  const g = new THREE.Group();
+  const fur = '#e2c9a6';
+  g.add(mesh(sphere(0.028).scale(1, 0.9, 1.15), fur, 0, 0.03, 0));
+  g.add(mesh(sphere(0.02), fur, 0, 0.058, 0.025));
+  for (const dx of [-0.009, 0.009]) {
+    g.add(mesh(new THREE.CapsuleGeometry(0.006, 0.03, 4, 8), fur, dx, 0.09, 0.02));
+    g.add(mesh(sphere(0.004), '#2b2d42', dx * 1.1, 0.062, 0.043));
+  }
+  g.add(mesh(sphere(0.004), '#ff8fa3', 0, 0.056, 0.045));
+  g.add(mesh(sphere(0.01), fur, 0, 0.035, -0.032));
+  return g;
+}
+
+/** 骨付き肉 */
+export function meat(scale = 1) {
+  const g = new THREE.Group();
+  g.add(mesh(sphere(0.02).scale(1.3, 1, 1), '#c2542b', 0, 0, 0));
+  const bone = mesh(cyl(0.005, 0.005, 0.03), '#fff8ec', 0.03, 0, 0);
+  bone.rotation.z = Math.PI / 2;
+  g.add(bone);
+  g.add(mesh(sphere(0.007), '#fff8ec', 0.046, 0.005, 0));
+  g.add(mesh(sphere(0.007), '#fff8ec', 0.046, -0.005, 0));
+  g.scale.setScalar(scale);
+  return g;
+}
+
+export function coin() {
+  const m = mesh(cyl(0.014, 0.014, 0.005, 20), '#ffc233', 0, 0, 0, { metalness: 0.6, roughness: 0.3 });
+  return m;
+}
+
+/** 雪の積もったもみの木 */
+export function pine(size: number) {
+  const g = new THREE.Group();
+  g.add(mesh(cyl(0.012, 0.016, 0.06), '#7a4e2e', 0, 0.03, 0));
+  const tiers = [
+    [0.1, 0.34, 0.07],
+    [0.08, 0.26, 0.13],
+    [0.055, 0.18, 0.19]
+  ];
+  for (const [r, h, y] of tiers) {
+    g.add(mesh(new THREE.ConeGeometry(r, h * 0.45, 10), '#2f8f5b', 0, y + h * 0.2, 0, { flatShading: true }));
+    g.add(mesh(new THREE.ConeGeometry(r * 0.55, h * 0.2, 10), '#ffffff', 0, y + h * 0.36, 0, { flatShading: true }));
+  }
+  g.scale.setScalar(size / 0.12);
+  return g;
+}
+
+export function fire() {
+  const g = new THREE.Group();
+  for (const a of [0, Math.PI / 2]) {
+    const log = mesh(cyl(0.012, 0.012, 0.09), '#7a4e2e', 0, 0.012, 0);
+    log.rotation.set(Math.PI / 2, 0, a);
+    g.add(log);
+  }
+  const flames: THREE.Mesh[] = [];
+  for (const [r, h, color, dx] of [
+    [0.03, 0.09, '#ff6a1f', 0],
+    [0.02, 0.07, '#ffc233', 0.008],
+    [0.014, 0.05, '#fff3a0', -0.004]
+  ] as const) {
+    const f = mesh(new THREE.ConeGeometry(r, h, 10), color, dx, 0.02 + h / 2, 0, {
+      emissive: color,
+      emissiveIntensity: 0.9
+    });
+    f.castShadow = false;
+    flames.push(f);
+    g.add(f);
+  }
+  return { group: g, flames };
+}
+
+/** パッドの上に浮かべる目印 */
+export function badge(id: 'bag' | 'power' | 'fire' | 'home') {
+  const g = new THREE.Group();
+  if (id === 'bag') {
+    g.add(mesh(new THREE.BoxGeometry(0.05, 0.05, 0.03), '#d9573f'));
+    g.add(mesh(new THREE.TorusGeometry(0.014, 0.004, 6, 14, Math.PI), '#8a2f1f', 0, 0.025, 0));
+    g.add(mesh(new THREE.BoxGeometry(0.03, 0.018, 0.005), '#ffc233', 0, -0.006, 0.016));
+  } else if (id === 'power') {
+    g.add(mesh(new THREE.BoxGeometry(0.012, 0.07, 0.004), '#dfe4ee', 0, 0.02, 0, { metalness: 0.7, roughness: 0.25 }));
+    g.add(mesh(new THREE.BoxGeometry(0.04, 0.008, 0.01), '#ffc233', 0, -0.016, 0));
+    g.add(mesh(cyl(0.005, 0.005, 0.025), '#7a4e2e', 0, -0.032, 0));
+  } else if (id === 'fire') {
+    const f = fire();
+    f.group.scale.setScalar(0.7);
+    f.group.position.y = -0.03;
+    g.add(f.group);
+  } else {
+    g.add(mesh(new THREE.BoxGeometry(0.08, 0.055, 0.07), '#fff4e2', 0, 0, 0));
+    const roof = mesh(new THREE.ConeGeometry(0.07, 0.05, 4), '#ff4d5e', 0, 0.052, 0, { flatShading: true });
+    roof.rotation.y = Math.PI / 4;
+    g.add(roof);
+    g.add(mesh(new THREE.BoxGeometry(0.02, 0.03, 0.005), '#8a5a3b', 0, -0.012, 0.036));
+  }
+  return g;
+}

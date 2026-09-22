@@ -3,6 +3,9 @@
  * 座標の単位は描く側の ctx の変換に合わせる（ワールド座標でも画面のピクセルでもよい）
  */
 
+/** 描く側の座標 (x, y) を画面の位置と倍率 k へ写す */
+export type Projector = (x: number, y: number) => [number, number, number];
+
 interface Particle {
   x: number;
   y: number;
@@ -64,14 +67,16 @@ export class Particles {
     for (let i = this.list.length - 1; i >= 0; i--) if (this.list[i].age >= this.list[i].life) this.list.splice(i, 1);
   }
 
-  draw(ctx: CanvasRenderingContext2D): void {
+  /** to を渡すと、粒の位置を画面へ写してから描く（遠近のある画面用。k はその場所の倍率） */
+  draw(ctx: CanvasRenderingContext2D, to?: Projector): void {
     for (const p of this.list) {
       const t = 1 - p.age / p.life;
+      const [x, y, k] = to ? to(p.x, p.y) : [p.x, p.y, 1];
       ctx.globalCompositeOperation = p.glow ? 'lighter' : 'source-over';
       ctx.globalAlpha = Math.min(1, t * 1.5);
       ctx.fillStyle = p.color;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size * (0.4 + 0.6 * t), 0, Math.PI * 2);
+      ctx.arc(x, y, p.size * k * (0.4 + 0.6 * t), 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
@@ -101,11 +106,13 @@ export class Floaters {
     for (let i = this.list.length - 1; i >= 0; i--) if (this.list[i].age > 0.9) this.list.splice(i, 1);
   }
 
-  draw(ctx: CanvasRenderingContext2D): void {
+  draw(ctx: CanvasRenderingContext2D, to?: Projector): void {
     for (const f of this.list) {
       const pop = f.age < 0.12 ? 0.6 + (f.age / 0.12) * 0.6 : 1.2 - Math.min(0.2, (f.age - 0.12) * 0.5);
+      const [x, y, k] = to ? to(f.x, f.y) : [f.x, f.y, 1];
+      const size = f.size * k;
       ctx.globalAlpha = Math.min(1, (0.9 - f.age) * 3);
-      label(ctx, f.text, f.x, f.y - f.age * f.size * 1.6, f.size * pop, f.color);
+      label(ctx, f.text, x, y - f.age * size * 1.6, size * pop, f.color);
     }
     ctx.globalAlpha = 1;
   }
