@@ -27,7 +27,9 @@
     <span class="count sticker" role="timer">{phase === 'defend' ? left : ''}</span>
   {/if}
 </div>
-<button class="retry" onpointerdown={(e) => e.stopPropagation()} onclick={onretry} aria-label="やりなおし">↻</button>
+<button class="round retry" onpointerdown={(e) => e.stopPropagation()} onclick={onretry} aria-label="やりなおし"
+  >↻</button
+>
 
 <style>
   .hud {
@@ -79,14 +81,7 @@
     position: absolute;
     top: 12px;
     right: 12px;
-    width: 48px;
-    height: 48px;
-    border: 3px solid #fff;
-    border-radius: 50%;
     background: var(--gold);
-    box-shadow: var(--lift);
     font-size: 24px;
-    font-weight: 800;
-    cursor: pointer;
   }
 </style>
