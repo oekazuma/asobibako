@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { sideOf } from '$lib/player';
-import { bugAt, counts, createState, DURATION_S, step, tap, type Bug, type GameState } from './engine';
+import { bugAt, BUG_R, counts, createState, DURATION_S, step, tap, type Bug, type GameState } from './engine';
 
 const place = (state: GameState, kind: Bug['kind'], x: number, y: number): Bug => {
   const bug: Bug = {
@@ -97,5 +97,37 @@ describe('bug-rush engine', () => {
     expect(bugAt(state, 0.2, 0.3)).toBeNull();
     tap(state, near.id);
     expect(bugAt(state, 0.5, 0.8)?.id).not.toBe(near.id);
+  });
+
+  it('時間切れで、プレイヤー 2 側の虫が少なければプレイヤー 2 が勝つ', () => {
+    const state = createState(1);
+    state.spawnIn = 1000;
+    place(state, 'bug', 0.3, 0.8);
+    place(state, 'bug', 0.6, 0.8);
+    place(state, 'bug', 0.3, 0.2);
+    const events = run(state, DURATION_S + 0.1);
+    expect(events).toContainEqual({ type: 'end', winner: 2 });
+  });
+
+  it.each([0.6, 1, 1.7])('aspect %f でも bugAt の当たりは高さを 1 とした単位の円', (aspect) => {
+    const state = createState(aspect);
+    place(state, 'bug', 0.5, 0.8);
+    expect(bugAt(state, 0.5 + (BUG_R * 1.3) / aspect, 0.8)).not.toBeNull();
+    expect(bugAt(state, 0.5 + (BUG_R * 1.6) / aspect, 0.8)).toBeNull();
+  });
+
+  it('虫は無限に湧かず、上限で止まる', () => {
+    const state = createState(1);
+    run(state, 60);
+    expect(state.bugs.length).toBeLessThanOrEqual(36);
+  });
+
+  it('歩いている虫は、左右の外周の内側に留まる', () => {
+    const state = createState(1);
+    state.spawnIn = 1000;
+    const bug = place(state, 'bug', 0.06, 0.8);
+    bug.heading = Math.PI;
+    run(state, 3);
+    expect(bug.x).toBeGreaterThanOrEqual(0.06 - 1e-9);
   });
 });

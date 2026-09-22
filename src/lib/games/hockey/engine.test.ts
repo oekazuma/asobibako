@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { clampMallet, createState, GOAL, MALLETS_PER_PLAYER, step, updateMallets, type GameState } from './engine';
+import {
+  clampMallet,
+  createState,
+  GOAL,
+  MALLETS_PER_PLAYER,
+  PUCK_R,
+  step,
+  updateMallets,
+  type GameState
+} from './engine';
 
 const run = (state: GameState, seconds: number, dt = 1 / 60) => {
   const events = [];
@@ -110,5 +119,39 @@ describe('hockey engine', () => {
     const at = { ...state.puck };
     run(state, 0.5);
     expect(state.puck).toEqual(at);
+  });
+
+  it(`向かい側も ${GOAL} 点で勝てる`, () => {
+    const state = createState(1);
+    state.scores[2] = GOAL - 1;
+    state.puck = { x: 0.5, y: 0.8, vx: 0, vy: 2 };
+    const events = run(state, 0.5);
+    expect(events).toContainEqual({ type: 'win', player: 2 });
+    expect(state.winner).toBe(2);
+  });
+
+  it.each([0.6, 1, 1.7])('aspect %f でも左右の壁の位置はパックの半径ぶん内側', (aspect) => {
+    const state = createState(aspect);
+    state.puck = { x: 0.1, y: 0.5, vx: -1, vy: 0 };
+    run(state, 0.3);
+    expect(state.puck.vx).toBeGreaterThan(0);
+    expect(state.puck.x).toBeGreaterThanOrEqual(PUCK_R / aspect - 1e-9);
+  });
+
+  it('pause 中はパックが動かない', () => {
+    const state = createState(1);
+    state.puck = { x: 0.5, y: 0.8, vx: 0, vy: 2 };
+    run(state, 0.3);
+    expect(state.pause).toBeGreaterThan(0);
+    const at = { ...state.puck };
+    step(state, 1 / 60);
+    expect(state.puck).toEqual(at);
+  });
+
+  it('パックの速さには上限がある', () => {
+    const state = createState(1);
+    state.puck = { x: 0.5, y: 0.5, vx: 0, vy: 50 };
+    step(state, 1 / 60);
+    expect(Math.hypot(state.puck.vx, state.puck.vy)).toBeLessThanOrEqual(2.8 + 1e-9);
   });
 });
