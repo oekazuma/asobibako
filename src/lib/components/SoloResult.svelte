@@ -87,7 +87,7 @@
   }
 
   .star {
-    font-size: clamp(44px, 8dvh, 72px);
+    font-size: clamp(44px, 8cqh, 72px);
     filter: drop-shadow(0 4px 0 rgb(43 45 66 / 0.2));
     animation: pop 500ms var(--spring) both;
   }
@@ -101,17 +101,18 @@
   }
 
   .star.big {
-    font-size: clamp(60px, 11dvh, 100px);
+    font-size: clamp(60px, 11cqh, 100px);
   }
 
   .face {
-    font-size: clamp(60px, 11dvh, 100px);
+    font-size: clamp(60px, 11cqh, 100px);
     animation: pop 500ms var(--spring) both;
   }
 
   .outcome {
     position: relative;
-    font-size: clamp(48px, 12dvh, 120px);
+    font-size: clamp(40px, min(12cqh, 16cqw), 120px);
+    white-space: nowrap;
     color: var(--gold-deep);
     animation: pop 520ms var(--spring) both;
   }
@@ -126,14 +127,14 @@
     border-radius: 999px;
     background: var(--card);
     box-shadow: 0 3px 0 var(--card-edge);
-    font-size: clamp(16px, 2.6dvh, 22px);
+    font-size: clamp(16px, 2.6cqh, 22px);
     font-weight: 800;
   }
 
   .go {
     position: relative;
     padding: 18px 40px;
-    font-size: clamp(18px, 3dvh, 26px);
+    font-size: clamp(18px, 3cqh, 26px);
     animation: bob 1.6s ease-in-out infinite;
   }
 

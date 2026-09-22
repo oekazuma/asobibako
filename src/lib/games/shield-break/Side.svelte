@@ -109,12 +109,12 @@
   }
 
   .icon {
-    font-size: clamp(44px, 9dvh, 88px);
+    font-size: clamp(44px, 9cqh, 88px);
     line-height: 1;
   }
 
   .text {
-    font-size: clamp(20px, 3.6dvh, 32px);
+    font-size: clamp(20px, 3.6cqh, 32px);
     font-weight: 800;
     letter-spacing: 0.06em;
   }

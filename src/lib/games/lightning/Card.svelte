@@ -73,7 +73,7 @@
     align-items: center;
     gap: 6px;
     min-width: min(60%, 320px);
-    padding: clamp(14px, 3dvh, 28px) 28px;
+    padding: clamp(14px, 3cqh, 28px) 28px;
     border: 5px solid #fff;
     border-radius: 28px;
     background: var(--card);
@@ -81,14 +81,14 @@
   }
 
   .icon {
-    font-size: clamp(56px, 12dvh, 120px);
+    font-size: clamp(56px, 12cqh, 120px);
     line-height: 1;
   }
 
   .label {
     font-weight: 800;
     letter-spacing: 0.06em;
-    font-size: clamp(22px, 4.4dvh, 40px);
+    font-size: clamp(22px, 4.4cqh, 40px);
   }
 
   .idle {

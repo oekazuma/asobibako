@@ -37,7 +37,7 @@
     background: var(--gold);
     box-shadow: var(--lift);
     color: var(--ink);
-    font-size: clamp(18px, 2.6dvh, 24px);
+    font-size: clamp(14px, min(2.6cqh, 4.6cqw), 24px);
     white-space: nowrap;
     translate: -50% 0;
     pointer-events: none;

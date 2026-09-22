@@ -40,7 +40,7 @@
   /* ゲームの絵を大きく飾る。一覧のカードと同じ Thumb を額に入れて、ゆらゆらさせる */
   .art {
     width: min(78vw, 420px);
-    height: clamp(150px, 24dvh, 240px);
+    height: clamp(150px, 24cqh, 240px);
     overflow: hidden;
     border: 6px solid #fff;
     border-radius: 28px;
@@ -60,7 +60,8 @@
   }
 
   .title {
-    font-size: clamp(34px, 7dvh, 64px);
+    font-size: clamp(26px, min(7cqh, 11cqw), 64px);
+    white-space: nowrap;
   }
 
   .level {
@@ -68,7 +69,7 @@
     border-radius: 999px;
     background: var(--card);
     box-shadow: 0 3px 0 var(--card-edge);
-    font-size: clamp(16px, 2.6dvh, 22px);
+    font-size: clamp(16px, 2.6cqh, 22px);
     font-weight: 800;
   }
 
@@ -97,7 +98,7 @@
   }
 
   .go {
-    font-size: clamp(18px, 3dvh, 26px);
+    font-size: clamp(18px, 3cqh, 26px);
     padding: 18px 40px;
     animation: bob 1.6s ease-in-out infinite;
   }

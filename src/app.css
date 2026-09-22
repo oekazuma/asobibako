@@ -137,6 +137,9 @@ button {
   height: 100dvh;
   overflow: hidden;
   background: var(--bg);
+  /* 中の文字や部品は、画面ではなくこの枠の幅・高さ（cqw / cqh）で大きさを決める。
+     横向きで枠を回しても、iPhone のように細長くても、枠に収まる */
+  container-type: size;
 }
 
 .half {
@@ -146,7 +149,7 @@ button {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: clamp(8px, 1.6dvh, 18px);
+  gap: clamp(8px, 1.6cqh, 18px);
   padding: max(12px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
   border: none;
   background: var(--bg);
@@ -191,7 +194,8 @@ button.half {
 
 /* タイトル画面の遊び方（各ゲームの Howto.svelte）。記号の見た目だけは各ゲームが持つ */
 .howto-rule {
-  font-size: clamp(13px, 2dvh, 18px);
+  text-wrap: balance;
+  font-size: clamp(13px, 2cqh, 18px);
   font-weight: 700;
   color: var(--ink-soft);
 }
@@ -201,7 +205,7 @@ button.half {
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
-  font-size: clamp(11px, 1.6dvh, 14px);
+  font-size: clamp(11px, 1.6cqh, 14px);
 }
 
 .howto-item {
@@ -218,7 +222,7 @@ button.half {
 .howto-mark {
   display: grid;
   place-items: center;
-  width: clamp(16px, 2.4dvh, 24px);
+  width: clamp(16px, 2.4cqh, 24px);
   aspect-ratio: 1;
   border-radius: 50%;
 }

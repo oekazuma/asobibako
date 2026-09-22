@@ -101,7 +101,7 @@
   }
 
   .lead {
-    font-size: clamp(12px, 1.8dvh, 15px);
+    font-size: clamp(12px, 1.8cqh, 15px);
     color: var(--ink-soft);
   }
 
@@ -112,7 +112,7 @@
   }
 
   .name {
-    font-size: clamp(20px, 3.4dvh, 30px);
+    font-size: clamp(20px, 3.4cqh, 30px);
     letter-spacing: 0.06em;
   }
 

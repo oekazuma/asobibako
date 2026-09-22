@@ -27,7 +27,8 @@
   }
 
   .outcome {
-    font-size: clamp(44px, 12dvh, 120px);
+    font-size: clamp(36px, min(12cqh, 18cqw), 120px);
+    white-space: nowrap;
     animation: pop 520ms var(--spring) both;
   }
 
@@ -36,13 +37,13 @@
   }
 
   .sub {
-    font-size: clamp(15px, 2.6dvh, 22px);
+    font-size: clamp(15px, 2.6cqh, 22px);
     font-weight: 800;
   }
 
   .again {
-    margin-top: clamp(8px, 2dvh, 24px);
-    font-size: clamp(16px, 2.6dvh, 22px);
+    margin-top: clamp(8px, 2cqh, 24px);
+    font-size: clamp(16px, 2.6cqh, 22px);
   }
 
   @keyframes pop {

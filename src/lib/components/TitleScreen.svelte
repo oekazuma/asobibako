@@ -62,7 +62,7 @@
     border: 3px solid #fff;
     border-radius: 999px;
     color: #fff;
-    font-size: clamp(13px, 2dvh, 17px);
+    font-size: clamp(13px, 2cqh, 17px);
     font-weight: 800;
     letter-spacing: 0.1em;
     box-shadow: 0 3px 0 rgb(43 45 66 / 0.15);
@@ -77,12 +77,13 @@
   }
 
   .title {
-    font-size: clamp(30px, 6dvh, 56px);
+    font-size: clamp(24px, min(6cqh, 9cqw), 56px);
+    white-space: nowrap;
   }
 
   .cta {
-    margin-top: clamp(4px, 1dvh, 12px);
-    font-size: clamp(15px, 2.3dvh, 20px);
+    margin-top: clamp(4px, 1cqh, 12px);
+    font-size: clamp(15px, 2.3cqh, 20px);
     animation: bob 1.6s ease-in-out infinite;
   }
 
