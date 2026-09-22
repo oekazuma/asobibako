@@ -27,8 +27,6 @@
     border-radius: 50%;
     border: 4px solid #fff;
     background: radial-gradient(circle at 35% 30%, #6d7390, #2b2d42 62%);
-    box-shadow: 0 0 calc(8px + var(--heat) * 36px) calc(var(--heat) * 12px)
-      rgb(255 90 40 / calc(0.25 + var(--heat) * 0.6));
     pointer-events: none;
     will-change: transform;
   }
@@ -41,6 +39,18 @@
     border-radius: 50%;
     background: #ff4b2b;
     opacity: calc(var(--heat) * 0.65);
+  }
+
+  /* 熱いほど強く光る。ぼかしの大きさを毎フレーム変えると iOS で描き直しが重いので、大きさは固定して opacity だけ動かす */
+  .bomb::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    z-index: -1;
+    border-radius: 50%;
+    box-shadow: 0 0 44px 12px rgb(255 90 40 / 0.85);
+    opacity: calc(0.3 + var(--heat) * 0.7);
+    will-change: opacity;
   }
 
   .spark {
