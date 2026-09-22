@@ -3,15 +3,29 @@ import { FIRE, MONEY, TABLE, type GameState, type PadId } from './engine';
 
 const PAD_NAME: Record<PadId, string> = { bag: 'もてる数', power: 'つよさ', fire: 'やく早さ', home: 'いえ' };
 
+const widths = new Map<string, number>();
+const FONT = "800 100px 'Hiragino Maru Gothic ProN', system-ui";
+
+/** 文字の幅はフォントの大きさに比例するので、100px で 1 回測って縮める。名札は毎フレーム描くが文字は変わらない */
+function widthOf(ctx: CanvasRenderingContext2D, text: string): number {
+  let w = widths.get(text);
+  if (w === undefined) {
+    ctx.font = FONT;
+    w = ctx.measureText(text).width;
+    widths.set(text, w);
+  }
+  return w;
+}
+
 /** 場所の名札。地面の少し手前に、小さく出す */
 function tag(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, k: number) {
   const size = k * 0.028;
-  ctx.font = `800 ${size}px 'Hiragino Maru Gothic ProN', system-ui`;
-  const w = ctx.measureText(text).width + size;
+  const w = widthOf(ctx, text) * (size / 100) + size;
   ctx.fillStyle = 'rgb(43 45 66 / 0.72)';
   ctx.beginPath();
   ctx.roundRect(x - w / 2, y - size * 0.75, w, size * 1.5, size * 0.75);
   ctx.fill();
+  ctx.font = `800 ${size}px 'Hiragino Maru Gothic ProN', system-ui`;
   ctx.fillStyle = '#fff';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
