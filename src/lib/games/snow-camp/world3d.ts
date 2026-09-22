@@ -76,10 +76,13 @@ function scenery(scene: THREE.Scene, trees: GameState['rules']['trees']) {
     tree.rotation.y = t.x * 9;
     scene.add(tree);
   }
-  // 画面の奥に見える、雪原の外の森と山
+  // 画面の奥に見える、雪原の外の森と山。遠景なので影は落とさない
   for (let i = 0; i < 24; i++) {
     const tree = pine(0.11 + (i % 4) * 0.02);
     tree.position.set(-0.3 + i * 0.1, 0, -0.1 - (i % 3) * 0.1);
+    tree.traverse((o) => {
+      if (o instanceof THREE.Mesh) o.castShadow = false;
+    });
     scene.add(tree);
   }
   for (let i = 0; i < 7; i++) {
