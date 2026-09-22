@@ -14,11 +14,14 @@
 
   async function check() {
     checking = true;
+    error = '';
     try {
-      await updated.check();
+      // check() はネットワークに失敗しても false を返すだけなので、オフラインは自分で見分ける
+      const fresh = await updated.check();
+      if (!fresh && !navigator.onLine) error = 'インターネットに接続してから確認してください';
+      else checked = true;
     } finally {
       checking = false;
-      checked = true;
     }
   }
 
