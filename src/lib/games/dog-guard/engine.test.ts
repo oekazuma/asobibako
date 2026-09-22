@@ -20,11 +20,13 @@ describe('dog-guard engine', () => {
       expect(finishStroke(state)).toBe(true);
       expect(run(state, seed), `seed ${seed}`).toBe('clear');
     }
-    const bare = createState(stage);
-    addPoint(bare, 0.02, 0.05);
-    addPoint(bare, 0.06, 0.05);
-    finishStroke(bare);
-    expect(run(bare)).toBe('stung');
+    for (const seed of [1, 7, 42]) {
+      const bare = createState(stage);
+      addPoint(bare, 0.02, 0.05);
+      addPoint(bare, 0.06, 0.05);
+      finishStroke(bare);
+      expect(run(bare, seed), `bare seed ${seed}`).toBe('stung');
+    }
   });
 
   it('100 面に同じ面はない', () => {

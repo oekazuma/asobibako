@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { MAX_LEVEL } from '$lib/levels';
 import { createState, pinAt, pull, step, type GameState } from './engine';
 import { LEVELS, tierFor } from './levels';
 
@@ -30,12 +31,16 @@ describe('pin-rescue engine', () => {
       const state = createState(level);
       level.pins.forEach((_, i) => pull(state, i));
       run(state, 8);
-      expect(state.result).not.toBe('clear');
+      expect(state.result).toMatch(/^(burned|stuck)$/);
     }
   );
 
   it('100 面に同じ面はない', () => {
     expect(new Set(LEVELS.map((level) => JSON.stringify(level))).size).toBe(LEVELS.length);
+  });
+
+  it('面は 100 ある', () => {
+    expect(LEVELS).toHaveLength(MAX_LEVEL);
   });
 
   it('レベルが上がるほど、型は難しくなり、要る金の割合も上がる', () => {

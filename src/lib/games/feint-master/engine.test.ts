@@ -50,4 +50,13 @@ describe('feint-master engine', () => {
     expect(state.winner).toBe(1);
     expect(step(state, 5)).toEqual([{ type: 'win', player: 1 }]);
   });
+
+  it('向かい側も GOAL 点目のあとに勝ちが決まる', () => {
+    const state = createState(() => 0);
+    state.score[2] = GOAL - 1;
+    step(state, MEMO_S, () => 0);
+    press(state, 2);
+    expect(state.winner).toBe(2);
+    expect(step(state, 5)).toEqual([{ type: 'win', player: 2 }]);
+  });
 });

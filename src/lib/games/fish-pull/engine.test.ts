@@ -63,6 +63,13 @@ describe('fish-pull engine', () => {
     expect(events).toContainEqual({ type: 'thrash' });
   });
 
+  it('向かい側も、相手が引かないうちに釣り上げられる', () => {
+    const state = calm();
+    const events = haul(state, 6, { 1: 0, 2: 0.8 });
+    expect(events).toContainEqual({ type: 'catch', player: 2 });
+    expect(state.winner).toBe(2);
+  });
+
   it('釣り上げたあとは進まない', () => {
     const state = calm();
     haul(state, 6, { 1: 0.8, 2: 0 });
