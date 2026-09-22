@@ -3,10 +3,18 @@
   import { updated } from '$app/state';
   import '../app.css';
   import { keepScreenAwake } from '$lib/wake-lock.svelte';
+  import { watch } from '$lib/last-error';
 
   let { children } = $props();
 
-  onMount(keepScreenAwake);
+  onMount(() => {
+    const unwatch = watch();
+    const release = keepScreenAwake();
+    return () => {
+      unwatch();
+      release();
+    };
+  });
 
   // ホーム画面のアプリはページ遷移が少なくポーリングも止まりがちなので、前面に戻ったときに新版を確認する（1 分に 1 回まで）
   let lastCheck = 0;
