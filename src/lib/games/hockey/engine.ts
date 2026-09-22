@@ -208,7 +208,6 @@ export function step(state: GameState, dt: number): HockeyEvent[] {
       puck.vy = -puck.vy * WALL_BOUNCE;
       events.push({ type: 'wall' });
     }
-
   }
 
   const decay = Math.exp(-FRICTION * dt);
