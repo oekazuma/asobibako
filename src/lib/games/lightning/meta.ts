@@ -6,7 +6,7 @@ export default {
   name: 'ライトニング',
   description: '出た指示どおりにタップ・長押し・スワイプ。早いもの勝ちだけど、ドクロとおてつきに注意',
   players: 2,
-  minutes: '1分',
+  minutes: '30秒',
   Thumb,
   load: async () => ({
     Game: (await import('./Lightning.svelte')).default,
