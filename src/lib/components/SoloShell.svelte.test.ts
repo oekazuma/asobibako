@@ -96,11 +96,15 @@ describe('SoloShell', () => {
   it('↻ で同じレベルをやり直す', () => {
     const { target, app } = show();
     start(target);
-    const before = hooks.solo;
+    hooks.hint!('x');
+    flushSync();
+    expect(target.querySelector('.hint')).not.toBeNull();
+    const before = hooks.hint;
     (target.querySelector('button.retry') as HTMLButtonElement).click();
     flushSync();
     expect(hooks.level).toBe(1);
-    expect(hooks.solo).not.toBe(before);
+    expect(hooks.hint).not.toBe(before);
+    expect(target.querySelector('.hint')).toBeNull();
     expect(target.querySelector('[data-testid="game"]')).not.toBeNull();
     unmount(app);
   });

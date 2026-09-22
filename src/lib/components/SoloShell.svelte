@@ -62,7 +62,7 @@
 <main class="stage solo" class:settling={settle.active}>
   {#if screen === 'playing'}
     {#key round}
-      <Game {level} onfinish={(cleared) => finish(cleared)} onhint={(text) => (hint = text)} />
+      <Game {level} onfinish={finish} onhint={(text) => (hint = text)} />
     {/key}
     {#if hint}
       {#key hint}
