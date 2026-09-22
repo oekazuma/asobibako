@@ -29,6 +29,8 @@ export interface SoloProps {
   level: number;
   /** クリアかしっぱいが決まったら 1 回だけ呼ぶ */
   onfinish: (cleared: boolean) => void;
+  /** 画面の上に出す「いまやること」。空文字で消す。呼ばなければ何も出ない */
+  onhint?: (text: string) => void;
 }
 
 export interface SoloModule {

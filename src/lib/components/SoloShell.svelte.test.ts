@@ -92,4 +92,28 @@ describe('SoloShell', () => {
     expect(target.textContent).toContain('ぜんぶクリア');
     unmount(app);
   });
+
+  it('↻ で同じレベルをやり直す', () => {
+    const { target, app } = show();
+    start(target);
+    const before = hooks.solo;
+    (target.querySelector('button.retry') as HTMLButtonElement).click();
+    flushSync();
+    expect(hooks.level).toBe(1);
+    expect(hooks.solo).not.toBe(before);
+    expect(target.querySelector('[data-testid="game"]')).not.toBeNull();
+    unmount(app);
+  });
+
+  it('onhint の文字が吹き出しに出て、空文字で消える', () => {
+    const { target, app } = show();
+    start(target);
+    hooks.hint!('たき火へ はこぼう');
+    flushSync();
+    expect(target.querySelector('.hint')?.textContent).toBe('たき火へ はこぼう');
+    hooks.hint!('');
+    flushSync();
+    expect(target.querySelector('.hint')).toBeNull();
+    unmount(app);
+  });
 });
