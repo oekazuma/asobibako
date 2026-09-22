@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import { resolve } from '$app/paths';
   import { audio, sfx, toggleMute, wake } from '$lib/audio.svelte';
+  import { capture } from '$lib/board-input';
   import type { DuelMeta, GameModule } from '$lib/games';
   import { Settle } from '$lib/settle.svelte';
   import type { Player } from '$lib/player';
@@ -18,15 +19,6 @@
 
   const ready = $state<Record<Player, boolean>>({ 1: false, 2: false });
   const pads: Record<Player, Set<number>> = { 1: new Set(), 2: new Set() };
-
-  /** 合成イベントや既に解放されたポインタでは失敗するが、掴み自体は続行してよい */
-  function capture(event: PointerEvent) {
-    try {
-      (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-    } catch {
-      // noop
-    }
-  }
 
   function padDown(event: PointerEvent, player: Player) {
     event.preventDefault();

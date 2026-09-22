@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { sfx, wake } from '$lib/audio.svelte';
+  import { capture } from '$lib/board-input';
   import { animate } from '$lib/loop';
   import type { Player } from '$lib/player';
   import Orbs from './Orbs.svelte';
@@ -25,11 +26,7 @@
     event.preventDefault();
     wake();
     if (orb.kind !== 'hold') return take(orb, by);
-    try {
-      (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-    } catch {
-      // 合成イベントなどで捕捉できなくても長押し自体は成立させる
-    }
+    capture(event);
     beginHold(game, orb.id);
   }
 
