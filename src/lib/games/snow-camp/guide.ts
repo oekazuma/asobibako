@@ -32,10 +32,12 @@ export function objective(state: GameState): Objective {
   if (state.coins > 0 && hero.y > HUNT_BOTTOM) return { text: 'おかねを ひろおう', ...MONEY, kind: 'money' };
   if (state.wallet > 0) {
     const home = state.pads.find((p) => p.id === 'home')!;
+    const left = home.cost - home.paid;
+    // 強化は面ごとに消えるので、家までの残りが小さいうちに買うと元が取れず、かえって遅くなる
     const cheap = state.pads
-      .filter((p) => p.id !== 'home' && p.cost - p.paid <= state.wallet)
+      .filter((p) => p.id !== 'home' && p.cost - p.paid <= state.wallet && (p.cost - p.paid) * 12 <= left)
       .sort((a, b) => a.cost - a.paid - (b.cost - b.paid))[0];
-    if (state.wallet >= home.cost - home.paid) return { text: '家を 建てよう！', x: home.x, y: home.y, kind: 'home' };
+    if (state.wallet >= left) return { text: '家を 建てよう！', x: home.x, y: home.y, kind: 'home' };
     if (cheap) return { text: 'パッドに のって つよくなろう', x: cheap.x, y: cheap.y, kind: 'pad' };
     return { text: '家に おかねを いれよう', x: home.x, y: home.y, kind: 'home' };
   }

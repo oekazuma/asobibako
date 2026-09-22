@@ -117,7 +117,7 @@ const NEAR = 0.14;
 const ATTACK_S = 0.4;
 const HAND_S = 0.1;
 const EAT_S = 0.7;
-const GUEST_S = 1.5;
+const GUEST_S = 0.8;
 const MAX_GUESTS = 3;
 const PRICE = 4;
 const SPAWN_S = 2.5;
@@ -155,9 +155,9 @@ export function createState(level: number, rand: () => number = Math.random): Ga
     coins: 0,
     wallet: 0,
     pads: [
-      { id: 'bag', x: 0.3, y: 2.28, cost: price(10), paid: 0, level: 0 },
-      { id: 'power', x: 0.8, y: 2.28, cost: price(15), paid: 0, level: 0 },
-      { id: 'fire', x: 1.3, y: 2.28, cost: price(20), paid: 0, level: 0 },
+      { id: 'bag', x: 0.3, y: 2.28, cost: price(5), paid: 0, level: 0 },
+      { id: 'power', x: 0.8, y: 2.28, cost: price(8), paid: 0, level: 0 },
+      { id: 'fire', x: 1.3, y: 2.28, cost: price(10), paid: 0, level: 0 },
       { id: 'home', x: 1.3, y: 1.62, cost: rules.home, paid: 0, level: 0 }
     ],
     attackT: 0,

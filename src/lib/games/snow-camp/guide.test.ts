@@ -35,12 +35,16 @@ describe('snow-camp guide', () => {
     expect(objective(state).kind).toBe('hunt');
   });
 
-  it('お金を持っていれば、払えるパッドへ。家が建つだけあれば家へ', () => {
+  it('家までの残りが大きければ払えるパッドへ、小さければ家へ。家が建つだけあれば家へ', () => {
     const state = fresh();
     state.animals = [];
     state.wallet = 10;
+    const home = state.pads.find((p) => p.id === 'home')!;
+    home.cost = 300;
     expect(objective(state)).toMatchObject({ kind: 'pad', x: state.pads[0].x });
+    home.cost = 50;
+    expect(objective(state)).toMatchObject({ kind: 'home', text: '家に おかねを いれよう' });
     state.wallet = 50;
-    expect(objective(state).kind).toBe('home');
+    expect(objective(state)).toMatchObject({ kind: 'home', text: '家を 建てよう！' });
   });
 });
