@@ -6,6 +6,7 @@ export default {
   name: '数のゲート',
   description: '「×2」や「+10」の門をくぐって仲間をふやし、さいごに敵の城をたおす',
   players: 1,
+  levels: 30,
   minutes: '30秒',
   Thumb,
   load: async () => ({

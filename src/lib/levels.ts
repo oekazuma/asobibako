@@ -1,8 +1,6 @@
-/** 1 人用のゲームはどれもレベル 100 まで。100 をクリアしたら全クリ */
-export const MAX_LEVEL = 100;
-
-/** レベルを 0（レベル 1）から 1（レベル 100）の難しさに直す。各ゲームはこの値で面の難しさを決める */
-export const difficulty = (level: number) => (Math.min(MAX_LEVEL, Math.max(1, level)) - 1) / (MAX_LEVEL - 1);
+/** レベルを 0（レベル 1）から 1（最後のレベル）の難しさに直す。各ゲームはこの値で面の難しさを決める */
+export const difficulty = (level: number, levels: number) =>
+  (Math.min(levels, Math.max(1, level)) - 1) / Math.max(1, levels - 1);
 
 /** a から b へ、難しさ d に合わせて進めた値 */
 export const lerp = (a: number, b: number, d: number) => a + (b - a) * d;
@@ -40,16 +38,20 @@ export class Rng {
   }
 }
 
-/** 到達レベルの保存先。ゲームごと */
-export const levelKey = (id: string) => `table-duel:level:${id}`;
+/** 到達レベルの保存先。ゲームごと。最後のレベルをクリアしたら levels + 1 を保存する */
+export const levelKey = (id: string) => `table-duel:reached:${id}`;
 
-/** MAX_LEVEL をクリアしたことの印として保存する値 */
-export const ALL_CLEAR = MAX_LEVEL + 1;
+/** 全ゲームが 100 面だったころの到達レベルの保存先 */
+const legacyKey = (id: string) => `table-duel:level:${id}`;
 
-/** 保存された到達レベル（1..ALL_CLEAR）。壊れていたり読めなければ 1 */
-export function savedLevel(id: string): number {
+/** 保存された到達レベル（1..levels + 1）。壊れていたり読めなければ 1 */
+export function savedLevel(id: string, levels: number): number {
   try {
-    return Math.min(ALL_CLEAR, Math.max(1, Math.floor(Number(localStorage.getItem(levelKey(id)))) || 1));
+    const stored = localStorage.getItem(levelKey(id));
+    const legacy = stored === null ? localStorage.getItem(legacyKey(id)) : null;
+    // 100 面のうちどこまで進んだかを、今の面数で同じくらいのところへ読み替える
+    const n = legacy === null ? Number(stored) : Math.ceil((Number(legacy) * levels) / 100);
+    return Math.min(levels + 1, Math.max(1, Math.floor(n) || 1));
   } catch {
     return 1;
   }

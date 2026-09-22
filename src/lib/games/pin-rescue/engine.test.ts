@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_LEVEL } from '$lib/levels';
+import meta from './meta';
 import { createState, pinAt, pull, step, type GameState } from './engine';
-import { LEVELS, tierFor } from './levels';
+import { LEVELS } from './levels';
 
 function run(state: GameState, seconds: number) {
   for (let t = 0; t < seconds && !state.result; t += 1 / 60) step(state, 1 / 60);
@@ -35,20 +35,16 @@ describe('pin-rescue engine', () => {
     }
   );
 
-  it('100 面に同じ面はない', () => {
+  it('同じ面はない', () => {
     expect(new Set(LEVELS.map((level) => JSON.stringify(level))).size).toBe(LEVELS.length);
   });
 
-  it('面は 100 ある', () => {
-    expect(LEVELS).toHaveLength(MAX_LEVEL);
+  it('面の数は一覧に出す数と同じ', () => {
+    expect(LEVELS).toHaveLength(meta.levels);
   });
 
-  it('レベルが上がるほど、型は難しくなり、要る金の割合も上がる', () => {
-    for (let i = 1; i < LEVELS.length; i++) {
-      expect(tierFor(i + 1), `level ${i + 1}`).toBeGreaterThanOrEqual(tierFor(i));
-      expect(LEVELS[i].need).toBeGreaterThan(LEVELS[i - 1].need);
-    }
-    expect(LEVELS[99].pins.length).toBeGreaterThan(LEVELS[0].pins.length);
+  it('レベルが上がるほど、要る金の割合も上がる', () => {
+    for (let i = 1; i < LEVELS.length; i++) expect(LEVELS[i].need).toBeGreaterThan(LEVELS[i - 1].need);
   });
 
   it('水がマグマに触れると、マグマは残らず石になる', () => {

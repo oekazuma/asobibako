@@ -1,6 +1,5 @@
-import { difficulty, lerp, MAX_LEVEL, Rng } from '$lib/levels';
+import { lerp } from '$lib/levels';
 import type { Level } from './engine';
-import { SEEDS } from './seeds';
 
 const HERO_Y = 1.335;
 
@@ -15,7 +14,7 @@ export interface Stage extends Level {
 
 type Base = Omit<Stage, 'need'>;
 
-/** 座標は engine.ts の固定の箱（幅 1・高さ 1.4、y は下向き）。やさしい順に並べる */
+/** 1 つが 1 レベル。座標は engine.ts の固定の箱（幅 1・高さ 1.4、y は下向き）。やさしい順に並べる */
 const BASE: Base[] = [
   // 1. ピンを 1 本抜くだけ
   {
@@ -189,44 +188,7 @@ const BASE: Base[] = [
   }
 ];
 
-/** 型を左右反転し、はみ出さない範囲で横にずらし、金やマグマの量と勇者の位置を少し変える */
-function vary(base: Base, rng: Rng): Base {
-  const flip = rng.chance(0.5);
-  const xs = [
-    ...base.walls.flatMap((w) => [w[0], w[2]]),
-    ...base.pins.flatMap((p) => [p.seg[0], p.seg[2]]),
-    ...base.pools.flatMap((p) => [p.x0, p.x1]),
-    base.hero.x
-  ].map((x) => (flip ? 1 - x : x));
-  const dx = rng.range(0.02 - Math.min(...xs), 0.98 - Math.max(...xs));
-  const X = (x: number) => (flip ? 1 - x : x) + dx;
-  const seg = ([x1, y1, x2, y2]: readonly number[]) => [X(x1), y1, X(x2), y2] as const;
-  return {
-    ...base,
-    walls: base.walls.map(seg),
-    pins: base.pins.map((pin) => ({ ...pin, seg: seg(pin.seg) })),
-    pools: base.pools.map((p) => {
-      const [a, b] = [X(p.x0), X(p.x1)].sort((m, n) => m - n);
-      // 下の縁（床やピン）は動かさず、上の縁だけ変えて量を増減する
-      return { ...p, x0: a, x1: b, y0: Math.min(p.y1 - 0.08, p.y0 + rng.range(-0.03, 0.04)) };
-    }),
-    hero: { x: Math.min(0.9, Math.max(0.1, X(base.hero.x) + rng.range(-0.03, 0.03))), y: base.hero.y }
-  };
-}
+/** 要る金の割合は、あとの面ほど上げる */
+export const LEVELS: Stage[] = BASE.map((base, i) => ({ ...base, need: lerp(0.5, 0.75, i / (BASE.length - 1)) }));
 
-/** 型ごとに出てくるレベル。あとの型ほど難しく、そこから次の型までは同じ型の形を変えて出す */
-const UNLOCK = [1, 5, 11, 19, 29, 41, 56, 71];
-
-/** そのレベルで出せるいちばん新しい型。レベルが下がった型に戻ることはない */
-export const tierFor = (level: number) => UNLOCK.filter((at) => at <= level).length - 1;
-
-/** 面を組み立てる。SEEDS はテストでクリアできると確かめた種（レベルごと） */
-export function generate(level: number, seed: number): Stage {
-  const rng = new Rng(level * 1000 + seed);
-  const base = BASE[tierFor(level)];
-  return { ...vary(base, rng), need: lerp(0.5, 0.75, difficulty(level)) };
-}
-
-export const LEVELS: Stage[] = Array.from({ length: MAX_LEVEL }, (_, i) => generate(i + 1, SEEDS[i] ?? 0));
-
-export const levelFor = (n: number): Stage => LEVELS[Math.min(MAX_LEVEL, Math.max(1, n)) - 1];
+export const levelFor = (n: number): Stage => LEVELS[Math.min(LEVELS.length, Math.max(1, n)) - 1];

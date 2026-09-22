@@ -22,7 +22,7 @@ export interface GameModule {
 }
 
 export interface SoloProps {
-  /** 1 から数える。ゲームはこの数で難しさや面を選ぶ（面の数より大きければ一周して難しくしてよい） */
+  /** 1 から meta.levels まで。ゲームはこの数で難しさや面を選ぶ */
   level: number;
   /** クリアかしっぱいが決まったら 1 回だけ呼ぶ */
   onfinish: (cleared: boolean) => void;
@@ -54,6 +54,8 @@ export interface DuelMeta extends BaseMeta {
 /** 画面全体を 1 人で使い、レベルを順にクリアしていく */
 export interface SoloMeta extends BaseMeta {
   players: 1;
+  /** 面の数。最後の面をクリアしたら全クリ */
+  levels: number;
   load: () => Promise<SoloModule>;
 }
 

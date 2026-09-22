@@ -18,6 +18,7 @@ const meta = {
   description: '',
   minutes: '1分',
   players: 1 as const,
+  levels: 10,
   Thumb: StubHowto,
   load: async () => ({ Game: StubGame, Howto: StubHowto })
 };
@@ -52,7 +53,7 @@ describe('SoloShell', () => {
     hooks.solo!(true);
     hooks.solo!(true);
     flushSync();
-    expect(localStorage.getItem('table-duel:level:stub')).toBe('2');
+    expect(localStorage.getItem('table-duel:reached:stub')).toBe('2');
     expect(target.textContent).toContain('つぎは レベル 2');
     unmount(app);
   });
@@ -65,7 +66,7 @@ describe('SoloShell', () => {
     flushSync();
     finish(true);
     flushSync();
-    expect(localStorage.getItem('table-duel:level:stub')).toBeNull();
+    expect(localStorage.getItem('table-duel:reached:stub')).toBeNull();
     expect(target.querySelector('button.go')).not.toBeNull();
     unmount(app);
   });
@@ -73,22 +74,29 @@ describe('SoloShell', () => {
   it.each([
     ['5.5', 5],
     ['abc', 1],
-    ['9999', 100],
+    ['9999', 10],
     ['0', 1]
-  ])('保存された値 %s は 1..100 の整数 %i に直す', (stored, level) => {
-    localStorage.setItem('table-duel:level:stub', stored);
+  ])('保存された値 %s は 1..levels の整数 %i に直す', (stored, level) => {
+    localStorage.setItem('table-duel:reached:stub', stored);
     const { target, app } = show();
     expect(target.textContent).toContain(`レベル ${level}`);
     unmount(app);
   });
 
-  it('レベル 100 をクリアすると ALL_CLEAR を保存し、ぜんぶクリアと出す', () => {
-    localStorage.setItem('table-duel:level:stub', '100');
+  it('100 面だったころの到達レベルは、今の面数で同じくらいのところへ読み替える', () => {
+    localStorage.setItem('table-duel:level:stub', '37');
+    const { target, app } = show();
+    expect(target.textContent).toContain('レベル 4');
+    unmount(app);
+  });
+
+  it('最後のレベルをクリアすると levels + 1 を保存し、ぜんぶクリアと出す', () => {
+    localStorage.setItem('table-duel:reached:stub', '10');
     const { target, app } = show();
     start(target);
     hooks.solo!(true);
     flushSync();
-    expect(localStorage.getItem('table-duel:level:stub')).toBe('101');
+    expect(localStorage.getItem('table-duel:reached:stub')).toBe('11');
     expect(target.textContent).toContain('ぜんぶクリア');
     unmount(app);
   });

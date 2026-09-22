@@ -11,6 +11,7 @@ const solo = {
   description: '',
   minutes: '1分',
   players: 1 as const,
+  levels: 100,
   Thumb: StubHowto,
   load: async () => ({ Game: StubGame, Howto: StubHowto })
 };
@@ -35,14 +36,14 @@ describe('GameCard', () => {
   });
 
   it('到達レベルを出す', () => {
-    localStorage.setItem('table-duel:level:stub', '37');
+    localStorage.setItem('table-duel:reached:stub', '37');
     const { target, app } = show();
     expect(target.querySelector('.reached')?.textContent?.trim()).toBe('レベル 37');
     unmount(app);
   });
 
-  it('100 をクリアしていれば ぜんぶクリア', () => {
-    localStorage.setItem('table-duel:level:stub', '101');
+  it('最後のレベルをクリアしていれば ぜんぶクリア', () => {
+    localStorage.setItem('table-duel:reached:stub', '101');
     const { target, app } = show();
     expect(target.querySelector('.reached')?.textContent?.trim()).toBe('ぜんぶクリア');
     expect(target.querySelector('.reached')?.classList.contains('done')).toBe(true);
@@ -50,7 +51,7 @@ describe('GameCard', () => {
   });
 
   it('2 人用のカードには出さない', () => {
-    localStorage.setItem('table-duel:level:stub', '37');
+    localStorage.setItem('table-duel:reached:stub', '37');
     const { target, app } = show({ ...solo, players: 2 as const });
     expect(target.querySelector('.reached')).toBeNull();
     unmount(app);

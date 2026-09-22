@@ -1,4 +1,5 @@
 import { difficulty, lerp, Rng } from '$lib/levels';
+import meta from './meta';
 
 /**
  * 道は横 0..1、前へ進んだ距離は盤面の高さを 1 とした単位。
@@ -62,7 +63,7 @@ function badOp(rng: Rng, d: number): Op {
  * その最善の数から敵とボスの数を決め、どの面も必ずクリアできるようにする
  */
 export function createState(level: number): GameState {
-  const d = difficulty(level);
+  const d = difficulty(level, meta.levels);
   const rng = new Rng(level);
   const items: Item[] = [];
   let best = 10;

@@ -2,14 +2,14 @@
   import { onMount } from 'svelte';
   import { resolve } from '$app/paths';
   import type { GameMeta } from '$lib/games';
-  import { ALL_CLEAR, savedLevel } from '$lib/levels';
+  import { savedLevel } from '$lib/levels';
 
   let { game }: { game: GameMeta } = $props();
 
   /** 到達レベル。プリレンダーでは分からないので mount 後に読む */
   let reached = $state<number | null>(null);
   onMount(() => {
-    if (game.players === 1) reached = savedLevel(game.id);
+    if (game.players === 1) reached = savedLevel(game.id, game.levels);
   });
 </script>
 
@@ -22,8 +22,9 @@
       <span class="chip">{game.players}人</span>
       <span class="chip">{game.minutes}</span>
       {#if reached !== null && reached > 1}
-        <span class="chip reached" class:done={reached >= ALL_CLEAR}>
-          {reached >= ALL_CLEAR ? 'ぜんぶクリア' : `レベル ${reached}`}
+        {@const done = game.players === 1 && reached > game.levels}
+        <span class="chip reached" class:done>
+          {done ? 'ぜんぶクリア' : `レベル ${reached}`}
         </span>
       {/if}
     </p>
