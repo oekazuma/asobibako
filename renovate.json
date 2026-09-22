@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":disablePeerDependencies"],
+  "extends": ["config:recommended"],
   "minimumReleaseAge": "3 days",
   "labels": ["renovate"],
   "lockFileMaintenance": {
@@ -21,12 +21,25 @@
       "automerge": true
     },
     {
+      "description": "catalog の depType に効いているかは最初の Dependency Dashboard で確かめる。効いていなければ matchDepTypes を pnpm.catalog.default にし、three を除外する",
       "groupName": "devDependencies",
       "matchDepTypes": ["devDependencies"]
     },
     {
       "groupName": "linters",
       "matchPackageNames": ["eslint{/,}**", "@eslint{/,}**", "typescript-eslint{/,}**", "globals{/,}**"]
+    },
+    {
+      "groupName": "markuplint",
+      "matchPackageNames": ["markuplint", "@markuplint{/,}**"]
+    },
+    {
+      "groupName": "vite",
+      "matchPackageNames": ["vite", "vitest"]
+    },
+    {
+      "groupName": "prettier",
+      "matchPackageNames": ["prettier", "prettier-plugin-svelte"]
     },
     {
       "groupName": "typescript",
@@ -37,8 +50,21 @@
       "matchPackageNames": ["@sveltejs/{/,}**", "svelte{/,}**"]
     },
     {
-      "description": "video/（README の紹介動画を作る Remotion プロジェクト）は CI が検査しないので更新 PR を出さない",
-      "matchFileNames": ["video/**"],
+      "description": "three は 0.x で minor でも API が消える。型と同じ PR にして、手で確かめてから入れる",
+      "groupName": "three",
+      "matchPackageNames": ["three", "@types/three"],
+      "automerge": false
+    },
+    {
+      "description": "typescript 7 は typescript-eslint（peer <6.1）と svelte-check（peer ^5 || ^6）が未対応。両方が広がったら外す",
+      "matchPackageNames": ["typescript"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "@types/node は package.json の devEngines.runtime（Node 24）に合わせる。Node を上げるときに一緒に上げる",
+      "matchPackageNames": ["@types/node"],
+      "matchUpdateTypes": ["major"],
       "enabled": false
     }
   ]
