@@ -4,15 +4,13 @@
     phase,
     ink,
     left,
-    tip,
-    onretry
+    tip
   }: {
     level: number;
     phase: 'draw' | 'defend' | 'done';
     ink: number;
     left: number;
     tip: string;
-    onretry: () => void;
   } = $props();
 </script>
 
@@ -27,9 +25,6 @@
     <span class="count sticker" role="timer">{phase === 'defend' ? left : ''}</span>
   {/if}
 </div>
-<button class="round retry" onpointerdown={(e) => e.stopPropagation()} onclick={onretry} aria-label="やりなおし"
-  >↻</button
->
 
 <style>
   .hud {
@@ -75,13 +70,5 @@
   .count {
     font-size: 40px;
     color: var(--p2);
-  }
-
-  .retry {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    background: var(--gold);
-    font-size: 24px;
   }
 </style>

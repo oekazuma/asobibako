@@ -135,13 +135,6 @@
     particles.draw(ctx);
   }
 
-  function restart() {
-    if (game.phase === 'done') return;
-    game = fresh();
-    drawing = null;
-    left = game.level.duration;
-  }
-
   onMount(() => {
     const stop = animate(frame);
     return () => {
@@ -153,7 +146,7 @@
 
 <div class="board" use:input.board={resize} role="application" aria-label="線を引いて守るの画面">
   <canvas bind:this={canvas}></canvas>
-  <Hud {level} {phase} {ink} {left} {tip} onretry={restart} />
+  <Hud {level} {phase} {ink} {left} {tip} />
 </div>
 
 <style>
