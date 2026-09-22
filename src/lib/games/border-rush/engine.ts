@@ -22,6 +22,8 @@ export interface GameState {
   spawnIn: number;
   /** 長押し中の玉の id → 押し始めてからの秒 */
   holds: Record<number, number>;
+  /** 始まってからの秒 */
+  elapsed: number;
 }
 
 export const GAIN: Record<OrbKind, number> = { tap: 0.03, hold: 0.075, contest: 0.1 };
@@ -29,6 +31,9 @@ export const HOLD_MS = 700;
 export const ORB_LIFE_MS = 2600;
 export const MAX_PER_PLAYER = 3;
 export const SPAWN_S = 0.34;
+/** 互角だと玉の効果が打ち消し合って長引くので、この秒を過ぎたら押す量を RUSH_RAMP_S かけて 2 倍まで増やす */
+export const RUSH_S = 45;
+const RUSH_RAMP_S = 30;
 const CONTEST_CHANCE = 0.16;
 const HOLD_CHANCE = 0.28;
 
@@ -39,7 +44,7 @@ const OUTER = 0.08;
 const INNER = 0.045;
 
 export function createState(): GameState {
-  return { border: 0.5, orbs: [], winner: null, nextId: 1, spawnIn: 0, holds: {} };
+  return { border: 0.5, orbs: [], winner: null, nextId: 1, spawnIn: 0, holds: {}, elapsed: 0 };
 }
 
 export function zone(state: GameState, owner: Player): [number, number] {
@@ -76,7 +81,8 @@ export function pop(state: GameState, id: number, by: Player): boolean {
 
   state.orbs = state.orbs.filter((o) => o.id !== id);
   delete state.holds[id];
-  const delta = GAIN[orb.kind] * (by === 2 ? 1 : -1);
+  const rush = 1 + Math.min(1, Math.max(0, state.elapsed - RUSH_S) / RUSH_RAMP_S);
+  const delta = GAIN[orb.kind] * rush * (by === 2 ? 1 : -1);
   state.border = Math.min(1, Math.max(0, state.border + delta));
   state.orbs = state.orbs.filter((o) => o.owner === null || inOwnZone(state, o));
 
@@ -105,6 +111,7 @@ function spawnWave(state: GameState, now: number, rand: () => number) {
 export function step(state: GameState, dt: number, now: number, rand: () => number = Math.random): BorderEvent[] {
   if (state.winner !== null) return [];
   const events: BorderEvent[] = [];
+  state.elapsed += dt;
   state.spawnIn -= dt;
   if (state.spawnIn <= 0) {
     spawnWave(state, now, rand);
