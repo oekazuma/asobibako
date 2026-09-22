@@ -104,7 +104,9 @@
   <span class="meter" role="img" aria-label="クリアまで {Math.round(progress * 100)}%"
     ><span class="fill" style:width="{progress * 100}%"></span></span
   >
-  <button class="retry" onpointerdown={(e) => e.stopPropagation()} onclick={restart} aria-label="やりなおし">↻</button>
+  <button class="round retry" onpointerdown={(e) => e.stopPropagation()} onclick={restart} aria-label="やりなおし"
+    >↻</button
+  >
 </div>
 
 <style>
@@ -164,14 +166,7 @@
     position: absolute;
     top: 12px;
     right: 12px;
-    width: 48px;
-    height: 48px;
-    border: 3px solid #fff;
-    border-radius: 50%;
     background: var(--gold);
-    box-shadow: var(--lift);
     font-size: 24px;
-    font-weight: 800;
-    cursor: pointer;
   }
 </style>

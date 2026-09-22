@@ -1,7 +1,6 @@
-import { Floaters, Particles, type Projector } from '$lib/fx';
+import { CONFETTI, Floaters, Particles, type Projector } from '$lib/fx';
 import { FIRE, MONEY, type CampEvent, type GameState } from './engine';
 
-const CONFETTI = ['#ffc233', '#1f9bff', '#ff4d5e', '#58c46b'];
 const UPGRADE_TEXT = {
   bag: 'もてる数 アップ！',
   power: 'つよさ アップ！',

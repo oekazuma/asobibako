@@ -74,8 +74,8 @@
     {/if}
 
     <!-- 対戦中は誤操作で抜けないよう出さない。どちらのプレイヤーからも等距離の、境界線の高さの左右端に置く -->
-    <a class="edge back" href={resolve('/')} aria-label="ゲーム選択へ戻る">✕</a>
-    <button class="edge mute" onclick={toggleMute} aria-label="ミュート" aria-pressed={audio.muted}>
+    <a class="round edge back" href={resolve('/')} aria-label="ゲーム選択へ戻る">✕</a>
+    <button class="round edge mute" onclick={toggleMute} aria-label="ミュート" aria-pressed={audio.muted}>
       <Icon name={audio.muted ? 'mute' : 'speaker'} size="26px" />
     </button>
   {/if}
@@ -86,19 +86,6 @@
     position: absolute;
     top: 50%;
     translate: 0 -50%;
-    display: grid;
-    place-items: center;
-    width: 48px;
-    height: 48px;
-    border: 3px solid #fff;
-    border-radius: 50%;
-    background: var(--card);
-    box-shadow: var(--lift);
-    color: var(--ink);
-    font-size: 18px;
-    font-weight: 800;
-    text-decoration: none;
-    cursor: pointer;
   }
 
   .back {

@@ -63,15 +63,15 @@
       <Game {level} onfinish={finish} />
     {/key}
     <!-- 遊んでいる途中でもやめられるよう、小さく隅に置く。一覧ではなくタイトルへ戻る -->
-    <button class="corner quit" onclick={() => (screen = 'title')} aria-label="やめる">✕</button>
+    <button class="round corner quit" onclick={() => (screen = 'title')} aria-label="やめる">✕</button>
   {:else}
     {#if screen === 'title'}
       <SoloTitle {meta} {Howto} {best} bind:level onstart={start} />
     {:else}
       <SoloResult {cleared} {complete} {level} onagain={start} />
     {/if}
-    <a class="corner back" href={resolve('/')} aria-label="ゲーム選択へ戻る">✕</a>
-    <button class="corner mute" onclick={toggleMute} aria-label="ミュート" aria-pressed={audio.muted}>
+    <a class="round corner back" href={resolve('/')} aria-label="ゲーム選択へ戻る">✕</a>
+    <button class="round corner mute" onclick={toggleMute} aria-label="ミュート" aria-pressed={audio.muted}>
       <Icon name={audio.muted ? 'mute' : 'speaker'} size="26px" />
     </button>
   {/if}
@@ -82,19 +82,6 @@
     position: absolute;
     top: max(12px, env(safe-area-inset-top));
     z-index: 5;
-    display: grid;
-    place-items: center;
-    width: 48px;
-    height: 48px;
-    border: 3px solid #fff;
-    border-radius: 50%;
-    background: var(--card);
-    box-shadow: var(--lift);
-    color: var(--ink);
-    font-size: 18px;
-    font-weight: 800;
-    text-decoration: none;
-    cursor: pointer;
   }
 
   .back,

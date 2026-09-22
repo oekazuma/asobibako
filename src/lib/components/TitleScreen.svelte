@@ -93,12 +93,6 @@
     box-shadow: 0 2px 0 var(--edge);
   }
 
-  @keyframes bob {
-    50% {
-      scale: 1.05;
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .cta {
       animation: none;

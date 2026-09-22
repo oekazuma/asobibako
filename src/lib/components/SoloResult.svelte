@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon.svelte';
+  import { CONFETTI } from '$lib/fx';
   let {
     cleared,
     complete,
@@ -7,14 +8,13 @@
     onagain
   }: { cleared: boolean; complete: boolean; level: number; onagain: () => void } = $props();
 
-  const COLORS = ['#ffc233', '#1f9bff', '#ff4d5e', '#58c46b', '#b27bff'];
   /** 紙吹雪の位置・色・速さは毎回ばらつかせる */
   const confetti = Array.from({ length: 36 }, (_, i) => ({
     id: i,
     left: Math.random() * 100,
     delay: Math.random() * 1.2,
     duration: 2.2 + Math.random() * 1.6,
-    color: COLORS[i % COLORS.length],
+    color: CONFETTI[i % CONFETTI.length],
     tilt: Math.random() * 360
   }));
 </script>
@@ -169,12 +169,6 @@
     from {
       scale: 0.3;
       opacity: 0;
-    }
-  }
-
-  @keyframes bob {
-    50% {
-      scale: 1.05;
     }
   }
 

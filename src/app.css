@@ -126,6 +126,30 @@ button {
   color: var(--ink);
 }
 
+/* 画面の隅や端に置く 48px の丸いボタン（戻る・ミュート・やりなおし）。置く位置と色は使う側が決める */
+.round {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--card);
+  box-shadow: var(--lift);
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* ボタンがふわっと膨らむ。タイトルの「スタート」と結果の「つぎへ」が使う */
+@keyframes bob {
+  50% {
+    scale: 1.05;
+  }
+}
+
 /*
  * ゲーム画面の外枠（GameShell）。上下 2 分割で、画面上側のプレイヤー 2 は 180 度回して見る。
  * 各ゲームの盤面は自分のコンポーネントの中で .board などの名前を使うので、ここは別の名前にしておく

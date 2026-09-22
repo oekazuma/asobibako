@@ -110,12 +110,6 @@
     }
   }
 
-  @keyframes bob {
-    50% {
-      scale: 1.05;
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .art,
     .go {
