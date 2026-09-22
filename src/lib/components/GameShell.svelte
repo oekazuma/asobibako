@@ -15,6 +15,8 @@
   let screen = $state<'title' | 'playing' | 'result'>('title');
   let winner = $state<Player>(1);
   let round = $state(0);
+  /** このセッションの勝ち数。一覧に戻るとコンポーネントごと作り直されるので、リセットは要らない */
+  const wins = $state<Record<Player, number>>({ 1: 0, 2: 0 });
   const settle = new Settle();
 
   const ready = $state<Record<Player, boolean>>({ 1: false, 2: false });
@@ -48,6 +50,7 @@
   function finish(won: Player) {
     if (screen !== 'playing') return;
     winner = won;
+    wins[won] += 1;
     screen = 'result';
     settle.begin();
   }
@@ -70,7 +73,7 @@
     {#if screen === 'title'}
       <TitleScreen name={meta.name} {Howto} {ready} onpaddown={padDown} onpadup={padUp} />
     {:else}
-      <ResultScreen {winner} onagain={start} />
+      <ResultScreen {winner} {wins} onagain={start} />
     {/if}
 
     <!-- 対戦中は誤操作で抜けないよう出さない。どちらのプレイヤーからも等距離の、境界線の高さの左右端に置く -->
