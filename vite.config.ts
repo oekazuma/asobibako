@@ -59,8 +59,19 @@ export default defineConfig({
         extends: true,
         test: {
           name: 'unit',
+          environment: 'node',
+          include: ['src/**/*.test.ts'],
+          exclude: ['src/**/*.svelte.test.ts', 'src/lib/settle.svelte.test.ts', 'src/lib/pwa.test.ts']
+        }
+      },
+      {
+        // コンポーネントとブラウザ API のテスト。browser 条件で Svelte のクライアント版を解決させないと mount() が動かない
+        extends: true,
+        resolve: { conditions: ['browser'] },
+        test: {
+          name: 'dom',
           environment: 'happy-dom',
-          include: ['src/**/*.test.ts']
+          include: ['src/**/*.svelte.test.ts', 'src/lib/settle.svelte.test.ts', 'src/lib/pwa.test.ts']
         }
       }
     ]
