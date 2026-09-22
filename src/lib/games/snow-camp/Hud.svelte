@@ -1,7 +1,7 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon.svelte';
 
-  let { level, wallet, goal, hint }: { level: number; wallet: number; goal: number; hint: string } = $props();
+  let { level, wallet, goal }: { level: number; wallet: number; goal: number } = $props();
 </script>
 
 <div class="hud">
@@ -9,9 +9,6 @@
   <span class="chip wallet"><Icon name="coin" /> {wallet}</span>
   <span class="chip goal"><Icon name="house" /> まで あと {goal}</span>
 </div>
-{#key hint}
-  <p class="hint sticker" role="status">{hint}</p>
-{/key}
 
 <style>
   .hud {
@@ -24,36 +21,6 @@
     justify-content: center;
     gap: 8px;
     pointer-events: none;
-  }
-
-  /* いまやることの吹き出し。変わるたびに弾んで出る */
-  .hint {
-    position: absolute;
-    top: 62px;
-    left: 50%;
-    padding: 8px 20px;
-    border: 4px solid #fff;
-    border-radius: 999px;
-    background: var(--gold);
-    box-shadow: var(--lift);
-    color: var(--ink);
-    font-size: clamp(14px, min(2.6cqh, 4.6cqw), 24px);
-    white-space: nowrap;
-    translate: -50% 0;
-    pointer-events: none;
-    animation: pop 420ms var(--spring);
-  }
-
-  @keyframes pop {
-    from {
-      scale: 0.4;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .hint {
-      animation: none;
-    }
   }
 
   .chip {

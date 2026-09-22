@@ -3,21 +3,18 @@
     level,
     phase,
     ink,
-    left,
-    tip
+    left
   }: {
     level: number;
     phase: 'draw' | 'defend' | 'done';
     ink: number;
     left: number;
-    tip: string;
   } = $props();
 </script>
 
 <div class="hud">
   <span class="level sticker">レベル {level}</span>
   {#if phase === 'draw'}
-    <span class="tip">{tip}</span>
     <span class="ink" role="img" aria-label="のこりのインク {Math.round(ink * 100)}%"
       ><span class="fill" style:width="{ink * 100}%"></span></span
     >
@@ -41,15 +38,6 @@
 
   .level {
     font-size: 24px;
-  }
-
-  .tip {
-    padding: 2px 12px;
-    border-radius: 999px;
-    background: rgb(255 255 255 / 0.8);
-    font-size: 15px;
-    font-weight: 800;
-    color: var(--ink-soft);
   }
 
   .ink {
