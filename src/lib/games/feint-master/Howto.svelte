@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Icon from '$lib/components/Icon.svelte';
   import Glyph from './Glyph.svelte';
 </script>
 
@@ -6,7 +7,7 @@
 <span class="howto-legend">
   <span class="howto-item"><Glyph color="purple" shape="star" size="20px" />合ったら押す</span>
   <span class="howto-item"><span class="howto-mark bad">✕</span>ちがう合図はおてつき</span>
-  <span class="howto-item"><span class="howto-mark">👀</span>相手の手を読む・釣る</span>
+  <span class="howto-item"><span class="howto-mark"><Icon name="eyes" /></span>相手の手を読む・釣る</span>
 </span>
 
 <style>

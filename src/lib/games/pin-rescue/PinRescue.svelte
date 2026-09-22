@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Icon from '$lib/components/Icon.svelte';
   import { onMount } from 'svelte';
   import { BoardInput } from '$lib/board-input';
   import type { SoloProps } from '$lib/games';
@@ -106,7 +107,7 @@
 >
   <canvas bind:this={canvas}></canvas>
   <span class="level sticker">レベル {level}</span>
-  <span class="score sticker" role="status">💰 {score}</span>
+  <span class="score sticker" role="status"><Icon name="coin" /> {score}</span>
   <span class="meter" role="img" aria-label="クリアまで {Math.round(progress * 100)}%"
     ><span class="fill" style:width="{progress * 100}%"></span></span
   >

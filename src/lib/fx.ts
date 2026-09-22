@@ -1,3 +1,5 @@
+import { ICONS, type IconName, type Layer } from './icons';
+
 /**
  * canvas のゲームで使う、見た目だけの演出。ゲームのルールには影響しない。
  * 座標の単位は描く側の ctx の変換に合わせる（ワールド座標でも画面のピクセルでもよい）
@@ -184,19 +186,31 @@ export function shadow(ctx: CanvasRenderingContext2D, x: number, y: number, rx: 
   ctx.fill();
 }
 
-/**
- * 絵文字を中心 (x, y)、高さ size で描く。一度 128px の絵にしてから使い回す。
- * 盤面の座標のまま 1px 未満のフォントで描くと、Safari は文字の寸法を丸めて中心がずれるため
- */
-export function emoji(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, size: number) {
-  const img = sprite(`emoji:${text}`, 128, (c) => {
-    c.setTransform(1, 0, 0, 1, 0, 0);
-    c.font = '100px system-ui';
-    c.textAlign = 'center';
-    c.textBaseline = 'middle';
-    c.fillText(text, 64, 69);
+/** icons.ts のアイコンを中心 (x, y)、大きさ size で描く。一度 96px の絵にしてから使い回す */
+export function icon(ctx: CanvasRenderingContext2D, name: IconName, x: number, y: number, size: number, rotate = 0) {
+  const img = sprite(`icon:${name}`, 96, (c) => {
+    c.scale(1 / 24, 1 / 24);
+    c.lineCap = 'round';
+    c.lineJoin = 'round';
+    for (const layer of ICONS[name] as Layer[]) {
+      const path = new Path2D(layer.d);
+      if (layer.fill) {
+        c.fillStyle = layer.fill;
+        c.fill(path);
+      }
+      if (layer.stroke) {
+        c.strokeStyle = layer.stroke;
+        c.lineWidth = layer.width ?? 1;
+        c.stroke(path);
+      }
+    }
   });
-  stamp(ctx, img, x, y, size * 1.25);
+  if (!rotate) return stamp(ctx, img, x, y, size);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotate);
+  stamp(ctx, img, 0, 0, size);
+  ctx.restore();
 }
 
 /** 空に浮かべる雲 */

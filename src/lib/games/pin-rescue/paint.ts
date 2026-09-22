@@ -1,4 +1,4 @@
-import { emoji, shadow, sprite, stamp } from '$lib/fx';
+import { icon, shadow, sprite, stamp } from '$lib/fx';
 import type { Seg } from '$lib/segments';
 import { HERO_R, R, WALL, WORLD_H, type GameState, type Kind } from './engine';
 
@@ -196,9 +196,9 @@ export function paint(ctx: CanvasRenderingContext2D, state: GameState, pulledAt:
 
   const { x, y } = state.level.hero;
   shadow(ctx, x, WORLD_H - 0.01, HERO_R * 0.9, 0.25);
-  const face = state.result === 'burned' ? '😱' : state.result === 'clear' ? '🤩' : '🧒';
+  const face = state.result === 'burned' ? 'kid-scared' : state.result === 'clear' ? 'kid-happy' : 'kid';
   const hop = state.result === 'clear' ? Math.abs(Math.sin(now * 8)) * 0.05 : Math.sin(now * 3) * 0.004;
-  emoji(ctx, face, x, y - hop, HERO_R * 2.1);
+  icon(ctx, face, x, y - hop, HERO_R * 2.2);
 
   const d = R * 2.3;
   state.particles.forEach((p, i) => {

@@ -1,10 +1,14 @@
+<script lang="ts">
+  import Icon from '$lib/components/Icon.svelte';
+</script>
+
 <!-- ピンの上に金貨、下で待つ子ども -->
 <div class="thumb" aria-hidden="true">
   <span class="wall l"></span>
   <span class="wall r"></span>
   <span class="gold"></span>
   <span class="pin"><span class="knob"></span></span>
-  <span class="kid">🧒</span>
+  <span class="kid"><Icon name="kid" /></span>
 </div>
 
 <style>

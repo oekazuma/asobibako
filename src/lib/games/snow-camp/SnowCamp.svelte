@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Icon from '$lib/components/Icon.svelte';
   import { onMount } from 'svelte';
   import { sfx } from '$lib/audio.svelte';
   import { BoardInput } from '$lib/board-input';
@@ -129,8 +130,8 @@
   <canvas bind:this={canvas}></canvas>
   <div class="hud">
     <span class="chip sticker">レベル {level}</span>
-    <span class="chip wallet" role="status">💰 {wallet}</span>
-    <span class="chip goal">🏠 まで あと {goal}</span>
+    <span class="chip wallet" role="status"><Icon name="coin" /> {wallet}</span>
+    <span class="chip goal"><Icon name="house" /> まで あと {goal}</span>
   </div>
 </div>
 

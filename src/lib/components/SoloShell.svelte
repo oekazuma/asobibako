@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Icon from '$lib/components/Icon.svelte';
   import { onMount } from 'svelte';
   import { resolve } from '$app/paths';
   import { audio, sfx, toggleMute, wake } from '$lib/audio.svelte';
@@ -67,7 +68,7 @@
     {/if}
     <a class="corner back" href={resolve('/')} aria-label="ゲーム選択へ戻る">✕</a>
     <button class="corner mute" onclick={toggleMute} aria-label="ミュート" aria-pressed={audio.muted}>
-      {audio.muted ? '🔇' : '🔊'}
+      <Icon name={audio.muted ? 'mute' : 'speaker'} size="26px" />
     </button>
   {/if}
 </main>

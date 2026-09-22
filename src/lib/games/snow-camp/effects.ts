@@ -34,7 +34,7 @@ export class CampFx {
       p.burst(event.x, event.y, { count: 8, color: ['#fff', '#ff8a95'], speed: 0.5, size: 0.008, life: 0.35 });
     else if (event.type === 'kill') {
       p.burst(x, y - 0.1, { count: 16, color: ['#fff', '#ffe0b3'], speed: 0.5, size: 0.012, life: 0.5 });
-      this.floaters.add(event.kind === 'bear' ? '🍖×3' : '🍖', x, y - 0.14, 0.05, '#d02c3e');
+      this.floaters.add(event.kind === 'bear' ? 'おにく×3' : 'おにく', x, y - 0.14, 0.05, '#d02c3e');
     } else if (event.type === 'deposit')
       p.burst(FIRE.x, FIRE.y - 0.03, {
         count: 4,

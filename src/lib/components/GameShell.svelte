@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Icon from '$lib/components/Icon.svelte';
   import { onMount } from 'svelte';
   import { resolve } from '$app/paths';
   import { audio, sfx, toggleMute, wake } from '$lib/audio.svelte';
@@ -82,7 +83,7 @@
     <!-- 対戦中は誤操作で抜けないよう出さない。どちらのプレイヤーからも等距離の、境界線の高さの左右端に置く -->
     <a class="edge back" href={resolve('/')} aria-label="ゲーム選択へ戻る">✕</a>
     <button class="edge mute" onclick={toggleMute} aria-label="ミュート" aria-pressed={audio.muted}>
-      {audio.muted ? '🔇' : '🔊'}
+      <Icon name={audio.muted ? 'mute' : 'speaker'} size="26px" />
     </button>
   {/if}
 </main>

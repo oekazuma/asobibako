@@ -1,8 +1,12 @@
+<script lang="ts">
+  import Icon from '$lib/components/Icon.svelte';
+</script>
+
 <!-- 向かい合う剣と盾、真ん中に拍の輪 -->
 <div class="thumb" aria-hidden="true">
-  <span class="face top">⚔️</span>
+  <span class="face top"><Icon name="sword" /></span>
   <span class="ring"></span>
-  <span class="face bottom">🛡️</span>
+  <span class="face bottom"><Icon name="shield" /></span>
 </div>
 
 <style>

@@ -1,11 +1,15 @@
+<script lang="ts">
+  import Icon from '$lib/components/Icon.svelte';
+</script>
+
 <!-- 雪原のクマと、お肉を背負った主人公、キャンプのたき火 -->
 <div class="thumb" aria-hidden="true">
-  <span class="e tree a">🌲</span>
-  <span class="e tree b">🌲</span>
-  <span class="e bear">🐻</span>
-  <span class="e hero">🧑</span>
-  <span class="e meat">🍖</span>
-  <span class="e fire">🔥</span>
+  <span class="e tree a"><Icon name="pine" /></span>
+  <span class="e tree b"><Icon name="pine" /></span>
+  <span class="e bear"><Icon name="bear" /></span>
+  <span class="e hero"><Icon name="kid" /></span>
+  <span class="e meat"><Icon name="meat" /></span>
+  <span class="e fire"><Icon name="fire" /></span>
   <span class="camp"></span>
 </div>
 

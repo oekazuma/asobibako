@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Icon from '$lib/components/Icon.svelte';
   import { onMount } from 'svelte';
   import { sfx } from '$lib/audio.svelte';
   import { BoardInput } from '$lib/board-input';
@@ -67,7 +68,7 @@
 >
   <div class="zone p2"></div>
   <div class="zone p1"></div>
-  <div class="bolt" aria-hidden="true">⚡</div>
+  <div class="bolt" aria-hidden="true"><Icon name="bolt" size="36px" /></div>
 
   <Card player={2} {game} />
   <Card player={1} {game} />

@@ -1,9 +1,13 @@
+<script lang="ts">
+  import Icon from '$lib/components/Icon.svelte';
+</script>
+
 <!-- ドームの線に守られた犬と、上から来るハチ -->
 <div class="thumb" aria-hidden="true">
-  <span class="bee a">🐝</span>
-  <span class="bee b">🐝</span>
+  <span class="bee a"><Icon name="bee" /></span>
+  <span class="bee b"><Icon name="bee" /></span>
   <span class="dome"></span>
-  <span class="dog">🐶</span>
+  <span class="dog"><Icon name="dog" /></span>
   <span class="ground"></span>
 </div>
 

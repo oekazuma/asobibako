@@ -1,4 +1,4 @@
-import { cloud, emoji, shadow, sprite, stamp } from '$lib/fx';
+import { cloud, icon, shadow, sprite, stamp } from '$lib/fx';
 import type { Seg } from '$lib/segments';
 import { BEE_R, DOG_R, LINE, type GameState } from './engine';
 
@@ -170,12 +170,12 @@ export function paint(ctx: CanvasRenderingContext2D, state: GameState, now: numb
   stroke(ctx, state);
 
   const { dog } = level;
-  const face = state.result === 'stung' ? '😵' : state.result === 'clear' ? '🥰' : '🐶';
+  const face = state.result === 'stung' ? 'dog-hurt' : state.result === 'clear' ? 'dog-happy' : 'dog';
   const near = state.bees.some((b) => Math.hypot(b.x - dog.x, b.y - dog.y) < DOG_R * 3);
   const shake = near && !state.result ? Math.sin(now * 60) * 0.006 : 0;
   const hop = state.result === 'clear' ? Math.abs(Math.sin(now * 8)) * 0.04 : 0;
   shadow(ctx, dog.x, dog.y + DOG_R * 0.95, DOG_R * 0.8, 0.22);
-  emoji(ctx, face, dog.x + shake, dog.y - hop, DOG_R * 2.2);
+  icon(ctx, face, dog.x + shake, dog.y - hop, DOG_R * 2.2);
 
   for (const b of state.bees) {
     const frame = Math.floor(now * 30 + b.x * 40) % 2 === 0 ? 0 : 1;

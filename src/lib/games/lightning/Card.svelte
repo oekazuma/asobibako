@@ -1,18 +1,21 @@
 <script lang="ts">
+  import Icon from '$lib/components/Icon.svelte';
+  import type { IconName } from '$lib/icons';
   import type { Player } from '$lib/player';
   import type { Command, GameState } from './engine';
 
   let { player, game }: { player: Player; game: GameState } = $props();
 
-  const LOOK: Record<Command, { icon: string; label: string }> = {
-    tap: { icon: '👆', label: 'タップ' },
-    hold: { icon: '✊', label: 'ながおし' },
-    two: { icon: '✌️', label: '2本指タップ' },
-    up: { icon: '⬆️', label: 'スワイプ' },
-    down: { icon: '⬇️', label: 'スワイプ' },
-    left: { icon: '⬅️', label: 'スワイプ' },
-    right: { icon: '➡️', label: 'スワイプ' },
-    skull: { icon: '💀', label: 'さわるな！' }
+  /** rotate は矢印の向き（時計回りの角度） */
+  const LOOK: Record<Command, { icon: IconName; rotate?: number; label: string }> = {
+    tap: { icon: 'tap', label: 'タップ' },
+    hold: { icon: 'hold', label: 'ながおし' },
+    two: { icon: 'two', label: '2本指タップ' },
+    up: { icon: 'arrow', label: 'スワイプ' },
+    down: { icon: 'arrow', rotate: 180, label: 'スワイプ' },
+    left: { icon: 'arrow', rotate: 270, label: 'スワイプ' },
+    right: { icon: 'arrow', rotate: 90, label: 'スワイプ' },
+    skull: { icon: 'skull', label: 'さわるな！' }
   };
 
   const locked = $derived(game.locked[player]);
@@ -34,7 +37,7 @@
     <div class="card bad"><span class="label">ミス！</span></div>
   {:else if game.phase === 'go'}
     <div class="card go" class:skull={game.command === 'skull'}>
-      <span class="icon">{look.icon}</span>
+      <span class="icon"><Icon name={look.icon} rotate={look.rotate} /></span>
       <span class="label">{look.label}</span>
     </div>
   {:else}

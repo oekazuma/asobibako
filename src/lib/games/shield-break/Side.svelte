@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Icon from '$lib/components/Icon.svelte';
+  import type { IconName } from '$lib/icons';
   import type { Player } from '$lib/player';
   import type { Action, GameState } from './engine';
   import Stats from './Stats.svelte';
@@ -11,7 +13,7 @@
     guarding
   }: { player: Player; game: GameState; beats: number; nudge: number; guarding: boolean } = $props();
 
-  const ICON: Record<Action, string> = { charge: '⚡', attack: '⚔️', guard: '🛡️', none: '💤' };
+  const ICON: Record<Action, IconName> = { charge: 'bolt', attack: 'sword', guard: 'shield', none: 'sleep' };
   const opponent = $derived<Player>(player === 1 ? 2 : 1);
 
   const result = $derived.by(() => {
@@ -32,7 +34,7 @@
     {#key beats}
       {#if result}
         <div class="bubble" class:bad={result.bad} class:good={result.good}>
-          <span class="icon">{result.icon}</span>
+          <span class="icon"><Icon name={result.icon} /></span>
           <span class="text">{result.text}</span>
         </div>
       {/if}
@@ -44,7 +46,7 @@
       {#if nudge > 0}<span class="warn">ためてから！</span>{/if}
     {/key}
     {#if guarding}
-      <span class="tag guard">🛡️ ガード中</span>
+      <span class="tag guard"><Icon name="shield" /> ガード中</span>
     {:else if game.pending[player]}
       <span class="tag">✓ きめた</span>
     {/if}

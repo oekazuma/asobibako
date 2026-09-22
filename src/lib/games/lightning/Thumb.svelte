@@ -1,8 +1,12 @@
+<script lang="ts">
+  import Icon from '$lib/components/Icon.svelte';
+</script>
+
 <!-- 上下の陣地に向かい合わせの指示カードと、真ん中の稲妻 -->
 <div class="thumb" aria-hidden="true">
-  <span class="card top">⬆️</span>
-  <span class="bolt">⚡</span>
-  <span class="card bottom">👆</span>
+  <span class="card top"><Icon name="arrow" /></span>
+  <span class="bolt"><Icon name="bolt" /></span>
+  <span class="card bottom"><Icon name="tap" /></span>
 </div>
 
 <style>

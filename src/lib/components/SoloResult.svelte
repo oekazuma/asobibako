@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Icon from '$lib/components/Icon.svelte';
   let { cleared, level, onagain }: { cleared: boolean; level: number; onagain: () => void } = $props();
 
   const COLORS = ['#ffc233', '#1f9bff', '#ff4d5e', '#58c46b', '#b27bff'];
@@ -28,12 +29,12 @@
       ></span>
     {/each}
     <div class="stars" aria-hidden="true">
-      <span class="star">⭐</span>
-      <span class="star big">⭐</span>
-      <span class="star">⭐</span>
+      <span class="star"><Icon name="star" /></span>
+      <span class="star big"><Icon name="star" /></span>
+      <span class="star"><Icon name="star" /></span>
     </div>
   {:else}
-    <span class="face" aria-hidden="true">😢</span>
+    <span class="face" aria-hidden="true"><Icon name="sad" /></span>
   {/if}
   <span class="outcome sticker" role="status">{cleared ? 'クリア！' : 'ざんねん…'}</span>
   <span class="level">{cleared ? `つぎは レベル ${level}` : `レベル ${level}`}</span>

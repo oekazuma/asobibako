@@ -32,7 +32,7 @@ border-rush の盤面は、境界線の移動を `transform` だけで表現し�
 
 盤面の上を指で操作するゲームは、共通の `src/lib/board-input.ts`（指の追跡・盤面座標への変換・リサイズ監視。中で `src/lib/fingers.ts` を使う）と `src/lib/loop.ts`（dt を抑えた `requestAnimationFrame` ループ）に載せる。得点の丸表示は `src/lib/components/Pips.svelte`。
 
-粒・群れ・動物など多数の動くものは DOM ではなく canvas 1 枚に描く（影付きの DOM を大量に動かすと iPad で 10 倍以上遅くなった）。canvas に絵文字を描くときは `src/lib/fx.ts` の `emoji()`を使う（パーティクル・浮かぶ文字・画面の揺れ・絵のキャッシュも同じファイルにある）（盤面の座標のまま 1px 未満のフォントを指定すると Safari は文字の寸法を丸めて中心がずれる）。線分との当たり判定は `src/lib/segments.ts`。
+粒・群れ・動物など多数の動くものは DOM ではなく canvas 1 枚に描く（影付きの DOM を大量に動かすと iPad で 10 倍以上遅くなった）。絵文字は使わない（端末で見た目が変わり、チープに見えるため）。アイコンは `src/lib/icons.ts` に SVG パスで定義し、DOM では `src/lib/components/Icon.svelte`、canvas では `src/lib/fx.ts` の `icon()` で描く（パーティクル・浮かぶ文字・画面の揺れ・絵のキャッシュも `fx.ts` にある）。雪原サバイバルは three で描き、人や動物は球・円柱などの組み合わせで作る（`snow-camp/models.ts`）。線分との当たり判定は `src/lib/segments.ts`。
 
 bomb-relay と hockey は物理があるのでループで動かす。ルールと物理はそれぞれの `engine.ts` に閉じ、はじく速さは `fingers.ts` の `velocity()` で出す。hockey は速いパックと速く振ったマレットがすり抜けないよう、動く量に応じて 1 フレームを細かく分けて当たり判定し、そのあいだのマレット位置は前のフレームから補間する。爆弾の位置・脈・熱はループが DOM に直接書き、Svelte の状態にはメーター・持ち主・爆発のように変化が少ないものだけを載せる。座標は盤面の幅・高さに対する 0..1 で、距離と速さは高さを 1 とした単位に揃えている（縦向き・横向きで手触りを変えないため）。
 
