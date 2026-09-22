@@ -1,4 +1,12 @@
-import { radius, type Bug } from './engine';
+import { sprite, stamp } from '$lib/fx';
+import { radius, type Bug, type BugKind } from './engine';
+
+/** 1 回描いた虫の絵。iPad では 1 匹が 120px 前後になるので、縮小だけで済むよう 192px で描く */
+const body = (kind: BugKind) =>
+  sprite(`bug:${kind}`, 192, (c) => {
+    c.translate(0.5, 0.5);
+    drawBody(c, kind, 0.36);
+  });
 
 /**
  * 虫は最大 36 匹が同時に動くので、DOM の要素ではなく 1 枚の canvas にまとめて描く。
@@ -22,15 +30,15 @@ export function paint(ctx: CanvasRenderingContext2D, bugs: Bug[], width: number,
         ctx.fill();
       }
       ctx.rotate(bug.heading + Math.PI / 2);
-      drawBody(ctx, bug, r);
+      stamp(ctx, body(bug.kind), 0, 0, r / 0.36);
       ctx.restore();
       if (bug.kind === 'beetle') drawHp(ctx, bug, width, height, r);
     }
   }
 }
 
-function drawBody(ctx: CanvasRenderingContext2D, bug: Bug, r: number) {
-  const beetle = bug.kind === 'beetle';
+function drawBody(ctx: CanvasRenderingContext2D, kind: BugKind, r: number) {
+  const beetle = kind === 'beetle';
   // 頭（とカブトムシの角）
   ctx.fillStyle = '#2b2d42';
   ctx.beginPath();
