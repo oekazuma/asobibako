@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 概要
 
-iPad 1 台をテーブルに置き、画面の上下から 2 人が同時に操作して遊ぶ対戦ゲーム集 PWA。SvelteKit（Svelte 5 runes、TypeScript）+ adapter-static で、`main` への push で GitHub Pages（`/table-duel/`）へ自動デプロイされる。ランタイム依存はゼロで、効果音は Web Audio のオシレータ合成、アイコンは `scripts/make-icon.ts` の自前 PNG 生成。
+iPad 1 台をテーブルに置き、画面の上下から 2 人が同時に操作して遊ぶ対戦ゲーム集 PWA。画面全体を 1 人で使い、レベルを順にクリアする 1 人用のゲームもある。SvelteKit（Svelte 5 runes、TypeScript）+ adapter-static で、`main` への push で GitHub Pages（`/table-duel/`）へ自動デプロイされる。ランタイム依存はゼロで、効果音は Web Audio のオシレータ合成、アイコンは `scripts/make-icon.ts` の自前 PNG 生成。
 
 ## コマンド
 
@@ -24,13 +24,15 @@ pnpm icon                     # static/icon-180/192/512.png を再生成
 
 `/` はゲーム一覧、`/games/[id]` は動的ルート 1 つで全ゲームを受ける（`+page.ts` の `entries` が `src/lib/games.ts` の `games` から全ゲームをプリレンダーする）。ゲーム 1 本は `src/lib/games/<id>/` に閉じ、対戦本体・`Howto.svelte`（タイトル画面の遊び方）・`meta.ts`（一覧用の情報と `load()`）を持つ。本体は `load()` の動的 import で遊ぶときに読み込み、一覧画面には載せない。追加は `games` 配列に 1 行足すだけで、既存のゲームには触らない。
 
-タイトル（両者の長押しでスタート）・結果・再戦・一覧へ戻る・ミュートは `src/lib/components/GameShell.svelte` が全ゲーム共通で持ち、ゲームは `onfinish(1 | 2)` を呼ぶだけでよい。プレイヤー番号の型は `src/lib/player.ts`（1 が手前、2 が向かい）で、特定のゲームには依存しない。ルールは DOM に依存しない純粋なモジュール（border-rush なら `engine.ts`）に閉じて vitest で検証し、`.svelte` は描画と Pointer Events の配線だけを持つ。
+タイトル（両者の長押しでスタート）・結果・再戦・一覧へ戻る・ミュートは `src/lib/components/GameShell.svelte` が全ゲーム共通で持ち、ゲームは `onfinish(1 | 2)` を呼ぶだけでよい。1 人用（`meta.players` が 1）は `SoloShell.svelte` が受け、ゲームは `level` を受け取って `onfinish(true | false)` を呼ぶ。レベルはゲームごとに localStorage へ保存する。決着後の合成 click 対策（`settling`）は両方のシェルが `src/lib/settle.svelte.ts` を使う。プレイヤー番号の型は `src/lib/player.ts`（1 が手前、2 が向かい）で、特定のゲームには依存しない。ルールは DOM に依存しない純粋なモジュール（border-rush なら `engine.ts`）に閉じて vitest で検証し、`.svelte` は描画と Pointer Events の配線だけを持つ。
 
 コンポーネントは 200 行未満に保つ（`architecture/component-size`、抑制コメントは使っていない）。上下 2 分割のレイアウト（`.stage` / `.half` と向かい側の 180 度回転）は画面をまたぐので `src/app.css` の共通クラスに置く。全体に `touch-action: none` をかけているので、スクロールが要る一覧画面は自分をスクロール領域にして `touch-action: pan-y` を許す。
 
 border-rush の盤面は、境界線の移動を `transform` だけで表現し、レイアウトを毎フレーム起こさない。玉の寿命はタイマーを持たず、スポーンの周期で `expire()` が落とす。
 
 盤面の上を指で操作するゲームは、共通の `src/lib/board-input.ts`（指の追跡・盤面座標への変換・リサイズ監視。中で `src/lib/fingers.ts` を使う）と `src/lib/loop.ts`（dt を抑えた `requestAnimationFrame` ループ）に載せる。得点の丸表示は `src/lib/components/Pips.svelte`。
+
+粒・群れ・動物など多数の動くものは DOM ではなく canvas 1 枚に描く（影付きの DOM を大量に動かすと iPad で 10 倍以上遅くなった）。canvas に絵文字を描くときは `src/lib/canvas.ts` の `emoji()` を使う（盤面の座標のまま 1px 未満のフォントを指定すると Safari は文字の寸法を丸めて中心がずれる）。線分との当たり判定は `src/lib/segments.ts`。
 
 bomb-relay と hockey は物理があるのでループで動かす。ルールと物理はそれぞれの `engine.ts` に閉じ、はじく速さは `fingers.ts` の `velocity()` で出す。hockey は速いパックと速く振ったマレットがすり抜けないよう、動く量に応じて 1 フレームを細かく分けて当たり判定し、そのあいだのマレット位置は前のフレームから補間する。爆弾の位置・脈・熱はループが DOM に直接書き、Svelte の状態にはメーター・持ち主・爆発のように変化が少ないものだけを載せる。座標は盤面の幅・高さに対する 0..1 で、距離と速さは高さを 1 とした単位に揃えている（縦向き・横向きで手触りを変えないため）。
 

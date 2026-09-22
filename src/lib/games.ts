@@ -10,6 +10,7 @@ import hockey from './games/hockey/meta';
 import lightning from './games/lightning/meta';
 import pinRescue from './games/pin-rescue/meta';
 import shieldBreak from './games/shield-break/meta';
+import snowCamp from './games/snow-camp/meta';
 import type { Player } from './player';
 
 export interface GameProps {
@@ -63,6 +64,7 @@ export const games: GameMeta[] = [
   pinRescue,
   gateRun,
   dogGuard,
+  snowCamp,
   borderRush,
   bombRelay,
   hockey,
