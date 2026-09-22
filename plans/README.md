@@ -25,7 +25,7 @@ STOP 条件を守り、終わったら自分の行の Status を更新する。
 | 005  | pin-rescue の液体描画を外接矩形だけに絞る                                                       | P1       | M      | —          | DONE（`c6e71cb`、main に merge 済み）                                            |
 | 006  | snow-camp の geometry 共有・影の絞り込み・DPR・破棄                                             | P1       | M      | —          | DONE（`21aec9f`、main に merge 済み）                                            |
 | 007  | Renovate 設定を整理する                                                                         | P2       | S      | —          | DONE（`1659ef5`、main に merge 済み）                                            |
-| 008  | `main` に required status checks を付ける（リポジトリ設定。利用者が実行）                       | P2       | S      | —          | TODO                                                                             |
+| 008  | `main` に required status checks を付ける（リポジトリ設定。利用者が実行）                       | P2       | S      | —          | DONE（ruleset `23843675` を 2026-09-23 に作成）                                  |
 | 009  | テスト基盤を node + dom の 2 project にし、Settle / pwa / シェルのテストを足す                  | P2       | M      | 001        | DONE（`1686386`、main に merge 済み）                                            |
 | 010  | 更新確認の失敗を正しく出し、iPad 上の実行時エラーを見えるようにする                             | P2       | S      | —          | DONE（`d83af18`、main に merge 済み）                                            |
 | 011  | Service Worker の runtime cache を同一オリジンに絞り、書き込み失敗を握る                        | P2       | S      | —          | DONE（`5a9c9b4`、main に merge 済み）                                            |
