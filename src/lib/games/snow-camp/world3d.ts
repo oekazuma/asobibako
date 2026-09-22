@@ -168,8 +168,9 @@ export class CampWorld {
   static readonly CHARACTER = 1.3;
 
   constructor(canvas: HTMLCanvasElement, state: GameState) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    this.renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+    // 平面的なローポリなので、iPad の dpr 2 + MSAA は見た目に効かず描画だけ重い
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
+    this.renderer.setPixelRatio(Math.min(1.5, devicePixelRatio));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.scene.background = new THREE.Color('#bfe0fb');
