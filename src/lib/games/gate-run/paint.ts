@@ -86,7 +86,8 @@ function ground(ctx: CanvasRenderingContext2D, v: View, state: GameState, now: n
   }
 }
 
-type Draw = { z: number; draw: () => void };
+// 群れの点は毎フレーム最大 140 × 3 個生成されるので、クロージャでなくデータで持って GC 負荷を抑える
+type Draw = { z: number; draw: () => void } | { z: number; img: HTMLCanvasElement; x: number; y: number; size: number };
 
 function crowdDraws(
   c: CanvasRenderingContext2D,
@@ -107,16 +108,11 @@ function crowdDraws(
     const dz = Math.sin(i * GOLDEN) * d * 0.9;
     const pz = z + dz;
     if (pz < 0.4) continue;
-    draws.push({
-      z: pz,
-      draw: () => {
-        const [x, y, s] = project(v, center + dl, pz);
-        const size = v.w * 0.075 * s;
-        const frame = Math.floor(now * 10 + i * 0.37) % 2 === 0 ? 0 : 1;
-        const bob = Math.abs(Math.sin(now * 16 + i)) * size * 0.08;
-        stamp(c, runner(colors[0], colors[1], frame), x, y - size * 0.45 - bob, size);
-      }
-    });
+    const [x, y, s] = project(v, center + dl, pz);
+    const size = v.w * 0.075 * s;
+    const frame = Math.floor(now * 10 + i * 0.37) % 2 === 0 ? 0 : 1;
+    const bob = Math.abs(Math.sin(now * 16 + i)) * size * 0.08;
+    draws.push({ z: pz, img: runner(colors[0], colors[1], frame), x, y: y - size * 0.45 - bob, size });
   }
   return draws;
 }
@@ -204,7 +200,11 @@ export function paint(c: CanvasRenderingContext2D, state: GameState, v: View, no
     draws.push({ z: 0.1, draw: () => countTag(c, v, state.x, CROWD_Z, state.count, '#0b6fcc', true) });
   }
 
-  draws.sort((a, b) => b.z - a.z).forEach((d) => d.draw());
+  draws.sort((a, b) => b.z - a.z);
+  for (const d of draws) {
+    if ('draw' in d) d.draw();
+    else stamp(c, d.img, d.x, d.y, d.size);
+  }
 }
 
 function gate(c: CanvasRenderingContext2D, v: View, op: Op, l0: number, z: number, now: number) {
