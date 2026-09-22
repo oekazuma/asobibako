@@ -1,38 +1,18 @@
 <script lang="ts">
+  import Confetti from '$lib/components/Confetti.svelte';
   import Icon from '$lib/components/Icon.svelte';
-  import { CONFETTI } from '$lib/fx';
   let {
     cleared,
     complete,
     level,
     onagain
   }: { cleared: boolean; complete: boolean; level: number; onagain: () => void } = $props();
-
-  /** 紙吹雪の位置・色・速さは毎回ばらつかせる */
-  const confetti = Array.from({ length: 36 }, (_, i) => ({
-    id: i,
-    left: Math.random() * 100,
-    delay: Math.random() * 1.2,
-    duration: 2.2 + Math.random() * 1.6,
-    color: CONFETTI[i % CONFETTI.length],
-    tilt: Math.random() * 360
-  }));
 </script>
 
 <div class="result" class:won={cleared}>
   {#if cleared}
     <div class="rays" aria-hidden="true"></div>
-    {#each confetti as c (c.id)}
-      <span
-        class="confetti"
-        aria-hidden="true"
-        style:left="{c.left}%"
-        style:background={c.color}
-        style:animation-delay="{c.delay}s"
-        style:animation-duration="{c.duration}s"
-        style:rotate="{c.tilt}deg"
-      ></span>
-    {/each}
+    <Confetti />
     <div class="stars" aria-hidden="true">
       <span class="star"><Icon name="star" /></span>
       <span class="star big"><Icon name="star" /></span>
@@ -77,15 +57,6 @@
     background: repeating-conic-gradient(from 0deg, rgb(255 255 255 / 0.4) 0deg 10deg, transparent 10deg 20deg);
     translate: -50% -50%;
     animation: spin 24s linear infinite;
-  }
-
-  .confetti {
-    position: absolute;
-    top: -20px;
-    width: 12px;
-    height: 18px;
-    border-radius: 3px;
-    animation: fall linear infinite;
   }
 
   .stars {
@@ -158,13 +129,6 @@
     }
   }
 
-  @keyframes fall {
-    to {
-      translate: 0 110dvh;
-      rotate: 720deg;
-    }
-  }
-
   @keyframes pop {
     from {
       scale: 0.3;
@@ -174,7 +138,6 @@
 
   @media (prefers-reduced-motion: reduce) {
     .rays,
-    .confetti,
     .star,
     .face,
     .outcome,
