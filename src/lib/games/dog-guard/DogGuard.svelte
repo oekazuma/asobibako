@@ -114,7 +114,9 @@
     <span class="level sticker">レベル {level}</span>
     {#if phase === 'draw'}
       <span class="tip">線をかいて 犬を まもろう！</span>
-      <span class="ink" aria-label="のこりのインク"><span class="fill" style:width="{ink * 100}%"></span></span>
+      <span class="ink" role="img" aria-label="のこりのインク {Math.round(ink * 100)}%"
+        ><span class="fill" style:width="{ink * 100}%"></span></span
+      >
     {:else}
       <span class="count sticker" role="timer">{phase === 'defend' ? left : ''}</span>
     {/if}
