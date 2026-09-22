@@ -26,7 +26,7 @@ export default ts.config(
     files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
     languageOptions: {
       parserOptions: {
-        projectService: true,
+        // 型情報を使う規則は有効にしていないので、TypeScript のプログラムは組まない（lint が倍近く速い）
         extraFileExtensions: ['.svelte'],
         parser: ts.parser
       }
