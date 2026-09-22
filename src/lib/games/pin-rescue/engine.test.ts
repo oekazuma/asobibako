@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createState, pinAt, pull, step, type GameState } from './engine';
-import { LEVELS } from './levels';
+import { LEVELS, tierFor } from './levels';
 
 function run(state: GameState, seconds: number) {
   for (let t = 0; t < seconds && !state.result; t += 1 / 60) step(state, 1 / 60);
@@ -34,23 +34,30 @@ describe('pin-rescue engine', () => {
     }
   );
 
-  it('あとの面ほどピンが多い', () => {
-    const pins = LEVELS.slice(0, 8).map((level) => level.pins.length);
-    expect(pins[7]).toBeGreaterThan(pins[0]);
-    for (let i = 1; i < pins.length; i++) expect(pins[i]).toBeGreaterThanOrEqual(pins[i - 1] - 1);
+  it('100 面に同じ面はない', () => {
+    expect(new Set(LEVELS.map((level) => JSON.stringify(level))).size).toBe(LEVELS.length);
+  });
+
+  it('レベルが上がるほど、型は難しくなり、要る金の割合も上がる', () => {
+    for (let i = 1; i < LEVELS.length; i++) {
+      expect(tierFor(i + 1), `level ${i + 1}`).toBeGreaterThanOrEqual(tierFor(i));
+      expect(LEVELS[i].need).toBeGreaterThan(LEVELS[i - 1].need);
+    }
+    expect(LEVELS[99].pins.length).toBeGreaterThan(LEVELS[0].pins.length);
   });
 
   it('水がマグマに触れると、マグマは残らず石になる', () => {
-    const state = createState(LEVELS[3]);
-    pull(state, 0);
+    const level = LEVELS.find((l) => l.pools.some((p) => p.kind === 'water'))!;
+    const state = createState(level);
+    pull(state, level.solution[0]);
     run(state, 3);
     expect(state.particles.some((p) => p.kind === 'lava')).toBe(false);
   });
 
   it('指の近くのピンを選ぶ', () => {
-    const state = createState(LEVELS[1]);
-    expect(pinAt(state, 0.2, 0.53)).toBe(0);
-    expect(pinAt(state, 0.8, 0.51)).toBe(1);
+    const state = createState(LEVELS[0]);
+    const [x1, y1, x2] = state.level.pins[0].seg;
+    expect(pinAt(state, (x1 + x2) / 2, y1 + 0.01)).toBe(0);
     expect(pinAt(state, 0.5, 1.2)).toBe(-1);
   });
 });

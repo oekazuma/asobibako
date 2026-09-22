@@ -4,6 +4,7 @@
   import { resolve } from '$app/paths';
   import { audio, sfx, toggleMute, wake } from '$lib/audio.svelte';
   import type { SoloMeta, SoloModule } from '$lib/games';
+  import { MAX_LEVEL } from '$lib/levels';
   import { Settle } from '$lib/settle.svelte';
   import SoloResult from './SoloResult.svelte';
   import SoloTitle from './SoloTitle.svelte';
@@ -13,6 +14,8 @@
   const key = $derived(`table-duel:level:${meta.id}`);
   let screen = $state<'title' | 'playing' | 'result'>('title');
   let cleared = $state(false);
+  /** レベル 100 までクリアした */
+  let complete = $state(false);
   let round = $state(0);
   let level = $state(1);
   /** たどり着いたいちばん先のレベル。タイトルでここまでは選び直せる */
@@ -28,7 +31,8 @@
 
   function finish(won: boolean) {
     cleared = won;
-    if (won) {
+    complete = won && level >= MAX_LEVEL;
+    if (won && !complete) {
       level += 1;
       best = Math.max(best, level);
       try {
@@ -43,7 +47,7 @@
 
   onMount(() => {
     try {
-      best = level = Math.max(1, Number(localStorage.getItem(key)) || 1);
+      best = level = Math.min(MAX_LEVEL, Math.max(1, Number(localStorage.getItem(key)) || 1));
     } catch {
       // プライベートブラウズでは 1 から
     }
@@ -62,7 +66,7 @@
     {#if screen === 'title'}
       <SoloTitle {meta} {Howto} {best} bind:level onstart={start} />
     {:else}
-      <SoloResult {cleared} {level} onagain={start} />
+      <SoloResult {cleared} {complete} {level} onagain={start} />
     {/if}
     <a class="corner back" href={resolve('/')} aria-label="ゲーム選択へ戻る">✕</a>
     <button class="corner mute" onclick={toggleMute} aria-label="ミュート" aria-pressed={audio.muted}>

@@ -1,3 +1,5 @@
+import { difficulty, lerp, Rng } from '$lib/levels';
+
 /**
  * 雪原は幅 WORLD_W・高さ WORLD_H の固定の広さで、y は下向き。上が狩り場、下がキャンプ。
  * 近くの動物は自動で攻撃し、落ちた肉は歩いて拾い、たき火に近づくと自動で渡す
@@ -28,7 +30,45 @@ export interface Pad {
   level: number;
 }
 
+/** レベルで決まる、その面の決まりごと。難しくなるほど家が高く、クマが多く固く、ウサギは逃げ足が速い */
+export interface Rules {
+  home: number;
+  bearHp: number;
+  rabbits: number;
+  bears: number;
+  flee: number;
+  cook: number;
+  padScale: number;
+  /** 狩り場の木の並び。面ごとに違う */
+  trees: { x: number; y: number; s: number }[];
+}
+
+export function rulesFor(level: number): Rules {
+  const d = difficulty(level);
+  const rng = new Rng(level * 7919);
+  const trees: Rules['trees'] = [];
+  const count = rng.int(18, 30);
+  while (trees.length < count) {
+    const x = rng.range(0.05, WORLD_W - 0.05);
+    const y = rng.range(0.05, HUNT_BOTTOM - 0.05);
+    // 狩り場の真ん中と、キャンプの入り口の前は空けておく
+    if (Math.abs(x - WORLD_W / 2) < 0.28 && y > 0.25) continue;
+    trees.push({ x, y, s: rng.range(0.08, 0.13) });
+  }
+  return {
+    home: Math.round(lerp(50, 300, d ** 1.2)),
+    bearHp: Math.round(lerp(4, 9, d)),
+    rabbits: Math.round(lerp(5, 2, d)),
+    bears: Math.round(lerp(2, 4, d)),
+    flee: lerp(0.3, 0.46, d),
+    cook: lerp(1.4, 2.2, d),
+    padScale: lerp(1, 1.8, d),
+    trees
+  };
+}
+
 export interface GameState {
+  rules: Rules;
   hero: { x: number; y: number };
   carry: number;
   cap: number;
@@ -76,35 +116,34 @@ const PICK = 0.09;
 const NEAR = 0.14;
 const ATTACK_S = 0.4;
 const HAND_S = 0.1;
-const COOK_S = 1.4;
 const EAT_S = 0.7;
 const GUEST_S = 1.5;
 const MAX_GUESTS = 3;
 const PRICE = 4;
-const MAX_RABBITS = 5;
-const MAX_BEARS = 2;
 const SPAWN_S = 2.5;
 const MEAT: Record<Animal['kind'], number> = { rabbit: 1, bear: 3 };
-const HP: Record<Animal['kind'], number> = { rabbit: 1, bear: 4 };
 
 const wander = (rand: () => number) => [0.1 + rand() * (WORLD_W - 0.2), 0.15 + rand() * (HUNT_BOTTOM - 0.25)];
 
-function spawn(kind: Animal['kind'], rand: () => number): Animal {
+function spawn(kind: Animal['kind'], rules: Rules, rand: () => number): Animal {
   const [x, y] = wander(rand);
   const [tx, ty] = wander(rand);
-  return { kind, x, y, hp: HP[kind], tx, ty, flash: 0 };
+  return { kind, x, y, hp: kind === 'bear' ? rules.bearHp : 1, tx, ty, flash: 0 };
 }
 
 export function createState(level: number, rand: () => number = Math.random): GameState {
+  const rules = rulesFor(level);
+  const price = (base: number) => Math.round(base * rules.padScale);
   return {
+    rules,
     hero: { x: FIRE.x, y: 1.75 },
     carry: 0,
     cap: 5,
     power: 1,
     cookSpeed: 1,
     animals: [
-      ...Array.from({ length: MAX_RABBITS }, () => spawn('rabbit', rand)),
-      ...Array.from({ length: MAX_BEARS }, () => spawn('bear', rand))
+      ...Array.from({ length: rules.rabbits }, () => spawn('rabbit', rules, rand)),
+      ...Array.from({ length: rules.bears }, () => spawn('bear', rules, rand))
     ],
     drops: [],
     cooking: 0,
@@ -116,10 +155,10 @@ export function createState(level: number, rand: () => number = Math.random): Ga
     coins: 0,
     wallet: 0,
     pads: [
-      { id: 'bag', x: 0.3, y: 2.28, cost: 10, paid: 0, level: 0 },
-      { id: 'power', x: 0.8, y: 2.28, cost: 15, paid: 0, level: 0 },
-      { id: 'fire', x: 1.3, y: 2.28, cost: 20, paid: 0, level: 0 },
-      { id: 'home', x: 1.3, y: 1.62, cost: 50 + 30 * (level - 1), paid: 0, level: 0 }
+      { id: 'bag', x: 0.3, y: 2.28, cost: price(10), paid: 0, level: 0 },
+      { id: 'power', x: 0.8, y: 2.28, cost: price(15), paid: 0, level: 0 },
+      { id: 'fire', x: 1.3, y: 2.28, cost: price(20), paid: 0, level: 0 },
+      { id: 'home', x: 1.3, y: 1.62, cost: rules.home, paid: 0, level: 0 }
     ],
     attackT: 0,
     spawnT: 0,
@@ -164,7 +203,7 @@ export function step(
     const flee = a.kind === 'rabbit' && near(a, hero, 0.3);
     const [gx, gy] = flee ? [a.x * 2 - hero.x, a.y * 2 - hero.y] : [a.tx, a.ty];
     const d = Math.hypot(gx - a.x, gy - a.y);
-    const speed = a.kind === 'bear' ? 0.07 : flee ? 0.32 : 0.12;
+    const speed = a.kind === 'bear' ? 0.07 : flee ? state.rules.flee : 0.12;
     if (d < 0.03 && !flee) [a.tx, a.ty] = wander(rand);
     else if (d > 0) {
       a.x += ((gx - a.x) / d) * speed * dt;
@@ -193,8 +232,8 @@ export function step(
   if (state.spawnT <= 0) {
     state.spawnT = SPAWN_S;
     const count = (k: Animal['kind']) => state.animals.filter((a) => a.kind === k).length;
-    if (count('rabbit') < MAX_RABBITS) state.animals.push(spawn('rabbit', rand));
-    else if (count('bear') < MAX_BEARS) state.animals.push(spawn('bear', rand));
+    if (count('rabbit') < state.rules.rabbits) state.animals.push(spawn('rabbit', state.rules, rand));
+    else if (count('bear') < state.rules.bears) state.animals.push(spawn('bear', state.rules, rand));
   }
 
   state.drops = state.drops.filter((drop) => {
@@ -226,7 +265,7 @@ export function step(
 
   if (state.cooking > 0) {
     state.cookT += dt * state.cookSpeed;
-    if (state.cookT >= COOK_S) {
+    if (state.cookT >= state.rules.cook) {
       state.cookT = 0;
       state.cooking -= 1;
       state.meals += 1;

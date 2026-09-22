@@ -1,6 +1,6 @@
 import { sfx } from '$lib/audio.svelte';
 import { Floaters, Particles, Shake } from '$lib/fx';
-import { NEED, type GameState, type Kind } from './engine';
+import { needed, type GameState, type Kind } from './engine';
 import { sounds } from './sounds';
 
 const CONFETTI = ['#ffc233', '#1f9bff', '#ff4d5e', '#58c46b'];
@@ -77,7 +77,7 @@ export class PinFx {
     this.#kinds = game.particles.map((p) => p.kind);
     this.particles.step(dt);
     this.floaters.step(dt);
-    return { progress: Math.min(1, game.collected / Math.ceil(game.gold * NEED)), score: game.collected * COIN };
+    return { progress: Math.min(1, game.collected / needed(game)), score: game.collected * COIN };
   }
 
   finished(game: GameState): void {

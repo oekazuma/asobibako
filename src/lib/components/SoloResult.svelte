@@ -1,6 +1,11 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon.svelte';
-  let { cleared, level, onagain }: { cleared: boolean; level: number; onagain: () => void } = $props();
+  let {
+    cleared,
+    complete,
+    level,
+    onagain
+  }: { cleared: boolean; complete: boolean; level: number; onagain: () => void } = $props();
 
   const COLORS = ['#ffc233', '#1f9bff', '#ff4d5e', '#58c46b', '#b27bff'];
   /** 紙吹雪の位置・色・速さは毎回ばらつかせる */
@@ -36,9 +41,13 @@
   {:else}
     <span class="face" aria-hidden="true"><Icon name="sad" /></span>
   {/if}
-  <span class="outcome sticker" role="status">{cleared ? 'クリア！' : 'ざんねん…'}</span>
-  <span class="level">{cleared ? `つぎは レベル ${level}` : `レベル ${level}`}</span>
-  <button class="pill gold go again" onclick={onagain}>{cleared ? 'つぎへ' : 'もういちど'}</button>
+  <span class="outcome sticker" class:long={complete} role="status"
+    >{complete ? 'ぜんぶクリア！' : cleared ? 'クリア！' : 'ざんねん…'}</span
+  >
+  <span class="level">
+    {complete ? `レベル ${level} まで ぜんぶ クリア！` : cleared ? `つぎは レベル ${level}` : `レベル ${level}`}
+  </span>
+  <button class="pill gold go again" onclick={onagain}>{cleared && !complete ? 'つぎへ' : 'もういちど'}</button>
 </div>
 
 <style>
@@ -115,6 +124,11 @@
     white-space: nowrap;
     color: var(--gold-deep);
     animation: pop 520ms var(--spring) both;
+  }
+
+  /* 「ぜんぶクリア！」は字数が多いので、幅に合わせて小さめにする */
+  .outcome.long {
+    font-size: clamp(32px, min(10cqh, 12cqw), 100px);
   }
 
   .result:not(.won) .outcome {

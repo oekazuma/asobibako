@@ -1,3 +1,5 @@
+import { difficulty, lerp, Rng } from '$lib/levels';
+
 /**
  * 道は横 0..1、前へ進んだ距離は盤面の高さを 1 とした単位。
  * 群れは自動で前へ進み、プレイヤーは左右だけ動かす
@@ -42,24 +44,17 @@ export function apply(op: Op, count: number): number {
 
 export const isGood = (op: Op) => op.kind === '+' || op.kind === 'x';
 
-/** 決まった乱数の列（面ごとに同じコースにする） */
-export function seeded(seed: number): () => number {
-  let a = seed * 2654435761;
-  return () => {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+/** 難しくなるほど ×3 が減り、+ の門も小さくなる */
+function goodOp(rng: Rng, d: number): Op {
+  if (rng.chance(0.3)) return { kind: 'x', n: rng.chance(lerp(0.3, 0.05, d)) ? 3 : 2 };
+  return { kind: '+', n: 5 * rng.int(1, Math.round(lerp(6, 3, d))) };
 }
 
-function goodOp(rand: () => number, level: number): Op {
-  if (rand() < 0.3) return { kind: 'x', n: rand() < 0.2 + level * 0.02 ? 3 : 2 };
-  return { kind: '+', n: 5 * (1 + Math.floor(rand() * (4 + level))) };
-}
-
-function badOp(rand: () => number): Op {
-  return rand() < 0.4 ? { kind: '÷', n: 2 } : { kind: '-', n: 5 * (1 + Math.floor(rand() * 4)) };
+/** 難しくなるほど、減らす門の数も大きくなる */
+function badOp(rng: Rng, d: number): Op {
+  return rng.chance(0.4)
+    ? { kind: '÷', n: rng.chance(d * 0.5) ? 3 : 2 }
+    : { kind: '-', n: 5 * rng.int(1, Math.round(lerp(3, 8, d))) };
 }
 
 /**
@@ -67,25 +62,29 @@ function badOp(rand: () => number): Op {
  * その最善の数から敵とボスの数を決め、どの面も必ずクリアできるようにする
  */
 export function createState(level: number): GameState {
-  const rand = seeded(level);
+  const d = difficulty(level);
+  const rng = new Rng(level);
   const items: Item[] = [];
   let best = 10;
-  const rows = 6 + Math.min(10, level);
+  // 難しくなるほど、コースが長く、敵の群れが多く、門どうしの間がつまる
+  const rows = Math.round(lerp(6, 22, d));
+  const every = d < 0.5 ? 3 : 2;
+  const gap = lerp(1.3, 1.0, d);
   let at = 1.6;
   for (let i = 0; i < rows; i++) {
-    if (i % 3 === 2) {
-      const n = Math.max(3, Math.round(best * (0.12 + Math.min(0.3, level * 0.03))));
-      items.push({ type: 'enemy', at, x: 0.3 + rand() * 0.4, n, done: false });
+    if (i % every === every - 1) {
+      const n = Math.max(3, Math.round(best * lerp(0.12, 0.4, d)));
+      items.push({ type: 'enemy', at, x: rng.range(0.3, 0.7), n, done: false });
       best -= n;
     } else {
-      const a = goodOp(rand, level);
+      const a = goodOp(rng, d);
       // 最初の 2 面は、どちらをくぐっても増える門だけにする
-      const b = level <= 2 || rand() < 0.35 ? goodOp(rand, level) : badOp(rand);
-      const [left, right] = rand() < 0.5 ? [a, b] : [b, a];
+      const b = level <= 2 || rng.chance(lerp(0.5, 0.1, d)) ? goodOp(rng, d) : badOp(rng, d);
+      const [left, right] = rng.chance(0.5) ? [a, b] : [b, a];
       items.push({ type: 'gates', at, left, right, done: false });
       best = Math.max(apply(left, best), apply(right, best));
     }
-    at += 1.3;
+    at += gap;
   }
   return {
     dist: 0,
@@ -93,7 +92,7 @@ export function createState(level: number): GameState {
     count: 10,
     items,
     length: at + 0.4,
-    boss: Math.max(5, Math.round(best * (0.3 + Math.min(0.5, level * 0.05)))),
+    boss: Math.max(5, Math.round(best * lerp(0.3, 0.9, d))),
     fight: null,
     result: null
   };

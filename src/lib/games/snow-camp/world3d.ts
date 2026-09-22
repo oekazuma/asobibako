@@ -14,13 +14,6 @@ import {
 import type { Objective } from './guide';
 import { axe, badge, bear, coin, fire, marker, mat, meat, person, pine, pointer, rabbit } from './models';
 
-/** 木の位置は毎回同じにする。キャンプと狩り場の真ん中は空けておく */
-const TREES = Array.from({ length: 30 }, (_, i) => {
-  const x = ((i * 0.6180339) % 1) * WORLD_W;
-  const y = ((i * 0.4142135 + 0.13) % 1) * HUNT_BOTTOM;
-  return { x, y, s: 0.08 + (i % 3) * 0.025 };
-}).filter((t) => t.x < 0.25 || t.x > WORLD_W - 0.25 || t.y < 0.22);
-
 const CAMP_TOP = HUNT_BOTTOM + 0.1;
 /** カメラは主人公の後ろ上から見下ろす */
 const CAM_BACK = 1.35;
@@ -47,7 +40,7 @@ function planks() {
 }
 
 /** 静かに置いてあるもの（地面・木・柵・山・キャンプの家具） */
-function scenery(scene: THREE.Scene) {
+function scenery(scene: THREE.Scene, trees: GameState['rules']['trees']) {
   const snow = new THREE.Mesh(
     new THREE.PlaneGeometry(12, 12),
     mat('#f4f8ff', { emissive: '#dfe9f7', emissiveIntensity: 0.3 })
@@ -77,7 +70,7 @@ function scenery(scene: THREE.Scene) {
   deck.receiveShadow = true;
   scene.add(deck);
 
-  for (const t of TREES) {
+  for (const t of trees) {
     const tree = pine(t.s);
     tree.position.set(t.x, 0, t.y);
     tree.rotation.y = t.x * 9;
@@ -190,7 +183,7 @@ export class CampWorld {
     s.far = 5;
     this.scene.add(this.#sun, this.#sun.target);
 
-    scenery(this.scene);
+    scenery(this.scene, state.rules.trees);
     const f = fire();
     f.group.position.set(FIRE.x, 0.02, FIRE.y);
     this.#flames = f.flames;

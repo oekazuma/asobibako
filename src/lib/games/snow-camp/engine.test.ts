@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createState, FIRE, MONEY, step, type GameState } from './engine';
+import { createState, FIRE, MONEY, rulesFor, step, type GameState } from './engine';
 
 const still = { x: 0, y: 0 };
 
@@ -57,5 +57,22 @@ describe('snow-camp engine', () => {
     const events = wait(state, 3);
     expect(events).toContainEqual({ type: 'clear' });
     expect(state.result).toBe('clear');
+  });
+
+  it('100 面すべて、木の並びがちがう', () => {
+    const layouts = new Set(Array.from({ length: 100 }, (_, i) => JSON.stringify(rulesFor(i + 1).trees)));
+    expect(layouts.size).toBe(100);
+  });
+
+  it('レベルが上がるほど、家は高く、クマは多く固く、ウサギは速く、焼くのに時間がかかる', () => {
+    for (let level = 2; level <= 100; level++) {
+      const [a, b] = [rulesFor(level - 1), rulesFor(level)];
+      expect(b.home, `level ${level}`).toBeGreaterThanOrEqual(a.home);
+      expect(b.bearHp).toBeGreaterThanOrEqual(a.bearHp);
+      expect(b.bears).toBeGreaterThanOrEqual(a.bears);
+      expect(b.rabbits).toBeLessThanOrEqual(a.rabbits);
+      expect(b.flee).toBeGreaterThan(a.flee);
+      expect(b.cook).toBeGreaterThan(a.cook);
+    }
   });
 });

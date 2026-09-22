@@ -24,8 +24,21 @@ describe('gate-run engine', () => {
     expect(createState(3).items).toEqual(createState(3).items);
   });
 
-  it('多いほうの門を選び続ければ、どのレベルもクリアできる', () => {
-    for (let level = 1; level <= 30; level++) expect(playBest(createState(level)), `level ${level}`).toBe('clear');
+  it('多いほうの門を選び続ければ、100 面どれもクリアできる', () => {
+    for (let level = 1; level <= 100; level++) expect(playBest(createState(level)), `level ${level}`).toBe('clear');
+  });
+
+  it('100 面に同じコースはない', () => {
+    const courses = new Set(Array.from({ length: 100 }, (_, i) => JSON.stringify(createState(i + 1).items)));
+    expect(courses.size).toBe(100);
+  });
+
+  it('レベルが上がるほど、コースは長く、城は強くなる', () => {
+    for (let level = 2; level <= 100; level++) {
+      const [a, b] = [createState(level - 1), createState(level)];
+      expect(b.items.length, `level ${level}`).toBeGreaterThanOrEqual(a.items.length);
+    }
+    expect(createState(100).items.length).toBeGreaterThan(createState(1).items.length * 2);
   });
 
   it('最初の 2 面は、門を選ばずにまっすぐ走ってもクリアできる', () => {

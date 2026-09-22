@@ -30,6 +30,8 @@ export interface Level {
   pins: Pin[];
   pools: Pool[];
   hero: { x: number; y: number };
+  /** クリアに要る金の割合 */
+  need: number;
 }
 
 export interface Particle {
@@ -64,7 +66,6 @@ const ITERATIONS = 2;
  */
 const FLOOR_BAND = 0.3;
 const ROOM = 0.42;
-export const NEED = 0.6;
 const STUCK_S = 5;
 const COOL_S = 0.05;
 
@@ -87,6 +88,9 @@ export function createState(level: Level): GameState {
     result: null
   };
 }
+
+/** クリアに要る金の粒の数 */
+export const needed = (state: GameState) => Math.ceil(state.gold * state.level.need);
 
 export function pull(state: GameState, index: number): boolean {
   if (state.result || state.pulled[index]) return false;
@@ -168,7 +172,7 @@ export function step(state: GameState, dt: number): void {
   state.collected = state.particles.filter(
     (p) => p.kind === 'gold' && p.y > WORLD_H - FLOOR_BAND && Math.abs(p.x - x) < ROOM
   ).length;
-  if (state.collected >= Math.ceil(state.gold * NEED)) state.result = 'clear';
+  if (state.collected >= needed(state)) state.result = 'clear';
   state.idle += dt;
   if (state.pulled.every(Boolean) && state.idle > STUCK_S) state.result = 'stuck';
 }
