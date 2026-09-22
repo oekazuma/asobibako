@@ -3,7 +3,6 @@ import bombRelay from './games/bomb-relay/meta';
 import borderRush from './games/border-rush/meta';
 import bugRush from './games/bug-rush/meta';
 import dogGuard from './games/dog-guard/meta';
-import feintMaster from './games/feint-master/meta';
 import gateRun from './games/gate-run/meta';
 import hockey from './games/hockey/meta';
 import lightning from './games/lightning/meta';
@@ -69,6 +68,5 @@ export const games: GameMeta[] = [
   bombRelay,
   hockey,
   bugRush,
-  lightning,
-  feintMaster
+  lightning
 ];

@@ -119,10 +119,6 @@ export const ICONS = {
     { d: circle(9, 12.5, 1.6) + circle(15, 12.5, 1.6), fill: '#fff', stroke: INK, width: 0.8 },
     { d: circle(9, 12.5, 0.7) + circle(15, 12.5, 0.7) + ellipse(12, 17, 1.6, 2), fill: INK }
   ],
-  eyes: [
-    { d: ellipse(7.5, 12, 4.5, 6) + ellipse(16.5, 12, 4.5, 6), fill: '#fff', stroke: INK, width: 1 },
-    { d: circle(9, 13, 2.2) + circle(18, 13, 2.2), fill: INK }
-  ],
   castle: [
     {
       d: 'M3 21V8h3v2h2V8h3v2h2V8h3v2h2V8h3v13h-7.5v-5a1.5 1.5 0 0 0-3 0v5z',
