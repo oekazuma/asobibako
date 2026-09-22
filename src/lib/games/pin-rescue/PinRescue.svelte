@@ -6,6 +6,7 @@
   import { animate } from '$lib/loop';
   import { createState, pinAt, pull, step, WORLD_H } from './engine';
   import { PinFx } from './effects';
+  import { LiquidLayer } from './liquid';
   import { levelFor } from './levels';
   import { background, paint } from './paint';
   import { sounds } from './sounds';
@@ -26,6 +27,7 @@
   /** 背景の石積みは大きさが変わったときだけ描き直す */
   let bg: HTMLCanvasElement | undefined;
   const fx = new PinFx();
+  const liquid = new LiquidLayer();
   let progress = $state(0);
   let score = $state(0);
 
@@ -81,7 +83,7 @@
     if (bg) ctx.drawImage(bg, 0, 0);
     const s = view.scale * dpr;
     ctx.setTransform(s, 0, 0, s, (view.ox + sx) * dpr, (view.oy + sy) * dpr);
-    paint(ctx, game, pulledAt, now);
+    paint(ctx, game, pulledAt, now, liquid);
     fx.draw(ctx);
   }
 

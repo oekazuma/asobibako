@@ -1,29 +1,42 @@
 import { icon, shadow, sprite, stamp } from '$lib/fx';
 import type { Seg } from '$lib/segments';
-import { HERO_R, R, WALL, WORLD_H, type GameState, type Kind } from './engine';
+import type { LiquidLayer } from './liquid';
+import { HERO_R, R, WALL, WORLD_H, type GameState } from './engine';
 
 /** 抜いたピンが外へ滑り出して消えるまでの秒 */
 export const SLIDE_S = 0.3;
 
-const LOOK: Record<Kind, [string, string, string]> = {
-  gold: ['#fff6b0', '#ffc233', '#c98400'],
-  lava: ['#ffb070', '#f0380f', '#9c1206'],
-  water: ['#d9f1ff', '#39a7ff', '#1266c4'],
-  rock: ['#c9ccd8', '#8a8d9e', '#55586a']
-};
-
-/** 粒は光沢のある玉として一度だけ描き、毎フレームは貼るだけにする */
-const bead = (kind: Kind) =>
-  sprite(`bead:${kind}`, 48, (c) => {
-    const [hi, mid, lo] = LOOK[kind];
-    const g = c.createRadialGradient(0.38, 0.34, 0.04, 0.5, 0.5, 0.5);
-    g.addColorStop(0, hi);
-    g.addColorStop(0.45, mid);
-    g.addColorStop(1, lo);
-    c.fillStyle = g;
+/** 冷えて固まった石。角ばった形を 3 通り用意して、粒ごとに向きも変える */
+const stone = (v: number) =>
+  sprite(`stone:${v}`, 64, (c) => {
+    const n = 7 + v;
     c.beginPath();
-    c.arc(0.5, 0.5, 0.48, 0, Math.PI * 2);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      const r = 0.4 + (((i * 37 + v * 11) % 10) / 10) * 0.09;
+      c.lineTo(0.5 + Math.cos(a) * r, 0.5 + Math.sin(a) * r);
+    }
+    c.closePath();
+    const g = c.createLinearGradient(0.2, 0.15, 0.8, 0.9);
+    g.addColorStop(0, '#b9b3ad');
+    g.addColorStop(0.55, '#7d7570');
+    g.addColorStop(1, '#4d4642');
+    c.fillStyle = g;
     c.fill();
+    c.strokeStyle = '#3b3431';
+    c.lineWidth = 0.04;
+    c.stroke();
+    c.fillStyle = 'rgb(255 255 255 / 0.25)';
+    c.beginPath();
+    c.ellipse(0.38, 0.33, 0.12, 0.06, -0.5, 0, Math.PI * 2);
+    c.fill();
+    c.fillStyle = 'rgb(40 30 28 / 0.35)';
+    for (const [x, y] of [
+      [0.6, 0.6],
+      [0.45, 0.7],
+      [0.66, 0.42]
+    ])
+      c.fillRect(x, y, 0.05, 0.05);
   });
 
 /** 金の粒は、縁と星の刻印のある金貨として描く */
@@ -152,7 +165,13 @@ function bar(ctx: CanvasRenderingContext2D, seg: Seg, width: number, colors: [st
  * ctx は engine の座標（幅 1）がそのまま描ける変換にしておく。
  * pulledAt は各ピンを抜いた時刻（秒）、now は今の時刻（秒）
  */
-export function paint(ctx: CanvasRenderingContext2D, state: GameState, pulledAt: number[], now: number) {
+export function paint(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  pulledAt: number[],
+  now: number,
+  liquid: LiquidLayer
+) {
   ctx.lineCap = 'round';
   // 箱の底。勇者が立つ床
   ctx.fillStyle = 'rgb(120 80 50 / 0.25)';
@@ -200,9 +219,25 @@ export function paint(ctx: CanvasRenderingContext2D, state: GameState, pulledAt:
   const hop = state.result === 'clear' ? Math.abs(Math.sin(now * 8)) * 0.05 : Math.sin(now * 3) * 0.004;
   icon(ctx, face, x, y - hop, HERO_R * 2.2);
 
+  // マグマの光は液体の下にしいて、ふちからにじませる
+  ctx.globalCompositeOperation = 'lighter';
+  const flicker = 0.85 + Math.sin(now * 9) * 0.15;
+  for (const p of state.particles) if (p.kind === 'lava') stamp(ctx, glow(), p.x, p.y, R * 6 * flicker);
+  ctx.globalCompositeOperation = 'source-over';
+  liquid.draw(ctx, state.particles, 'water', now);
+  liquid.draw(ctx, state.particles, 'lava', now);
+
   const d = R * 2.3;
   state.particles.forEach((p, i) => {
-    if (p.kind !== 'gold') return stamp(ctx, bead(p.kind), p.x, p.y, d);
+    if (p.kind === 'water' || p.kind === 'lava') return;
+    if (p.kind === 'rock') {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(i * 1.7);
+      stamp(ctx, stone(i % 3), 0, 0, d * 1.1);
+      ctx.restore();
+      return;
+    }
     // 6 粒に 1 粒は宝石にする。粒の番号で決めるので、流れても同じ粒は同じ見た目のまま
     if (i % 6 === 0) return stamp(ctx, gem((i / 6) % 3), p.x, p.y, d * 1.1);
     stamp(ctx, coin(), p.x, p.y, d);
@@ -212,8 +247,4 @@ export function paint(ctx: CanvasRenderingContext2D, state: GameState, pulledAt:
     const t = (now * 0.7 + i * 0.137) % 1;
     if (t < 0.08) twinkle(ctx, p.x + R * 0.3, p.y - R * 0.3, R * 1.2 * Math.sin((t / 0.08) * Math.PI));
   });
-  ctx.globalCompositeOperation = 'lighter';
-  const flicker = 0.85 + Math.sin(now * 9) * 0.15;
-  for (const p of state.particles) if (p.kind === 'lava') stamp(ctx, glow(), p.x, p.y, R * 5 * flicker);
-  ctx.globalCompositeOperation = 'source-over';
 }
