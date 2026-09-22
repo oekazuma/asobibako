@@ -128,7 +128,7 @@ const LAYOUTS: Record<Kind, (rng: Rng) => Layout> = {
       noDraw: [],
       solution: dome(x, y - 0.005, 0.18),
       low: true,
-      tip: '下からも くるよ！ 足場ごと まもろう'
+      tip: '下からも くるかも！ 足場ごと まもろう'
     };
   },
   platform2: (rng) => {
