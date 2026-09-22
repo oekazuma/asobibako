@@ -1,4 +1,4 @@
-import { emoji } from '$lib/canvas';
+import { emoji } from '$lib/fx';
 import { FIRE, HUNT_BOTTOM, MONEY, TABLE, WORLD_H, WORLD_W, type GameState, type PadId } from './engine';
 
 const PAD_LOOK: Record<PadId, { icon: string; text: string }> = {

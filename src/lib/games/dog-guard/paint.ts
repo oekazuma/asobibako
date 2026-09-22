@@ -1,4 +1,4 @@
-import { emoji } from '$lib/canvas';
+import { emoji } from '$lib/fx';
 import type { Seg } from '$lib/segments';
 import { BEE_R, DOG_R, LINE, type GameState } from './engine';
 

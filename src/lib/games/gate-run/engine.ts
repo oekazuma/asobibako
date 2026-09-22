@@ -20,7 +20,11 @@ export interface GameState {
   result: 'clear' | 'fail' | null;
 }
 
-export type RunEvent = { type: 'gate'; good: boolean } | { type: 'hit' } | { type: 'clear' } | { type: 'fail' };
+export type RunEvent =
+  | { type: 'gate'; good: boolean; op: Op; x: number }
+  | { type: 'hit'; n: number }
+  | { type: 'clear' }
+  | { type: 'fail' };
 
 export const SPEED = 0.5;
 export const MIN_X = 0.14;
@@ -114,7 +118,7 @@ export function step(state: GameState, dt: number): RunEvent[] {
       const hit = Math.min(fight.per, fight.n, state.count);
       fight.n -= hit;
       state.count -= hit;
-      events.push({ type: 'hit' });
+      events.push({ type: 'hit', n: hit });
     }
     if (fight.boss) state.boss = fight.n;
     if (state.count <= 0) {
@@ -137,7 +141,7 @@ export function step(state: GameState, dt: number): RunEvent[] {
     if (item.type === 'gates') {
       const op = state.x < 0.5 ? item.left : item.right;
       state.count = apply(op, state.count);
-      events.push({ type: 'gate', good: isGood(op) });
+      events.push({ type: 'gate', good: isGood(op), op, x: state.x < 0.5 ? 0.25 : 0.75 });
       if (state.count <= 0) {
         state.result = 'fail';
         events.push({ type: 'fail' });
