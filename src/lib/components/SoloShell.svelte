@@ -6,6 +6,7 @@
   import type { SoloMeta, SoloModule } from '$lib/games';
   import { Settle } from '$lib/settle.svelte';
   import SoloResult from './SoloResult.svelte';
+  import SoloTitle from './SoloTitle.svelte';
 
   let { meta, Game, Howto }: { meta: SoloMeta } & SoloModule = $props();
 
@@ -14,6 +15,8 @@
   let cleared = $state(false);
   let round = $state(0);
   let level = $state(1);
+  /** たどり着いたいちばん先のレベル。タイトルでここまでは選び直せる */
+  let best = $state(1);
   const settle = new Settle();
 
   function start() {
@@ -27,8 +30,9 @@
     cleared = won;
     if (won) {
       level += 1;
+      best = Math.max(best, level);
       try {
-        localStorage.setItem(key, String(level));
+        localStorage.setItem(key, String(best));
       } catch {
         // 保存できなくても、この場では次のレベルへ進める
       }
@@ -39,7 +43,7 @@
 
   onMount(() => {
     try {
-      level = Math.max(1, Number(localStorage.getItem(key)) || 1);
+      best = level = Math.max(1, Number(localStorage.getItem(key)) || 1);
     } catch {
       // プライベートブラウズでは 1 から
     }
@@ -56,13 +60,7 @@
     <button class="corner quit" onclick={() => (screen = 'title')} aria-label="やめる">✕</button>
   {:else}
     {#if screen === 'title'}
-      <div class="panel">
-        <div class="art" aria-hidden="true"><div class="zoom"><meta.Thumb /></div></div>
-        <h1 class="title sticker">{meta.name}</h1>
-        <Howto />
-        <span class="level">レベル {level}</span>
-        <button class="pill p1 go" onclick={start}>タップで スタート</button>
-      </div>
+      <SoloTitle {meta} {Howto} {best} bind:level onstart={start} />
     {:else}
       <SoloResult {cleared} {level} onagain={start} />
     {/if}
@@ -74,59 +72,6 @@
 </main>
 
 <style>
-  .panel {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 18px;
-    padding: 24px 16px;
-    background: var(--dots), linear-gradient(to bottom, #fff, var(--p1-soft));
-    text-align: center;
-  }
-
-  /* ゲームの絵を大きく飾る。一覧のカードと同じ Thumb を額に入れて、ゆらゆらさせる */
-  .art {
-    width: min(78vw, 420px);
-    height: clamp(150px, 24dvh, 240px);
-    overflow: hidden;
-    border: 6px solid #fff;
-    border-radius: 28px;
-    box-shadow:
-      0 8px 0 var(--card-edge),
-      0 18px 30px rgb(43 45 66 / 0.18);
-    rotate: -2deg;
-    animation: sway 3s ease-in-out infinite;
-  }
-
-  /* Thumb は一覧のカード（高さ 128px）に合わせて px で描いてあるので、小さく作って拡大する */
-  .zoom {
-    width: calc(100% / 1.7);
-    height: calc(100% / 1.7);
-    transform: scale(1.7);
-    transform-origin: top left;
-  }
-
-  .title {
-    font-size: clamp(34px, 7dvh, 64px);
-  }
-
-  .level {
-    padding: 6px 18px;
-    border-radius: 999px;
-    background: var(--card);
-    box-shadow: 0 3px 0 var(--card-edge);
-    font-size: clamp(16px, 2.6dvh, 22px);
-    font-weight: 800;
-  }
-
-  .go {
-    font-size: clamp(18px, 3dvh, 26px);
-    padding: 18px 40px;
-    animation: bob 1.6s ease-in-out infinite;
-  }
-
   .corner {
     position: absolute;
     top: max(12px, env(safe-area-inset-top));
@@ -162,25 +107,5 @@
   .settling .corner,
   .settling :global(.go) {
     pointer-events: none;
-  }
-
-  @keyframes sway {
-    50% {
-      rotate: 2deg;
-      translate: 0 -6px;
-    }
-  }
-
-  @keyframes bob {
-    50% {
-      scale: 1.05;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .art,
-    .go {
-      animation: none;
-    }
   }
 </style>

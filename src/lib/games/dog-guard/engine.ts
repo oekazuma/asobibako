@@ -5,35 +5,60 @@ export const WORLD_H = 1.4;
 export const DOG_R = 0.06;
 export const BEE_R = 0.018;
 export const LINE = 0.012;
-export const DEFEND_S = 8;
 /** 犬のまわりのこの距離には線を引けない（犬ごと線で押しつぶさないため） */
 const KEEP_OUT = DOG_R + 0.03;
 const MIN_STEP = 0.012;
-const SPAWN_S = 2;
 const ACCEL = 1.6;
 const JITTER = 1.2;
 
+export type Point = { x: number; y: number };
+/** 線を引けない場所（雲） */
+export interface Zone {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+export type BeeKind = 'normal' | 'fast' | 'big';
+
 export interface Level {
-  dog: { x: number; y: number };
-  hives: { x: number; y: number }[];
+  dogs: Point[];
+  hives: Point[];
   walls: Seg[];
+  noDraw: Zone[];
   /** 引ける線の長さ */
   ink: number;
   bees: number;
   speed: number;
+  /** 守りきる秒数と、ハチが出そろうまでの秒数 */
+  duration: number;
+  spawn: number;
+  /** 速いハチと大きいハチの割合 */
+  fast: number;
+  big: number;
+  /** 線を引く前に出す、その面のひとこと */
+  tip: string;
 }
+
+/** ハチの種類ごとの大きさ・速さ・曲がりやすさの倍率 */
+export const BEE_LOOK: Record<BeeKind, { r: number; speed: number; accel: number }> = {
+  normal: { r: 1, speed: 1, accel: 1 },
+  fast: { r: 0.9, speed: 1.45, accel: 1.6 },
+  big: { r: 1.7, speed: 0.75, accel: 0.8 }
+};
 
 export interface Bee {
   x: number;
   y: number;
   vx: number;
   vy: number;
+  kind: BeeKind;
 }
 
 export interface GameState {
   level: Level;
   phase: 'draw' | 'defend' | 'done';
-  stroke: { x: number; y: number }[];
+  stroke: Point[];
   ink: number;
   bees: Bee[];
   spawned: number;
@@ -48,11 +73,15 @@ export function createState(level: Level): GameState {
   return { level, phase: 'draw', stroke: [], ink: level.ink, bees: [], spawned: 0, time: 0, result: null };
 }
 
-/** 線に 1 点足す。犬に近すぎる点や、インクが切れた先は足さない */
+/** そこに線を引いてよいか。犬のすぐまわりと雲の中はだめ */
+export function drawable(level: Level, x: number, y: number): boolean {
+  if (level.dogs.some((d) => Math.hypot(x - d.x, y - d.y) < KEEP_OUT)) return false;
+  return !level.noDraw.some((z) => x > z.x0 && x < z.x1 && y > z.y0 && y < z.y1);
+}
+
+/** 線に 1 点足す。引けない場所を通る線や、インクが切れた先は足さない */
 export function addPoint(state: GameState, x: number, y: number): boolean {
-  if (state.phase !== 'draw') return false;
-  const { dog } = state.level;
-  if (Math.hypot(x - dog.x, y - dog.y) < KEEP_OUT) return false;
+  if (state.phase !== 'draw' || !drawable(state.level, x, y)) return false;
   const last = state.stroke[state.stroke.length - 1];
   if (!last) {
     state.stroke.push({ x, y });
@@ -60,6 +89,9 @@ export function addPoint(state: GameState, x: number, y: number): boolean {
   }
   const d = Math.hypot(x - last.x, y - last.y);
   if (d < MIN_STEP || state.ink <= 0) return false;
+  // 指を速く動かすと点が飛ぶので、あいだも引けない場所を通っていないか確かめる
+  for (let t = 0.1; t < 1; t += 0.1)
+    if (!drawable(state.level, last.x + (x - last.x) * t, last.y + (y - last.y) * t)) return false;
   const t = Math.min(1, state.ink / d);
   state.stroke.push({ x: last.x + (x - last.x) * t, y: last.y + (y - last.y) * t });
   state.ink = Math.max(0, state.ink - d);
@@ -87,10 +119,10 @@ export function strokeSegs(state: GameState): Seg[] {
   return segs;
 }
 
-function collide(bee: Bee, segs: Seg[], thick: number): boolean {
+function collide(bee: Bee, segs: Seg[], r: number): boolean {
   let bumped = false;
   for (const seg of segs) {
-    const out = pushOut(seg, thick, bee.x, bee.y, BEE_R);
+    const out = pushOut(seg, LINE, bee.x, bee.y, r);
     if (!out) continue;
     const nx = out[0] - bee.x;
     const ny = out[1] - bee.y;
@@ -106,51 +138,66 @@ function collide(bee: Bee, segs: Seg[], thick: number): boolean {
   return bumped;
 }
 
+/** 何匹目のハチがどの種類か。割合どおりに、面ごとに毎回同じ並びで混ぜる */
+function kindOf(level: Level, i: number): BeeKind {
+  const u = (i * 0.6180339 + 0.31) % 1;
+  if (u < level.fast) return 'fast';
+  if (u < level.fast + level.big) return 'big';
+  return 'normal';
+}
+
+const nearest = (dogs: Point[], b: Point) =>
+  dogs.reduce((best, d) => (Math.hypot(d.x - b.x, d.y - b.y) < Math.hypot(best.x - b.x, best.y - b.y) ? d : best));
+
 export function step(state: GameState, dt: number, rand: () => number = Math.random): GuardEvent[] {
   if (state.phase !== 'defend') return [];
   const events: GuardEvent[] = [];
   const { level } = state;
   state.time += dt;
 
-  const due = Math.min(level.bees, Math.ceil((state.time / SPAWN_S) * level.bees));
+  const due = Math.min(level.bees, Math.ceil((state.time / level.spawn) * level.bees));
   while (state.spawned < due) {
     const hive = level.hives[state.spawned % level.hives.length];
-    state.bees.push({ x: hive.x, y: hive.y, vx: (rand() - 0.5) * 0.4, vy: (rand() - 0.5) * 0.4 });
+    const kind = kindOf(level, state.spawned);
+    state.bees.push({ x: hive.x, y: hive.y, vx: (rand() - 0.5) * 0.4, vy: (rand() - 0.5) * 0.4, kind });
     state.spawned += 1;
     events.push({ type: 'spawn' });
   }
 
   const segs = strokeSegs(state);
-  const { dog } = level;
   for (const bee of state.bees) {
+    const look = BEE_LOOK[bee.kind];
+    const r = BEE_R * look.r;
+    const max = level.speed * look.speed;
+    const dog = nearest(level.dogs, bee);
     const dx = dog.x - bee.x;
     const dy = dog.y - bee.y;
     const d = Math.hypot(dx, dy) || 1;
-    bee.vx += ((dx / d) * ACCEL + (rand() - 0.5) * JITTER) * dt;
-    bee.vy += ((dy / d) * ACCEL + (rand() - 0.5) * JITTER) * dt;
+    bee.vx += ((dx / d) * ACCEL * look.accel + (rand() - 0.5) * JITTER) * dt;
+    bee.vy += ((dy / d) * ACCEL * look.accel + (rand() - 0.5) * JITTER) * dt;
     const v = Math.hypot(bee.vx, bee.vy);
-    if (v > level.speed) {
-      bee.vx *= level.speed / v;
-      bee.vy *= level.speed / v;
+    if (v > max) {
+      bee.vx *= max / v;
+      bee.vy *= max / v;
     }
-    // 速いハチが細い線をすり抜けないよう、半分ずつ動かして当てる
-    for (let k = 0; k < 2; k++) {
-      bee.x += (bee.vx * dt) / 2;
-      bee.y += (bee.vy * dt) / 2;
-      const hit = collide(bee, segs, LINE);
-      collide(bee, level.walls, LINE);
-      if (hit && rand() < 0.05) events.push({ type: 'bump', x: bee.x, y: bee.y });
+    // 速いハチが細い線をすり抜けないよう、3 回に分けて動かして当てる
+    for (let k = 0; k < 3; k++) {
+      bee.x += (bee.vx * dt) / 3;
+      bee.y += (bee.vy * dt) / 3;
+      const hit = collide(bee, segs, r);
+      collide(bee, level.walls, r);
+      if (hit && rand() < 0.04) events.push({ type: 'bump', x: bee.x, y: bee.y });
     }
-    bee.x = Math.min(1 - BEE_R, Math.max(BEE_R, bee.x));
-    bee.y = Math.min(WORLD_H - BEE_R, Math.max(BEE_R, bee.y));
-    if (Math.hypot(dog.x - bee.x, dog.y - bee.y) < DOG_R + BEE_R) {
+    bee.x = Math.min(1 - r, Math.max(r, bee.x));
+    bee.y = Math.min(WORLD_H - r, Math.max(r, bee.y));
+    if (level.dogs.some((g) => Math.hypot(g.x - bee.x, g.y - bee.y) < DOG_R + r)) {
       state.phase = 'done';
       state.result = 'stung';
       return [...events, { type: 'stung' }];
     }
   }
 
-  if (state.time >= DEFEND_S) {
+  if (state.time >= level.duration) {
     state.phase = 'done';
     state.result = 'clear';
     events.push({ type: 'clear' });

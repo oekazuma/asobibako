@@ -14,41 +14,37 @@ describe('pin-rescue engine', () => {
     expect(Math.max(...state.particles.map((p) => p.y))).toBeLessThan(0.55);
   });
 
-  it('1 面はピンを抜けば金が届いてクリア', () => {
-    const state = createState(LEVELS[0]);
-    pull(state, 0);
+  it.each(LEVELS.map((level, i) => [i + 1, level] as const))('%i 面は、用意した抜き順でクリアできる', (_, level) => {
+    const state = createState(level);
+    for (const i of level.solution) {
+      pull(state, i);
+      run(state, 2.5);
+    }
     run(state, 6);
     expect(state.result).toBe('clear');
   });
 
-  it('2 面でマグマのピンを抜くと勇者が焼ける', () => {
-    const state = createState(LEVELS[1]);
-    pull(state, 1);
-    run(state, 6);
-    expect(state.result).toBe('burned');
+  it.each(LEVELS.map((level, i) => [i + 1, level] as const).filter(([, level]) => level.trap))(
+    '%i 面は、考えずに全部抜くと失敗する',
+    (_, level) => {
+      const state = createState(level);
+      level.pins.forEach((_, i) => pull(state, i));
+      run(state, 8);
+      expect(state.result).not.toBe('clear');
+    }
+  );
+
+  it('あとの面ほどピンが多い', () => {
+    const pins = LEVELS.slice(0, 8).map((level) => level.pins.length);
+    expect(pins[7]).toBeGreaterThan(pins[0]);
+    for (let i = 1; i < pins.length; i++) expect(pins[i]).toBeGreaterThanOrEqual(pins[i - 1] - 1);
   });
 
-  it('3 面は、マグマ・ななめ・金の順に抜けばクリア', () => {
-    const state = createState(LEVELS[2]);
-    pull(state, 1);
-    run(state, 3);
-    pull(state, 2);
-    run(state, 0.5);
-    pull(state, 0);
-    run(state, 6);
-    expect(state.result).toBe('clear');
-  });
-
-  it('4 面は、水でマグマを石にしてから抜けばクリア', () => {
+  it('水がマグマに触れると、マグマは残らず石になる', () => {
     const state = createState(LEVELS[3]);
     pull(state, 0);
     run(state, 3);
     expect(state.particles.some((p) => p.kind === 'lava')).toBe(false);
-    pull(state, 2);
-    run(state, 1.5);
-    pull(state, 1);
-    run(state, 6);
-    expect(state.result).toBe('clear');
   });
 
   it('指の近くのピンを選ぶ', () => {

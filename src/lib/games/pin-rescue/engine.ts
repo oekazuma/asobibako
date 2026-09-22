@@ -58,9 +58,13 @@ const SUB_DT = 1 / 240;
 const GRAVITY = 2.4;
 const DAMP = 0.996;
 const ITERATIONS = 2;
-/** 勇者のまわりのこの距離に届いた金を、受け取った数に数える */
-const REACH = 0.22;
-const NEED = 0.6;
+/**
+ * 床からこの高さまで落ち、勇者から横にこの距離の内側にある金を、受け取った数に数える。
+ * 金は床いっぱいに広がるので、勇者のすぐそばだけを数えると足りなくなる
+ */
+const FLOOR_BAND = 0.3;
+const ROOM = 0.42;
+export const NEED = 0.6;
 const STUCK_S = 5;
 const COOL_S = 0.05;
 
@@ -160,8 +164,10 @@ export function step(state: GameState, dt: number): void {
   const n = Math.min(12, Math.round(dt / SUB_DT));
   for (let i = 0; i < n && !state.result; i++) substep(state, segs);
   if (state.result) return;
-  const { x, y } = state.level.hero;
-  state.collected = state.particles.filter((p) => p.kind === 'gold' && Math.hypot(p.x - x, p.y - y) < REACH).length;
+  const { x } = state.level.hero;
+  state.collected = state.particles.filter(
+    (p) => p.kind === 'gold' && p.y > WORLD_H - FLOOR_BAND && Math.abs(p.x - x) < ROOM
+  ).length;
   if (state.collected >= Math.ceil(state.gold * NEED)) state.result = 'clear';
   state.idle += dt;
   if (state.pulled.every(Boolean) && state.idle > STUCK_S) state.result = 'stuck';

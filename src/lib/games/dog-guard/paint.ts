@@ -1,6 +1,6 @@
 import { cloud, icon, shadow, sprite, stamp } from '$lib/fx';
 import type { Seg } from '$lib/segments';
-import { BEE_R, DOG_R, LINE, type GameState } from './engine';
+import { BEE_LOOK, BEE_R, DOG_R, LINE, type GameState, type Zone } from './engine';
 
 const bee = (frame: 0 | 1) =>
   sprite(`bee:${frame}`, 96, (c) => {
@@ -157,10 +157,39 @@ function stroke(ctx: CanvasRenderingContext2D, state: GameState) {
   ctx.stroke();
 }
 
+/** 線を引けない雲。もこもこの縁と、斜めの線で示す */
+function cloudZone(ctx: CanvasRenderingContext2D, z: Zone, now: number) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(z.x0, z.y0, z.x1 - z.x0, z.y1 - z.y0, 0.05);
+  ctx.fillStyle = 'rgb(255 255 255 / 0.7)';
+  ctx.fill();
+  ctx.clip();
+  ctx.strokeStyle = 'rgb(160 170 200 / 0.35)';
+  ctx.lineWidth = 0.012;
+  const shift = (now * 0.02) % 0.06;
+  for (let x = z.x0 - (z.y1 - z.y0) + shift; x < z.x1; x += 0.06) {
+    ctx.beginPath();
+    ctx.moveTo(x, z.y1);
+    ctx.lineTo(x + (z.y1 - z.y0), z.y0);
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.fillStyle = 'rgb(255 255 255 / 0.85)';
+  for (let x = z.x0 + 0.04; x < z.x1; x += 0.08) {
+    ctx.beginPath();
+    ctx.arc(x, z.y0, 0.035, 0, Math.PI * 2);
+    ctx.arc(x + 0.04, z.y1, 0.035, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
 /** ctx は engine の座標（幅 1）がそのまま描ける変換にしておく */
 export function paint(ctx: CanvasRenderingContext2D, state: GameState, now: number) {
   const { level } = state;
   level.walls.forEach((wall, i) => platform(ctx, wall, i === level.walls.length - 1));
+
+  for (const z of level.noDraw) cloudZone(ctx, z, now);
 
   for (const h of level.hives) {
     const sway = Math.sin(now * 2 + h.x * 5) * 0.004;
@@ -169,13 +198,14 @@ export function paint(ctx: CanvasRenderingContext2D, state: GameState, now: numb
 
   stroke(ctx, state);
 
-  const { dog } = level;
-  const face = state.result === 'stung' ? 'dog-hurt' : state.result === 'clear' ? 'dog-happy' : 'dog';
-  const near = state.bees.some((b) => Math.hypot(b.x - dog.x, b.y - dog.y) < DOG_R * 3);
-  const shake = near && !state.result ? Math.sin(now * 60) * 0.006 : 0;
-  const hop = state.result === 'clear' ? Math.abs(Math.sin(now * 8)) * 0.04 : 0;
-  shadow(ctx, dog.x, dog.y + DOG_R * 0.95, DOG_R * 0.8, 0.22);
-  icon(ctx, face, dog.x + shake, dog.y - hop, DOG_R * 2.2);
+  for (const dog of level.dogs) {
+    const face = state.result === 'stung' ? 'dog-hurt' : state.result === 'clear' ? 'dog-happy' : 'dog';
+    const near = state.bees.some((b) => Math.hypot(b.x - dog.x, b.y - dog.y) < DOG_R * 3);
+    const shake = near && !state.result ? Math.sin(now * 60) * 0.006 : 0;
+    const hop = state.result === 'clear' ? Math.abs(Math.sin(now * 8 + dog.x * 3)) * 0.04 : 0;
+    shadow(ctx, dog.x, dog.y + DOG_R * 0.95, DOG_R * 0.8, 0.22);
+    icon(ctx, face, dog.x + shake, dog.y - hop, DOG_R * 2.2);
+  }
 
   for (const b of state.bees) {
     const frame = Math.floor(now * 30 + b.x * 40) % 2 === 0 ? 0 : 1;
@@ -184,7 +214,11 @@ export function paint(ctx: CanvasRenderingContext2D, state: GameState, now: numb
     // 左へ飛ぶときは裏返して、上下さかさまにならないようにする
     if (b.vx < 0) ctx.scale(-1, 1);
     ctx.rotate(Math.atan2(b.vy, Math.abs(b.vx)) * 0.6);
-    stamp(ctx, bee(frame), 0, 0, BEE_R * 3.4);
+    const look = BEE_LOOK[b.kind];
+    // 速いハチはオレンジに色を変えて、見分けられるようにする
+    if (b.kind === 'fast') ctx.filter = 'hue-rotate(-25deg) saturate(1.6)';
+    stamp(ctx, bee(frame), 0, 0, BEE_R * 3.4 * look.r);
+    ctx.filter = 'none';
     ctx.restore();
   }
 }

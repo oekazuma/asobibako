@@ -4,7 +4,7 @@ import Thumb from './Thumb.svelte';
 export default {
   id: 'dog-guard',
   name: '線を引いて守る',
-  description: '指で 1 本だけ線をかいて、飛んでくるハチから犬を 8 秒まもる',
+  description: '指で 1 本だけ線をかいて、飛んでくるハチから犬をまもる。洞窟・雲・2 ひきの犬など面ごとに仕掛けが変わる',
   players: 1,
   minutes: '30秒',
   Thumb,

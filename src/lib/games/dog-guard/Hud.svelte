@@ -4,14 +4,22 @@
     phase,
     ink,
     left,
+    tip,
     onretry
-  }: { level: number; phase: 'draw' | 'defend' | 'done'; ink: number; left: number; onretry: () => void } = $props();
+  }: {
+    level: number;
+    phase: 'draw' | 'defend' | 'done';
+    ink: number;
+    left: number;
+    tip: string;
+    onretry: () => void;
+  } = $props();
 </script>
 
 <div class="hud">
   <span class="level sticker">レベル {level}</span>
   {#if phase === 'draw'}
-    <span class="tip">線をかいて 犬を まもろう！</span>
+    <span class="tip">{tip}</span>
     <span class="ink" role="img" aria-label="のこりのインク {Math.round(ink * 100)}%"
       ><span class="fill" style:width="{ink * 100}%"></span></span
     >

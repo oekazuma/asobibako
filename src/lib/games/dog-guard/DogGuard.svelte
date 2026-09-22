@@ -4,7 +4,7 @@
   import { BoardInput } from '$lib/board-input';
   import type { SoloProps } from '$lib/games';
   import { animate } from '$lib/loop';
-  import { addPoint, createState, DEFEND_S, finishStroke, step, WORLD_H } from './engine';
+  import { addPoint, createState, finishStroke, step, WORLD_H } from './engine';
   import { levelFor } from './levels';
   import { Particles, Shake } from '$lib/fx';
   import Hud from './Hud.svelte';
@@ -28,7 +28,8 @@
   let drawing: number | null = null;
   let now = 0;
   let inked = 0;
-  let left = $state(DEFEND_S);
+  let left = $state(game.level.duration);
+  const tip = $derived(levelFor(level).tip);
   const particles = new Particles();
   const shake = new Shake();
   const CONFETTI = ['#ffc233', '#1f9bff', '#ff4d5e', '#58c46b'];
@@ -87,7 +88,7 @@
           glow: true
         });
       } else if (event.type === 'stung' || event.type === 'clear') {
-        const { x, y } = game.level.dog;
+        const { x, y } = game.level.dogs[0];
         if (event.type === 'clear') {
           sfx.finish();
           for (let k = 0; k < 4; k++)
@@ -118,7 +119,7 @@
     const inkLeft = Math.round((game.ink / game.level.ink) * 50) / 50;
     if (ink !== inkLeft) ink = inkLeft;
     if (game.phase === 'defend') {
-      const next = Math.ceil(DEFEND_S - game.time);
+      const next = Math.ceil(game.level.duration - game.time);
       if (next !== left) left = next;
       if (Math.random() < dt * 4) sounds.buzz();
     }
@@ -138,7 +139,7 @@
     if (game.phase === 'done') return;
     game = fresh();
     drawing = null;
-    left = DEFEND_S;
+    left = game.level.duration;
   }
 
   onMount(() => {
@@ -162,7 +163,7 @@
   aria-label="線を引いて守るの画面"
 >
   <canvas bind:this={canvas}></canvas>
-  <Hud {level} {phase} {ink} {left} onretry={restart} />
+  <Hud {level} {phase} {ink} {left} {tip} onretry={restart} />
 </div>
 
 <style>
