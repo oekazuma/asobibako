@@ -12,7 +12,6 @@
 
   let { onfinish }: GameProps = $props();
 
-  let board: HTMLDivElement;
   const game = $state(createState());
   /** 拍と「エネルギーがない」の回数。表示の演出をやり直すきっかけに使う */
   let beats = $state(0);
@@ -54,9 +53,8 @@
     }
   }
 
-  onMount(() => {
-    const unobserve = input.observe(board, () => {});
-    const stop = animate((dt, now) => {
+  onMount(() =>
+    animate((dt, now) => {
       gestures.tick(now, input.fingers.all);
       const held = { 1: false, 2: false };
       for (const finger of input.fingers.all.values()) held[finger.side] = true;
@@ -65,24 +63,11 @@
       const before = game.timer;
       play(step(game, dt, held));
       if (before > game.beat / 2 && game.timer <= game.beat / 2) sounds.tick();
-    });
-    return () => {
-      stop();
-      unobserve();
-    };
-  });
+    })
+  );
 </script>
 
-<div
-  class="board"
-  bind:this={board}
-  onpointerdown={input.down}
-  onpointermove={input.move}
-  onpointerup={input.up}
-  onpointercancel={input.up}
-  role="application"
-  aria-label="シールドブレイクの盤面"
->
+<div class="board" use:input.board role="application" aria-label="シールドブレイクの盤面">
   <Side player={2} {game} {beats} nudge={nudges[2]} guarding={guarding[2]} />
   <Side player={1} {game} {beats} nudge={nudges[1]} guarding={guarding[1]} />
 

@@ -12,7 +12,6 @@
 
   let { onfinish }: GameProps = $props();
 
-  let board: HTMLDivElement;
   let fishEl = $state<HTMLDivElement>();
   const lines: Record<Player, SVGLineElement | undefined> = { 1: undefined, 2: undefined };
   let tension = $state<Record<Player, number>>({ 1: 0, 2: 0 });
@@ -69,23 +68,12 @@
     if (thrashing !== game.thrash > 0) thrashing = game.thrash > 0;
   }
 
-  onMount(() => {
-    const unobserve = input.observe(board, () => draw());
-    const stop = animate(frame);
-    return () => {
-      stop();
-      unobserve();
-    };
-  });
+  onMount(() => animate(frame));
 </script>
 
 <div
   class="board"
-  bind:this={board}
-  onpointerdown={input.down}
-  onpointermove={input.move}
-  onpointerup={input.up}
-  onpointercancel={input.up}
+  use:input.board={() => draw()}
   role="application"
   aria-label="フィッシュプルの盤面"
   style:--catch1="{(1 - CATCH_Y[1]) * 100}%"

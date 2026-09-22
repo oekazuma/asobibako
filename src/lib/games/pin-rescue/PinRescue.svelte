@@ -13,7 +13,6 @@
 
   let { level, onfinish }: SoloProps = $props();
 
-  let board: HTMLDivElement;
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D | null = null;
   // level はゲームごと作り直されるので、最初の値だけ使えばよい
@@ -54,7 +53,7 @@
 
   function resize() {
     const [w, h] = input.px(1, 1);
-    const dpr = devicePixelRatio;
+    const dpr = devicePixelRatio || 1;
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
     const scale = Math.min(w, (h - 96) / WORLD_H);
@@ -79,7 +78,7 @@
       finishTimer = setTimeout(() => onfinish(cleared), 2000);
     }
     if (!ctx) return;
-    const dpr = devicePixelRatio;
+    const dpr = devicePixelRatio || 1;
     const [sx, sy] = fx.shake.offset(dt, 14);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     if (bg) ctx.drawImage(bg, 0, 0);
@@ -90,26 +89,15 @@
   }
 
   onMount(() => {
-    const unobserve = input.observe(board, resize);
     const stop = animate(frame);
     return () => {
       stop();
-      unobserve();
       clearTimeout(finishTimer);
     };
   });
 </script>
 
-<div
-  class="board"
-  bind:this={board}
-  onpointerdown={input.down}
-  onpointermove={input.move}
-  onpointerup={input.up}
-  onpointercancel={input.up}
-  role="application"
-  aria-label="ピンぬきの盤面"
->
+<div class="board" use:input.board={resize} role="application" aria-label="ピンぬきの盤面">
   <canvas bind:this={canvas}></canvas>
   <span class="level sticker">レベル {level}</span>
   <span class="score sticker" role="status"><Icon name="coin" /> {score}</span>

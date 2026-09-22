@@ -14,7 +14,6 @@
 
   let { onfinish }: GameProps = $props();
 
-  let board: HTMLDivElement;
   let bombEl = $state<HTMLDivElement>();
   let meters = $state<Record<Player, number>>({ 1: 0, 2: 0 });
   let heldBy = $state<Player | null>(null);
@@ -82,25 +81,14 @@
     bombEl.style.setProperty('--heat', h.toFixed(3));
   }
 
-  onMount(() => {
-    const unobserve = input.observe(board, (aspect) => (game.aspect = aspect));
-    const stop = animate(frame);
-    return () => {
-      stop();
-      unobserve();
-    };
-  });
+  onMount(() => animate(frame));
 
   const percent = (v: number) => Math.floor(v * 10) * 10;
 </script>
 
 <div
   class="board"
-  bind:this={board}
-  onpointerdown={input.down}
-  onpointermove={input.move}
-  onpointerup={input.up}
-  onpointercancel={input.up}
+  use:input.board={(aspect) => (game.aspect = aspect)}
   role="application"
   aria-label="ばくだんリレーの盤面"
 >

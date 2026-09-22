@@ -12,7 +12,6 @@
 
   let { onfinish }: GameProps = $props();
 
-  let board: HTMLDivElement;
   let canvas: HTMLCanvasElement;
   const game = createState(1);
   let tally = $state<Record<Player, number>>({ 1: 0, 2: 0 });
@@ -45,12 +44,13 @@
     canvas.getContext('2d')?.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
+  function onResize(aspect: number) {
+    game.aspect = aspect;
+    resize();
+  }
+
   onMount(() => {
     const ctx = canvas.getContext('2d');
-    const unobserve = input.observe(board, (aspect) => {
-      game.aspect = aspect;
-      resize();
-    });
     const stop = animate((dt) => {
       for (const event of step(game, dt)) {
         if (event.type === 'land') sounds.land();
@@ -67,23 +67,11 @@
       if (second !== lastSecond && second >= 0 && second <= 5) sounds.count(second === 0);
       lastSecond = second;
     });
-    return () => {
-      stop();
-      unobserve();
-    };
+    return () => stop();
   });
 </script>
 
-<div
-  class="board"
-  bind:this={board}
-  onpointerdown={input.down}
-  onpointermove={input.move}
-  onpointerup={input.up}
-  onpointercancel={input.up}
-  role="application"
-  aria-label="虫送りの盤面"
->
+<div class="board" use:input.board={onResize} role="application" aria-label="虫送りの盤面">
   <div class="zone p2"></div>
   <div class="zone p1"></div>
   <div class="nest"></div>

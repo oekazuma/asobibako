@@ -12,7 +12,6 @@
 
   let { onfinish }: GameProps = $props();
 
-  let board: HTMLDivElement;
   let puckEl: HTMLDivElement;
   /** マレットの要素は 1 人ぶん 2 個ずつ先に置いておき、毎フレーム位置と表示だけ書き換える */
   const malletEls: Record<Player, HTMLDivElement[]> = { 1: [], 2: [] };
@@ -60,23 +59,12 @@
     for (const p of [1, 2] as const) for (let i = used[p]; i < MALLETS_PER_PLAYER; i++) malletEls[p][i].hidden = true;
   }
 
-  onMount(() => {
-    const unobserve = input.observe(board, (aspect) => (game.aspect = aspect));
-    const stop = animate(frame);
-    return () => {
-      stop();
-      unobserve();
-    };
-  });
+  onMount(() => animate(frame));
 </script>
 
 <div
   class="board"
-  bind:this={board}
-  onpointerdown={input.down}
-  onpointermove={input.move}
-  onpointerup={input.up}
-  onpointercancel={input.up}
+  use:input.board={(aspect) => (game.aspect = aspect)}
   role="application"
   aria-label="ホッケーの盤面"
   style:--puck="{PUCK_R * 200}%"
