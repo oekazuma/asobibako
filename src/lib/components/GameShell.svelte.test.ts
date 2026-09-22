@@ -1,5 +1,6 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { hooks } from '$lib/test/hooks';
 import StubGame from '$lib/test/StubGame.svelte';
 import StubHowto from '$lib/test/StubHowto.svelte';
 import GameShell from './GameShell.svelte';
@@ -36,7 +37,7 @@ function show() {
   flushSync();
   const pad = (p: 1 | 2) => target.querySelector(`button.half.p${p}`) as HTMLButtonElement;
   const playing = () => target.querySelector('[data-testid="game"]') !== null;
-  return { app, pad, playing };
+  return { app, pad, playing, target };
 }
 
 describe('GameShell', () => {
@@ -99,6 +100,24 @@ describe('GameShell', () => {
     vi.advanceTimersByTime(550);
     flushSync();
     expect(playing()).toBe(true);
+    unmount(app);
+  });
+
+  it('もう一度を繰り返すと勝ち数が積み上がる', () => {
+    const { app, pad, target } = show();
+    pad(1).dispatchEvent(pointer('pointerdown', 1, 'mouse'));
+    flushSync();
+    vi.advanceTimersByTime(550);
+    flushSync();
+    hooks.duel!(1);
+    flushSync();
+    expect(target.querySelector('.half.p1 .tally')?.textContent).toBe('1かち 0まけ');
+    expect(target.querySelector('.half.p2 .tally')?.textContent).toBe('0かち 1まけ');
+    (target.querySelector('.half.p1 .again') as HTMLButtonElement).click();
+    flushSync();
+    hooks.duel!(2);
+    flushSync();
+    expect(target.querySelector('.half.p1 .tally')?.textContent).toBe('1かち 1まけ');
     unmount(app);
   });
 });

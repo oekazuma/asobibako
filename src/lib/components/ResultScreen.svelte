@@ -1,13 +1,14 @@
 <script lang="ts">
   import type { Player } from '$lib/player';
 
-  let { winner, onagain }: { winner: Player; onagain: () => void } = $props();
+  let { winner, wins, onagain }: { winner: Player; wins: Record<Player, number>; onagain: () => void } = $props();
 </script>
 
 {#each [2, 1] as const as player (player)}
   <div class="half result p{player}" class:won={winner === player}>
     <span class="outcome sticker" role="status">{winner === player ? 'WIN!' : 'LOSE'}</span>
     <span class="sub">{winner === player ? 'あなたの かち！' : 'あなたの まけ'}</span>
+    <span class="tally">{wins[player]}かち {wins[player === 1 ? 2 : 1]}まけ</span>
     <button class="pill p{player} again" onclick={onagain}>もう一度</button>
   </div>
 {/each}
@@ -38,6 +39,14 @@
 
   .sub {
     font-size: clamp(15px, 2.6cqh, 22px);
+    font-weight: 800;
+  }
+
+  .tally {
+    padding: 4px 16px;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.7);
+    font-size: clamp(13px, 2.2cqh, 18px);
     font-weight: 800;
   }
 
