@@ -26,13 +26,12 @@
     color: var(--ink-soft);
   }
 
-  /* 勝った側は、静止していた放射模様の代わりに回る光線（.rays）で祝う */
+  /* 勝った側は、放射状の光で祝う */
   .half.result.won {
     background: radial-gradient(circle, #fff3c4, var(--gold) 70%);
     color: var(--ink);
   }
 
-  /* 放射状の光をゆっくり回す */
   .rays {
     position: absolute;
     top: 50%;
