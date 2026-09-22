@@ -3,23 +3,18 @@
     level,
     phase,
     ink,
-    left,
-    tip,
-    onretry
+    left
   }: {
     level: number;
     phase: 'draw' | 'defend' | 'done';
     ink: number;
     left: number;
-    tip: string;
-    onretry: () => void;
   } = $props();
 </script>
 
 <div class="hud">
   <span class="level sticker">レベル {level}</span>
   {#if phase === 'draw'}
-    <span class="tip">{tip}</span>
     <span class="ink" role="img" aria-label="のこりのインク {Math.round(ink * 100)}%"
       ><span class="fill" style:width="{ink * 100}%"></span></span
     >
@@ -27,9 +22,6 @@
     <span class="count sticker" role="timer">{phase === 'defend' ? left : ''}</span>
   {/if}
 </div>
-<button class="round retry" onpointerdown={(e) => e.stopPropagation()} onclick={onretry} aria-label="やりなおし"
-  >↻</button
->
 
 <style>
   .hud {
@@ -46,15 +38,6 @@
 
   .level {
     font-size: 24px;
-  }
-
-  .tip {
-    padding: 2px 12px;
-    border-radius: 999px;
-    background: rgb(255 255 255 / 0.8);
-    font-size: 15px;
-    font-weight: 800;
-    color: var(--ink-soft);
   }
 
   .ink {
@@ -75,13 +58,5 @@
   .count {
     font-size: 40px;
     color: var(--p2);
-  }
-
-  .retry {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    background: var(--gold);
-    font-size: 24px;
   }
 </style>

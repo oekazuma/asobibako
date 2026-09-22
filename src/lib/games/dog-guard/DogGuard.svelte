@@ -11,7 +11,7 @@
   import { backdrop, paint } from './paint';
   import { sounds } from './sounds';
 
-  let { level, onfinish }: SoloProps = $props();
+  let { level, onfinish, onhint }: SoloProps = $props();
 
   const TOP = 90;
   let canvas: HTMLCanvasElement;
@@ -28,7 +28,6 @@
   let now = 0;
   let inked = 0;
   let left = $state(game.level.duration);
-  const tip = $derived(levelFor(level).tip);
   const particles = new Particles();
   const shake = new Shake();
   let finishTimer: ReturnType<typeof setTimeout> | undefined;
@@ -47,7 +46,10 @@
     up: (event) => {
       if (event.pointerId !== drawing) return;
       drawing = null;
-      if (finishStroke(game)) sounds.go();
+      if (finishStroke(game)) {
+        sounds.go();
+        onhint?.('');
+      }
     }
   });
 
@@ -135,14 +137,8 @@
     particles.draw(ctx);
   }
 
-  function restart() {
-    if (game.phase === 'done') return;
-    game = fresh();
-    drawing = null;
-    left = game.level.duration;
-  }
-
   onMount(() => {
+    onhint?.(levelFor(level).tip);
     const stop = animate(frame);
     return () => {
       stop();
@@ -153,7 +149,7 @@
 
 <div class="board" use:input.board={resize} role="application" aria-label="線を引いて守るの画面">
   <canvas bind:this={canvas}></canvas>
-  <Hud {level} {phase} {ink} {left} {tip} onretry={restart} />
+  <Hud {level} {phase} {ink} {left} />
 </div>
 
 <style>

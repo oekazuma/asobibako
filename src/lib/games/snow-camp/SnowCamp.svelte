@@ -12,7 +12,7 @@
   import { CampWorld } from './world3d';
   import { sounds } from './sounds';
 
-  let { level, onfinish }: SoloProps = $props();
+  let { level, onfinish, onhint }: SoloProps = $props();
 
   /** 指をこれだけ（ピクセル）ずらすと全速力 */
   const STICK = 60;
@@ -25,8 +25,8 @@
   const fresh = () => createState(level);
   const game = fresh();
   let wallet = $state(0);
-  /** いまやること。画面の上に出す */
-  let hint = $state('');
+  /** いまやることの文字。変わったときだけ onhint で通知する */
+  let last = '';
   let goal = $state(game.pads.find((p) => p.id === 'home')!.cost);
   /** 仮想スティック。指を置いた位置からずらした向きへ歩く */
   let stick: { id: number; x: number; y: number } | null = null;
@@ -88,7 +88,10 @@
     if (!ctx) return;
     const [w, h] = input.px(1, 1);
     const todo = objective(game);
-    if (hint !== todo.text) hint = todo.text;
+    if (last !== todo.text) {
+      last = todo.text;
+      onhint?.(last);
+    }
     world?.update(game, dt, now, move, todo);
     world?.render();
     ctx.setTransform(devicePixelRatio || 1, 0, 0, devicePixelRatio || 1, 0, 0);
@@ -125,7 +128,7 @@
 <div class="board" use:input.board={resize} role="application" aria-label="雪原サバイバルの雪原">
   <canvas bind:this={gl}></canvas>
   <canvas bind:this={canvas}></canvas>
-  <Hud {level} {wallet} {goal} {hint} />
+  <Hud {level} {wallet} {goal} />
 </div>
 
 <style>

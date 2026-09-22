@@ -42,15 +42,6 @@
     }
   });
 
-  function restart() {
-    clearTimeout(finishTimer);
-    game = fresh();
-    pulledAt = [];
-    fx.reset();
-    progress = score = 0;
-    done = false;
-  }
-
   function resize() {
     const [w, h] = input.px(1, 1);
     const dpr = devicePixelRatio || 1;
@@ -103,9 +94,6 @@
   <span class="score sticker" role="status"><Icon name="coin" /> {score}</span>
   <span class="meter" role="img" aria-label="クリアまで {Math.round(progress * 100)}%"
     ><span class="fill" style:width="{progress * 100}%"></span></span
-  >
-  <button class="round retry" onpointerdown={(e) => e.stopPropagation()} onclick={restart} aria-label="やりなおし"
-    >↻</button
   >
 </div>
 
@@ -160,13 +148,5 @@
     left: 72px;
     font-size: 26px;
     color: var(--gold-deep);
-  }
-
-  .retry {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    background: var(--gold);
-    font-size: 24px;
   }
 </style>
