@@ -1,9 +1,8 @@
 import { sfx } from '$lib/audio.svelte';
-import { Floaters, Particles, Shake } from '$lib/fx';
+import { CONFETTI, Floaters, Particles, Shake } from '$lib/fx';
 import { needed, type GameState, type Kind } from './engine';
 import { sounds } from './sounds';
 
-const CONFETTI = ['#ffc233', '#1f9bff', '#ff4d5e', '#58c46b'];
 /** 届いた金の粒 1 つぶんの金額 */
 const COIN = 10;
 

@@ -5,6 +5,9 @@ import { ICONS, type IconName, type Layer } from './icons';
  * 座標の単位は描く側の ctx の変換に合わせる（ワールド座標でも画面のピクセルでもよい）
  */
 
+/** クリアの紙吹雪の色。canvas でも DOM でも同じ 5 色を使う */
+export const CONFETTI = ['#ffc233', '#1f9bff', '#ff4d5e', '#58c46b', '#b27bff'] as const;
+
 /** 描く側の座標 (x, y) を画面の位置と倍率 k へ写す */
 export type Projector = (x: number, y: number) => [number, number, number];
 
@@ -23,7 +26,7 @@ interface Particle {
 
 export interface BurstOptions {
   count?: number;
-  color?: string | string[];
+  color?: string | readonly string[];
   speed?: number;
   size?: number;
   life?: number;

@@ -6,7 +6,7 @@
   import { animate } from '$lib/loop';
   import { addPoint, createState, finishStroke, step, WORLD_H } from './engine';
   import { levelFor } from './levels';
-  import { Particles, Shake } from '$lib/fx';
+  import { CONFETTI, Particles, Shake } from '$lib/fx';
   import Hud from './Hud.svelte';
   import { backdrop, paint } from './paint';
   import { sounds } from './sounds';
@@ -32,7 +32,6 @@
   const tip = $derived(levelFor(level).tip);
   const particles = new Particles();
   const shake = new Shake();
-  const CONFETTI = ['#ffc233', '#1f9bff', '#ff4d5e', '#58c46b'];
   let finishTimer: ReturnType<typeof setTimeout> | undefined;
 
   const toWorld = (bx: number, by: number) => {

@@ -4,7 +4,7 @@
   import { BoardInput } from '$lib/board-input';
   import type { SoloProps } from '$lib/games';
   import { animate } from '$lib/loop';
-  import { Floaters, Particles, Shake } from '$lib/fx';
+  import { CONFETTI, Floaters, Particles, Shake } from '$lib/fx';
   import { createState, steer, step, type RunEvent } from './engine';
   import { paint, project } from './paint';
   import { sounds } from './sounds';
@@ -24,7 +24,6 @@
   const particles = new Particles();
   const floaters = new Floaters();
   const shake = new Shake();
-  const CONFETTI = ['#ffc233', '#1f9bff', '#ff4d5e', '#58c46b', '#b27bff'];
   let finishTimer: ReturnType<typeof setTimeout> | undefined;
 
   const input = new BoardInput({
