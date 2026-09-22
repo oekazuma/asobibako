@@ -73,15 +73,6 @@ export function noise(ms: number, gain = 0.3) {
 }
 
 export const sfx = {
-  tap: () => tone(660, 90),
-  hold: () => {
-    tone(520, 90);
-    tone(780, 160, 'triangle', 0.14, 70);
-  },
-  contest: () => {
-    tone(990, 120, 'square', 0.1);
-    tone(1320, 180, 'square', 0.08, 90);
-  },
   start: () => {
     tone(440, 120);
     tone(660, 200, 'triangle', 0.14, 120);
