@@ -54,6 +54,17 @@ describe('dog-guard engine', () => {
     expect(state.ink).toBe(0);
   });
 
+  it('線が固まると線分ができ、そのあと点を足しても変わらない', () => {
+    const state = createState(levelFor(1));
+    addPoint(state, 0.2, 0.5);
+    addPoint(state, 0.4, 0.5);
+    expect(state.segs).toEqual([]);
+    expect(finishStroke(state)).toBe(true);
+    expect(state.segs).toEqual([[0.2, 0.5, 0.4, 0.5]]);
+    expect(addPoint(state, 0.6, 0.5)).toBe(false);
+    expect(state.segs).toHaveLength(1);
+  });
+
   it('雲の中や、雲をまたぐ線は引けない', () => {
     const state = createState(levelFor(24));
     const zone = state.level.noDraw[0];

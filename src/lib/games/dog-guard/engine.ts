@@ -59,6 +59,8 @@ export interface GameState {
   level: Level;
   phase: 'draw' | 'defend' | 'done';
   stroke: Point[];
+  /** 固まった線の線分。線は defend の間は変わらないので finishStroke で 1 回だけ作る */
+  segs: Seg[];
   ink: number;
   bees: Bee[];
   spawned: number;
@@ -70,7 +72,7 @@ export type GuardEvent =
   { type: 'spawn' } | { type: 'bump'; x: number; y: number } | { type: 'stung' } | { type: 'clear' };
 
 export function createState(level: Level): GameState {
-  return { level, phase: 'draw', stroke: [], ink: level.ink, bees: [], spawned: 0, time: 0, result: null };
+  return { level, phase: 'draw', stroke: [], segs: [], ink: level.ink, bees: [], spawned: 0, time: 0, result: null };
 }
 
 /** そこに線を引いてよいか。犬のすぐまわりと雲の中はだめ */
@@ -105,11 +107,12 @@ export function finishStroke(state: GameState): boolean {
     state.stroke = [];
     return false;
   }
+  state.segs = strokeSegs(state);
   state.phase = 'defend';
   return true;
 }
 
-export function strokeSegs(state: GameState): Seg[] {
+function strokeSegs(state: GameState): Seg[] {
   const segs: Seg[] = [];
   for (let i = 1; i < state.stroke.length; i++) {
     const a = state.stroke[i - 1];
@@ -164,7 +167,6 @@ export function step(state: GameState, dt: number, rand: () => number = Math.ran
     events.push({ type: 'spawn' });
   }
 
-  const segs = strokeSegs(state);
   for (const bee of state.bees) {
     const look = BEE_LOOK[bee.kind];
     const r = BEE_R * look.r;
@@ -184,7 +186,7 @@ export function step(state: GameState, dt: number, rand: () => number = Math.ran
     for (let k = 0; k < 3; k++) {
       bee.x += (bee.vx * dt) / 3;
       bee.y += (bee.vy * dt) / 3;
-      const hit = collide(bee, segs, r);
+      const hit = collide(bee, state.segs, r);
       collide(bee, level.walls, r);
       if (hit && rand() < 0.04) events.push({ type: 'bump', x: bee.x, y: bee.y });
     }

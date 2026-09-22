@@ -2,8 +2,8 @@ import { cloud, icon, shadow, sprite, stamp } from '$lib/fx';
 import type { Seg } from '$lib/segments';
 import { BEE_LOOK, BEE_R, DOG_R, LINE, type GameState, type Zone } from './engine';
 
-const bee = (frame: 0 | 1) =>
-  sprite(`bee:${frame}`, 96, (c) => {
+const bee = (frame: 0 | 1, fast: boolean) =>
+  sprite(`bee:${frame}:${fast ? 'fast' : 'normal'}`, 96, (c) => {
     // 右向き。羽は 2 枚の絵を入れ替えて羽ばたかせる
     c.fillStyle = 'rgb(220 240 255 / 0.85)';
     c.strokeStyle = 'rgb(120 150 180 / 0.6)';
@@ -16,8 +16,9 @@ const bee = (frame: 0 | 1) =>
       c.stroke();
     }
     const body = c.createRadialGradient(0.45, 0.5, 0.05, 0.5, 0.56, 0.3);
-    body.addColorStop(0, '#fff07a');
-    body.addColorStop(1, '#f2a900');
+    // 速いハチは橙にして見分けられるようにする。canvas の filter は iOS で重く、古い Safari では効かない
+    body.addColorStop(0, fast ? '#ffd27a' : '#fff07a');
+    body.addColorStop(1, fast ? '#f27200' : '#f2a900');
     c.fillStyle = body;
     c.beginPath();
     c.ellipse(0.48, 0.58, 0.3, 0.21, 0, 0, Math.PI * 2);
@@ -215,10 +216,7 @@ export function paint(ctx: CanvasRenderingContext2D, state: GameState, now: numb
     if (b.vx < 0) ctx.scale(-1, 1);
     ctx.rotate(Math.atan2(b.vy, Math.abs(b.vx)) * 0.6);
     const look = BEE_LOOK[b.kind];
-    // 速いハチはオレンジに色を変えて、見分けられるようにする
-    if (b.kind === 'fast') ctx.filter = 'hue-rotate(-25deg) saturate(1.6)';
-    stamp(ctx, bee(frame), 0, 0, BEE_R * 3.4 * look.r);
-    ctx.filter = 'none';
+    stamp(ctx, bee(frame, b.kind === 'fast'), 0, 0, BEE_R * 3.4 * look.r);
     ctx.restore();
   }
 }
