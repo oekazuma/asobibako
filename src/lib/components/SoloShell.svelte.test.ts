@@ -81,4 +81,15 @@ describe('SoloShell', () => {
     expect(target.textContent).toContain(`レベル ${level}`);
     unmount(app);
   });
+
+  it('レベル 100 をクリアすると ALL_CLEAR を保存し、ぜんぶクリアと出す', () => {
+    localStorage.setItem('table-duel:level:stub', '100');
+    const { target, app } = show();
+    start(target);
+    hooks.solo!(true);
+    flushSync();
+    expect(localStorage.getItem('table-duel:level:stub')).toBe('101');
+    expect(target.textContent).toContain('ぜんぶクリア');
+    unmount(app);
+  });
 });

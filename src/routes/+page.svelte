@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { resolve } from '$app/paths';
   import AppUpdate from '$lib/components/AppUpdate.svelte';
+  import GameCard from '$lib/components/GameCard.svelte';
   import { games } from '$lib/games';
 
   const sections = [
@@ -27,17 +27,7 @@
       <ul class="cards">
         {#each section.list as game, i (game.id)}
           <li style:--delay="{i * 70}ms">
-            <a class="card" href={resolve('/games/[id]', { id: game.id })}>
-              <div class="thumb"><game.Thumb /></div>
-              <div class="body">
-                <h3>{game.name}</h3>
-                <p class="desc">{game.description}</p>
-                <p class="meta">
-                  <span class="chip">{game.players}人</span>
-                  <span class="chip">{game.minutes}</span>
-                </p>
-              </div>
-            </a>
+            <GameCard {game} />
           </li>
         {/each}
       </ul>
@@ -110,75 +100,6 @@
     animation: rise 480ms var(--spring) var(--delay) both;
   }
 
-  .card {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    overflow: hidden;
-    border: 4px solid #fff;
-    border-radius: 26px;
-    background: var(--card);
-    box-shadow:
-      0 8px 0 var(--card-edge),
-      0 16px 28px rgb(43 45 66 / 0.1);
-    color: inherit;
-    text-decoration: none;
-    transition:
-      translate 90ms,
-      box-shadow 90ms;
-  }
-
-  .card:active {
-    translate: 0 6px;
-    box-shadow:
-      0 2px 0 var(--card-edge),
-      0 6px 14px rgb(43 45 66 / 0.1);
-  }
-
-  .thumb {
-    display: block;
-    height: 128px;
-    border-radius: 20px 20px 0 0;
-    overflow: hidden;
-  }
-
-  .body {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: 8px;
-    padding: 14px 18px 18px;
-  }
-
-  .body h3 {
-    font-size: 24px;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-  }
-
-  .desc {
-    color: var(--ink-soft);
-    font-size: 14px;
-    font-weight: 700;
-    line-height: 1.6;
-  }
-
-  .meta {
-    display: flex;
-    gap: 6px;
-    margin-top: auto;
-    padding-top: 4px;
-  }
-
-  .chip {
-    padding: 3px 12px;
-    border-radius: 999px;
-    background: var(--bg);
-    color: var(--ink-soft);
-    font-size: 12px;
-    font-weight: 800;
-  }
-
   @keyframes rise {
     from {
       translate: 0 24px;
@@ -189,10 +110,6 @@
   @media (prefers-reduced-motion: reduce) {
     li {
       animation: none;
-    }
-
-    .card {
-      transition: none;
     }
   }
 </style>
