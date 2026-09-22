@@ -21,4 +21,8 @@ describe('fingers', () => {
     const still = fingers.up(2, 0.5, 0.6, 600)!;
     expect(Math.abs(velocity(still.trail).vy)).toBeLessThan(0.5);
   });
+
+  it('軌跡が空なら 0 を返す', () => {
+    expect(velocity([])).toEqual({ vx: 0, vy: 0 });
+  });
 });

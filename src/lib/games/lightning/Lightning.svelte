@@ -14,7 +14,6 @@
 
   let { onfinish }: GameProps = $props();
 
-  let board: HTMLDivElement;
   const game = $state(createState());
 
   const gestures = new Gestures((player, g) => play(answer(game, player, g.kind === 'swipe' ? g.dir : g.kind)));
@@ -42,30 +41,15 @@
     }
   }
 
-  onMount(() => {
-    const unobserve = input.observe(board, () => {});
-    const stop = animate((dt, now) => {
+  onMount(() =>
+    animate((dt, now) => {
       play(step(game, dt));
       gestures.tick(now, input.fingers.all);
-    });
-    return () => {
-      stop();
-      unobserve();
-    };
-  });
+    })
+  );
 </script>
 
-<div
-  class="board"
-  class:go={game.phase === 'go'}
-  bind:this={board}
-  onpointerdown={input.down}
-  onpointermove={input.move}
-  onpointerup={input.up}
-  onpointercancel={input.up}
-  role="application"
-  aria-label="ライトニングの盤面"
->
+<div class="board" class:go={game.phase === 'go'} use:input.board role="application" aria-label="ライトニングの盤面">
   <div class="zone p2"></div>
   <div class="zone p1"></div>
   <div class="bolt" aria-hidden="true"><Icon name="bolt" size="36px" /></div>

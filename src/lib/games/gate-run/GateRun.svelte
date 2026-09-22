@@ -11,7 +11,6 @@
 
   let { level, onfinish }: SoloProps = $props();
 
-  let board: HTMLDivElement;
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D | null = null;
   // level はゲームごと作り直されるので、最初の値だけ使えばよい
@@ -36,8 +35,9 @@
 
   function resize() {
     const [w, h] = input.px(1, 1);
-    canvas.width = Math.round(w * devicePixelRatio);
-    canvas.height = Math.round(h * devicePixelRatio);
+    const dpr = devicePixelRatio || 1;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
     ctx = canvas.getContext('2d');
   }
 
@@ -97,7 +97,8 @@
     floaters.step(dt);
     if (!ctx) return;
     const [sx, sy] = shake.offset(dt, w * 0.02);
-    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, sx * devicePixelRatio, sy * devicePixelRatio);
+    const dpr = devicePixelRatio || 1;
+    ctx.setTransform(dpr, 0, 0, dpr, sx * dpr, sy * dpr);
     ctx.clearRect(-w, -h, w * 3, h * 3);
     paint(ctx, game, { w, h }, now);
     particles.draw(ctx);
@@ -105,26 +106,15 @@
   }
 
   onMount(() => {
-    const unobserve = input.observe(board, resize);
     const stop = animate(frame);
     return () => {
       stop();
-      unobserve();
       clearTimeout(finishTimer);
     };
   });
 </script>
 
-<div
-  class="board"
-  bind:this={board}
-  onpointerdown={input.down}
-  onpointermove={input.move}
-  onpointerup={input.up}
-  onpointercancel={input.up}
-  role="application"
-  aria-label="数のゲートの道"
->
+<div class="board" use:input.board={resize} role="application" aria-label="数のゲートの道">
   <canvas bind:this={canvas}></canvas>
   <span class="level sticker">レベル {level}</span>
 </div>

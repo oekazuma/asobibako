@@ -1,9 +1,22 @@
+import type { Action } from 'svelte/action';
 import { wake } from './audio.svelte';
 import { Fingers, type Finger } from './fingers';
 
 interface Hooks {
   down?: (event: PointerEvent, x: number, y: number) => void;
   up?: (event: PointerEvent, finger: Finger, x: number, y: number) => void;
+}
+
+/** app.css が .stage を回す条件と同じ。盤面が回っているかは、外接矩形から推し量るより CSS に聞くほうが確か */
+export const TURNED_QUERY = '(orientation: landscape) and (pointer: coarse)';
+
+/** 合成イベントや既に解放されたポインタでは失敗するが、掴み自体は続行してよい */
+export function capture(event: PointerEvent): void {
+  try {
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+  } catch {
+    // noop
+  }
 }
 
 interface Box {
@@ -53,11 +66,7 @@ export class BoardInput {
     event.preventDefault();
     // iOS は操作イベントの中でしか音を鳴らし始められない
     wake();
-    try {
-      (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-    } catch {
-      // 合成イベントでは捕捉できないが、指の追跡自体は続けられる
-    }
+    capture(event);
     const [x, y] = this.#toBoard(event);
     this.fingers.down(event.pointerId, x, y, event.timeStamp);
     this.#hooks.down?.(event, x, y);
@@ -79,9 +88,8 @@ export class BoardInput {
     const measure = () => {
       this.#box = el.getBoundingClientRect();
       this.#size = { width: el.offsetWidth, height: el.offsetHeight };
-      // 画面上の幅が、盤面そのものの高さと一致していれば 90 度回っている
-      this.#turned =
-        Math.abs(this.#box.width - this.#size.width) > 1 && Math.abs(this.#box.width - this.#size.height) <= 1;
+      this.#turned = matchMedia(TURNED_QUERY).matches;
+      if (this.#size.height === 0) return;
       onResize(this.#size.width / this.#size.height);
     };
     measure();
@@ -89,4 +97,22 @@ export class BoardInput {
     observer.observe(el);
     return () => observer.disconnect();
   }
+
+  /** 盤面の要素に use:input.board={onResize} と書けば、指の配線と大きさの見張りが付く */
+  board: Action<HTMLElement, ((aspect: number) => void) | undefined> = (el, onResize = () => {}) => {
+    el.addEventListener('pointerdown', this.down);
+    el.addEventListener('pointermove', this.move);
+    el.addEventListener('pointerup', this.up);
+    el.addEventListener('pointercancel', this.up);
+    const unobserve = this.observe(el, onResize);
+    return {
+      destroy: () => {
+        el.removeEventListener('pointerdown', this.down);
+        el.removeEventListener('pointermove', this.move);
+        el.removeEventListener('pointerup', this.up);
+        el.removeEventListener('pointercancel', this.up);
+        unobserve();
+      }
+    };
+  };
 }

@@ -14,7 +14,6 @@
   let { level, onfinish }: SoloProps = $props();
 
   const TOP = 90;
-  let board: HTMLDivElement;
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D | null = null;
   // level はゲームごと作り直されるので、最初の値だけ使えばよい
@@ -55,8 +54,9 @@
 
   function resize() {
     const [w, h] = input.px(1, 1);
-    canvas.width = Math.round(w * devicePixelRatio);
-    canvas.height = Math.round(h * devicePixelRatio);
+    const dpr = devicePixelRatio || 1;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
     const scale = Math.min(w, (h - TOP) / WORLD_H);
     view = { scale, ox: (w - scale) / 2, oy: TOP + (h - TOP - scale * WORLD_H) / 2 };
     ctx = canvas.getContext('2d');
@@ -125,7 +125,7 @@
       if (Math.random() < dt * 4) sounds.buzz();
     }
     if (!ctx) return;
-    const dpr = devicePixelRatio;
+    const dpr = devicePixelRatio || 1;
     const [w, h] = input.px(1, 1);
     const [sx, sy] = shake.offset(dt, 14);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -144,26 +144,15 @@
   }
 
   onMount(() => {
-    const unobserve = input.observe(board, resize);
     const stop = animate(frame);
     return () => {
       stop();
-      unobserve();
       clearTimeout(finishTimer);
     };
   });
 </script>
 
-<div
-  class="board"
-  bind:this={board}
-  onpointerdown={input.down}
-  onpointermove={input.move}
-  onpointerup={input.up}
-  onpointercancel={input.up}
-  role="application"
-  aria-label="線を引いて守るの画面"
->
+<div class="board" use:input.board={resize} role="application" aria-label="線を引いて守るの画面">
   <canvas bind:this={canvas}></canvas>
   <Hud {level} {phase} {ink} {left} {tip} onretry={restart} />
 </div>

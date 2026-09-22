@@ -1,10 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { sfx, wake } from '$lib/audio.svelte';
+  import { sfx } from '$lib/audio.svelte';
+  import { BoardInput } from '$lib/board-input';
   import Pips from '$lib/components/Pips.svelte';
   import type { GameProps } from '$lib/games';
   import { animate } from '$lib/loop';
-  import { toBoardPoint } from '$lib/board-input';
   import { sideOf } from '$lib/player';
   import { createState, GOAL, press, step, type FeintEvent } from './engine';
   import Glyph from './Glyph.svelte';
@@ -13,7 +13,6 @@
 
   let { onfinish }: GameProps = $props();
 
-  let board: HTMLDivElement;
   const game = $state(createState());
 
   function play(events: FeintEvent[]) {
@@ -28,20 +27,13 @@
     }
   }
 
-  /** 押した位置だけ分かればよいので、指は追わない。盤面が 90 度回っていても陣地を正しく取る */
-  function down(event: PointerEvent) {
-    event.preventDefault();
-    wake();
-    const box = board.getBoundingClientRect();
-    const turned = Math.abs(box.width - board.offsetWidth) > 1;
-    const [, y] = toBoardPoint(event.clientX, event.clientY, box, turned);
-    play(press(game, sideOf(y)));
-  }
+  /** 押した位置の陣地だけ分かればよい。指は追わないが、回転と座標の変換は BoardInput に任せる */
+  const input = new BoardInput({ down: (_event, _x, y) => play(press(game, sideOf(y))) });
 
   onMount(() => animate((dt) => play(step(game, dt))));
 </script>
 
-<div class="board" bind:this={board} onpointerdown={down} role="application" aria-label="フェイントマスターの盤面">
+<div class="board" use:input.board role="application" aria-label="フェイントマスターの盤面">
   <div class="zone p2"></div>
   <div class="zone p1"></div>
 

@@ -16,7 +16,6 @@
 
   /** 指をこれだけ（ピクセル）ずらすと全速力 */
   const STICK = 60;
-  let board: HTMLDivElement;
   /** 3D の雪原と、その上に文字・火花・雪を重ねる 2D の canvas */
   let gl: HTMLCanvasElement;
   let canvas: HTMLCanvasElement;
@@ -48,8 +47,9 @@
 
   function resize() {
     const [w, h] = input.px(1, 1);
-    canvas.width = Math.round(w * devicePixelRatio);
-    canvas.height = Math.round(h * devicePixelRatio);
+    const dpr = devicePixelRatio || 1;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
     ctx = canvas.getContext('2d');
     world?.resize(w, h);
   }
@@ -91,7 +91,7 @@
     if (hint !== todo.text) hint = todo.text;
     world?.update(game, dt, now, move, todo);
     world?.render();
-    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    ctx.setTransform(devicePixelRatio || 1, 0, 0, devicePixelRatio || 1, 0, 0);
     ctx.clearRect(0, 0, w, h);
     if (world) {
       const to = (x: number, y: number, z: number) => world!.project(x, y, z, w, h);
@@ -113,27 +113,16 @@
 
   onMount(() => {
     world = new CampWorld(gl, game);
-    const unobserve = input.observe(board, resize);
     const stop = animate(frame);
     return () => {
       stop();
-      unobserve();
       world?.dispose();
       clearTimeout(finishTimer);
     };
   });
 </script>
 
-<div
-  class="board"
-  bind:this={board}
-  onpointerdown={input.down}
-  onpointermove={input.move}
-  onpointerup={input.up}
-  onpointercancel={input.up}
-  role="application"
-  aria-label="雪原サバイバルの雪原"
->
+<div class="board" use:input.board={resize} role="application" aria-label="雪原サバイバルの雪原">
   <canvas bind:this={gl}></canvas>
   <canvas bind:this={canvas}></canvas>
   <Hud {level} {wallet} {goal} {hint} />
