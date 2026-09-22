@@ -57,4 +57,12 @@ describe('lightning engine', () => {
     expect(state.winner).toBe(1);
     expect(step(state, 5)).toEqual([{ type: 'win', player: 1 }]);
   });
+
+  it('向かい側も GOAL 点目で勝てる', () => {
+    const state = going('tap');
+    state.score[2] = GOAL - 1;
+    answer(state, 2, 'tap');
+    expect(state.winner).toBe(2);
+    expect(step(state, 5)).toEqual([{ type: 'win', player: 2 }]);
+  });
 });

@@ -75,4 +75,20 @@ describe('shield-break engine', () => {
     expect(state.winner).toBe(1);
     expect(step(state, 5, idle)).toEqual([{ type: 'win', player: 1 }]);
   });
+
+  it('向かい側も、体力が尽きた相手に勝つ', () => {
+    const state = createState();
+    state.energy[2] = 1;
+    state.life[1] = 1;
+    choose(state, 2, 'attack');
+    beat(state);
+    expect(state.winner).toBe(2);
+    expect(step(state, 5, idle)).toEqual([{ type: 'win', player: 2 }]);
+  });
+
+  it('拍は重ねるほど短くなるが、下限より速くはならない', () => {
+    const state = createState();
+    for (let i = 0; i < 30; i++) beat(state);
+    expect(state.beat).toBeGreaterThanOrEqual(1.1 - 1e-9);
+  });
 });
