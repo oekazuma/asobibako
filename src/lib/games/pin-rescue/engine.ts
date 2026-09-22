@@ -54,9 +54,13 @@ export interface GameState {
   /** 勇者のまわりに届いた金の粒 */
   collected: number;
   result: 'clear' | 'burned' | 'stuck' | null;
+  /** まだ進めていない時間（秒）。フレームが遅れても刻みを増やさず、余りを次に持ち越す */
+  acc: number;
 }
 
 const SUB_DT = 1 / 240;
+// 遅いフレームで刻みを 3 倍にすると次も遅れる。上限を超えた分は捨てて、時間のほうを遅らせる
+const MAX_SUBSTEPS = 6;
 const GRAVITY = 2.4;
 const DAMP = 0.996;
 const ITERATIONS = 2;
@@ -85,7 +89,8 @@ export function createState(level: Level): GameState {
     idle: 0,
     gold: particles.filter((p) => p.kind === 'gold').length,
     collected: 0,
-    result: null
+    result: null,
+    acc: 0
   };
 }
 
@@ -165,7 +170,10 @@ function substep(state: GameState, segs: Seg[]) {
 export function step(state: GameState, dt: number): void {
   if (state.result) return;
   const segs = solids(state);
-  const n = Math.min(12, Math.round(dt / SUB_DT));
+  state.acc = Math.min(MAX_SUBSTEPS * SUB_DT, state.acc + dt);
+  // 1/60 ÷ 1/240 は浮動小数で 4 にわずかに届かないことがあるので、少し足してから切り捨てる
+  const n = Math.floor(state.acc / SUB_DT + 1e-6);
+  state.acc -= n * SUB_DT;
   for (let i = 0; i < n && !state.result; i++) substep(state, segs);
   if (state.result) return;
   const { x } = state.level.hero;
