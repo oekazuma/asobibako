@@ -30,6 +30,7 @@
   const liquid = new LiquidLayer();
   let progress = $state(0);
   let score = $state(0);
+  let finishTimer: ReturnType<typeof setTimeout> | undefined;
 
   const input = new BoardInput({
     down: (_event, bx, by) => {
@@ -43,6 +44,7 @@
   });
 
   function restart() {
+    clearTimeout(finishTimer);
     game = fresh();
     pulledAt = [];
     fx.reset();
@@ -74,7 +76,7 @@
       done = true;
       const cleared = game.result === 'clear';
       fx.finished(game);
-      setTimeout(() => onfinish(cleared), 2000);
+      finishTimer = setTimeout(() => onfinish(cleared), 2000);
     }
     if (!ctx) return;
     const dpr = devicePixelRatio;
@@ -93,6 +95,7 @@
     return () => {
       stop();
       unobserve();
+      clearTimeout(finishTimer);
     };
   });
 </script>

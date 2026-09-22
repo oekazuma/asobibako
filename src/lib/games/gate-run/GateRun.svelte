@@ -25,6 +25,7 @@
   const floaters = new Floaters();
   const shake = new Shake();
   const CONFETTI = ['#ffc233', '#1f9bff', '#ff4d5e', '#58c46b', '#b27bff'];
+  let finishTimer: ReturnType<typeof setTimeout> | undefined;
 
   const input = new BoardInput({
     down: (event, x) => (grab = { id: event.pointerId, from: x, x: game.x }),
@@ -82,7 +83,7 @@
             gravity: h * 0.9
           });
       else shake.add(0.6);
-      setTimeout(() => onfinish(event.type === 'clear'), 1500);
+      finishTimer = setTimeout(() => onfinish(event.type === 'clear'), 1500);
     }
   }
 
@@ -109,6 +110,7 @@
     return () => {
       stop();
       unobserve();
+      clearTimeout(finishTimer);
     };
   });
 </script>

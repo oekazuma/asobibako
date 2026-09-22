@@ -30,6 +30,8 @@
   }
 
   function finish(won: boolean) {
+    // 演出中に ✕ で抜けたあとに届く遅れた onfinish は捨てる
+    if (screen !== 'playing') return;
     cleared = won;
     complete = won && level >= MAX_LEVEL;
     if (won && !complete) {
@@ -47,7 +49,7 @@
 
   onMount(() => {
     try {
-      best = level = Math.min(MAX_LEVEL, Math.max(1, Number(localStorage.getItem(key)) || 1));
+      best = level = Math.min(MAX_LEVEL, Math.max(1, Math.floor(Number(localStorage.getItem(key))) || 1));
     } catch {
       // プライベートブラウズでは 1 から
     }

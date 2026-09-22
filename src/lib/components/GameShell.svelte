@@ -54,6 +54,7 @@
   }
 
   function finish(won: Player) {
+    if (screen !== 'playing') return;
     winner = won;
     screen = 'result';
     settle.begin();
