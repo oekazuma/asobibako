@@ -5,7 +5,36 @@ const DOWN = 3;
 /** ぼかした玉が重なった濃さがこれ以上のところを、液体の中とみなす */
 const EDGE = 120;
 
-type Liquid = 'water' | 'lava';
+export type Liquid = 'water' | 'lava';
+
+/** その種類の粒がぼかし玉ごと収まる矩形(ピクセル、canvas の中に切り詰め)。粒がなければ null */
+export function liquidBox(
+  particles: Particle[],
+  kind: Liquid,
+  scale: number,
+  d: number,
+  width: number,
+  height: number
+): { x0: number; y0: number; w: number; h: number } | null {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const p of particles) {
+    if (p.kind !== kind) continue;
+    minX = Math.min(minX, p.x * scale - d / 2);
+    minY = Math.min(minY, p.y * scale - d / 2);
+    maxX = Math.max(maxX, p.x * scale + d / 2);
+    maxY = Math.max(maxY, p.y * scale + d / 2);
+  }
+  if (minX === Infinity) return null;
+  const x0 = Math.max(0, Math.floor(minX));
+  const y0 = Math.max(0, Math.floor(minY));
+  const x1 = Math.min(width, Math.ceil(maxX));
+  const y1 = Math.min(height, Math.ceil(maxY));
+  if (x1 <= x0 || y1 <= y0) return null;
+  return { x0, y0, w: x1 - x0, h: y1 - y0 };
+}
 
 /**
  * 水とマグマを、粒の集まりではなく 1 つながりの液体として描く（メタボール）。
@@ -38,6 +67,7 @@ export class LiquidLayer {
   }
 
   /** ctx は engine の座標（幅 1）がそのまま描ける変換にしておく */
+  // 読み戻しは canvas 全体だと iPad で 1 フレームの予算を超えるので、液体のある矩形だけにする
   draw(ctx: CanvasRenderingContext2D, particles: Particle[], kind: Liquid, now: number) {
     const scale = ctx.getTransform().a / DOWN;
     const width = Math.max(1, Math.ceil(scale));
@@ -47,22 +77,21 @@ export class LiquidLayer {
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.clearRect(0, 0, width, height);
     const d = R * 4.2 * scale;
-    let any = false;
     for (const p of particles) {
       if (p.kind !== kind) continue;
-      any = true;
       c.drawImage(this.#blob!, p.x * scale - d / 2, p.y * scale - d / 2, d, d);
     }
-    if (!any) return;
+    const box = liquidBox(particles, kind, scale, d, width, height);
+    if (!box) return;
 
-    const image = c.getImageData(0, 0, width, height);
+    const image = c.getImageData(box.x0, box.y0, box.w, box.h);
     const px = image.data;
     // 列ごとに、いちばん上の液体の位置（水面）を覚えて、そこからの深さで色を変える
-    const top = new Int32Array(width).fill(-1);
+    const top = new Int32Array(box.w).fill(-1);
     const unit = 1 / scale;
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const i = (y * width + x) * 4 + 3;
+    for (let y = 0; y < box.h; y++) {
+      for (let x = 0; x < box.w; x++) {
+        const i = (y * box.w + x) * 4 + 3;
         const a = px[i];
         if (a < EDGE) {
           px[i] = 0;
@@ -73,8 +102,9 @@ export class LiquidLayer {
         // 水面からの深さ（雪原の単位）と、縁からの近さ
         const depth = (y - top[x]) * unit;
         const rim = Math.min(1, (a - EDGE) / 70);
-        const wx = x * unit;
-        const wy = y * unit;
+        // ノイズは世界座標の位相なので、矩形の左上を足した絶対座標を渡す（相対だと模様が矩形の動きに追従してしまう）
+        const wx = (x + box.x0) * unit;
+        const wy = (y + box.y0) * unit;
         let r: number, g: number, b: number, alpha: number;
         if (kind === 'water') {
           const shade = Math.min(1, depth / 0.18);
@@ -115,7 +145,7 @@ export class LiquidLayer {
         px[i] = alpha * Math.min(1, (a - EDGE) / 22 + 0.35);
       }
     }
-    c.putImageData(image, 0, 0);
+    c.putImageData(image, box.x0, box.y0);
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(this.#canvas!, 0, 0, width / scale, height / scale);
   }
