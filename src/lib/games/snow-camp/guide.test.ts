@@ -19,11 +19,20 @@ describe('snow-camp guide', () => {
     expect(objective(state)).toMatchObject({ kind: 'fire', ...FIRE });
   });
 
-  it('置かれたお金は、ほかの何よりも先に拾いに行く', () => {
+  it('置かれたお金はキャンプにいるあいだに拾い、狩りの途中では呼び戻さない', () => {
     const state = fresh();
-    state.carry = 3;
     state.coins = 4;
+    state.hero.y = 1.0;
+    expect(objective(state).kind).toBe('hunt');
+    state.hero.y = 2.0;
     expect(objective(state)).toMatchObject({ kind: 'money', ...MONEY });
+  });
+
+  it('たき火が埋まっているあいだは、肉を持ったまま狩りを続ける', () => {
+    const state = fresh();
+    state.carry = 2;
+    state.cooking = 2;
+    expect(objective(state).kind).toBe('hunt');
   });
 
   it('お金を持っていれば、払えるパッドへ。家が建つだけあれば家へ', () => {
