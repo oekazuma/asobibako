@@ -6,7 +6,7 @@ export default {
   name: 'ピンぬき',
   description: 'ピンを抜く順番を考えて、金貨を男の子にとどける。マグマに気をつけて',
   players: 1,
-  levels: 8,
+  levels: 18,
   minutes: '1分',
   Thumb,
   load: async () => ({
