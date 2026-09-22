@@ -6,7 +6,9 @@
   import { animate } from '$lib/loop';
   import { addPoint, createState, DEFEND_S, finishStroke, step, WORLD_H } from './engine';
   import { levelFor } from './levels';
-  import { paint } from './paint';
+  import { Particles, Shake } from '$lib/fx';
+  import Hud from './Hud.svelte';
+  import { backdrop, paint } from './paint';
   import { sounds } from './sounds';
 
   let { level, onfinish }: SoloProps = $props();
@@ -27,6 +29,9 @@
   let now = 0;
   let inked = 0;
   let left = $state(DEFEND_S);
+  const particles = new Particles();
+  const shake = new Shake();
+  const CONFETTI = ['#ffc233', '#1f9bff', '#ff4d5e', '#58c46b'];
 
   const toWorld = (bx: number, by: number) => {
     const [px, py] = input.px(bx, by);
@@ -58,14 +63,57 @@
   function frame(dt: number) {
     now += dt;
     const finger = drawing === null ? undefined : input.fingers.all.get(drawing);
-    if (finger && addPoint(game, ...toWorld(finger.x, finger.y)) && inked++ % 4 === 0) sounds.ink();
+    if (finger && addPoint(game, ...toWorld(finger.x, finger.y)) && inked++ % 4 === 0) {
+      sounds.ink();
+      const tip = game.stroke[game.stroke.length - 1];
+      particles.burst(tip.x, tip.y, {
+        count: 2,
+        color: ['#fff', '#ffe27a'],
+        speed: 0.15,
+        size: 0.006,
+        life: 0.4,
+        glow: true
+      });
+    }
     for (const event of step(game, dt)) {
-      if (event.type === 'bump') sounds.bump();
-      else if (event.type === 'stung' || event.type === 'clear') {
-        (event.type === 'clear' ? sfx.finish : sounds.stung)();
+      if (event.type === 'bump') {
+        sounds.bump();
+        particles.burst(event.x, event.y, {
+          count: 5,
+          color: ['#fff3c4', '#ffc233'],
+          speed: 0.3,
+          size: 0.006,
+          life: 0.3,
+          glow: true
+        });
+      } else if (event.type === 'stung' || event.type === 'clear') {
+        const { x, y } = game.level.dog;
+        if (event.type === 'clear') {
+          sfx.finish();
+          for (let k = 0; k < 4; k++)
+            particles.burst(0.15 + k * 0.23, 0.35, {
+              count: 26,
+              color: CONFETTI,
+              speed: 0.7,
+              size: 0.01,
+              life: 1.6,
+              gravity: 0.9
+            });
+        } else {
+          sounds.stung();
+          shake.add(0.8);
+          particles.burst(x, y, {
+            count: 24,
+            color: ['#fff', '#ffc233', '#ff4d5e'],
+            speed: 0.5,
+            size: 0.012,
+            life: 0.6
+          });
+        }
         setTimeout(() => onfinish(event.type === 'clear'), 1500);
       }
     }
+    particles.step(dt);
     if (phase !== game.phase) phase = game.phase;
     const inkLeft = Math.round((game.ink / game.level.ink) * 50) / 50;
     if (ink !== inkLeft) ink = inkLeft;
@@ -75,11 +123,15 @@
       if (Math.random() < dt * 4) sounds.buzz();
     }
     if (!ctx) return;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const s = view.scale * devicePixelRatio;
-    ctx.setTransform(s, 0, 0, s, view.ox * devicePixelRatio, view.oy * devicePixelRatio);
+    const dpr = devicePixelRatio;
+    const [w, h] = input.px(1, 1);
+    const [sx, sy] = shake.offset(dt, 14);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    backdrop(ctx, w, h, now);
+    const s = view.scale * dpr;
+    ctx.setTransform(s, 0, 0, s, (view.ox + sx) * dpr, (view.oy + sy) * dpr);
     paint(ctx, game, now);
+    particles.draw(ctx);
   }
 
   function restart() {
@@ -110,18 +162,7 @@
   aria-label="線を引いて守るの画面"
 >
   <canvas bind:this={canvas}></canvas>
-  <div class="hud">
-    <span class="level sticker">レベル {level}</span>
-    {#if phase === 'draw'}
-      <span class="tip">線をかいて 犬を まもろう！</span>
-      <span class="ink" role="img" aria-label="のこりのインク {Math.round(ink * 100)}%"
-        ><span class="fill" style:width="{ink * 100}%"></span></span
-      >
-    {:else}
-      <span class="count sticker" role="timer">{phase === 'defend' ? left : ''}</span>
-    {/if}
-  </div>
-  <button class="retry" onpointerdown={(e) => e.stopPropagation()} onclick={restart} aria-label="やりなおし">↻</button>
+  <Hud {level} {phase} {ink} {left} onretry={restart} />
 </div>
 
 <style>
@@ -130,7 +171,7 @@
     inset: 0;
     overflow: hidden;
     touch-action: none;
-    background: var(--dots), linear-gradient(to bottom, #cdeeff, #f4fbe9);
+    background: #9fdcff;
   }
 
   canvas {
@@ -138,62 +179,5 @@
     inset: 0;
     width: 100%;
     height: 100%;
-  }
-
-  .hud {
-    position: absolute;
-    top: 14px;
-    left: 50%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    translate: -50% 0;
-    pointer-events: none;
-  }
-
-  .level {
-    font-size: 24px;
-  }
-
-  .tip {
-    font-size: 15px;
-    font-weight: 800;
-    color: var(--ink-soft);
-  }
-
-  .ink {
-    width: 180px;
-    height: 14px;
-    overflow: hidden;
-    border: 3px solid #fff;
-    border-radius: 999px;
-    background: rgb(43 45 66 / 0.12);
-  }
-
-  .fill {
-    display: block;
-    height: 100%;
-    background: var(--ink);
-  }
-
-  .count {
-    font-size: 40px;
-    color: var(--p2);
-  }
-
-  .retry {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    width: 48px;
-    height: 48px;
-    border: 3px solid #fff;
-    border-radius: 50%;
-    background: var(--gold);
-    box-shadow: var(--lift);
-    font-size: 24px;
-    font-weight: 800;
-    cursor: pointer;
   }
 </style>

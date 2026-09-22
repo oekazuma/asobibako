@@ -26,6 +26,7 @@
   let bg: HTMLCanvasElement | undefined;
   const fx = new PinFx();
   let progress = $state(0);
+  let score = $state(0);
 
   const input = new BoardInput({
     down: (_event, bx, by) => {
@@ -42,7 +43,7 @@
     game = fresh();
     pulledAt = [];
     fx.reset();
-    progress = 0;
+    progress = score = 0;
     done = false;
   }
 
@@ -65,7 +66,7 @@
   function frame(dt: number) {
     now += dt;
     step(game, dt);
-    progress = fx.update(game, dt);
+    ({ progress, score } = fx.update(game, dt));
     if (game.result && !done) {
       done = true;
       const cleared = game.result === 'clear';
@@ -105,8 +106,9 @@
 >
   <canvas bind:this={canvas}></canvas>
   <span class="level sticker">レベル {level}</span>
-  <span class="meter" role="img" aria-label="あつめた金貨 {Math.round(progress * 100)}%"
-    ><span class="fill" style:width="{progress * 100}%"></span><span class="coin">💰</span></span
+  <span class="score sticker" role="status">💰 {score}</span>
+  <span class="meter" role="img" aria-label="クリアまで {Math.round(progress * 100)}%"
+    ><span class="fill" style:width="{progress * 100}%"></span></span
   >
   <button class="retry" onpointerdown={(e) => e.stopPropagation()} onclick={restart} aria-label="やりなおし">↻</button>
 </div>
@@ -156,12 +158,12 @@
     transition: width 200ms;
   }
 
-  .coin {
+  .score {
     position: absolute;
-    top: 50%;
-    left: -18px;
+    top: 14px;
+    left: 72px;
     font-size: 26px;
-    translate: 0 -50%;
+    color: var(--gold-deep);
   }
 
   .retry {

@@ -5,7 +5,8 @@
   import type { SoloProps } from '$lib/games';
   import { animate } from '$lib/loop';
   import { createState, step, WORLD_H, WORLD_W, type CampEvent } from './engine';
-  import { paint, type Effect } from './paint';
+  import { CampFx } from './effects';
+  import { ground, paint } from './paint';
   import { sounds } from './sounds';
 
   let { level, onfinish }: SoloProps = $props();
@@ -24,7 +25,9 @@
   let goal = $state(game.pads.find((p) => p.id === 'home')!.cost);
   /** 仮想スティック。指を置いた位置からずらした向きへ歩く */
   let stick: { id: number; x: number; y: number } | null = null;
-  let effects: Effect[] = [];
+  const fx = new CampFx();
+  /** 動かない地面は、大きさが変わったときだけ描き直す */
+  let bg: HTMLCanvasElement | undefined;
   let now = 0;
 
   const input = new BoardInput({
@@ -43,6 +46,13 @@
     canvas.width = Math.round(w * devicePixelRatio);
     canvas.height = Math.round(h * devicePixelRatio);
     ctx = canvas.getContext('2d');
+    const scale = (w / VIEW_W) * devicePixelRatio;
+    bg ??= document.createElement('canvas');
+    bg.width = Math.round(WORLD_W * scale);
+    bg.height = Math.round(WORLD_H * scale);
+    const b = bg.getContext('2d')!;
+    b.scale(scale, scale);
+    ground(b);
   }
 
   function stickVector() {
@@ -58,10 +68,9 @@
 
   function play(events: CampEvent[]) {
     for (const event of events) {
-      if (event.type === 'hit') {
-        effects.push({ x: event.x, y: event.y, t: now });
-        sounds.hit();
-      } else if (event.type === 'clear') {
+      fx.handle(event, game);
+      if (event.type === 'hit') sounds.hit();
+      else if (event.type === 'clear') {
         sfx.finish();
         setTimeout(() => onfinish(true), 1500);
       } else if (event.type !== 'cooked') sounds[event.type]();
@@ -72,7 +81,7 @@
     now += dt;
     const move = stickVector();
     play(step(game, dt, move));
-    effects = effects.filter((e) => now - e.t < 0.3);
+    fx.step(dt, game);
     if (wallet !== game.wallet) wallet = game.wallet;
     const home = game.pads.find((p) => p.id === 'home')!;
     if (goal !== home.cost - home.paid) goal = home.cost - home.paid;
@@ -87,7 +96,13 @@
     };
     ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
     ctx.clearRect(0, 0, w, h);
-    paint(ctx, game, w, h, cam, effects, now);
+    paint(ctx, game, w, h, cam, bg, now, move.x !== 0 || move.y !== 0);
+    ctx.save();
+    ctx.translate(w / 2 - cam.x * scale, h / 2 - cam.y * scale);
+    ctx.scale(scale, scale);
+    fx.drawWorld(ctx);
+    ctx.restore();
+    fx.drawSnow(ctx, w, h);
     if (stick) {
       ctx.beginPath();
       ctx.arc(stick.x, stick.y, STICK, 0, Math.PI * 2);
@@ -134,7 +149,7 @@
     inset: 0;
     overflow: hidden;
     touch-action: none;
-    background: #eef6ff;
+    background: #e3eefb;
   }
 
   canvas {

@@ -4,6 +4,7 @@
   import { audio, sfx, toggleMute, wake } from '$lib/audio.svelte';
   import type { SoloMeta, SoloModule } from '$lib/games';
   import { Settle } from '$lib/settle.svelte';
+  import SoloResult from './SoloResult.svelte';
 
   let { meta, Game, Howto }: { meta: SoloMeta } & SoloModule = $props();
 
@@ -53,18 +54,17 @@
     <!-- 遊んでいる途中でもやめられるよう、小さく隅に置く。一覧ではなくタイトルへ戻る -->
     <button class="corner quit" onclick={() => (screen = 'title')} aria-label="やめる">✕</button>
   {:else}
-    <div class="panel" class:won={screen === 'result' && cleared}>
-      {#if screen === 'title'}
+    {#if screen === 'title'}
+      <div class="panel">
+        <div class="art" aria-hidden="true"><div class="zoom"><meta.Thumb /></div></div>
         <h1 class="title sticker">{meta.name}</h1>
         <Howto />
         <span class="level">レベル {level}</span>
         <button class="pill p1 go" onclick={start}>タップで スタート</button>
-      {:else}
-        <span class="outcome sticker" role="status">{cleared ? 'クリア！' : 'ざんねん…'}</span>
-        <span class="level">{cleared ? `つぎは レベル ${level}` : `レベル ${level}`}</span>
-        <button class="pill gold go" onclick={start}>{cleared ? 'つぎへ' : 'もういちど'}</button>
-      {/if}
-    </div>
+      </div>
+    {:else}
+      <SoloResult {cleared} {level} onagain={start} />
+    {/if}
     <a class="corner back" href={resolve('/')} aria-label="ゲーム選択へ戻る">✕</a>
     <button class="corner mute" onclick={toggleMute} aria-label="ミュート" aria-pressed={audio.muted}>
       {audio.muted ? '🔇' : '🔊'}
@@ -85,20 +85,30 @@
     text-align: center;
   }
 
-  .panel.won {
-    background:
-      repeating-conic-gradient(from 0deg, rgb(255 255 255 / 0.45) 0deg 10deg, transparent 10deg 20deg),
-      radial-gradient(circle, #fff3c4, var(--gold) 70%);
+  /* ゲームの絵を大きく飾る。一覧のカードと同じ Thumb を額に入れて、ゆらゆらさせる */
+  .art {
+    width: min(78vw, 420px);
+    height: clamp(150px, 24dvh, 240px);
+    overflow: hidden;
+    border: 6px solid #fff;
+    border-radius: 28px;
+    box-shadow:
+      0 8px 0 var(--card-edge),
+      0 18px 30px rgb(43 45 66 / 0.18);
+    rotate: -2deg;
+    animation: sway 3s ease-in-out infinite;
+  }
+
+  /* Thumb は一覧のカード（高さ 128px）に合わせて px で描いてあるので、小さく作って拡大する */
+  .zoom {
+    width: calc(100% / 1.7);
+    height: calc(100% / 1.7);
+    transform: scale(1.7);
+    transform-origin: top left;
   }
 
   .title {
     font-size: clamp(34px, 7dvh, 64px);
-  }
-
-  .outcome {
-    font-size: clamp(48px, 12dvh, 120px);
-    color: var(--gold-deep);
-    animation: pop 520ms var(--spring) both;
   }
 
   .level {
@@ -149,14 +159,14 @@
   }
 
   .settling .corner,
-  .settling .go {
+  .settling :global(.go) {
     pointer-events: none;
   }
 
-  @keyframes pop {
-    from {
-      scale: 0.3;
-      opacity: 0;
+  @keyframes sway {
+    50% {
+      rotate: 2deg;
+      translate: 0 -6px;
     }
   }
 
@@ -167,7 +177,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .outcome,
+    .art,
     .go {
       animation: none;
     }

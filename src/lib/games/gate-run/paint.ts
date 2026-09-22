@@ -1,6 +1,6 @@
-import { label, stamp } from '$lib/fx';
+import { cloud, label, stamp } from '$lib/fx';
 import { isGood, type GameState, type Op } from './engine';
-import { castle, cloud, runner, tree } from './sprites';
+import { castle, runner, tree } from './sprites';
 
 const CLOUDS = [
   [0.1, 0.3, 0.22],

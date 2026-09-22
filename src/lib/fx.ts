@@ -191,3 +191,19 @@ export function emoji(ctx: CanvasRenderingContext2D, text: string, x: number, y:
   });
   stamp(ctx, img, x, y, size * 1.25);
 }
+
+/** 空に浮かべる雲 */
+export const cloud = () =>
+  sprite('cloud', 128, (c) => {
+    c.fillStyle = 'rgb(255 255 255 / 0.9)';
+    for (const [x, y, r] of [
+      [0.3, 0.58, 0.18],
+      [0.5, 0.45, 0.24],
+      [0.72, 0.58, 0.17],
+      [0.5, 0.64, 0.16]
+    ]) {
+      c.beginPath();
+      c.arc(x, y, r, 0, Math.PI * 2);
+      c.fill();
+    }
+  });

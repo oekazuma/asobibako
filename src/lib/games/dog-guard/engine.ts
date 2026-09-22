@@ -41,7 +41,8 @@ export interface GameState {
   result: 'clear' | 'stung' | null;
 }
 
-export type GuardEvent = { type: 'spawn' } | { type: 'bump' } | { type: 'stung' } | { type: 'clear' };
+export type GuardEvent =
+  { type: 'spawn' } | { type: 'bump'; x: number; y: number } | { type: 'stung' } | { type: 'clear' };
 
 export function createState(level: Level): GameState {
   return { level, phase: 'draw', stroke: [], ink: level.ink, bees: [], spawned: 0, time: 0, result: null };
@@ -138,7 +139,7 @@ export function step(state: GameState, dt: number, rand: () => number = Math.ran
       bee.y += (bee.vy * dt) / 2;
       const hit = collide(bee, segs, LINE);
       collide(bee, level.walls, LINE);
-      if (hit && rand() < 0.05) events.push({ type: 'bump' });
+      if (hit && rand() < 0.05) events.push({ type: 'bump', x: bee.x, y: bee.y });
     }
     bee.x = Math.min(1 - BEE_R, Math.max(BEE_R, bee.x));
     bee.y = Math.min(WORLD_H - BEE_R, Math.max(BEE_R, bee.y));

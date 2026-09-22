@@ -24,14 +24,78 @@ const bead = (kind: Kind) =>
     c.beginPath();
     c.arc(0.5, 0.5, 0.48, 0, Math.PI * 2);
     c.fill();
-    if (kind === 'gold') {
-      c.strokeStyle = 'rgb(255 255 255 / 0.55)';
-      c.lineWidth = 0.06;
-      c.beginPath();
-      c.arc(0.5, 0.5, 0.3, 0, Math.PI * 2);
-      c.stroke();
-    }
   });
+
+/** 金の粒は、縁と星の刻印のある金貨として描く */
+const coin = () =>
+  sprite('coin', 64, (c) => {
+    c.fillStyle = '#b87400';
+    c.beginPath();
+    c.arc(0.5, 0.5, 0.49, 0, Math.PI * 2);
+    c.fill();
+    const g = c.createLinearGradient(0.2, 0.1, 0.8, 0.9);
+    g.addColorStop(0, '#fff3a0');
+    g.addColorStop(0.5, '#ffc233');
+    g.addColorStop(1, '#e39a00');
+    c.fillStyle = g;
+    c.beginPath();
+    c.arc(0.5, 0.5, 0.42, 0, Math.PI * 2);
+    c.fill();
+    c.strokeStyle = 'rgb(184 116 0 / 0.6)';
+    c.lineWidth = 0.05;
+    c.beginPath();
+    c.arc(0.5, 0.5, 0.3, 0, Math.PI * 2);
+    c.stroke();
+    c.fillStyle = '#d98c00';
+    c.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const r = i % 2 ? 0.09 : 0.2;
+      const a = -Math.PI / 2 + (i * Math.PI) / 5;
+      c.lineTo(0.5 + Math.cos(a) * r, 0.52 + Math.sin(a) * r);
+    }
+    c.fill();
+  });
+
+const GEMS = [
+  ['#ffd1dc', '#ff3d6e', '#a3002b'],
+  ['#d4f1ff', '#29a8ff', '#0659a8'],
+  ['#d8ffd9', '#2fd05a', '#0b7a2c']
+] as const;
+
+/** ところどころ混ぜる宝石。カットした面ごとに明るさを変える */
+const gem = (i: number) =>
+  sprite(`gem:${i}`, 64, (c) => {
+    const [hi, mid, lo] = GEMS[i];
+    const top = 0.2;
+    const mid_y = 0.42;
+    const pts = { l: [0.06, mid_y], r: [0.94, mid_y], tl: [0.28, top], tr: [0.72, top], b: [0.5, 0.94] } as const;
+    const face = (color: string, ...p: (readonly [number, number])[]) => {
+      c.fillStyle = color;
+      c.beginPath();
+      p.forEach(([x, y]) => c.lineTo(x, y));
+      c.fill();
+    };
+    face(hi, pts.l, pts.tl, pts.tr, pts.r);
+    face(mid, pts.l, pts.r, pts.b);
+    face(lo, [0.5, mid_y], pts.r, pts.b);
+    c.strokeStyle = '#fff';
+    c.lineWidth = 0.04;
+    c.beginPath();
+    [pts.l, pts.tl, pts.tr, pts.r, pts.b, pts.l].forEach(([x, y]) => c.lineTo(x, y));
+    c.stroke();
+  });
+
+/** 金貨がときどき光る、4 本の光 */
+function twinkle(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.moveTo(x, y - r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.quadraticCurveTo(x, y, x, y + r);
+  ctx.quadraticCurveTo(x, y, x - r, y);
+  ctx.quadraticCurveTo(x, y, x, y - r);
+  ctx.fill();
+}
 
 const glow = () =>
   sprite('glow:lava', 64, (c) => {
@@ -137,7 +201,17 @@ export function paint(ctx: CanvasRenderingContext2D, state: GameState, pulledAt:
   emoji(ctx, face, x, y - hop, HERO_R * 2.1);
 
   const d = R * 2.3;
-  for (const p of state.particles) stamp(ctx, bead(p.kind), p.x, p.y, d);
+  state.particles.forEach((p, i) => {
+    if (p.kind !== 'gold') return stamp(ctx, bead(p.kind), p.x, p.y, d);
+    // 6 粒に 1 粒は宝石にする。粒の番号で決めるので、流れても同じ粒は同じ見た目のまま
+    if (i % 6 === 0) return stamp(ctx, gem((i / 6) % 3), p.x, p.y, d * 1.1);
+    stamp(ctx, coin(), p.x, p.y, d);
+  });
+  state.particles.forEach((p, i) => {
+    if (p.kind !== 'gold') return;
+    const t = (now * 0.7 + i * 0.137) % 1;
+    if (t < 0.08) twinkle(ctx, p.x + R * 0.3, p.y - R * 0.3, R * 1.2 * Math.sin((t / 0.08) * Math.PI));
+  });
   ctx.globalCompositeOperation = 'lighter';
   const flicker = 0.85 + Math.sin(now * 9) * 0.15;
   for (const p of state.particles) if (p.kind === 'lava') stamp(ctx, glow(), p.x, p.y, R * 5 * flicker);

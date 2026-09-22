@@ -4,6 +4,8 @@ import type { GameState, Kind } from './engine';
 import { sounds } from './sounds';
 
 const CONFETTI = ['#ffc233', '#1f9bff', '#ff4d5e', '#58c46b'];
+/** 届いた金の粒 1 つぶんの金額 */
+const COIN = 10;
 
 /** 見た目と音だけの反応。ルールの判定は engine が済ませている */
 export class PinFx {
@@ -12,10 +14,14 @@ export class PinFx {
   readonly shake = new Shake();
   #collected = 0;
   #kinds: Kind[] = [];
+  /** まだ「+10」として出していない、届いた金の粒の数と、最後に出してからの秒 */
+  #pending = 0;
+  #since = 0;
 
   reset(): void {
     this.#collected = 0;
     this.#kinds = [];
+    this.#pending = 0;
   }
 
   pulled(game: GameState, i: number): void {
@@ -31,11 +37,12 @@ export class PinFx {
     });
   }
 
-  /** 毎フレーム呼ぶ。戻り値は、クリアに要る金貨をどれだけ集めたか（0..1） */
-  update(game: GameState, dt: number): number {
+  /** 毎フレーム呼ぶ。戻り値の progress はクリアに要る金貨をどれだけ集めたか（0..1） */
+  update(game: GameState, dt: number): { progress: number; score: number } {
     const { x, y } = game.level.hero;
     if (game.collected > this.#collected) {
       sounds.coin();
+      this.#pending += game.collected - this.#collected;
       this.particles.burst(x, y - 0.05, {
         count: 3,
         color: ['#fff6b0', '#ffc233'],
@@ -45,6 +52,13 @@ export class PinFx {
       });
     }
     this.#collected = game.collected;
+    // 粒が届くたびに出すと重なって読めないので、少しまとめて出す
+    this.#since += dt;
+    if (this.#pending > 0 && this.#since > 0.35) {
+      this.floaters.add(`+${this.#pending * COIN}`, x + (Math.random() - 0.5) * 0.1, y - 0.12, 0.05, '#e39a00');
+      this.#pending = 0;
+      this.#since = 0;
+    }
     // 石になった粒から湯気を出す
     let formed = false;
     game.particles.forEach((p, i) => {
@@ -63,7 +77,7 @@ export class PinFx {
     this.#kinds = game.particles.map((p) => p.kind);
     this.particles.step(dt);
     this.floaters.step(dt);
-    return Math.min(1, game.collected / Math.ceil(game.gold * 0.6));
+    return { progress: Math.min(1, game.collected / Math.ceil(game.gold * 0.6)), score: game.collected * COIN };
   }
 
   finished(game: GameState): void {
