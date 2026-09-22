@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { createState, expire, GAIN, ORB_LIFE_MS, pop, spawnOrb, zone } from './engine';
+import {
+  beginHold,
+  createState,
+  endHold,
+  expire,
+  GAIN,
+  HOLD_MS,
+  MAX_PER_PLAYER,
+  ORB_LIFE_MS,
+  pop,
+  spawnOrb,
+  step,
+  zone
+} from './engine';
 
 const seq = (...values: number[]) => {
   let i = 0;
@@ -88,5 +101,42 @@ describe('border-rush engine', () => {
     const orb = spawnOrb(s, 'tap', 1, 0, seq(0.5));
     expect(orb.y).toBeGreaterThanOrEqual(0);
     expect(orb.y).toBeLessThanOrEqual(1);
+  });
+
+  it('出現の周期ごとに各陣地を上限まで埋め、上限を超えない', () => {
+    const s = createState();
+    step(s, 1, 0, seq(0.5));
+    expect(s.orbs.filter((o) => o.owner === 1)).toHaveLength(1);
+    for (let t = 0; t < 3; t += 1 / 60) step(s, 1 / 60, t * 1000, seq(0.5));
+    expect(s.orbs.filter((o) => o.owner === 1).length).toBeLessThanOrEqual(MAX_PER_PLAYER);
+    expect(s.orbs.filter((o) => o.owner === 2).length).toBeLessThanOrEqual(MAX_PER_PLAYER);
+  });
+
+  it('奪い合い玉は 1 つまでしか出ない', () => {
+    const s = createState();
+    for (let t = 0; t < 5; t += 1 / 60) step(s, 1 / 60, t * 1000, seq(0.1));
+    expect(s.orbs.filter((o) => o.owner === null).length).toBeLessThanOrEqual(1);
+  });
+
+  it('長押しの玉は HOLD_MS 押し続けると取れ、途中で離すと取れない', () => {
+    const s = createState();
+    const orb = spawnOrb(s, 'hold', 1, 0, seq(0.5));
+    beginHold(s, orb.id);
+    expect(step(s, HOLD_MS / 1000 - 0.01, 0, seq(0.99))).toEqual([]);
+    expect(step(s, 0.02, 0, seq(0.99))).toContainEqual({ type: 'pop', kind: 'hold' });
+    expect(s.border).toBeCloseTo(0.5 - GAIN.hold);
+
+    const t = createState();
+    const other = spawnOrb(t, 'hold', 1, 0, seq(0.5));
+    beginHold(t, other.id);
+    step(t, 0.3, 0, seq(0.99));
+    endHold(t, other.id);
+    step(t, 1, 0, seq(0.99));
+    expect(t.border).toBe(0.5);
+  });
+
+  it('id は state ごとに 1 から数える', () => {
+    expect(spawnOrb(createState(), 'tap', 1, 0, seq(0.5)).id).toBe(1);
+    expect(spawnOrb(createState(), 'tap', 1, 0, seq(0.5)).id).toBe(1);
   });
 });
