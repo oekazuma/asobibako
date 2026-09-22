@@ -23,12 +23,14 @@ export class Details {
   #printAt = 0;
   #last = new THREE.Vector2();
   #side = 1;
+  readonly #printGeo: THREE.CircleGeometry;
   readonly #smoke: THREE.Mesh[] = [];
   #smokeT = 0;
   readonly #flyers: Flyer[] = [];
 
   constructor() {
     const geo = new THREE.CircleGeometry(0.009, 12);
+    this.#printGeo = geo;
     for (let i = 0; i < FOOTPRINTS; i++) {
       const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: '#9fb6d6', transparent: true, opacity: 0 }));
       m.rotation.x = -Math.PI / 2;
@@ -110,6 +112,16 @@ export class Details {
         this.group.remove(f.obj);
         this.#flyers.splice(i, 1);
       }
+    }
+  }
+
+  /** 足あと・煙は面ごとに geometry/material を作るので、次の面のために解放する */
+  dispose(): void {
+    this.#printGeo.dispose();
+    for (const m of this.#prints) (m.material as THREE.Material).dispose();
+    for (const m of this.#smoke) {
+      m.geometry.dispose();
+      (m.material as THREE.Material).dispose();
     }
   }
 }
