@@ -68,18 +68,25 @@ export function createState(level: number): GameState {
   let best = 10;
   // 難しくなるほど、コースが長く、敵の群れが多く、門どうしの間がつまる
   const rows = Math.round(lerp(6, 22, d));
-  const every = d < 0.5 ? 3 : 2;
+  const foe = lerp(1 / 3, 1 / 2, d);
+  const isEnemy = (i: number) => Math.floor((i + 1) * foe) > Math.floor(i * foe);
+  const gateRows = rows - Array.from({ length: rows }, (_, i) => i).filter(isEnemy).length;
+  // 片方が赤い列は青を選ぶだけで済むので、×2 と +N を比べる列を面ごとに決まった数だけ混ぜる
+  const tough = Math.round(lerp(1, 3, d));
+  let g = -1;
   const gap = lerp(1.3, 1.0, d);
   let at = 1.6;
   for (let i = 0; i < rows; i++) {
-    if (i % every === every - 1) {
+    if (isEnemy(i)) {
       const n = Math.max(3, Math.round(best * lerp(0.12, 0.4, d)));
       items.push({ type: 'enemy', at, x: rng.range(0.3, 0.7), n, done: false });
       best -= n;
     } else {
-      const a = goodOp(rng, d);
+      g++;
+      const hard = level > 2 && Math.floor(((g + 1) * tough) / gateRows) > Math.floor((g * tough) / gateRows);
+      const a: Op = hard ? { kind: 'x', n: 2 } : goodOp(rng, d);
       // 最初の 2 面は、どちらをくぐっても増える門だけにする
-      const b = level <= 2 || rng.chance(lerp(0.5, 0.1, d)) ? goodOp(rng, d) : badOp(rng, d);
+      const b: Op = hard ? { kind: '+', n: 5 * rng.int(2, 6) } : level <= 2 ? goodOp(rng, d) : badOp(rng, d);
       const [left, right] = rng.chance(0.5) ? [a, b] : [b, a];
       items.push({ type: 'gates', at, left, right, done: false });
       best = Math.max(apply(left, best), apply(right, best));
