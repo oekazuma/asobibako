@@ -14,7 +14,7 @@
 
   let board: HTMLDivElement;
   let puckEl: HTMLDivElement;
-  /** マレットの要素は 1 人ぶん 2 個ずつ先に置いておき、毎フレーム位置と表示だけ書き換える */
+  /** マレットの要素は 1 人ぶん MALLETS_PER_PLAYER 個を先に置いておき、毎フレーム位置と表示だけ書き換える */
   const malletEls: Record<Player, HTMLDivElement[]> = { 1: [], 2: [] };
   let scores = $state<Record<Player, number>>({ 1: 0, 2: 0 });
   let goals = $state(0);
