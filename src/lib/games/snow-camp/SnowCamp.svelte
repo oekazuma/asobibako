@@ -33,6 +33,7 @@
   let stick: { id: number; x: number; y: number } | null = null;
   const fx = new CampFx();
   let now = 0;
+  let finishTimer: ReturnType<typeof setTimeout> | undefined;
 
   const input = new BoardInput({
     down: (event, x, y) => {
@@ -71,7 +72,7 @@
       if (event.type === 'hit') sounds.hit();
       else if (event.type === 'clear') {
         sfx.finish();
-        setTimeout(() => onfinish(true), 1500);
+        finishTimer = setTimeout(() => onfinish(true), 1500);
       } else if (event.type !== 'cooked') sounds[event.type]();
     }
   }
@@ -118,6 +119,7 @@
       stop();
       unobserve();
       world?.dispose();
+      clearTimeout(finishTimer);
     };
   });
 </script>

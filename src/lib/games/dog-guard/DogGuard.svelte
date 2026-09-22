@@ -33,6 +33,7 @@
   const particles = new Particles();
   const shake = new Shake();
   const CONFETTI = ['#ffc233', '#1f9bff', '#ff4d5e', '#58c46b'];
+  let finishTimer: ReturnType<typeof setTimeout> | undefined;
 
   const toWorld = (bx: number, by: number) => {
     const [px, py] = input.px(bx, by);
@@ -111,7 +112,7 @@
             life: 0.6
           });
         }
-        setTimeout(() => onfinish(event.type === 'clear'), 1500);
+        finishTimer = setTimeout(() => onfinish(event.type === 'clear'), 1500);
       }
     }
     particles.step(dt);
@@ -148,6 +149,7 @@
     return () => {
       stop();
       unobserve();
+      clearTimeout(finishTimer);
     };
   });
 </script>
