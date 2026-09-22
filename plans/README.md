@@ -16,25 +16,25 @@ STOP 条件を守り、終わったら自分の行の Status を更新する。
 
 ## Execution order & status
 
-| Plan | Title                                                                                           | Priority | Effort | Depends on | Status                                                                                                                                        |
-| ---- | ----------------------------------------------------------------------------------------------- | -------- | ------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| 001  | 1 人用ゲームの `onfinish` タイマーを片付け、シェルの `finish` を冪等にする                      | P1       | S      | —          | DONE（worktree `worktree-agent-a650d76d3c03e8694` の `52f07b8`、未マージ）                                                                    |
-| 002  | 対戦エンジンの 2P 勝利・aspect・未検証分岐と、100 面テストの assertion を固める                 | P1       | M      | —          | DONE（worktree `worktree-agent-a5e3aa79a21890159` の `71fa53f`、未マージ）                                                                    |
-| 003  | README / CLAUDE.md / コメントの誤りを直す                                                       | P1       | S      | —          | DONE（worktree `worktree-agent-a4ef88e9e7e7f83c5` の `b9ce3e0`、未マージ）                                                                    |
-| 004  | dog-guard の毎フレーム `ctx.filter` と線分の再構築をなくす                                      | P1       | S      | —          | DONE（worktree `worktree-agent-ac10bbc3930e0e937` の `9069b4f`、未マージ）                                                                    |
-| 005  | pin-rescue の液体描画を外接矩形だけに絞る                                                       | P1       | M      | —          | DONE（worktree `worktree-agent-aff162ff379c061a7` の `c6e71cb`、未マージ）                                                                    |
-| 006  | snow-camp の geometry 共有・影の絞り込み・DPR・破棄                                             | P1       | M      | —          | DONE（worktree `worktree-agent-ad030490042d4f971` の `21aec9f`、未マージ）                                                                    |
-| 007  | Renovate 設定を整理する                                                                         | P2       | S      | —          | DONE（worktree `worktree-agent-a25e653d23ba07328` の `1659ef5`、未マージ）                                                                    |
-| 008  | `main` に required status checks を付ける（リポジトリ設定。利用者が実行）                       | P2       | S      | —          | TODO                                                                                                                                          |
-| 009  | テスト基盤を node + dom の 2 project にし、Settle / pwa / シェルのテストを足す                  | P2       | M      | 001        | DONE（worktree `worktree-agent-a78d7dd1e66b598f4` の `1686386`、001 を merge 済み、未マージ）                                                 |
-| 010  | 更新確認の失敗を正しく出し、iPad 上の実行時エラーを見えるようにする                             | P2       | S      | —          | DONE（worktree `worktree-agent-acbae6736a8c4d3c8` の `d83af18`、未マージ）                                                                    |
-| 011  | Service Worker の runtime cache を同一オリジンに絞り、書き込み失敗を握る                        | P2       | S      | —          | DONE（worktree `worktree-agent-af65f822ac64c67d8` の `5a9c9b4`、未マージ）                                                                    |
-| 012  | border-rush のルールを engine の `step()` に移す                                                | P2       | M      | 002        | DONE（worktree `worktree-agent-abf5e5c2d70affa2b` の `cf1a2b9`、002 を merge 済み、未マージ）                                                 |
-| 013  | 盤面の配線を attachment 1 つに寄せ、feint-master を `BoardInput` に乗せる                       | P2       | M      | 012        | DONE（worktree `worktree-agent-a39ce43ca84e0071c` の `2726082`、001・012 を merge 済み、未マージ。attachment ではなく use: アクションで実装） |
-| 014  | 小さな毎フレームコスト（bomb-relay の glow / bug-rush のスプライト / snow-camp の measureText） | P3       | S      | —          | DONE（worktree `worktree-agent-abe6ef3d8ad564e34` の `cba2403`、未マージ）                                                                    |
-| 015  | gate-run の描画リストと pin-rescue のサブステップ・hiss を落ち着かせる                          | P3       | S      | 002        | DONE（worktree `worktree-agent-aaad73072def9c527` の `7271712`、002 を merge 済み、未マージ）                                                 |
-| 016  | ESLint の `projectService` を外して lint を速くする                                             | P3       | S      | —          | DONE（worktree `worktree-agent-aa571f1f72c05c955` の `076d0a2`、未マージ）                                                                    |
-| 017  | 丸ボタン・`bob`・コンフェッティ配色の重複をまとめる                                             | P3       | S      | 001        | DONE（worktree `worktree-agent-a1c0833420b05ad3a` の `37502e5`、001 を merge 済み、未マージ）                                                 |
+| Plan | Title                                                                                           | Priority | Effort | Depends on | Status                                                                           |
+| ---- | ----------------------------------------------------------------------------------------------- | -------- | ------ | ---------- | -------------------------------------------------------------------------------- |
+| 001  | 1 人用ゲームの `onfinish` タイマーを片付け、シェルの `finish` を冪等にする                      | P1       | S      | —          | DONE（`52f07b8`、main に merge 済み）                                            |
+| 002  | 対戦エンジンの 2P 勝利・aspect・未検証分岐と、100 面テストの assertion を固める                 | P1       | M      | —          | DONE（`71fa53f`、main に merge 済み）                                            |
+| 003  | README / CLAUDE.md / コメントの誤りを直す                                                       | P1       | S      | —          | DONE（`b9ce3e0`、main に merge 済み）                                            |
+| 004  | dog-guard の毎フレーム `ctx.filter` と線分の再構築をなくす                                      | P1       | S      | —          | DONE（`9069b4f`、main に merge 済み）                                            |
+| 005  | pin-rescue の液体描画を外接矩形だけに絞る                                                       | P1       | M      | —          | DONE（`c6e71cb`、main に merge 済み）                                            |
+| 006  | snow-camp の geometry 共有・影の絞り込み・DPR・破棄                                             | P1       | M      | —          | DONE（`21aec9f`、main に merge 済み）                                            |
+| 007  | Renovate 設定を整理する                                                                         | P2       | S      | —          | DONE（`1659ef5`、main に merge 済み）                                            |
+| 008  | `main` に required status checks を付ける（リポジトリ設定。利用者が実行）                       | P2       | S      | —          | TODO                                                                             |
+| 009  | テスト基盤を node + dom の 2 project にし、Settle / pwa / シェルのテストを足す                  | P2       | M      | 001        | DONE（`1686386`、main に merge 済み）                                            |
+| 010  | 更新確認の失敗を正しく出し、iPad 上の実行時エラーを見えるようにする                             | P2       | S      | —          | DONE（`d83af18`、main に merge 済み）                                            |
+| 011  | Service Worker の runtime cache を同一オリジンに絞り、書き込み失敗を握る                        | P2       | S      | —          | DONE（`5a9c9b4`、main に merge 済み）                                            |
+| 012  | border-rush のルールを engine の `step()` に移す                                                | P2       | M      | 002        | DONE（`cf1a2b9`、main に merge 済み）                                            |
+| 013  | 盤面の配線を attachment 1 つに寄せ、feint-master を `BoardInput` に乗せる                       | P2       | M      | 012        | DONE（`2726082`、main に merge 済み。attachment ではなく use: アクションで実装） |
+| 014  | 小さな毎フレームコスト（bomb-relay の glow / bug-rush のスプライト / snow-camp の measureText） | P3       | S      | —          | DONE（`cba2403`、main に merge 済み）                                            |
+| 015  | gate-run の描画リストと pin-rescue のサブステップ・hiss を落ち着かせる                          | P3       | S      | 002        | DONE（`7271712`、main に merge 済み）                                            |
+| 016  | ESLint の `projectService` を外して lint を速くする                                             | P3       | S      | —          | DONE（`076d0a2`、main に merge 済み）                                            |
+| 017  | 丸ボタン・`bob`・コンフェッティ配色の重複をまとめる                                             | P3       | S      | 001        | DONE（`37502e5`、main に merge 済み）                                            |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (理由 1 行) | REJECTED (理由 1 行)
 
