@@ -35,6 +35,11 @@ STOP 条件を守り、終わったら自分の行の Status を更新する。
 | 015  | gate-run の描画リストと pin-rescue のサブステップ・hiss を落ち着かせる                          | P3       | S      | 002        | DONE（`7271712`、main に merge 済み）                                            |
 | 016  | ESLint の `projectService` を外して lint を速くする                                             | P3       | S      | —          | DONE（`076d0a2`、main に merge 済み）                                            |
 | 017  | 丸ボタン・`bob`・コンフェッティ配色の重複をまとめる                                             | P3       | S      | 001        | DONE（`37502e5`、main に merge 済み）                                            |
+| 018  | レベル選択の ◀ ▶ を長押しでリピートさせる                                                       | P2       | S      | —          | DONE（`worktree-agent-ade2d1681f3753017` `b1dd28b`、レビュー済み）               |
+| 019  | 一覧のカードに到達レベルを出し、100 面クリアを保存できるようにする                              | P2       | S      | —          | DONE（`worktree-agent-ab671249f8e0c955f` `41b72dc`、レビュー済み）               |
+| 020  | 再戦の勝敗タリーを結果画面に出す                                                                | P2       | S      | —          | DONE（`worktree-agent-ac5e52f4f4be1820d` `5729694`、レビュー済み）               |
+| 021  | ↻ と「いまやること」の吹き出しを SoloShell に移す                                               | P2       | M      | 019        | DONE（`worktree-agent-a28e41283be911963` `496a165`、レビュー済み）               |
+| 022  | 対戦の結果画面に紙吹雪と光線を出し、紙吹雪を 1 人用と共有する                                   | P3       | S      | 020        | DONE（`worktree-agent-a81a6c98aa8588412` `1c2ebc5`、レビュー済み）               |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (理由 1 行) | REJECTED (理由 1 行)
 
@@ -45,6 +50,8 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (理由 1 行) | REJECTED (�
 - 013 は 012 のあと。012 で border-rush が `animate` に乗り、013 はそのあと 10 ゲームの配線を 1 か所に寄せる
 - 015 は 002 のあと。pin-rescue のサブステップを触るので、002 で固めた 100 面テストが安全網になる
 - 017 は 001 のあと。001 が pin-rescue の `restart()` を触るので、同じファイルの CSS を先に動かさない
+- 021 は 019 のあと。両方が `SoloShell.svelte` を触るので、019 の保存の形の上に ↻ と吹き出しを載せる
+- 022 は 020 のあと。両方が `ResultScreen.svelte` を触る
 
 ## 実行中に見つかった追加の課題
 
