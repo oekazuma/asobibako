@@ -62,10 +62,8 @@ function scenery(scene: THREE.Scene, trees: GameState['rules']['trees']) {
     scene.add(drift);
   }
 
-  const deck = new THREE.Mesh(
-    new THREE.BoxGeometry(WORLD_W - 0.1, 0.02, WORLD_H - CAMP_TOP - 0.04),
-    new THREE.MeshStandardMaterial({ map: planks(), roughness: 0.85 })
-  );
+  const deckMaterial = new THREE.MeshStandardMaterial({ map: planks(), roughness: 0.85 });
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(WORLD_W - 0.1, 0.02, WORLD_H - CAMP_TOP - 0.04), deckMaterial);
   deck.position.set(WORLD_W / 2, 0.01, (CAMP_TOP + WORLD_H) / 2);
   deck.receiveShadow = true;
   scene.add(deck);
@@ -76,10 +74,13 @@ function scenery(scene: THREE.Scene, trees: GameState['rules']['trees']) {
     tree.rotation.y = t.x * 9;
     scene.add(tree);
   }
-  // 画面の奥に見える、雪原の外の森と山
+  // 画面の奥に見える、雪原の外の森と山。遠景なので影は落とさない
   for (let i = 0; i < 24; i++) {
     const tree = pine(0.11 + (i % 4) * 0.02);
     tree.position.set(-0.3 + i * 0.1, 0, -0.1 - (i % 3) * 0.1);
+    tree.traverse((o) => {
+      if (o instanceof THREE.Mesh) o.castShadow = false;
+    });
     scene.add(tree);
   }
   for (let i = 0; i < 7; i++) {
@@ -135,6 +136,7 @@ function scenery(scene: THREE.Scene, trees: GameState['rules']['trees']) {
   }
   table.position.set(TABLE.x, 0.02, TABLE.y);
   scene.add(table);
+  return { deckMaterial };
 }
 
 /** 3D の雪原。engine の状態を毎フレーム映す */
@@ -161,12 +163,14 @@ export class CampWorld {
   readonly #marker = marker();
   readonly #pointer = pointer();
   readonly #details = new Details();
+  readonly #deckMaterial: THREE.MeshStandardMaterial;
   /** 子どもにも見やすいよう、人と動物は少し大きめに置く */
   static readonly CHARACTER = 1.3;
 
   constructor(canvas: HTMLCanvasElement, state: GameState) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    this.renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+    // 平面的なローポリなので、iPad の dpr 2 + MSAA は見た目に効かず描画だけ重い
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
+    this.renderer.setPixelRatio(Math.min(1.5, devicePixelRatio));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.scene.background = new THREE.Color('#bfe0fb');
@@ -183,7 +187,7 @@ export class CampWorld {
     s.far = 5;
     this.scene.add(this.#sun, this.#sun.target);
 
-    scenery(this.scene, state.rules.trees);
+    this.#deckMaterial = scenery(this.scene, state.rules.trees).deckMaterial;
     const f = fire();
     f.group.position.set(FIRE.x, 0.02, FIRE.y);
     this.#flames = f.flames;
@@ -385,6 +389,16 @@ export class CampWorld {
   }
 
   dispose(): void {
+    // mat() の material はモジュールで共有していて次の面でも使うので、ここで作った texture と material だけ捨てる
+    this.#deckMaterial.map?.dispose();
+    this.#deckMaterial.dispose();
+    this.#details.dispose();
+    (this.#marker.ring.material as THREE.Material).dispose();
+    this.#pointer.traverse((o) => {
+      if (o instanceof THREE.Mesh) (o.material as THREE.Material).dispose();
+    });
     this.renderer.dispose();
+    // dispose() だけではコンテキストが残り、Safari は十数個で古いものを失う
+    this.renderer.forceContextLoss();
   }
 }
