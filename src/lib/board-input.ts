@@ -16,7 +16,7 @@ interface Box {
 
 /**
  * 画面上の座標を、盤面の幅・高さに対する 0..1 に直す。
- * turned は盤面が時計回りに 90 度回っているとき（app.css の .board.shell）。
+ * turned は盤面が時計回りに 90 度回っているとき（app.css の .stage を landscape で回す）。
  * そのとき box（画面上の外接矩形）は、盤面の上辺が画面の右、左辺が画面の上に来ている
  */
 export function toBoardPoint(clientX: number, clientY: number, box: Box, turned: boolean): [number, number] {

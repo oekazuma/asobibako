@@ -23,7 +23,7 @@ Safari の共有メニューから「ホーム画面に追加」するとフル�
 ピンを抜く順番を考えて、金貨を男の子に届けるパズル。
 
 - ピンはタップで抜ける。金貨と宝石・マグマ・水は粒になって流れ落ちる。届いた金貨は左上の金額に足されていく
-- 男の子のいる床に金貨が 6 割届けばクリア。マグマに触れるとしっぱい
+- 男の子のいる床に、決まった割合の金貨が届けばクリア。マグマに触れるとしっぱい
 - 水がマグマに触れると石になり、石に触れたマグマも冷えて固まる
 - 仕掛けの型は 8 つで、レベルが上がると次の型に進む (1 本 → 選ぶ → 2 段 → 水 → 落とし穴 → 水で固めてから → 抜いてはいけないピン → ぜんぶ入り)。同じ型のあいだも、左右の向き・位置・金やマグマの量が面ごとに変わり、要る金の割合 (5 割 → 7 割半) が少しずつ上がる
 - 100 面すべて、用意した抜き順でクリアできることと、わなのある面は考えずに全部抜くと失敗することを、テストで確かめている
@@ -149,10 +149,12 @@ Safari の共有メニューから「ホーム画面に追加」するとフル�
    ```
 
 2. タイトル画面に上下それぞれ出す遊び方を `Howto.svelte` に書く。1 行のルールと凡例くらいに留める
-3. `meta.ts` に一覧用の情報と読み込み方を書く
+3. 一覧のカードに出す小さな絵を `Thumb.svelte` に書く。一覧に全ゲームぶん載るので、軽い CSS だけで描く（画像・canvas・three は使わない）
+4. `meta.ts` に一覧用の情報と読み込み方を書く
 
    ```ts
    import type { GameMeta } from '$lib/games';
+   import Thumb from './Thumb.svelte';
 
    export default {
      id: 'my-game', // URL (/games/my-game) になるので kebab-case
@@ -160,6 +162,7 @@ Safari の共有メニューから「ホーム画面に追加」するとフル�
      description: '一覧のカードに出す 1 文',
      players: 2, // 1 人用は 1
      minutes: '1分',
+     Thumb,
      load: async () => ({
        Game: (await import('./MyGame.svelte')).default,
        Howto: (await import('./Howto.svelte')).default
@@ -167,7 +170,7 @@ Safari の共有メニューから「ホーム画面に追加」するとフル�
    } satisfies GameMeta;
    ```
 
-4. `src/lib/games.ts` の `games` 配列に 1 行足す
+5. `src/lib/games.ts` の `games` 配列に 1 行足す
 
 一覧のカードと `/games/<id>` のページはこれだけでできる (プリレンダーの対象も `games` 配列から作る)。ゲーム本体は遊ぶときに読み込むので、ゲームを増やしても一覧画面は重くならない。
 
@@ -201,4 +204,4 @@ pnpm dev        # http://localhost:5173/table-duel/
 
 ## 公開
 
-`main` への push で GitHub Actions がビルドし、GitHub Pages へデプロイする (`BASE_PATH=/<リポジトリ名>`)。公開先を変えるときは `BASE_PATH=/other pnpm build` のように base を変え、`static/manifest.webmanifest` の `start_url` と `scope` を合わせる。
+`main` への push で GitHub Actions がビルドし、GitHub Pages へデプロイする (`BASE_PATH=/<リポジトリ名>`)。公開先を変えるときは `BASE_PATH=/other pnpm build` のように base を変えるだけでよい。`static/manifest.webmanifest` の `start_url` と `scope` は相対パス (`./`) なので `BASE_PATH` に自動で追従する。絶対パスにはしない。
