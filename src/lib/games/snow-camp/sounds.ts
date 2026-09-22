@@ -1,7 +1,10 @@
 import { noise, sweep, tone } from '$lib/audio.svelte';
 
 export const sounds = {
-  hit: () => noise(60, 0.1),
+  hit: () => {
+    sweep(900, 300, 90, 0.05);
+    noise(60, 0.1);
+  },
   kill: () => sweep(700, 200, 180, 0.08),
   pickup: () => tone(990, 50, 'triangle', 0.06),
   deposit: () => tone(520, 40, 'triangle', 0.05),

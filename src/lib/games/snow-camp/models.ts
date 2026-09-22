@@ -162,3 +162,65 @@ export function badge(id: 'bag' | 'power' | 'fire' | 'home') {
   }
   return g;
 }
+
+/** 主人公の右手に持たせる斧。group の原点が握る位置で、+y が刃の側 */
+export function axe() {
+  const g = new THREE.Group();
+  g.add(mesh(cyl(0.004, 0.005, 0.08), '#8a5a3b', 0, 0.035, 0));
+  const head = mesh(new THREE.BoxGeometry(0.006, 0.022, 0.03), '#c9ced9', 0, 0.068, 0.012, {
+    metalness: 0.7,
+    roughness: 0.3
+  });
+  g.add(head);
+  g.add(
+    mesh(new THREE.BoxGeometry(0.007, 0.024, 0.005), '#eef1f6', 0, 0.068, 0.028, { metalness: 0.8, roughness: 0.2 })
+  );
+  return g;
+}
+
+/** 行き先の上で弾む目印（下向きの矢印と、足もとの輪） */
+export function marker() {
+  const g = new THREE.Group();
+  const glow = { emissive: '#ffc233', emissiveIntensity: 0.6 };
+  const arrow = mesh(new THREE.ConeGeometry(0.045, 0.075, 4), '#ffc233', 0, 0.2, 0, glow);
+  arrow.rotation.x = Math.PI;
+  arrow.castShadow = false;
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.07, 0.09, 32),
+    new THREE.MeshBasicMaterial({ color: '#ffc233', transparent: true, opacity: 0.8, side: THREE.DoubleSide })
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.025;
+  g.add(arrow, ring);
+  return { group: g, arrow, ring };
+}
+
+/** 主人公の足もとで行き先を指す矢印。-z の向きが前 */
+export function pointer() {
+  const shape = new THREE.Shape();
+  shape.moveTo(0, -0.13);
+  shape.lineTo(0.045, -0.08);
+  shape.lineTo(0.018, -0.08);
+  shape.lineTo(0.018, -0.05);
+  shape.lineTo(-0.018, -0.05);
+  shape.lineTo(-0.018, -0.08);
+  shape.lineTo(-0.045, -0.08);
+  shape.closePath();
+  const m = new THREE.Mesh(
+    new THREE.ShapeGeometry(shape),
+    new THREE.MeshBasicMaterial({
+      color: '#ffc233',
+      transparent: true,
+      opacity: 0.95,
+      side: THREE.DoubleSide,
+      depthTest: false
+    })
+  );
+  m.rotation.x = -Math.PI / 2;
+  // 床や主人公の影に埋もれないよう、いつも手前に描く
+  m.renderOrder = 10;
+  const g = new THREE.Group();
+  g.add(m);
+  g.position.y = 0.03;
+  return g;
+}

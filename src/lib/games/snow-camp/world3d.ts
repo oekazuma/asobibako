@@ -1,6 +1,18 @@
 import * as THREE from 'three';
-import { FIRE, HUNT_BOTTOM, MONEY, TABLE, WORLD_H, WORLD_W, type Animal, type GameState } from './engine';
-import { badge, bear, coin, fire, mat, meat, person, pine, rabbit } from './models';
+import { Details } from './details';
+import {
+  FIRE,
+  HUNT_BOTTOM,
+  MONEY,
+  TABLE,
+  WORLD_H,
+  WORLD_W,
+  type Animal,
+  type CampEvent,
+  type GameState
+} from './engine';
+import type { Objective } from './guide';
+import { axe, badge, bear, coin, fire, marker, mat, meat, person, pine, pointer, rabbit } from './models';
 
 /** 木の位置は毎回同じにする。キャンプと狩り場の真ん中は空けておく */
 const TREES = Array.from({ length: 30 }, (_, i) => {
@@ -149,6 +161,13 @@ export class CampWorld {
   readonly #coins = new THREE.Group();
   readonly #badges = new Map<string, THREE.Group>();
   readonly #focus = new THREE.Vector3();
+  readonly #axe = axe();
+  /** 斧を振り終えるまでの残り秒と、振る相手の位置 */
+  #swing = 0;
+  readonly #swingAt = new THREE.Vector2();
+  readonly #marker = marker();
+  readonly #pointer = pointer();
+  readonly #details = new Details();
   /** 子どもにも見やすいよう、人と動物は少し大きめに置く */
   static readonly CHARACTER = 1.3;
 
@@ -197,6 +216,9 @@ export class CampWorld {
     this.#coins.position.set(MONEY.x, 0.022, MONEY.y);
     this.#hero.group.add(this.#carry);
     this.#carry.position.set(0, 0.17, -0.01);
+    this.#axe.position.set(0.03, 0.065, 0.005);
+    this.#hero.group.add(this.#axe);
+    this.scene.add(this.#marker.group, this.#pointer, this.#details.group);
     this.#hero.group.scale.setScalar(CampWorld.CHARACTER);
     this.scene.add(this.#hero.group, this.#meals, this.#coins);
     this.#focus.set(state.hero.x, 0, state.hero.y);
@@ -222,12 +244,51 @@ export class CampWorld {
     }
   }
 
-  update(state: GameState, dt: number, now: number, move: { x: number; y: number }): void {
+  static readonly SWING_S = 0.28;
+
+  /** engine の出来事に合わせた見た目だけの反応 */
+  handle(event: CampEvent, state: GameState): void {
+    const { hero } = state;
+    const at = (x: number, y: number, z = 0.12) => new THREE.Vector3(x, z, y);
+    if (event.type === 'hit') {
+      this.#swing = CampWorld.SWING_S;
+      this.#swingAt.set(event.x, event.y);
+    } else if (event.type === 'deposit') this.#details.fly('meat', at(hero.x, hero.y, 0.22), at(FIRE.x, FIRE.y, 0.08));
+    else if (event.type === 'collect')
+      for (let i = 0; i < Math.min(event.n, 8); i++)
+        this.#details.fly('coin', at(MONEY.x, MONEY.y, 0.04), at(hero.x, hero.y, 0.15), i * 0.05);
+    else if (event.type === 'pay') this.#details.fly('coin', at(TABLE.x, TABLE.y, 0.08), at(MONEY.x, MONEY.y, 0.04));
+  }
+
+  update(state: GameState, dt: number, now: number, move: { x: number; y: number }, goal: Objective): void {
     const { hero } = state;
     const h = this.#hero.group;
     h.position.set(hero.x, 0.02, hero.y);
     const moving = move.x !== 0 || move.y !== 0;
     if (moving) h.rotation.y = Math.atan2(move.x, move.y);
+    // 攻撃のたびに斧を肩の上から振り下ろし、そのあいだは相手のほうを向く
+    if (this.#swing > 0) {
+      this.#swing = Math.max(0, this.#swing - dt);
+      const p = 1 - this.#swing / CampWorld.SWING_S;
+      this.#axe.rotation.x = p < 0.35 ? -0.4 - (p / 0.35) * 1.2 : -1.6 + ((p - 0.35) / 0.65) * 3.2;
+      h.rotation.y = Math.atan2(this.#swingAt.x - hero.x, this.#swingAt.y - hero.y);
+    } else this.#axe.rotation.x = -0.4 + (moving ? Math.sin(now * 14) * 0.15 : 0);
+
+    this.#details.step(hero.x, hero.y, hero.y < HUNT_BOTTOM + 0.05);
+    this.#details.update(dt, new THREE.Vector3(FIRE.x, 0, FIRE.y), state.cooking > 0);
+
+    // 行き先の目印と、足もとの矢印
+    const m = this.#marker;
+    m.group.position.set(goal.x, 0, goal.y);
+    m.arrow.position.y = 0.24 + Math.abs(Math.sin(now * 4)) * 0.05;
+    m.arrow.rotation.y = now * 2;
+    m.ring.scale.setScalar(1 + ((now * 1.5) % 1) * 0.5);
+    (m.ring.material as THREE.MeshBasicMaterial).opacity = 0.8 * (1 - ((now * 1.5) % 1));
+    const far = Math.hypot(goal.x - hero.x, goal.y - hero.y);
+    this.#pointer.visible = far > 0.22;
+    this.#pointer.position.set(hero.x, 0.03, hero.y);
+    this.#pointer.rotation.y = Math.atan2(goal.x - hero.x, goal.y - hero.y);
+    this.#pointer.scale.setScalar(1.5 + Math.sin(now * 6) * 0.1);
     const swing = moving ? Math.sin(now * 14) * 0.6 : 0;
     this.#hero.legs[0].rotation.x = swing;
     this.#hero.legs[1].rotation.x = -swing;

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import Icon from '$lib/components/Icon.svelte';
   import { onMount } from 'svelte';
   import { sfx } from '$lib/audio.svelte';
   import { BoardInput } from '$lib/board-input';
@@ -7,7 +6,9 @@
   import { animate } from '$lib/loop';
   import { createState, step, type CampEvent } from './engine';
   import { CampFx } from './effects';
+  import Hud from './Hud.svelte';
   import { overlay } from './overlay';
+  import { objective } from './guide';
   import { CampWorld } from './world3d';
   import { sounds } from './sounds';
 
@@ -25,6 +26,8 @@
   const fresh = () => createState(level);
   const game = fresh();
   let wallet = $state(0);
+  /** いまやること。画面の上に出す */
+  let hint = $state('');
   let goal = $state(game.pads.find((p) => p.id === 'home')!.cost);
   /** 仮想スティック。指を置いた位置からずらした向きへ歩く */
   let stick: { id: number; x: number; y: number } | null = null;
@@ -64,6 +67,7 @@
   function play(events: CampEvent[]) {
     for (const event of events) {
       fx.handle(event, game);
+      world?.handle(event, game);
       if (event.type === 'hit') sounds.hit();
       else if (event.type === 'clear') {
         sfx.finish();
@@ -82,7 +86,9 @@
     if (goal !== home.cost - home.paid) goal = home.cost - home.paid;
     if (!ctx) return;
     const [w, h] = input.px(1, 1);
-    world?.update(game, dt, now, move);
+    const todo = objective(game);
+    if (hint !== todo.text) hint = todo.text;
+    world?.update(game, dt, now, move, todo);
     world?.render();
     ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
     ctx.clearRect(0, 0, w, h);
@@ -128,11 +134,7 @@
 >
   <canvas bind:this={gl}></canvas>
   <canvas bind:this={canvas}></canvas>
-  <div class="hud">
-    <span class="chip sticker">レベル {level}</span>
-    <span class="chip wallet" role="status"><Icon name="coin" /> {wallet}</span>
-    <span class="chip goal"><Icon name="house" /> まで あと {goal}</span>
-  </div>
+  <Hud {level} {wallet} {goal} {hint} />
 </div>
 
 <style>
@@ -149,31 +151,5 @@
     inset: 0;
     width: 100%;
     height: 100%;
-  }
-
-  .hud {
-    position: absolute;
-    top: 14px;
-    left: 72px;
-    right: 16px;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 8px;
-    pointer-events: none;
-  }
-
-  .chip {
-    padding: 4px 14px;
-    border: 3px solid #fff;
-    border-radius: 999px;
-    background: rgb(255 255 255 / 0.85);
-    box-shadow: 0 3px 0 rgb(43 45 66 / 0.12);
-    font-size: 18px;
-    font-weight: 800;
-  }
-
-  .wallet {
-    background: var(--gold);
   }
 </style>
