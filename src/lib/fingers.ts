@@ -43,9 +43,10 @@ export class Fingers {
 
 /** 軌跡の最初と最後から速さ（盤面単位 / 秒）を出す */
 export function velocity(trail: Sample[]): { vx: number; vy: number } {
+  if (trail.length < 2) return { vx: 0, vy: 0 };
   const first = trail[0];
   const last = trail[trail.length - 1];
   const dt = (last.t - first.t) / 1000;
-  if (trail.length < 2 || dt <= 0) return { vx: 0, vy: 0 };
+  if (dt <= 0) return { vx: 0, vy: 0 };
   return { vx: (last.x - first.x) / dt, vy: (last.y - first.y) / dt };
 }

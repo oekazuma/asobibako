@@ -6,7 +6,7 @@ export function animate(frame: (dt: number, now: number) => void): () => void {
   let raf = 0;
   let last = performance.now();
   const tick = (now: number) => {
-    frame(Math.min(0.05, (now - last) / 1000), now);
+    frame(Math.max(0, Math.min(0.05, (now - last) / 1000)), now);
     last = now;
     raf = requestAnimationFrame(tick);
   };
