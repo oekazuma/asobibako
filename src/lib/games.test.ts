@@ -15,4 +15,10 @@ describe('games', () => {
       expect(Howto, game.id).toBeTypeOf('function');
     }
   });
+
+  it('各ゲームの id は、そのゲームが置かれたフォルダ名と一致する', () => {
+    const metaModules = import.meta.glob('./games/*/meta.ts', { eager: true });
+    const folders = new Set(Object.keys(metaModules).map((path) => path.split('/')[2]));
+    expect(new Set(games.map((g) => g.id))).toEqual(folders);
+  });
 });

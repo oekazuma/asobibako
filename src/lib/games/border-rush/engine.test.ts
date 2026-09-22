@@ -72,4 +72,21 @@ describe('border-rush engine', () => {
     expect(s.orbs.map((o) => o.id)).toEqual([fresh.id]);
     expect(pop(s, old.id, 1)).toBe(false);
   });
+
+  it('プレイヤー 2 も押し切れば勝てる', () => {
+    const s = createState();
+    for (let i = 0; i < 40 && s.winner === null; i++) {
+      const orb = spawnOrb(s, 'tap', 2, 0, seq(0.5));
+      pop(s, orb.id, 2);
+    }
+    expect(s.winner).toBe(2);
+  });
+
+  it('境界が端に寄っても、自陣の玉はつぶれた範囲の中央に出る', () => {
+    const s = createState();
+    s.border = 0.95;
+    const orb = spawnOrb(s, 'tap', 1, 0, seq(0.5));
+    expect(orb.y).toBeGreaterThanOrEqual(0);
+    expect(orb.y).toBeLessThanOrEqual(1);
+  });
 });

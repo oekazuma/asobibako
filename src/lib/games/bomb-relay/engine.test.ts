@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { sideOf } from '$lib/player';
-import { BOMB_R, createState, moveHeld, step, throwBomb, tryCatch, type GameState } from './engine';
+import { BOMB_R, CATCH_R, createState, moveHeld, step, throwBomb, tryCatch, type GameState } from './engine';
 
 const fixed = (v: number) => () => v;
 
@@ -93,5 +93,24 @@ describe('bomb-relay engine', () => {
     throwBomb(state, 0, -100);
     run(state, 3);
     expect(sideOf(state.bomb!.y)).toBe(2);
+  });
+
+  it('プレイヤー 2 も自陣でメーターを満タンにすれば勝てる', () => {
+    const state = withBombAt(0.5, 0.25);
+    state.meters[2] = 0.99;
+    tryCatch(state, 2, 0.5, 0.25);
+    const events = run(state, 1);
+    expect(events).toEqual([{ type: 'win', player: 2 }]);
+    expect(state.winner).toBe(2);
+  });
+
+  it.each([0.6, 1, 1.7])('aspect %f でもつかめる範囲は高さを 1 とした単位の円', (aspect) => {
+    const near = createState(aspect, fixed(0.9));
+    near.bomb = { x: 0.5, y: 0.75, vx: 0, vy: 0, age: 0, fuse: 100, heldBy: null };
+    expect(tryCatch(near, 1, 0.5 + (CATCH_R * 0.9) / aspect, 0.75)).toBe(true);
+
+    const far = createState(aspect, fixed(0.9));
+    far.bomb = { x: 0.5, y: 0.75, vx: 0, vy: 0, age: 0, fuse: 100, heldBy: null };
+    expect(tryCatch(far, 1, 0.5 + (CATCH_R * 1.1) / aspect, 0.75)).toBe(false);
   });
 });
