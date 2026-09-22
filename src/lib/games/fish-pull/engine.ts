@@ -29,7 +29,7 @@ const TENSION_THRASH = 2.2;
 const TENSION_DECAY = 0.45;
 const SNAP_KICK = 0.35;
 const THRASH_FORCE = 0.35;
-const CENTER_PULL = 0.3;
+const CENTER_PULL = 0.15;
 const DAMPING = 2;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
