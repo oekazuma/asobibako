@@ -4,6 +4,7 @@ import borderRush from './games/border-rush/meta';
 import bugRush from './games/bug-rush/meta';
 import feintMaster from './games/feint-master/meta';
 import fishPull from './games/fish-pull/meta';
+import gateRun from './games/gate-run/meta';
 import hockey from './games/hockey/meta';
 import lightning from './games/lightning/meta';
 import pinRescue from './games/pin-rescue/meta';
@@ -59,6 +60,7 @@ export type GameMeta = DuelMeta | SoloMeta;
 
 export const games: GameMeta[] = [
   pinRescue,
+  gateRun,
   borderRush,
   bombRelay,
   hockey,
