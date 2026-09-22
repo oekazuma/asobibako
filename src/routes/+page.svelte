@@ -2,6 +2,11 @@
   import { resolve } from '$app/paths';
   import AppUpdate from '$lib/components/AppUpdate.svelte';
   import { games } from '$lib/games';
+
+  const sections = [
+    { title: 'ひとりで あそぶ', list: games.filter((game) => game.players === 1) },
+    { title: 'ふたりで あそぶ', list: games.filter((game) => game.players === 2) }
+  ].filter((section) => section.list.length > 0);
 </script>
 
 <svelte:head>
@@ -11,28 +16,33 @@
 <main class="menu">
   <header>
     <h1 class="logo sticker"><span class="a">Table</span> <span class="b">Duel</span></h1>
-    <p class="lead">iPad をテーブルに置いて、向かい合って あそぼう！</p>
+    <p class="lead">ひとりでも、向かい合って ふたりでも あそぼう！</p>
   </header>
 
   <AppUpdate />
 
-  <ul class="cards">
-    {#each games as game, i (game.id)}
-      <li style:--delay="{i * 70}ms">
-        <a class="card" href={resolve('/games/[id]', { id: game.id })}>
-          <div class="thumb"><game.Thumb /></div>
-          <div class="body">
-            <h2>{game.name}</h2>
-            <p class="desc">{game.description}</p>
-            <p class="meta">
-              <span class="chip">{game.players}人</span>
-              <span class="chip">{game.minutes}</span>
-            </p>
-          </div>
-        </a>
-      </li>
-    {/each}
-  </ul>
+  {#each sections as section (section.title)}
+    <section>
+      <h2 class="section sticker">{section.title}</h2>
+      <ul class="cards">
+        {#each section.list as game, i (game.id)}
+          <li style:--delay="{i * 70}ms">
+            <a class="card" href={resolve('/games/[id]', { id: game.id })}>
+              <div class="thumb"><game.Thumb /></div>
+              <div class="body">
+                <h3>{game.name}</h3>
+                <p class="desc">{game.description}</p>
+                <p class="meta">
+                  <span class="chip">{game.players}人</span>
+                  <span class="chip">{game.minutes}</span>
+                </p>
+              </div>
+            </a>
+          </li>
+        {/each}
+      </ul>
+    </section>
+  {/each}
 </main>
 
 <style>
@@ -77,6 +87,13 @@
     color: var(--ink-soft);
     font-size: clamp(13px, 2vw, 16px);
     font-weight: 700;
+  }
+
+  .section {
+    max-width: 960px;
+    margin: 28px auto 16px;
+    font-size: clamp(22px, 4vw, 30px);
+    text-align: center;
   }
 
   .cards {
@@ -133,7 +150,7 @@
     padding: 14px 18px 18px;
   }
 
-  h2 {
+  .body h3 {
     font-size: 24px;
     font-weight: 800;
     letter-spacing: 0.06em;

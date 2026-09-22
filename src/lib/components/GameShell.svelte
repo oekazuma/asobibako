@@ -2,31 +2,18 @@
   import { onMount } from 'svelte';
   import { resolve } from '$app/paths';
   import { audio, sfx, toggleMute, wake } from '$lib/audio.svelte';
-  import type { GameMeta, GameModule } from '$lib/games';
+  import type { DuelMeta, GameModule } from '$lib/games';
+  import { Settle } from '$lib/settle.svelte';
   import type { Player } from '$lib/player';
   import ResultScreen from './ResultScreen.svelte';
   import TitleScreen from './TitleScreen.svelte';
 
-  let { meta, Game, Howto }: { meta: GameMeta } & GameModule = $props();
+  let { meta, Game, Howto }: { meta: DuelMeta } & GameModule = $props();
 
   let screen = $state<'title' | 'playing' | 'result'>('title');
   let winner = $state<Player>(1);
   let round = $state(0);
-  /**
-   * 決着の指を離した位置に結果画面のボタンが現れると、iOS Safari はそこへ合成 click を当てる。
-   * preventDefault() では止まらず、リンクは SvelteKit のルーターが先に拾うので、
-   * 盤面の指がすべて離れて少し経つまで、当たり判定そのものを消して下の要素に落とす
-   */
-  let settling = $state(false);
-  /** 画面に触れている指の数。爆弾を握ったまま勝つゲームもあるので、決着の時点ではまだ指が残っていることがある */
-  let touching = 0;
-  let settleTimer: ReturnType<typeof setTimeout> | undefined;
-
-  /** 指がすべて離れていれば 350ms 後に、残っていても取りこぼしに備えて 3 秒後には必ず戻す */
-  function settleAfter(ms: number) {
-    clearTimeout(settleTimer);
-    settleTimer = setTimeout(() => (settling = false), ms);
-  }
+  const settle = new Settle();
 
   const ready = $state<Record<Player, boolean>>({ 1: false, 2: false });
   const pads: Record<Player, Set<number>> = { 1: new Set(), 2: new Set() };
@@ -68,26 +55,10 @@
   function finish(won: Player) {
     winner = won;
     screen = 'result';
-    settling = true;
-    settleAfter(touching === 0 ? 350 : 3000);
+    settle.begin();
   }
 
-  onMount(() => {
-    const press = () => (touching += 1);
-    const lift = () => {
-      touching = Math.max(0, touching - 1);
-      if (settling && touching === 0) settleAfter(350);
-    };
-    addEventListener('pointerdown', press, true);
-    addEventListener('pointerup', lift, true);
-    addEventListener('pointercancel', lift, true);
-    return () => {
-      removeEventListener('pointerdown', press, true);
-      removeEventListener('pointerup', lift, true);
-      removeEventListener('pointercancel', lift, true);
-      clearTimeout(settleTimer);
-    };
-  });
+  onMount(settle.listen);
 
   $effect(() => {
     if (screen !== 'title' || !ready[1] || !ready[2]) return;
@@ -96,7 +67,7 @@
   });
 </script>
 
-<main class="stage" class:settling>
+<main class="stage" class:settling={settle.active}>
   {#if screen === 'playing'}
     {#key round}
       <Game onfinish={finish} />
