@@ -1,5 +1,7 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { GameMeta } from '$lib/games';
+import StubGame from '$lib/test/StubGame.svelte';
 import StubHowto from '$lib/test/StubHowto.svelte';
 import GameCard from './GameCard.svelte';
 
@@ -10,10 +12,10 @@ const solo = {
   minutes: '1分',
   players: 1 as const,
   Thumb: StubHowto,
-  load: async () => ({ Game: StubHowto, Howto: StubHowto })
+  load: async () => ({ Game: StubGame, Howto: StubHowto })
 };
 
-function show(game = solo) {
+function show(game: GameMeta = solo) {
   const target = document.body.appendChild(document.createElement('div'));
   const app = mount(GameCard, { target, props: { game } });
   flushSync();
