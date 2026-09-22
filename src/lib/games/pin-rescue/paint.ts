@@ -1,3 +1,4 @@
+import { emoji } from '$lib/canvas';
 import type { Seg } from '$lib/segments';
 import { HERO_R, R, WALL, type GameState, type Kind } from './engine';
 
@@ -61,8 +62,5 @@ export function paint(ctx: CanvasRenderingContext2D, state: GameState, pulledAt:
 
   const { x, y } = state.level.hero;
   const face = state.result === 'burned' ? '😱' : state.result === 'clear' ? '🤩' : '🧒';
-  ctx.font = `${HERO_R * 2.1}px system-ui`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(face, x, y);
+  emoji(ctx, face, x, y, HERO_R * 2.1);
 }

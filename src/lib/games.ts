@@ -2,6 +2,7 @@ import type { Component } from 'svelte';
 import bombRelay from './games/bomb-relay/meta';
 import borderRush from './games/border-rush/meta';
 import bugRush from './games/bug-rush/meta';
+import dogGuard from './games/dog-guard/meta';
 import feintMaster from './games/feint-master/meta';
 import fishPull from './games/fish-pull/meta';
 import gateRun from './games/gate-run/meta';
@@ -61,6 +62,7 @@ export type GameMeta = DuelMeta | SoloMeta;
 export const games: GameMeta[] = [
   pinRescue,
   gateRun,
+  dogGuard,
   borderRush,
   bombRelay,
   hockey,
