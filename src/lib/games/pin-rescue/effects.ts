@@ -17,11 +17,15 @@ export class PinFx {
   /** まだ「+10」として出していない、届いた金の粒の数と、最後に出してからの秒 */
   #pending = 0;
   #since = 0;
+  #t = 0;
+  #hissAt = -1;
 
   reset(): void {
     this.#collected = 0;
     this.#kinds = [];
     this.#pending = 0;
+    this.#t = 0;
+    this.#hissAt = -1;
   }
 
   pulled(game: GameState, i: number): void {
@@ -39,6 +43,7 @@ export class PinFx {
 
   /** 毎フレーム呼ぶ。戻り値の progress はクリアに要る金貨をどれだけ集めたか（0..1） */
   update(game: GameState, dt: number): { progress: number; score: number } {
+    this.#t += dt;
     const { x, y } = game.level.hero;
     if (game.collected > this.#collected) {
       sounds.coin();
@@ -73,7 +78,11 @@ export class PinFx {
         gravity: -0.3
       });
     });
-    if (formed) sounds.hiss();
+    // 石になる粒が続くあいだ毎フレーム鳴らすと、ノイズのバッファ生成だけで重い
+    if (formed && this.#t - this.#hissAt > 0.2) {
+      this.#hissAt = this.#t;
+      sounds.hiss();
+    }
     this.#kinds = game.particles.map((p) => p.kind);
     this.particles.step(dt);
     this.floaters.step(dt);
