@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Component } from 'svelte';
+  import { onMount, type Component } from 'svelte';
   import type { SoloMeta } from '$lib/games';
 
   /** best はたどり着いたいちばん先のレベル。◀ ▶ でそこまでの面を選び直せる */
@@ -10,6 +10,37 @@
     level = $bindable(),
     onstart
   }: { meta: SoloMeta; Howto: Component; best: number; level: number; onstart: () => void } = $props();
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  /** 長押しのリピートで動かしたあとは、指を離したときの click で余分に 1 つ動かさない */
+  let repeated = false;
+
+  function step(d: -1 | 1): boolean {
+    const next = Math.min(best, Math.max(1, level + d));
+    if (next === level) return false;
+    level = next;
+    return true;
+  }
+
+  function press(d: -1 | 1) {
+    repeated = false;
+    clearTimeout(timer);
+    const tick = () => {
+      repeated = true;
+      // 端に着いたら止める（disabled になった button には pointerup が届かないことがある）
+      if (step(d)) timer = setTimeout(tick, 90);
+    };
+    timer = setTimeout(tick, 400);
+  }
+
+  const release = () => clearTimeout(timer);
+
+  function click(d: -1 | 1) {
+    if (repeated) repeated = false;
+    else step(d);
+  }
+
+  onMount(() => release);
 </script>
 
 <div class="panel">
@@ -17,9 +48,27 @@
   <h1 class="title sticker">{meta.name}</h1>
   <Howto />
   <span class="picker">
-    <button class="step" onclick={() => (level -= 1)} disabled={level <= 1} aria-label="前のレベル">◀</button>
+    <button
+      class="step"
+      onpointerdown={() => press(-1)}
+      onpointerup={release}
+      onpointercancel={release}
+      onpointerleave={release}
+      onclick={() => click(-1)}
+      disabled={level <= 1}
+      aria-label="前のレベル">◀</button
+    >
     <span class="level">レベル {level}</span>
-    <button class="step" onclick={() => (level += 1)} disabled={level >= best} aria-label="次のレベル">▶</button>
+    <button
+      class="step"
+      onpointerdown={() => press(1)}
+      onpointerup={release}
+      onpointercancel={release}
+      onpointerleave={release}
+      onclick={() => click(1)}
+      disabled={level >= best}
+      aria-label="次のレベル">▶</button
+    >
   </span>
   <button class="pill p1 go" onclick={onstart}>タップで スタート</button>
 </div>
