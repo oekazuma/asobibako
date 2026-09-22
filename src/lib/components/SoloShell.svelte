@@ -4,14 +4,13 @@
   import { resolve } from '$app/paths';
   import { audio, sfx, toggleMute, wake } from '$lib/audio.svelte';
   import type { SoloMeta, SoloModule } from '$lib/games';
-  import { MAX_LEVEL } from '$lib/levels';
+  import { ALL_CLEAR, MAX_LEVEL, saveLevel, savedLevel } from '$lib/levels';
   import { Settle } from '$lib/settle.svelte';
   import SoloResult from './SoloResult.svelte';
   import SoloTitle from './SoloTitle.svelte';
 
   let { meta, Game, Howto }: { meta: SoloMeta } & SoloModule = $props();
 
-  const key = $derived(`table-duel:level:${meta.id}`);
   let screen = $state<'title' | 'playing' | 'result'>('title');
   let cleared = $state(false);
   /** レベル 100 までクリアした */
@@ -34,13 +33,12 @@
     if (screen !== 'playing') return;
     cleared = won;
     complete = won && level >= MAX_LEVEL;
-    if (won && !complete) {
-      level += 1;
-      best = Math.max(best, level);
-      try {
-        localStorage.setItem(key, String(best));
-      } catch {
-        // 保存できなくても、この場では次のレベルへ進める
+    if (won) {
+      // 100 をクリアしたら ALL_CLEAR を残し、一覧で「ぜんぶクリア」と出せるようにする
+      saveLevel(meta.id, Math.max(savedLevel(meta.id), complete ? ALL_CLEAR : level + 1));
+      if (!complete) {
+        level += 1;
+        best = Math.max(best, level);
       }
     }
     screen = 'result';
@@ -48,11 +46,7 @@
   }
 
   onMount(() => {
-    try {
-      best = level = Math.min(MAX_LEVEL, Math.max(1, Math.floor(Number(localStorage.getItem(key))) || 1));
-    } catch {
-      // プライベートブラウズでは 1 から
-    }
+    best = level = Math.min(MAX_LEVEL, savedLevel(meta.id));
     return settle.listen();
   });
 </script>

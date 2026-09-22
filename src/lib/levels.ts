@@ -39,3 +39,26 @@ export class Rng {
     return list[Math.floor(this.next() * list.length)];
   }
 }
+
+/** 到達レベルの保存先。ゲームごと */
+export const levelKey = (id: string) => `table-duel:level:${id}`;
+
+/** MAX_LEVEL をクリアしたことの印として保存する値 */
+export const ALL_CLEAR = MAX_LEVEL + 1;
+
+/** 保存された到達レベル（1..ALL_CLEAR）。壊れていたり読めなければ 1 */
+export function savedLevel(id: string): number {
+  try {
+    return Math.min(ALL_CLEAR, Math.max(1, Math.floor(Number(localStorage.getItem(levelKey(id)))) || 1));
+  } catch {
+    return 1;
+  }
+}
+
+export function saveLevel(id: string, level: number): void {
+  try {
+    localStorage.setItem(levelKey(id), String(level));
+  } catch {
+    // プライベートブラウズでは保存できない。その場では進めてよい
+  }
+}
