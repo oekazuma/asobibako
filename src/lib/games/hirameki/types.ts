@@ -145,4 +145,17 @@ export interface PlaceQ {
   goal: (cells: ReadonlySet<number>) => boolean;
 }
 
-export type Puzzle = Base & (NumberQ | TapQ | SticksQ | RiverQ | PourQ | LinesQ | WordQ | SlideQ | PlaceQ);
+/**
+ * 氷の上を滑るナゾ。上下左右のどれかへ押すと、岩か盤の端に当たるまで止まらずに滑る。
+ * 滑っている途中で goal のます目に入ったら、そこで抜け出してクリア
+ */
+export interface IceQ {
+  kind: 'ice';
+  cols: number;
+  rows: number;
+  rocks: Point[];
+  start: Point;
+  goal: Point;
+}
+
+export type Puzzle = Base & (NumberQ | TapQ | SticksQ | RiverQ | PourQ | LinesQ | WordQ | SlideQ | PlaceQ | IceQ);
