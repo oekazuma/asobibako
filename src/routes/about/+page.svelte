@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { resolve } from '$app/paths';
   import AppUpdate from '$lib/components/AppUpdate.svelte';
+  import Backup from '$lib/components/Backup.svelte';
   import Icon from '$lib/components/Icon.svelte';
   import { pwaStatus, type PwaStatus } from '$lib/pwa';
 
@@ -54,8 +55,13 @@
       <h2>データについて</h2>
       <p>
         到達したレベル・さいきん
-        あそんだゲーム・えらんだタブ・ミュートは、この端末の中にだけ保存します。サーバーには送りません。
+        あそんだゲーム・えらんだタブ・ミュートは、この端末の中にだけ保存します。サーバーには送りません。下の「バックアップ」で、記録をファイルに書き出して別の端末へ移せます。
       </p>
+    </section>
+
+    <section class="card">
+      <h2>バックアップ</h2>
+      <Backup />
     </section>
   </div>
 </main>

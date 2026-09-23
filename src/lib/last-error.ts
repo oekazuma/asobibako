@@ -1,4 +1,4 @@
-const KEY = 'table-duel:last-error';
+export const LAST_ERROR_KEY = 'table-duel:last-error';
 
 export interface LastError {
   message: string;
@@ -8,7 +8,10 @@ export interface LastError {
 /** ホーム画面のアプリには DevTools がないので、最後に起きたエラーを 1 件だけ残して一覧に出す */
 export function remember(message: string): void {
   try {
-    localStorage.setItem(KEY, JSON.stringify({ message: message.slice(0, 300), at: Date.now() } satisfies LastError));
+    localStorage.setItem(
+      LAST_ERROR_KEY,
+      JSON.stringify({ message: message.slice(0, 300), at: Date.now() } satisfies LastError)
+    );
   } catch {
     // 保存できなければ諦める
   }
@@ -16,7 +19,7 @@ export function remember(message: string): void {
 
 export function recall(): LastError | null {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(LAST_ERROR_KEY);
     return raw ? (JSON.parse(raw) as LastError) : null;
   } catch {
     return null;
@@ -25,7 +28,7 @@ export function recall(): LastError | null {
 
 export function forget(): void {
   try {
-    localStorage.removeItem(KEY);
+    localStorage.removeItem(LAST_ERROR_KEY);
   } catch {
     // noop
   }
