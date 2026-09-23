@@ -4,6 +4,7 @@ import borderRush from './games/border-rush/meta';
 import bugRush from './games/bug-rush/meta';
 import dentist from './games/dentist/meta';
 import dogGuard from './games/dog-guard/meta';
+import doodleWorm from './games/doodle-worm/meta';
 import gateRun from './games/gate-run/meta';
 import hockey from './games/hockey/meta';
 import lightning from './games/lightning/meta';
@@ -55,7 +56,7 @@ export interface DuelMeta extends BaseMeta {
 /** 画面全体を 1 人で使い、レベルを順にクリアしていく */
 export interface SoloMeta extends BaseMeta {
   players: 1;
-  /** 面の数。最後の面をクリアしたら全クリ */
+  /** 面の数。最後の面をクリアしたら全クリ。1 ならレベル選びを出さず、onfinish を呼ばない自由あそびにしてよい */
   levels: number;
   load: () => Promise<SoloModule>;
 }
@@ -68,6 +69,7 @@ export const games: GameMeta[] = [
   dogGuard,
   snowCamp,
   dentist,
+  doodleWorm,
   borderRush,
   bombRelay,
   hockey,
