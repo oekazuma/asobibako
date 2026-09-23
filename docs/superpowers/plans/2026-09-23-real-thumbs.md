@@ -13,8 +13,8 @@
 ## Global Constraints
 
 - リポジトリのルートは `/Users/oekazuma/localRepo/table-duel`。作業ブランチは `real-thumbs`。**push しない**
-- 画像は `static/thumbs/<id>.webp`、幅 680px・高さ 256px、1 枚 60KB 以下を目安
-- 撮影は iPad 縦（CSS で 768 × 1024、`deviceScaleFactor: 2`、タッチあり）。切り出す範囲は CSS px で幅 : 高さ = 680 : 256
+- 画像は `static/thumbs/<id>.webp`、幅 680px・高さ 400px、1 枚 60KB 以下を目安
+- 撮影は iPad 縦（CSS で 768 × 1024、`deviceScaleFactor: 2`、タッチあり）。切り出す範囲は CSS px で幅 : 高さ = 680 : 400
 - 依存は `pnpm-workspace.yaml` の catalog に足してから `package.json` で `catalog:` を使う（`minimumReleaseAge` あり）。ブラウザはダウンロードしない（`channel: 'chrome'`）
 - スクリプトは `scripts/` に置き、`tsconfig.scripts.json` の型チェック（`pnpm check`）を通す。import は拡張子つき（`./thumbs/scenes.ts`）
 - 散文・コメントは日本語で WHY だけ。README / CLAUDE.md は今の仕様だけを書く（経緯は書かない）。Markdown は textlint の hook が走るので「- **ラベル**: 値」のリストと述語のあとのコロンを避ける
@@ -144,7 +144,7 @@ import { SCENES } from './thumbs/scenes.ts';
 import { Stage } from './thumbs/stage.ts';
 
 const OUT = 'static/thumbs';
-const SIZE = { width: 680, height: 256 };
+const SIZE = { width: 680, height: 400 };
 const only = process.argv.slice(2);
 
 /** 毎回同じ場面になるよう、ページの乱数を種つきにする */
@@ -216,13 +216,13 @@ import type { Clip, Stage } from './stage.ts';
 
 export interface Scene {
   id: string;
-  /** 撮る範囲（CSS px）。幅 : 高さ = 680 : 256 */
+  /** 撮る範囲（CSS px）。幅 : 高さ = 680 : 400 */
   clip: Clip;
   play: (s: Stage) => Promise<void>;
 }
 
-/** 幅いっぱいで、上端 y から 680 : 256 の高さを切り出す */
-const band = (y: number): Clip => ({ x: 0, y, width: 768, height: Math.round((768 * 256) / 680) });
+/** 幅いっぱいで、上端 y から 680 : 400 の高さを切り出す */
+const band = (y: number): Clip => ({ x: 0, y, width: 768, height: Math.round((768 * 400) / 680) });
 
 export const SCENES: Scene[] = [
   {
@@ -320,7 +320,7 @@ it('どのゲームにも一覧のカードの画像がある', () => {
 .thumb {
   display: block;
   width: 100%;
-  height: 128px;
+  height: 200px;
   border-radius: 20px 20px 0 0;
   object-fit: cover;
 }
