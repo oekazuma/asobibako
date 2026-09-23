@@ -8,7 +8,7 @@ import { SCENES } from './thumbs/scenes.ts';
 import { Stage } from './thumbs/stage.ts';
 
 const OUT = 'static/thumbs';
-const SIZE = { width: 680, height: 256 };
+const SIZE = { width: 680, height: 400 };
 const only = process.argv.slice(2);
 
 /** 毎回同じ場面になるよう、ページの乱数を種つきにする */

@@ -2,13 +2,13 @@ import type { Clip, Stage } from './stage.ts';
 
 export interface Scene {
   id: string;
-  /** 撮る範囲（CSS px）。幅 : 高さ = 680 : 256 */
+  /** 撮る範囲（CSS px）。幅 : 高さ = 680 : 400 */
   clip: Clip;
   play: (s: Stage) => Promise<void>;
 }
 
-/** 幅いっぱいで、上端 y から 680 : 256 の高さを切り出す */
-const band = (y: number): Clip => ({ x: 0, y, width: 768, height: Math.round((768 * 256) / 680) });
+/** 幅いっぱいで、上端 y から 680 : 400 の高さを切り出す */
+const band = (y: number): Clip => ({ x: 0, y, width: 768, height: Math.round((768 * 400) / 680) });
 
 /**
  * 座標は iPad 縦（768 × 1024）で撮った画面から読んだ CSS px。
@@ -16,9 +16,9 @@ const band = (y: number): Clip => ({ x: 0, y, width: 768, height: Math.round((76
  */
 export const SCENES: Scene[] = [
   {
-    // 顔の全体と吹き出しまでは 680 : 256 に収まらないので、下の歯・運んでいるバイキン・ゴミ箱を優先する
+    // 吹き出しまでは 680 : 400 に収まらないので、目から下とゴミ箱を入れる
     id: 'dentist',
-    clip: band(588),
+    clip: band(408),
     play: async (s) => {
       await s.startSolo('dentist', 4);
       // 下の列の真ん中の虫歯を削りきると、バイキンが 2 匹出てくる
