@@ -17,12 +17,15 @@
 
   let {
     entry,
+    attempt,
     memo,
     onwarn,
     onsolve,
     onfail
   }: {
     entry: Entry;
+    /** 変わるたびに答えの部品を作り直す（川渡りなどの途中の状態も最初に戻す）。メモは作り直さない */
+    attempt: number;
     memo: boolean;
     onwarn: (text: string) => void;
     onsolve: () => void;
@@ -36,39 +39,41 @@
 {#if p.fig || !(p.kind === 'number' || p.kind === 'word')}
   <div class="frame">
     <div class="inner">
-      {#if p.kind === 'river'}
-        <River {p} {onwarn} {onsolve} {onfail} />
-      {:else if p.kind === 'pour'}
-        <Pour {p} {onsolve} />
-      {:else if p.kind === 'slide'}
-        <Slide {p} bind:blocks={entry.blocks} bind:moves={entry.moves} {onsolve} />
-      {:else if p.kind === 'connect'}
-        <Connect {p} bind:paths={entry.paths} {onsolve} />
-      {:else if p.kind === 'divide'}
-        <Divide {p} bind:groups={entry.grid} />
-      {:else if p.kind === 'rotate'}
-        <Rotate {p} bind:turns={entry.grid} bind:moves={entry.moves} {onsolve} />
-      {:else if p.kind === 'fill' && p.fig}
-        <Fill {p} fig={p.fig} bind:values={entry.grid} />
-      {:else if p.kind === 'ice'}
-        <Ice {p} bind:at={entry.at} bind:moves={entry.moves} {onsolve} />
-      {:else if p.kind === 'place'}
-        <Place {p} bind:cells={entry.picked} />
-      {:else if p.kind === 'lines'}
-        <Lines {p} fig={p.fig} bind:path={entry.path} />
-      {:else if p.kind === 'tap' && p.fig}
-        <Tap fig={p.fig} spots={p.spots} max={p.answer.length} bind:picked={entry.picked} />
-      {:else if p.kind === 'sticks' && p.fig}
-        <Sticks
-          {p}
-          fig={p.fig}
-          bind:on={entry.on}
-          bind:lifted={entry.lifted}
-          onblock={() => onwarn('これ以上は動かせない。元の場所へ戻せば数え直す')}
-        />
-      {:else if p.fig}
-        <Figure fig={p.fig} />
-      {/if}
+      {#key attempt}
+        {#if p.kind === 'river'}
+          <River {p} {onwarn} {onsolve} {onfail} />
+        {:else if p.kind === 'pour'}
+          <Pour {p} {onsolve} />
+        {:else if p.kind === 'slide'}
+          <Slide {p} bind:blocks={entry.blocks} bind:moves={entry.moves} {onsolve} />
+        {:else if p.kind === 'connect'}
+          <Connect {p} bind:paths={entry.paths} {onsolve} />
+        {:else if p.kind === 'divide'}
+          <Divide {p} bind:groups={entry.grid} />
+        {:else if p.kind === 'rotate'}
+          <Rotate {p} bind:turns={entry.grid} bind:moves={entry.moves} {onsolve} />
+        {:else if p.kind === 'fill' && p.fig}
+          <Fill {p} fig={p.fig} bind:values={entry.grid} />
+        {:else if p.kind === 'ice'}
+          <Ice {p} bind:at={entry.at} bind:moves={entry.moves} {onsolve} />
+        {:else if p.kind === 'place'}
+          <Place {p} bind:cells={entry.picked} />
+        {:else if p.kind === 'lines'}
+          <Lines {p} fig={p.fig} bind:path={entry.path} />
+        {:else if p.kind === 'tap' && p.fig}
+          <Tap fig={p.fig} spots={p.spots} max={p.answer.length} bind:picked={entry.picked} />
+        {:else if p.kind === 'sticks' && p.fig}
+          <Sticks
+            {p}
+            fig={p.fig}
+            bind:on={entry.on}
+            bind:lifted={entry.lifted}
+            onblock={() => onwarn('これ以上は動かせない。元の場所へ戻せば数え直す')}
+          />
+        {:else if p.fig}
+          <Figure fig={p.fig} />
+        {/if}
+      {/key}
     </div>
     <Memo active={memo} />
   </div>

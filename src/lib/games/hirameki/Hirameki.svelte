@@ -15,7 +15,9 @@
 
   // level はゲームごと作り直されるので、最初の値だけ使えばよい
   const start = (p = PUZZLES.at(level - 1)) => p && new Entry(p);
-  const entry = start();
+  let entry = $state(start());
+  /** 間違えて答え直した回数。答えの入力だけを作り直し、メモ・ヒント・質問はそのまま残す */
+  let attempt = $state(0);
   let verdict = $state<{ ok: boolean; detail: string; quick: boolean } | null>(null);
   let shown = $state(1);
   /** 開いているシート。質問は答えを開いたものを覚えておく */
@@ -35,6 +37,12 @@
     verdict = { ok, detail: ok ? (entry?.p.why ?? '') : why, quick };
   }
 
+  function retry() {
+    verdict = null;
+    entry = start();
+    attempt += 1;
+  }
+
   function warn(text: string) {
     onhint?.(text);
     clearTimeout(hintTimer);
@@ -52,6 +60,7 @@
     <p class="text">{p.text}</p>
     <Frame
       {entry}
+      {attempt}
       {memo}
       onwarn={warn}
       onsolve={() => settle(true, '', true)}
@@ -77,7 +86,7 @@
       <Questions questions={p.questions} bind:asked onclose={() => (sheet = null)} />
     {/if}
     {#if verdict}
-      <Verdict {...verdict} onnext={() => onfinish(true)} ondone={() => onfinish(false)} />
+      <Verdict {...verdict} onnext={() => onfinish(true)} ondone={retry} />
     {/if}
   {/if}
 </div>

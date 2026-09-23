@@ -5,56 +5,64 @@
   let { active }: { active: boolean } = $props();
 
   let canvas: HTMLCanvasElement;
-  /** 指ごとの、前に書いた点 */
-  const last: Record<number, [number, number] | undefined> = {};
+  /**
+   * 書いた線。canvas は大きさが変わると中身が消える（iPad を回す・ボタンの段数が変わる）ので、
+   * 盤面の幅・高さに対する 0..1 の座標で持っておき、そのたびに描き直す
+   */
+  const lines: [number, number][][] = [];
+  /** 指ごとの、いま書いている線 */
+  const open: Record<number, [number, number][] | undefined> = {};
 
   // 横向きで .stage が回っていても、盤面そのものの座標で書く
   function at(event: PointerEvent): [number, number] {
     const turned = matchMedia(TURNED_QUERY).matches;
-    const [x, y] = toBoardPoint(event.clientX, event.clientY, canvas.getBoundingClientRect(), turned);
-    return [x * canvas.offsetWidth, y * canvas.offsetHeight];
+    return toBoardPoint(event.clientX, event.clientY, canvas.getBoundingClientRect(), turned);
   }
 
-  function pen() {
+  function segment(a: [number, number], b: [number, number]) {
     const ctx = canvas.getContext('2d')!;
+    const [w, h] = [canvas.offsetWidth, canvas.offsetHeight];
     ctx.lineWidth = 5;
     ctx.lineCap = 'round';
     ctx.strokeStyle = '#ff4d6d';
-    return ctx;
+    ctx.beginPath();
+    ctx.moveTo(a[0] * w, a[1] * h);
+    ctx.lineTo(b[0] * w, b[1] * h);
+    ctx.stroke();
   }
 
   function draw(event: PointerEvent) {
-    const from = last[event.pointerId];
-    if (!from) return;
+    const line = open[event.pointerId];
+    if (!line) return;
     const to = at(event);
-    const ctx = pen();
-    ctx.beginPath();
-    ctx.moveTo(...from);
-    ctx.lineTo(...to);
-    ctx.stroke();
-    last[event.pointerId] = to;
+    segment(line.at(-1)!, to);
+    line.push(to);
   }
 
   function down(event: PointerEvent) {
     capture(event);
     const p = at(event);
-    last[event.pointerId] = [p[0] - 0.1, p[1]];
+    // 押しただけでも点が残るよう、ほんの少し左から引く
+    const line: [number, number][] = [[p[0] - 0.1 / canvas.offsetWidth, p[1]]];
+    lines.push(line);
+    open[event.pointerId] = line;
     draw(event);
   }
 
-  const up = (event: PointerEvent) => delete last[event.pointerId];
+  const up = (event: PointerEvent) => delete open[event.pointerId];
 
   function clear() {
+    lines.length = 0;
     canvas.getContext('2d')!.clearRect(0, 0, canvas.width, canvas.height);
   }
 
   $effect(() => {
-    // 大きさが変わると canvas の中身は消える。メモは一時的なものなので描き直さない
     const observer = new ResizeObserver(() => {
       const dpr = devicePixelRatio || 1;
       canvas.width = Math.round(canvas.offsetWidth * dpr);
       canvas.height = Math.round(canvas.offsetHeight * dpr);
       canvas.getContext('2d')?.scale(dpr, dpr);
+      for (const line of lines) line.slice(1).forEach((b, i) => segment(line[i], b));
     });
     observer.observe(canvas);
     return () => observer.disconnect();
