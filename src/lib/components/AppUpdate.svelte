@@ -79,10 +79,10 @@
     max-width: 960px;
     margin: 0 auto 26px;
     padding: 12px 18px;
-    border: 3px solid #fff;
+    border: 2px solid rgb(91 74 66 / 0.25);
     border-radius: 20px;
-    background: rgb(255 255 255 / 0.7);
-    color: var(--ink-soft);
+    background: rgb(255 255 255 / 0.75);
+    color: var(--line-soft);
     font-size: 13px;
     font-weight: 700;
     text-align: center;
@@ -90,9 +90,10 @@
 
   /* 新版があるときだけ目立たせる */
   .ready {
+    border: 3px solid var(--line);
     background: #fff3c4;
-    box-shadow: 0 6px 0 var(--gold);
-    color: var(--ink);
+    box-shadow: var(--soft-shadow);
+    color: var(--line);
   }
 
   .ready .state {
@@ -107,9 +108,10 @@
 
   .check {
     padding: 6px 14px;
-    border: 2px solid var(--card-edge);
+    border: 2px solid var(--line);
     border-radius: 999px;
-    background: var(--card);
+    background: #fff;
+    color: var(--line);
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
@@ -139,9 +141,10 @@
 
   .clear {
     padding: 2px 10px;
-    border: 2px solid var(--card-edge);
+    border: 2px solid var(--line);
     border-radius: 999px;
-    background: var(--card);
+    background: #fff;
+    color: var(--line);
     font-size: 11px;
     font-weight: 700;
     cursor: pointer;

@@ -54,7 +54,7 @@
     loading="eager"
     decoding="async"
   />
-  <h1 class="title sticker">{meta.name}</h1>
+  <h1 class="title yuru">{meta.name}</h1>
   <Howto />
   {#if meta.levels > 1}
     <span class="picker">
@@ -93,7 +93,8 @@
     justify-content: center;
     gap: 18px;
     padding: 24px 16px;
-    background: var(--dots), linear-gradient(to bottom, #fff, var(--p1-soft));
+    background: var(--paper-dots), var(--paper);
+    color: var(--line);
     text-align: center;
   }
 
@@ -103,25 +104,24 @@
     /* 背の低い画面ではタイトルとボタンに高さを譲るため、高さ 24cqh ぶんの幅までに抑える */
     width: min(78vw, 420px, 41cqh);
     height: auto;
-    border: 6px solid #fff;
-    border-radius: 28px;
-    box-shadow:
-      0 8px 0 var(--card-edge),
-      0 18px 30px rgb(43 45 66 / 0.18);
+    border: 3px solid var(--line);
+    border-radius: 24px;
+    box-shadow: 0 6px 0 rgb(91 74 66 / 0.22);
     rotate: -2deg;
     animation: sway 3s ease-in-out infinite;
   }
 
   .title {
+    --fill: var(--pastel-p2);
     font-size: clamp(26px, min(7cqh, 11cqw), 64px);
     white-space: nowrap;
   }
 
   .level {
     padding: 6px 18px;
+    border: 2px solid var(--line);
     border-radius: 999px;
-    background: var(--card);
-    box-shadow: 0 3px 0 var(--card-edge);
+    background: #fff;
     font-size: clamp(16px, 2.6cqh, 22px);
     font-weight: 800;
   }
@@ -135,18 +135,18 @@
   .step {
     width: 44px;
     height: 44px;
-    border: 3px solid #fff;
+    border: 3px solid var(--line);
     border-radius: 50%;
-    background: var(--p1);
-    box-shadow: 0 4px 0 var(--p1-deep);
-    color: #fff;
+    background: var(--pastel-p1);
+    box-shadow: var(--soft-shadow);
+    color: var(--line);
     font-size: 16px;
     cursor: pointer;
   }
 
   .step:disabled {
-    background: #c9ccd8;
-    box-shadow: 0 4px 0 #a5a8b8;
+    background: #eee5db;
+    color: var(--line-soft);
     cursor: default;
   }
 

@@ -11,7 +11,7 @@
       <div class="rays" aria-hidden="true"></div>
       <Confetti count={24} fall="120cqh" />
     {/if}
-    <span class="outcome sticker" role="status">{winner === player ? 'WIN!' : 'LOSE'}</span>
+    <span class="outcome yuru" role="status">{winner === player ? 'WIN!' : 'LOSE'}</span>
     <span class="sub">{winner === player ? 'あなたの かち！' : 'あなたの まけ'}</span>
     <span class="tally">{wins[player]}かち {wins[player === 1 ? 2 : 1]}まけ</span>
     <button class="pill p{player} again" onclick={onagain}>もう一度</button>
@@ -22,14 +22,14 @@
   .half.result {
     /* 光線と紙吹雪を半分の中に閉じ込める */
     overflow: hidden;
-    background: #e9eaf2;
-    color: var(--ink-soft);
+    background: var(--paper-dots), #f1ebe4;
+    color: var(--line-soft);
   }
 
   /* 勝った側は、放射状の光で祝う */
   .half.result.won {
-    background: radial-gradient(circle, #fff3c4, var(--gold) 70%);
-    color: var(--ink);
+    background: radial-gradient(circle, #fff6d6, var(--pastel-gold) 70%);
+    color: var(--line);
   }
 
   .rays {
@@ -51,7 +51,7 @@
   }
 
   .won .outcome {
-    color: var(--gold-deep);
+    --fill: var(--pastel-p2);
   }
 
   .sub {
@@ -63,8 +63,9 @@
   .tally {
     position: relative;
     padding: 4px 16px;
+    border: 2px solid var(--line);
     border-radius: 999px;
-    background: rgb(255 255 255 / 0.7);
+    background: rgb(255 255 255 / 0.8);
     font-size: clamp(13px, 2.2cqh, 18px);
     font-weight: 800;
   }

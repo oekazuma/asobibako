@@ -10,7 +10,7 @@
 </script>
 
 <svelte:head>
-  <title>{data.play.meta.name} — Table Duel</title>
+  <title>{data.play.meta.name} — あそびばこ</title>
 </svelte:head>
 
 <!-- 別のゲームへ移ったとき、前のゲームの画面状態を持ち越さない -->

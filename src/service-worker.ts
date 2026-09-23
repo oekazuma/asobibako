@@ -7,7 +7,7 @@ import { build, files, prerendered, version } from '$service-worker';
 
 const sw = globalThis.self as unknown as ServiceWorkerGlobalScope;
 
-const CACHE = `table-duel-${version}`;
+const CACHE = `asobibako-${version}`;
 const ASSETS = [...build, ...files, ...prerendered];
 const ASSET_PATHS = new Set(ASSETS);
 

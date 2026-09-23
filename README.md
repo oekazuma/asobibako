@@ -1,8 +1,8 @@
-# Table Duel
+# あそびばこ
 
 iPad をテーブルに置き、画面の上下から 2 人が同時に操作して遊ぶ対戦ゲーム集 (PWA)。1 人で画面全体を使って遊ぶゲームも入っている。
 
-https://oekazuma.github.io/table-duel/
+https://oekazuma.github.io/asobibako/
 
 ## 遊び方
 
@@ -166,7 +166,7 @@ Safari の共有メニューから「ホーム画面に追加」するとフル�
 
 ```bash
 pnpm install
-pnpm dev        # http://localhost:5173/table-duel/
+pnpm dev        # http://localhost:5173/asobibako/
 ```
 
 | コマンド       | 内容                                                                             |

@@ -28,7 +28,7 @@
 <svelte:document onvisibilitychange={onVisible} />
 
 <svelte:head>
-  <meta name="description" content="iPad 1台をはさんで2人で遊ぶ対戦ゲーム" />
+  <meta name="description" content="iPad で ひとりでも、向かい合って ふたりでも あそべる ゲームばこ" />
 </svelte:head>
 
 {@render children()}

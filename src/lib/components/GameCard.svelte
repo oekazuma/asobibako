@@ -39,13 +39,11 @@
     height: 100%;
     overflow: hidden;
     container-type: inline-size;
-    border: 4px solid #fff;
-    border-radius: 22px;
-    background: var(--card);
-    box-shadow:
-      0 6px 0 var(--card-edge),
-      0 12px 22px rgb(43 45 66 / 0.1);
-    color: inherit;
+    border: 3px solid var(--line);
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: var(--soft-shadow);
+    color: var(--line);
     text-decoration: none;
     transition:
       translate 90ms,
@@ -53,10 +51,8 @@
   }
 
   .card:active {
-    translate: 0 4px;
-    box-shadow:
-      0 2px 0 var(--card-edge),
-      0 6px 14px rgb(43 45 66 / 0.1);
+    translate: 0 3px;
+    box-shadow: var(--soft-press);
   }
 
   .frame {
@@ -68,7 +64,7 @@
     width: 100%;
     height: auto;
     aspect-ratio: 680 / 400;
-    border-radius: 18px 18px 0 0;
+    border-bottom: 3px solid var(--line);
     object-fit: cover;
   }
 
@@ -77,20 +73,17 @@
     top: 6px;
     right: 6px;
     padding: 0.15em 0.8em;
-    border: 2px solid #fff;
+    border: 2px solid var(--line);
     border-radius: 999px;
-    background: var(--p1);
-    color: #fff;
+    background: var(--pastel-p1);
+    color: var(--line);
     font-size: clamp(9px, 6cqi, 12px);
     white-space: nowrap;
     font-weight: 800;
-    box-shadow: 0 2px 0 var(--p1-deep);
   }
 
   .reached.done {
-    background: var(--gold);
-    color: var(--ink);
-    box-shadow: 0 2px 0 var(--gold-deep);
+    background: var(--pastel-gold);
   }
 
   /* スマホの最近の段では 3 枚を 1 行に詰めるので、文字はタイルの幅に合わせて縮める */

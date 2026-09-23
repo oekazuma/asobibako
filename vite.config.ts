@@ -28,7 +28,7 @@ export default defineConfig({
         runes: ({ filename }) => (filename.split(/[/\\]/).includes('node_modules') ? undefined : true)
       },
       adapter: adapter({ fallback: '404.html' }),
-      paths: { base: (process.env.BASE_PATH ?? '/table-duel') as '' | `/${string}` },
+      paths: { base: (process.env.BASE_PATH ?? '/asobibako') as '' | `/${string}` },
       serviceWorker: { register: true },
       // pollInterval: 開いている間は 5 分ごとに _app/version.json を見て updated.current を立てる
       version: { name: `${process.env.TD_BUILD}-${gitHash}`, pollInterval: 300_000 },

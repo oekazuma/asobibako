@@ -16,8 +16,11 @@ export async function updateApp(): Promise<void> {
       });
     }
   } else {
+    // 名前を asobibako に変える前の端末にも table-duel- のキャッシュが残っているので両方消す
     const keys = (await caches?.keys()) ?? [];
-    await Promise.all(keys.filter((k) => k.startsWith('table-duel-')).map((k) => caches.delete(k)));
+    await Promise.all(
+      keys.filter((k) => k.startsWith('table-duel-') || k.startsWith('asobibako-')).map((k) => caches.delete(k))
+    );
   }
   location.reload();
 }
