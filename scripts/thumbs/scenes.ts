@@ -189,7 +189,7 @@ export const SCENES: Scene[] = [
   {
     // イヌも乗せる川渡り。あなたとオオカミとヒツジを舟に乗せ、岸にキャベツとイヌが残ったところ
     id: 'hirameki',
-    level: 8,
+    level: 10,
     clip: band(380),
     play: async (s) => {
       await s.startSolo();
