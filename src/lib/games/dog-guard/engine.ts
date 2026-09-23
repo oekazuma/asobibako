@@ -1,5 +1,5 @@
 import { crosses, pushOut, type Seg } from '$lib/segments';
-import { fall, makeLineBody, type LineBody } from './line-physics';
+import { fall, makeLineBody, type Hit, type LineBody } from './line-physics';
 
 /** 座標は幅 1・高さ WORLD_H の固定の箱で、y は下向き。画面にはこの箱ごと拡大して収める */
 export const WORLD_H = 1.4;
@@ -80,6 +80,7 @@ export type GuardEvent =
   | { type: 'spawn' }
   | { type: 'bump'; x: number; y: number }
   | { type: 'stung'; x: number; y: number }
+  | { type: 'land'; hits: Hit[] }
   | { type: 'clear' };
 
 export function createState(level: Level): GameState {
@@ -183,7 +184,10 @@ export function step(state: GameState, dt: number, rand: () => number = Math.ran
   const events: GuardEvent[] = [];
   const { level } = state;
   state.time += dt;
-  if (state.body && fall(state.body, dt, level.walls, petBalls(level), LINE)) state.segs = strokeSegs(state);
+  if (state.body && fall(state.body, dt, level.walls, petBalls(level), LINE)) {
+    state.segs = strokeSegs(state);
+    if (state.body.hits.length > 0) events.push({ type: 'land', hits: state.body.hits });
+  }
 
   const due = Math.min(level.bees, Math.ceil((state.time / level.spawn) * level.bees));
   while (state.spawned < due) {

@@ -4,7 +4,7 @@
   import { BoardInput } from '$lib/board-input';
   import type { SoloProps } from '$lib/games';
   import { animate } from '$lib/loop';
-  import { addPoint, createState, finishStroke, step, WORLD_H } from './engine';
+  import { addPoint, createState, finishStroke, LINE, step, WORLD_H } from './engine';
   import { levelFor } from './levels';
   import { CONFETTI, Particles, Shake } from '$lib/fx';
   import Hud from './Hud.svelte';
@@ -27,6 +27,8 @@
   let drawing: number | null = null;
   let now = 0;
   let inked = 0;
+  /** 着地の音は倒れながら何フレームも続けて当たっても 1 回にまとめる */
+  let landed = -1;
   let left = $state(game.level.duration);
   const particles = new Particles();
   const shake = new Shake();
@@ -89,6 +91,22 @@
           life: 0.3,
           glow: true
         });
+      } else if (event.type === 'land') {
+        const power = Math.min(1, Math.max(...event.hits.map((hit) => hit.speed)) / 1.5);
+        if (now - landed > 0.15) sounds.land(power);
+        landed = now;
+        const every = Math.ceil(event.hits.length / 8);
+        for (const [i, hit] of event.hits.entries())
+          if (i % every === 0)
+            particles.burst(hit.x, hit.y + LINE, {
+              count: 4 + Math.round(power * 6),
+              color: ['#fff', '#eadfcb', '#d6c3a1'],
+              speed: 0.15 + power * 0.3,
+              size: 0.02,
+              life: 0.6,
+              angle: -Math.PI / 2,
+              spread: 2.8
+            });
       } else if (event.type === 'stung' || event.type === 'clear') {
         if (event.type === 'clear') {
           sfx.finish();

@@ -14,7 +14,14 @@ export interface LineBody {
   rest: P[];
   /** 止まってからのフレーム数。線を押すものはハチも含めてないので、止まりきったら動かさない */
   still: number;
+  /** このフレームで勢いよくぶつかった点と、そのときの速さ */
+  hits: Hit[];
 }
+
+export type Hit = { x: number; y: number; speed: number };
+
+/** これより速くぶつかったら着地とみなす。止まっている線も重力で毎回わずかに押しつけている */
+const HIT_SPEED = 0.35;
 
 const SLEEP_FRAMES = 20;
 
@@ -46,17 +53,18 @@ export function makeLineBody(stroke: P[], walls: readonly Seg[], balls: readonly
   }
   const end = stroke[stroke.length - 1];
   if (since > gap * 0.3) pts.push({ ...end });
-  const body = { pts, prev: pts.map((p) => ({ ...p })), rest: pts.map((p) => ({ ...p })), still: 0 };
+  const body = { pts, prev: pts.map((p) => ({ ...p })), rest: pts.map((p) => ({ ...p })), still: 0, hits: [] };
   for (let k = 0; k < ITERATIONS * 4; k++) match(body, collide(body, walls, balls, r));
   body.prev = pts.map((p) => ({ ...p }));
   return body;
 }
 
 /** 押し出した点の、接線方向の動きを摩擦で削る。押し出しで外向きの速さは生まない */
-function contact(p: P, q: P, x: number, y: number) {
+function contact(p: P, q: P, x: number, y: number): number {
   const nx = x - p.x;
   const ny = y - p.y;
   const n = Math.hypot(nx, ny) || 1;
+  const into = -((p.x - q.x) * nx + (p.y - q.y) * ny) / n;
   p.x = x;
   p.y = y;
   const tx = -ny / n;
@@ -69,16 +77,19 @@ function contact(p: P, q: P, x: number, y: number) {
     q.x += (nx / n) * out;
     q.y += (ny / n) * out;
   }
+  return into;
 }
 
-function collide(body: LineBody, walls: readonly Seg[], balls: readonly Ball[], r: number): number[] {
+/** h を渡すと、1 回の小さな刻み h のあいだに HIT_SPEED より速くぶつかった点を hits に集める */
+function collide(body: LineBody, walls: readonly Seg[], balls: readonly Ball[], r: number, h = 0): number[] {
   return body.pts.map((p, i) => {
     const q = body.prev[i];
     let hit = false;
+    let into = 0;
     for (const wall of walls) {
       const out = pushOut(wall, r, p.x, p.y, r);
       if (out) {
-        contact(p, q, ...out);
+        into = Math.max(into, contact(p, q, ...out));
         hit = true;
       }
     }
@@ -86,14 +97,15 @@ function collide(body: LineBody, walls: readonly Seg[], balls: readonly Ball[], 
       const d = Math.hypot(p.x - b.x, p.y - b.y) || 1e-9;
       const reach = b.r + r;
       if (d < reach) {
-        contact(p, q, b.x + ((p.x - b.x) / d) * reach, b.y + ((p.y - b.y) / d) * reach);
+        into = Math.max(into, contact(p, q, b.x + ((p.x - b.x) / d) * reach, b.y + ((p.y - b.y) / d) * reach));
         hit = true;
       }
     }
     if (p.x < r || p.x > 1 - r) {
-      contact(p, q, Math.min(1 - r, Math.max(r, p.x)), p.y);
+      into = Math.max(into, contact(p, q, Math.min(1 - r, Math.max(r, p.x)), p.y));
       hit = true;
     }
+    if (h > 0 && into / h > HIT_SPEED) body.hits.push({ x: p.x, y: p.y, speed: into / h });
     return hit ? CONTACT_WEIGHT : 1;
   });
 }
@@ -133,6 +145,7 @@ function match(body: LineBody, w: number[]) {
 
 /** r は線の太さの半分。壁も同じ太さで扱う。止まりきっていて動かさなかったら false */
 export function fall(body: LineBody, dt: number, walls: readonly Seg[], balls: readonly Ball[], r: number): boolean {
+  body.hits = [];
   if (body.still >= SLEEP_FRAMES) return false;
   const h = dt / SUBSTEPS;
   const before = body.pts.map((p) => ({ ...p }));
@@ -145,7 +158,7 @@ export function fall(body: LineBody, dt: number, walls: readonly Seg[], balls: r
       p.x += vx;
       p.y += vy + GRAVITY * h * h;
     });
-    for (let k = 0; k < ITERATIONS; k++) match(body, collide(body, walls, balls, r));
+    for (let k = 0; k < ITERATIONS; k++) match(body, collide(body, walls, balls, r, h));
   }
   // 支えの上でも毎回の重力で少し沈んで押し戻されるので、1 フレームでの動きで見る
   const moving = body.pts.some((p, i) => Math.abs(p.x - before[i].x) + Math.abs(p.y - before[i].y) > 1e-4);

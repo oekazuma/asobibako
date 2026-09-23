@@ -98,6 +98,28 @@ describe('dog-guard engine', () => {
     for (const p of high.stroke) expect(p.y).toBeLessThan(y);
   });
 
+  it('落ちた線は着地したときだけ land を出し、はじめから乗っている線は出さない', () => {
+    const lands = (state: GameState) => {
+      const frames: number[] = [];
+      for (let f = 0; f < 180; f++) if (step(state, 1 / 60).some((e) => e.type === 'land')) frames.push(f);
+      return frames;
+    };
+    const air = createState({ ...levelFor(1), bees: 0 });
+    const far = air.level.pets[0].x > 0.5 ? 0.05 : 0.7;
+    addPoint(air, far, 0.6);
+    addPoint(air, far + 0.2, 0.6);
+    finishStroke(air);
+    const frames = lands(air);
+    expect(frames.length).toBeGreaterThan(0);
+    expect(frames.at(-1)! - frames[0]).toBeLessThan(10);
+
+    const stage = levelFor(1);
+    const resting = createState({ ...stage, bees: 0 });
+    for (const p of stage.solution) addPoint(resting, p.x, p.y);
+    finishStroke(resting);
+    expect(lands(resting)).toEqual([]);
+  });
+
   it('片側が重い線は、支えから外れて倒れる', () => {
     const state = createState({ ...levelFor(1), bees: 0 });
     const pet = state.level.pets[0];
