@@ -154,15 +154,27 @@ describe('Hirameki', () => {
     unmount(app);
   });
 
-  it('間違いは「残念…」を見せてから onfinish(false)', () => {
-    const { target, app, onfinish, press, wait } = show();
+  it('間違いは「残念…」を見せたあと、答えだけ空にして同じナゾを続ける', () => {
+    const { target, app, onfinish, button, press, wait } = show();
     // 考え中に もう一度押しても、判定は 1 回だけ
     press('4', '答える', '答える');
     wait(THINK);
     expect(target.textContent).toContain('残念…');
-    expect(onfinish).not.toHaveBeenCalled();
     wait(1200);
-    expect(onfinish).toHaveBeenCalledExactlyOnceWith(false);
+    expect(target.textContent).not.toContain('残念…');
+    expect(button('答える').disabled).toBe(true);
+    expect(onfinish).not.toHaveBeenCalled();
+    unmount(app);
+  });
+
+  it('答え直しても、図に書いたメモは残す', () => {
+    const { target, app, press, wait } = show(2);
+    const memo = target.querySelector('canvas');
+    expect(memo).not.toBeNull();
+    press('点 4', '点 1', '点 2', '答える');
+    wait(THINK + 1200);
+    expect(target.querySelector('canvas')).toBe(memo);
+    expect(target.textContent).toContain('残り 2 本');
     unmount(app);
   });
 
