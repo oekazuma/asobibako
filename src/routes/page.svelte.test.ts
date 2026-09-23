@@ -42,6 +42,16 @@ describe('一覧', () => {
     unmount(again.app);
   });
 
+  it('登場の動きは開いたときだけで、タブを替えたら流さない', () => {
+    const { app, target, tab } = show();
+    const main = target.querySelector('main')!;
+    expect(main.classList.contains('intro')).toBe(true);
+    tab('ふたりで').click();
+    flushSync();
+    expect(main.classList.contains('intro')).toBe(false);
+    unmount(app);
+  });
+
   it('遊んだゲームがなければ さいきん の段を出さない', () => {
     const { target, app } = show();
     expect(target.querySelector('.recent')).toBeNull();
