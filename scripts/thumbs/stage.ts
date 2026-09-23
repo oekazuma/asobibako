@@ -24,18 +24,19 @@ export class Stage {
     return this.page.evaluate(
       ([id, type, x, y]) => {
         const target = document.elementFromPoint(x, y) ?? document.body;
-        target.dispatchEvent(
-          new PointerEvent(`pointer${type}`, {
-            pointerId: id,
-            pointerType: 'touch',
-            isPrimary: id === 1,
-            clientX: x,
-            clientY: y,
-            bubbles: true,
-            cancelable: true,
-            composed: true
-          })
-        );
+        const event = new PointerEvent(`pointer${type}`, {
+          pointerId: id,
+          pointerType: 'touch',
+          isPrimary: id === 1,
+          clientX: x,
+          clientY: y,
+          bubbles: true,
+          cancelable: true,
+          composed: true
+        });
+        // timeStamp は実時間になるので、はじく速さ（fingers.ts の velocity）が毎回ぶれる。ページの時計に合わせる
+        Object.defineProperty(event, 'timeStamp', { value: performance.now() });
+        target.dispatchEvent(event);
       },
       [id, type, x, y] as const
     );
@@ -52,13 +53,16 @@ export class Stage {
     await this.touch(id, 'up', x, y);
   }
 
-  /** from から to へ、ms かけて 16ms ごとに指を動かす。up はしない（持ったままの場面を撮れるように） */
-  async drag(id: number, from: Point, to: Point, ms: number): Promise<void> {
-    await this.touch(id, 'down', ...from);
+  /** path の点を順にたどって、ms かけて 16ms ごとに指を動かす。up はしない（持ったままの場面を撮れるように） */
+  async drag(id: number, path: readonly Point[], ms: number): Promise<void> {
+    await this.touch(id, 'down', ...path[0]);
     const steps = Math.max(1, Math.round(ms / 16));
+    const legs = path.length - 1;
     for (let i = 1; i <= steps; i++) {
-      const k = i / steps;
-      await this.touch(id, 'move', from[0] + (to[0] - from[0]) * k, from[1] + (to[1] - from[1]) * k);
+      const k = (i / steps) * legs;
+      const j = Math.min(legs - 1, Math.floor(k));
+      const [[x0, y0], [x1, y1]] = [path[j], path[j + 1]];
+      await this.touch(id, 'move', x0 + (x1 - x0) * (k - j), y0 + (y1 - y0) * (k - j));
       await this.wait(16);
     }
   }
@@ -71,13 +75,18 @@ export class Stage {
     return this.page.locator(selector).dispatchEvent('click');
   }
 
-  /** 1 人用。到達レベルを入れて読み直し、そのレベルで始める */
-  async startSolo(id: string, level: number): Promise<void> {
-    await this.page.evaluate(([key, level]) => localStorage.setItem(key, String(level)), [
-      `table-duel:reached:${id}`,
-      level
-    ] as const);
-    await this.page.reload({ waitUntil: 'networkidle' });
+  /** selector に合う要素の中心（DOM の順） */
+  centers(selector: string): Promise<Point[]> {
+    return this.page.$$eval(selector, (els) =>
+      els.map((el) => {
+        const r = el.getBoundingClientRect();
+        return [r.x + r.width / 2, r.y + r.height / 2] as const;
+      })
+    );
+  }
+
+  /** 1 人用。タイトルで選ばれているレベル（Scene.level で入れた到達レベル）で始める */
+  async startSolo(): Promise<void> {
     await this.press('button.go');
     await this.wait(600);
   }
