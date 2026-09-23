@@ -90,15 +90,15 @@
   .tail {
     transform-box: view-box;
     transform-origin: 50% 75%;
-    animation: wag 700ms ease-in-out infinite alternate;
+    animation: wag 1400ms ease-in-out infinite alternate;
   }
 
   @keyframes wag {
     from {
-      rotate: -10deg;
+      rotate: -4deg;
     }
     to {
-      rotate: 10deg;
+      rotate: 4deg;
     }
   }
 
