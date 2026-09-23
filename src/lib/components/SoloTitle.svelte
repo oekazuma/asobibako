@@ -47,29 +47,31 @@
   <div class="art" aria-hidden="true"><div class="zoom"><meta.Thumb /></div></div>
   <h1 class="title sticker">{meta.name}</h1>
   <Howto />
-  <span class="picker">
-    <button
-      class="step"
-      onpointerdown={() => press(-1)}
-      onpointerup={release}
-      onpointercancel={release}
-      onpointerleave={release}
-      onclick={() => click(-1)}
-      disabled={level <= 1}
-      aria-label="前のレベル">◀</button
-    >
-    <span class="level">レベル {level}</span>
-    <button
-      class="step"
-      onpointerdown={() => press(1)}
-      onpointerup={release}
-      onpointercancel={release}
-      onpointerleave={release}
-      onclick={() => click(1)}
-      disabled={level >= best}
-      aria-label="次のレベル">▶</button
-    >
-  </span>
+  {#if meta.levels > 1}
+    <span class="picker">
+      <button
+        class="step"
+        onpointerdown={() => press(-1)}
+        onpointerup={release}
+        onpointercancel={release}
+        onpointerleave={release}
+        onclick={() => click(-1)}
+        disabled={level <= 1}
+        aria-label="前のレベル">◀</button
+      >
+      <span class="level">レベル {level}</span>
+      <button
+        class="step"
+        onpointerdown={() => press(1)}
+        onpointerup={release}
+        onpointercancel={release}
+        onpointerleave={release}
+        onclick={() => click(1)}
+        disabled={level >= best}
+        aria-label="次のレベル">▶</button
+      >
+    </span>
+  {/if}
   <button class="pill p1 go" onclick={onstart}>タップで スタート</button>
 </div>
 
