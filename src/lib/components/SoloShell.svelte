@@ -6,18 +6,19 @@
   import type { SoloMeta, SoloModule } from '$lib/games';
   import { saveLevel, savedLevel } from '$lib/levels';
   import { Settle } from '$lib/settle.svelte';
+  import LevelSelect from './LevelSelect.svelte';
   import SoloResult from './SoloResult.svelte';
   import SoloTitle from './SoloTitle.svelte';
 
   let { meta, Game, Howto }: { meta: SoloMeta } & SoloModule = $props();
 
-  let screen = $state<'title' | 'playing' | 'result'>('title');
+  let screen = $state<'title' | 'levels' | 'playing' | 'result'>('title');
   let cleared = $state(false);
   /** 最後のレベルまでクリアした */
   let complete = $state(false);
   let round = $state(0);
   let level = $state(1);
-  /** たどり着いたいちばん先のレベル。タイトルでここまでは選び直せる */
+  /** たどり着いたいちばん先のレベル。最後のレベルをクリアすると levels + 1 になり、ここまでは選び直せる */
   let best = $state(1);
   let hint = $state('');
   const settle = new Settle();
@@ -42,19 +43,17 @@
     cleared = won;
     complete = won && level >= meta.levels;
     if (won) {
-      // 最後のレベルをクリアしたら levels + 1 を残し、一覧で「ぜんぶクリア」と出せるようにする
-      saveLevel(meta.id, Math.max(savedLevel(meta.id, meta.levels), level + 1));
-      if (!complete) {
-        level += 1;
-        best = Math.max(best, level);
-      }
+      best = Math.max(best, level + 1);
+      saveLevel(meta.id, best);
+      if (!complete) level += 1;
     }
     screen = 'result';
     settle.begin();
   }
 
   onMount(() => {
-    best = level = Math.min(meta.levels, savedLevel(meta.id, meta.levels));
+    best = savedLevel(meta.id, meta.levels);
+    level = Math.min(meta.levels, best);
     return settle.listen();
   });
 </script>
@@ -74,11 +73,24 @@
     <button class="round corner retry" onclick={retry} aria-label="やりなおし">↻</button>
   {:else}
     {#if screen === 'title'}
-      <SoloTitle {meta} {Howto} {best} bind:level onstart={start} />
+      <SoloTitle {meta} {Howto} {best} bind:level onlevels={() => (screen = 'levels')} onstart={start} />
+    {:else if screen === 'levels'}
+      <LevelSelect
+        levels={meta.levels}
+        {best}
+        onpick={(n) => {
+          level = n;
+          start();
+        }}
+      />
     {:else}
       <SoloResult {cleared} {complete} {level} onagain={start} />
     {/if}
-    <a class="round corner back" href={resolve('/')} aria-label="ゲーム選択へ戻る">✕</a>
+    {#if screen === 'levels'}
+      <button class="round corner back" onclick={() => (screen = 'title')} aria-label="タイトルへ戻る">✕</button>
+    {:else}
+      <a class="round corner back" href={resolve('/')} aria-label="ゲーム選択へ戻る">✕</a>
+    {/if}
     <button class="round corner mute" onclick={toggleMute} aria-label="ミュート" aria-pressed={audio.muted}>
       <Icon name={audio.muted ? 'mute' : 'speaker'} size="26px" />
     </button>

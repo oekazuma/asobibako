@@ -3,21 +3,31 @@
   import { asset } from '$app/paths';
   import type { SoloMeta } from '$lib/games';
 
-  /** best はたどり着いたいちばん先のレベル。◀ ▶ でそこまでの面を選び直せる */
+  /** best はたどり着いたいちばん先のレベル（1..levels + 1）。◀ ▶ か一覧でそこまでの面を選び直せる */
   let {
     meta,
     Howto,
     best,
     level = $bindable(),
+    onlevels,
     onstart
-  }: { meta: SoloMeta; Howto: Component; best: number; level: number; onstart: () => void } = $props();
+  }: {
+    meta: SoloMeta;
+    Howto: Component;
+    best: number;
+    level: number;
+    onlevels: () => void;
+    onstart: () => void;
+  } = $props();
+
+  const last = $derived(Math.min(meta.levels, best));
 
   let timer: ReturnType<typeof setTimeout> | undefined;
   /** 長押しのリピートで動かしたあとは、指を離したときの click で余分に 1 つ動かさない */
   let repeated = false;
 
   function step(d: -1 | 1): boolean {
-    const next = Math.min(best, Math.max(1, level + d));
+    const next = Math.min(last, Math.max(1, level + d));
     if (next === level) return false;
     level = next;
     return true;
@@ -68,7 +78,7 @@
         disabled={level <= 1}
         aria-label="前のレベル">◀</button
       >
-      <span class="level">レベル {level}</span>
+      <button class="pill level" onclick={onlevels}>レベル {level}<span class="more">▼</span></button>
       <button
         class="step"
         onpointerdown={() => press(1)}
@@ -76,7 +86,7 @@
         onpointercancel={release}
         onpointerleave={release}
         onclick={() => click(1)}
-        disabled={level >= best}
+        disabled={level >= last}
         aria-label="次のレベル">▶</button
       >
     </span>
@@ -118,12 +128,12 @@
   }
 
   .level {
-    padding: 6px 18px;
-    border: 2px solid var(--line);
-    border-radius: 999px;
-    background: #fff;
+    padding: 8px 20px;
     font-size: clamp(16px, 2.6cqh, 22px);
-    font-weight: 800;
+  }
+
+  .more {
+    font-size: 0.7em;
   }
 
   .picker {
