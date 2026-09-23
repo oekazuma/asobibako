@@ -22,9 +22,9 @@ const meta = {
   load: async () => ({ Game: StubGame, Howto: StubHowto })
 };
 
-function show() {
+function show(extra: { levelName?: string } = {}) {
   const target = document.body.appendChild(document.createElement('div'));
-  const app = mount(SoloShell, { target, props: { meta, Game: StubGame, Howto: StubHowto } });
+  const app = mount(SoloShell, { target, props: { meta: { ...meta, ...extra }, Game: StubGame, Howto: StubHowto } });
   flushSync();
   return { target, app };
 }
@@ -150,6 +150,21 @@ describe('SoloShell', () => {
     hooks.hint!('');
     flushSync();
     expect(target.querySelector('.hint')).toBeNull();
+    unmount(app);
+  });
+
+  it('levelName があれば、タイトル・一覧・結果で「レベル」の代わりにその呼び方を使う', () => {
+    const { target, app } = show({ levelName: 'ナゾ' });
+    expect(target.textContent).toContain('ナゾ 1');
+    (target.querySelector('button.level') as HTMLButtonElement).click();
+    flushSync();
+    expect(target.textContent).toContain('ナゾを えらぼう');
+    (target.querySelector('button[aria-label="ナゾ 1"]') as HTMLButtonElement).click();
+    flushSync();
+    hooks.solo!(true);
+    flushSync();
+    expect(target.textContent).toContain('つぎは ナゾ 2');
+    expect(target.textContent).not.toContain('レベル');
     unmount(app);
   });
 });

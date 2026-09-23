@@ -21,6 +21,7 @@
   } = $props();
 
   const last = $derived(Math.min(meta.levels, best));
+  const name = $derived(meta.levelName ?? 'レベル');
 
   let timer: ReturnType<typeof setTimeout> | undefined;
   /** 長押しのリピートで動かしたあとは、指を離したときの click で余分に 1 つ動かさない */
@@ -76,9 +77,9 @@
         onpointerleave={release}
         onclick={() => click(-1)}
         disabled={level <= 1}
-        aria-label="前のレベル">◀</button
+        aria-label="前の{name}">◀</button
       >
-      <button class="pill level" onclick={onlevels}>レベル {level}<span class="more">▼</span></button>
+      <button class="pill level" onclick={onlevels}>{name} {level}<span class="more">▼</span></button>
       <button
         class="step"
         onpointerdown={() => press(1)}
@@ -87,7 +88,7 @@
         onpointerleave={release}
         onclick={() => click(1)}
         disabled={level >= last}
-        aria-label="次のレベル">▶</button
+        aria-label="次の{name}">▶</button
       >
     </span>
   {/if}

@@ -77,6 +77,7 @@
     {:else if screen === 'levels'}
       <LevelSelect
         levels={meta.levels}
+        name={meta.levelName}
         {best}
         onpick={(n) => {
           level = n;
@@ -84,7 +85,7 @@
         }}
       />
     {:else}
-      <SoloResult {cleared} {complete} {level} onagain={start} />
+      <SoloResult {cleared} {complete} {level} name={meta.levelName} onagain={start} />
     {/if}
     {#if screen === 'levels'}
       <button class="round corner back" onclick={() => (screen = 'title')} aria-label="タイトルへ戻る">✕</button>

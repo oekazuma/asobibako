@@ -26,7 +26,9 @@
     />
     {#if reached !== null && reached > 1}
       {@const done = game.players === 1 && reached > game.levels}
-      <span class="reached" class:done>{done ? 'ぜんぶクリア' : `Lv ${reached}`}</span>
+      <span class="reached" class:done
+        >{done ? 'ぜんぶクリア' : `${game.players === 1 && game.levelName ? game.levelName : 'Lv'} ${reached}`}</span
+      >
     {/if}
   </div>
   <h3>{game.name}</h3>

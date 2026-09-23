@@ -2,14 +2,19 @@
   import Icon from './Icon.svelte';
 
   /** best はたどり着いたいちばん先のレベル（1..levels + 1）。それより前はクリア済み、先はまだ選べない */
-  let { levels, best, onpick }: { levels: number; best: number; onpick: (level: number) => void } = $props();
+  let {
+    levels,
+    best,
+    name = 'レベル',
+    onpick
+  }: { levels: number; best: number; name?: string; onpick: (level: number) => void } = $props();
 
   // 50 面を 5 列にすると 10 行になり、縦に合わせたマスが iPad では小さすぎる
   const columns = $derived(levels > 30 ? 6 : 5);
 </script>
 
 <div class="panel">
-  <h1 class="title yuru">レベルを えらぼう</h1>
+  <h1 class="title yuru">{name}を えらぼう</h1>
   <div class="grid" style:--cols={columns} style:--rows={Math.ceil(levels / columns)}>
     {#each { length: levels }, i (i)}
       {@const n = i + 1}
@@ -19,7 +24,7 @@
         class:next={n === best}
         disabled={n > best}
         onclick={() => onpick(n)}
-        aria-label="レベル {n}"
+        aria-label="{name} {n}"
       >
         {n}
         {#if n < best}
