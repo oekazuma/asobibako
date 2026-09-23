@@ -310,7 +310,7 @@ it('どのゲームにも一覧のカードの画像がある', () => {
   src={asset(`/thumbs/${game.id}.webp`)}
   alt=""
   width="680"
-  height="256"
+  height="400"
   loading="lazy"
   decoding="async"
 />
