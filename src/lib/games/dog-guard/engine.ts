@@ -1,4 +1,4 @@
-import { crosses, pushOut, type Seg } from '$lib/segments';
+import { closest, crosses, pushOut, type Seg } from '$lib/segments';
 import { fall, makeLineBody, type Hit, type LineBody } from './line-physics';
 
 /** 座標は幅 1・高さ WORLD_H の固定の箱で、y は下向き。画面にはこの箱ごと拡大して収める */
@@ -105,25 +105,105 @@ export function drawable(level: Level, x: number, y: number): boolean {
   return !level.noDraw.some((z) => x > z.x0 && x < z.x1 && y > z.y0 && y < z.y1);
 }
 
-/** 線に 1 点足す。引けない場所を通る線や、インクが切れた先は足さない */
+/** 引けない場所に入った点を、いちばん近い引ける場所へ寄せる。犬のまわりは円の外、雲は近い辺、地面の中は地面の上 */
+function nudge(level: Level, x: number, y: number): [number, number] {
+  for (const d of level.pets) {
+    const r = Math.hypot(x - d.x, y - d.y);
+    if (r >= KEEP_OUT) continue;
+    const [ux, uy] = r < 1e-9 ? [0, -1] : [(x - d.x) / r, (y - d.y) / r];
+    // ちょうど縁の上だと丸め誤差で円の内側に入るので、わずかに外へ出す
+    x = d.x + ux * KEEP_OUT * 1.0001;
+    y = d.y + uy * KEEP_OUT * 1.0001;
+  }
+  for (const z of level.noDraw) {
+    if (!(x > z.x0 && x < z.x1 && y > z.y0 && y < z.y1)) continue;
+    const gaps = [x - z.x0, z.x1 - x, y - z.y0, z.y1 - y];
+    const side = gaps.indexOf(Math.min(...gaps));
+    if (side === 0) x = z.x0;
+    else if (side === 1) x = z.x1;
+    else if (side === 2) y = z.y0;
+    else y = z.y1;
+  }
+  return [x, Math.min(y, GROUND)];
+}
+
+/**
+ * 指へ向けてずらす向き（ラジアン）。まっすぐ進めないとき（指が犬の真向かい・地面ぞい）は斜めに回り込む。
+ * 下へ回ると犬の円と地面のすきまに挟まって抜けられないので、上向きを先に試す
+ */
+const TURNS = [0, 0.5, 1, 1.5];
+
+/**
+ * last が犬の円の縁にいて、指とのあいだをその円がさえぎっていれば、円に沿って上を回る 1 歩。
+ * 指へ近づく向きだけで選ぶと、円と地面のすきまに入った線は、上へ回るのに一度遠ざかれず抜けられない
+ */
+function aroundPet(level: Level, last: Point, x: number, y: number): [number, number] | null {
+  const pet = level.pets.find((d) => {
+    if (Math.hypot(last.x - d.x, last.y - d.y) > KEEP_OUT * 1.05 || Math.hypot(x - d.x, y - d.y) < KEEP_OUT)
+      return false;
+    const [cx, cy] = closest([last.x, last.y, x, y], d.x, d.y);
+    return Math.hypot(cx - d.x, cy - d.y) < KEEP_OUT * 0.995;
+  });
+  if (!pet) return null;
+  // y が下向きなので、角度を増やすと左から上を通って右へ回る
+  const a = Math.atan2(last.y - pet.y, last.x - pet.x) + (x > pet.x ? 1 : -1) * (MIN_STEP / KEEP_OUT);
+  return [pet.x + Math.cos(a) * KEEP_OUT * 1.0001, pet.y + Math.sin(a) * KEEP_OUT * 1.0001];
+}
+
+/** last から指 (x, y) へ 1 歩ぶん進めた、引ける点。進めなければ null */
+function advance(level: Level, last: Point, x: number, y: number): [number, number] | null {
+  const d = Math.hypot(x - last.x, y - last.y);
+  if (d < MIN_STEP) return null;
+  // 指が犬の円の中にあるあいだは縁で待つ。指へ寄せると円に沿って下へ垂れ、線にひげが残る
+  const near = (c: Point, p: Point, k: number) => Math.hypot(p.x - c.x, p.y - c.y) < KEEP_OUT * k;
+  if (level.pets.some((pet) => near(pet, { x, y }, 1) && near(pet, last, 1.05))) return null;
+  const around = aroundPet(level, last, x, y);
+  if (around) {
+    const [nx, ny] = around;
+    const ok = drawable(level, nx, ny) && !level.walls.some((w) => crosses(w, [last.x, last.y, nx, ny]));
+    return ok ? around : null;
+  }
+  const step = d <= MIN_STEP * 2 ? d : MIN_STEP;
+  const a = Math.atan2(y - last.y, x - last.x);
+  const angles = TURNS.flatMap((t) => (t === 0 ? [a] : [a - t, a + t].sort((p, q) => Math.sin(p) - Math.sin(q))));
+  for (const b of angles) {
+    const [nx, ny] = nudge(level, last.x + Math.cos(b) * step, last.y + Math.sin(b) * step);
+    const moved = Math.hypot(nx - last.x, ny - last.y);
+    // 寄せた先が元の場所に戻ったり、円の反対側へ飛んだり（線が犬の上を横切る）、指から遠ざかるならほかの向きを試す
+    if (moved < MIN_STEP / 4 || moved > step * 3 || Math.hypot(x - nx, y - ny) >= d) continue;
+    if (!drawable(level, nx, ny)) continue;
+    // 壁をまたぐ線は、落ちるときに壁と交わったまま抜けられずはじき飛ばされるので引かせない
+    if (level.walls.some((w) => crosses(w, [last.x, last.y, nx, ny]))) continue;
+    return [nx, ny];
+  }
+  return null;
+}
+
+/**
+ * 指の位置へ向けて線を小刻みにのばす。指が犬のまわりや雲に入っても止めず、その縁に沿って回り込ませる
+ * （線は 1 本しか引けないので、指がかすめただけで途切れるとそのまま失敗になる）。壁はまたがせずそこで止める
+ */
 export function addPoint(state: GameState, x: number, y: number): boolean {
-  if (state.phase !== 'draw' || !drawable(state.level, x, y)) return false;
-  const last = state.stroke[state.stroke.length - 1];
-  if (!last) {
-    state.stroke.push({ x, y });
+  if (state.phase !== 'draw') return false;
+  const { level, stroke } = state;
+  if (stroke.length === 0) {
+    const [px, py] = nudge(level, x, y);
+    if (!drawable(level, px, py)) return false;
+    stroke.push({ x: px, y: py });
     return true;
   }
-  const d = Math.hypot(x - last.x, y - last.y);
-  if (d < MIN_STEP || state.ink <= 0) return false;
-  // 指を速く動かすと点が飛ぶので、あいだも引けない場所を通っていないか確かめる
-  for (let t = 0.1; t < 1; t += 0.1)
-    if (!drawable(state.level, last.x + (x - last.x) * t, last.y + (y - last.y) * t)) return false;
-  // 壁をまたぐ線は、落ちるときに壁と交わったまま抜けられずはじき飛ばされるので引かせない
-  if (state.level.walls.some((w) => crosses(w, [last.x, last.y, x, y]))) return false;
-  const t = Math.min(1, state.ink / d);
-  state.stroke.push({ x: last.x + (x - last.x) * t, y: last.y + (y - last.y) * t });
-  state.ink = Math.max(0, state.ink - d);
-  return true;
+  let added = false;
+  for (let k = 0; k < 400 && state.ink > 0; k++) {
+    const last = stroke[stroke.length - 1];
+    const next = advance(level, last, x, y);
+    if (!next) break;
+    const moved = Math.hypot(next[0] - last.x, next[1] - last.y);
+    const t = Math.min(1, state.ink / moved);
+    stroke.push({ x: last.x + (next[0] - last.x) * t, y: last.y + (next[1] - last.y) * t });
+    state.ink = Math.max(0, state.ink - moved);
+    added = true;
+  }
+  return added;
 }
 
 /** 指を離したら線が落ちはじめ、ハチが出てくる。短すぎる線は引き直させる */

@@ -131,21 +131,37 @@ describe('dog-guard engine', () => {
     expect(state.stroke.at(-1)!.y).toBeCloseTo(GROUND - 2 * LINE, 2);
   });
 
-  it('壁をまたぐ線や、地面の中には引けない', () => {
+  it('壁はまたげず、線はその手前で止まる', () => {
     const state = createState(levelFor(5));
     const [x1, y] = state.level.walls[0];
-    expect(addPoint(state, x1 + 0.05, y - 0.05)).toBe(true);
-    expect(addPoint(state, x1 + 0.05, y + 0.05)).toBe(false);
+    addPoint(state, x1 + 0.05, y - 0.05);
+    addPoint(state, x1 + 0.05, y + 0.05);
+    for (const p of state.stroke) expect(p.y).toBeLessThan(y);
     expect(drawable(state.level, 0.5, GROUND + 0.02)).toBe(false);
   });
 
-  it('雲の中や、雲をまたぐ線は引けない', () => {
+  it.each([
+    ['真ん中', 0],
+    ['少し上', -0.02],
+    ['地面ぞい', 0.07]
+  ])('指が犬の%sを横切っても線は途切れず、縁に沿って回り込む', (_, dy) => {
+    const state = createState(levelFor(1));
+    const pet = state.level.pets[0];
+    for (let x = pet.x - 0.2; x <= pet.x + 0.2; x += 0.01) addPoint(state, x, pet.y + dy);
+    expect(state.stroke.at(-1)!.x).toBeCloseTo(pet.x + 0.2, 1);
+    for (const p of state.stroke) expect(drawable(state.level, p.x, p.y), `${p.x}, ${p.y}`).toBe(true);
+  });
+
+  it('雲に入った指は雲のふちをなぞり、雲の中に線は入らない', () => {
     const state = createState(levelFor(11));
     expect(levelFor(11).kind).toBe('side');
     const zone = state.level.noDraw[0];
-    const mid = (zone.x0 + zone.x1) / 2;
-    expect(addPoint(state, mid, (zone.y0 + zone.y1) / 2)).toBe(false);
-    addPoint(state, mid, zone.y0 - 0.05);
-    expect(addPoint(state, mid, zone.y1 + 0.05)).toBe(false);
+    const y = (zone.y0 + zone.y1) / 2;
+    const from = zone.x0 < 0.05 ? zone.x1 + 0.05 : zone.x0 - 0.05;
+    const to = zone.x0 < 0.05 ? zone.x1 - 0.1 : zone.x0 + 0.1;
+    addPoint(state, from, y);
+    for (let k = 1; k <= 20; k++) addPoint(state, from + ((to - from) * k) / 20, y - 0.05 * Math.sin(k));
+    expect(state.stroke.length).toBeGreaterThan(1);
+    for (const p of state.stroke) expect(drawable(state.level, p.x, p.y)).toBe(true);
   });
 });
