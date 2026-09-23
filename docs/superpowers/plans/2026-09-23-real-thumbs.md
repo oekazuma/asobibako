@@ -340,3 +340,24 @@ it('どのゲームにも一覧のカードの画像がある', () => {
 git add -A src README.md CLAUDE.md
 git commit -m "Show real-play screenshots on the game list and drop Thumb components"
 ```
+
+---
+
+### Task 4: 一覧をタブと小さめのタイルにする
+
+**Files:**
+
+- Modify: `src/routes/+page.svelte`、`src/lib/components/GameCard.svelte`（小さめのタイルに）、`src/routes/games/[id]/+page.svelte`（開いたゲームを最近の記録に入れる）
+- Create: `src/lib/recent.ts`（最近遊んだゲームとタブの保存。`localStorage` が使えなければ何もしない）と、そのテスト
+- Modify: `src/lib/components/GameCard.svelte.test.ts`、一覧のテスト（なければ `src/routes/page.svelte.test.ts` を作る）
+
+**Interfaces:**
+
+- Produces: `recent.ts` の `recentGames(): string[]`、`rememberGame(id: string): void`、`menuTab(): 1 | 2`、`setMenuTab(tab: 1 | 2): void`
+
+- [ ] Step 1. 仕様の「一覧画面の並べ方」を読み、`recent.ts` のテスト（開いた順に先頭へ、3 本まで、重複なし、壊れた値や使えない保存では空）を書いて落ちることを確かめ、実装して通す。保存の読み書きは `src/lib/levels.ts` の `savedLevel` と同じく try/catch で包む
+- [ ] Step 2. `/games/[id]` を開いたときに `rememberGame(id)` を呼ぶ（mount のあと。プリレンダーでは呼ばない）
+- [ ] Step 3. `GameCard` を小さめのタイルにする。画像と名前だけにし、到達レベルは画像の右上の札にする。説明・人数・所要時間は消す
+- [ ] Step 4. `+page.svelte` をタブと 1 行の「さいきん あそんだ」にする。タブは `button` に `aria-pressed` をつける。並びは iPad 縦 3 列・スマホ 2 列。見た目は既存の `app.css` のトークン（`.pill`、`.sticker`、`--p1` / `--p2`、`--lift`）に合わせる
+- [ ] Step 5. 一覧のテストを書く（タブで並びが変わる、選んだ側が保存される、最近の段が出る・出ない）。`pnpm verify` を通し、内蔵ブラウザで iPad 縦（768 × 1024）とスマホ（375 × 812）の一覧を見て、画像が枠に収まりタイルが崩れないことを確かめる
+- [ ] Step 6. README の一覧の説明を今の仕様に直してコミットする
