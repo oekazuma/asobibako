@@ -1,5 +1,5 @@
-/** 絵本風のふち線。キャラクターも道具もこの色と太さでそろえる */
-export const LINE = '#4a2e1f';
+/** ゆるかわの細いふち線。キャラクターも道具もこの色と太さでそろえる */
+export const LINE = '#5b4a42';
 export const LW = 0.008;
 
 export function oval(ctx: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number, rot = 0): void {

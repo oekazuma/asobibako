@@ -4,9 +4,9 @@ import { ANIMALS, teethFor } from './animals';
 describe('dentist animals', () => {
   const all = Object.values(ANIMALS);
 
-  it('歯の本数は うさぎの 8 本から ワニの 20 本まで', () => {
-    expect(teethFor(ANIMALS.rabbit)).toHaveLength(8);
-    expect(teethFor(ANIMALS.croc)).toHaveLength(20);
+  it('歯の本数は うさぎの 6 本から カエルの 12 本まで', () => {
+    expect(teethFor(ANIMALS.rabbit)).toHaveLength(6);
+    expect(teethFor(ANIMALS.frog)).toHaveLength(12);
     for (const a of all) expect(teethFor(a)).toHaveLength(a.per * 2);
   });
 
