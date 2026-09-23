@@ -52,6 +52,14 @@ describe('一覧', () => {
     unmount(app);
   });
 
+  it('右上の ？ から アプリについて へ行け、更新の欄は一覧に置かない', () => {
+    const { target, app } = show();
+    const help = target.querySelector<HTMLAnchorElement>('a[aria-label^="アプリについて"]')!;
+    expect(help.getAttribute('href')).toMatch(/\/about$/);
+    expect(target.querySelector('.update')).toBeNull();
+    unmount(app);
+  });
+
   it('遊んだゲームがなければ さいきん の段を出さない', () => {
     const { target, app } = show();
     expect(target.querySelector('.recent')).toBeNull();

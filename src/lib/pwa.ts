@@ -24,3 +24,17 @@ export async function updateApp(): Promise<void> {
   }
   location.reload();
 }
+
+export type PwaStatus = { standalone: boolean; swActive: boolean; cached: boolean };
+
+/** ホーム画面から起動しているか / Service Worker が有効か / オフライン用の保存があるか */
+export async function pwaStatus(): Promise<PwaStatus> {
+  // 安全でない接続などでは caches や serviceWorker そのものが生えていないので、globalThis から辿る
+  const standalone =
+    globalThis.matchMedia?.('(display-mode: standalone)').matches === true ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  const swActive = !!(await navigator.serviceWorker?.getRegistration())?.active;
+  const key = ((await globalThis.caches?.keys()) ?? []).find((k) => k.startsWith('asobibako-'));
+  const cached = !!key && (await (await caches.open(key)).keys()).length > 0;
+  return { standalone, swActive, cached };
+}
