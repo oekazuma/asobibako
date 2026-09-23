@@ -1,8 +1,12 @@
 <script lang="ts">
   import GameShell from '$lib/components/GameShell.svelte';
   import SoloShell from '$lib/components/SoloShell.svelte';
+  import { rememberGame } from '$lib/recent';
 
   let { data } = $props();
+
+  // 別のゲームへ移ってもページの部品は使い回されるので、onMount ではなく id の変化で覚える
+  $effect(() => rememberGame(data.play.meta.id));
 </script>
 
 <svelte:head>

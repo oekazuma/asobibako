@@ -14,29 +14,22 @@
 </script>
 
 <a class="card" href={resolve('/games/[id]', { id: game.id })}>
-  <img
-    class="thumb"
-    src={asset(`/thumbs/${game.id}.webp`)}
-    alt=""
-    width="680"
-    height="400"
-    loading="eager"
-    decoding="async"
-  />
-  <div class="body">
-    <h3>{game.name}</h3>
-    <p class="desc">{game.description}</p>
-    <p class="meta">
-      <span class="chip">{game.players}人</span>
-      <span class="chip">{game.minutes}</span>
-      {#if reached !== null && reached > 1}
-        {@const done = game.players === 1 && reached > game.levels}
-        <span class="chip reached" class:done>
-          {done ? 'ぜんぶクリア' : `レベル ${reached}`}
-        </span>
-      {/if}
-    </p>
+  <div class="frame">
+    <img
+      class="thumb"
+      src={asset(`/thumbs/${game.id}.webp`)}
+      alt=""
+      width="680"
+      height="400"
+      loading="eager"
+      decoding="async"
+    />
+    {#if reached !== null && reached > 1}
+      {@const done = game.players === 1 && reached > game.levels}
+      <span class="reached" class:done>{done ? 'ぜんぶクリア' : `Lv ${reached}`}</span>
+    {/if}
   </div>
+  <h3>{game.name}</h3>
 </a>
 
 <style>
@@ -45,12 +38,13 @@
     flex-direction: column;
     height: 100%;
     overflow: hidden;
+    container-type: inline-size;
     border: 4px solid #fff;
-    border-radius: 26px;
+    border-radius: 22px;
     background: var(--card);
     box-shadow:
-      0 8px 0 var(--card-edge),
-      0 16px 28px rgb(43 45 66 / 0.1);
+      0 6px 0 var(--card-edge),
+      0 12px 22px rgb(43 45 66 / 0.1);
     color: inherit;
     text-decoration: none;
     transition:
@@ -59,65 +53,53 @@
   }
 
   .card:active {
-    translate: 0 6px;
+    translate: 0 4px;
     box-shadow:
       0 2px 0 var(--card-edge),
       0 6px 14px rgb(43 45 66 / 0.1);
   }
 
+  .frame {
+    position: relative;
+  }
+
   .thumb {
     display: block;
     width: 100%;
-    height: 200px;
-    border-radius: 20px 20px 0 0;
+    height: auto;
+    aspect-ratio: 680 / 400;
+    border-radius: 18px 18px 0 0;
     object-fit: cover;
   }
 
-  .body {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: 8px;
-    padding: 14px 18px 18px;
-  }
-
-  .body h3 {
-    font-size: 24px;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-  }
-
-  .desc {
-    color: var(--ink-soft);
-    font-size: 14px;
-    font-weight: 700;
-    line-height: 1.6;
-  }
-
-  .meta {
-    display: flex;
-    gap: 6px;
-    margin-top: auto;
-    padding-top: 4px;
-  }
-
-  .chip {
-    padding: 3px 12px;
+  .reached {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    padding: 0.15em 0.8em;
+    border: 2px solid #fff;
     border-radius: 999px;
-    background: var(--bg);
-    color: var(--ink-soft);
-    font-size: 12px;
+    background: var(--p1);
+    color: #fff;
+    font-size: clamp(9px, 6cqi, 12px);
+    white-space: nowrap;
     font-weight: 800;
+    box-shadow: 0 2px 0 var(--p1-deep);
   }
 
-  .chip.reached {
-    background: var(--p1-soft);
-    color: var(--p1-deep);
-  }
-
-  .chip.done {
+  .reached.done {
     background: var(--gold);
     color: var(--ink);
+    box-shadow: 0 2px 0 var(--gold-deep);
+  }
+
+  /* スマホの最近の段では 3 枚を 1 行に詰めるので、文字はタイルの幅に合わせて縮める */
+  h3 {
+    padding: 8px 4px 10px;
+    font-size: clamp(11px, 8cqi, 20px);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-align: center;
   }
 
   @media (prefers-reduced-motion: reduce) {

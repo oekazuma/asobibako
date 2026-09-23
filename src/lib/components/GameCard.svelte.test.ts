@@ -43,7 +43,7 @@ describe('GameCard', () => {
   it('到達レベルを出す', () => {
     localStorage.setItem('table-duel:reached:stub', '37');
     const { target, app } = show();
-    expect(target.querySelector('.reached')?.textContent?.trim()).toBe('レベル 37');
+    expect(target.querySelector('.reached')?.textContent?.trim()).toBe('Lv 37');
     unmount(app);
   });
 
