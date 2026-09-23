@@ -31,8 +31,11 @@ function symptomOf(g: GameState, i: number): Symptom | undefined {
   return g.symptoms.find((s) => s.tooth === i);
 }
 
-/** 口の中の歯を症状ごと描く。ぐらぐらの歯は歯ぐきを支点に揺らし、引っぱった分だけずらす */
-export function drawTeeth(ctx: CanvasRenderingContext2D, g: GameState): void {
+/**
+ * 口の中の歯を症状ごと描く。ぐらぐらの歯は歯ぐきを支点に揺らし、引っぱった分だけずらす。
+ * still（prefers-reduced-motion）では震えを止め、同じ振れ幅の固定した傾きだけでぐらぐら感を出す
+ */
+export function drawTeeth(ctx: CanvasRenderingContext2D, g: GameState, still: boolean): void {
   g.teeth.forEach((t, i) => {
     if (t.gone) return;
     const s = symptomOf(g, i);
@@ -40,8 +43,9 @@ export function drawTeeth(ctx: CanvasRenderingContext2D, g: GameState): void {
     if (s?.type === 'loose') {
       const away = t.row === 'upper' ? 1 : -1;
       const gum = t.row === 'upper' ? t.y - t.h / 2 : t.y + t.h / 2;
+      const amp = 0.05 + s.pull * 0.1;
       ctx.translate(t.x, gum + away * s.pull * 0.05);
-      ctx.rotate(Math.sin(g.time * 16) * (0.05 + s.pull * 0.1));
+      ctx.rotate(still ? amp : Math.sin(g.time * 16) * amp);
       ctx.translate(-t.x, -gum);
     }
     drawToothBase(ctx, t);

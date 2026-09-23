@@ -24,7 +24,7 @@ export function paint(ctx: CanvasRenderingContext2D, g: GameState, o: PaintOptio
   const breathe = o.still ? 0 : Math.sin(g.time * 2) * 0.004;
   ctx.save();
   ctx.translate(shiver, breathe);
-  drawPatient(ctx, a, e, g.time, (c) => drawTeeth(c, g));
+  drawPatient(ctx, a, e, g.time, (c) => drawTeeth(c, g, o.still));
   ctx.restore();
   drawTrash(ctx, o.lid);
   for (const germ of g.germs) {
