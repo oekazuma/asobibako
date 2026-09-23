@@ -56,7 +56,38 @@ vi.mock('./puzzles', () => {
           { q: '天気は関係ある？', a: '関係ない' }
         ]
       },
-      { ...base, kind: 'ice', cols: 3, rows: 3, rocks: [{ x: 2, y: 0 }], start: { x: 0, y: 0 }, goal: { x: 2, y: 2 } }
+      { ...base, kind: 'ice', cols: 3, rows: 3, rocks: [{ x: 2, y: 0 }], start: { x: 0, y: 0 }, goal: { x: 2, y: 2 } },
+      {
+        ...base,
+        kind: 'connect',
+        cols: 3,
+        rows: 1,
+        fill: true,
+        pairs: [{ a: { x: 0, y: 0 }, b: { x: 2, y: 0 }, color: '#f66' }]
+      },
+      { ...base, kind: 'divide', cols: 2, rows: 1, parts: 2, example: [0, 1] },
+      {
+        ...base,
+        kind: 'rotate',
+        cols: 1,
+        rows: 1,
+        tiles: [{ shape: 'corner', turn: 0 }],
+        source: { x: -1, y: 0, dir: 1 },
+        target: 0,
+        mode: 'pipe',
+        example: [2]
+      },
+      {
+        ...base,
+        kind: 'fill',
+        fig: { w: 150, h: 100, s: [] },
+        cells: [
+          { x: 50, y: 50 },
+          { x: 100, y: 50, given: 1 }
+        ],
+        numbers: [2],
+        goal: (v: readonly number[]) => v[0] === 2
+      }
     ]
   };
 });
@@ -83,7 +114,17 @@ function show(level = 1) {
     vi.advanceTimersByTime(ms);
     flushSync();
   };
-  return { target, app, onfinish, button, press, wait };
+  /** 幅 300・高さ 100 の盤の上で、指を置いて x を順にたどって離す */
+  const trace = (...xs: number[]) => {
+    const board = target.querySelector<HTMLElement>('[role="application"]')!;
+    vi.spyOn(board, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 300, 100));
+    xs.forEach((x, k) => {
+      const type = k === 0 ? 'pointerdown' : k === xs.length - 1 ? 'pointerup' : 'pointermove';
+      board.dispatchEvent(new PointerEvent(type, { pointerId: 1, clientX: x, clientY: 50, bubbles: true }));
+    });
+    flushSync();
+  };
+  return { target, app, onfinish, button, press, wait, trace };
 }
 
 describe('Hirameki', () => {
@@ -229,6 +270,62 @@ describe('Hirameki', () => {
     press('閉じる', '質問する');
     expect(target.textContent).toContain('聞いた数 1 / 2');
     expect(target.querySelector('.a')?.textContent).toBe('はい');
+    unmount(app);
+  });
+
+  it('connect は点から指でなぞってつなぎ、盤を埋めると自動で正解', () => {
+    const { target, app, onfinish, press, wait, trace } = show(8);
+    // 飛ばしたますも 1 ますずつたどり、戻れば縮む
+    trace(50, 250, 150, 150);
+    expect(target.textContent).toContain('つないだ線 0 / 1');
+    trace(150, 250, 250);
+    expect(target.textContent).toContain('つないだ線 1 / 1');
+    wait(300);
+    wait(800);
+    press('次へ');
+    expect(onfinish).toHaveBeenCalledExactlyOnceWith(true);
+    unmount(app);
+  });
+
+  it('divide は色を選んでなぞって塗り、全部塗ると答えられる', () => {
+    const { app, onfinish, button, press, wait, trace } = show(9);
+    trace(50, 50);
+    expect(button('答える').disabled).toBe(true);
+    press('色 2');
+    trace(250, 250);
+    press('答える');
+    wait(THINK);
+    press('次へ');
+    expect(onfinish).toHaveBeenCalledExactlyOnceWith(true);
+    unmount(app);
+  });
+
+  it('rotate は押すと 90 度回り、水が届けば自動で正解', () => {
+    const { target, app, onfinish, press, wait } = show(10);
+    press('タイル 1');
+    expect(target.textContent).toContain('手数 1');
+    expect(target.textContent).not.toContain('ナゾ解明！');
+    press('タイル 1');
+    wait(400);
+    wait(800);
+    press('次へ');
+    expect(onfinish).toHaveBeenCalledExactlyOnceWith(true);
+    unmount(app);
+  });
+
+  it('fill はチップを選んでからます目を押して入れ、given は変えられない', () => {
+    const { target, app, onfinish, button, press, wait } = show(11);
+    expect(button('ます 2').textContent).toBe('1');
+    press('ます 1');
+    expect(button('ます 1').textContent).toBe('');
+    press('数 2', 'ます 1');
+    expect(button('数 2').disabled).toBe(true);
+    press('ます 2');
+    expect(target.textContent).toContain('1');
+    press('答える');
+    wait(THINK);
+    press('次へ');
+    expect(onfinish).toHaveBeenCalledExactlyOnceWith(true);
     unmount(app);
   });
 });

@@ -168,4 +168,79 @@ export interface IceQ {
   goal: Point;
 }
 
-export type Puzzle = Base & (NumberQ | TapQ | SticksQ | RiverQ | PourQ | LinesQ | WordQ | SlideQ | PlaceQ | IceQ);
+/**
+ * 同じ色の 2 点を、縦横にます目をたどる線でつなぐ。線どうしは交わらず、ほかの点や blocked も通らない。
+ * fill なら、blocked 以外のます目をすべて線で埋める。ます目の番号は y * cols + x
+ */
+export interface ConnectQ {
+  kind: 'connect';
+  cols: number;
+  rows: number;
+  pairs: { a: Point; b: Point; color: string }[];
+  blocked?: number[];
+  fill?: boolean;
+}
+
+/**
+ * ます目を parts 個の組に分ける。どの組もつながっていて、同じ形（回転・裏返しは同じとみなす）。
+ * marks があれば、どの組にもちょうど 1 つずつ入る。example は正解の分け方の 1 つ（テストが確かめる）
+ */
+export interface DivideQ {
+  kind: 'divide';
+  cols: number;
+  rows: number;
+  parts: number;
+  blocked?: number[];
+  marks?: number[];
+  example: number[];
+}
+
+/** 回転タイルの形。開いている辺は turn が 0 のときのもので、上・右・下・左の順 */
+export type TileShape = 'empty' | 'end' | 'straight' | 'corner' | 'tee' | 'cross' | 'mirror';
+
+/**
+ * タイルを押すと時計回りに 90 度ずつ回る。水（パイプ）や光（鏡）を source から target へ届ける。
+ * mirror は turn が偶数で「/」、奇数で「\」。fixed のタイルは回らない。ます目の番号は y * cols + x
+ */
+export interface RotateQ {
+  kind: 'rotate';
+  cols: number;
+  rows: number;
+  tiles: { shape: TileShape; turn: number; fixed?: boolean }[];
+  /** 水か光が出てくるところ。盤の外（x か y が -1 や cols / rows）に置き、dir（0 上・1 右・2 下・3 左）へ向かって盤に入る */
+  source: { x: number; y: number; dir: 0 | 1 | 2 | 3 };
+  /** 届けたいます目。水ならそのます目にパイプがつながり、光ならそのます目を通れば正解 */
+  target: number;
+  mode: 'pipe' | 'light';
+  /** 正解の向きの 1 つ（テストが確かめる） */
+  example: number[];
+}
+
+/**
+ * fig の上の cells に numbers の数を 1 つずつ入れる（given のます目は最初から決まっている）。
+ * goal を満たせば正解。答えは cells の順の数の並び（空きは -1）
+ */
+export interface FillQ {
+  kind: 'fill';
+  cells: (Point & { given?: number })[];
+  numbers: number[];
+  goal: (values: readonly number[]) => boolean;
+}
+
+export type Puzzle = Base &
+  (
+    | NumberQ
+    | TapQ
+    | SticksQ
+    | RiverQ
+    | PourQ
+    | LinesQ
+    | WordQ
+    | SlideQ
+    | PlaceQ
+    | IceQ
+    | ConnectQ
+    | DivideQ
+    | RotateQ
+    | FillQ
+  );

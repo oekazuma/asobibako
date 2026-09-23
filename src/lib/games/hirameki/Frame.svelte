@@ -1,12 +1,16 @@
 <script lang="ts">
   import type { Entry } from './entry.svelte';
+  import Connect from './Connect.svelte';
+  import Divide from './Divide.svelte';
   import Figure from './Figure.svelte';
+  import Fill from './Fill.svelte';
   import Ice from './Ice.svelte';
   import Lines from './Lines.svelte';
   import Place from './Place.svelte';
   import Memo from './Memo.svelte';
   import Pour from './Pour.svelte';
   import River from './River.svelte';
+  import Rotate from './Rotate.svelte';
   import Slide from './Slide.svelte';
   import Sticks from './Sticks.svelte';
   import Tap from './Tap.svelte';
@@ -38,6 +42,14 @@
         <Pour {p} {onsolve} />
       {:else if p.kind === 'slide'}
         <Slide {p} bind:blocks={entry.blocks} bind:moves={entry.moves} {onsolve} />
+      {:else if p.kind === 'connect'}
+        <Connect {p} bind:paths={entry.paths} {onsolve} />
+      {:else if p.kind === 'divide'}
+        <Divide {p} bind:groups={entry.grid} />
+      {:else if p.kind === 'rotate'}
+        <Rotate {p} bind:turns={entry.grid} bind:moves={entry.moves} {onsolve} />
+      {:else if p.kind === 'fill' && p.fig}
+        <Fill {p} fig={p.fig} bind:values={entry.grid} />
       {:else if p.kind === 'ice'}
         <Ice {p} bind:at={entry.at} bind:moves={entry.moves} {onsolve} />
       {:else if p.kind === 'place'}

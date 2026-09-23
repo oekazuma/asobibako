@@ -17,6 +17,10 @@ export class Entry {
   moves = $state(0);
   /** 氷の湖で探偵がいるます目 */
   at = $state.raw<Point>({ x: 0, y: 0 });
+  /** 線つなぎの、組ごとの線（ます目の並び） */
+  paths = $state<number[][]>([]);
+  /** divide は各ます目の色（-1 はまだ）、rotate は各タイルの向き、fill は各ます目の数（-1 は空き） */
+  grid = $state<number[]>([]);
 
   constructor(p: Puzzle) {
     this.p = p;
@@ -31,6 +35,12 @@ export class Entry {
     this.moves = 0;
     if (this.p.kind === 'ice') this.at = this.p.start;
     if (this.p.kind === 'place') this.picked = [];
+    const p = this.p;
+    this.paths = p.kind === 'connect' ? p.pairs.map(() => []) : [];
+    if (p.kind === 'divide') this.grid = Array.from({ length: p.cols * p.rows }, () => -1);
+    else if (p.kind === 'rotate') this.grid = p.tiles.map((t) => t.turn);
+    else if (p.kind === 'fill') this.grid = p.cells.map((c) => c.given ?? -1);
+    else this.grid = [];
   }
 
   /** lines の最後の点を取り消す */
@@ -60,6 +70,12 @@ export class Entry {
         return this.picked.length > 0;
       case 'place':
         return this.picked.length === this.p.count;
+      case 'divide': {
+        const blocked = this.p.blocked ?? [];
+        return this.grid.every((g, c) => g >= 0 || blocked.includes(c));
+      }
+      case 'fill':
+        return this.grid.every((v) => v >= 0);
       default:
         return false;
     }
@@ -68,6 +84,8 @@ export class Entry {
   get value(): Pick {
     if (this.p.kind === 'number') return Number(this.digits);
     if (this.p.kind === 'lines') return this.path;
+    if (this.p.kind === 'connect') return this.paths.flatMap((path, i) => (i ? [-1, ...path] : path));
+    if (this.p.kind === 'divide' || this.p.kind === 'rotate' || this.p.kind === 'fill') return this.grid;
     return this.p.kind === 'sticks' ? this.on : this.picked;
   }
 }

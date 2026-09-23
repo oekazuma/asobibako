@@ -1,8 +1,26 @@
-import type { Block, IceQ, LinesQ, PlaceQ, Point, Puzzle, RiverQ, SlideQ, Slot, SticksQ } from './types';
+import type {
+  Block,
+  ConnectQ,
+  DivideQ,
+  FillQ,
+  IceQ,
+  RotateQ,
+  TileShape,
+  LinesQ,
+  PlaceQ,
+  Point,
+  Puzzle,
+  RiverQ,
+  SlideQ,
+  Slot,
+  SticksQ
+} from './types';
 
 /**
  * 「こたえる」で確かめる答え。number は数、tap は選んだ spots の添え字、
- * sticks はいま置いてある slot の添え字、lines は線を曲げた pegs の添え字の並び
+ * sticks はいま置いてある slot の添え字、lines は線を曲げた pegs の添え字の並び。
+ * connect は各組の線のます目の並びを -1 で区切ってつないだもの、divide は各ます目の組の番号、
+ * rotate は各タイルの向き、fill は cells の順の数（空きは -1）
  */
 export type Pick = number | readonly number[];
 
@@ -16,6 +34,14 @@ export function isRight(p: Puzzle, pick: Pick): boolean {
       return typeof pick !== 'number' && movesUsed(p, pick) <= p.moves && p.goal(new Set(pick));
     case 'lines':
       return typeof pick !== 'number' && linesCover(p, pick);
+    case 'connect':
+      return typeof pick !== 'number' && connectOk(p, pick);
+    case 'divide':
+      return typeof pick !== 'number' && divideOk(p, pick);
+    case 'rotate':
+      return typeof pick !== 'number' && rotateOk(p, pick);
+    case 'fill':
+      return typeof pick !== 'number' && fillOk(p, pick);
     case 'place':
       return typeof pick !== 'number' && placeOk(p, pick);
     case 'word':
@@ -224,6 +250,160 @@ export function iceSlide(p: IceQ, at: Point, dx: number, dy: number): Point {
 }
 
 export const iceDone = (p: IceQ, at: Point) => at.x === p.goal.x && at.y === p.goal.y;
+
+// ---- 線でつなぐ ----
+
+const near = (cols: number, a: number, b: number) =>
+  (Math.abs(a - b) === 1 && Math.floor(a / cols) === Math.floor(b / cols)) || Math.abs(a - b) === cols;
+
+/** pick を -1 で区切って、組ごとの線（ます目の並び）にする */
+export const splitPaths = (pick: readonly number[]) =>
+  pick.reduce<number[][]>((out, c) => (c < 0 ? [...out, []] : [...out.slice(0, -1), [...out.at(-1)!, c]]), [[]]);
+
+export function connectOk(p: ConnectQ, pick: readonly number[]): boolean {
+  const paths = splitPaths(pick);
+  if (paths.length !== p.pairs.length) return false;
+  const at = (q: Point) => q.y * p.cols + q.x;
+  const ends = new Set(p.pairs.flatMap((pr) => [at(pr.a), at(pr.b)]));
+  const used = new Set<number>();
+  const ok = p.pairs.every((pr, i) => {
+    const path = paths[i];
+    const [a, b] = [at(pr.a), at(pr.b)];
+    if (path.length < 2 || !((path[0] === a && path.at(-1) === b) || (path[0] === b && path.at(-1) === a)))
+      return false;
+    return path.every((c, k) => {
+      if (c < 0 || c >= p.cols * p.rows || used.has(c) || p.blocked?.includes(c)) return false;
+      if (k > 0 && !near(p.cols, path[k - 1], c)) return false;
+      if (k > 0 && k < path.length - 1 && ends.has(c)) return false;
+      used.add(c);
+      return true;
+    });
+  });
+  return ok && (!p.fill || used.size === p.cols * p.rows - (p.blocked?.length ?? 0));
+}
+
+// ---- 等分割 ----
+
+/** ます目の集まりを、回転と裏返しで同じになる形の名前にする */
+function shapeOf(cells: readonly number[], cols: number): string {
+  const pts = cells.map((c) => [c % cols, Math.floor(c / cols)]);
+  const forms = [0, 1, 2, 3, 4, 5, 6, 7].map((k) => {
+    const t = pts.map(([x, y]) => {
+      const [u, v] = k & 1 ? [y, x] : [x, y];
+      return [k & 2 ? -u : u, k & 4 ? -v : v];
+    });
+    const mx = Math.min(...t.map((q) => q[0]));
+    const my = Math.min(...t.map((q) => q[1]));
+    return t
+      .map(([x, y]) => `${x - mx},${y - my}`)
+      .sort()
+      .join(' ');
+  });
+  return forms.sort()[0];
+}
+
+export function divideOk(p: DivideQ, groups: readonly number[]): boolean {
+  const n = p.cols * p.rows;
+  if (groups.length !== n) return false;
+  const byGroup: number[][] = Array.from({ length: p.parts }, () => []);
+  for (let c = 0; c < n; c++) {
+    if (p.blocked?.includes(c)) continue;
+    const g = groups[c];
+    if (!Number.isInteger(g) || g < 0 || g >= p.parts) return false;
+    byGroup[g].push(c);
+  }
+  const connected = (cells: number[]) => {
+    const seen = new Set([cells[0]]);
+    const todo = [cells[0]];
+    while (todo.length) {
+      const c = todo.pop()!;
+      for (const d of cells) {
+        if (seen.has(d) || !near(p.cols, c, d)) continue;
+        seen.add(d);
+        todo.push(d);
+      }
+    }
+    return seen.size === cells.length;
+  };
+  return (
+    byGroup.every((cells) => cells.length > 0 && connected(cells)) &&
+    new Set(byGroup.map((cells) => shapeOf(cells, p.cols))).size === 1 &&
+    (!p.marks || byGroup.every((cells) => cells.filter((c) => p.marks!.includes(c)).length === 1))
+  );
+}
+
+// ---- 回転タイル ----
+
+const OPEN: Record<TileShape, number[]> = {
+  empty: [],
+  end: [0],
+  straight: [0, 2],
+  corner: [0, 1],
+  tee: [0, 1, 3],
+  cross: [0, 1, 2, 3],
+  mirror: []
+};
+
+/** turn だけ時計回りに回したタイルの、開いている辺（0 上・1 右・2 下・3 左） */
+export const openSides = (shape: TileShape, turn: number) => OPEN[shape].map((d) => (d + turn) % 4);
+
+const STEP = [
+  [0, -1],
+  [1, 0],
+  [0, 1],
+  [-1, 0]
+];
+
+/** source から水か光をたどって届いたます目 */
+export function reach(p: RotateQ, turns: readonly number[]): Set<number> {
+  const got = new Set<number>();
+  const seen = new Set<string>();
+  // 水や光の出どころは盤の外に置くので、ます目の番号ではなく x, y でたどる
+  const todo: [number, number, number][] = [[p.source.x, p.source.y, p.source.dir]];
+  while (todo.length) {
+    const [px, py, dir] = todo.pop()!;
+    const x = px + STEP[dir][0];
+    const y = py + STEP[dir][1];
+    if (x < 0 || y < 0 || x >= p.cols || y >= p.rows) continue;
+    const next = y * p.cols + x;
+    const key = `${next},${dir}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const tile = p.tiles[next];
+    const turn = turns[next] ?? tile.turn;
+    const from = (dir + 2) % 4;
+    if (p.mode === 'light') {
+      got.add(next);
+      if (tile.shape === 'mirror') {
+        // 「/」は上⇔右・下⇔左、「\」は上⇔左・下⇔右に曲げる
+        const slash = turn % 2 === 0;
+        const out = slash ? [1, 0, 3, 2][dir] : [3, 2, 1, 0][dir];
+        todo.push([x, y, out]);
+      } else if (tile.shape === 'empty') todo.push([x, y, dir]);
+    } else {
+      const sides = openSides(tile.shape, turn);
+      if (!sides.includes(from)) continue;
+      got.add(next);
+      for (const d of sides) if (d !== from) todo.push([x, y, d]);
+    }
+  }
+  return got;
+}
+
+export const rotateOk = (p: RotateQ, turns: readonly number[]) => reach(p, turns).has(p.target);
+
+// ---- 数を入れる ----
+
+export function fillOk(p: FillQ, values: readonly number[]): boolean {
+  if (values.length !== p.cells.length) return false;
+  const placed = values.filter((v, i) => p.cells[i].given === undefined);
+  const pool = [...p.numbers].sort((a, b) => a - b).join();
+  return (
+    p.cells.every((c, i) => c.given === undefined || values[i] === c.given) &&
+    [...placed].sort((a, b) => a - b).join() === pool &&
+    p.goal(values)
+  );
+}
 
 // ---- 一筆の直線 ----
 
