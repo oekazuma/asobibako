@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   bank,
   cross,
+  iceDone,
+  iceSlide,
   linesCover,
   movesUsed,
   placeOk,
@@ -14,7 +16,7 @@ import {
 } from './engine';
 import meta from './meta';
 import { ALL_PUZZLES, ORDER, PUZZLES } from './puzzles';
-import type { Block, LinesQ, PlaceQ, PourQ, Puzzle, RiverQ, SlideQ, SticksQ } from './types';
+import type { Block, IceQ, LinesQ, PlaceQ, Point, PourQ, Puzzle, RiverQ, SlideQ, SticksQ } from './types';
 
 /** 幅優先で、goal にたどり着く最小の手数（maxDepth までに見つからなければ -1） */
 function bfs<S>(start: S, key: (s: S) => string, next: (s: S) => S[], goal: (s: S) => boolean, maxDepth: number) {
@@ -103,6 +105,22 @@ function linesDepth(p: LinesQ) {
   };
   for (let k = 1; k <= p.segments; k++) for (let i = 0; i < n; i++) if (walk(i, k, 0)) return k;
   return -1;
+}
+
+function iceDepth(p: IceQ) {
+  return bfs<Point>(
+    p.start,
+    (q) => `${q.x},${q.y}`,
+    (q) =>
+      [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1]
+      ].map(([dx, dy]) => iceSlide(p, q, dx, dy)),
+    (q) => iceDone(p, q),
+    50
+  );
 }
 
 function slideDepth(p: SlideQ) {
@@ -203,6 +221,10 @@ describe('hirameki のなぞ', () => {
           }
           // おとりの文字があり、答えの文字だけを並べかえれば済む問題にしない
           expect(p.tiles.length).toBeGreaterThan(Math.max(...p.answer.map((w) => w.length)));
+          break;
+        case 'ice':
+          // 1 手や 2 手でとけるなら、ナゾになっていない
+          expect(iceDepth(p)).toBeGreaterThanOrEqual(4);
           break;
         case 'slide':
           expect(slideDone(p, p.blocks)).toBe(false);

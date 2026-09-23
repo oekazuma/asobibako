@@ -60,7 +60,8 @@
       <button class="pill" class:p2={memo} aria-pressed={memo} onclick={() => (memo = !memo)}>
         <Icon name="pencil" />メモ
       </button>
-      {#if p.kind !== 'river' && p.kind !== 'pour' && p.kind !== 'slide'}
+      <!-- 操作の途中で決まるなぞには「答える」がない -->
+      {#if !['river', 'pour', 'slide', 'ice'].includes(p.kind)}
         <button class="pill gold" disabled={!entry.ready} onclick={answer}>答える</button>
       {/if}
     </div>

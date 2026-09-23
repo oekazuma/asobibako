@@ -1,5 +1,5 @@
 import { movesUsed, type Pick } from './engine';
-import type { Block, Puzzle } from './types';
+import type { Block, Point, Puzzle } from './types';
 
 /** 「答える」で出す答えの入力中の中身。なぞの種類ごとに使うものだけが変わる */
 export class Entry {
@@ -12,9 +12,11 @@ export class Entry {
   lifted = $state<number | null>(null);
   /** 線を曲げた pegs の添え字。はじめの点も入る */
   path = $state<number[]>([]);
-  /** スライドパズルのいまの並びと、動かした回数 */
+  /** スライドパズルのいまの並びと、動かした回数（氷の湖でも手数に使う） */
   blocks = $state.raw<Block[]>([]);
   moves = $state(0);
+  /** 氷の湖で探偵がいるます目 */
+  at = $state.raw<Point>({ x: 0, y: 0 });
 
   constructor(p: Puzzle) {
     this.p = p;
@@ -27,6 +29,7 @@ export class Entry {
     this.path = [];
     this.blocks = this.p.kind === 'slide' ? this.p.blocks : [];
     this.moves = 0;
+    if (this.p.kind === 'ice') this.at = this.p.start;
     if (this.p.kind === 'place') this.picked = [];
   }
 

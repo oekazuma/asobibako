@@ -28,7 +28,7 @@
       <button class="pill" disabled={!entry.path.length} onclick={() => entry.undo()}>1 本戻す</button>
       <button class="pill" disabled={!entry.path.length} onclick={() => entry.reset()}>元に戻す</button>
     </p>
-  {:else if p.kind === 'place' || p.kind === 'slide'}
+  {:else if p.kind === 'place' || p.kind === 'slide' || p.kind === 'ice'}
     <p class="count">
       {p.kind === 'place' ? `置いた数 ${entry.picked.length} / ${p.count}` : `手数 ${entry.moves}`}
       <button class="pill" disabled={!entry.picked.length && !entry.moves} onclick={() => entry.reset()}

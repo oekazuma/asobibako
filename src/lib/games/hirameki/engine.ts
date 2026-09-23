@@ -1,4 +1,4 @@
-import type { Block, LinesQ, PlaceQ, Point, Puzzle, RiverQ, SlideQ, Slot, SticksQ } from './types';
+import type { Block, IceQ, LinesQ, PlaceQ, Point, Puzzle, RiverQ, SlideQ, Slot, SticksQ } from './types';
 
 /**
  * 「こたえる」で確かめる答え。number は数、tap は選んだ spots の添え字、
@@ -206,6 +206,24 @@ export function slide(p: SlideQ, blocks: readonly Block[], i: number, dx: number
 
 export const slideDone = (p: SlideQ, blocks: readonly Block[]) =>
   blocks[p.target].x === p.goal.x && blocks[p.target].y === p.goal.y;
+
+// ---- 氷の上を滑る ----
+
+/** at から (dx, dy) へ滑って止まるます目。goal を通れば goal で止まる */
+export function iceSlide(p: IceQ, at: Point, dx: number, dy: number): Point {
+  let { x, y } = at;
+  for (;;) {
+    const nx = x + dx;
+    const ny = y + dy;
+    if (nx < 0 || ny < 0 || nx >= p.cols || ny >= p.rows || p.rocks.some((r) => r.x === nx && r.y === ny))
+      return { x, y };
+    x = nx;
+    y = ny;
+    if (x === p.goal.x && y === p.goal.y) return { x, y };
+  }
+}
+
+export const iceDone = (p: IceQ, at: Point) => at.x === p.goal.x && at.y === p.goal.y;
 
 // ---- 一筆の直線 ----
 

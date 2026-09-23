@@ -45,7 +45,8 @@ vi.mock('./puzzles', () => {
         count: 2,
         blocked: [3],
         goal: (cells: ReadonlySet<number>) => cells.has(0) && cells.has(1)
-      }
+      },
+      { ...base, kind: 'ice', cols: 3, rows: 3, rocks: [{ x: 2, y: 0 }], start: { x: 0, y: 0 }, goal: { x: 2, y: 2 } }
     ]
   };
 });
@@ -185,6 +186,23 @@ describe('Hirameki', () => {
     expect(target.textContent).toContain('置いた数 2 / 2');
     press('ます 1-2', 'ます 2-1', '答える');
     wait(THINK);
+    press('次へ');
+    expect(onfinish).toHaveBeenCalledExactlyOnceWith(true);
+    unmount(app);
+  });
+
+  it('ice は矢印で岩か端まで滑り、滑っている間は次を受けず、出口に入れば正解', () => {
+    const { target, app, onfinish, press, wait } = show(6);
+    // 上は盤の端で動けないので手数に入らない
+    press('上へ', '下へ', '右へ');
+    expect(target.textContent).toContain('手数 1');
+    wait(2 * 110);
+    press('右へ');
+    expect(target.textContent).toContain('手数 2');
+    wait(2 * 110);
+    wait(300);
+    wait(800);
+    expect(target.textContent).toContain('ナゾ解明！');
     press('次へ');
     expect(onfinish).toHaveBeenCalledExactlyOnceWith(true);
     unmount(app);
