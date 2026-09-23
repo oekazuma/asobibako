@@ -12,12 +12,18 @@
   const lines: [number, number][][] = [];
   /** 指ごとの、いま書いている線 */
   const open: Record<number, [number, number][] | undefined> = {};
+  /**
+   * Apple Pencil で書く人は手のひらを画面に置くので、ペンが一度でも来たら指では書かせない。
+   * 手のひらはペンより先に着くことが多く、そのとき書き始めた線はペンが着いたところで消す
+   */
+  let pen = false;
+
+  /** 書き始めに一度だけ測り、動かすたびにレイアウトを計算させない */
+  let box = { left: 0, top: 0, right: 1, width: 1, height: 1 };
+  let turned = false;
 
   // 横向きで .stage が回っていても、盤面そのものの座標で書く
-  function at(event: PointerEvent): [number, number] {
-    const turned = matchMedia(TURNED_QUERY).matches;
-    return toBoardPoint(event.clientX, event.clientY, canvas.getBoundingClientRect(), turned);
-  }
+  const at = (event: PointerEvent) => toBoardPoint(event.clientX, event.clientY, box, turned);
 
   function segment(a: [number, number], b: [number, number]) {
     const ctx = canvas.getContext('2d')!;
@@ -34,13 +40,29 @@
   function draw(event: PointerEvent) {
     const line = open[event.pointerId];
     if (!line) return;
-    const to = at(event);
-    segment(line.at(-1)!, to);
-    line.push(to);
+    // 速く動かすと 1 回の pointermove に何点もまとめられ、線が角ばる
+    // 合成イベントや古い Safari では空か無いので、そのときは自分だけを使う
+    const events = event.getCoalescedEvents?.() ?? [];
+    for (const e of events.length ? events : [event]) {
+      const to = at(e);
+      segment(line.at(-1)!, to);
+      line.push(to);
+    }
   }
 
   function down(event: PointerEvent) {
+    if (event.pointerType === 'pen') {
+      pen = true;
+      const palm = Object.values(open);
+      for (const id in open) delete open[id];
+      if (palm.length) {
+        lines.splice(0, lines.length, ...lines.filter((line) => !palm.includes(line)));
+        redraw();
+      }
+    } else if (pen) return;
     capture(event);
+    box = canvas.getBoundingClientRect();
+    turned = matchMedia(TURNED_QUERY).matches;
     const p = at(event);
     // 押しただけでも点が残るよう、ほんの少し左から引く
     const line: [number, number][] = [[p[0] - 0.1 / canvas.offsetWidth, p[1]]];
@@ -51,9 +73,20 @@
 
   const up = (event: PointerEvent) => delete open[event.pointerId];
 
+  function redraw() {
+    canvas.getContext('2d')!.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+    for (const line of lines) line.slice(1).forEach((b, i) => segment(line[i], b));
+  }
+
+  function undo() {
+    const line = lines.pop();
+    for (const id in open) if (open[id] === line) delete open[id];
+    redraw();
+  }
+
   function clear() {
     lines.length = 0;
-    canvas.getContext('2d')!.clearRect(0, 0, canvas.width, canvas.height);
+    redraw();
   }
 
   $effect(() => {
@@ -62,7 +95,7 @@
       canvas.width = Math.round(canvas.offsetWidth * dpr);
       canvas.height = Math.round(canvas.offsetHeight * dpr);
       canvas.getContext('2d')?.scale(dpr, dpr);
-      for (const line of lines) line.slice(1).forEach((b, i) => segment(line[i], b));
+      redraw();
     });
     observer.observe(canvas);
     return () => observer.disconnect();
@@ -79,7 +112,10 @@
   onpointercancel={up}
 ></canvas>
 {#if active}
-  <button class="pill p2 erase" onclick={clear}>消す</button>
+  <div class="tools">
+    <button class="pill" onclick={undo}>もどす</button>
+    <button class="pill p2" onclick={clear}>消す</button>
+  </div>
 {/if}
 
 <style>
@@ -99,11 +135,16 @@
     border-radius: 10px;
   }
 
-  .erase {
+  .tools {
     position: absolute;
     top: 8px;
     right: 8px;
     z-index: 2;
+    display: flex;
+    gap: 8px;
+  }
+
+  .tools button {
     padding: 6px 16px;
   }
 </style>

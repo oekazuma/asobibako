@@ -4,7 +4,7 @@
   import type { SoloProps } from '$lib/games';
   import { isRight } from './engine';
   import { Entry } from './entry.svelte';
-  import Frame from './Frame.svelte';
+  import Frame, { framed } from './Frame.svelte';
   import Hints from './Hints.svelte';
   import Questions from './Questions.svelte';
   import { PUZZLES } from './puzzles';
@@ -72,9 +72,11 @@
       {#if p.questions?.length}
         <button class="pill p1" onclick={() => (sheet = 'ask')}><Icon name="detective" />質問する</button>
       {/if}
-      <button class="pill" class:p2={memo} aria-pressed={memo} onclick={() => (memo = !memo)}>
-        <Icon name="pencil" />メモ
-      </button>
+      {#if framed(p)}
+        <button class="pill" class:p2={memo} aria-pressed={memo} onclick={() => (memo = !memo)}>
+          <Icon name="pencil" />メモ
+        </button>
+      {/if}
       <!-- 操作の途中で決まるなぞには「答える」がない -->
       {#if !['river', 'pour', 'slide', 'ice', 'connect', 'rotate'].includes(p.kind)}
         <button class="pill gold" disabled={!entry.ready} onclick={answer}>答える</button>

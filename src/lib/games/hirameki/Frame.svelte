@@ -1,3 +1,10 @@
+<script lang="ts" module>
+  import type { Puzzle } from './types';
+
+  /** 図のない number と word は額ごと出さない（メモを書く場所もない） */
+  export const framed = (p: Puzzle) => !!p.fig || !(p.kind === 'number' || p.kind === 'word');
+</script>
+
 <script lang="ts">
   import type { Entry } from './entry.svelte';
   import Connect from './Connect.svelte';
@@ -35,8 +42,7 @@
   const p = $derived(entry.p);
 </script>
 
-<!-- 図のない number と word は額ごと出さない -->
-{#if p.fig || !(p.kind === 'number' || p.kind === 'word')}
+{#if framed(p)}
   <div class="frame">
     <div class="inner">
       {#key attempt}
