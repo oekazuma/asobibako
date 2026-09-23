@@ -1,5 +1,6 @@
 import { closest, crosses, pushOut, type Seg } from '$lib/segments';
 import { fall, makeLineBody, type Hit, type LineBody } from './line-physics';
+import { fields, toward, type Field } from './nav';
 
 /** 座標は幅 1・高さ WORLD_H の固定の箱で、y は下向き。画面にはこの箱ごと拡大して収める */
 export const WORLD_H = 1.4;
@@ -12,6 +13,8 @@ const KEEP_OUT = DOG_R + 0.03;
 const MIN_STEP = 0.012;
 const ACCEL = 1.6;
 const JITTER = 1.2;
+/** ハチの道のりを引き直す間隔（秒）。落ちている線を毎フレーム数え直すと、長い面のテストが重くなる */
+const REROUTE = 0.2;
 
 export type Point = { x: number; y: number };
 export type Pet = Point & { kind: 'dog' | 'cat' };
@@ -70,6 +73,11 @@ export interface GameState {
   /** ハチが当たる線の線分。線が動くのでフレームごとに作り直す */
   segs: Seg[];
   ink: number;
+  /** ペットごとの、線と壁をよけた道のり。落ちる線に合わせて引き直す */
+  paths: Field[];
+  /** 壁だけをよけた道のり。線で閉じられたペットへも、線のそばまでは回り込ませる */
+  ways: Field[];
+  routed: number;
   bees: Bee[];
   spawned: number;
   time: number;
@@ -83,7 +91,12 @@ export type GuardEvent =
   | { type: 'land'; hits: Hit[] }
   | { type: 'clear' };
 
+// ponytail: 道のりは普通のハチの太さで数える。大きいハチは通れない隙間へ向かって押しつけるだけになる。困ったら種類ごとに道のりを持つ
+const route = (level: Level, segs: readonly Seg[]) =>
+  fields([...segs, ...level.walls], LINE + BEE_R, WORLD_H, level.pets);
+
 export function createState(level: Level): GameState {
+  const ways = route(level, []);
   return {
     level,
     phase: 'draw',
@@ -91,6 +104,9 @@ export function createState(level: Level): GameState {
     body: null,
     segs: [],
     ink: level.ink,
+    paths: ways,
+    ways,
+    routed: 0,
     bees: [],
     spawned: 0,
     time: 0,
@@ -216,6 +232,7 @@ export function finishStroke(state: GameState): boolean {
   state.body = makeLineBody(state.stroke, state.level.walls, petBalls(state.level), LINE);
   state.stroke = state.body.pts;
   state.segs = strokeSegs(state);
+  state.paths = route(state.level, state.segs);
   state.phase = 'defend';
   return true;
 }
@@ -234,7 +251,11 @@ function strokeSegs(state: GameState): Seg[] {
 
 function collide(bee: Bee, segs: Seg[], r: number): boolean {
   let bumped = false;
+  const reach = r + LINE;
   for (const seg of segs) {
+    // ハチの数と線分の数のかけ算で効くので、離れた線分は囲む四角だけで先に外す
+    if (bee.x + reach < Math.min(seg[0], seg[2]) || bee.x - reach > Math.max(seg[0], seg[2])) continue;
+    if (bee.y + reach < Math.min(seg[1], seg[3]) || bee.y - reach > Math.max(seg[1], seg[3])) continue;
     const out = pushOut(seg, LINE, bee.x, bee.y, r);
     if (!out) continue;
     const nx = out[0] - bee.x;
@@ -266,6 +287,10 @@ export function step(state: GameState, dt: number, rand: () => number = Math.ran
   state.time += dt;
   if (state.body && fall(state.body, dt, level.walls, petBalls(level), LINE)) {
     state.segs = strokeSegs(state);
+    if (state.time - state.routed >= REROUTE) {
+      state.paths = route(level, state.segs);
+      state.routed = state.time;
+    }
     if (state.body.hits.length > 0) events.push({ type: 'land', hits: state.body.hits });
   }
 
@@ -293,8 +318,10 @@ export function step(state: GameState, dt: number, rand: () => number = Math.ran
     const dx = dog.x - bee.x;
     const dy = dog.y - bee.y;
     const d = Math.hypot(dx, dy) || 1;
-    bee.vx += ((dx / d) * ACCEL * look.accel + (rand() - 0.5) * JITTER) * dt;
-    bee.vy += ((dy / d) * ACCEL * look.accel + (rand() - 0.5) * JITTER) * dt;
+    const [ux, uy] = toward(state.paths[bee.target], bee.x, bee.y) ??
+      toward(state.ways[bee.target], bee.x, bee.y) ?? [dx / d, dy / d];
+    bee.vx += (ux * ACCEL * look.accel + (rand() - 0.5) * JITTER) * dt;
+    bee.vy += (uy * ACCEL * look.accel + (rand() - 0.5) * JITTER) * dt;
     const v = Math.hypot(bee.vx, bee.vy);
     if (v > max) {
       bee.vx *= max / v;

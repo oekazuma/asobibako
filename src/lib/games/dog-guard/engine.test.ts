@@ -34,8 +34,7 @@ describe('dog-guard engine', () => {
   );
 
   it('2 ひきの面は、片方だけ守っても刺される', () => {
-    const stage = levelFor(25);
-    expect(stage.pets).toHaveLength(2);
+    const stage = levels.map(([n]) => levelFor(n)).findLast((s) => s.kind === 'open2')!;
     for (const pet of stage.pets) {
       const state = createState(stage);
       for (let a = 0; a <= Math.PI; a += 0.1)
@@ -45,9 +44,9 @@ describe('dog-guard engine', () => {
     }
   });
 
-  it('同じ面はない', () => {
-    const stages = new Set(levels.map(([n]) => JSON.stringify(levelFor(n))));
-    expect(stages.size).toBe(meta.levels);
+  it('型が 4 つそろってからは、同じ型が 4 面のうちに 2 度出ない', () => {
+    const kinds = levels.map(([n]) => levelFor(n).kind);
+    for (let i = 7; i < kinds.length; i++) expect(kinds.slice(i - 3, i), `level ${i + 1}`).not.toContain(kinds[i]);
   });
 
   it('レベルが上がるほど、ハチは多く速く、守る時間は長く、インクのゆとりは少ない', () => {
@@ -62,9 +61,57 @@ describe('dog-guard engine', () => {
     }
   });
 
+  it('線の外に回り込める隙間があれば、ハチはそこから入ってくる', () => {
+    const stage = levelFor(5);
+    expect(stage.kind).toBe('platform');
+    const [x1, y, x2] = stage.walls[0];
+    const { x } = stage.pets[0];
+    // 足場の上の猫を覆い、右端は足場の外で地面まで下ろす。足場の下を通って右の隙間から上がれば届く
+    const out = x2 + 0.12;
+    const state = createState({ ...stage, ink: 5 });
+    addPoint(state, Math.max(x1 + 0.02, x - 0.15), y - 0.02);
+    for (let a = 0; a <= Math.PI / 2; a += 0.05)
+      addPoint(state, x + (out - x) * (1 - Math.cos(a)) - 0.15 * Math.cos(a), y - 0.02 - 0.2 * Math.sin(a));
+    for (let py = y - 0.2; py <= GROUND - 0.01; py += 0.02) addPoint(state, out, py);
+    finishStroke(state);
+    expect(run(state)).toBe('stung');
+  });
+
   it('洞窟の面は、インクが足りずドームで覆えない', () => {
     expect(levelFor(3).kind).toBe('cave');
     expect(levelFor(3).ink).toBeLessThan(Math.PI * 0.18);
+  });
+
+  it('雲のテントの面は、犬の上をまるく囲めない', () => {
+    const stage = levels.map(([n]) => levelFor(n)).find((s) => s.kind === 'tent')!;
+    const pet = stage.pets[0];
+    expect(drawable(stage, pet.x, pet.y - 0.18)).toBe(false);
+    expect(drawable(stage, pet.x, pet.y - 0.11)).toBe(true);
+  });
+
+  it('角のすきまの面は、屋根の上だけふさいでも横から入られる', () => {
+    const stage = levels.map(([n]) => levelFor(n)).find((s) => s.kind === 'corner')!;
+    const [a, b] = stage.solution;
+    const state = createState(stage);
+    addPoint(state, a.x, a.y);
+    addPoint(state, b.x, b.y);
+    finishStroke(state);
+    expect(run(state)).toBe('stung');
+  });
+
+  it('巣を閉じ込める面は、雲の中の犬を線で囲めない', () => {
+    for (const kind of ['jar', 'jar2']) {
+      const stage = levels.map(([n]) => levelFor(n)).find((s) => s.kind === kind)!;
+      const pet = stage.pets[0];
+      expect(drawable(stage, pet.x, pet.y - 0.12), kind).toBe(false);
+      expect(drawable(stage, pet.x - 0.11, pet.y), kind).toBe(false);
+    }
+  });
+
+  it('31 面からは、慣れるための型は出ず、どの型も 3 回までしか出ない', () => {
+    const late = levels.filter(([n]) => n > 30).map(([n]) => levelFor(n).kind);
+    for (const kind of ['open', 'open2', 'cave', 'platform']) expect(late).not.toContain(kind);
+    for (const kind of late) expect(late.filter((k) => k === kind).length, kind).toBeLessThanOrEqual(3);
   });
 
   it('指を離すと線分ができ、そのあとは点を足せない', () => {
@@ -153,9 +200,13 @@ describe('dog-guard engine', () => {
   });
 
   it('雲に入った指は雲のふちをなぞり、雲の中に線は入らない', () => {
-    const state = createState(levelFor(11));
-    expect(levelFor(11).kind).toBe('side');
+    const stage = levels.map(([n]) => levelFor(n)).find((s) => s.kind === 'side')!;
+    const state = createState(stage);
     const zone = state.level.noDraw[0];
+    // 洞窟の中の犬を、線で囲めない
+    const pet = stage.pets[0];
+    expect(drawable(stage, pet.x - 0.12, pet.y)).toBe(false);
+    expect(drawable(stage, pet.x + 0.12, pet.y)).toBe(false);
     const y = (zone.y0 + zone.y1) / 2;
     const from = zone.x0 < 0.05 ? zone.x1 + 0.05 : zone.x0 - 0.05;
     const to = zone.x0 < 0.05 ? zone.x1 - 0.1 : zone.x0 + 0.1;

@@ -147,7 +147,7 @@
     const [w, h] = input.px(1, 1);
     const [sx, sy] = shake.offset(dt, 14);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    backdrop(ctx, w, h, now);
+    backdrop(ctx, w, h);
     const s = view.scale * dpr;
     ctx.setTransform(s, 0, 0, s, (view.ox + sx) * dpr, (view.oy + sy) * dpr);
     paint(ctx, game, now);

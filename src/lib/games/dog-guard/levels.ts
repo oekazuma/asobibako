@@ -12,7 +12,22 @@ export interface Stage extends Level {
   kind: Kind;
 }
 
-type Kind = 'open' | 'open2' | 'cave' | 'cave2' | 'side' | 'platform' | 'platform2' | 'mixed';
+type Kind =
+  | 'open'
+  | 'open2'
+  | 'cave'
+  | 'cave2'
+  | 'side'
+  | 'platform'
+  | 'platform2'
+  | 'mixed'
+  | 'tent'
+  | 'corner'
+  | 'jar'
+  | 'lid'
+  | 'trio'
+  | 'jar2'
+  | 'tentmix';
 
 interface Layout {
   pets: Point[];
@@ -22,6 +37,8 @@ interface Layout {
   /** 巣を置かない場所（洞窟の中など） */
   low: boolean;
   side?: 'left' | 'right';
+  /** 巣の場所を面が決めるとき（箱の中など）。多いぶんは使わない */
+  hives?: Point[];
   tip: string;
 }
 
@@ -47,6 +64,38 @@ function cave(cx: number, w: number, o: number, top: number): Seg[] {
     [cx + o / 2, top, cx + w / 2, top]
   ];
 }
+
+/** 犬の真上の低い雲と、その下に通す平たいテント。雲と犬のまわりの引けない輪のあいだに線 1 本ぶんだけ空ける */
+function tent(x: number): { cloud: Zone; solution: Point[] } {
+  const low = DOG_Y - 0.14;
+  return {
+    cloud: { x0: x - 0.28, y0: low - 0.35, x1: x + 0.28, y1: low },
+    solution: line([x - 0.16, FLOOR], [x - 0.15, low + 0.025], [x + 0.15, low + 0.025], [x + 0.16, FLOOR])
+  };
+}
+
+/**
+ * 天井の端と横の壁の上が欠けた箱。right なら欠けた角が右。
+ * 角のすきまは、屋根に乗せて壁の外へ垂らす L 字の線でふさぐ
+ */
+function cornerBox(rng: Rng, right: boolean, cx: number, top: number) {
+  const [x0, x1] = [cx - 0.22, cx + 0.22];
+  const [o, win] = [rng.range(0.1, 0.14), rng.range(0.1, 0.14)];
+  const flip = (x: number) => (right ? x : 1 - x);
+  const seg = (xa: number, ya: number, xb: number, yb: number): Seg => [flip(xa), ya, flip(xb), yb];
+  return {
+    flip,
+    walls: [seg(x0, top, x0, GROUND), seg(x0, top, x1 - o, top), seg(x1, top + win, x1, GROUND)],
+    solution: line(
+      [flip(x1 - o - 0.06), top - 0.025],
+      [flip(x1 + 0.025), top - 0.025],
+      [flip(x1 + 0.025), top + win + 0.06]
+    )
+  };
+}
+
+/** 巣を閉じ込める面で、犬を包む雲。犬を直接は守れないので、巣の出口をふさぐしかない */
+const shroud = (x: number): Zone => ({ x0: x - 0.14, y0: DOG_Y - 0.3, x1: x + 0.14, y1: GROUND });
 
 const LAYOUTS: Record<Kind, (rng: Rng) => Layout> = {
   open: (rng) => {
@@ -110,11 +159,12 @@ const LAYOUTS: Record<Kind, (rng: Rng) => Layout> = {
     const top = rng.range(0.93, 1.0);
     const flip = (x: number) => (right ? x : 1 - x);
     const seg = (x1: number, y1: number, x2: number, y2: number): Seg => [flip(x1), y1, flip(x2), y2];
-    const zx = [flip(0), flip(open + 0.14)].sort((p, q) => p - q);
+    // 雲は洞窟の中に置く。外に置くと、中の犬をドームで囲めて雲がなんの邪魔にもならない
+    const zx = [flip(wall), flip(open)].sort((p, q) => p - q);
     return {
       pets: [{ x: flip((wall + open) / 2 - 0.02), y: DOG_Y }],
       walls: [seg(wall, top, wall, GROUND), seg(wall, top, open, top)],
-      noDraw: [{ x0: zx[0], y0: 0.45, x1: zx[1], y1: top - 0.02 }],
+      noDraw: [{ x0: zx[0], y0: top, x1: zx[1], y1: GROUND }],
       // 線は重さで倒れるので、外へ足を出して立たせる
       solution: line(
         [flip(open + 0.04), top + 0.01],
@@ -123,7 +173,130 @@ const LAYOUTS: Record<Kind, (rng: Rng) => Layout> = {
       ),
       low: true,
       side: right ? 'right' : 'left',
-      tip: '雲には 線が ひけない！ 入り口を ふさごう'
+      tip: '雲の中には 線が ひけない！ 入り口を ふさごう'
+    };
+  },
+  tent: (rng) => {
+    const x = rng.range(0.3, 0.7);
+    const { cloud, solution } = tent(x);
+    return {
+      pets: [{ x, y: DOG_Y }],
+      walls: [],
+      noDraw: [cloud],
+      solution,
+      low: false,
+      tip: '雲が じゃまで まるく かこめない！ ひくく かこもう'
+    };
+  },
+  corner: (rng) => {
+    const right = rng.chance(0.5);
+    const cx = rng.range(0.35, 0.65);
+    const box = cornerBox(rng, right, cx, rng.range(0.95, 1.02));
+    return {
+      pets: [{ x: box.flip(cx - 0.05), y: DOG_Y }],
+      walls: box.walls,
+      noDraw: [],
+      solution: box.solution,
+      low: false,
+      tip: '角の すきまを 1本で ふさごう'
+    };
+  },
+  jar: (rng) => {
+    const right = rng.chance(0.5);
+    const flip = (x: number) => (right ? x : 1 - x);
+    const cx = rng.range(0.6, 0.68);
+    const top = rng.range(0.78, 0.86);
+    const o = rng.range(0.1, 0.14);
+    const x = flip(rng.range(0.14, 0.2));
+    return {
+      pets: [{ x, y: DOG_Y }],
+      walls: cave(flip(cx), 0.44, o, top),
+      noDraw: [shroud(x)],
+      solution: line([flip(cx - o / 2 - 0.05), top - 0.025], [flip(cx + o / 2 + 0.05), top - 0.025]),
+      low: false,
+      hives: line([flip(cx - 0.1), top + 0.14], [flip(cx + 0.1), top + 0.2], [flip(cx - 0.02), top + 0.34]),
+      tip: '犬は 雲の中！ 巣の 出口を ふさいで とじこめよう'
+    };
+  },
+  lid: (rng) => {
+    const x = rng.range(0.3, 0.7);
+    const half = rng.range(0.12, 0.16);
+    const post = DOG_Y - 0.1;
+    const high = post - rng.range(0.22, 0.34);
+    return {
+      pets: [{ x, y: DOG_Y }],
+      walls: [
+        [x - half, post, x - half, GROUND],
+        [x + half, post, x + half, GROUND]
+      ],
+      // 穴の中と真上は雲なので、雲の上に引いた線を落として、ふたにするしかない
+      noDraw: [{ x0: x - half - 0.06, y0: high, x1: x + half + 0.06, y1: GROUND }],
+      solution: line([x - half - 0.1, high - 0.03], [x + half + 0.1, high - 0.03]),
+      low: false,
+      tip: '雲の 上から 線を おとして ふたを しよう'
+    };
+  },
+  trio: (rng) => {
+    const [a, c] = [rng.range(0.15, 0.16), rng.range(0.84, 0.85)];
+    const y = rng.range(0.95, 1.1);
+    return {
+      pets: [
+        { x: a, y: DOG_Y },
+        { x: 0.5, y: y - 0.075 },
+        { x: c, y: DOG_Y }
+      ],
+      walls: [[0.31, y, 0.69, y]],
+      noDraw: [],
+      solution: [
+        ...dome(a, FLOOR, 0.13),
+        { x: 0.29, y: y - 0.04 },
+        ...dome(0.5, y - 0.005, 0.15),
+        { x: 0.71, y: y - 0.04 },
+        ...dome(c, FLOOR, 0.13)
+      ],
+      low: false,
+      tip: '3びきを 1本で まもろう'
+    };
+  },
+  jar2: (rng) => {
+    const right = rng.chance(0.5);
+    const cx = rng.range(0.6, 0.66);
+    const top = rng.range(0.8, 0.86);
+    const box = cornerBox(rng, right, cx, top);
+    const x = box.flip(rng.range(0.14, 0.18));
+    return {
+      pets: [{ x, y: DOG_Y }],
+      walls: box.walls,
+      noDraw: [shroud(x)],
+      solution: box.solution,
+      low: false,
+      hives: line(
+        [box.flip(cx - 0.1), top + 0.16],
+        [box.flip(cx + 0.06), top + 0.26],
+        [box.flip(cx - 0.08), top + 0.36]
+      ),
+      tip: '巣の 箱の 角を 1本で ふさごう'
+    };
+  },
+  tentmix: (rng) => {
+    const right = rng.chance(0.5);
+    const flip = (x: number) => (right ? x : 1 - x);
+    const [a, b] = [rng.range(0.22, 0.28), rng.range(0.74, 0.78)];
+    const { cloud, solution } = tent(a);
+    // 雲は右の犬のドームにかからない幅にする
+    const zone = { ...cloud, x0: a - 0.22, x1: a + 0.22 };
+    const [x0, x1] = [flip(zone.x0), flip(zone.x1)].sort((p, q) => p - q);
+    const pts = [...solution, ...dome(b, FLOOR, 0.17)];
+    return {
+      pets: [
+        { x: flip(a), y: DOG_Y },
+        { x: flip(b), y: DOG_Y }
+      ],
+      walls: [],
+      noDraw: [{ ...zone, x0, x1 }],
+      solution: pts.map((p) => ({ x: flip(p.x), y: p.y })),
+      low: false,
+      tip: '雲の下は ひくく、もう 1ぴきは まるく かこもう'
     };
   },
   platform: (rng) => {
@@ -184,28 +357,39 @@ const LAYOUTS: Record<Kind, (rng: Rng) => Layout> = {
   }
 };
 
-/** 新しい型が出てくるレベル。そのレベルでは必ずその型を出して、仕掛けを覚えてもらう */
-const UNLOCK: [Kind, number][] = [
-  ['open', 1],
-  ['cave', 3],
-  ['platform', 5],
-  ['open2', 8],
+/**
+ * 新しい型が出てくるレベルと、最後に出るレベル。出てくるレベルでは必ずその型を出して、仕掛けを覚えてもらう。
+ * 慣れるための型は BASE 面までで出さなくする
+ */
+const UNLOCK: [Kind, number, number?][] = [
+  ['open', 1, 30],
+  ['cave', 3, 30],
+  ['platform', 5, 30],
+  ['tent', 7],
+  ['open2', 9, 30],
   ['side', 11],
-  ['mixed', 14],
-  ['platform2', 18],
-  ['cave2', 22]
+  ['corner', 13],
+  ['mixed', 15],
+  ['platform2', 17],
+  ['cave2', 19],
+  ['jar', 31],
+  ['lid', 34],
+  ['trio', 37],
+  ['jar2', 40],
+  ['tentmix', 43]
 ];
 
-/** 早く出た型ばかりくり返さないよう、それまでに出た回数がいちばん少ない型から選ぶ */
+/**
+ * いちばん長く出ていない型を選ぶ（同じくらい出ていないものからは、ばらばらに選ぶ）。
+ * 出た回数の少なさで選ぶと、あとから出た型が追いつくまで続けて出て、ただ間をあけるだけだと型ごとの出る回数が偏る
+ */
 function kindFor(level: number, rng: Rng, past: Kind[]): Kind {
   const fresh = UNLOCK.find(([, at]) => at === level);
   if (fresh) return fresh[0];
-  const prev = past.at(-1);
-  const open = UNLOCK.filter(([, at]) => at <= level).map(([k]) => k);
-  const candidates = open.length > 1 ? open.filter((k) => k !== prev) : open;
-  const used = (k: Kind) => past.filter((p) => p === k).length;
-  const least = Math.min(...candidates.map(used));
-  return rng.pick(candidates.filter((k) => used(k) === least));
+  const open = UNLOCK.filter(([, at, until = Infinity]) => at <= level && level <= until).map(([k]) => k);
+  const seen = (k: Kind) => past.lastIndexOf(k);
+  const oldest = Math.min(...open.map(seen));
+  return rng.pick(open.filter((k) => seen(k) === oldest));
 }
 
 const length = (pts: Point[]) =>
@@ -231,28 +415,38 @@ function hives(rng: Rng, n: number, layout: Layout): Point[] {
 }
 
 /** レベルから面を組み立てる。どの面もクリアできることはテストで確かめている */
+/**
+ * 最初の BASE 面の難しさ。そこから先は BASE 面の値の上に e のぶんだけ積む。
+ * 面数に合わせて全体を引き延ばすと、BASE 面をクリアした人が次の面を易しく感じる
+ */
+const BASE = 30;
+
 export function levelFor(n: number): Stage {
   const level = Math.min(meta.levels, Math.max(1, n));
-  const d = difficulty(level, meta.levels);
+  const d = difficulty(level, BASE);
+  const e = difficulty(level - BASE + 1, meta.levels - BASE + 1);
   const kinds: Kind[] = [];
   for (let l = 1; l <= level; l++) kinds.push(kindFor(l, new Rng(l * 101), kinds));
   const kind = kinds[level - 1];
   const rng = new Rng(level * 1000);
   const layout = LAYOUTS[kind](rng);
+  const count = d < 0.2 ? 1 : d < 0.55 ? 2 : 3;
   return {
     kind,
     pets: layout.pets.map((p, i): Pet => ({ ...p, kind: (level + i) % 2 === 0 ? 'cat' : 'dog' })),
     walls: [...layout.walls, [0, GROUND, 1, GROUND]],
     noDraw: layout.noDraw,
-    hives: hives(rng, d < 0.2 ? 1 : d < 0.55 ? 2 : 3, layout),
+    hives: layout.hives?.slice(0, count) ?? hives(rng, count, layout),
     solution: layout.solution,
+    // インクのゆとりは BASE 面より削らない。テストは理想の線を引くが、指ではそこまで無駄なく引けない
     ink: length(layout.solution) * lerp(1.6, 1.12, d) + 0.02,
-    bees: Math.round(lerp(6, 34, d)),
-    speed: lerp(0.42, 0.72, d),
-    duration: Math.round(lerp(8, 15, d)),
-    spawn: lerp(2, 6, d),
-    fast: d < 0.19 ? 0 : lerp(0, 0.45, d),
-    big: d < 0.29 ? 0 : lerp(0, 0.35, d),
+    bees: Math.round(lerp(6, 34, d) + 14 * e),
+    speed: lerp(0.42, 0.72, d) + 0.15 * e,
+    duration: Math.round(lerp(8, 15, d) + 3 * e),
+    // 先の面ではハチが早く出そろい、まとめて押し寄せる
+    spawn: lerp(2, 6, d) - 1.5 * e,
+    fast: d < 0.19 ? 0 : lerp(0, 0.45, d) + 0.1 * e,
+    big: d < 0.29 ? 0 : lerp(0, 0.35, d) + 0.05 * e,
     tip: layout.tip
   };
 }
