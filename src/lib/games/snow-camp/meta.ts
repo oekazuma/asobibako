@@ -1,5 +1,4 @@
 import type { GameMeta } from '$lib/games';
-import Thumb from './Thumb.svelte';
 
 export default {
   id: 'snow-camp',
@@ -8,7 +7,6 @@ export default {
   players: 1,
   levels: 10,
   minutes: '3分',
-  Thumb,
   load: async () => ({
     Game: (await import('./SnowCamp.svelte')).default,
     Howto: (await import('./Howto.svelte')).default

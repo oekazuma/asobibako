@@ -12,7 +12,6 @@ const solo = {
   minutes: '1分',
   players: 1 as const,
   levels: 100,
-  Thumb: StubHowto,
   load: async () => ({ Game: StubGame, Howto: StubHowto })
 };
 
@@ -27,6 +26,12 @@ describe('GameCard', () => {
   beforeEach(() => localStorage.clear());
   afterEach(() => {
     document.body.innerHTML = '';
+  });
+
+  it('カードは thumbs/<id>.webp の画像を出す', () => {
+    const { target, app } = show();
+    expect(target.querySelector('img')?.getAttribute('src')).toMatch(/\/thumbs\/stub\.webp$/);
+    unmount(app);
   });
 
   it('遊んだことがなければ到達レベルは出さない', () => {

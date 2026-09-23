@@ -18,11 +18,12 @@ pnpm verify                   # lint / check / test:run / vitals / build をま�
 pnpm format                   # prettier --write
 pnpm build && pnpm preview    # 静的ビルドと確認（Service Worker は build でのみ有効）
 pnpm icon                     # static/icon-180/192/512.png を再生成
+pnpm thumbs [id...]           # static/thumbs/<id>.webp を実際のゲーム画面から撮り直す（端末の Chrome）
 ```
 
 ## 構成
 
-`/` はゲーム一覧、`/games/[id]` は動的ルート 1 つで全ゲームを受ける（`+page.ts` の `entries` が `src/lib/games.ts` の `games` から全ゲームをプリレンダーする）。ゲーム 1 本は `src/lib/games/<id>/` に閉じ、対戦本体・`Howto.svelte`（タイトル画面の遊び方）・`Thumb.svelte`（一覧のカードの絵）・`meta.ts`（一覧用の情報と `load()`）を持つ。本体は `load()` の動的 import で遊ぶときに読み込み、一覧画面には載せない。追加は `games` 配列に 1 行足すだけで、既存のゲームには触らない。
+`/` はゲーム一覧、`/games/[id]` は動的ルート 1 つで全ゲームを受ける（`+page.ts` の `entries` が `src/lib/games.ts` の `games` から全ゲームをプリレンダーする）。ゲーム 1 本は `src/lib/games/<id>/` に閉じ、対戦本体・`Howto.svelte`（タイトル画面の遊び方）・`meta.ts`（一覧用の情報と `load()`）を持つ。本体は `load()` の動的 import で遊ぶときに読み込み、一覧画面には載せない。追加は `games` 配列に 1 行足すだけで、既存のゲームには触らない。
 
 タイトル（両者の長押しでスタート）・結果・再戦・一覧へ戻る・ミュートは `src/lib/components/GameShell.svelte` が全ゲーム共通で持ち、ゲームは `onfinish(1 | 2)` を呼ぶだけでよい。1 人用（`meta.players` が 1）は `SoloShell.svelte` が受け、ゲームは `level` を受け取って `onfinish(true | false)` を呼ぶ。レベルはゲームごとに localStorage へ保存する。`meta.levels` が 1 ならタイトルにレベル選びを出さないので、`onfinish` を呼ばないクリアのない自由あそびにもできる（らくがきムシ）。決着後の合成 click 対策（`settling`）は両方のシェルが `src/lib/settle.svelte.ts` を使う。プレイヤー番号の型は `src/lib/player.ts`（1 が手前、2 が向かい）で、特定のゲームには依存しない。ルールは DOM に依存しない純粋なモジュール（hockey なら `engine.ts` の `step()`）に閉じて vitest で検証し、`.svelte` は描画と Pointer Events の配線だけを持つ。
 
@@ -38,7 +39,7 @@ bomb-relay と hockey は物理があるのでループで動かす。ルール�
 
 ## 見た目
 
-明るいパーティーゲームの見た目に揃える。色・影・模様・書体は `src/app.css` の `:root` にまとめてあり、各ゲームはそれを使う（地は `--bg`、1P は青 `--p1`、2P は赤 `--p2`、陣地は淡い `--zone-1` / `--zone-2` に水玉 `--dots` を重ねる）。部品は白いふちと下に厚みのある影を持ち（`--lift`）、押すと沈む。ボタンは `.pill`（`.p1` / `.p2` / `.gold`）、タイトルや勝敗の太い文字は `.sticker`。書体は端末のヒラギノ丸ゴを使い、外部フォントは読み込まない（CSP とオフラインのため）。出てくる動きには `--spring` のばねを使い、`prefers-reduced-motion` では止める。一覧のカードの絵は各ゲームの `Thumb.svelte`（一覧に載るので、軽い CSS だけで描く）。
+明るいパーティーゲームの見た目に揃える。色・影・模様・書体は `src/app.css` の `:root` にまとめてあり、各ゲームはそれを使う（地は `--bg`、1P は青 `--p1`、2P は赤 `--p2`、陣地は淡い `--zone-1` / `--zone-2` に水玉 `--dots` を重ねる）。部品は白いふちと下に厚みのある影を持ち（`--lift`）、押すと沈む。ボタンは `.pill`（`.p1` / `.p2` / `.gold`）、タイトルや勝敗の太い文字は `.sticker`。書体は端末のヒラギノ丸ゴを使い、外部フォントは読み込まない（CSP とオフラインのため）。出てくる動きには `--spring` のばねを使い、`prefers-reduced-motion` では止める。一覧のカードの絵は `pnpm thumbs` で実際の画面から撮った `static/thumbs/<id>.webp`（台本は `scripts/thumbs/scenes.ts`）で、1 人用のタイトル画面の額にも同じ画像を使う。
 
 ## 横向き
 

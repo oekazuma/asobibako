@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { games } from './games';
 
@@ -21,5 +22,9 @@ describe('games', () => {
     const metaModules = import.meta.glob('./games/*/meta.ts', { eager: true });
     const folders = new Set(Object.keys(metaModules).map((path) => path.split('/')[2]));
     expect(new Set(games.map((g) => g.id))).toEqual(folders);
+  });
+
+  it('どのゲームにも一覧のカードの画像がある', () => {
+    for (const game of games) expect(existsSync(`static/thumbs/${game.id}.webp`), game.id).toBe(true);
   });
 });

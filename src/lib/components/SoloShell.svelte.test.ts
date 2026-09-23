@@ -19,7 +19,6 @@ const meta = {
   minutes: '1分',
   players: 1 as const,
   levels: 10,
-  Thumb: StubHowto,
   load: async () => ({ Game: StubGame, Howto: StubHowto })
 };
 

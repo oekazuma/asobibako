@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { resolve } from '$app/paths';
+  import { asset, resolve } from '$app/paths';
   import type { GameMeta } from '$lib/games';
   import { savedLevel } from '$lib/levels';
 
@@ -14,7 +14,15 @@
 </script>
 
 <a class="card" href={resolve('/games/[id]', { id: game.id })}>
-  <div class="thumb"><game.Thumb /></div>
+  <img
+    class="thumb"
+    src={asset(`/thumbs/${game.id}.webp`)}
+    alt=""
+    width="680"
+    height="400"
+    loading="eager"
+    decoding="async"
+  />
   <div class="body">
     <h3>{game.name}</h3>
     <p class="desc">{game.description}</p>
@@ -59,9 +67,10 @@
 
   .thumb {
     display: block;
-    height: 128px;
+    width: 100%;
+    height: 200px;
     border-radius: 20px 20px 0 0;
-    overflow: hidden;
+    object-fit: cover;
   }
 
   .body {

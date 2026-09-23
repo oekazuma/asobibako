@@ -1,5 +1,4 @@
 import type { GameMeta } from '$lib/games';
-import Thumb from './Thumb.svelte';
 
 export default {
   id: 'pin-rescue',
@@ -8,7 +7,6 @@ export default {
   players: 1,
   levels: 18,
   minutes: '1分',
-  Thumb,
   load: async () => ({
     Game: (await import('./PinRescue.svelte')).default,
     Howto: (await import('./Howto.svelte')).default
