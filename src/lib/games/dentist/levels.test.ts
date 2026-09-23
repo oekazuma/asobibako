@@ -16,6 +16,7 @@ import {
   type GameState
 } from './engine';
 import { introduces, LEVELS } from './levels';
+import meta from './meta';
 
 const DT = 1 / 60;
 
@@ -79,8 +80,8 @@ function play(state: GameState, careless = false, limit = 240) {
 }
 
 describe('dentist levels', () => {
-  it('面は 20', () => {
-    expect(LEVELS).toHaveLength(20);
+  it('面の数は一覧に出す数と同じ', () => {
+    expect(LEVELS).toHaveLength(meta.levels);
   });
 
   it('同じ面はない', () => {
