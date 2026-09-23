@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 概要
 
-iPad 1 台をテーブルに置き、画面の上下から 2 人が同時に操作して遊ぶ対戦ゲーム集 PWA。画面全体を 1 人で使い、レベルを順にクリアする 1 人用のゲームもある。SvelteKit（Svelte 5 runes、TypeScript）+ adapter-static で、`main` への push で GitHub Pages（`/table-duel/`）へ自動デプロイされる。ランタイム依存は three だけで（雪原サバイバルの 3D 表示が使い、そのゲームを遊ぶときに読み込む）、効果音は Web Audio のオシレータ合成、アイコンは `scripts/make-icon.ts` の自前 PNG 生成。
+iPad 1 台をテーブルに置き、画面の上下から 2 人が同時に操作して遊ぶ対戦ゲーム集 PWA。画面全体を 1 人で使い、レベルを順にクリアする 1 人用のゲームもある。SvelteKit（Svelte 5 runes、TypeScript）+ adapter-static で、`main` への push で GitHub Pages（`/table-duel/`）へ自動デプロイされる。ランタイム依存は three だけで（雪原サバイバルの 3D 表示が使い、そのゲームを遊ぶときに読み込む）、効果音は Web Audio のオシレータ合成、アプリのアイコンは `scripts/make-icon.ts` がロゴ（`Logo.svelte`）を端末の Chrome で撮って作る。
 
 ## コマンド
 
