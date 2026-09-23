@@ -187,6 +187,18 @@ export const SCENES: Scene[] = [
     }
   },
   {
+    // イヌも乗せる川渡り。あなたとオオカミとヒツジを舟に乗せ、岸にキャベツとイヌが残ったところ
+    id: 'hirameki',
+    level: 9,
+    clip: band(380),
+    play: async (s) => {
+      await s.startSolo();
+      for (const name of ['あなた', 'オオカミ', 'ヒツジ'])
+        await s.press(`button.rider:not(.ghost)[aria-label="${name}"]`);
+      await s.wait(600);
+    }
+  },
+  {
     // 最後から 2 つ目の門（×2 と +10）の手前。そこまでの門は増えるほうをくぐる
     id: 'gate-run',
     level: 6,

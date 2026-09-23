@@ -6,6 +6,7 @@ import dentist from './games/dentist/meta';
 import dogGuard from './games/dog-guard/meta';
 import doodleWorm from './games/doodle-worm/meta';
 import gateRun from './games/gate-run/meta';
+import hirameki from './games/hirameki/meta';
 import hockey from './games/hockey/meta';
 import lightning from './games/lightning/meta';
 import pinRescue from './games/pin-rescue/meta';
@@ -56,6 +57,8 @@ export interface SoloMeta extends BaseMeta {
   players: 1;
   /** 面の数。最後の面をクリアしたら全クリ。1 ならレベル選びを出さず、onfinish を呼ばない自由あそびにしてよい */
   levels: number;
+  /** 1 面の呼び方。難しさの順に並ばないゲームは「レベル」と呼ばない。なければ「レベル」 */
+  levelName?: string;
   load: () => Promise<SoloModule>;
 }
 
@@ -63,6 +66,7 @@ export type GameMeta = DuelMeta | SoloMeta;
 
 export const games: GameMeta[] = [
   pinRescue,
+  hirameki,
   gateRun,
   dogGuard,
   snowCamp,

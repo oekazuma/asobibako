@@ -18,6 +18,9 @@ const circle = (cx: number, cy: number, r: number) =>
 const ellipse = (cx: number, cy: number, rx: number, ry: number) =>
   `M${cx - rx} ${cy}a${rx} ${ry} 0 1 0 ${rx * 2} 0a${rx} ${ry} 0 1 0 ${-rx * 2} 0z`;
 const finger = (x: number, top: number) => `M${x} ${top + 1.5}a1.5 1.5 0 0 1 3 0V14h-3z`;
+/** ヒツジのもこもこの毛。重なった丸 */
+const WOOL =
+  circle(7, 8.5, 3.3) + circle(12, 6.2, 3.6) + circle(17, 8.5, 3.3) + circle(5.8, 13, 3) + circle(18.2, 13, 3);
 const palm = 'M6.5 12.5h11v4.5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z';
 
 /** 表情を重ねる前の、男の子と犬の顔 */
@@ -42,6 +45,18 @@ const CAT: Layer[] = [
   { d: 'M10.8 14.6h2.4L12 16z', fill: '#ff7a8f' },
   { d: 'M10.2 17a1.8 1.8 0 0 0 1.8-1 1.8 1.8 0 0 0 1.8 1', stroke: INK, width: 0.8 },
   { d: 'M2.5 14.2l4.5.6M2.8 17l4.3-.9M21.5 14.2l-4.5.6M21.2 17l-4.3-.9', stroke: INK, width: 0.5 }
+];
+
+/** 主人公の探偵。鹿撃ち帽とケープ。表情だけ重ねて変える */
+const DETECTIVE: Layer[] = [
+  { d: 'M3.5 23.5c.8-3.6 4-5.5 8.5-5.5s7.7 1.9 8.5 5.5z', fill: '#9c7a5c', stroke: LINE, width: 1.2 },
+  { d: 'M8.2 18.6L12 21.4l3.8-2.8', stroke: LINE, width: 1 },
+  { d: circle(12, 12.6, 6.3), fill: SKIN, stroke: LINE, width: 1.2 },
+  { d: 'M5.2 11.2c0-4.6 3-7.4 6.8-7.4s6.8 2.8 6.8 7.4z', fill: '#d8b48a', stroke: LINE, width: 1.2 },
+  { d: 'M8.4 5.2v6M12 3.8v7.4M15.6 5.2v6M5.6 8.4h12.8', stroke: '#b08a62', width: 0.7 },
+  { d: 'M4.6 11.2h14.8l-1.6 1.5H6.2z', fill: '#b08a62', stroke: LINE, width: 1 },
+  { d: circle(12, 3.6, 0.9), fill: '#8a5a3b' },
+  { d: circle(8.4, 15.6, 1) + circle(15.6, 15.6, 1), fill: '#ff9aa8' }
 ];
 
 export const ICONS = {
@@ -271,6 +286,65 @@ export const ICONS = {
       width: 2.2
     },
     { d: 'M12 14.5V3M8.5 6.5L12 3l3.5 3.5', stroke: LINE, width: 2.2 }
+  ],
+  wolf: [
+    { d: 'M4.5 10.5L5.5 2.5l6.5 4.5zM19.5 10.5l-1-8-6.5 4.5z', fill: '#8e8a9c', stroke: LINE, width: 1.2 },
+    { d: 'M6.4 8.6l.5-3.9 3 2.1zM17.6 8.6l-.5-3.9-3 2.1z', fill: '#ffb3c1' },
+    { d: circle(12, 13, 8), fill: '#b3aec2', stroke: LINE, width: 1.2 },
+    { d: ellipse(12, 16.8, 4.3, 3.3), fill: '#f1eef6' },
+    { d: circle(9, 11.8, 1.2) + circle(15, 11.8, 1.2) + ellipse(12, 15.2, 1.8, 1.2), fill: INK },
+    { d: 'M7.2 9.6l2.9 1M16.8 9.6l-2.9 1', stroke: INK, width: 1 },
+    { d: 'M10.4 17.6a1.6 1.6 0 0 0 1.6-.9 1.6 1.6 0 0 0 1.6.9', stroke: INK, width: 0.8 }
+  ],
+  sheep: [
+    { d: ellipse(4.6, 12.5, 3, 1.7) + ellipse(19.4, 12.5, 3, 1.7), fill: '#f2c9b0', stroke: LINE, width: 1 },
+    // ふちを描いてから同じ形を塗って、重なった丸の内側の線を消す（もこもこの外周だけ残す）
+    { d: WOOL, stroke: LINE, width: 2.4 },
+    { d: WOOL, fill: '#fff' },
+    { d: ellipse(12, 14.8, 4.8, 5.6), fill: '#f7dcc8', stroke: LINE, width: 1.2 },
+    { d: circle(10, 9.8, 2.3) + circle(14, 9.8, 2.3) + circle(12, 9, 2.3), fill: '#fff' },
+    { d: circle(10, 14.2, 1) + circle(14, 14.2, 1), fill: INK },
+    { d: circle(8.8, 16.6, 1) + circle(15.2, 16.6, 1), fill: '#ff9aa8' },
+    { d: 'M11 17.4q1 .9 2 0', stroke: INK, width: 0.9 }
+  ],
+  cabbage: [
+    { d: circle(12, 12.5, 9.5), fill: '#8fd47a', stroke: LINE, width: 1.2 },
+    { d: ellipse(12, 12.5, 5.5, 7), fill: '#c6efb0', stroke: '#5fae4f', width: 1 },
+    {
+      d: 'M4.5 8.5c3 2 4 7.5 3 12.5M19.5 8.5c-3 2-4 7.5-3 12.5M12 7v11M12 11l-2.5-2M12 14l2.5-2',
+      stroke: '#5fae4f',
+      width: 1.1
+    }
+  ],
+  adult: [
+    { d: 'M3.5 23a8.5 7.5 0 0 1 17 0z', fill: '#8ec9ff', stroke: LINE, width: 1.2 },
+    { d: 'M10 15.5l2 2.5 2-2.5z', fill: '#fff' },
+    { d: circle(12, 9, 6), fill: SKIN, stroke: LINE, width: 1.2 },
+    { d: 'M6 9c-.5-4 2.2-6.5 6-6.5s6.5 2.5 6 6.5c-1-2-3-3-6-3.2-2 1.2-4 2-6 3.2z', fill: '#6b4a35' },
+    { d: circle(9.8, 10, 0.9) + circle(14.2, 10, 0.9), fill: INK },
+    { d: 'M10.2 12.4a2.4 2.4 0 0 0 3.6 0', stroke: INK, width: 1 }
+  ],
+  detective: [
+    ...DETECTIVE,
+    { d: circle(9.8, 14, 0.9) + circle(14.2, 14, 0.9), fill: INK },
+    { d: 'M10.8 16.6q1.2.8 2.4 0', stroke: INK, width: 0.9 }
+  ],
+  'detective-happy': [
+    ...DETECTIVE,
+    { d: 'M8.8 14.3a1.1 1.1 0 0 1 2 0M13.2 14.3a1.1 1.1 0 0 1 2 0', stroke: INK, width: 1.1 },
+    { d: 'M10.2 15.9h3.6a1.8 1.8 0 0 1-3.6 0z', fill: '#c2542b' }
+  ],
+  'detective-sad': [
+    ...DETECTIVE,
+    { d: circle(9.8, 14.2, 0.8) + circle(14.2, 14.2, 0.8), fill: INK },
+    { d: 'M8.6 12.9l1.9-.5M15.4 12.9l-1.9-.5M10.8 17.3q1.2-.8 2.4 0', stroke: INK, width: 0.9 },
+    { d: 'M18.8 9.2c-.6 1.1-.9 1.8-.9 2.3a.9.9 0 0 0 1.8 0c0-.5-.3-1.2-.9-2.3z', fill: '#4db5ff' }
+  ],
+  magnifier: [
+    { d: 'M14 14l6.5 6.5', stroke: LINE, width: 3.6 },
+    { d: 'M14.4 14.4l5.8 5.8', stroke: '#8a5a3b', width: 2 },
+    { d: circle(9.5, 9.5, 6), fill: '#dff3ff', stroke: LINE, width: 1.6 },
+    { d: 'M6.3 8.2a3.6 3.6 0 0 1 2.6-2.6', stroke: '#fff', width: 1.3 }
   ],
   check: [
     { d: circle(12, 12, 10), fill: '#9be0a6', stroke: LINE, width: 1.6 },

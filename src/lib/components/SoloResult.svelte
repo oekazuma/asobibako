@@ -5,8 +5,9 @@
     cleared,
     complete,
     level,
+    name = 'レベル',
     onagain
-  }: { cleared: boolean; complete: boolean; level: number; onagain: () => void } = $props();
+  }: { cleared: boolean; complete: boolean; level: number; name?: string; onagain: () => void } = $props();
 </script>
 
 <div class="result" class:won={cleared}>
@@ -25,7 +26,7 @@
     >{complete ? 'ぜんぶクリア！' : cleared ? 'クリア！' : 'ざんねん…'}</span
   >
   <span class="level">
-    {complete ? `レベル ${level} まで ぜんぶ クリア！` : cleared ? `つぎは レベル ${level}` : `レベル ${level}`}
+    {complete ? `${name} ${level} まで ぜんぶ クリア！` : cleared ? `つぎは ${name} ${level}` : `${name} ${level}`}
   </span>
   <button class="pill gold go again" onclick={onagain}>{cleared && !complete ? 'つぎへ' : 'もういちど'}</button>
 </div>
