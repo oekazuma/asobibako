@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   bank,
+  connectOk,
   cross,
+  divideOk,
+  fillOk,
   iceDone,
   iceSlide,
   linesCover,
@@ -10,13 +13,27 @@ import {
   pour,
   riverDone,
   riverStart,
+  rotateOk,
   slide,
   slideDone,
   type RiverState
 } from './engine';
 import meta from './meta';
 import { ALL_PUZZLES, ORDER, PUZZLES } from './puzzles';
-import type { Block, IceQ, LinesQ, PlaceQ, Point, PourQ, Puzzle, RiverQ, SlideQ, SticksQ } from './types';
+import type {
+  Block,
+  ConnectQ,
+  FillQ,
+  IceQ,
+  LinesQ,
+  PlaceQ,
+  Point,
+  PourQ,
+  Puzzle,
+  RiverQ,
+  SlideQ,
+  SticksQ
+} from './types';
 
 /** 幅優先で、goal にたどり着く最小の手数（maxDepth までに見つからなければ -1） */
 function bfs<S>(start: S, key: (s: S) => string, next: (s: S) => S[], goal: (s: S) => boolean, maxDepth: number) {
@@ -161,6 +178,64 @@ function placeCount(p: PlaceQ) {
   return { ok, all };
 }
 
+/** 組ごとに線を探して、全部つなげられるか（fill ならます目を埋めきれるか） */
+function connectSolvable(p: ConnectQ): boolean {
+  const n = p.cols * p.rows;
+  const at = (q: Point) => q.y * p.cols + q.x;
+  const ends = new Set(p.pairs.flatMap((pr) => [at(pr.a), at(pr.b)]));
+  const nbrs = (c: number) =>
+    [c - p.cols, c + p.cols, c % p.cols ? c - 1 : -1, (c + 1) % p.cols ? c + 1 : -1].filter((d) => d >= 0 && d < n);
+  const route = (i: number, used: Set<number>, paths: number[][]): boolean => {
+    if (i === p.pairs.length)
+      return connectOk(
+        p,
+        paths.flatMap((q, k) => (k ? [-1, ...q] : q))
+      );
+    const [a, b] = [at(p.pairs[i].a), at(p.pairs[i].b)];
+    const walk = (path: number[]): boolean => {
+      const c = path.at(-1)!;
+      if (c === b) return route(i + 1, new Set([...used, ...path]), [...paths, path]);
+      return nbrs(c).some(
+        (d) =>
+          !path.includes(d) &&
+          !used.has(d) &&
+          !p.blocked?.includes(d) &&
+          (d === b || !ends.has(d)) &&
+          walk([...path, d])
+      );
+    };
+    return walk([a]);
+  };
+  return route(0, new Set(), []);
+}
+
+/** 数の入れ方を全部ためし、goal を満たす数と全体の数 */
+function fillCount(p: FillQ) {
+  const open = p.cells.map((c, i) => (c.given === undefined ? i : -1)).filter((i) => i >= 0);
+  let ok = 0;
+  let all = 0;
+  const walk = (k: number, left: number[], values: number[]) => {
+    if (k === open.length) {
+      all++;
+      if (fillOk(p, values)) ok++;
+      return;
+    }
+    new Set(left).forEach((v) => {
+      const next = [...values];
+      next[open[k]] = v;
+      const rest = [...left];
+      rest.splice(rest.indexOf(v), 1);
+      walk(k + 1, rest, next);
+    });
+  };
+  walk(
+    0,
+    p.numbers,
+    p.cells.map((c) => c.given ?? -1)
+  );
+  return { ok, all };
+}
+
 const choose = (n: number, k: number): number => (k === 0 ? 1 : (choose(n - 1, k - 1) * n) / k);
 
 describe('hirameki のなぞ', () => {
@@ -232,6 +307,30 @@ describe('hirameki のなぞ', () => {
           // 1 手や 2 手でとけるなら、ナゾになっていない
           expect(iceDepth(p)).toBeGreaterThanOrEqual(4);
           break;
+        case 'connect':
+          expect(connectSolvable(p)).toBe(true);
+          break;
+        case 'divide':
+          expect(divideOk(p, p.example)).toBe(true);
+          break;
+        case 'rotate':
+          expect(
+            rotateOk(
+              p,
+              p.tiles.map((t) => t.turn)
+            )
+          ).toBe(false);
+          expect(rotateOk(p, p.example)).toBe(true);
+          // fixed のタイルは回せないので、正解の向きでも最初のまま
+          p.tiles.forEach((t, i) => t.fixed && expect(p.example[i] % 4).toBe(t.turn % 4));
+          break;
+        case 'fill': {
+          expect(p.numbers.length).toBe(p.cells.filter((c) => c.given === undefined).length);
+          const { ok, all } = fillCount(p);
+          expect(ok).toBeGreaterThan(0);
+          expect(ok * 10).toBeLessThanOrEqual(all);
+          break;
+        }
         case 'slide':
           expect(slideDone(p, p.blocks)).toBe(false);
           expect(slideDepth(p)).toBeGreaterThan(0);
