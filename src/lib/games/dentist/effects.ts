@@ -12,12 +12,18 @@ interface Flying {
   age: number;
 }
 
+const RECOIL_S = 0.25;
+
 /** 見た目と音だけ。ルールには影響しない。こする音や粒は毎フレーム出すとうるさいので間引く */
 export class Effects {
   readonly particles = new Particles();
   readonly floaters = new Floaters();
   readonly shake = new Shake();
   lid = 0;
+  /** 効かない道具がはね返る残り（1 → 0） */
+  recoil = 0;
+  /** 詰め物を先に当てた穴。そこのバイキンが顔を出して押し返す */
+  poke: { x: number; y: number; at: number } | null = null;
   readonly #flying: Flying[] = [];
   readonly #next = new Map<string, number>();
   readonly #still: boolean;
@@ -131,6 +137,11 @@ export class Effects {
         }
       } else if (e.type === 'wrong' || e.type === 'order' || e.type === 'slip') {
         if (this.#every('wrong', 0.6, now)) sounds.wrong();
+        if (e.type !== 'slip' && !this.#still) this.recoil = 1;
+        if (e.type === 'order') {
+          if (!this.#still) this.poke = { x: e.x, y: e.y, at: now };
+          this.particles.burst(e.x, e.y, { count: 5, color: '#bfe88a', speed: 0.15, size: 0.007, life: 0.4 });
+        }
       } else if (e.type === 'clear') {
         for (let k = 0; k < 4; k++)
           this.particles.burst(0.15 + k * 0.23, 0.35, {
@@ -152,6 +163,7 @@ export class Effects {
     this.particles.step(dt);
     this.floaters.step(dt);
     this.lid = Math.max(0, this.lid - dt * 2.5);
+    this.recoil = Math.max(0, this.recoil - dt / RECOIL_S);
     for (const f of this.#flying) {
       f.age += dt;
       f.vy += 2.5 * dt;

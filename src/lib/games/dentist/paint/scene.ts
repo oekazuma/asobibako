@@ -79,11 +79,14 @@ export function drawTool(
   tool: ToolId,
   tip: readonly [number, number],
   busy: boolean,
-  still: boolean
+  still: boolean,
+  recoil: number
 ): void {
   const [ax, ay] = ANCHOR[tool];
   let x = tip[0] + ((12 - ax) / 24) * TOOL_SIZE;
-  let y = tip[1] + ((12 - ay) / 24) * TOOL_SIZE;
+  // 歯に押し返されて指のほうへ跳ね、少し行き過ぎてから戻る
+  const back = Math.sin((1 - recoil) * Math.PI * 1.5) * recoil * 0.05;
+  let y = tip[1] + ((12 - ay) / 24) * TOOL_SIZE + back;
   if (busy && tool === 'drill' && !still) {
     x += (Math.random() - 0.5) * 0.004;
     y += (Math.random() - 0.5) * 0.004;

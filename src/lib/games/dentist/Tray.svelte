@@ -35,6 +35,10 @@
         event.preventDefault();
         onselect(tool);
       }}
+      onclick={(event) => {
+        // 指では pointerdown で持ちかえ済み。キーボードや VoiceOver の操作だけがここで選ぶ
+        if (event.detail === 0) onselect(tool);
+      }}
     >
       <Icon name={tool} size="72%" />
     </button>

@@ -107,7 +107,8 @@
     const text = talking ? say.text : (next?.text ?? '');
     if (text !== hint) onhint?.((hint = text));
     const idle = game.idle >= IDLE_S;
-    const want = talking ? say.tool : idle ? (next?.tool ?? null) : null;
+    // 痛がっているときは、手を動かし続けていてもよしよしを知らせる
+    const want = talking ? say.tool : idle || game.calming ? (next?.tool ?? null) : null;
     if (want !== nudge) nudge = want;
     if (next && fresh.includes(next.tool) && !demoed.includes(next.tool)) {
       demoed.push(next.tool);
@@ -136,7 +137,14 @@
     const [sx, sy] = fx.shake.offset(dt, 10);
     const s = view.scale * dpr;
     ctx.setTransform(s, 0, 0, s, (view.ox + sx) * dpr, (view.oy + sy) * dpr);
-    paint(ctx, game, { tip: f ? toWorld(f.x, f.y) : null, ghost, lid: fx.lid, still });
+    paint(ctx, game, {
+      tip: f ? toWorld(f.x, f.y) : null,
+      ghost,
+      lid: fx.lid,
+      still,
+      recoil: fx.recoil,
+      poke: fx.poke
+    });
     fx.draw(ctx);
   }
 
