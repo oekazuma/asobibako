@@ -67,7 +67,7 @@ describe('一覧', () => {
   });
 
   it('さいきん遊んだゲームを新しい順に出し、もうないゲームは飛ばす', () => {
-    localStorage.setItem('table-duel:recent', JSON.stringify(['hockey', 'gone', 'pin-rescue']));
+    localStorage.setItem('asobibako:recent', JSON.stringify(['hockey', 'gone', 'pin-rescue']));
     const { app, names } = show();
     expect(names('.recent')).toEqual(['ホッケー', 'ピンぬき']);
     unmount(app);

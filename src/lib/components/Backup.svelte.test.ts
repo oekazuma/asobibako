@@ -33,8 +33,8 @@ describe('バックアップ', () => {
   });
 
   it('読み込んだファイルの中身を見せ、計算と確認のあとで置き換えて読み直す', async () => {
-    localStorage.setItem('table-duel:reached:stale', '9');
-    const data = { 'table-duel:reached:maze': '5', 'table-duel:muted': '1' };
+    localStorage.setItem('asobibako:reached:stale', '9');
+    const data = { 'asobibako:reached:maze': '5', 'asobibako:muted': '1' };
     await choose(target, JSON.stringify({ app: 'asobibako', version: 'v', at: '2026-09-01', data }));
     expect(target.querySelector('.confirm')?.textContent).toContain(
       '1 本のゲームの記録・2 件（2026-09-01 に書き出し）'
@@ -53,15 +53,15 @@ describe('バックアップ', () => {
     go.click();
     await tick();
     expect(reload).toHaveBeenCalled();
-    expect(localStorage.getItem('table-duel:reached:maze')).toBe('5');
-    expect(localStorage.getItem('table-duel:reached:stale')).toBeNull();
+    expect(localStorage.getItem('asobibako:reached:maze')).toBe('5');
+    expect(localStorage.getItem('asobibako:reached:stale')).toBeNull();
   });
 
   it('別のファイルは読み込めないと伝え、記録に触らない', async () => {
-    localStorage.setItem('table-duel:reached:maze', '5');
+    localStorage.setItem('asobibako:reached:maze', '5');
     await choose(target, '{"app":"kakikaki"}');
     expect(target.querySelector('.err')?.textContent).toContain('読み込めませんでした');
     expect(target.querySelector('.confirm')).toBeNull();
-    expect(localStorage.getItem('table-duel:reached:maze')).toBe('5');
+    expect(localStorage.getItem('asobibako:reached:maze')).toBe('5');
   });
 });

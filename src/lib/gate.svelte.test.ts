@@ -23,11 +23,11 @@ describe('Gate', () => {
   });
 
   it('日付が違う・壊れた保存値は無視する', () => {
-    localStorage.setItem('table-duel:gate', JSON.stringify({ date: '2000-01-01', fails: 3 }));
+    localStorage.setItem('asobibako:gate', JSON.stringify({ date: '2000-01-01', fails: 3 }));
     expect(new Gate().locked).toBe(false);
-    localStorage.setItem('table-duel:gate', '{broken');
+    localStorage.setItem('asobibako:gate', '{broken');
     expect(new Gate().fails).toBe(0);
-    localStorage.setItem('table-duel:gate', JSON.stringify({ date: today(), fails: 'abc' }));
+    localStorage.setItem('asobibako:gate', JSON.stringify({ date: today(), fails: 'abc' }));
     expect(new Gate().fails).toBe(0);
   });
 });

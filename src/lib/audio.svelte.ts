@@ -1,4 +1,4 @@
-const KEY = 'table-duel:muted';
+const KEY = 'asobibako:muted';
 
 let ctx: AudioContext | undefined;
 

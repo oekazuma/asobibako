@@ -1,4 +1,4 @@
-export const LAST_ERROR_KEY = 'table-duel:last-error';
+export const LAST_ERROR_KEY = 'asobibako:last-error';
 
 export interface LastError {
   message: string;

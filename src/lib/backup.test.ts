@@ -8,32 +8,28 @@ describe('backup', () => {
   beforeEach(() => localStorage.clear());
   afterEach(() => vi.restoreAllMocks());
 
-  it('書き出し → 消去 → 読み込みで table-duel: のキーだけが元に戻り、端末ごとの控えは触らない', () => {
-    localStorage.setItem('table-duel:reached:maze', '5');
-    localStorage.setItem('table-duel:level:snake', '40');
-    localStorage.setItem('table-duel:muted', '1');
-    localStorage.setItem('table-duel:last-error', 'old-error');
-    localStorage.setItem('table-duel:gate', 'old-gate');
+  it('書き出し → 消去 → 読み込みで asobibako: のキーだけが元に戻り、端末ごとの控えは触らない', () => {
+    localStorage.setItem('asobibako:reached:maze', '5');
+    localStorage.setItem('asobibako:level:snake', '40');
+    localStorage.setItem('asobibako:muted', '1');
+    localStorage.setItem('asobibako:last-error', 'old-error');
+    localStorage.setItem('asobibako:gate', 'old-gate');
     localStorage.setItem('other', 'keep');
     const b = parseBackup(exportAll('123-abc'));
     expect(b.version).toBe('123-abc');
-    expect(Object.keys(b.data).sort()).toEqual([
-      'table-duel:level:snake',
-      'table-duel:muted',
-      'table-duel:reached:maze'
-    ]);
+    expect(Object.keys(b.data).sort()).toEqual(['asobibako:level:snake', 'asobibako:muted', 'asobibako:reached:maze']);
     expect(summarize(b)).toMatchObject({ games: 2, keys: 3 });
 
     localStorage.clear();
-    localStorage.setItem('table-duel:reached:stale', '9');
-    localStorage.setItem('table-duel:last-error', 'new-error');
-    localStorage.setItem('table-duel:gate', 'new-gate');
+    localStorage.setItem('asobibako:reached:stale', '9');
+    localStorage.setItem('asobibako:last-error', 'new-error');
+    localStorage.setItem('asobibako:gate', 'new-gate');
     localStorage.setItem('other', 'keep');
     expect(importAll(b)).toBe(true);
-    expect(localStorage.getItem('table-duel:reached:maze')).toBe('5');
-    expect(localStorage.getItem('table-duel:reached:stale')).toBeNull();
-    expect(localStorage.getItem('table-duel:last-error')).toBe('new-error');
-    expect(localStorage.getItem('table-duel:gate')).toBe('new-gate');
+    expect(localStorage.getItem('asobibako:reached:maze')).toBe('5');
+    expect(localStorage.getItem('asobibako:reached:stale')).toBeNull();
+    expect(localStorage.getItem('asobibako:last-error')).toBe('new-error');
+    expect(localStorage.getItem('asobibako:gate')).toBe('new-gate');
     expect(localStorage.getItem('other')).toBe('keep');
   });
 
@@ -50,27 +46,27 @@ describe('backup', () => {
     expect(() => parseBackup(JSON.stringify({ app: 'kakikaki', version: 'v', at: 'd', data: {} }))).toThrow();
     expect(() => parseBackup(JSON.stringify({ app: 'asobibako', data: {} }))).toThrow();
     expect(() => parseBackup(file({ evil: 'x' }))).toThrow();
-    expect(() => parseBackup(file({ 'table-duel:muted': 1 }))).toThrow();
-    expect(() => parseBackup(file({ 'table-duel:gate': '{}' }))).toThrow();
-    expect(() => parseBackup(file({ 'table-duel:last-error': '{}' }))).toThrow();
+    expect(() => parseBackup(file({ 'asobibako:muted': 1 }))).toThrow();
+    expect(() => parseBackup(file({ 'asobibako:gate': '{}' }))).toThrow();
+    expect(() => parseBackup(file({ 'asobibako:last-error': '{}' }))).toThrow();
     expect(parseBackup(file({})).data).toEqual({});
   });
 
   it('キー数・大きさが常識外のファイルは受け付けない', () => {
     const data: Record<string, string> = {};
-    for (let i = 0; i < 401; i++) data[`table-duel:x${i}`] = 'v';
+    for (let i = 0; i < 401; i++) data[`asobibako:x${i}`] = 'v';
     expect(() => parseBackup(file(data))).toThrow();
     expect(() => parseBackup('a'.repeat(1024 * 1024 + 1))).toThrow();
   });
 
   it('途中で容量超過しても元の記録に戻り false を返す', () => {
-    localStorage.setItem('table-duel:reached:maze', 'orig-maze');
-    localStorage.setItem('table-duel:muted', 'orig-muted');
+    localStorage.setItem('asobibako:reached:maze', 'orig-maze');
+    localStorage.setItem('asobibako:muted', 'orig-muted');
     const b: Backup = {
       app: 'asobibako',
       version: 'v',
       at: 'd',
-      data: { 'table-duel:reached:maze': 'new-maze', 'table-duel:reached:snake': 'new-snake' }
+      data: { 'asobibako:reached:maze': 'new-maze', 'asobibako:reached:snake': 'new-snake' }
     };
     // happy-dom では Storage.prototype への spy がインスタンスの呼び出しに効かないため、インスタンス自身に spy する
     const original = localStorage.setItem.bind(localStorage);
@@ -81,8 +77,8 @@ describe('backup', () => {
     });
 
     expect(importAll(b)).toBe(false);
-    expect(localStorage.getItem('table-duel:reached:maze')).toBe('orig-maze');
-    expect(localStorage.getItem('table-duel:muted')).toBe('orig-muted');
-    expect(localStorage.getItem('table-duel:reached:snake')).toBeNull();
+    expect(localStorage.getItem('asobibako:reached:maze')).toBe('orig-maze');
+    expect(localStorage.getItem('asobibako:muted')).toBe('orig-muted');
+    expect(localStorage.getItem('asobibako:reached:snake')).toBeNull();
   });
 });

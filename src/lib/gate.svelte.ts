@@ -1,6 +1,6 @@
 import { today } from './today';
 
-export const GATE_KEY = 'table-duel:gate';
+export const GATE_KEY = 'asobibako:gate';
 export const MAX_FAILS = 3;
 
 function load(): number {

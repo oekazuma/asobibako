@@ -2,10 +2,10 @@ import { GATE_KEY } from './gate.svelte';
 import { LAST_ERROR_KEY } from './last-error';
 import { today } from './today';
 
-// 記録のバックアップ。localStorage の table-duel: で始まるキーをまとめて 1 つの JSON にし、読み込みは全部置き換える
+// 記録のバックアップ。localStorage の asobibako: で始まるキーをまとめて 1 つの JSON にし、読み込みは全部置き換える
 // （サーバーや同期は持たない。保護者が自分で持つファイルだけ）
 export type Backup = { app: 'asobibako'; version: string; at: string; data: Record<string, string> };
-const PREFIX = 'table-duel:';
+const PREFIX = 'asobibako:';
 // 端末ごとの控え。持ち運ぶと別の端末のエラーやゲートの回数が混ざる
 const EXCLUDED = new Set([LAST_ERROR_KEY, GATE_KEY]);
 
@@ -71,6 +71,6 @@ export function importAll(b: Backup): boolean {
 
 /** 読み込み前の確認に見せる数字。games はレベルを進めたゲームの本数（100 面だったころの保存名も数える） */
 export function summarize(b: Backup): { games: number; keys: number; at: string } {
-  const ids = Object.keys(b.data).flatMap((k) => k.match(/^table-duel:(?:reached|level):(.+)$/)?.[1] ?? []);
+  const ids = Object.keys(b.data).flatMap((k) => k.match(/^asobibako:(?:reached|level):(.+)$/)?.[1] ?? []);
   return { games: new Set(ids).size, keys: Object.keys(b.data).length, at: b.at };
 }
