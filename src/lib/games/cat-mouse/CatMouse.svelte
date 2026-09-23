@@ -7,6 +7,7 @@
   import { animate } from '$lib/loop';
   import type { Player } from '$lib/player';
   import { CAT_R, CHEESE_R, createState, MOUSE_R, step, STICK_R, updateSticks } from './engine';
+  import Critter from './Critter.svelte';
   import Hud from './Hud.svelte';
   import { sounds } from './sounds';
 
@@ -85,14 +86,11 @@
   use:input.board={(aspect) => (game.aspect = aspect)}
   role="application"
   aria-label="ネコとネズミの盤面"
-  style:--cat="{CAT_R * 200}%"
-  style:--mouse="{MOUSE_R * 200}%"
+  style:--cat="{CAT_R * 360}%"
+  style:--mouse="{MOUSE_R * 360}%"
   style:--cheese="{CHEESE_R * 260}%"
   style:--stick="{STICK_R * 200}%"
 >
-  <div class="zone p2"></div>
-  <div class="zone p1"></div>
-
   <div class="cheese" hidden={view.phase !== 'play'} bind:this={cheeseEl}><Icon name="cheese" size="100%" /></div>
 
   {#each [1, 2] as const as player (player)}
@@ -103,9 +101,7 @@
   {#each [1, 2] as const as player (player)}
     {@const cat = view.cat === player}
     <div class="runner p{player}" class:cat bind:this={runnerEls[player]}>
-      <div class="face" bind:this={faceEls[player]}>
-        <Icon name={cat ? (view.phase === 'end' && view.caught ? 'cat-happy' : 'cat') : 'mouse'} size="100%" />
-      </div>
+      <div class="face" bind:this={faceEls[player]}><Critter kind={cat ? 'cat' : 'mouse'} /></div>
     </div>
   {/each}
 
@@ -118,23 +114,10 @@
     inset: 0;
     overflow: hidden;
     touch-action: none;
-  }
-
-  .zone {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 50%;
-  }
-
-  .zone.p2 {
-    top: 0;
-    background: var(--dots), var(--zone-2);
-  }
-
-  .zone.p1 {
-    bottom: 0;
-    background: var(--dots), var(--zone-1);
+    /* 板張りの床。板の継ぎ目と、1 枚おきの色むら */
+    background:
+      repeating-linear-gradient(90deg, rgb(122 74 34 / 0.28) 0 2px, transparent 2px 12.5%),
+      repeating-linear-gradient(90deg, #e6bd86 0 12.5%, #ddb077 12.5% 25%);
   }
 
   .cheese,
@@ -158,10 +141,7 @@
   .runner {
     z-index: 1;
     height: var(--mouse);
-    border: 4px solid var(--c);
-    border-radius: 50%;
-    background: #fff;
-    box-shadow: 0 5px 0 rgb(43 45 66 / 0.22);
+    filter: drop-shadow(0 4px 2px rgb(60 36 16 / 0.35));
   }
 
   .runner.cat {
@@ -178,7 +158,7 @@
 
   .face {
     position: absolute;
-    inset: 4%;
+    inset: 0;
   }
 
   /* 指を置いた場所に出るスティックの輪と、いまの指の位置 */
