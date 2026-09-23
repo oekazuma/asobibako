@@ -155,6 +155,19 @@ export const ICONS = {
     ...CAT,
     { d: 'M7.8 10.5l2.4 2.4M10.2 10.5l-2.4 2.4M13.8 10.5l2.4 2.4M16.2 10.5l-2.4 2.4', stroke: INK, width: 1.1 }
   ],
+  mouse: [
+    { d: circle(5.5, 7.5, 4.2) + circle(18.5, 7.5, 4.2), fill: '#aeb0c2' },
+    { d: circle(5.5, 7.5, 2.5) + circle(18.5, 7.5, 2.5), fill: '#ffb3c1' },
+    { d: ellipse(12, 14, 7.2, 6.8), fill: '#d3d5e0' },
+    { d: circle(9.2, 13, 1.2) + circle(14.8, 13, 1.2), fill: INK },
+    { d: circle(12, 16.4, 1.1), fill: '#ff7a8f' },
+    { d: 'M2.5 15.5l5 .6M2.8 18.2l4.8-.9M21.5 15.5l-5 .6M21.2 18.2l-4.8-.9', stroke: INK, width: 0.5 }
+  ],
+  cheese: [
+    { d: 'M2.5 12L16 5.5l5.5 6.5z', fill: '#ffe27a', stroke: '#e39a00', width: 1 },
+    { d: 'M2.5 12h19v7h-19z', fill: '#ffc233', stroke: '#e39a00', width: 1 },
+    { d: circle(7.5, 15.5, 1.4) + circle(14.5, 16, 1.7) + circle(18.8, 14, 0.9), fill: '#e8a41c' }
+  ],
   kid: [
     ...KID,
     { d: circle(9, 13, 1.2) + circle(15, 13, 1.2), fill: INK },

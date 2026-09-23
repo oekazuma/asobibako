@@ -171,6 +171,33 @@ async function lightning(s: Stage): Promise<void> {
  * 座標は iPad 縦（768 × 1024）で撮った画面から読んだ CSS px。
  * 盤面が画面の縦いっぱいに広がるゲームは 680 : 400 に全体が入らないので、場面の要になるところを切り出す
  */
+/**
+ * ネコとネズミ。ネズミはチーズへ、ネコはネズミへスティックを倒し続け、
+ * ネコがネズミに迫ったところを撮る
+ */
+async function catMouse(s: Stage): Promise<void> {
+  await s.startDuel();
+  await s.wait(1900);
+  const origin: Record<1 | 2, Point> = { 1: [384, 940], 2: [384, 84] };
+  await s.touch(1, 'down', ...origin[1]);
+  await s.touch(2, 'down', ...origin[2]);
+  for (let i = 0; i < 14; i++) {
+    const [[cat], [mouse], [cheese]] = await Promise.all(
+      ['.runner.cat', '.runner:not(.cat)', '.cheese'].map((q) => s.centers(q))
+    );
+    const catPlayer = await s.page.evaluate(() => (document.querySelector('.runner.cat.p1') ? 1 : 2));
+    const aim = (from: Point, to: Point): Point => {
+      const d = Math.hypot(to[0] - from[0], to[1] - from[1]) || 1;
+      return [((to[0] - from[0]) / d) * 50, ((to[1] - from[1]) / d) * 50];
+    };
+    const moves: Record<1 | 2, Point> = { 1: [0, 0], 2: [0, 0] };
+    moves[catPlayer] = aim(cat, mouse);
+    moves[catPlayer === 1 ? 2 : 1] = aim(mouse, cheese);
+    for (const p of [1, 2] as const) await s.touch(p, 'move', origin[p][0] + moves[p][0], origin[p][1] + moves[p][1]);
+    await s.wait(50);
+  }
+}
+
 export const SCENES: Scene[] = [
   {
     // 金貨の部屋の下のピンを先に抜いておき、上のピンを抜いて金貨を男の子まで落とす。
@@ -309,5 +336,6 @@ export const SCENES: Scene[] = [
   },
   { id: 'bug-rush', clip: band(286), play: bugRush },
   // 両側の指示までは入らないので、手前の指示と真ん中の稲妻、向かいの陣地の端を撮る
-  { id: 'lightning', clip: band(445), play: lightning }
+  { id: 'lightning', clip: band(445), play: lightning },
+  { id: 'cat-mouse', clip: band(270), play: catMouse }
 ];

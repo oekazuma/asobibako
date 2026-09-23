@@ -2,6 +2,7 @@ import type { Component } from 'svelte';
 import bombRelay from './games/bomb-relay/meta';
 import borderRush from './games/border-rush/meta';
 import bugRush from './games/bug-rush/meta';
+import catMouse from './games/cat-mouse/meta';
 import dentist from './games/dentist/meta';
 import dogGuard from './games/dog-guard/meta';
 import doodleWorm from './games/doodle-worm/meta';
@@ -81,5 +82,6 @@ export const games: GameMeta[] = [
   bombRelay,
   hockey,
   bugRush,
-  lightning
+  lightning,
+  catMouse
 ];
