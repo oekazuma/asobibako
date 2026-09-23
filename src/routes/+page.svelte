@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import AppUpdate from '$lib/components/AppUpdate.svelte';
+  import { resolve } from '$app/paths';
+  import { updated } from '$app/state';
   import GameCard from '$lib/components/GameCard.svelte';
+  import Icon from '$lib/components/Icon.svelte';
   import Logo from '$lib/components/Logo.svelte';
   import { games, type GameMeta } from '$lib/games';
   import { menuTab, recentGames, setMenuTab } from '$lib/recent';
@@ -38,9 +40,15 @@
   <header>
     <h1 class="logo" aria-label="あそびばこ"><Logo width="clamp(210px, 38vw, 300px)" /></h1>
     <p class="lead">すきな あそびを えらんでね</p>
+    <a
+      class="round help"
+      href={resolve('/about')}
+      aria-label={updated.current ? 'アプリについて（あたらしいバージョンがあります）' : 'アプリについて'}
+    >
+      <Icon name="help" size="26px" />
+      {#if updated.current}<span class="dot"></span>{/if}
+    </a>
   </header>
-
-  <AppUpdate />
 
   {#if recent.length > 0}
     <section class="recent">
@@ -82,9 +90,28 @@
   }
 
   header {
+    position: relative;
     max-width: 960px;
     margin: 0 auto 24px;
     text-align: center;
+  }
+
+  /* .menu の余白が safe-area を含むので、header の角に置けば切り欠きを避けられる */
+  .help {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+
+  .dot {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 16px;
+    height: 16px;
+    border: 3px solid #fff;
+    border-radius: 50%;
+    background: var(--p2);
   }
 
   .logo {

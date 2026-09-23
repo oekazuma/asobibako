@@ -233,6 +233,18 @@ export const ICONS = {
       stroke: LINE,
       width: 1.2
     }
+  ],
+  help: [
+    { d: 'M8.3 9a3.7 3.7 0 1 1 5.4 3.3c-1.1.6-1.7 1.3-1.7 2.5v.4', stroke: LINE, width: 2.8 },
+    { d: circle(12, 19.3, 1.6), fill: LINE }
+  ],
+  check: [
+    { d: circle(12, 12, 10), fill: '#9be0a6', stroke: LINE, width: 1.6 },
+    { d: 'M7.5 12.5l3 3 6-6.5', stroke: LINE, width: 2.2 }
+  ],
+  cross: [
+    { d: circle(12, 12, 10), fill: '#ff9fb3', stroke: LINE, width: 1.6 },
+    { d: 'M8.5 8.5l7 7M15.5 8.5l-7 7', stroke: LINE, width: 2.2 }
   ]
 } satisfies Record<string, Layer[]>;
 

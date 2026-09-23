@@ -50,7 +50,7 @@
   }
 </script>
 
-<section class="update" class:ready={updated.current} aria-live="polite">
+<div class="update" class:ready={updated.current} aria-live="polite">
   {#if updated.current}
     <p class="state">あたらしいバージョンがあります</p>
     <button class="pill gold" onclick={update} disabled={updating}>{updating ? '更新中…' : '最新版に更新'}</button>
@@ -67,7 +67,7 @@
       <button class="clear" onclick={clearError}>けす</button>
     </small>
   {/if}
-</section>
+</div>
 
 <style>
   .update {
@@ -76,12 +76,8 @@
     align-items: center;
     justify-content: center;
     gap: 8px 14px;
-    max-width: 960px;
-    margin: 0 auto 26px;
-    padding: 12px 18px;
-    border: 2px solid rgb(91 74 66 / 0.25);
-    border-radius: 20px;
-    background: rgb(255 255 255 / 0.75);
+    padding: 12px;
+    border-radius: 16px;
     color: var(--line-soft);
     font-size: 13px;
     font-weight: 700;
@@ -90,9 +86,7 @@
 
   /* 新版があるときだけ目立たせる */
   .ready {
-    border: 3px solid var(--line);
     background: #fff3c4;
-    box-shadow: var(--soft-shadow);
     color: var(--line);
   }
 

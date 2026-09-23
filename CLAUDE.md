@@ -49,7 +49,7 @@ bomb-relay と hockey は物理があるのでループで動かす。ルール�
 
 ## 更新
 
-新版の検知は SvelteKit の `version.pollInterval`（5 分）と、画面が前面に戻ったときの `updated.check()`（`+layout.svelte`、1 分に 1 回まで）で行う。ホーム画面のアプリはページ遷移が少なくポーリングも止まりがちなため。一覧の `AppUpdate.svelte` は、新版があるときだけ「最新版に更新」を出し、`src/lib/pwa.ts` の `updateApp()` が新しい Service Worker の取り込みを待ってから読み直す（30 秒で見切る）。
+新版の検知は SvelteKit の `version.pollInterval`（5 分）と、画面が前面に戻ったときの `updated.check()`（`+layout.svelte`、1 分に 1 回まで）で行う。ホーム画面のアプリはページ遷移が少なくポーリングも止まりがちなため。一覧の右上の「？」（`.round`）は `/about`（アプリについて）へのリンクで、新版があるとき（`updated.current`）は赤い点を付ける。`/about` は更新（`AppUpdate.svelte`）・アプリの状態・データの扱いのカードを縦に並べる。`AppUpdate.svelte` は新版があるときだけ「最新版に更新」を出し、`src/lib/pwa.ts` の `updateApp()` が新しい Service Worker の取り込みを待ってから読み直す（30 秒で見切る）。アプリの状態（ホーム画面からの起動・Service Worker・`asobibako-` のキャッシュ）は同じファイルの `pwaStatus()` が mount 後に読む。
 
 ## 入力
 
