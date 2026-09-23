@@ -59,6 +59,11 @@ export interface SoloMeta extends BaseMeta {
   levels: number;
   /** 1 面の呼び方。難しさの順に並ばないゲームは「レベル」と呼ばない。なければ「レベル」 */
   levelName?: string;
+  /**
+   * ゲームが自分で結果（正解の説明など）を見せる。共通の結果画面を出さず、クリアなら次の面、しっぱいなら同じ面をすぐ始める。
+   * 最後の面をクリアしたときだけは「ぜんぶクリア」の結果画面を出す
+   */
+  ownResult?: boolean;
   load: () => Promise<SoloModule>;
 }
 

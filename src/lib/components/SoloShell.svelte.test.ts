@@ -22,7 +22,7 @@ const meta = {
   load: async () => ({ Game: StubGame, Howto: StubHowto })
 };
 
-function show(extra: { levelName?: string } = {}) {
+function show(extra: { levelName?: string; ownResult?: boolean } = {}) {
   const target = document.body.appendChild(document.createElement('div'));
   const app = mount(SoloShell, { target, props: { meta: { ...meta, ...extra }, Game: StubGame, Howto: StubHowto } });
   flushSync();
@@ -165,6 +165,30 @@ describe('SoloShell', () => {
     flushSync();
     expect(target.textContent).toContain('つぎは ナゾ 2');
     expect(target.textContent).not.toContain('レベル');
+    unmount(app);
+  });
+
+  it('ownResult なら結果画面を出さず、クリアで次の面、しっぱいで同じ面をすぐ始める', () => {
+    const { target, app } = show({ ownResult: true });
+    start(target);
+    hooks.solo!(true);
+    flushSync();
+    expect(target.querySelector('button.go')).toBeNull();
+    expect(hooks.level).toBe(2);
+    hooks.solo!(false);
+    flushSync();
+    expect(target.querySelector('button.go')).toBeNull();
+    expect(hooks.level).toBe(2);
+    unmount(app);
+  });
+
+  it('ownResult でも、最後の面をクリアしたらぜんぶクリアの結果画面を出す', () => {
+    localStorage.setItem('asobibako:reached:stub', '10');
+    const { target, app } = show({ ownResult: true });
+    start(target);
+    hooks.solo!(true);
+    flushSync();
+    expect(target.textContent).toContain('ぜんぶクリア');
     unmount(app);
   });
 });
