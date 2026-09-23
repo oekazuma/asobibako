@@ -14,6 +14,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "icon": "node scripts/make-icon.ts",
+    "thumbs": "node scripts/thumbs.ts",
     "vitals": "svelte-vitals .",
     "verify": "pnpm lint && pnpm check && pnpm test:run && pnpm vitals && pnpm build"
   },
@@ -42,6 +43,7 @@
     "globals": "catalog:",
     "happy-dom": "catalog:",
     "markuplint": "catalog:",
+    "playwright-core": "catalog:",
     "prettier": "catalog:",
     "prettier-plugin-svelte": "catalog:",
     "svelte": "catalog:",
