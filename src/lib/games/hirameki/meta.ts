@@ -7,6 +7,7 @@ export default {
   players: 1,
   levels: 60,
   levelName: 'ナゾ',
+  ownResult: true,
   minutes: '1問 1〜5分',
   load: async () => ({
     Game: (await import('./Hirameki.svelte')).default,

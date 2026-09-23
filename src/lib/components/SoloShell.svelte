@@ -47,6 +47,10 @@
       saveLevel(meta.id, best);
       if (!complete) level += 1;
     }
+    if (meta.ownResult && !complete) {
+      start();
+      return;
+    }
     screen = 'result';
     settle.begin();
   }
