@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { joined } from './Connect.svelte';
   import type { Entry } from './entry.svelte';
   import Keypad from './Keypad.svelte';
   import Word from './Word.svelte';
@@ -8,6 +9,22 @@
 
   const p = $derived(entry.p);
   const CAPTION = { river: '乗せるものを選んで「渡る」', pour: '入れものを2つ順に押すと注げます' };
+
+  /** 元に戻せるなぞの、いまの様子 */
+  const label = $derived.by(() => {
+    switch (p.kind) {
+      case 'place':
+        return `置いた数 ${entry.picked.length} / ${p.count}`;
+      case 'connect':
+        return `つないだ線 ${p.pairs.filter((_, i) => joined(p, entry.paths, i)).length} / ${p.pairs.length}`;
+      case 'divide':
+        return '色を選んで、ます目をなぞって塗る';
+      case 'fill':
+        return '数を選んでから、ます目を押す';
+      default:
+        return `手数 ${entry.moves}`;
+    }
+  });
 </script>
 
 <div class="answer">
@@ -28,15 +45,13 @@
       <button class="pill" disabled={!entry.path.length} onclick={() => entry.undo()}>1 本戻す</button>
       <button class="pill" disabled={!entry.path.length} onclick={() => entry.reset()}>元に戻す</button>
     </p>
-  {:else if p.kind === 'place' || p.kind === 'slide' || p.kind === 'ice'}
-    <p class="count">
-      {p.kind === 'place' ? `置いた数 ${entry.picked.length} / ${p.count}` : `手数 ${entry.moves}`}
-      <button class="pill" disabled={!entry.picked.length && !entry.moves} onclick={() => entry.reset()}
-        >元に戻す</button
-      >
-    </p>
-  {:else}
+  {:else if p.kind === 'river' || p.kind === 'pour'}
     <p class="count">{CAPTION[p.kind]}</p>
+  {:else}
+    <p class="count">
+      {label}
+      <button class="pill" onclick={() => entry.reset()}>元に戻す</button>
+    </p>
   {/if}
 </div>
 

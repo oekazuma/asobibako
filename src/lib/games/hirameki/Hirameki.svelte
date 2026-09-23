@@ -67,7 +67,7 @@
         <Icon name="pencil" />メモ
       </button>
       <!-- 操作の途中で決まるなぞには「答える」がない -->
-      {#if !['river', 'pour', 'slide', 'ice'].includes(p.kind)}
+      {#if !['river', 'pour', 'slide', 'ice', 'connect', 'rotate'].includes(p.kind)}
         <button class="pill gold" disabled={!entry.ready} onclick={answer}>答える</button>
       {/if}
     </div>
