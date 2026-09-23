@@ -46,6 +46,16 @@ vi.mock('./puzzles', () => {
         blocked: [3],
         goal: (cells: ReadonlySet<number>) => cells.has(0) && cells.has(1)
       },
+      {
+        ...base,
+        kind: 'word',
+        tiles: ['う', 'み'],
+        answer: ['うみ'],
+        questions: [
+          { q: '男は泳げた？', a: 'はい' },
+          { q: '天気は関係ある？', a: '関係ない' }
+        ]
+      },
       { ...base, kind: 'ice', cols: 3, rows: 3, rocks: [{ x: 2, y: 0 }], start: { x: 0, y: 0 }, goal: { x: 2, y: 2 } }
     ]
   };
@@ -192,7 +202,7 @@ describe('Hirameki', () => {
   });
 
   it('ice は矢印で岩か端まで滑り、滑っている間は次を受けず、出口に入れば正解', () => {
-    const { target, app, onfinish, press, wait } = show(6);
+    const { target, app, onfinish, press, wait } = show(7);
     // 上は盤の端で動けないので手数に入らない
     press('上へ', '下へ', '右へ');
     expect(target.textContent).toContain('手数 1');
@@ -205,6 +215,20 @@ describe('Hirameki', () => {
     expect(target.textContent).toContain('ナゾ解明！');
     press('次へ');
     expect(onfinish).toHaveBeenCalledExactlyOnceWith(true);
+    unmount(app);
+  });
+
+  it('質問を押すと答えが出て、シートを閉じても開いたまま残る', () => {
+    // 質問つきのナゾは 6 番目（ice の前）
+    const { target, app, press } = show(6);
+    press('質問する');
+    expect(target.textContent).toContain('聞いた数 0 / 2');
+    expect(target.textContent).not.toContain('はい');
+    press('男は泳げた？');
+    expect(target.querySelector('.a')?.textContent).toBe('はい');
+    press('閉じる', '質問する');
+    expect(target.textContent).toContain('聞いた数 1 / 2');
+    expect(target.querySelector('.a')?.textContent).toBe('はい');
     unmount(app);
   });
 });

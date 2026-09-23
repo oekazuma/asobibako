@@ -25,6 +25,16 @@ interface Base {
   hints: [string, string, string];
   /** せいかいのあとに出す、とき方 */
   why: string;
+  /**
+   * ウミガメのスープのように、はい・いいえで答える質問を用意したナゾ。押すと答えが見える。
+   * 何度聞いてもよく、真相に関係のない質問もまぜる
+   */
+  questions?: Question[];
+}
+
+export interface Question {
+  q: string;
+  a: 'はい' | 'いいえ' | '関係ない';
 }
 
 export interface NumberQ {

@@ -6,6 +6,7 @@
   import { Entry } from './entry.svelte';
   import Frame from './Frame.svelte';
   import Hints from './Hints.svelte';
+  import Questions from './Questions.svelte';
   import { PUZZLES } from './puzzles';
   import Status from './Status.svelte';
   import Verdict from './Verdict.svelte';
@@ -17,7 +18,9 @@
   const entry = start();
   let verdict = $state<{ ok: boolean; detail: string; quick: boolean } | null>(null);
   let shown = $state(1);
-  let sheet = $state(false);
+  /** 開いているシート。質問は答えを開いたものを覚えておく */
+  let sheet = $state<'hints' | 'ask' | null>(null);
+  let asked = $state<number[]>([]);
   let memo = $state(false);
   let hintTimer: ReturnType<typeof setTimeout> | undefined;
   onDestroy(() => clearTimeout(hintTimer));
@@ -56,7 +59,10 @@
     />
     <Status {entry} />
     <div class="bar">
-      <button class="pill p1" onclick={() => (sheet = true)}><Icon name="help" />ヒント</button>
+      <button class="pill p1" onclick={() => (sheet = 'hints')}><Icon name="help" />ヒント</button>
+      {#if p.questions?.length}
+        <button class="pill p1" onclick={() => (sheet = 'ask')}><Icon name="detective" />質問する</button>
+      {/if}
       <button class="pill" class:p2={memo} aria-pressed={memo} onclick={() => (memo = !memo)}>
         <Icon name="pencil" />メモ
       </button>
@@ -65,8 +71,10 @@
         <button class="pill gold" disabled={!entry.ready} onclick={answer}>答える</button>
       {/if}
     </div>
-    {#if sheet}
-      <Hints hints={p.hints} bind:shown onclose={() => (sheet = false)} />
+    {#if sheet === 'hints'}
+      <Hints hints={p.hints} bind:shown onclose={() => (sheet = null)} />
+    {:else if sheet === 'ask' && p.questions}
+      <Questions questions={p.questions} bind:asked onclose={() => (sheet = null)} />
     {/if}
     {#if verdict}
       <Verdict {...verdict} onnext={() => onfinish(true)} ondone={() => onfinish(false)} />
@@ -141,6 +149,11 @@
     font-size: clamp(14px, min(2.1cqh, 3.7cqw), 22px);
     font-weight: 700;
     line-height: 1.55;
+    /* 物語の長い文でも図や答えの場所を押しつぶさないよう、はみ出したらカードの中で読む */
+    max-height: 36cqh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
   }
 
   .bar {

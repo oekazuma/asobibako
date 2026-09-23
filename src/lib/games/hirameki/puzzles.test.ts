@@ -184,6 +184,12 @@ describe('hirameki のなぞ', () => {
     (_, __, p: Puzzle) => {
       expect(p.hints.every((h) => h.trim().length > 0)).toBe(true);
       expect(p.why.trim().length).toBeGreaterThan(0);
+      if (p.questions) {
+        expect(p.questions.length).toBeGreaterThanOrEqual(6);
+        expect(new Set(p.questions.map((x) => x.q)).size).toBe(p.questions.length);
+        // 「はい」だけでは真相の手がかりにならないので、いいえや関係ないもまぜる
+        expect(new Set(p.questions.map((x) => x.a)).size).toBeGreaterThanOrEqual(2);
+      }
       // 当てずっぽうで当たる選択式は型から消したが、データに残っていないかも確かめる
       expect((p as { kind: string }).kind).not.toBe('choice');
       switch (p.kind) {
