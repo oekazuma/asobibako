@@ -1,15 +1,12 @@
 :root {
   /* 地の色と文字 */
   --bg: #fff7e8;
-  --bg-dot: #ffe6bf;
   --ink: #2b2d42;
   --ink-soft: #6b6f86;
   --card: #ffffff;
-  --card-edge: #ecdcc2;
 
-  /* プレイヤーの色。1P は青、2P は赤。淡い色は陣地、濃い色は立体の影 */
+  /* プレイヤーの色。1P は青、2P は赤。淡い色は陣地 */
   --p1: #1f9bff;
-  --p1-deep: #0b6fcc;
   --p1-soft: #d9eeff;
   --p2: #ff4d5e;
   --p2-deep: #d02c3e;
@@ -26,6 +23,20 @@
   /* ぽってりした部品の影。下に厚みを出してから、ぼかした影を落とす */
   --lift: 0 6px 0 rgb(43 45 66 / 0.18), 0 12px 24px rgb(43 45 66 / 0.12);
   --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /*
+   * 共通の画面（一覧・タイトル・結果・隅のボタン）のゆるかわ。こげ茶の細い線・パステル・薄い影。
+   * 上のトークンは各ゲームの中でも使われているので変えず、共通の画面はこちらを使う
+   */
+  --line: #5b4a42;
+  --line-soft: #7a6a60;
+  --paper: #fffaf2;
+  --paper-dots: radial-gradient(circle, #ffe8ee 3px, transparent 3.5px) 0 0 / 26px 26px;
+  --pastel-p1: #8ec9ff;
+  --pastel-p2: #ff9fb3;
+  --pastel-gold: #ffd45c;
+  --soft-shadow: 0 4px 0 rgb(91 74 66 / 0.22);
+  --soft-press: 0 1px 0 rgb(91 74 66 / 0.22);
 
   --font:
     'Hiragino Maru Gothic ProN', 'ヒラギノ丸ゴ ProN', ui-rounded, 'Arial Rounded MT Bold', 'Hiragino Sans',
@@ -79,22 +90,30 @@ button {
   text-shadow: 0 0.07em 0 rgb(43 45 66 / 0.1);
 }
 
-/* ぽってりしたボタン。下の厚みを押すと沈む */
+/* 共通の画面の見出しと勝敗の文字。こげ茶のふちで塗りは --fill。ゲームの中の .sticker とは別に持つ */
+.yuru {
+  --fill: #fff;
+  color: var(--fill);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.1em var(--line);
+  text-shadow: 0 0.08em 0 rgb(91 74 66 / 0.2);
+}
+
+/* 共通の画面のボタン。押すと薄い影のぶん沈む */
 .pill {
-  --face: var(--ink);
-  --edge: #111;
+  --face: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   padding: 14px 30px;
-  border: 3px solid #fff;
+  border: 3px solid var(--line);
   border-radius: 999px;
   background: var(--face);
-  box-shadow:
-    0 6px 0 var(--edge),
-    0 12px 20px rgb(43 45 66 / 0.18);
-  color: #fff;
+  box-shadow: var(--soft-shadow);
+  color: var(--line);
   font-weight: 800;
   letter-spacing: 0.04em;
   cursor: pointer;
@@ -104,26 +123,20 @@ button {
 }
 
 .pill:active {
-  translate: 0 4px;
-  box-shadow:
-    0 2px 0 var(--edge),
-    0 6px 12px rgb(43 45 66 / 0.18);
+  translate: 0 3px;
+  box-shadow: var(--soft-press);
 }
 
 .pill.p1 {
-  --face: var(--p1);
-  --edge: var(--p1-deep);
+  --face: var(--pastel-p1);
 }
 
 .pill.p2 {
-  --face: var(--p2);
-  --edge: var(--p2-deep);
+  --face: var(--pastel-p2);
 }
 
 .pill.gold {
-  --face: var(--gold);
-  --edge: var(--gold-deep);
-  color: var(--ink);
+  --face: var(--pastel-gold);
 }
 
 /* 画面の隅や端に置く 48px の丸いボタン（戻る・ミュート・やりなおし）。置く位置と色は使う側が決める */
@@ -132,11 +145,11 @@ button {
   place-items: center;
   width: 48px;
   height: 48px;
-  border: 3px solid #fff;
+  border: 3px solid var(--line);
   border-radius: 50%;
-  background: var(--card);
-  box-shadow: var(--lift);
-  color: var(--ink);
+  background: #fff;
+  box-shadow: var(--soft-shadow);
+  color: var(--line);
   font-size: 18px;
   font-weight: 800;
   text-decoration: none;
@@ -221,7 +234,7 @@ button.half {
   text-wrap: balance;
   font-size: clamp(13px, 2cqh, 18px);
   font-weight: 700;
-  color: var(--ink-soft);
+  color: var(--line);
 }
 
 .howto-legend {
@@ -237,9 +250,9 @@ button.half {
   align-items: center;
   gap: 6px;
   padding: 5px 12px 5px 6px;
+  border: 2px solid var(--line);
   border-radius: 999px;
-  background: var(--card);
-  box-shadow: 0 3px 0 rgb(43 45 66 / 0.1);
+  background: #fff;
   font-weight: 700;
 }
 

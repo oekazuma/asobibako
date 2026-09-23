@@ -20,7 +20,7 @@
 {#snippet face(player: Player)}
   <span class="tag p{player}">{player}P</span>
   <!-- 向かい側は手前側を 180 度回した写しなので、見出しとして数えるのは手前側だけ -->
-  <svelte:element this={player === 1 ? 'h1' : 'span'} class="title sticker">{name}</svelte:element>
+  <svelte:element this={player === 1 ? 'h1' : 'span'} class="title yuru">{name}</svelte:element>
   <Howto />
   <span class="pill p{player} cta">{ready[player] ? 'あいてを まってるよ…' : '長押しで スタート'}</span>
 {/snippet}
@@ -40,11 +40,11 @@
 <style>
   /* 自分の陣地を、自分の色の水玉で塗る */
   .half.p1 {
-    background: var(--dots), linear-gradient(to bottom, #fff, var(--p1-soft) 60%);
+    background: var(--dots), linear-gradient(to bottom, var(--paper), var(--p1-soft) 60%);
   }
 
   .half.p2 {
-    background: var(--dots), linear-gradient(to bottom, #fff, var(--p2-soft) 60%);
+    background: var(--dots), linear-gradient(to bottom, var(--paper), var(--p2-soft) 60%);
   }
 
   .half.p1.armed {
@@ -59,21 +59,29 @@
 
   .tag {
     padding: 4px 14px;
-    border: 3px solid #fff;
+    border: 3px solid var(--line);
     border-radius: 999px;
-    color: #fff;
+    color: var(--line);
     font-size: clamp(13px, 2cqh, 17px);
     font-weight: 800;
     letter-spacing: 0.1em;
-    box-shadow: 0 3px 0 rgb(43 45 66 / 0.15);
+    box-shadow: var(--soft-shadow);
   }
 
   .tag.p1 {
-    background: var(--p1);
+    background: var(--pastel-p1);
   }
 
   .tag.p2 {
-    background: var(--p2);
+    background: var(--pastel-p2);
+  }
+
+  .p1 .title {
+    --fill: var(--pastel-p1);
+  }
+
+  .p2 .title {
+    --fill: var(--pastel-p2);
   }
 
   .title {
@@ -89,8 +97,8 @@
 
   .armed .cta {
     animation: none;
-    translate: 0 4px;
-    box-shadow: 0 2px 0 var(--edge);
+    translate: 0 3px;
+    box-shadow: var(--soft-press);
   }
 
   @media (prefers-reduced-motion: reduce) {

@@ -21,7 +21,7 @@
   {:else}
     <span class="face" aria-hidden="true"><Icon name="sad" /></span>
   {/if}
-  <span class="outcome sticker" class:long={complete} role="status"
+  <span class="outcome yuru" class:long={complete} role="status"
     >{complete ? 'ぜんぶクリア！' : cleared ? 'クリア！' : 'ざんねん…'}</span
   >
   <span class="level">
@@ -40,11 +40,12 @@
     justify-content: center;
     gap: 18px;
     overflow: hidden;
-    background: var(--dots), linear-gradient(to bottom, #eef0f8, #d9dcec);
+    background: var(--paper-dots), linear-gradient(to bottom, var(--paper), #eee5db);
+    color: var(--line);
   }
 
   .won {
-    background: radial-gradient(circle, #fff6cf, var(--gold) 75%);
+    background: radial-gradient(circle, #fff6d6, var(--pastel-gold) 75%);
   }
 
   /* 放射状の光をゆっくり回す */
@@ -68,7 +69,7 @@
 
   .star {
     font-size: clamp(44px, 8cqh, 72px);
-    filter: drop-shadow(0 4px 0 rgb(43 45 66 / 0.2));
+    filter: drop-shadow(0 4px 0 rgb(91 74 66 / 0.22));
     animation: pop 500ms var(--spring) both;
   }
 
@@ -93,7 +94,7 @@
     position: relative;
     font-size: clamp(40px, min(12cqh, 16cqw), 120px);
     white-space: nowrap;
-    color: var(--gold-deep);
+    --fill: var(--pastel-p2);
     animation: pop 520ms var(--spring) both;
   }
 
@@ -103,15 +104,15 @@
   }
 
   .result:not(.won) .outcome {
-    color: var(--ink-soft);
+    --fill: #fff;
   }
 
   .level {
     position: relative;
     padding: 6px 18px;
+    border: 2px solid var(--line);
     border-radius: 999px;
-    background: var(--card);
-    box-shadow: 0 3px 0 var(--card-edge);
+    background: #fff;
     font-size: clamp(16px, 2.6cqh, 22px);
     font-weight: 800;
   }

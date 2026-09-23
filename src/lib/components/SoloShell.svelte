@@ -66,7 +66,7 @@
     {/key}
     {#if hint}
       {#key hint}
-        <p class="hint sticker" role="status">{hint}</p>
+        <p class="hint" role="status">{hint}</p>
       {/key}
     {/if}
     <!-- 遊んでいる途中でもやめられるよう、小さく隅に置く。一覧ではなくタイトルへ戻る -->
@@ -107,7 +107,7 @@
   }
 
   .retry {
-    background: var(--gold);
+    background: var(--pastel-gold);
     font-size: 24px;
   }
 
@@ -118,11 +118,13 @@
     left: 50%;
     z-index: 5;
     padding: 8px 20px;
-    border: 4px solid #fff;
+    border: 3px solid var(--line);
     border-radius: 999px;
-    background: var(--gold);
-    box-shadow: var(--lift);
-    color: var(--ink);
+    background: var(--pastel-gold);
+    box-shadow: var(--soft-shadow);
+    color: var(--line);
+    font-weight: 800;
+    letter-spacing: 0.06em;
     font-size: clamp(14px, min(2.6cqh, 4.6cqw), 24px);
     white-space: nowrap;
     translate: -50% 0;

@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import AppUpdate from '$lib/components/AppUpdate.svelte';
   import GameCard from '$lib/components/GameCard.svelte';
+  import Logo from '$lib/components/Logo.svelte';
   import { games, type GameMeta } from '$lib/games';
   import { menuTab, recentGames, setMenuTab } from '$lib/recent';
 
@@ -32,15 +33,15 @@
 
 <main class="menu">
   <header>
-    <h1 class="logo sticker"><span class="a">Table</span> <span class="b">Duel</span></h1>
-    <p class="lead">ひとりでも、向かい合って ふたりでも あそぼう！</p>
+    <h1 class="logo" aria-label="あそびばこ"><Logo width="clamp(210px, 38vw, 300px)" /></h1>
+    <p class="lead">すきな あそびを えらんでね</p>
   </header>
 
   <AppUpdate />
 
   {#if recent.length > 0}
     <section class="recent">
-      <h2 class="section sticker">さいきん あそんだ</h2>
+      <h2 class="section">さいきん あそんだ</h2>
       <ul class="cards row">
         {#each recent as game (game.id)}
           <li><GameCard {game} /></li>
@@ -74,9 +75,7 @@
     touch-action: pan-y;
     padding: max(36px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
       max(36px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
-    background:
-      radial-gradient(circle, var(--bg-dot) 3px, transparent 3.5px) 0 0 / 28px 28px,
-      var(--bg);
+    background: var(--paper-dots), var(--paper);
   }
 
   header {
@@ -86,33 +85,24 @@
   }
 
   .logo {
-    font-size: clamp(40px, 8vw, 72px);
-    line-height: 1.1;
-  }
-
-  .logo .a {
-    color: var(--p1);
-  }
-
-  .logo .b {
-    color: var(--p2);
+    display: flex;
+    justify-content: center;
   }
 
   .lead {
-    display: inline-block;
-    margin-top: 12px;
-    padding: 6px 18px;
-    border-radius: 999px;
-    background: var(--card);
-    box-shadow: 0 3px 0 var(--card-edge);
-    color: var(--ink-soft);
+    margin-top: 10px;
+    color: var(--line-soft);
     font-size: clamp(13px, 2vw, 16px);
     font-weight: 700;
+    letter-spacing: 0.08em;
   }
 
   .section {
     margin: 20px auto 12px;
-    font-size: clamp(18px, 3vw, 24px);
+    color: var(--line);
+    font-size: clamp(16px, 2.6vw, 20px);
+    font-weight: 800;
+    letter-spacing: 0.08em;
     text-align: center;
   }
 
@@ -125,14 +115,13 @@
 
   .tab {
     min-width: 140px;
+    padding-block: 10px;
     font-size: clamp(16px, 2.6vw, 20px);
-    font-weight: 800;
   }
 
   .tab[aria-pressed='false'] {
-    --face: var(--card);
-    --edge: var(--card-edge);
-    color: var(--ink-soft);
+    --face: #fff;
+    color: var(--line-soft);
   }
 
   /* iPad の縦で 3 列、スマホで 2 列になる幅。最小幅を割合で抑えて、細い画面でも 2 列を保つ */
