@@ -171,6 +171,19 @@ export function step(state: GameState, dt: number): HockeyEvent[] {
     puck.x += puck.vx * h;
     puck.y += puck.vy * h;
 
+    // マレットが押し出した位置を、このあとの壁の処理で盤の中へ戻す
+    const t = i / n;
+    for (const mallet of state.mallets) {
+      const hit = collide(
+        state,
+        mallet.px + (mallet.x - mallet.px) * t,
+        mallet.py + (mallet.y - mallet.py) * t,
+        mallet
+      );
+      if (hit > 0) events.push({ type: 'hit', speed: hit });
+    }
+    capSpeed(state);
+
     if (puck.x < rx || puck.x > 1 - rx) {
       puck.x = clamp(puck.x, rx, 1 - rx);
       puck.vx = -puck.vx * WALL_BOUNCE;
@@ -178,7 +191,7 @@ export function step(state: GameState, dt: number): HockeyEvent[] {
     }
 
     const inMouth = Math.abs(puck.x - 0.5) < mouth;
-    if (puck.y < -PUCK_R || puck.y > 1 + PUCK_R) {
+    if (inMouth && (puck.y < -PUCK_R || puck.y > 1 + PUCK_R)) {
       const scorer: Player = puck.y < 0 ? 1 : 2;
       state.scores[scorer] += 1;
       events.push({ type: 'goal', scorer });
@@ -195,18 +208,6 @@ export function step(state: GameState, dt: number): HockeyEvent[] {
       puck.vy = -puck.vy * WALL_BOUNCE;
       events.push({ type: 'wall' });
     }
-
-    const t = i / n;
-    for (const mallet of state.mallets) {
-      const hit = collide(
-        state,
-        mallet.px + (mallet.x - mallet.px) * t,
-        mallet.py + (mallet.y - mallet.py) * t,
-        mallet
-      );
-      if (hit > 0) events.push({ type: 'hit', speed: hit });
-    }
-    capSpeed(state);
   }
 
   const decay = Math.exp(-FRICTION * dt);

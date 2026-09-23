@@ -38,6 +38,20 @@ describe('hockey engine', () => {
     expect(wall.puck.vy).toBeGreaterThan(0);
   });
 
+  it('口の外で奥の壁にマレットで押しつけても、得点にならず盤の外へも出ない', () => {
+    const state = createState(1);
+    state.puck = { x: 0.15, y: 0.08, vx: 0, vy: 0 };
+    let y = 0.35;
+    updateMallets(state, [{ id: 2, side: 2, x: 0.15, y }], 1 / 60);
+    for (let k = 0; k < 60; k++) {
+      y = Math.max(0, y - 4 / 60);
+      updateMallets(state, [{ id: 2, side: 2, x: 0.15, y }], 1 / 60);
+      step(state, 1 / 60);
+      expect(state.puck.y).toBeGreaterThanOrEqual(PUCK_R);
+    }
+    expect(state.scores).toEqual({ 1: 0, 2: 0 });
+  });
+
   it('失点した側の陣地にパックを置き、少し待ってから再開する', () => {
     const state = createState(1);
     state.puck = { x: 0.5, y: 0.8, vx: 0, vy: 2 };

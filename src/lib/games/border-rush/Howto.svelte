@@ -1,4 +1,8 @@
-<span class="howto-rule">自分の玉を消して境界線を押し込む</span>
+<script lang="ts">
+  import { RUSH_S } from './engine';
+</script>
+
+<span class="howto-rule">自分の玉を消して境界線を押し込む<br />{RUSH_S} 秒をすぎると押す力が強まる</span>
 <span class="howto-legend">
   <span class="howto-item"><span class="howto-mark tap"></span>タップ</span>
   <span class="howto-item"><span class="howto-mark hold"></span>長押し</span>

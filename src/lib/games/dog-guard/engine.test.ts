@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_LEVEL } from '$lib/levels';
+import meta from './meta';
 import { addPoint, createState, finishStroke, step, type GameState } from './engine';
 import { levelFor } from './levels';
 
@@ -9,7 +9,7 @@ function run(state: GameState, seed = 1) {
   return state.result;
 }
 
-const levels = Array.from({ length: MAX_LEVEL }, (_, i) => [i + 1] as const);
+const levels = Array.from({ length: meta.levels }, (_, i) => [i + 1] as const);
 
 describe('dog-guard engine', () => {
   it.each(levels)('%i 面は、用意した線でクリアでき、線がなければ刺される', (n) => {
@@ -29,13 +29,13 @@ describe('dog-guard engine', () => {
     }
   });
 
-  it('100 面に同じ面はない', () => {
+  it('同じ面はない', () => {
     const stages = new Set(levels.map(([n]) => JSON.stringify(levelFor(n))));
-    expect(stages.size).toBe(MAX_LEVEL);
+    expect(stages.size).toBe(meta.levels);
   });
 
   it('レベルが上がるほど、ハチは多く速く、守る時間は長く、インクのゆとりは少ない', () => {
-    for (let n = 2; n <= MAX_LEVEL; n++) {
+    for (let n = 2; n <= meta.levels; n++) {
       const [a, b] = [levelFor(n - 1), levelFor(n)];
       expect(b.bees, `level ${n}`).toBeGreaterThanOrEqual(a.bees);
       expect(b.speed).toBeGreaterThan(a.speed);
@@ -47,8 +47,8 @@ describe('dog-guard engine', () => {
   });
 
   it('洞窟の面は、インクが足りずドームで覆えない', () => {
-    const state = createState(levelFor(6));
-    expect(levelFor(6).kind).toBe('cave');
+    const state = createState(levelFor(3));
+    expect(levelFor(3).kind).toBe('cave');
     const { x, y } = state.level.dogs[0];
     for (let a = 0; a <= Math.PI; a += 0.05) addPoint(state, x - Math.cos(a) * 0.18, y + 0.07 - Math.sin(a) * 0.18);
     expect(state.ink).toBe(0);
@@ -66,7 +66,8 @@ describe('dog-guard engine', () => {
   });
 
   it('雲の中や、雲をまたぐ線は引けない', () => {
-    const state = createState(levelFor(24));
+    const state = createState(levelFor(11));
+    expect(levelFor(11).kind).toBe('side');
     const zone = state.level.noDraw[0];
     const mid = (zone.x0 + zone.x1) / 2;
     expect(addPoint(state, mid, (zone.y0 + zone.y1) / 2)).toBe(false);

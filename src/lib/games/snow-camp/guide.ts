@@ -1,4 +1,4 @@
-import { FIRE, MONEY, type GameState } from './engine';
+import { FIRE, HUNT_BOTTOM, MONEY, type GameState } from './engine';
 
 export interface Objective {
   text: string;
@@ -23,17 +23,21 @@ function nearest<T extends { x: number; y: number }>(list: T[], from: { x: numbe
  */
 export function objective(state: GameState): Objective {
   const { hero } = state;
-  if (state.coins > 0) return { text: 'おかねを ひろおう', ...MONEY, kind: 'money' };
   if (state.carry >= state.cap) return { text: 'いっぱい！ たき火へ はこぼう', ...FIRE, kind: 'fire' };
   const drop = nearest(state.drops, hero);
   if (drop) return { text: 'おにくを ひろおう', x: drop.x, y: drop.y, kind: 'pick' };
-  if (state.carry > 0) return { text: 'おにくを たき火へ はこぼう', ...FIRE, kind: 'fire' };
+  // 1 匹ごとに往復させると狩りの時間が道のりに消えるので、たき火が空きそうなときだけ戻らせる
+  if (state.carry > 0 && state.cooking <= 1) return { text: 'おにくを たき火へ はこぼう', ...FIRE, kind: 'fire' };
+  // 狩りの途中でお金のために呼び戻さない
+  if (state.coins > 0 && hero.y > HUNT_BOTTOM) return { text: 'おかねを ひろおう', ...MONEY, kind: 'money' };
   if (state.wallet > 0) {
     const home = state.pads.find((p) => p.id === 'home')!;
+    const left = home.cost - home.paid;
+    // 強化は面ごとに消えるので、家までの残りが小さいうちに買うと元が取れず、かえって遅くなる
     const cheap = state.pads
-      .filter((p) => p.id !== 'home' && p.cost - p.paid <= state.wallet)
+      .filter((p) => p.id !== 'home' && p.cost - p.paid <= state.wallet && (p.cost - p.paid) * 12 <= left)
       .sort((a, b) => a.cost - a.paid - (b.cost - b.paid))[0];
-    if (state.wallet >= home.cost - home.paid) return { text: '家を 建てよう！', x: home.x, y: home.y, kind: 'home' };
+    if (state.wallet >= left) return { text: '家を 建てよう！', x: home.x, y: home.y, kind: 'home' };
     if (cheap) return { text: 'パッドに のって つよくなろう', x: cheap.x, y: cheap.y, kind: 'pad' };
     return { text: '家に おかねを いれよう', x: home.x, y: home.y, kind: 'home' };
   }

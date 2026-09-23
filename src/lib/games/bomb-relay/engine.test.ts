@@ -52,7 +52,7 @@ describe('bomb-relay engine', () => {
     expect(hot.meters[1]).toBeGreaterThan(cold.meters[1] * 2);
   });
 
-  it('爆発した側のメーターは半分になり、次の爆弾はその側へ落ちる', () => {
+  it('爆発した側のメーターは半分になり、次の爆弾は相手の側へ落ちる', () => {
     const state = withBombAt(0.5, 0.25, 0.5);
     state.meters = { 1: 0.4, 2: 0.6 };
     const events = run(state, 0.6);
@@ -61,7 +61,7 @@ describe('bomb-relay engine', () => {
 
     run(state, 2);
     expect(state.bomb).not.toBeNull();
-    expect(sideOf(state.bomb!.y)).toBe(2);
+    expect(sideOf(state.bomb!.y)).toBe(1);
   });
 
   it('メーターが満タンになったら 1 回だけ勝利を知らせ、それ以降は進まない', () => {

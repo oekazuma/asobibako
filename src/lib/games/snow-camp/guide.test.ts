@@ -19,19 +19,32 @@ describe('snow-camp guide', () => {
     expect(objective(state)).toMatchObject({ kind: 'fire', ...FIRE });
   });
 
-  it('置かれたお金は、ほかの何よりも先に拾いに行く', () => {
+  it('置かれたお金はキャンプにいるあいだに拾い、狩りの途中では呼び戻さない', () => {
     const state = fresh();
-    state.carry = 3;
     state.coins = 4;
+    state.hero.y = 1.0;
+    expect(objective(state).kind).toBe('hunt');
+    state.hero.y = 2.0;
     expect(objective(state)).toMatchObject({ kind: 'money', ...MONEY });
   });
 
-  it('お金を持っていれば、払えるパッドへ。家が建つだけあれば家へ', () => {
+  it('たき火が埋まっているあいだは、肉を持ったまま狩りを続ける', () => {
+    const state = fresh();
+    state.carry = 2;
+    state.cooking = 2;
+    expect(objective(state).kind).toBe('hunt');
+  });
+
+  it('家までの残りが大きければ払えるパッドへ、小さければ家へ。家が建つだけあれば家へ', () => {
     const state = fresh();
     state.animals = [];
     state.wallet = 10;
+    const home = state.pads.find((p) => p.id === 'home')!;
+    home.cost = 300;
     expect(objective(state)).toMatchObject({ kind: 'pad', x: state.pads[0].x });
+    home.cost = 50;
+    expect(objective(state)).toMatchObject({ kind: 'home', text: '家に おかねを いれよう' });
     state.wallet = 50;
-    expect(objective(state).kind).toBe('home');
+    expect(objective(state)).toMatchObject({ kind: 'home', text: '家を 建てよう！' });
   });
 });

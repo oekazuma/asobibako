@@ -1,5 +1,6 @@
 import type { Seg } from '$lib/segments';
-import { difficulty, lerp, MAX_LEVEL, Rng } from '$lib/levels';
+import { difficulty, lerp, Rng } from '$lib/levels';
+import meta from './meta';
 import type { Level, Point, Zone } from './engine';
 
 const GROUND = 1.32;
@@ -128,7 +129,7 @@ const LAYOUTS: Record<Kind, (rng: Rng) => Layout> = {
       noDraw: [],
       solution: dome(x, y - 0.005, 0.18),
       low: true,
-      tip: '下からも くるよ！ 足場ごと まもろう'
+      tip: '下からも くるかも！ 足場ごと まもろう'
     };
   },
   platform2: (rng) => {
@@ -172,21 +173,25 @@ const LAYOUTS: Record<Kind, (rng: Rng) => Layout> = {
 /** 新しい型が出てくるレベル。そのレベルでは必ずその型を出して、仕掛けを覚えてもらう */
 const UNLOCK: [Kind, number][] = [
   ['open', 1],
-  ['cave', 6],
-  ['platform', 12],
-  ['open2', 18],
-  ['side', 24],
-  ['mixed', 32],
-  ['platform2', 40],
-  ['cave2', 48]
+  ['cave', 3],
+  ['platform', 5],
+  ['open2', 8],
+  ['side', 11],
+  ['mixed', 14],
+  ['platform2', 18],
+  ['cave2', 22]
 ];
 
-function kindFor(level: number, rng: Rng, prev: Kind | null): Kind {
+/** 早く出た型ばかりくり返さないよう、それまでに出た回数がいちばん少ない型から選ぶ */
+function kindFor(level: number, rng: Rng, past: Kind[]): Kind {
   const fresh = UNLOCK.find(([, at]) => at === level);
   if (fresh) return fresh[0];
+  const prev = past.at(-1);
   const open = UNLOCK.filter(([, at]) => at <= level).map(([k]) => k);
-  const choices = open.length > 1 ? open.filter((k) => k !== prev) : open;
-  return rng.pick(choices);
+  const candidates = open.length > 1 ? open.filter((k) => k !== prev) : open;
+  const used = (k: Kind) => past.filter((p) => p === k).length;
+  const least = Math.min(...candidates.map(used));
+  return rng.pick(candidates.filter((k) => used(k) === least));
 }
 
 const length = (pts: Point[]) =>
@@ -211,16 +216,12 @@ function hives(rng: Rng, n: number, layout: Layout): Point[] {
   return out;
 }
 
-/** レベルから面を組み立てる。100 面どれもクリアできることはテストで確かめている */
+/** レベルから面を組み立てる。どの面もクリアできることはテストで確かめている */
 export function levelFor(n: number): Stage {
-  const level = Math.min(MAX_LEVEL, Math.max(1, n));
-  const d = difficulty(level);
+  const level = Math.min(meta.levels, Math.max(1, n));
+  const d = difficulty(level, meta.levels);
   const kinds: Kind[] = [];
-  let prev: Kind | null = null;
-  for (let l = 1; l <= level; l++) {
-    prev = kindFor(l, new Rng(l * 101), prev);
-    kinds.push(prev);
-  }
+  for (let l = 1; l <= level; l++) kinds.push(kindFor(l, new Rng(l * 101), kinds));
   const kind = kinds[level - 1];
   const rng = new Rng(level * 1000);
   const layout = LAYOUTS[kind](rng);
@@ -236,8 +237,8 @@ export function levelFor(n: number): Stage {
     speed: lerp(0.42, 0.72, d),
     duration: Math.round(lerp(8, 15, d)),
     spawn: lerp(2, 6, d),
-    fast: level < 20 ? 0 : lerp(0, 0.45, d),
-    big: level < 30 ? 0 : lerp(0, 0.35, d),
+    fast: d < 0.19 ? 0 : lerp(0, 0.45, d),
+    big: d < 0.29 ? 0 : lerp(0, 0.35, d),
     tip: layout.tip
   };
 }

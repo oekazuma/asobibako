@@ -3,13 +3,10 @@ import bombRelay from './games/bomb-relay/meta';
 import borderRush from './games/border-rush/meta';
 import bugRush from './games/bug-rush/meta';
 import dogGuard from './games/dog-guard/meta';
-import feintMaster from './games/feint-master/meta';
-import fishPull from './games/fish-pull/meta';
 import gateRun from './games/gate-run/meta';
 import hockey from './games/hockey/meta';
 import lightning from './games/lightning/meta';
 import pinRescue from './games/pin-rescue/meta';
-import shieldBreak from './games/shield-break/meta';
 import snowCamp from './games/snow-camp/meta';
 import type { Player } from './player';
 
@@ -25,7 +22,7 @@ export interface GameModule {
 }
 
 export interface SoloProps {
-  /** 1 から数える。ゲームはこの数で難しさや面を選ぶ（面の数より大きければ一周して難しくしてよい） */
+  /** 1 から meta.levels まで。ゲームはこの数で難しさや面を選ぶ */
   level: number;
   /** クリアかしっぱいが決まったら 1 回だけ呼ぶ */
   onfinish: (cleared: boolean) => void;
@@ -57,6 +54,8 @@ export interface DuelMeta extends BaseMeta {
 /** 画面全体を 1 人で使い、レベルを順にクリアしていく */
 export interface SoloMeta extends BaseMeta {
   players: 1;
+  /** 面の数。最後の面をクリアしたら全クリ */
+  levels: number;
   load: () => Promise<SoloModule>;
 }
 
@@ -70,9 +69,6 @@ export const games: GameMeta[] = [
   borderRush,
   bombRelay,
   hockey,
-  fishPull,
   bugRush,
-  lightning,
-  shieldBreak,
-  feintMaster
+  lightning
 ];

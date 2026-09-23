@@ -33,7 +33,7 @@ export const FUSE_MIN = 3.5;
 export const FUSE_MAX = 9;
 
 /** 熱いほど速くたまる。危ない爆弾ほど持っていたくなるのがこのゲームの誘惑 */
-const FILL_BASE = 0.14;
+const FILL_BASE = 0.07;
 const FILL_HOT = 2;
 const FRICTION = 3;
 const MAX_SPEED = 5;
@@ -126,8 +126,8 @@ export function step(state: GameState, dt: number, rand: () => number = Math.ran
     state.meters[side] *= 0.5;
     state.bomb = null;
     state.respawnIn = RESPAWN_S;
-    // 取り返す機会は、いま吹き飛ばされた側に回す
-    state.nextSide = side;
+    // 同じ側へ落とすと、爆発まで持ち続けた人が次の爆弾も独り占めできてしまう
+    state.nextSide = side === 1 ? 2 : 1;
     return { type: 'boom', side, x: bomb.x, y: bomb.y };
   }
 

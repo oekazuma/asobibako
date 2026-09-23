@@ -9,6 +9,7 @@ import {
   MAX_PER_PLAYER,
   ORB_LIFE_MS,
   pop,
+  RUSH_S,
   spawnOrb,
   step,
   zone
@@ -20,6 +21,20 @@ const seq = (...values: number[]) => {
 };
 
 describe('border-rush engine', () => {
+  it(`${RUSH_S} 秒を過ぎると押す量が増え、30 秒で 2 倍に止まる`, () => {
+    for (const [after, rate] of [
+      [0, 1],
+      [15, 1.5],
+      [30, 2],
+      [90, 2]
+    ]) {
+      const s = createState();
+      s.elapsed = RUSH_S + after;
+      pop(s, spawnOrb(s, 'tap', 2, 0, seq(0.5)).id, 2);
+      expect(s.border).toBeCloseTo(0.5 + GAIN.tap * rate);
+    }
+  });
+
   it('プレイヤー1が取ると境界は上へ、プレイヤー2が取ると下へ動く', () => {
     const s = createState();
     const a = spawnOrb(s, 'tap', 1, 0, seq(0.5));

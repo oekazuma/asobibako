@@ -47,24 +47,7 @@ export const ICONS = {
     },
     { d: 'M12 5.5l1.6 3.4 3.5.5', stroke: '#fff3a0', width: 1.4 }
   ],
-  heart: [
-    {
-      d: 'M12 21s-7.8-4.7-9.6-9.6C1.1 7.9 3.4 4 7.1 4c2.2 0 3.7 1.2 4.9 3 1.2-1.8 2.7-3 4.9-3 3.7 0 6 3.9 4.7 7.4C19.8 16.3 12 21 12 21z',
-      fill: '#ff4d5e'
-    },
-    { d: 'M6 7.5a2.5 2.5 0 0 0-1.6 2.6', stroke: '#fff', width: 1.4 }
-  ],
   bolt: [{ d: 'M13.5 1.5L4 13.5h6.5l-1.5 9 9.5-12.5h-6.5z', fill: '#ffc233', stroke: '#e39a00', width: 1 }],
-  shield: [
-    { d: 'M12 1.8l8.5 3.2v6.2c0 5.6-3.6 9.6-8.5 11.3-4.9-1.7-8.5-5.7-8.5-11.3V5z', fill: '#1f9bff' },
-    { d: 'M12 4.8l5.5 2.1v4.3c0 3.8-2.3 6.6-5.5 8z', fill: '#7cc8ff' }
-  ],
-  sword: [
-    { d: 'M19 2h3v3L10.5 16.5l-3-3z', fill: '#dfe4ee', stroke: '#8a90a6', width: 0.8 },
-    { d: 'M4.5 12l7.5 7.5-1.6 1.6-7.5-7.5z', fill: '#ffc233' },
-    { d: 'M5.8 16.8l1.4 1.4-3.6 3.6-1.4-1.4z', fill: '#8a5a3b' }
-  ],
-  sleep: [{ d: 'M4 9h5l-5 6h5M12 4h4l-4 5h4M17.5 12h3l-3 4h3', stroke: '#6b6f86', width: 1.8 }],
   tap: [
     { d: 'M12 6.5a5 5 0 0 0-5 5M12 3a8.5 8.5 0 0 0-8.5 8.5', stroke: '#1f9bff', width: 1.4 },
     { d: finger(10.5, 5), fill: SKIN, stroke: '#c98b5e', width: 0.8 },
@@ -135,10 +118,6 @@ export const ICONS = {
     ...KID,
     { d: circle(9, 12.5, 1.6) + circle(15, 12.5, 1.6), fill: '#fff', stroke: INK, width: 0.8 },
     { d: circle(9, 12.5, 0.7) + circle(15, 12.5, 0.7) + ellipse(12, 17, 1.6, 2), fill: INK }
-  ],
-  eyes: [
-    { d: ellipse(7.5, 12, 4.5, 6) + ellipse(16.5, 12, 4.5, 6), fill: '#fff', stroke: INK, width: 1 },
-    { d: circle(9, 13, 2.2) + circle(18, 13, 2.2), fill: INK }
   ],
   castle: [
     {

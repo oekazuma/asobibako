@@ -4,7 +4,7 @@
   import { resolve } from '$app/paths';
   import { audio, sfx, toggleMute, wake } from '$lib/audio.svelte';
   import type { SoloMeta, SoloModule } from '$lib/games';
-  import { ALL_CLEAR, MAX_LEVEL, saveLevel, savedLevel } from '$lib/levels';
+  import { saveLevel, savedLevel } from '$lib/levels';
   import { Settle } from '$lib/settle.svelte';
   import SoloResult from './SoloResult.svelte';
   import SoloTitle from './SoloTitle.svelte';
@@ -13,7 +13,7 @@
 
   let screen = $state<'title' | 'playing' | 'result'>('title');
   let cleared = $state(false);
-  /** レベル 100 までクリアした */
+  /** 最後のレベルまでクリアした */
   let complete = $state(false);
   let round = $state(0);
   let level = $state(1);
@@ -40,10 +40,10 @@
     // 演出中に ✕ で抜けたあとに届く遅れた onfinish は捨てる
     if (screen !== 'playing') return;
     cleared = won;
-    complete = won && level >= MAX_LEVEL;
+    complete = won && level >= meta.levels;
     if (won) {
-      // 100 をクリアしたら ALL_CLEAR を残し、一覧で「ぜんぶクリア」と出せるようにする
-      saveLevel(meta.id, Math.max(savedLevel(meta.id), complete ? ALL_CLEAR : level + 1));
+      // 最後のレベルをクリアしたら levels + 1 を残し、一覧で「ぜんぶクリア」と出せるようにする
+      saveLevel(meta.id, Math.max(savedLevel(meta.id, meta.levels), level + 1));
       if (!complete) {
         level += 1;
         best = Math.max(best, level);
@@ -54,7 +54,7 @@
   }
 
   onMount(() => {
-    best = level = Math.min(MAX_LEVEL, savedLevel(meta.id));
+    best = level = Math.min(meta.levels, savedLevel(meta.id, meta.levels));
     return settle.listen();
   });
 </script>
