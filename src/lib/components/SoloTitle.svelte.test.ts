@@ -16,7 +16,7 @@ const meta = {
 
 function show(level: number, best: number) {
   const target = document.body.appendChild(document.createElement('div'));
-  const props = $state({ meta, Howto: StubHowto, best, level, onstart: () => {} });
+  const props = $state({ meta, Howto: StubHowto, best, level, onlevels: () => {}, onstart: () => {} });
   const app = mount(SoloTitle, { target, props });
   flushSync();
   const button = (label: string) => target.querySelector(`button[aria-label="${label}"]`) as HTMLButtonElement;
@@ -57,6 +57,13 @@ describe('SoloTitle', () => {
     vi.advanceTimersByTime(1000);
     flushSync();
     expect(props.level).toBe(6);
+    unmount(app);
+  });
+
+  it('ぜんぶクリアしていても最後のレベルより先へは行かない', () => {
+    const { app, props, button } = show(100, 101);
+    expect(button('次のレベル').disabled).toBe(true);
+    expect(props.level).toBe(100);
     unmount(app);
   });
 

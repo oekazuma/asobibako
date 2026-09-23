@@ -100,6 +100,31 @@ describe('SoloShell', () => {
     unmount(app);
   });
 
+  it('レベルの一覧から、たどり着いたところまでの面を選んで始める', () => {
+    localStorage.setItem('asobibako:reached:stub', '5');
+    const { target, app } = show();
+    (target.querySelector('button.level') as HTMLButtonElement).click();
+    flushSync();
+    const cell = (n: number) => target.querySelector(`button[aria-label="レベル ${n}"]`) as HTMLButtonElement;
+    expect(target.querySelectorAll('button.cell')).toHaveLength(10);
+    expect(target.querySelectorAll('button.cleared')).toHaveLength(4);
+    expect(cell(5).disabled).toBe(false);
+    expect(cell(6).disabled).toBe(true);
+    cell(3).click();
+    flushSync();
+    expect(hooks.level).toBe(3);
+    unmount(app);
+  });
+
+  it('ぜんぶクリアすると最後のレベルもクリア済みになる', () => {
+    localStorage.setItem('asobibako:reached:stub', '11');
+    const { target, app } = show();
+    (target.querySelector('button.level') as HTMLButtonElement).click();
+    flushSync();
+    expect(target.querySelectorAll('button.cleared')).toHaveLength(10);
+    unmount(app);
+  });
+
   it('↻ で同じレベルをやり直す', () => {
     const { target, app } = show();
     start(target);
