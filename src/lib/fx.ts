@@ -189,9 +189,17 @@ export function shadow(ctx: CanvasRenderingContext2D, x: number, y: number, rx: 
   ctx.fill();
 }
 
-/** icons.ts のアイコンを中心 (x, y)、大きさ size で描く。一度 96px の絵にしてから使い回す */
-export function icon(ctx: CanvasRenderingContext2D, name: IconName, x: number, y: number, size: number, rotate = 0) {
-  const img = sprite(`icon:${name}`, 96, (c) => {
+/** icons.ts のアイコンを中心 (x, y)、大きさ size で描く。一度 px ピクセルの絵にしてから使い回す */
+export function icon(
+  ctx: CanvasRenderingContext2D,
+  name: IconName,
+  x: number,
+  y: number,
+  size: number,
+  rotate = 0,
+  px = 96
+) {
+  const img = sprite(`icon:${name}`, px, (c) => {
     c.scale(1 / 24, 1 / 24);
     c.lineCap = 'round';
     c.lineJoin = 'round';

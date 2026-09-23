@@ -6,7 +6,8 @@
 </script>
 
 <svg class="icon" viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" style:rotate="{rotate}deg">
-  {#each ICONS[name] as layer (layer.d)}
+  <!-- 同じパスを太いふちと細い芯で 2 度重ねるアイコンがあるので、d ではなく層そのもので見分ける -->
+  {#each ICONS[name] as layer (layer)}
     <path
       d={layer.d}
       fill={'fill' in layer ? layer.fill : 'none'}

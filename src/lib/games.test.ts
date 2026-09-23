@@ -8,13 +8,14 @@ describe('games', () => {
     for (const id of ids) expect(id).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
   });
 
+  // 全ゲームの本体（three を含む）を初めて変換しながら読むので、並列実行で混むと既定の 5 秒を超える
   it('どのゲームも本体と遊び方を読み込める', async () => {
     for (const game of games) {
       const { Game, Howto } = await game.load();
       expect(Game, game.id).toBeTypeOf('function');
       expect(Howto, game.id).toBeTypeOf('function');
     }
-  });
+  }, 20_000);
 
   it('各ゲームの id は、そのゲームが置かれたフォルダ名と一致する', () => {
     const metaModules = import.meta.glob('./games/*/meta.ts', { eager: true });
