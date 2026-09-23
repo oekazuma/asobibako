@@ -34,7 +34,8 @@ async function stroke(s: Stage, path: Point[], ms: number): Promise<void> {
  */
 async function borderRush(s: Stage): Promise<void> {
   await s.startDuel();
-  for (let popped = 0; popped < 4;) {
+  let popped = 0;
+  for (let i = 0; i < 200 && popped < 4; i++) {
     await s.wait(150);
     const [orb] = await s.centers('.orb.tap.p1');
     if (orb) {
@@ -42,7 +43,9 @@ async function borderRush(s: Stage): Promise<void> {
       popped++;
     }
   }
-  for (let i = 0; i < 2000; i++) {
+  if (popped < 4) throw new Error('border-rush: 手前の玉が 4 つ出てこない');
+  let ready = false;
+  for (let i = 0; i < 2000 && !ready; i++) {
     await s.wait(50);
     const state = await s.page.evaluate(() => {
       const age = (el: Element) => Number(el.getAnimations()[0]?.currentTime ?? 0);
@@ -70,12 +73,13 @@ async function borderRush(s: Stage): Promise<void> {
       const theirs = [...document.querySelectorAll('.orb.tap.p2')].filter((el) => age(el) > 260);
       return { ready, stale: stale.map(at), theirs: theirs.map(at) };
     });
-    if (state.ready) break;
-    if (state.stale.length && state.theirs.length) {
+    ready = state.ready;
+    if (!ready && state.stale.length && state.theirs.length) {
       await s.tap(1, ...state.stale[0]);
       await s.tap(2, ...state.theirs[0]);
     }
   }
+  if (!ready) throw new Error('border-rush: 手前の玉 3 つと金の玉がそろう瞬間が来ない');
   const holds = await s.centers('.orb.hold.p1');
   await s.touch(1, 'down', ...holds[holds.length - 1]);
   // 長押しは 700ms でたまるので、輪が半分ほどたまったところ
@@ -123,6 +127,7 @@ async function bombRelay(s: Stage): Promise<void> {
     }
     last = null;
   }
+  throw new Error('bomb-relay: 熱くなった爆弾を 1P がはじく場面が来ない');
 }
 
 /** 虫送り。手前の陣地を端から叩いていき、虫が 1 匹向こうへ飛んだところで止める */
@@ -141,16 +146,19 @@ async function bugRush(s: Stage): Promise<void> {
       }
     }
   }
+  throw new Error('bug-rush: 手前の陣地に叩ける虫がいない');
 }
 
 /** ライトニング。スワイプの指示が出るまで回を送り、出たら 1P の指を置いて動かし始める */
 async function lightning(s: Stage): Promise<void> {
   await s.startDuel();
-  for (let i = 0; i < 400; i++) {
+  let swipe = false;
+  for (let i = 0; i < 400 && !swipe; i++) {
     await s.wait(50);
     const label = await s.page.evaluate(() => document.querySelector('.slot.p1 .card.go .label')?.textContent);
-    if (label === 'スワイプ') break;
+    swipe = label === 'スワイプ';
   }
+  if (!swipe) throw new Error('lightning: スワイプの指示が出ない');
   // 指示の札が跳ねて出る動き（260ms）が終わりきってから
   await s.wait(400);
   await s.touch(1, 'down', 420, 800);

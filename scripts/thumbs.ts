@@ -64,7 +64,7 @@ try {
     });
     const page = await context.newPage();
     await page.addInitScript(seedRandom, 7);
-    if (scene.level) {
+    if (scene.level !== undefined) {
       await page.addInitScript(([key, level]) => localStorage.setItem(key, level), [
         levelKey(scene.id),
         String(scene.level)
