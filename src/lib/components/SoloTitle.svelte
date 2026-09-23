@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, type Component } from 'svelte';
+  import { asset } from '$app/paths';
   import type { SoloMeta } from '$lib/games';
 
   /** best はたどり着いたいちばん先のレベル。◀ ▶ でそこまでの面を選び直せる */
@@ -44,7 +45,15 @@
 </script>
 
 <div class="panel">
-  <div class="art" aria-hidden="true"><div class="zoom"><meta.Thumb /></div></div>
+  <img
+    class="art"
+    src={asset(`/thumbs/${meta.id}.webp`)}
+    alt=""
+    width="680"
+    height="400"
+    loading="eager"
+    decoding="async"
+  />
   <h1 class="title sticker">{meta.name}</h1>
   <Howto />
   {#if meta.levels > 1}
@@ -88,11 +97,12 @@
     text-align: center;
   }
 
-  /* ゲームの絵を大きく飾る。一覧のカードと同じ Thumb を額に入れて、ゆらゆらさせる */
+  /* 一覧のカードと同じ画面の画像を額に入れて、ゆらゆらさせる */
   .art {
-    width: min(78vw, 420px);
-    height: clamp(150px, 24cqh, 240px);
-    overflow: hidden;
+    display: block;
+    /* 背の低い画面ではタイトルとボタンに高さを譲るため、高さ 24cqh ぶんの幅までに抑える */
+    width: min(78vw, 420px, 41cqh);
+    height: auto;
     border: 6px solid #fff;
     border-radius: 28px;
     box-shadow:
@@ -100,14 +110,6 @@
       0 18px 30px rgb(43 45 66 / 0.18);
     rotate: -2deg;
     animation: sway 3s ease-in-out infinite;
-  }
-
-  /* Thumb は一覧のカード（高さ 128px）に合わせて px で描いてあるので、小さく作って拡大する */
-  .zoom {
-    width: calc(100% / 1.7);
-    height: calc(100% / 1.7);
-    transform: scale(1.7);
-    transform-origin: top left;
   }
 
   .title {

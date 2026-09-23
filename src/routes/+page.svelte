@@ -1,12 +1,29 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import AppUpdate from '$lib/components/AppUpdate.svelte';
   import GameCard from '$lib/components/GameCard.svelte';
-  import { games } from '$lib/games';
+  import { games, type GameMeta } from '$lib/games';
+  import { menuTab, recentGames, setMenuTab } from '$lib/recent';
 
-  const sections = [
-    { title: 'ひとりで あそぶ', list: games.filter((game) => game.players === 1) },
-    { title: 'ふたりで あそぶ', list: games.filter((game) => game.players === 2) }
-  ].filter((section) => section.list.length > 0);
+  const tabs = [
+    { players: 1, label: 'ひとりで', title: 'ひとりで あそぶ', color: 'p1' },
+    { players: 2, label: 'ふたりで', title: 'ふたりで あそぶ', color: 'p2' }
+  ] as const;
+
+  let tab = $state<1 | 2>(1);
+  let recent = $state<GameMeta[]>([]);
+  const shown = $derived(games.filter((game) => game.players === tab));
+
+  // プリレンダーでは覚えごとが読めないので mount 後に読む。消えたゲームの id は飛ばす
+  onMount(() => {
+    tab = menuTab();
+    recent = recentGames().flatMap((id) => games.find((game) => game.id === id) ?? []);
+  });
+
+  function choose(players: 1 | 2) {
+    tab = players;
+    setMenuTab(players);
+  }
 </script>
 
 <svelte:head>
@@ -21,18 +38,32 @@
 
   <AppUpdate />
 
-  {#each sections as section (section.title)}
-    <section>
-      <h2 class="section sticker">{section.title}</h2>
-      <ul class="cards">
-        {#each section.list as game, i (game.id)}
-          <li style:--delay="{i * 70}ms">
-            <GameCard {game} />
-          </li>
+  {#if recent.length > 0}
+    <section class="recent">
+      <h2 class="section sticker">さいきん あそんだ</h2>
+      <ul class="cards row">
+        {#each recent as game (game.id)}
+          <li><GameCard {game} /></li>
         {/each}
       </ul>
     </section>
-  {/each}
+  {/if}
+
+  <section>
+    <div class="tabs">
+      {#each tabs as t (t.players)}
+        <button class="pill tab {t.color}" aria-pressed={tab === t.players} onclick={() => choose(t.players)}
+          >{t.label}</button
+        >
+      {/each}
+    </div>
+    <h2 class="sr-only">{tabs[tab - 1].title}</h2>
+    <ul class="cards">
+      {#each shown as game, i (game.id)}
+        <li style:--delay="{i * 60}ms"><GameCard {game} /></li>
+      {/each}
+    </ul>
+  </section>
 </main>
 
 <style>
@@ -80,24 +111,47 @@
   }
 
   .section {
-    max-width: 960px;
-    margin: 28px auto 16px;
-    font-size: clamp(22px, 4vw, 30px);
+    margin: 20px auto 12px;
+    font-size: clamp(18px, 3vw, 24px);
     text-align: center;
   }
 
+  .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin: 24px auto 20px;
+  }
+
+  .tab {
+    min-width: 140px;
+    font-size: clamp(16px, 2.6vw, 20px);
+    font-weight: 800;
+  }
+
+  .tab[aria-pressed='false'] {
+    --face: var(--card);
+    --edge: var(--card-edge);
+    color: var(--ink-soft);
+  }
+
+  /* iPad の縦で 3 列、スマホで 2 列になる幅。最小幅を割合で抑えて、細い画面でも 2 列を保つ */
   .cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 340px));
-    justify-content: center;
-    gap: 22px;
+    grid-template-columns: repeat(auto-fill, minmax(min(200px, 40%), 1fr));
+    gap: 16px;
     max-width: 960px;
     margin: 0 auto;
     list-style: none;
   }
 
+  .row {
+    grid-template-columns: repeat(3, 1fr);
+    max-width: 720px;
+  }
+
   li {
-    animation: rise 480ms var(--spring) var(--delay) both;
+    animation: rise 480ms var(--spring) var(--delay, 0ms) both;
   }
 
   @keyframes rise {

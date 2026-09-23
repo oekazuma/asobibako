@@ -1,5 +1,4 @@
 import type { GameMeta } from '$lib/games';
-import Thumb from './Thumb.svelte';
 
 export default {
   id: 'dog-guard',
@@ -9,7 +8,6 @@ export default {
   players: 1,
   levels: 30,
   minutes: '30秒',
-  Thumb,
   load: async () => ({
     Game: (await import('./DogGuard.svelte')).default,
     Howto: (await import('./Howto.svelte')).default

@@ -6,7 +6,7 @@ https://oekazuma.github.io/table-duel/
 
 ## 遊び方
 
-トップ (`/`) がゲームの一覧で、「ひとりで あそぶ」と「ふたりで あそぶ」に分かれている。遊びたいゲームを選ぶと、そのゲームのタイトル画面になる。
+トップ (`/`) がゲームの一覧で、「ひとりで」「ふたりで」のタブを押すと、その側のゲームが実際の画面の絵と名前のタイルで並ぶ。1 人用のタイルには、たどり着いたレベル (最後までクリアしたら「ぜんぶクリア」) が絵の右上に出る。最後に選んだタブは端末に覚えていて、次に開いたときもその側が出る。タブの上の「さいきん あそんだ」には、最近開いたゲームが 1 人用・2 人用をまたいで 3 本まで並ぶ (まだ何も開いていなければ出ない)。タイルを選ぶと、そのゲームのタイトル画面になる。
 
 1 人用のゲームは画面全体を使い、「タップで スタート」で始まる。レベルを順にクリアしていき、どこまで進んだかはゲームごとに端末へ保存される。タイトルの ◀ ▶ で、たどり着いたレベルまでの好きな面を選び直せる。面の数はゲームごとに違い (ピンぬきは 18、数のゲートと線を引いて守るは 30、雪原サバイバルは 10、はいしゃさんは 20)、どの面も違う面で、レベルが上がるほど難しくなる。最後の面をクリアすると「ぜんぶクリア！」。遊んでいる途中でも左上の ✕ でタイトルに戻れる。
 
@@ -135,20 +135,17 @@ Safari の共有メニューから「ホーム画面に追加」するとフル�
    ```
 
 2. タイトル画面に上下それぞれ出す遊び方を `Howto.svelte` に書く。1 行のルールと凡例くらいに留める
-3. 一覧のカードに出す小さな絵を `Thumb.svelte` に書く。一覧に全ゲームぶん載るので、軽い CSS だけで描く（画像・canvas・three は使わない）
-4. `meta.ts` に一覧用の情報と読み込み方を書く
+3. `meta.ts` に一覧用の情報と読み込み方を書く
 
    ```ts
    import type { GameMeta } from '$lib/games';
-   import Thumb from './Thumb.svelte';
 
    export default {
      id: 'my-game', // URL (/games/my-game) になるので kebab-case
      name: '表示名',
-     description: '一覧のカードに出す 1 文',
+     description: 'ゲームを 1 文で紹介する',
      players: 2, // 1 人用は 1
      minutes: '1分',
-     Thumb,
      load: async () => ({
        Game: (await import('./MyGame.svelte')).default,
        Howto: (await import('./Howto.svelte')).default
@@ -156,7 +153,8 @@ Safari の共有メニューから「ホーム画面に追加」するとフル�
    } satisfies GameMeta;
    ```
 
-5. `src/lib/games.ts` の `games` 配列に 1 行足す
+4. `src/lib/games.ts` の `games` 配列に 1 行足す
+5. 一覧のカードの絵を撮る。`scripts/thumbs/scenes.ts` にそのゲームの場面の台本を足し、`pnpm thumbs <id>` で実際の画面を撮って `static/thumbs/<id>.webp` に書く (端末の Google Chrome を使う)。ゲームの見た目や操作が変わって場面が崩れたら、台本を直して撮り直す
 
 一覧のカードと `/games/<id>` のページはこれだけでできる (プリレンダーの対象も `games` 配列から作る)。ゲーム本体は遊ぶときに読み込むので、ゲームを増やしても一覧画面は重くならない。
 
@@ -171,18 +169,19 @@ pnpm install
 pnpm dev        # http://localhost:5173/table-duel/
 ```
 
-| コマンド       | 内容                                                                    |
-| -------------- | ----------------------------------------------------------------------- |
-| `pnpm dev`     | 開発サーバー                                                            |
-| `pnpm build`   | 静的ビルド (`build/`)。`BASE_PATH` でサブパスを指定する                 |
-| `pnpm preview` | ビルド結果の確認 (Service Worker はビルドでのみ有効)                    |
-| `pnpm lint`    | prettier / eslint / markuplint                                          |
-| `pnpm format`  | prettier --write                                                        |
-| `pnpm check`   | svelte-check と scripts の型チェック                                    |
-| `pnpm test`    | vitest の watch。`pnpm test:run` で一括実行                             |
-| `pnpm vitals`  | svelte-vitals の全体スキャン                                            |
-| `pnpm verify`  | lint / check / test:run / vitals / build をまとめて実行 (CI と同じ判定) |
-| `pnpm icon`    | `static/icon-*.png` を再生成する                                        |
+| コマンド       | 内容                                                                             |
+| -------------- | -------------------------------------------------------------------------------- |
+| `pnpm dev`     | 開発サーバー                                                                     |
+| `pnpm build`   | 静的ビルド (`build/`)。`BASE_PATH` でサブパスを指定する                          |
+| `pnpm preview` | ビルド結果の確認 (Service Worker はビルドでのみ有効)                             |
+| `pnpm lint`    | prettier / eslint / markuplint                                                   |
+| `pnpm format`  | prettier --write                                                                 |
+| `pnpm check`   | svelte-check と scripts の型チェック                                             |
+| `pnpm test`    | vitest の watch。`pnpm test:run` で一括実行                                      |
+| `pnpm vitals`  | svelte-vitals の全体スキャン                                                     |
+| `pnpm verify`  | lint / check / test:run / vitals / build をまとめて実行 (CI と同じ判定)          |
+| `pnpm icon`    | `static/icon-*.png` を再生成する                                                 |
+| `pnpm thumbs`  | 一覧のカードの絵 `static/thumbs/<id>.webp` を撮り直す。id を渡すとそのゲームだけ |
 
 依存は `pnpm-workspace.yaml` の catalog で一元管理し、Renovate が minor/patch を自動マージする。
 

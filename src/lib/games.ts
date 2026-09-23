@@ -43,8 +43,6 @@ interface BaseMeta {
   name: string;
   description: string;
   minutes: string;
-  /** 一覧のカードに出す小さな絵。一覧に載るので、軽い CSS だけの部品にする */
-  Thumb: Component;
 }
 
 /** 本体は、一覧画面に全ゲームを載せないよう load() で遊ぶときに読み込む */
