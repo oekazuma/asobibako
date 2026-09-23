@@ -122,6 +122,16 @@ describe('dentist engine: 虫歯', () => {
     expect(state.result).toBe('clear');
   });
 
+  it('ピンセットを持ったまま指をすべらせても、バイキンに重なればつかめる', () => {
+    const state = createState(cavityStage('normal', 1));
+    scrub(state, state.teeth[3].x, state.teeth[3].y, 1);
+    select(state, 'tweezers');
+    const g = state.germs[0];
+    const events = carry(state, [0.2, 1.0], germPos(g, state.time), 1);
+    expect(events).toContainEqual(expect.objectContaining({ type: 'grab' }));
+    expect(carry(state, [g.x, g.y], [TRASH.x, TRASH.y])).toContainEqual(expect.objectContaining({ type: 'byebye' }));
+  });
+
   it('ゴミ箱の外で離したバイキンは穴へ戻る', () => {
     const state = createState(cavityStage('normal', 1));
     scrub(state, state.teeth[3].x, state.teeth[3].y, 1);
