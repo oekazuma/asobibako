@@ -39,11 +39,10 @@ export class Rng {
 }
 
 /** 到達レベルの保存先。ゲームごと。最後のレベルをクリアしたら levels + 1 を保存する */
-// 保存名の頭は asobibako への改名後も table-duel: のまま。同じ github.io 配下なので、変えなければ遊んだ記録が新しい URL に引き継がれる
-export const levelKey = (id: string) => `table-duel:reached:${id}`;
+export const levelKey = (id: string) => `asobibako:reached:${id}`;
 
 /** 全ゲームが 100 面だったころの到達レベルの保存先 */
-const legacyKey = (id: string) => `table-duel:level:${id}`;
+const legacyKey = (id: string) => `asobibako:level:${id}`;
 
 /** 保存された到達レベル（1..levels + 1）。壊れていたり読めなければ 1 */
 export function savedLevel(id: string, levels: number): number {

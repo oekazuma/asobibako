@@ -16,7 +16,8 @@ describe('アプリについて', () => {
     expect([...target.querySelectorAll('h2')].map((h) => h.textContent)).toEqual([
       '更新',
       'アプリの状態',
-      'データについて'
+      'データについて',
+      'バックアップ'
     ]);
     expect(target.querySelector('.update')).not.toBeNull();
     expect(target.querySelectorAll('.status li')).toHaveLength(3);

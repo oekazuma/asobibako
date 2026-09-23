@@ -16,11 +16,11 @@ describe('recent', () => {
   });
 
   it('壊れた値は空として読む', () => {
-    localStorage.setItem('table-duel:recent', '{');
+    localStorage.setItem('asobibako:recent', '{');
     expect(recentGames()).toEqual([]);
-    localStorage.setItem('table-duel:recent', '{"a":1}');
+    localStorage.setItem('asobibako:recent', '{"a":1}');
     expect(recentGames()).toEqual([]);
-    localStorage.setItem('table-duel:recent', '[1,"a",null]');
+    localStorage.setItem('asobibako:recent', '[1,"a",null]');
     expect(recentGames()).toEqual(['a']);
   });
 
@@ -28,7 +28,7 @@ describe('recent', () => {
     expect(menuTab()).toBe(1);
     setMenuTab(2);
     expect(menuTab()).toBe(2);
-    localStorage.setItem('table-duel:menu-tab', 'x');
+    localStorage.setItem('asobibako:menu-tab', 'x');
     expect(menuTab()).toBe(1);
   });
 

@@ -1,7 +1,7 @@
 // 一覧画面の覚えごと。プライベートブラウズなど localStorage が使えない環境では覚えずに動く
 
-const RECENT = 'table-duel:recent';
-const TAB = 'table-duel:menu-tab';
+const RECENT = 'asobibako:recent';
+const TAB = 'asobibako:menu-tab';
 const MAX = 3;
 
 /** 最近開いたゲームの id。新しい順に 3 本まで。壊れていたり読めなければ空 */

@@ -238,6 +238,22 @@ export const ICONS = {
     { d: 'M8.3 9a3.7 3.7 0 1 1 5.4 3.3c-1.1.6-1.7 1.3-1.7 2.5v.4', stroke: LINE, width: 2.8 },
     { d: circle(12, 19.3, 1.6), fill: LINE }
   ],
+  download: [
+    { d: 'M4 14.5v4A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-4', stroke: LINE, width: 2.2 },
+    { d: 'M12 3.5v11M7.5 10L12 14.5l4.5-4.5', stroke: LINE, width: 2.2 }
+  ],
+  upload: [
+    { d: 'M4 14.5v4A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-4', stroke: LINE, width: 2.2 },
+    { d: 'M12 14.5v-11M7.5 8L12 3.5 16.5 8', stroke: LINE, width: 2.2 }
+  ],
+  share: [
+    {
+      d: 'M8.5 9.5h-2A1.5 1.5 0 0 0 5 11v8.5A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V11a1.5 1.5 0 0 0-1.5-1.5h-2',
+      stroke: LINE,
+      width: 2.2
+    },
+    { d: 'M12 14.5V3M8.5 6.5L12 3l3.5 3.5', stroke: LINE, width: 2.2 }
+  ],
   check: [
     { d: circle(12, 12, 10), fill: '#9be0a6', stroke: LINE, width: 1.6 },
     { d: 'M7.5 12.5l3 3 6-6.5', stroke: LINE, width: 2.2 }
