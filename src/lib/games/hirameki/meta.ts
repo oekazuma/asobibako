@@ -3,9 +3,9 @@ import type { GameMeta } from '$lib/games';
 export default {
   id: 'hirameki',
   name: 'ひらめきナゾ',
-  description: '思いこみを外せば一瞬で解ける、ひらめきのナゾが 81 問。行きづまったらヒントを開こう',
+  description: '思いこみを外せば一瞬で解ける、ひらめきのナゾが 100 問。行きづまったらヒントを開こう',
   players: 1,
-  levels: 81,
+  levels: 100,
   levelName: 'ナゾ',
   ownResult: true,
   minutes: '1問 1〜5分',
