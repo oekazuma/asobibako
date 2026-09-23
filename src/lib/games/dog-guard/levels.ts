@@ -215,7 +215,7 @@ const LAYOUTS: Record<Kind, (rng: Rng) => Layout> = {
       solution: line([flip(cx - o / 2 - 0.05), top - 0.025], [flip(cx + o / 2 + 0.05), top - 0.025]),
       low: false,
       hives: line([flip(cx - 0.1), top + 0.14], [flip(cx + 0.1), top + 0.2], [flip(cx - 0.02), top + 0.34]),
-      tip: '犬は 雲の中！ 巣の 出口を ふさいで とじこめよう'
+      tip: '雲の中には 線が ひけない！ 巣の 出口を ふさいで とじこめよう'
     };
   },
   lid: (rng) => {
@@ -309,7 +309,7 @@ const LAYOUTS: Record<Kind, (rng: Rng) => Layout> = {
       noDraw: [],
       solution: dome(x, y - 0.005, 0.18),
       low: true,
-      tip: '下からも くるかも！ 足場ごと まもろう'
+      tip: '足場の 上に 線を のせて かこもう'
     };
   },
   platform2: (rng) => {
