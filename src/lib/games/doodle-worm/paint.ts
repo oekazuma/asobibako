@@ -52,7 +52,11 @@ export function creature(ctx: CanvasRenderingContext2D, c: Creature) {
   const grow = spring(clamp01(c.age / 0.45));
   ctx.strokeStyle = c.body;
   ctx.lineWidth = PEN + (c.r * 1.1 - PEN) * grow;
-  path(ctx, wiggle(c, grow));
+  path(ctx, wiggle(c, grow), c.filled);
+  if (c.filled) {
+    ctx.fillStyle = c.body;
+    ctx.fill();
+  }
   ctx.stroke();
 
   const head = c.outline.map(([x, y]): Point => [c.x + x, c.y + y]);

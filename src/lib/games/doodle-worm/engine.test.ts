@@ -37,6 +37,13 @@ describe('hatch', () => {
       expect(c.dy).toBeCloseTo(0);
     }
   });
+  it('まるで描いた胴体は中を塗り、頭から離れる向きへ進む', () => {
+    const head = { color: 'y', pts: ring(0.3, 0.5, 0.08) };
+    const c = hatch(head, { color: 'g', pts: ring(0.55, 0.5, 0.12) });
+    expect(c.filled).toBe(true);
+    expect(c.dx).toBeCloseTo(-1);
+    expect(hatch(head, { color: 'g', pts: line(0.38, 0.5, 0.7, 0.5) }).filled).toBe(false);
+  });
 });
 
 describe('step', () => {

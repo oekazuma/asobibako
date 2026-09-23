@@ -12,6 +12,8 @@ export interface Creature {
   /** 頭の輪郭と胴体の線。どちらも頭の中心からの相対位置 */
   outline: Point[];
   spine: Point[];
+  /** 胴体をまるで描いたときは、輪の中も塗る */
+  filled: boolean;
   x: number;
   y: number;
   r: number;
@@ -69,25 +71,27 @@ export function isLoop(pts: Point[]): boolean {
 
 export const isBody = (pts: Point[]) => length(pts) >= MIN_BODY;
 
-/** 頭と胴体から生き物を作る。胴体のうち頭から遠い端を尻尾にして、尻尾から頭へ向かって進む */
+/** 頭と胴体から生き物を作る。胴体の真ん中から頭へ向かって進む */
 export function hatch(head: Stroke, body: Stroke): Creature {
   const [x, y] = center(head.pts);
   const r = head.pts.reduce((sum, [px, py]) => sum + Math.hypot(px - x, py - y), 0) / head.pts.length;
   const far = (p: Point) => Math.hypot(p[0] - x, p[1] - y);
   // 胴体は首から尻尾の順に並べる。うねりは首側を抑えるので、描いた向きのままだと首が揺れてしまう
   const pts = far(body.pts[0]) > far(body.pts[body.pts.length - 1]) ? body.pts.toReversed() : body.pts;
-  const tail = pts[pts.length - 1];
-  const d = Math.hypot(x - tail[0], y - tail[1]) || 1;
+  // 尻尾の端ではなく胴体の真ん中を使う。まるで描いた胴体は両端とも首元にあり、向きが決まらないため
+  const [bx, by] = center(pts);
+  const d = Math.hypot(x - bx, y - by) || 1;
   return {
     head: head.color,
     body: body.color,
     outline: head.pts.map(([px, py]) => [px - x, py - y]),
     spine: pts.map(([px, py]) => [px - x, py - y]),
+    filled: isLoop(pts),
     x,
     y,
     r,
-    dx: (x - tail[0]) / d,
-    dy: (y - tail[1]) / d,
+    dx: (x - bx) / d,
+    dy: (y - by) / d,
     age: 0
   };
 }
@@ -110,6 +114,7 @@ export function random(aspect: number, rand = Math.random): Creature {
     body: pick(),
     outline,
     spine,
+    filled: false,
     x: 0.15 * aspect + rand() * 0.7 * aspect,
     y: 0.15 + rand() * 0.6,
     r,
