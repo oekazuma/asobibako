@@ -15,7 +15,11 @@ sw.addEventListener('install', (event) => {
   event.waitUntil(
     caches
       .open(CACHE)
-      .then((cache) => cache.addAll(ASSETS))
+      // 版の付かない HTML などは HTTP キャッシュ（Pages は max-age=600）に前の版が残っていると、それを拾って
+      // 前の版のチャンクを指す HTML を抱えこむ。デプロイ後にそのチャンクが消えると壊れたままになるので、取り直させる
+      .then((cache) =>
+        cache.addAll([...build, ...[...files, ...prerendered].map((path) => new Request(path, { cache: 'no-cache' }))])
+      )
       .then(() => sw.skipWaiting())
   );
 });
