@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Entry } from './entry.svelte';
   import Figure from './Figure.svelte';
+  import Ice from './Ice.svelte';
   import Lines from './Lines.svelte';
   import Place from './Place.svelte';
   import Memo from './Memo.svelte';
@@ -37,6 +38,8 @@
         <Pour {p} {onsolve} />
       {:else if p.kind === 'slide'}
         <Slide {p} bind:blocks={entry.blocks} bind:moves={entry.moves} {onsolve} />
+      {:else if p.kind === 'ice'}
+        <Ice {p} bind:at={entry.at} bind:moves={entry.moves} {onsolve} />
       {:else if p.kind === 'place'}
         <Place {p} bind:cells={entry.picked} />
       {:else if p.kind === 'lines'}
