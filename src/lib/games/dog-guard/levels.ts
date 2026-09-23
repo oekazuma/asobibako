@@ -12,7 +12,7 @@ export interface Stage extends Level {
   kind: Kind;
 }
 
-type Kind = 'open' | 'open2' | 'cave' | 'cave2' | 'side' | 'platform' | 'platform2' | 'mixed';
+type Kind = 'open' | 'open2' | 'cave' | 'cave2' | 'side' | 'platform' | 'platform2' | 'mixed' | 'tent' | 'corner';
 
 interface Layout {
   pets: Point[];
@@ -127,6 +127,41 @@ const LAYOUTS: Record<Kind, (rng: Rng) => Layout> = {
       tip: '雲の中には 線が ひけない！ 入り口を ふさごう'
     };
   },
+  tent: (rng) => {
+    const x = rng.range(0.3, 0.7);
+    // 雲の下と犬のまわりの引けない輪のあいだに、線 1 本ぶんのすきまだけを残す
+    const low = DOG_Y - 0.14;
+    return {
+      pets: [{ x, y: DOG_Y }],
+      walls: [],
+      noDraw: [{ x0: x - 0.28, y0: low - 0.35, x1: x + 0.28, y1: low }],
+      solution: line([x - 0.16, FLOOR], [x - 0.15, low + 0.025], [x + 0.15, low + 0.025], [x + 0.16, FLOOR]),
+      low: false,
+      tip: '雲が じゃまで まるく かこめない！ ひくく かこもう'
+    };
+  },
+  corner: (rng) => {
+    const right = rng.chance(0.5);
+    const cx = rng.range(0.35, 0.65);
+    const [x0, x1] = [cx - 0.22, cx + 0.22];
+    const top = rng.range(0.95, 1.02);
+    const [o, win] = [rng.range(0.1, 0.14), rng.range(0.1, 0.14)];
+    const flip = (x: number) => (right ? x : 1 - x);
+    const seg = (xa: number, ya: number, xb: number, yb: number): Seg => [flip(xa), ya, flip(xb), yb];
+    return {
+      pets: [{ x: flip(cx - 0.05), y: DOG_Y }],
+      // 天井の端と横の壁の上が欠けた箱。角のすきまは、屋根に乗せて壁の外へ垂らす L 字の線でふさぐ
+      walls: [seg(x0, top, x0, GROUND), seg(x0, top, x1 - o, top), seg(x1, top + win, x1, GROUND)],
+      noDraw: [],
+      solution: line(
+        [flip(x1 - o - 0.06), top - 0.025],
+        [flip(x1 + 0.025), top - 0.025],
+        [flip(x1 + 0.025), top + win + 0.06]
+      ),
+      low: false,
+      tip: '角の すきまを 1本で ふさごう'
+    };
+  },
   platform: (rng) => {
     const w = rng.range(0.4, 0.46);
     const x = rng.range(0.3, 0.7);
@@ -190,11 +225,13 @@ const UNLOCK: [Kind, number][] = [
   ['open', 1],
   ['cave', 3],
   ['platform', 5],
-  ['open2', 7],
-  ['side', 9],
-  ['mixed', 11],
-  ['platform2', 13],
-  ['cave2', 15]
+  ['tent', 7],
+  ['open2', 9],
+  ['side', 11],
+  ['corner', 13],
+  ['mixed', 15],
+  ['platform2', 17],
+  ['cave2', 19]
 ];
 
 /**

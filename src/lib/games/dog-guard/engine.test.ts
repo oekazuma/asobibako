@@ -82,6 +82,23 @@ describe('dog-guard engine', () => {
     expect(levelFor(3).ink).toBeLessThan(Math.PI * 0.18);
   });
 
+  it('雲のテントの面は、犬の上をまるく囲めない', () => {
+    const stage = levels.map(([n]) => levelFor(n)).find((s) => s.kind === 'tent')!;
+    const pet = stage.pets[0];
+    expect(drawable(stage, pet.x, pet.y - 0.18)).toBe(false);
+    expect(drawable(stage, pet.x, pet.y - 0.11)).toBe(true);
+  });
+
+  it('角のすきまの面は、屋根の上だけふさいでも横から入られる', () => {
+    const stage = levels.map(([n]) => levelFor(n)).find((s) => s.kind === 'corner')!;
+    const [a, b] = stage.solution;
+    const state = createState(stage);
+    addPoint(state, a.x, a.y);
+    addPoint(state, b.x, b.y);
+    finishStroke(state);
+    expect(run(state)).toBe('stung');
+  });
+
   it('指を離すと線分ができ、そのあとは点を足せない', () => {
     const state = createState(levelFor(1));
     addPoint(state, 0.2, 0.5);
