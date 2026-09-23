@@ -49,7 +49,7 @@ let browser: Browser | undefined;
 
 try {
   await server.listen();
-  // SvelteKit の base パス（/table-duel）までが入り、末尾の / はつかない
+  // SvelteKit の base パス（/asobibako）までが入り、末尾の / はつかない
   const base = server.resolvedUrls?.local[0];
   if (!base) throw new Error('dev サーバーの URL が取れない');
   // GPU で描くと、同じ場面でも物のふちの色が撮るたびにわずかに変わる。CPU で描かせて毎回同じ画像にする

@@ -47,18 +47,18 @@ describe('updateApp', () => {
     expect(reload).toHaveBeenCalledTimes(1);
   });
 
-  it('Service Worker がなければ table-duel- のキャッシュだけ消して読み直す', async () => {
+  it('Service Worker がなければ table-duel- と asobibako- のキャッシュだけ消して読み直す', async () => {
     const deleted: string[] = [];
     vi.stubGlobal('navigator', { serviceWorker: undefined });
     vi.stubGlobal('caches', {
-      keys: async () => ['table-duel-a', 'other', 'table-duel-b'],
+      keys: async () => ['table-duel-a', 'other', 'asobibako-b'],
       delete: async (k: string) => {
         deleted.push(k);
         return true;
       }
     });
     await updateApp();
-    expect(deleted).toEqual(['table-duel-a', 'table-duel-b']);
+    expect(deleted).toEqual(['table-duel-a', 'asobibako-b']);
     expect(reload).toHaveBeenCalledTimes(1);
   });
 });

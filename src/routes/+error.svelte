@@ -5,7 +5,7 @@
 </script>
 
 <svelte:head>
-  <title>{page.status} — Table Duel</title>
+  <title>{page.status} — あそびばこ</title>
 </svelte:head>
 
 <main class="error">

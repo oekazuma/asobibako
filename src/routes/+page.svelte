@@ -28,7 +28,7 @@
 </script>
 
 <svelte:head>
-  <title>Table Duel — iPad をはさんで 2 人で遊ぶ対戦ゲーム集</title>
+  <title>あそびばこ — iPad をはさんで 2 人で遊ぶ対戦ゲーム集</title>
 </svelte:head>
 
 <main class="menu">
