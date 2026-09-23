@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { createState, expression, needFor, rub, select, step, touch, type GameState, type Stage } from './engine';
+import {
+  createState,
+  expression,
+  FILL_S,
+  germPos,
+  lift,
+  needFor,
+  rub,
+  select,
+  step,
+  touch,
+  TRASH,
+  type GameState,
+  type Stage
+} from './engine';
 
 export const stageOf = (over: Partial<Stage>): Stage => ({
   animal: 'bear',
@@ -65,5 +79,95 @@ describe('dentist engine: ブラシ', () => {
     expect(expression(state)).toBe('nervous');
     state.result = 'clear';
     expect(expression(state)).toBe('happy');
+  });
+});
+
+const cavityStage = (kind: 'normal' | 'quick' | 'boss' = 'normal', germs = 2) =>
+  stageOf({
+    tools: ['drill', 'tweezers', 'filling'],
+    symptoms: [{ type: 'cavity', tooth: 3, depth: 0.5, germs, kind }]
+  });
+
+/** つまんだ先端を dest へまっすぐ運び、着いたら離す */
+function carry(state: GameState, from: [number, number], dest: [number, number], seconds = 2) {
+  const events = [...touch(state, ...from)];
+  for (let t = 0; t < seconds; t += 1 / 60) {
+    const k = Math.min(1, t / (seconds * 0.5));
+    events.push(...rub(state, from[0] + (dest[0] - from[0]) * k, from[1] + (dest[1] - from[1]) * k, 1 / 60));
+    events.push(...step(state, 1 / 60));
+  }
+  events.push(...lift(state, ...dest));
+  return events;
+}
+
+describe('dentist engine: 虫歯', () => {
+  it('削るとバイキンが出て、ゴミ箱に捨てると穴になり、詰めると治る', () => {
+    const state = createState(cavityStage());
+    const { x, y } = state.teeth[3];
+    const drilled = scrub(state, x, y, 1);
+    expect(drilled.some((e) => e.type === 'drilled')).toBe(true);
+    expect(state.germs).toHaveLength(2);
+    select(state, 'tweezers');
+    for (const g of [...state.germs]) {
+      const events = carry(state, germPos(g, state.time), [TRASH.x, TRASH.y]);
+      expect(events.some((e) => e.type === 'byebye')).toBe(true);
+    }
+    expect(state.symptoms[0].type === 'cavity' && state.symptoms[0].stage).toBe('hole');
+    select(state, 'filling');
+    const filled = scrub(state, x, y, FILL_S + 0.2);
+    expect(filled.some((e) => e.type === 'filled')).toBe(true);
+    expect(state.result).toBe('clear');
+  });
+
+  it('ゴミ箱の外で離したバイキンは穴へ戻る', () => {
+    const state = createState(cavityStage('normal', 1));
+    scrub(state, state.teeth[3].x, state.teeth[3].y, 1);
+    select(state, 'tweezers');
+    const g = state.germs[0];
+    const events = carry(state, germPos(g, state.time), [0.2, 1.0], 1);
+    expect(events.some((e) => e.type === 'escape')).toBe(true);
+    for (let t = 0; t < 2; t += 1 / 60) step(state, 1 / 60);
+    expect(Math.hypot(g.x - g.hx, g.y - g.hy)).toBeLessThan(0.002);
+    expect(g.gone).toBe(false);
+  });
+
+  it('バイキンが残っている穴に詰め物を当てると、順番ちがいを知らせて詰まらない', () => {
+    const state = createState(cavityStage());
+    const { x, y } = state.teeth[3];
+    scrub(state, x, y, 1);
+    select(state, 'filling');
+    const events = scrub(state, x, y, 1);
+    expect(events).toContainEqual(expect.objectContaining({ type: 'order' }));
+    expect(state.symptoms[0].type === 'cavity' && state.symptoms[0].stage).toBe('germs');
+  });
+
+  it('虫歯にブラシを当てると、ドリルを使うよう知らせる', () => {
+    const state = createState(
+      stageOf({
+        tools: ['brush', 'drill'],
+        symptoms: [{ type: 'cavity', tooth: 3, depth: 0.5, germs: 1, kind: 'normal' }]
+      })
+    );
+    const events = touch(state, state.teeth[3].x, state.teeth[3].y);
+    expect(events).toContainEqual(expect.objectContaining({ type: 'wrong', need: 'drill' }));
+  });
+
+  it('おやぶんはピンセットにゆっくりしかついてこない', () => {
+    const state = createState(cavityStage('boss', 1));
+    scrub(state, state.teeth[3].x, state.teeth[3].y, 1);
+    select(state, 'tweezers');
+    const g = state.germs[0];
+    touch(state, ...germPos(g, state.time));
+    rub(state, TRASH.x, TRASH.y, 1 / 60);
+    expect(Math.hypot(g.x - TRASH.x, g.y - TRASH.y)).toBeGreaterThan(0.2);
+  });
+
+  it('すばしっこいバイキンは穴のまわりを動き回る', () => {
+    const state = createState(cavityStage('quick', 1));
+    scrub(state, state.teeth[3].x, state.teeth[3].y, 1);
+    const g = state.germs[0];
+    const xs = new Set<number>();
+    for (let t = 0; t < 1; t += 0.1) xs.add(Math.round(germPos(g, t)[0] * 1000));
+    expect(xs.size).toBeGreaterThan(3);
   });
 });
