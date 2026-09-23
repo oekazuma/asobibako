@@ -90,7 +90,6 @@
           glow: true
         });
       } else if (event.type === 'stung' || event.type === 'clear') {
-        const { x, y } = game.level.dogs[0];
         if (event.type === 'clear') {
           sfx.finish();
           for (let k = 0; k < 4; k++)
@@ -105,7 +104,7 @@
         } else {
           sounds.stung();
           shake.add(0.8);
-          particles.burst(x, y, {
+          particles.burst(event.x, event.y, {
             count: 24,
             color: ['#fff', '#ffc233', '#ff4d5e'],
             speed: 0.5,

@@ -1,9 +1,8 @@
 import type { Seg } from '$lib/segments';
 import { difficulty, lerp, Rng } from '$lib/levels';
 import meta from './meta';
-import type { Level, Point, Zone } from './engine';
+import { GROUND, type Level, type Pet, type Point, type Zone } from './engine';
 
-const GROUND = 1.32;
 const DOG_Y = GROUND - 0.075;
 const FLOOR = GROUND - 0.005;
 
@@ -16,7 +15,7 @@ export interface Stage extends Level {
 type Kind = 'open' | 'open2' | 'cave' | 'cave2' | 'side' | 'platform' | 'platform2' | 'mixed';
 
 interface Layout {
-  dogs: Point[];
+  pets: Point[];
   walls: Seg[];
   noDraw: Zone[];
   solution: Point[];
@@ -26,7 +25,10 @@ interface Layout {
   tip: string;
 }
 
-/** 床（y = floor）に立つ犬を、半径 r の半円で覆う線 */
+/**
+ * 床（y = floor）に立つ犬を、半径 r の半円で覆う線。2 つのドームをつなぐときは足場の端の上を通す
+ * （端の下をくぐる線は足場と交わったまま落ちて、はじき飛ばされる）
+ */
 function dome(x: number, floor: number, r: number): Point[] {
   return Array.from({ length: 21 }, (_, i) => {
     const a = (i / 20) * Math.PI;
@@ -50,18 +52,18 @@ const LAYOUTS: Record<Kind, (rng: Rng) => Layout> = {
   open: (rng) => {
     const x = rng.range(0.25, 0.75);
     return {
-      dogs: [{ x, y: DOG_Y }],
+      pets: [{ x, y: DOG_Y }],
       walls: [],
       noDraw: [],
       solution: dome(x, FLOOR, 0.18),
       low: false,
-      tip: '線で 犬を かこんで まもろう'
+      tip: '線で かこんで まもろう'
     };
   },
   open2: (rng) => {
     const [a, b] = [rng.range(0.18, 0.33), rng.range(0.67, 0.82)];
     return {
-      dogs: [
+      pets: [
         { x: a, y: DOG_Y },
         { x: b, y: DOG_Y }
       ],
@@ -77,7 +79,7 @@ const LAYOUTS: Record<Kind, (rng: Rng) => Layout> = {
     const o = rng.range(0.1, 0.16);
     const top = rng.range(0.94, 1.02);
     return {
-      dogs: [{ x: cx + rng.range(-0.05, 0.05), y: DOG_Y }],
+      pets: [{ x: cx + rng.range(-0.05, 0.05), y: DOG_Y }],
       walls: cave(cx, rng.range(0.34, 0.42), o, top),
       noDraw: [],
       solution: line([cx - o / 2 - 0.05, top - 0.025], [cx + o / 2 + 0.05, top - 0.025]),
@@ -90,7 +92,7 @@ const LAYOUTS: Record<Kind, (rng: Rng) => Layout> = {
     const [a, b] = [rng.range(0.24, 0.28), rng.range(0.72, 0.76)];
     const [oa, ob] = [rng.range(0.1, 0.14), rng.range(0.1, 0.14)];
     return {
-      dogs: [
+      pets: [
         { x: a, y: DOG_Y },
         { x: b, y: DOG_Y }
       ],
@@ -110,10 +112,15 @@ const LAYOUTS: Record<Kind, (rng: Rng) => Layout> = {
     const seg = (x1: number, y1: number, x2: number, y2: number): Seg => [flip(x1), y1, flip(x2), y2];
     const zx = [flip(0), flip(open + 0.14)].sort((p, q) => p - q);
     return {
-      dogs: [{ x: flip((wall + open) / 2 - 0.02), y: DOG_Y }],
+      pets: [{ x: flip((wall + open) / 2 - 0.02), y: DOG_Y }],
       walls: [seg(wall, top, wall, GROUND), seg(wall, top, open, top)],
       noDraw: [{ x0: zx[0], y0: 0.45, x1: zx[1], y1: top - 0.02 }],
-      solution: line([flip(open + 0.04), top + 0.01], [flip(open + 0.04), GROUND - 0.01]),
+      // 線は重さで倒れるので、外へ足を出して立たせる
+      solution: line(
+        [flip(open + 0.04), top + 0.01],
+        [flip(open + 0.04), GROUND - 0.015],
+        [flip(open + 0.2), GROUND - 0.015]
+      ),
       low: true,
       side: right ? 'right' : 'left',
       tip: '雲には 線が ひけない！ 入り口を ふさごう'
@@ -124,7 +131,7 @@ const LAYOUTS: Record<Kind, (rng: Rng) => Layout> = {
     const x = rng.range(0.3, 0.7);
     const y = rng.range(0.72, 1.05);
     return {
-      dogs: [{ x, y: y - 0.075 }],
+      pets: [{ x, y: y - 0.075 }],
       walls: [[x - w / 2, y, x + w / 2, y]],
       noDraw: [],
       solution: dome(x, y - 0.005, 0.18),
@@ -136,7 +143,7 @@ const LAYOUTS: Record<Kind, (rng: Rng) => Layout> = {
     const [a, b] = [rng.range(0.23, 0.27), rng.range(0.73, 0.77)];
     const [ya, yb] = [rng.range(0.7, 1.05), rng.range(0.7, 1.05)];
     return {
-      dogs: [
+      pets: [
         { x: a, y: ya - 0.075 },
         { x: b, y: yb - 0.075 }
       ],
@@ -145,7 +152,12 @@ const LAYOUTS: Record<Kind, (rng: Rng) => Layout> = {
         [b - 0.19, yb, b + 0.19, yb]
       ],
       noDraw: [],
-      solution: [...dome(a, ya - 0.005, 0.17), ...dome(b, yb - 0.005, 0.17)],
+      solution: [
+        ...dome(a, ya - 0.005, 0.17),
+        { x: a + 0.2, y: ya - 0.03 },
+        { x: b - 0.2, y: yb - 0.03 },
+        ...dome(b, yb - 0.005, 0.17)
+      ],
       low: true,
       tip: '足場の 2ひきを まもろう'
     };
@@ -154,16 +166,18 @@ const LAYOUTS: Record<Kind, (rng: Rng) => Layout> = {
     const left = rng.chance(0.5);
     const [pa, ga] = left ? [0.25, 0.75] : [0.75, 0.25];
     const y = rng.range(0.75, 1.0);
-    const dogs = [
+    const pets = [
       { x: pa, y: y - 0.075 },
       { x: ga, y: DOG_Y }
     ];
     const domes = [dome(pa, y - 0.005, 0.17), dome(ga, FLOOR, 0.17)];
     return {
-      dogs,
+      pets,
       walls: [[pa - 0.19, y, pa + 0.19, y]],
       noDraw: [],
-      solution: left ? [...domes[0], ...domes[1]] : [...domes[1], ...domes[0]],
+      solution: left
+        ? [...domes[0], { x: pa + 0.2, y: y - 0.03 }, ...domes[1]]
+        : [...domes[1], { x: pa - 0.2, y: y - 0.03 }, ...domes[0]],
       low: true,
       tip: '足場と 地面の 2ひきを まもろう'
     };
@@ -209,7 +223,7 @@ function hives(rng: Rng, n: number, layout: Layout): Point[] {
       : layout.side && out.length > 0
         ? rng.range(0.25, 1.15)
         : rng.range(0.12, 0.32);
-    if (layout.dogs.some((d) => Math.hypot(d.x - x, d.y - y) < 0.3)) continue;
+    if (layout.pets.some((d) => Math.hypot(d.x - x, d.y - y) < 0.3)) continue;
     if (out.some((h) => Math.hypot(h.x - x, h.y - y) < 0.2)) continue;
     out.push({ x, y });
   }
@@ -227,7 +241,7 @@ export function levelFor(n: number): Stage {
   const layout = LAYOUTS[kind](rng);
   return {
     kind,
-    dogs: layout.dogs,
+    pets: layout.pets.map((p, i): Pet => ({ ...p, kind: (level + i) % 2 === 0 ? 'cat' : 'dog' })),
     walls: [...layout.walls, [0, GROUND, 1, GROUND]],
     noDraw: layout.noDraw,
     hives: hives(rng, d < 0.2 ? 1 : d < 0.55 ? 2 : 3, layout),

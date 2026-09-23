@@ -1,6 +1,6 @@
 import { cloud, icon, shadow, sprite, stamp } from '$lib/fx';
 import type { Seg } from '$lib/segments';
-import { BEE_LOOK, BEE_R, DOG_R, LINE, type GameState, type Zone } from './engine';
+import { BEE_LOOK, BEE_R, DOG_R, LINE, type GameState, type Pet, type Zone } from './engine';
 
 const bee = (frame: 0 | 1, fast: boolean) =>
   sprite(`bee:${frame}:${fast ? 'fast' : 'normal'}`, 96, (c) => {
@@ -42,6 +42,85 @@ const bee = (frame: 0 | 1, fast: boolean) =>
     c.arc(0.71, 0.5, 0.018, 0, Math.PI * 2);
     c.fill();
   });
+
+/** 頭は icons.ts の顔を上に重ねるので、ここでは首から下を正面向きのおすわりで描く */
+const FUR = {
+  dog: { fur: '#f2d2a9', dark: '#8a5a3b', belly: '#fff', collar: '#ff4d5e' },
+  cat: { fur: '#ffc98a', dark: '#e8893a', belly: '#fff4e6', collar: '#4db5ff' }
+};
+
+const petBody = (kind: Pet['kind']) =>
+  sprite(`pet-body:${kind}`, 128, (c) => {
+    const { fur, dark, belly, collar } = FUR[kind];
+    c.lineCap = 'round';
+    c.strokeStyle = dark;
+    c.lineWidth = kind === 'cat' ? 0.07 : 0.09;
+    c.beginPath();
+    if (kind === 'cat') {
+      c.moveTo(0.66, 0.86);
+      c.bezierCurveTo(0.95, 0.9, 0.98, 0.6, 0.86, 0.42);
+    } else {
+      c.moveTo(0.66, 0.78);
+      c.quadraticCurveTo(0.9, 0.74, 0.86, 0.5);
+    }
+    c.stroke();
+    c.fillStyle = fur;
+    for (const x of [0.28, 0.72]) {
+      c.beginPath();
+      c.ellipse(x, 0.82, 0.11, 0.1, 0, 0, Math.PI * 2);
+      c.fill();
+    }
+    c.beginPath();
+    c.ellipse(0.5, 0.63, 0.22, 0.3, 0, 0, Math.PI * 2);
+    c.fill();
+    c.fillStyle = belly;
+    c.beginPath();
+    c.ellipse(0.5, 0.7, 0.12, 0.18, 0, 0, Math.PI * 2);
+    c.fill();
+    if (kind === 'cat') {
+      c.strokeStyle = dark;
+      c.lineWidth = 0.03;
+      for (const y of [0.55, 0.66]) {
+        for (const side of [-1, 1]) {
+          c.beginPath();
+          c.moveTo(0.5 + side * 0.21, y);
+          c.lineTo(0.5 + side * 0.14, y + 0.03);
+          c.stroke();
+        }
+      }
+    }
+    c.fillStyle = belly;
+    c.strokeStyle = 'rgb(43 45 66 / 0.25)';
+    c.lineWidth = 0.015;
+    for (const x of [0.41, 0.59]) {
+      c.beginPath();
+      c.ellipse(x, 0.9, 0.075, 0.05, 0, 0, Math.PI * 2);
+      c.fill();
+      c.stroke();
+    }
+    c.fillStyle = collar;
+    c.beginPath();
+    c.roundRect(0.32, 0.36, 0.36, 0.06, 0.03);
+    c.fill();
+    c.fillStyle = '#ffc233';
+    c.beginPath();
+    c.arc(0.5, 0.44, 0.035, 0, Math.PI * 2);
+    c.fill();
+  });
+
+/**
+ * 当たりの円（半径 DOG_R、中心 pet.y）の上端に耳の先をそろえる。線はその円の上に乗るので、
+ * 頭を高く描くと乗った線が耳を切ってしまう
+ */
+function pet(ctx: CanvasRenderingContext2D, p: Pet, state: GameState, now: number) {
+  const mood = state.result === 'stung' ? '-hurt' : state.result === 'clear' ? '-happy' : '';
+  const near = state.bees.some((b) => Math.hypot(b.x - p.x, b.y - p.y) < DOG_R * 3);
+  const x = p.x + (near && !state.result ? Math.sin(now * 60) * 0.006 : 0);
+  const y = p.y - (state.result === 'clear' ? Math.abs(Math.sin(now * 8 + p.x * 3)) * 0.04 : 0);
+  shadow(ctx, p.x, p.y + 0.063, DOG_R * 0.9, 0.22);
+  stamp(ctx, petBody(p.kind), x, y + 0.02, 0.1);
+  icon(ctx, `${p.kind}${mood}`, x, y - 0.032, 0.09);
+}
 
 const hive = () =>
   sprite('hive', 128, (c) => {
@@ -199,14 +278,7 @@ export function paint(ctx: CanvasRenderingContext2D, state: GameState, now: numb
 
   stroke(ctx, state);
 
-  for (const dog of level.dogs) {
-    const face = state.result === 'stung' ? 'dog-hurt' : state.result === 'clear' ? 'dog-happy' : 'dog';
-    const near = state.bees.some((b) => Math.hypot(b.x - dog.x, b.y - dog.y) < DOG_R * 3);
-    const shake = near && !state.result ? Math.sin(now * 60) * 0.006 : 0;
-    const hop = state.result === 'clear' ? Math.abs(Math.sin(now * 8 + dog.x * 3)) * 0.04 : 0;
-    shadow(ctx, dog.x, dog.y + DOG_R * 0.95, DOG_R * 0.8, 0.22);
-    icon(ctx, face, dog.x + shake, dog.y - hop, DOG_R * 2.2);
-  }
+  for (const p of level.pets) pet(ctx, p, state, now);
 
   for (const b of state.bees) {
     const frame = Math.floor(now * 30 + b.x * 40) % 2 === 0 ? 0 : 1;

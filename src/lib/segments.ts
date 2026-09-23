@@ -26,3 +26,9 @@ export function pushOut(seg: Seg, thick: number, x: number, y: number, r: number
   if (d < 1e-9) return [x, cy - reach];
   return [cx + (dx / d) * reach, cy + (dy / d) * reach];
 }
+
+/** 2 本の線分が交わるか（端が触れるだけのときは交わらないとする） */
+export function crosses(a: Seg, b: Seg): boolean {
+  const side = (s: Seg, x: number, y: number) => (s[2] - s[0]) * (y - s[1]) - (s[3] - s[1]) * (x - s[0]);
+  return side(a, b[0], b[1]) * side(a, b[2], b[3]) < 0 && side(b, a[0], a[1]) * side(b, a[2], a[3]) < 0;
+}

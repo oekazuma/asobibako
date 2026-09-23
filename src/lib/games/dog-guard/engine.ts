@@ -1,7 +1,9 @@
-import { pushOut, type Seg } from '$lib/segments';
+import { crosses, pushOut, type Seg } from '$lib/segments';
+import { fall, makeLineBody, type LineBody } from './line-physics';
 
 /** 座標は幅 1・高さ WORLD_H の固定の箱で、y は下向き。画面にはこの箱ごと拡大して収める */
 export const WORLD_H = 1.4;
+export const GROUND = 1.32;
 export const DOG_R = 0.06;
 export const BEE_R = 0.018;
 export const LINE = 0.012;
@@ -12,6 +14,7 @@ const ACCEL = 1.6;
 const JITTER = 1.2;
 
 export type Point = { x: number; y: number };
+export type Pet = Point & { kind: 'dog' | 'cat' };
 /** 線を引けない場所（雲） */
 export interface Zone {
   x0: number;
@@ -22,7 +25,7 @@ export interface Zone {
 export type BeeKind = 'normal' | 'fast' | 'big';
 
 export interface Level {
-  dogs: Point[];
+  pets: Pet[];
   hives: Point[];
   walls: Seg[];
   noDraw: Zone[];
@@ -53,13 +56,18 @@ export interface Bee {
   vx: number;
   vy: number;
   kind: BeeKind;
+  /** 狙うペットの番号。いちばん近いペットを狙わせると、巣から遠いペットがまったく狙われない */
+  target: number;
 }
 
 export interface GameState {
   level: Level;
   phase: 'draw' | 'defend' | 'done';
+  /** 引いている線。指を離したあとは落ちる線の点そのもの */
   stroke: Point[];
-  /** 固まった線の線分。線は defend の間は変わらないので finishStroke で 1 回だけ作る */
+  /** 落ちる線。指を離すまでは null */
+  body: LineBody | null;
+  /** ハチが当たる線の線分。線が動くのでフレームごとに作り直す */
   segs: Seg[];
   ink: number;
   bees: Bee[];
@@ -69,15 +77,30 @@ export interface GameState {
 }
 
 export type GuardEvent =
-  { type: 'spawn' } | { type: 'bump'; x: number; y: number } | { type: 'stung' } | { type: 'clear' };
+  | { type: 'spawn' }
+  | { type: 'bump'; x: number; y: number }
+  | { type: 'stung'; x: number; y: number }
+  | { type: 'clear' };
 
 export function createState(level: Level): GameState {
-  return { level, phase: 'draw', stroke: [], segs: [], ink: level.ink, bees: [], spawned: 0, time: 0, result: null };
+  return {
+    level,
+    phase: 'draw',
+    stroke: [],
+    body: null,
+    segs: [],
+    ink: level.ink,
+    bees: [],
+    spawned: 0,
+    time: 0,
+    result: null
+  };
 }
 
-/** そこに線を引いてよいか。犬のすぐまわりと雲の中はだめ */
+/** そこに線を引いてよいか。犬のすぐまわり・雲の中・地面の中はだめ */
 export function drawable(level: Level, x: number, y: number): boolean {
-  if (level.dogs.some((d) => Math.hypot(x - d.x, y - d.y) < KEEP_OUT)) return false;
+  if (y > GROUND) return false;
+  if (level.pets.some((d) => Math.hypot(x - d.x, y - d.y) < KEEP_OUT)) return false;
   return !level.noDraw.some((z) => x > z.x0 && x < z.x1 && y > z.y0 && y < z.y1);
 }
 
@@ -94,23 +117,29 @@ export function addPoint(state: GameState, x: number, y: number): boolean {
   // 指を速く動かすと点が飛ぶので、あいだも引けない場所を通っていないか確かめる
   for (let t = 0.1; t < 1; t += 0.1)
     if (!drawable(state.level, last.x + (x - last.x) * t, last.y + (y - last.y) * t)) return false;
+  // 壁をまたぐ線は、落ちるときに壁と交わったまま抜けられずはじき飛ばされるので引かせない
+  if (state.level.walls.some((w) => crosses(w, [last.x, last.y, x, y]))) return false;
   const t = Math.min(1, state.ink / d);
   state.stroke.push({ x: last.x + (x - last.x) * t, y: last.y + (y - last.y) * t });
   state.ink = Math.max(0, state.ink - d);
   return true;
 }
 
-/** 指を離したら線が固まり、ハチが出てくる。短すぎる線は引き直させる */
+/** 指を離したら線が落ちはじめ、ハチが出てくる。短すぎる線は引き直させる */
 export function finishStroke(state: GameState): boolean {
   if (state.phase !== 'draw') return false;
   if (state.stroke.length < 2) {
     state.stroke = [];
     return false;
   }
+  state.body = makeLineBody(state.stroke, state.level.walls, petBalls(state.level), LINE);
+  state.stroke = state.body.pts;
   state.segs = strokeSegs(state);
   state.phase = 'defend';
   return true;
 }
+
+const petBalls = (level: Level) => level.pets.map((p) => ({ ...p, r: DOG_R }));
 
 function strokeSegs(state: GameState): Seg[] {
   const segs: Seg[] = [];
@@ -149,20 +178,25 @@ function kindOf(level: Level, i: number): BeeKind {
   return 'normal';
 }
 
-const nearest = (dogs: Point[], b: Point) =>
-  dogs.reduce((best, d) => (Math.hypot(d.x - b.x, d.y - b.y) < Math.hypot(best.x - b.x, best.y - b.y) ? d : best));
-
 export function step(state: GameState, dt: number, rand: () => number = Math.random): GuardEvent[] {
   if (state.phase !== 'defend') return [];
   const events: GuardEvent[] = [];
   const { level } = state;
   state.time += dt;
+  if (state.body && fall(state.body, dt, level.walls, petBalls(level), LINE)) state.segs = strokeSegs(state);
 
   const due = Math.min(level.bees, Math.ceil((state.time / level.spawn) * level.bees));
   while (state.spawned < due) {
     const hive = level.hives[state.spawned % level.hives.length];
     const kind = kindOf(level, state.spawned);
-    state.bees.push({ x: hive.x, y: hive.y, vx: (rand() - 0.5) * 0.4, vy: (rand() - 0.5) * 0.4, kind });
+    state.bees.push({
+      x: hive.x,
+      y: hive.y,
+      vx: (rand() - 0.5) * 0.4,
+      vy: (rand() - 0.5) * 0.4,
+      kind,
+      target: Math.floor(state.spawned / level.hives.length) % level.pets.length
+    });
     state.spawned += 1;
     events.push({ type: 'spawn' });
   }
@@ -171,7 +205,7 @@ export function step(state: GameState, dt: number, rand: () => number = Math.ran
     const look = BEE_LOOK[bee.kind];
     const r = BEE_R * look.r;
     const max = level.speed * look.speed;
-    const dog = nearest(level.dogs, bee);
+    const dog = level.pets[bee.target];
     const dx = dog.x - bee.x;
     const dy = dog.y - bee.y;
     const d = Math.hypot(dx, dy) || 1;
@@ -192,10 +226,11 @@ export function step(state: GameState, dt: number, rand: () => number = Math.ran
     }
     bee.x = Math.min(1 - r, Math.max(r, bee.x));
     bee.y = Math.min(WORLD_H - r, Math.max(r, bee.y));
-    if (level.dogs.some((g) => Math.hypot(g.x - bee.x, g.y - bee.y) < DOG_R + r)) {
+    const stung = level.pets.find((g) => Math.hypot(g.x - bee.x, g.y - bee.y) < DOG_R + r);
+    if (stung) {
       state.phase = 'done';
       state.result = 'stung';
-      return [...events, { type: 'stung' }];
+      return [...events, { type: 'stung', x: stung.x, y: stung.y }];
     }
   }
 

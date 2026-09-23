@@ -34,6 +34,16 @@ const DOG: Layer[] = [
   { d: 'M12 16.2v1.5M10.5 18a1.5 1.5 0 0 0 1.5-.3 1.5 1.5 0 0 0 1.5.3', stroke: INK, width: 0.8 }
 ];
 
+const CAT: Layer[] = [
+  { d: 'M4.5 11L5 3.5l6 3.5zM19.5 11L19 3.5l-6 3.5z', fill: '#ffb766' },
+  { d: 'M6 9.5l.3-4 3.2 2zM18 9.5l-.3-4-3.2 2z', fill: '#ff9aa8' },
+  { d: circle(12, 13, 8), fill: '#ffc98a' },
+  { d: 'M12 5.3v2.6M9.3 5.8l.8 2.2M14.7 5.8l-.8 2.2', stroke: '#e8893a', width: 1 },
+  { d: 'M10.8 14.6h2.4L12 16z', fill: '#ff7a8f' },
+  { d: 'M10.2 17a1.8 1.8 0 0 0 1.8-1 1.8 1.8 0 0 0 1.8 1', stroke: INK, width: 0.8 },
+  { d: 'M2.5 14.2l4.5.6M2.8 17l4.3-.9M21.5 14.2l-4.5.6M21.2 17l-4.3-.9', stroke: INK, width: 0.5 }
+];
+
 export const ICONS = {
   coin: [
     { d: circle(12, 12, 10), fill: '#e39a00' },
@@ -105,6 +115,12 @@ export const ICONS = {
   'dog-hurt': [
     ...DOG,
     { d: 'M7.8 10.3l2.4 2.4M10.2 10.3l-2.4 2.4M13.8 10.3l2.4 2.4M16.2 10.3l-2.4 2.4', stroke: INK, width: 1.1 }
+  ],
+  cat: [...CAT, { d: circle(9, 11.8, 1.3) + circle(15, 11.8, 1.3), fill: INK }],
+  'cat-happy': [...CAT, { d: 'M7.8 12.2a1.4 1.4 0 0 1 2.4 0M13.8 12.2a1.4 1.4 0 0 1 2.4 0', stroke: INK, width: 1.2 }],
+  'cat-hurt': [
+    ...CAT,
+    { d: 'M7.8 10.5l2.4 2.4M10.2 10.5l-2.4 2.4M13.8 10.5l2.4 2.4M16.2 10.5l-2.4 2.4', stroke: INK, width: 1.1 }
   ],
   kid: [
     ...KID,
