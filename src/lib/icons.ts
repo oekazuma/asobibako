@@ -11,6 +11,8 @@ export interface Layer {
 
 const INK = '#2b2d42';
 const SKIN = '#ffd7b5';
+/** はいしゃさんの道具・歯・バイキンのふち線 */
+const LINE = '#5b4a42';
 const circle = (cx: number, cy: number, r: number) =>
   `M${cx - r} ${cy}a${r} ${r} 0 1 0 ${r * 2} 0a${r} ${r} 0 1 0 ${-r * 2} 0z`;
 const ellipse = (cx: number, cy: number, rx: number, ry: number) =>
@@ -160,6 +162,61 @@ export const ICONS = {
     { d: circle(19.5, 3.5, 1.6) + circle(21, 5.2, 1.6), fill: '#fff8ec', stroke: '#d8cbb6', width: 0.5 },
     { d: 'M4.5 13.5a6.5 6.5 0 0 1 10-6l2.5 2.5a6.5 6.5 0 0 1-6 10 6.5 6.5 0 0 1-6.5-6.5z', fill: '#c2542b' },
     { d: 'M7.5 12.5a3.5 3.5 0 0 1 4-3', stroke: '#e98a63', width: 1.3 }
+  ],
+  brush: [
+    { d: 'M3.5 19.5l9.5-9.5 2 2-9.5 9.5a1.4 1.4 0 0 1-2-2z', fill: '#57aef5', stroke: LINE, width: 1.2 },
+    { d: 'M12 8.5l4.5-4.5 3.5 3.5-4.5 4.5z', fill: '#fff', stroke: LINE, width: 1.2 },
+    { d: 'M16 3.5l1-1M18.5 6l1-1M21 8.5l1-1', stroke: LINE, width: 1.2 }
+  ],
+  drill: [
+    { d: 'M2.5 9.5h12a3 3 0 0 1 0 6h-12z', fill: '#e8edf5', stroke: LINE, width: 1.2 },
+    { d: 'M4.5 11h5v3h-5z', fill: '#57aef5' },
+    { d: 'M17.5 11l5 1.5-5 1.5z', fill: '#c9d2de', stroke: LINE, width: 1.1 },
+    { d: 'M19 9l1-2M19 16l1 2', stroke: '#ffc233', width: 1.3 }
+  ],
+  tweezers: [
+    { d: 'M6 3l6 18M18 3l-6 18', stroke: LINE, width: 3.4 },
+    { d: 'M6 3l6 18M18 3l-6 18', stroke: '#c9d2de', width: 1.6 }
+  ],
+  filling: [
+    { d: 'M3 19.5l9-6 1.5 2-9 6a1.2 1.2 0 0 1-1.5-2z', fill: '#ffc233', stroke: LINE, width: 1.2 },
+    { d: 'M13 9c3-3 7-2.5 8 .5-1 3.5-5 4-8 2z', fill: '#fffdf6', stroke: LINE, width: 1.2 }
+  ],
+  pliers: [
+    { d: 'M5 21c2-5 4-8 6-10M19 21c-2-5-4-8-6-10', stroke: LINE, width: 3.8 },
+    { d: 'M5 21c2-5 4-8 6-10M19 21c-2-5-4-8-6-10', stroke: '#ff4d5e', width: 2 },
+    { d: 'M11 11l-1-8M13 11l1-8', stroke: LINE, width: 3.2 },
+    { d: 'M11 11l-1-8M13 11l1-8', stroke: '#c9d2de', width: 1.4 },
+    { d: circle(12, 11.5, 1.6), fill: '#fff', stroke: LINE, width: 1 }
+  ],
+  shot: [
+    { d: 'M9 3.5h8M13 3.5v3', stroke: LINE, width: 1.4 },
+    { d: 'M9.5 6.5h7v10h-7z', fill: '#dff3ff', stroke: LINE, width: 1.2 },
+    { d: 'M10.5 10h5v5.5h-5z', fill: '#7fd0ff' },
+    { d: 'M13 16.5v5', stroke: LINE, width: 1.2 }
+  ],
+  pat: [
+    {
+      d: 'M6 14c-2-4 1-5 2.5-3.5V5.5a1.5 1.5 0 0 1 3 0v-1a1.5 1.5 0 0 1 3 0v1a1.5 1.5 0 0 1 3 0V7a1.5 1.5 0 0 1 3 0v8c0 4.5-3 7-7 7-3.5 0-6-2.5-7.5-8z',
+      fill: '#ffd9b8',
+      stroke: LINE,
+      width: 1.2
+    },
+    { d: 'M20 3.2c.6-1 2.2-.8 2.2.5 0 1.2-2.2 2.3-2.2 2.3s-2.2-1.1-2.2-2.3c0-1.3 1.6-1.5 2.2-.5z', fill: '#ff7f8f' }
+  ],
+  germ: [
+    { d: circle(12, 12, 7.5), fill: '#82d65a', stroke: LINE, width: 1.3 },
+    { d: ellipse(9.3, 11, 2, 2.4) + ellipse(14.7, 11, 2, 2.4), fill: '#fff' },
+    { d: circle(9.8, 11.5, 1) + circle(15.2, 11.5, 1), fill: LINE },
+    { d: 'M9 15.5q3 2 6 0', stroke: LINE, width: 1.1 }
+  ],
+  tooth: [
+    {
+      d: 'M5 5c0-2 3-2.5 7-1 4-1.5 7-1 7 1 0 4-1 6-2 9l-1.5 7c-.4 1.5-2 1.5-2.3 0L12 16l-1.2 5c-.3 1.5-1.9 1.5-2.3 0L7 14c-1-3-2-5-2-9z',
+      fill: '#fffdf6',
+      stroke: LINE,
+      width: 1.2
+    }
   ]
 } satisfies Record<string, Layer[]>;
 
