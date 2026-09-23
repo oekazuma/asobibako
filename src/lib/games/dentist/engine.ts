@@ -210,22 +210,24 @@ function germAt(state: GameState, x: number, y: number): Germ | undefined {
   return best;
 }
 
+/** 先端の近くにバイキンがいれば、つまんで持ち上げる */
+function grabGerm(state: GameState, x: number, y: number, events: DentistEvent[]): boolean {
+  const germ = germAt(state, x, y);
+  if (!germ) return false;
+  [germ.x, germ.y] = germPos(germ, state.time);
+  germ.held = true;
+  state.grip = { kind: 'germ', id: germ.id };
+  events.push({ type: 'grab', x, y });
+  return true;
+}
+
 export function touch(state: GameState, x: number, y: number): DentistEvent[] {
   const events: DentistEvent[] = [];
   if (state.result) return events;
   state.last = { x, y };
   const tool = state.tool;
   if (tool === 'pat') return events;
-  if (tool === 'tweezers') {
-    const germ = germAt(state, x, y);
-    if (germ) {
-      [germ.x, germ.y] = germPos(germ, state.time);
-      germ.held = true;
-      state.grip = { kind: 'germ', id: germ.id };
-      events.push({ type: 'grab', x, y });
-      return events;
-    }
-  }
+  if (tool === 'tweezers' && grabGerm(state, x, y, events)) return events;
   const i = toothAt(state, x, y);
   if (i < 0) return events;
   const tooth = state.teeth[i];
@@ -266,6 +268,11 @@ export function rub(state: GameState, x: number, y: number, dt: number): Dentist
       state.idle = 0;
       events.push({ type: 'pat', x, y });
     }
+    return events;
+  }
+  // 小さい子はバイキンの上に指を置くより、ピンセットを持ったまま指をすべらせて近づけることが多い
+  if (tool === 'tweezers' && grip === null) {
+    grabGerm(state, x, y, events);
     return events;
   }
   if (grip?.kind === 'germ') {
