@@ -99,6 +99,21 @@ describe('dog-guard engine', () => {
     expect(run(state)).toBe('stung');
   });
 
+  it('巣を閉じ込める面は、雲の中の犬を線で囲めない', () => {
+    for (const kind of ['jar', 'jar2']) {
+      const stage = levels.map(([n]) => levelFor(n)).find((s) => s.kind === kind)!;
+      const pet = stage.pets[0];
+      expect(drawable(stage, pet.x, pet.y - 0.12), kind).toBe(false);
+      expect(drawable(stage, pet.x - 0.11, pet.y), kind).toBe(false);
+    }
+  });
+
+  it('31 面からは、慣れるための型は出ず、どの型も 3 回までしか出ない', () => {
+    const late = levels.filter(([n]) => n > 30).map(([n]) => levelFor(n).kind);
+    for (const kind of ['open', 'open2', 'cave', 'platform']) expect(late).not.toContain(kind);
+    for (const kind of late) expect(late.filter((k) => k === kind).length, kind).toBeLessThanOrEqual(3);
+  });
+
   it('指を離すと線分ができ、そのあとは点を足せない', () => {
     const state = createState(levelFor(1));
     addPoint(state, 0.2, 0.5);

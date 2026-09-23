@@ -251,7 +251,11 @@ function strokeSegs(state: GameState): Seg[] {
 
 function collide(bee: Bee, segs: Seg[], r: number): boolean {
   let bumped = false;
+  const reach = r + LINE;
   for (const seg of segs) {
+    // ハチの数と線分の数のかけ算で効くので、離れた線分は囲む四角だけで先に外す
+    if (bee.x + reach < Math.min(seg[0], seg[2]) || bee.x - reach > Math.max(seg[0], seg[2])) continue;
+    if (bee.y + reach < Math.min(seg[1], seg[3]) || bee.y - reach > Math.max(seg[1], seg[3])) continue;
     const out = pushOut(seg, LINE, bee.x, bee.y, r);
     if (!out) continue;
     const nx = out[0] - bee.x;

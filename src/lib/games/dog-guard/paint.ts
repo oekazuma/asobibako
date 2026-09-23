@@ -262,9 +262,10 @@ function cloudZone(ctx: CanvasRenderingContext2D, z: Zone, now: number) {
 /** ctx は engine の座標（幅 1）がそのまま描ける変換にしておく */
 export function paint(ctx: CanvasRenderingContext2D, state: GameState, now: number) {
   const { level } = state;
-  level.walls.forEach((wall, i) => platform(ctx, wall, i === level.walls.length - 1));
-
+  // 雲の中にも壁や柱があるので、雲を先に描いて壁を隠さない
   for (const z of level.noDraw) cloudZone(ctx, z, now);
+
+  level.walls.forEach((wall, i) => platform(ctx, wall, i === level.walls.length - 1));
 
   for (const h of level.hives) {
     const sway = Math.sin(now * 2 + h.x * 5) * 0.004;
