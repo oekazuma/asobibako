@@ -36,19 +36,25 @@
 </Figure>
 
 <style>
+  /* 押せる場所は、どれも同じ点線の丸で見せる（どこを押せばよいか迷わないように） */
   .spot {
     position: absolute;
     aspect-ratio: 1;
     padding: 0;
-    border: none;
+    border: 3px dashed rgb(91 74 66 / 0.55);
     border-radius: 50%;
-    background: none;
+    background: rgb(255 255 255 / 0.35);
     translate: -50% -50%;
     cursor: pointer;
   }
 
+  .spot:active {
+    background: rgb(255 255 255 / 0.6);
+  }
+
   .spot.on {
     border: 5px solid #ff4d6d;
+    background: rgb(255 77 109 / 0.15);
     box-shadow:
       0 0 0 3px #fff,
       inset 0 0 0 3px #fff;
