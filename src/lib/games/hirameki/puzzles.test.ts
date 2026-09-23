@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   bank,
   cross,
+  iceDone,
+  iceSlide,
   linesCover,
   movesUsed,
   placeOk,
