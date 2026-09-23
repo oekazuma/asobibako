@@ -70,7 +70,7 @@ export const CHEESE_R = 0.035;
 export const STICK_R = 0.07;
 
 /** ネコは速いが曲がりにくく、ネズミは遅いがすぐ向きを変えられる。ここがバランスのつまみ */
-const CAT_SPEED = 0.62;
+const CAT_SPEED = 0.56;
 const CAT_ACCEL = 2.4;
 const MOUSE_SPEED = 0.5;
 const MOUSE_ACCEL = 12;
