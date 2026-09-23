@@ -17,7 +17,7 @@ pnpm vitals                   # svelte-vitals の全体スキャン。編集後�
 pnpm verify                   # lint / check / test:run / vitals / build をまとめて実行（CI と同じ判定）
 pnpm format                   # prettier --write
 pnpm build && pnpm preview    # 静的ビルドと確認（Service Worker は build でのみ有効）
-pnpm icon                     # static/icon-180/192/512.png を再生成
+pnpm icon                     # static/icon-180/192/512.png と README のロゴ（.github/logo.png）を再生成
 pnpm thumbs [id...]           # static/thumbs/<id>.webp を実際のゲーム画面から撮り直す（端末の Chrome）
 ```
 
