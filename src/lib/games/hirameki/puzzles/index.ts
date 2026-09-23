@@ -26,7 +26,8 @@ export type Genre =
   | 'pattern'
   | 'place'
   | 'time'
-  | 'ice';
+  | 'ice'
+  | 'story';
 
 /**
  * 遊ぶ順。難しさの順にはせず、同じジャンルが隣り合わないように並べる（テストが確かめる）。
@@ -35,7 +36,6 @@ export type Genre =
 export const ORDER: [title: string, genre: Genre][] = [
   ['グラスのさくらんぼ', 'match'],
   ['重なった色紙', 'look'],
-  ['番地と年齢', 'logic'],
   ['頭痛の種', 'word'],
   ['抜きつ抜かれつ', 'trap'],
   ['花子のきょうだい', 'logic'],
@@ -86,6 +86,7 @@ export const ORDER: [title: string, genre: Genre][] = [
   ['等式の並び', 'pattern'],
   ['しりとりの輪', 'word'],
   ['23頭のウシ', 'trap'],
+  ['番地と年齢', 'logic'],
   ['日付のない日記', 'time'],
   ['夜の吊り橋', 'river'],
   ['床の上の立方体', 'space'],
