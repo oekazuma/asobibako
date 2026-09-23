@@ -12,6 +12,8 @@
   ] as const;
 
   let tab = $state<1 | 2>(1);
+  /** 登場の動きは開いたときの 1 回だけ。タブを替えるたびに流すと、タイルが消えて下から出直し、下にずれた分だけ一覧の高さが伸び縮みしてスクロールが揺れる */
+  let intro = $state(true);
   let recent = $state<GameMeta[]>([]);
   const shown = $derived(games.filter((game) => game.players === tab));
 
@@ -22,6 +24,7 @@
   });
 
   function choose(players: 1 | 2) {
+    intro = false;
     tab = players;
     setMenuTab(players);
   }
@@ -31,7 +34,7 @@
   <title>あそびばこ — ひとりでも ふたりでも あそべる ゲームばこ</title>
 </svelte:head>
 
-<main class="menu">
+<main class="menu" class:intro>
   <header>
     <h1 class="logo" aria-label="あそびばこ"><Logo width="clamp(210px, 38vw, 300px)" /></h1>
     <p class="lead">すきな あそびを えらんでね</p>
@@ -139,7 +142,7 @@
     max-width: 720px;
   }
 
-  li {
+  .intro li {
     animation: rise 480ms var(--spring) var(--delay, 0ms) both;
   }
 
@@ -151,7 +154,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    li {
+    .intro li {
       animation: none;
     }
   }
