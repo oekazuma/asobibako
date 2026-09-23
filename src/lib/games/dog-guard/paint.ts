@@ -1,4 +1,4 @@
-import { cloud, icon, shadow, sprite, stamp } from '$lib/fx';
+import { icon, shadow, sprite, stamp } from '$lib/fx';
 import type { Seg } from '$lib/segments';
 import { BEE_LOOK, BEE_R, DOG_R, LINE, type GameState, type Pet, type Zone } from './engine';
 
@@ -113,9 +113,9 @@ const petBody = (kind: Pet['kind']) =>
  * 頭を高く描くと乗った線が耳を切ってしまう
  */
 function pet(ctx: CanvasRenderingContext2D, p: Pet, state: GameState, now: number) {
-  const mood = state.result === 'stung' ? '-hurt' : state.result === 'clear' ? '-happy' : '';
-  const near = state.bees.some((b) => Math.hypot(b.x - p.x, b.y - p.y) < DOG_R * 3);
-  const x = p.x + (near && !state.result ? Math.sin(now * 60) * 0.006 : 0);
+  const near = !state.result && state.bees.some((b) => Math.hypot(b.x - p.x, b.y - p.y) < DOG_R * 3);
+  const mood = state.result === 'stung' ? '-hurt' : state.result === 'clear' ? '-happy' : near ? '-scared' : '';
+  const x = p.x + (near ? Math.sin(now * 60) * 0.006 : 0);
   const y = p.y - (state.result === 'clear' ? Math.abs(Math.sin(now * 8 + p.x * 3)) * 0.04 : 0);
   shadow(ctx, p.x, p.y + 0.063, DOG_R * 0.9, 0.22);
   stamp(ctx, petBody(p.kind), x, y + 0.02, 0.1);
@@ -150,22 +150,17 @@ const hive = () =>
     c.fill();
   });
 
-/** 空・雲・遠くの丘。盤面そのもののピクセルで描く */
-export function backdrop(ctx: CanvasRenderingContext2D, w: number, h: number, now: number) {
+/**
+ * 空と遠くの丘。盤面そのもののピクセルで描く。飾りの雲は置かない（雲は線を引けない場所の印なので、
+ * ただの飾りの雲があると、どの雲に引けないのかわからなくなる）
+ */
+export function backdrop(ctx: CanvasRenderingContext2D, w: number, h: number) {
   const sky = ctx.createLinearGradient(0, 0, 0, h);
   sky.addColorStop(0, '#62c3ff');
   sky.addColorStop(0.7, '#d7f1ff');
   sky.addColorStop(1, '#f2fbff');
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, w, h);
-  for (const [cx, cy, r] of [
-    [0.15, 0.16, 0.3],
-    [0.6, 0.1, 0.36],
-    [0.95, 0.3, 0.24]
-  ]) {
-    const x = ((cx + now * 0.008) % 1.4) - 0.2;
-    stamp(ctx, cloud(), x * w, cy * h, r * w);
-  }
   ctx.fillStyle = '#b9e6a3';
   ctx.beginPath();
   ctx.moveTo(0, h * 0.8);

@@ -110,11 +110,12 @@ const LAYOUTS: Record<Kind, (rng: Rng) => Layout> = {
     const top = rng.range(0.93, 1.0);
     const flip = (x: number) => (right ? x : 1 - x);
     const seg = (x1: number, y1: number, x2: number, y2: number): Seg => [flip(x1), y1, flip(x2), y2];
-    const zx = [flip(0), flip(open + 0.14)].sort((p, q) => p - q);
+    // 雲は洞窟の中に置く。外に置くと、中の犬をドームで囲めて雲がなんの邪魔にもならない
+    const zx = [flip(wall), flip(open)].sort((p, q) => p - q);
     return {
       pets: [{ x: flip((wall + open) / 2 - 0.02), y: DOG_Y }],
       walls: [seg(wall, top, wall, GROUND), seg(wall, top, open, top)],
-      noDraw: [{ x0: zx[0], y0: 0.45, x1: zx[1], y1: top - 0.02 }],
+      noDraw: [{ x0: zx[0], y0: top, x1: zx[1], y1: GROUND }],
       // 線は重さで倒れるので、外へ足を出して立たせる
       solution: line(
         [flip(open + 0.04), top + 0.01],
@@ -123,7 +124,7 @@ const LAYOUTS: Record<Kind, (rng: Rng) => Layout> = {
       ),
       low: true,
       side: right ? 'right' : 'left',
-      tip: '雲には 線が ひけない！ 入り口を ふさごう'
+      tip: '雲の中には 線が ひけない！ 入り口を ふさごう'
     };
   },
   platform: (rng) => {
@@ -189,23 +190,25 @@ const UNLOCK: [Kind, number][] = [
   ['open', 1],
   ['cave', 3],
   ['platform', 5],
-  ['open2', 8],
-  ['side', 11],
-  ['mixed', 14],
-  ['platform2', 18],
-  ['cave2', 22]
+  ['open2', 7],
+  ['side', 9],
+  ['mixed', 11],
+  ['platform2', 13],
+  ['cave2', 15]
 ];
 
-/** 早く出た型ばかりくり返さないよう、それまでに出た回数がいちばん少ない型から選ぶ */
+/**
+ * 直前の 3 面に出た型は選ばない（まだ型が少ないうちは、選べるだけ間をあける）。
+ * 出た回数の少なさで選ぶと、あとから出た型が追いつくまで続けて出てしまう
+ */
 function kindFor(level: number, rng: Rng, past: Kind[]): Kind {
   const fresh = UNLOCK.find(([, at]) => at === level);
   if (fresh) return fresh[0];
-  const prev = past.at(-1);
   const open = UNLOCK.filter(([, at]) => at <= level).map(([k]) => k);
-  const candidates = open.length > 1 ? open.filter((k) => k !== prev) : open;
-  const used = (k: Kind) => past.filter((p) => p === k).length;
-  const least = Math.min(...candidates.map(used));
-  return rng.pick(candidates.filter((k) => used(k) === least));
+  const spaced = [3, 2, 1, 0]
+    .map((n) => open.filter((k) => !past.slice(past.length - n).includes(k)))
+    .find((c) => c.length > 0)!;
+  return rng.pick(spaced);
 }
 
 const length = (pts: Point[]) =>
