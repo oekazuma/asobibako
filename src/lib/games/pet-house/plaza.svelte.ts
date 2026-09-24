@@ -1,6 +1,7 @@
 import type { SceneHost, Visit } from './activity';
 import { command, createActor, think, throwToy, type Actor, type BehaviorEvent } from './behavior';
 import { BREED_IDS } from './breeds';
+import { speakAt, type Cry } from './cries';
 import { kindOf, type Pet } from './engine';
 import type { Layout, Spot } from './layout';
 import { buildPlaza, plazaLayout } from './scene-plaza';
@@ -52,7 +53,7 @@ export class Plaza implements Visit {
   #timers = { heart: 0, purr: 0, bark: 2, visit: 5, frolic: 3 };
   #pair: { a: Actor; b: Actor; t: number; on: boolean } | null = null;
   /** 覚えたときの鳴き声。「おぼえた」の音と重ならないよう少し遅らせる */
-  #yelp: { t: number; breed: BreedId } | null = null;
+  #yelp: { t: number; a: Actor } | null = null;
 
   enter(host: SceneHost): void {
     this.#host = host;
@@ -74,6 +75,10 @@ export class Plaza implements Visit {
 
   #me(): Actor | undefined {
     return this.focus ? this.#actors.find((a) => a.petId === idOf(this.focus as BreedId)) : undefined;
+  }
+
+  #voice(a: Actor, cry: Cry) {
+    speakAt(this.#host.fx, this.#pet(a).breed, cry, this.#host.above(a));
   }
 
   #pet(a: Actor): Pet {
@@ -133,7 +138,7 @@ export class Plaza implements Visit {
     const y = this.#yelp;
     if (y && (y.t -= dt) <= 0) {
       this.#yelp = null;
-      voice(y.breed);
+      this.#voice(y.a, 'happy');
     }
   }
 
@@ -143,7 +148,7 @@ export class Plaza implements Visit {
     const fx = this.#host.fx;
     const [x, y] = this.#host.above(a);
     if (e.type === 'voice') {
-      voice(this.#pet(a).breed);
+      this.#voice(a, e.cry ?? 'happy');
       fx.note(x, y);
     } else if (e.type === 'fetched') {
       fx.hearts(x, y, 4);
@@ -235,11 +240,11 @@ export class Plaza implements Visit {
     }
     if (!this.dog && t.purr <= 0) {
       t.purr = 1.05;
-      sounds.purr();
+      this.#voice(me, 'purr');
     }
     if (this.dog && t.bark <= 0) {
       t.bark = 2.5 + Math.random() * 2;
-      voice(pet.breed);
+      this.#voice(me, 'happy');
       fx.note(...this.#host.above(me));
     }
   }
@@ -353,27 +358,20 @@ export class Plaza implements Visit {
     if (!me) return;
     const [x, y] = this.#host.above(me, 0.3);
     const fx = this.#host.fx;
-    const breed = this.#pet(me).breed;
     const pose = (p: PetAction, t: number, puzzled = false) =>
       Object.assign(me, { mode: 'act', pose: p, t, next: 'idle', show: true, puzzled, gaze: null });
     if (n === 1) {
       pose('stand', 1.4);
-      voice(breed);
+      this.#voice(me, 'answer');
       fx.text('ピクッ！', x, y, '#1f9bff', 36);
     } else if (n === 2) {
       pose('sit', 1.8, true);
       fx.text('ん？', x, y, '#1f9bff', 40);
     } else {
       pose('happy', 2.2);
-      this.#yelp = { t: 0.7, breed };
+      this.#yelp = { t: 0.7, a: me };
       fx.hearts(x, y, 5);
       fx.text('おぼえた！', x, y - 10, '#ff7a00', 38);
     }
   }
-}
-
-function voice(breed: BreedId) {
-  if (kindOf(breed) === 'cat') sounds.meow();
-  else if (breed === 'poodle') sounds.smallBark();
-  else sounds.bark();
 }

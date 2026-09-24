@@ -295,7 +295,9 @@ export function buildRoom(
   if (look.view !== 'castle') group.add(sunPatch(sun));
 
   const couch = sofa(look.sofa, weave);
-  couch.position.set(0.2, 0, -2.05);
+  couch.position.set(ROOM.sofa.x, 0, ROOM.sofa.z);
+  // 名前は Perch の id。タップした家具を world3d が名前で探す
+  couch.name = 'sofa';
   group.add(couch);
   const decor = wallDecor(look.wall);
   decor.position.set(0.2, 0, WALL.back);
@@ -307,6 +309,7 @@ export function buildRoom(
 
   const bed = petBed(look.bed, weave);
   bed.position.set(ROOM.bed.x, 0, ROOM.bed.z);
+  bed.name = 'bed';
   group.add(bed);
 
   // ペットは奥の壁ぎわ（bounds の外）まで来ないので、棚に当たりは付けない

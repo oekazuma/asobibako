@@ -1,5 +1,6 @@
 import { kindOf, LOW, SLEEPY, TRICKS, type Pet } from './engine';
-import type { Layout, RoomLayout, Spot } from './layout';
+import type { Cry } from './cries';
+import type { Layout, Perch, RoomLayout, Spot } from './layout';
 import type { FoodId, PetAction, Scene, ToyId, TrickId } from './types';
 import type { Wand } from './wand';
 
@@ -32,15 +33,40 @@ export interface WorldView {
   presents: { id: number; x: number; z: number }[];
   /** 画面で選んでいるペット。ほかの子はカメラのすぐ前（front のまわり）に居座らない */
   current?: string;
+  /** 部屋のソファとベッドの面。テーマで高さと広さが変わるので、毎フレーム id で引き直す */
+  perches?: Perch[];
 }
 
-type Mode = 'idle' | 'go' | 'eat' | 'drink' | 'sleep' | 'chase' | 'carry' | 'stalk' | 'pounce' | 'act' | 'held';
-type Goal = 'wander' | 'food' | 'water' | 'bed' | 'front' | 'spot' | 'present' | 'beg';
+type Mode = 'idle' | 'go' | 'eat' | 'drink' | 'sleep' | 'chase' | 'carry' | 'stalk' | 'pounce' | 'act' | 'held' | 'hop';
+type Goal = 'wander' | 'food' | 'water' | 'bed' | 'front' | 'spot' | 'present' | 'beg' | 'perch';
+
+/** 飛び乗り・飛び降り。着いたら then の動きに戻る。under は影を落とす面の高さ */
+interface Hop {
+  x0: number;
+  y0: number;
+  z0: number;
+  x1: number;
+  y1: number;
+  z1: number;
+  /** 向きを変え終えてからの秒。負のあいだは行く先へ向きを変えている */
+  k: number;
+  onto: Perch['id'] | null;
+  then: { mode: Mode; pose: PetAction; t: number };
+  under: number;
+  air: boolean;
+}
 
 export interface Actor {
   petId: string;
   x: number;
   z: number;
+  /** 床からの高さ。ソファやベッドの上ではその面の高さ */
+  y: number;
+  /** 乗っている面。飛んでいるあいだは飛び立った面のまま */
+  perch: Perch['id'] | null;
+  /** goal 'perch' の行き先と、着いたらすること */
+  seat: { id: Perch['id']; then: 'call' | 'sit' | 'down' | 'sleep' } | null;
+  hop: Hop | null;
   heading: number;
   action: PetAction;
   /** 足の振りの速さ 0..1 */
@@ -85,8 +111,8 @@ export interface Actor {
 }
 
 export type Command =
-  /** to があれば front ではなくその点へ来る（床をタップして呼ぶ） */
-  | { type: 'call'; to?: Spot }
+  /** to があれば front ではなくその点へ来る（床をタップして呼ぶ）。perch があればその面の上の to へ飛び乗る */
+  | { type: 'call'; to?: Spot; perch?: Perch['id'] }
   | { type: 'trick'; trick: TrickId; success: boolean }
   | { type: 'stroke' }
   | { type: 'brush' }
@@ -100,7 +126,8 @@ export type BehaviorEvent =
   /** 飛びかかった瞬間 */
   | { type: 'leap'; petId: string }
   | { type: 'found'; petId: string; present: number }
-  | { type: 'voice'; petId: string }
+  /** cry が無ければ、そのときの気分（おなか・のど・ねむけ）で鳴き方を決める */
+  | { type: 'voice'; petId: string; cry?: Cry }
   | { type: 'sleep'; petId: string }
   | { type: 'wake'; petId: string };
 
@@ -146,6 +173,10 @@ export function createActor(pet: Pet, at: Spot): Actor {
     petId: pet.id,
     x: at.x,
     z: at.z,
+    y: 0,
+    perch: null,
+    seat: null,
+    hop: null,
     heading: 0,
     action: 'stand',
     speed: 0,
@@ -196,7 +227,16 @@ function wakeUp(a: Actor) {
 }
 
 export function command(actor: Actor, pet: Pet, cmd: Command): void {
-  const a = actor;
+  const hop = actor.hop;
+  apply(actor, cmd);
+  // 跳んでいるあいだの言いつけは、着いてからの動きにする
+  if (hop && actor.mode !== 'hop') {
+    hop.then = { mode: actor.mode, pose: actor.pose, t: actor.t };
+    actor.mode = 'hop';
+  }
+}
+
+function apply(a: Actor, cmd: Command) {
   if (cmd.type === 'wake') return wakeUp(a);
   if (a.mode === 'eat' || a.mode === 'drink') return;
   if (cmd.type === 'stroke' || cmd.type === 'brush') {
@@ -212,8 +252,10 @@ export function command(actor: Actor, pet: Pet, cmd: Command): void {
     wakeUp(a);
     if (a.carrying) return;
     a.mode = 'go';
-    a.goal = cmd.to ? 'spot' : 'front';
-    if (cmd.to) [a.tx, a.tz] = [cmd.to.x, cmd.to.z];
+    a.goal = cmd.perch ? 'perch' : cmd.to ? 'spot' : 'front';
+    if (cmd.perch) a.seat = { id: cmd.perch, then: 'call' };
+    const to = cmd.to ?? a;
+    [a.tx, a.tz] = [to.x, to.z];
     a.t = 15;
     return;
   }
@@ -349,7 +391,8 @@ function steer(a: Actor, target: Spot, maxV: number, dt: number, layout: Layout,
     accelerate(a, 0, dt);
     return true;
   }
-  const way = around(a, target.x, target.z, layout);
+  // 面の上はソファの当たりの丸の中にあるので、よけずにまっすぐ進む
+  const way = a.perch ? target : around(a, target.x, target.z, layout);
   const diff = wrap(angleTo(a, way) - a.heading);
   turn(a, angleTo(a, way), dt);
   // 大きく向きを変えるあいだは足を緩め、その場で回りこむ
@@ -357,8 +400,9 @@ function steer(a: Actor, target: Spot, maxV: number, dt: number, layout: Layout,
   return false;
 }
 
-function collide(a: Actor, layout: Layout, actors: Actor[]) {
-  for (const k of layout.blocks) {
+function collide(a: Actor, layout: Layout, actors: Actor[], perch: Perch | undefined) {
+  if (a.hop) return;
+  for (const k of perch ? [] : layout.blocks) {
     const need = k.r + BODY;
     const d = dist(a, k);
     if (d >= need) continue;
@@ -368,7 +412,8 @@ function collide(a: Actor, layout: Layout, actors: Actor[]) {
   }
   if (!a.asleep) {
     for (const o of actors) {
-      if (o === a) continue;
+      // ソファの上の子と床の子は高さが違うので重なってよい
+      if (o === a || o.hop || Math.abs(o.y - a.y) > 0.2) continue;
       const d = dist(a, o);
       if (d >= GAP) continue;
       const [nx, nz] = d > 1e-6 ? [(a.x - o.x) / d, (a.z - o.z) / d] : [1, 0];
@@ -376,6 +421,11 @@ function collide(a: Actor, layout: Layout, actors: Actor[]) {
       a.x += nx * push;
       a.z += nz * push;
     }
+  }
+  if (perch) {
+    a.x = clamp(a.x, perch.x - perch.w, perch.x + perch.w);
+    a.z = clamp(a.z, perch.z - perch.d, perch.z + perch.d);
+    return;
   }
   const b = layout.bounds;
   a.x = clamp(a.x, b.x0, b.x1);
@@ -446,7 +496,9 @@ function needs(a: Actor, c: Ctx): boolean {
   const busy = (goal: Goal, mode: Mode) =>
     actors.some((o) => o !== a && ((o.mode === 'go' && o.goal === goal) || o.mode === mode));
   if (s.energy < SLEEPY && a.awake <= 0) {
-    if (room) {
+    const bed = room && nest(a, c);
+    if (bed) goPerch(a, c, bed, 'sleep');
+    else if (room) {
       const i = actors.filter((o) => o !== a && o.asleep).length;
       go(a, 'bed', { x: room.bed.x + i * 0.35, z: room.bed.z + i * 0.2 });
     } else fallAsleep(a, c);
@@ -507,6 +559,150 @@ function fallAsleep(a: Actor, c: Ctx) {
   c.events.push({ type: 'sleep', petId: a.petId });
 }
 
+const perchOf = (w: WorldView, id: Perch['id'] | null) => (id ? w.perches?.find((p) => p.id === id) : undefined);
+/** 飛び乗る前に立つ、面の前の床の点までの距離。ソファの当たりの丸の外になる */
+const REACH = 0.5;
+const inside = (p: Perch, at: Spot): Spot => ({
+  x: clamp(at.x, p.x - p.w, p.x + p.w),
+  z: clamp(at.z, p.z - p.d, p.z + p.d)
+});
+/** その面に乗っている・乗りに行く・跳んでいるほかの子の数と、乗れる数 */
+const crowd = (p: Perch, a: Actor, c: Ctx) =>
+  c.actors.filter(
+    (o) =>
+      o !== a &&
+      (o.perch === p.id || o.hop?.onto === p.id || (o.mode === 'go' && o.goal === 'perch' && o.seat?.id === p.id))
+  ).length;
+const seats = (p: Perch) => Math.floor((2 * p.w) / GAP) + 1;
+
+/** 眠いときに寝る面。乗っていればそこで、なければ空いているベッドかソファ。猫は高いソファをよく選ぶ */
+function nest(a: Actor, c: Ctx): Perch | undefined {
+  const here = perchOf(c.world, a.perch);
+  if (here) return here;
+  const free = (c.world.perches ?? []).filter((p) => crowd(p, a, c) < seats(p));
+  const sofa = free.find((p) => p.id === 'sofa');
+  const bed = free.find((p) => p.id === 'bed');
+  return sofa && (!bed || c.rng() < (c.dog ? 0.25 : 0.5)) ? sofa : bed;
+}
+
+function goPerch(a: Actor, c: Ctx, p: Perch, then: NonNullable<Actor['seat']>['then'], at?: Spot) {
+  const spot =
+    at ?? (a.perch === p.id ? a : { x: between(c.rng, p.x - p.w, p.x + p.w), z: between(c.rng, p.z - p.d, p.z + p.d) });
+  a.seat = { id: p.id, then };
+  go(a, 'perch', spot);
+}
+
+function startHop(a: Actor, to: Spot & { y: number }, onto: Perch['id'] | null) {
+  a.hop = {
+    x0: a.x,
+    y0: a.y,
+    z0: a.z,
+    x1: to.x,
+    y1: to.y,
+    z1: to.z,
+    k: -1,
+    onto,
+    then: { mode: a.mode, pose: a.pose, t: a.t },
+    under: a.y,
+    air: false
+  };
+  a.mode = 'hop';
+}
+
+/** 床でしかできない動き。面の上でこれになったら、先に飛び降りる */
+const grounded = (a: Actor) =>
+  a.mode === 'go'
+    ? a.goal !== 'perch' || a.seat?.id !== a.perch
+    : a.mode === 'act'
+      ? a.pose === 'jump' || a.pose === 'roll'
+      : a.mode === 'chase' ||
+        a.mode === 'carry' ||
+        a.mode === 'stalk' ||
+        a.mode === 'pounce' ||
+        a.mode === 'eat' ||
+        a.mode === 'drink';
+
+/** 乗るときだけ、見上げて身をかがめる秒 */
+const HOP_CROUCH = 0.35;
+/** jump のかっこうの 1 回の秒と、そのうち宙にいる割合（pose.ts の jump と合わせる） */
+const HOP = { time: 0.95, up: 0.15, down: 0.7 };
+
+function hopping(a: Actor, h: Hop, c: Ctx, dt: number) {
+  if (h.k < 0) {
+    a.pose = 'stand';
+    if (!faceThen(a, angleTo(a, { x: h.x1, z: h.z1 }), dt)) return;
+    [h.k, h.x0, h.z0, a.v] = [0, a.x, a.z, 0];
+  }
+  h.k += dt;
+  const crouch = h.y1 > h.y0 ? HOP_CROUCH : 0;
+  if (h.k < crouch) return void (a.pose = 'pounce');
+  a.pose = 'jump';
+  const u = (h.k - crouch) / HOP.time;
+  const s = clamp((u - HOP.up) / (HOP.down - HOP.up), 0, 1);
+  if (s > 0 && !h.air) {
+    h.air = true;
+    c.events.push({ type: 'leap', petId: a.petId });
+  }
+  // 横は等速、高さは放物線。jump のかっこうが自分でも跳ねるぶん、弧は低めでよい
+  a.x = h.x0 + (h.x1 - h.x0) * s;
+  a.z = h.z0 + (h.z1 - h.z0) * s;
+  a.y = h.y0 + (h.y1 - h.y0) * s + (h.y1 > h.y0 ? 0.5 : 0.2) * s * (1 - s);
+  h.under = s < 0.5 ? h.y0 : h.y1;
+  if (u < 1) return;
+  a.hop = null;
+  a.perch = h.onto;
+  a.y = h.y1;
+  [a.mode, a.pose, a.t] = [h.then.mode, h.then.pose, h.then.t];
+}
+
+/** goal 'perch'。床にいれば面の前まで歩いて飛び乗り、面の上ではその点まで歩いて落ち着く */
+function toPerch(a: Actor, c: Ctx, dt: number, speed: number) {
+  const seat = a.seat;
+  const p = seat && perchOf(c.world, seat.id);
+  if (!seat || !p) return decide(a, c);
+  const to = inside(p, { x: a.tx, z: a.tz });
+  if (a.perch !== p.id) {
+    if (!steer(a, { x: to.x, z: p.z + p.d + REACH }, speed, dt, c.world.layout)) return;
+    return startHop(a, { ...to, y: p.y }, p.id);
+  }
+  if (!steer(a, to, WALK.cat * 0.6, dt, c.world.layout, 0.05)) return;
+  if (!faceThen(a, angleTo(a, c.camera), dt)) return;
+  a.mode = 'idle';
+  a.gaze = null;
+  if (seat.then === 'sleep') return fallAsleep(a, c);
+  if (seat.then === 'call') {
+    c.events.push({ type: 'voice', petId: a.petId, cry: 'happy' });
+    a.gaze = c.camera;
+  }
+  a.pose = seat.then === 'down' ? 'down' : 'sit';
+  a.t = seat.then === 'call' ? 4 : between(c.rng, 4, c.dog ? 8 : 14);
+}
+
+function choose(options: [number, () => void][], rng: () => number) {
+  let r = rng() * options.reduce((s, [w]) => s + w, 0);
+  for (const [w, pick] of options) {
+    r -= w;
+    if (r <= 0) return pick();
+  }
+  options[0][1]();
+}
+
+/** 面の上でひまなとき。座る・伏せる・少し動く・飛び降りる。犬はすぐ降りたがる */
+function perched(a: Actor, c: Ctx, p: Perch) {
+  const { rng, dog } = c;
+  const tired = c.pet.stats.energy < 45;
+  choose(
+    [
+      [dog ? 0.35 : 0.12, () => go(a, 'wander', wanderSpot(a, c))],
+      [0.3, () => ((a.pose = 'sit'), (a.t = between(rng, 3, 7)))],
+      [tired ? 0.5 : dog ? 0.15 : 0.35, () => ((a.pose = 'down'), (a.t = between(rng, 6, dog ? 10 : 16)))],
+      [0.15, () => ((a.pose = 'stand'), (a.gaze = c.camera), (a.t = between(rng, 2, 4)))],
+      [0.1, () => goPerch(a, c, p, dog ? 'sit' : 'down')]
+    ],
+    rng
+  );
+}
+
 function decide(a: Actor, c: Ctx) {
   const { rng, world, pet, dog } = c;
   const room = isRoom(world.layout) ? world.layout : null;
@@ -516,6 +712,8 @@ function decide(a: Actor, c: Ctx) {
     go(a, 'beg', besideBowl(room.food, room));
     return;
   }
+  const here = perchOf(world, a.perch);
+  if (here) return perched(a, c, here);
   if (aside(a, c)) return go(a, 'wander', wanderSpot(a, c));
   const tired = pet.stats.energy < 45;
   const park = world.scene === 'park';
@@ -538,12 +736,11 @@ function decide(a: Actor, c: Ctx) {
     const p = world.presents.reduce((m, q) => (dist(a, q) < dist(a, m) ? q : m));
     options.push([dog ? 0.3 : 0.15, () => ((a.present = p.id), go(a, 'present', p))]);
   }
-  let r = rng() * options.reduce((s, [w]) => s + w, 0);
-  for (const [w, pick] of options) {
-    r -= w;
-    if (r <= 0) return pick();
-  }
-  options[0][1]();
+  // 猫は高い所が好きでよくソファに乗る。子犬はたまに
+  const sofa = perchOf(world, 'sofa');
+  if (sofa && crowd(sofa, a, c) < seats(sofa))
+    options.push([dog ? 0.04 : 0.14, () => goPerch(a, c, sofa, dog || rng() < 0.4 ? 'sit' : 'down')]);
+  choose(options, rng);
 }
 
 function faceThen(a: Actor, want: number, dt: number): boolean {
@@ -561,6 +758,11 @@ function runMode(a: Actor, c: Ctx, dt: number) {
   const walk = WALK[kind] * (tired ? 0.8 : 1);
   const toy = world.toy;
   a.t -= dt;
+  if (a.hop) return hopping(a, a.hop, c, dt);
+  const perch = perchOf(world, a.perch);
+  if (!perch) a.perch = null;
+  a.y = perch?.y ?? 0;
+  if (perch && grounded(a)) return startHop(a, { x: inside(perch, a).x, z: perch.z + perch.d + REACH, y: 0 }, null);
   switch (a.mode) {
     case 'idle':
       accelerate(a, 0, dt);
@@ -580,7 +782,12 @@ function runMode(a: Actor, c: Ctx, dt: number) {
     case 'go': {
       a.pose = 'stand';
       if (a.t <= 0) return decide(a, c);
-      if ((a.goal === 'wander' || a.goal === 'beg') && needs(a, c)) return;
+      const idly = a.goal === 'perch' && (a.seat?.then === 'sit' || a.seat?.then === 'down');
+      if ((a.goal === 'wander' || a.goal === 'beg' || idly) && needs(a, c)) return;
+      if (a.goal === 'perch') {
+        const far = a.seat?.then === 'call' && dist(a, { x: a.tx, z: a.tz }) > 1.2;
+        return toPerch(a, c, dt, far ? run : walk);
+      }
       if (a.goal === 'front') [a.tx, a.tz] = [layout.front.x, layout.front.z];
       if (a.goal === 'present') {
         const p = world.presents.find((q) => q.id === a.present);
@@ -589,7 +796,10 @@ function runMode(a: Actor, c: Ctx, dt: number) {
         a.tz = p.z;
         if (dist(a, p) < 0.25) {
           world.presents.splice(world.presents.indexOf(p), 1);
-          events.push({ type: 'found', petId: a.petId, present: p.id }, { type: 'voice', petId: a.petId });
+          events.push(
+            { type: 'found', petId: a.petId, present: p.id },
+            { type: 'voice', petId: a.petId, cry: 'happy' }
+          );
           return act(a, 'happy', 1.2);
         }
       }
@@ -606,7 +816,7 @@ function runMode(a: Actor, c: Ctx, dt: number) {
         case 'front':
         case 'spot':
           if (!faceThen(a, angleTo(a, c.camera), dt)) return;
-          events.push({ type: 'voice', petId: a.petId });
+          events.push({ type: 'voice', petId: a.petId, cry: 'happy' });
           a.mode = 'idle';
           a.pose = 'sit';
           a.gaze = c.camera;
@@ -614,7 +824,7 @@ function runMode(a: Actor, c: Ctx, dt: number) {
           return;
         case 'beg':
           if (!faceThen(a, angleTo(a, c.camera), dt)) return;
-          events.push({ type: 'voice', petId: a.petId });
+          events.push({ type: 'voice', petId: a.petId, cry: 'sweet' });
           return act(a, 'sit', 3);
         case 'food':
         case 'water': {
@@ -691,7 +901,7 @@ function runMode(a: Actor, c: Ctx, dt: number) {
       toy.y = TOY[toy.kind].r;
       toy.vx = toy.vy = toy.vz = 0;
       a.carrying = null;
-      events.push({ type: 'fetched', petId: a.petId }, { type: 'voice', petId: a.petId });
+      events.push({ type: 'fetched', petId: a.petId }, { type: 'voice', petId: a.petId, cry: 'proud' });
       a.mode = 'idle';
       a.pose = 'sit';
       a.gaze = c.camera;
@@ -802,8 +1012,8 @@ function bite(a: Actor, c: Ctx) {
 /** ねこじゃらしのふさが通り抜けない、胴と頭の球 */
 export function wandBalls(actors: Actor[]): { x: number; y: number; z: number; r: number }[] {
   return actors.flatMap((a) => [
-    { x: a.x, y: 0.13, z: a.z, r: 0.1 },
-    { x: a.x + Math.sin(a.heading) * 0.16, y: 0.2, z: a.z + Math.cos(a.heading) * 0.16, r: 0.07 }
+    { x: a.x, y: a.y + 0.13, z: a.z, r: 0.1 },
+    { x: a.x + Math.sin(a.heading) * 0.16, y: a.y + 0.2, z: a.z + Math.cos(a.heading) * 0.16, r: 0.07 }
   ]);
 }
 
@@ -868,7 +1078,7 @@ export function think(actors: Actor[], pets: Pet[], world: WorldView, dt: number
     runMode(a, c, dt);
     a.x += Math.sin(a.heading) * a.v * dt;
     a.z += Math.cos(a.heading) * a.v * dt;
-    collide(a, world.layout, actors);
+    collide(a, world.layout, actors, perchOf(world, a.perch));
     outputs(a, c, dt);
     a.bark -= dt;
     if (a.bark <= 0) {

@@ -1,5 +1,7 @@
 import type * as THREE from 'three';
 import type { Actor, BehaviorEvent, WorldView } from './behavior';
+import type { Track } from './bgm';
+import type { Cry } from './cries';
 import type { PetFx } from './effects';
 import type { Pet, Save } from './engine';
 import type { Layout } from './layout';
@@ -74,6 +76,8 @@ export interface SceneHost {
   above(a: Actor, y?: number): [number, number];
   /** コインが飛んでいく先 */
   purse(): [number, number];
+  /** BGM を替える。場面に入ると場面の曲に戻り、null で止める */
+  music(track: Track | null): void;
   /** save を書き換えたら呼ぶ。少しあとでまとめて保存する */
   changed(): void;
   /** scene を渡すと部屋ではなくその場面へ出る（おさんぽの道の先の公園）。組み立てを待つので 2 フレームあとに効く */
@@ -86,8 +90,8 @@ export interface ActivityHost extends SceneHost {
   readonly pet: Pet;
   /** そのペットの actor。場面に入るたびに作り直すので、とっておかずに毎回ここから読む */
   readonly actor: Actor | undefined;
-  /** ワン・ニャー */
-  voice(): void;
+  /** ワン・ニャー。cry が無ければそのときの気分で鳴き方を決める */
+  voice(cry?: Cry): void;
   /** 公園と同じに、道ばたのプレゼントを開けて中身をもらう */
   found(a: Actor): void;
 }

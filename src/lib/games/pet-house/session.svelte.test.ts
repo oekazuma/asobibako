@@ -31,6 +31,10 @@ vi.mock('./world3d', () => ({
     floor(px: number, py: number) {
       return { x: (px - 200) / 150, z: (py - 700) / 150 };
     }
+    // 画面のいちばん上はソファ
+    furniture(px: number, py: number) {
+      return py < 100 ? { id: 'sofa', x: 0.3, z: -1.9 } : null;
+    }
     project() {
       return [0, 0, 100];
     }
@@ -304,5 +308,17 @@ describe('Session', () => {
     s.down(1, 0, 0);
     expect(view.toy).toBeNull();
     expect(s.away).toBe(false);
+  });
+
+  it('ソファをタップすると「〇〇、ソファに おいで」で呼んで、飛び乗らせる', () => {
+    const s = make();
+    s.adopt('mike', 'タマ');
+    frames(s, 1);
+    s.down(1, 200, 50);
+    s.up(1, 200, 50, 0, 0);
+    expect(s.toast).toBe('タマ、ソファに おいで');
+    const me = () => seen.actors?.find((a) => a.petId === s.save.current);
+    expect(frames(s, 20, () => me()?.perch === 'sofa')).toBe(true);
+    expect(me()?.y).toBeGreaterThan(0.4);
   });
 });

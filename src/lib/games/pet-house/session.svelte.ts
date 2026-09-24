@@ -11,6 +11,8 @@ import {
   wandBalls,
   wandBite
 } from './behavior';
+import { Bgm, type Track } from './bgm';
+import { speakAt, type Cry } from './cries';
 import { hasDecor, type RoomLook, type RoomPart, type RoomTheme } from './decor';
 import { PetFx } from './effects';
 import {
@@ -42,7 +44,7 @@ import {
   type Save,
   type ShopItem
 } from './engine';
-import { LAYOUTS, PARK, ROOM, type Layout, type Spot } from './layout';
+import { LAYOUTS, PARK, ROOM, roomPerches, type Layout, type Spot } from './layout';
 import { sounds } from './sounds';
 import type { AccessoryId, BaseScene, BreedId, FoodId, Scene, ToyId, TrickId } from './types';
 import { createWand, POM, stepWand, type Wand } from './wand';
@@ -91,6 +93,7 @@ export class Session {
   readonly #overlay: HTMLCanvasElement;
   readonly #ctx: CanvasRenderingContext2D | null;
   readonly #fx = new PetFx();
+  readonly #bgm = new Bgm();
   readonly #onhint?: (t: string) => void;
   #actors: Actor[] = [];
   /** モードが 3D に出している子。あいだは飼っているペットの代わりにこの子たちを描く */
@@ -123,6 +126,7 @@ export class Session {
   /** 開いてから 1 度でもなでたか。まだなら何をすればいいかをヒントに出す */
   #stroked = false;
   #timers = { heart: 0, purr: 0, bark: 2, sparkle: 0, munch: 0, zzz: 0, rustle: 0 };
+  #snore = 0;
   /**
    * 場面の組み立ては数百 ms 画面を止める。wait フレーム待って「いどうちゅう」を 1 度描かせてから run し、
    * シェーダーの準備が落ち着くまでさらに数フレーム出したままにする
@@ -153,7 +157,8 @@ export class Session {
   };
 
   #emptyView(scene: Scene): WorldView {
-    return { scene, layout: this.#layout, bowls: this.#bowls, toy: null, wand: null, presents: [] };
+    const perches = scene === 'room' ? roomPerches(this.save.room) : undefined;
+    return { scene, layout: this.#layout, bowls: this.#bowls, toy: null, wand: null, presents: [], perches };
   }
 
   #enter(target: BaseScene | ActivityScene) {
@@ -167,6 +172,12 @@ export class Session {
     this.#wand.on = false;
     this.#spawnActors();
     if (scene === 'park') for (let i = 0; i < 3; i++) this.#spawnPresent();
+    this.#music();
+  }
+
+  /** 窓の外が星空の部屋は夜の曲（同じ曲を静かにゆっくり） */
+  #music() {
+    this.#bgm.play(this.scene === 'room' && this.save.room.view === 'castle' ? 'night' : this.scene);
   }
 
   /** 部屋には全員、公園にはいまのペットだけ。front のまわりに並べる */
@@ -215,7 +226,7 @@ export class Session {
 
   /** ペットの頭の上あたりの画面の位置 */
   #above(a: Actor, y = 0.42): [number, number] {
-    const [x, sy] = this.#world.project(a.x, y, a.z);
+    const [x, sy] = this.#world.project(a.x, a.y + y, a.z);
     return [x, sy];
   }
 
@@ -277,6 +288,7 @@ export class Session {
       for (const e of think(this.#actors, pets, this.#view, dt, Math.random)) if (!act?.event?.(e)) this.#event(e);
     }
     this.#ambient(dt);
+    this.#bgm.tick();
     const away = !this.activity && this.#toyAway();
     if (away !== this.away) this.away = away;
 
@@ -338,6 +350,9 @@ export class Session {
         t.zzz = 1.3;
         const [x, y] = this.#above(a, 0.3);
         this.#fx.text('Z', x + 20, y, '#7a8cff', 26);
+        const pet = this.#pet(a.petId);
+        // 寝息は見ている子だけ、Z 2 つに 1 回。何匹もの寝息が重なると部屋がうるさい
+        if (pet && a.petId === this.save.current && this.#snore++ % 2) speakAt(this.#fx, pet.breed, 'sleep', [x, y]);
       }
     }
     // 見ているだけで拾えるので、何匹いても 1 分に 1 つほどに抑える（おさんぽは道に 3 つ）
@@ -400,16 +415,17 @@ export class Session {
         play(pet);
         return this.#found(pet, x, y);
       case 'voice':
-        this.#voice(pet);
+        this.#voice(pet, e.cry);
         this.#fx.note(x, y);
         return;
+      case 'sleep':
+        return this.#voice(pet, 'yawn');
     }
   }
 
-  #voice(pet: Pet) {
-    if (kindOf(pet.breed) === 'cat') sounds.meow();
-    else if (pet.breed === 'poodle') sounds.smallBark();
-    else sounds.bark();
+  #voice(pet: Pet, cry: Cry = moodCry(pet)) {
+    const a = this.#actor(pet.id);
+    if (a) speakAt(this.#fx, pet.breed, cry, this.#above(a));
   }
 
   #found(pet: Pet, x: number, y: number) {
@@ -533,12 +549,12 @@ export class Session {
       const cat = kindOf(pet.breed) === 'cat';
       if (cat && t.purr <= 0) {
         t.purr = 1.05;
-        sounds.purr();
+        speakAt(this.#fx, pet.breed, 'purr', this.#above(a));
       }
-      if (!cat && t.bark <= 0) {
-        t.bark = 2.5 + Math.random() * 2;
+      if (t.bark <= 0) {
+        t.bark = cat ? 5 + Math.random() * 4 : 2.5 + Math.random() * 2;
         if (Math.random() < 0.5) {
-          this.#voice(pet);
+          this.#voice(pet, cat ? 'sweet' : 'happy');
           this.#fx.note(...this.#above(a));
         }
       }
@@ -548,8 +564,9 @@ export class Session {
   }
 
   #brushAt(touch: Touch) {
-    const p = this.#world.floor(touch.x, touch.y, 0.26);
-    return p && { x: p.x, y: 0.26, z: p.z };
+    const y = 0.26 + (touch.pet ? (this.#actor(touch.pet)?.y ?? 0) : 0);
+    const p = this.#world.floor(touch.x, touch.y, y);
+    return p && { x: p.x, y, z: p.z };
   }
 
   #praise(pet: Pet, a: Actor, trick: TrickId) {
@@ -616,8 +633,15 @@ export class Session {
   #callTo(px: number, py: number) {
     const pet = this.current;
     const a = this.#actor();
+    if (!pet || !a) return;
+    const seat = this.#world.furniture(px, py);
+    if (seat && this.#view.perches?.some((q) => q.id === seat.id)) {
+      this.#fx.ripple(px, py);
+      if (!a.carrying) this.#say(`${pet.name}、${seat.id === 'sofa' ? 'ソファ' : 'ベッド'}に おいで`);
+      return command(a, pet, { type: 'call', to: seat, perch: seat.id });
+    }
     const p = this.#world.floor(px, py);
-    if (!pet || !a || !p) return;
+    if (!p) return;
     this.#fx.ripple(px, py);
     command(a, pet, { type: 'call', to: this.#clampToFloor(p) });
   }
@@ -750,7 +774,8 @@ export class Session {
     this.#bowls.foodLeft = 1;
     this.#dirty = true;
     sounds.pop();
-    if (pet && !eatsFood(pet, food)) this.#say(`${pet.name}は ${itemName(food)}を たべないみたい`);
+    if (pet && !eatsFood(pet, food)) return this.#say(`${pet.name}は ${itemName(food)}を たべないみたい`);
+    if (pet && !this.#actor()?.asleep) this.#voice(pet, 'happy');
   }
 
   water(): void {
@@ -762,7 +787,9 @@ export class Session {
   call(): void {
     const pet = this.current;
     const a = this.#actor();
-    if (pet && a) command(a, pet, { type: 'call' });
+    if (!pet || !a) return;
+    this.#voice(pet, a.asleep ? 'yawn' : 'answer');
+    command(a, pet, { type: 'call' });
   }
 
   trick(trick: TrickId): void {
@@ -827,9 +854,15 @@ export class Session {
         this.current.accessory = this.trying;
         this.trying = null;
       }
-      if (SHOP.find((i) => i.id === id)?.type === 'room') this.#world.refreshRoom();
+      if (SHOP.find((i) => i.id === id)?.type === 'room') this.#refreshRoom();
     }
     return r;
+  }
+
+  /** 模様替えした部屋を組み直す。ソファの高さと広さもテーマで変わる */
+  #refreshRoom() {
+    this.#world.refreshRoom();
+    if (this.scene === 'room') this.#view.perches = roomPerches(this.save.room);
   }
 
   /** 買ってある部位に部屋を替える。セットをまとめて替えても、組み直しと音は 1 回 */
@@ -842,7 +875,8 @@ export class Session {
     }
     if (!changed) return;
     this.#dirty = true;
-    this.#world.refreshRoom();
+    this.#refreshRoom();
+    this.#music();
     sounds.pop();
   }
 
@@ -968,7 +1002,8 @@ export class Session {
       say: (text: string, seconds?: number) => this.#say(text, seconds),
       above: (a: Actor, y?: number) => this.#above(a, y),
       purse: () => this.#purse(),
-      voice: () => void (pet && this.#voice(pet)),
+      voice: (cry?: Cry) => void (pet && this.#voice(pet, cry)),
+      music: (track: Track | null) => this.#bgm.play(track),
       changed: () => (this.#dirty = true),
       found: (a: Actor) => {
         const p = this.#pet(a.petId);
@@ -988,6 +1023,7 @@ export class Session {
     if (bowl.food && bowl.foodLeft > 0.9) this.save.food[bowl.food] += 1;
     this.#write();
     document.removeEventListener('visibilitychange', this.#onVisibility);
+    this.#bgm.stop();
     this.#world.dispose();
   }
 
@@ -999,7 +1035,7 @@ export class Session {
     const pending = this.trickPending;
     if (pending?.petId === pet.id) return this.#praise(pet, a, pending.trick);
     this.#fx.hearts(...this.#above(a), 2);
-    this.#voice(pet);
+    this.#voice(pet, 'happy');
   }
 
   /** 名前と、声で覚えさせた呼び名を書きかえる */
@@ -1031,3 +1067,9 @@ interface Touch {
 const eatsFood = (pet: Pet, food: FoodId) => eats(kindOf(pet.breed) === 'dog', food);
 
 const itemName = (id: ShopItem['id']) => SHOP.find((i) => i.id === id)?.name ?? '';
+
+/** ひとりで鳴くときの鳴き方。おなか・のどがへったら甘え、ねむければあくび */
+function moodCry(pet: Pet): Cry {
+  const m = mood(pet);
+  return m === 'hungry' || m === 'thirsty' ? 'sweet' : m === 'sleepy' ? 'yawn' : 'happy';
+}

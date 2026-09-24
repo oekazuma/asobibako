@@ -2,6 +2,7 @@
   import { onDestroy } from 'svelte';
   import Icon from '$lib/components/Icon.svelte';
   import { BREEDS } from './breeds';
+  import { speak } from './cries';
   import { pushToTalk } from './listen';
   import { sounds } from './sounds';
   import type { BreedId } from './types';
@@ -45,7 +46,7 @@
         count++;
         if (count >= CALLS_TO_LEARN) sounds.learned();
         if (onheard) onheard(count);
-        else if (count < CALLS_TO_LEARN) (b.kind === 'cat' ? sounds.meow : sounds.bark)();
+        else if (count < CALLS_TO_LEARN) speak(breed, 'answer');
       },
       error(reason) {
         said = reason;
@@ -55,7 +56,6 @@
       }
     };
   });
-
   onDestroy(() => talk.stop());
 </script>
 

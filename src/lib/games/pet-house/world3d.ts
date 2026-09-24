@@ -3,7 +3,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import type { ActivityScene, Built, Follow, HeldCamera } from './activity';
 import type { Actor, Toy, WorldView } from './behavior';
 import type { Pet } from './engine';
-import { LAYOUTS, ROOM, type Layout } from './layout';
+import { LAYOUTS, ROOM, type Layout, type Perch } from './layout';
 import { graphics, type Quality } from '$lib/graphics.svelte';
 import { NATURAL_ROOM, type RoomLook } from './decor';
 import { createPet, type PetModel } from './models';
@@ -253,9 +253,9 @@ export class PetWorld {
       const a = actors.find((x) => x.petId === id);
       pv.model.group.visible = pv.blob.visible = !!a;
       if (!a) continue;
-      pv.model.group.position.set(a.x, 0, a.z);
+      pv.model.group.position.set(a.x, a.y, a.z);
       pv.model.group.rotation.y = a.heading;
-      pv.blob.position.set(a.x, 0.009, a.z);
+      pv.blob.position.set(a.x, (a.hop?.under ?? a.y) + 0.009, a.z);
       pv.blob.rotation.y = a.heading;
       pv.model.update(a.action, dt, { speed: a.speed, wag: a.wag, look: a.look, t });
     }
@@ -264,7 +264,7 @@ export class PetWorld {
     this.#ring.visible = !!me && actors.length > 1;
     if (me) {
       // ラグの上面（0.008）と同じ高さだとちらつく
-      this.#ring.position.set(me.x, 0.012, me.z);
+      this.#ring.position.set(me.x, (me.hop?.under ?? me.y) + 0.012, me.z);
       this.#ring.material.opacity = 0.45 + 0.15 * Math.sin(t * 3);
     }
 
@@ -316,7 +316,7 @@ export class PetWorld {
     const f = this.#follow;
     if ('rate' in f) {
       const k = view.wand ? 0 : 1 - Math.exp(-f.rate * dt);
-      if (me) this.#focus.lerp(this.#v.set(me.x, 0, me.z), k);
+      if (me) this.#focus.lerp(this.#v.set(me.x, me.y, me.z), k);
       const c = this.#layout.camera;
       let z = c.z + this.#focus.z - this.#layout.front.z;
       for (const a of actors) z = Math.max(z, a.z + f.near);
@@ -358,7 +358,8 @@ export class PetWorld {
     const dz = this.#focus.z - front.z;
     const z = THREE.MathUtils.clamp(this.#camZ, f.zMin, f.zMax);
     this.camera.position.set(THREE.MathUtils.clamp(c.x + fx - front.x, -f.x, f.x), c.y, z);
-    this.camera.lookAt(c.lookX + fx - front.x, c.lookY, c.lookZ + dz);
+    // ソファの上の子を見るときは、その高さのぶん少し見上げる
+    this.camera.lookAt(c.lookX + fx - front.x, c.lookY + this.#focus.y * 0.6, c.lookZ + dz);
   }
 
   #dropToy() {
@@ -402,9 +403,9 @@ export class PetWorld {
   #screenHit(px: number, py: number) {
     let best: { id: string; d: number } | null = null;
     for (const a of this.#actors) {
-      const [sx, sy, k] = this.project(a.x, HIT_Y, a.z);
+      const [sx, sy, k] = this.project(a.x, a.y + HIT_Y, a.z);
       if (Math.hypot(px - sx, py - sy) > Math.max(HIT_R * k, 44)) continue;
-      const d = this.camera.position.distanceTo(this.#v.set(a.x, HIT_Y, a.z));
+      const d = this.camera.position.distanceTo(this.#v.set(a.x, a.y + HIT_Y, a.z));
       if (!best || d < best.d) best = { id: a.petId, d };
     }
     return best?.id ?? null;
@@ -412,6 +413,18 @@ export class PetWorld {
 
   pick(px: number, py: number): string | null {
     return this.#screenHit(px, py);
+  }
+
+  /** 指の下の部屋のソファかベッドと、当たった点 */
+  furniture(px: number, py: number): { id: Perch['id']; x: number; z: number } | null {
+    const group = this.#layout === ROOM ? this.#built?.group : undefined;
+    const targets = (['sofa', 'bed'] as const).flatMap((id) => group?.getObjectByName(id) ?? []);
+    if (!targets.length) return null;
+    this.#ray.setFromCamera(new THREE.Vector2((px / this.#w) * 2 - 1, 1 - (py / this.#h) * 2), this.camera);
+    const hit = this.#ray.intersectObjects(targets, true)[0];
+    let o: THREE.Object3D | null = hit?.object ?? null;
+    while (o && !targets.includes(o)) o = o.parent;
+    return hit && o ? { id: o.name as Perch['id'], x: hit.point.x, z: hit.point.z } : null;
   }
 
   floor(px: number, py: number, y = 0): { x: number; z: number } | null {

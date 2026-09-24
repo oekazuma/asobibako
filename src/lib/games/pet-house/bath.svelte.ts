@@ -272,7 +272,7 @@ export class BathPlay implements Activity {
     host.fx.hearts(x, y, 5);
     host.fx.sparkle(x, y, 6);
     host.fx.text('さっぱり！', x, y - 40, '#ff7a00', 46);
-    host.voice();
+    host.voice('happy');
     sounds.sparkle();
   }
 
@@ -296,7 +296,7 @@ export class BathPlay implements Activity {
       this.#bark -= dt;
       if (this.#bark > 0 || !this.#finger) return;
       this.#bark = 3.5 + Math.random() * 3;
-      host.voice();
+      host.voice('bath');
       const a = host.actor;
       if (a) host.fx.note(...host.above(a, this.#top * 1.1));
       return;
@@ -305,7 +305,7 @@ export class BathPlay implements Activity {
     if (this.#fuss > 0 || this.#flee > 0) return;
     this.#fuss = 6 + Math.random() * 4;
     this.#flee = 1.8;
-    sounds.grumble();
+    host.voice('grumble');
   }
 
   /** たらいのまん中に立たせる。猫が逃げかけるときは左のふちへ寄ってから戻る */

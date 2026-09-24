@@ -1,3 +1,4 @@
+import type { RoomLook } from './decor';
 import type { BaseScene } from './types';
 
 /**
@@ -28,6 +29,18 @@ export interface RoomLayout extends Layout {
   food: Spot;
   water: Spot;
   bed: Spot;
+  sofa: Spot;
+}
+
+/**
+ * ペットが飛び乗れる面。x・z は面の中心、w・d はペットの中心が動ける半幅・半奥行き、y は面の高さ。
+ * 前（+z）の床から飛び乗り、前へ飛び降りる
+ */
+export interface Perch extends Spot {
+  id: 'sofa' | 'bed';
+  w: number;
+  d: number;
+  y: number;
 }
 
 /** 縦長の画面で見るので、部屋は横に狭く奥に長い */
@@ -37,6 +50,7 @@ export const ROOM: RoomLayout = {
   food: { x: 1.1, z: -1.4 },
   water: { x: 1.1, z: -0.95 },
   bed: { x: -1.05, z: -1.3 },
+  sofa: { x: 0.2, z: -2.05 },
   blocks: [
     // ソファ（奥の壁ぎわ）と観葉植物（右奥の角）
     { x: -0.05, z: -2.0, r: 0.45 },
@@ -45,6 +59,20 @@ export const ROOM: RoomLayout = {
   ],
   camera: { x: 0, y: 1.35, z: 2.7, lookX: 0, lookY: 0.1, lookZ: -0.4, fov: 42 }
 };
+
+/**
+ * 座面はソファの形（room-furniture.ts）から測った数字。奥は背のクッションに頭が入らない所まで、
+ * 横はひじかけに体が入らない所まで。わしつのソファは低く、座面も広い
+ */
+export function roomPerches(look: RoomLook): Perch[] {
+  const { sofa, bed } = ROOM;
+  const low = look.sofa === 'wafu';
+  return [
+    { id: 'sofa', x: sofa.x, z: sofa.z + (low ? 0.15 : 0.16), w: low ? 0.45 : 0.4, d: 0.08, y: low ? 0.28 : 0.485 },
+    // ベッドのクッションはどのテーマも 0.07〜0.09m。低いほうに合わせると、高いテーマで少し沈むだけで浮かない
+    { id: 'bed', x: bed.x, z: bed.z, w: 0.04, d: 0.04, y: 0.07 }
+  ];
+}
 
 export const PARK: Layout = {
   bounds: { x0: -2.6, x1: 2.6, z0: -6, z1: 1.2 },
