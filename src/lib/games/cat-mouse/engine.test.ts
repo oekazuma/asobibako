@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { CAT_R, createState, type GameState, HOLES, POTS, ROUND_S, step, STICK_R, updateSticks } from './engine';
+import {
+  CAT_R,
+  createState,
+  type GameState,
+  GUARD_R,
+  GUARD_S,
+  HOLES,
+  POTS,
+  ROUND_S,
+  step,
+  STICK_R,
+  updateSticks
+} from './engine';
 
 /** 始まりの間を飛ばして走れる状態にする */
 function playing(cat: 1 | 2 = 1): GameState {
@@ -143,5 +155,18 @@ describe('cat-mouse', () => {
     drive(cat, 1, -1, 0);
     run(cat, 1);
     expect(cat.runners[1].x).toBeLessThan(0.2);
+  });
+
+  it('ネコがチーズのそばに居座ると、チーズはネコから離れた場所へ逃げる', () => {
+    let seed = 1;
+    const state = createState(1, 1, () => (seed = (seed * 16807) % 2147483647) / 2147483647);
+    while (state.phase !== 'play') step(state, 0.1);
+    Object.assign(state.runners[1], { x: state.cheese.x, y: state.cheese.y });
+    const before = { ...state.cheese };
+    const events = run(state, GUARD_S + 0.2);
+    expect(events).toContainEqual({ type: 'hop' });
+    expect(state.cheese).not.toEqual(before);
+    const cat = state.runners[1];
+    expect(Math.hypot(state.cheese.x - cat.x, state.cheese.y - cat.y)).toBeGreaterThan(GUARD_R);
   });
 });

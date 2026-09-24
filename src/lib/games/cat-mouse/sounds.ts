@@ -15,5 +15,6 @@ export const sounds = {
     tone(1175, 220, 'triangle', 0.14, 220);
   },
   swap: () => sweep(300, 900, 260, 0.1),
+  hop: () => sweep(500, 1400, 180, 0.08),
   count: () => tone(520, 90, 'square', 0.06)
 };

@@ -6,7 +6,7 @@
   import type { GameProps } from '$lib/games';
   import { animate } from '$lib/loop';
   import type { Player } from '$lib/player';
-  import { CAT_R, CHEESE_R, createState, MOUSE_R, step, STICK_R, updateSticks } from './engine';
+  import { CAT_R, CHEESE_R, createState, GUARD_S, MOUSE_R, step, STICK_R, updateSticks } from './engine';
   import Critter from './Critter.svelte';
   import Hud from './Hud.svelte';
   import Room from './Room.svelte';
@@ -26,6 +26,7 @@
   let view = $state(snapshot());
   let timeLeft = $state(game.timeLeft);
   let lastSecond = Math.ceil(game.timeLeft);
+  let still = false;
 
   function snapshot() {
     return { phase: game.phase, cat: game.cat, round: game.round, caught: game.caught, scores: { ...game.scores } };
@@ -41,6 +42,7 @@
     const events = step(game, dt);
     for (const event of events) {
       if (event.type === 'cheese') sounds.cheese();
+      else if (event.type === 'hop') sounds.hop();
       else if (event.type === 'caught') sounds.caught();
       else if (event.type === 'escape') sounds.escape();
       else if (event.type === 'round') sounds.swap();
@@ -66,6 +68,9 @@
 
   function draw() {
     place(cheeseEl, game.cheese.x, game.cheese.y);
+    // ネコに居座られると、逃げる前にふるえて知らせる
+    const nervous = game.guard > GUARD_S * 0.3 && !still;
+    cheeseEl.style.rotate = nervous ? `${Math.sin(game.guard * 60) * 12}deg` : '';
     for (const p of [1, 2] as const) {
       const r = game.runners[p];
       place(runnerEls[p], r.x, r.y);
@@ -79,7 +84,10 @@
     }
   }
 
-  onMount(() => animate(frame));
+  onMount(() => {
+    still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    return animate(frame);
+  });
 </script>
 
 <div
