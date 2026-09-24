@@ -5,7 +5,7 @@ const DOWN = 3;
 /** ぼかした玉が重なった濃さがこれ以上のところを、液体の中とみなす */
 const EDGE = 120;
 
-export type Liquid = 'water' | 'lava';
+export type Liquid = 'water' | 'lava' | 'gas';
 
 /** その種類の粒がぼかし玉ごと収まる矩形(ピクセル、canvas の中に切り詰め)。粒がなければ null */
 export function liquidBox(
@@ -76,11 +76,15 @@ export class LiquidLayer {
     const c = this.#ctx!;
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.clearRect(0, 0, width, height);
-    const d = R * 4.2 * scale;
-    for (const p of particles) {
-      if (p.kind !== kind) continue;
-      c.drawImage(this.#blob!, p.x * scale - d / 2, p.y * scale - d / 2, d, d);
-    }
+    const gas = kind === 'gas';
+    // ガスの粒は積んだ四角のまま昇るので、描くときだけ粒ごとに揺らして大きくぼかし、雲に見せる
+    const d = R * (gas ? 5.5 : 4.2) * scale;
+    particles.forEach((p, i) => {
+      if (p.kind !== kind) return;
+      const sway = gas ? Math.sin(now * 1.7 + i * 2.3) * R * 0.9 : 0;
+      const bob = gas ? Math.cos(now * 1.3 + i * 1.7) * R * 0.6 : 0;
+      c.drawImage(this.#blob!, (p.x + sway) * scale - d / 2, (p.y + bob) * scale - d / 2, d, d);
+    });
     const box = liquidBox(particles, kind, scale, d, width, height);
     if (!box) return;
 
@@ -116,6 +120,14 @@ export class LiquidLayer {
           alpha = 150 + 80 * shade;
           if (y - top[x] < 2) [r, g, b, alpha] = [235, 250, 255, 250];
           else if (rim < 0.35) [r, g] = [r * 0.8, g * 0.85];
+        } else if (kind === 'gas') {
+          // 毒ガスは透けた緑のもや。渦のような濃淡をゆっくり流す
+          const swirl = noise(wx * 7 + now * 0.5, wy * 7 - now * 0.3);
+          r = 120 + 60 * swirl;
+          g = 200 + 40 * swirl;
+          b = 70 + 40 * swirl;
+          alpha = 120 + 70 * swirl;
+          if (rim < 0.3) [r, g, b] = [90, 160, 60];
         } else {
           // 表面は冷えて薄い黒い皮になり、細かい割れ目だけが光る。
           // 中は深いほど明るく、流れる明るい筋と、冷えかけた暗い斑が混ざる

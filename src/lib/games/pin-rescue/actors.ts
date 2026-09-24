@@ -260,6 +260,44 @@ const monsterBody = () =>
     }
   });
 
+const bombBody = () =>
+  sprite('bomb', 128, (c) => {
+    c.beginPath();
+    c.roundRect(0.42, 0.1, 0.16, 0.14, 0.03);
+    c.fillStyle = '#6b6f86';
+    c.fill();
+    c.beginPath();
+    c.moveTo(0.5, 0.12);
+    c.quadraticCurveTo(0.6, 0.0, 0.72, 0.06);
+    c.lineWidth = 0.04;
+    c.strokeStyle = '#c8a06a';
+    c.stroke();
+    c.beginPath();
+    c.arc(0.5, 0.58, 0.36, 0, Math.PI * 2);
+    const g = c.createRadialGradient(0.38, 0.45, 0.04, 0.5, 0.58, 0.38);
+    g.addColorStop(0, '#7b8098');
+    g.addColorStop(1, '#23252f');
+    c.fillStyle = g;
+    c.fill();
+    c.lineWidth = 0.035;
+    c.strokeStyle = '#fff';
+    c.stroke();
+  });
+
+/** 沈んでいるあいだ、頭から泡が昇る */
+function bubbles(ctx: CanvasRenderingContext2D, w: Walker, now: number) {
+  ctx.strokeStyle = 'rgb(255 255 255 / 0.9)';
+  ctx.lineWidth = 0.004;
+  for (let i = 0; i < 3; i++) {
+    const t = (now * 0.8 + i / 3) % 1;
+    ctx.globalAlpha = 1 - t;
+    ctx.beginPath();
+    ctx.arc(w.x + Math.sin(now * 4 + i) * 0.015, w.y - w.r * 2 - t * 0.12, 0.008 + i * 0.003, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
 /** 目と口。表情だけは毎回描く */
 function face(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, look: Face) {
   ctx.fillStyle = INK;
@@ -326,6 +364,16 @@ function place(
 /** 勇者・姫・怪物。ctx は engine の座標（幅 1）がそのまま描ける変換にしておく */
 export function drawActors(ctx: CanvasRenderingContext2D, state: GameState, now: number) {
   const cheer = state.result === 'clear' ? Math.abs(Math.sin(now * 8)) * 0.04 : 0;
+  for (const b of state.bombs) {
+    if (!b.alive) continue;
+    stamp(ctx, bombBody(), b.x, b.y - b.r * 0.2, b.r * 2.8);
+    // 導火線の先の火花
+    const r = 0.012 * (1 + Math.sin(now * 20) * 0.3);
+    ctx.fillStyle = '#ffc233';
+    ctx.beginPath();
+    ctx.arc(b.x + b.r * 0.62, b.y - b.r * 1.55, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
   for (const m of state.monsters) if (m.alive) place(ctx, m, monsterBody(), SIZE.monster, now, 0);
 
   if (state.princess?.alive) {
@@ -339,4 +387,8 @@ export function drawActors(ctx: CanvasRenderingContext2D, state: GameState, now:
   const h = place(ctx, state.hero, knight(), d, now, cheer);
   const look: Face = state.result === 'clear' ? 'happy' : state.result && state.result !== 'stuck' ? 'scared' : 'calm';
   face(ctx, h.x, h.top + 0.3 * d, d * 0.1, look);
+  if (state.under > 0 && !state.result) {
+    bubbles(ctx, state.hero, now);
+    if (state.princess) bubbles(ctx, state.princess, now);
+  }
 }

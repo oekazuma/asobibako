@@ -19,6 +19,7 @@ export class PinFx {
   #t = 0;
   #hissAt = -1;
   #alive: boolean[] = [];
+  #blasts = 0;
 
   reset(): void {
     this.#collected = 0;
@@ -27,6 +28,7 @@ export class PinFx {
     this.#t = 0;
     this.#hissAt = -1;
     this.#alive = [];
+    this.#blasts = 0;
   }
 
   pulled(game: GameState, i: number): void {
@@ -43,7 +45,7 @@ export class PinFx {
   }
 
   /**
-   * 毎フレーム呼ぶ。戻り値の progress はクリアまでの進み具合（0..1）で、金貨と怪物の両方がいればその平均。
+   * 毎フレーム呼ぶ。戻り値の progress はクリアまでの進み具合（0..1）で、金貨と怪物のうちその面にあるものの平均。
    * 姫の面は歩いてたどり着けば終わりなので -1 を返し、メーターを出さない
    */
   update(game: GameState, dt: number): { progress: number; score: number } {
@@ -102,11 +104,25 @@ export class PinFx {
       this.floaters.add('たおした！', m.x, m.y - 0.18, 0.06, '#3f9a36');
     });
     this.#alive = game.monsters.map((m) => m.alive);
+    for (const b of game.blasts.slice(this.#blasts)) {
+      sounds.burn();
+      this.shake.add(0.7);
+      this.particles.burst(b.x, b.y, {
+        count: 40,
+        color: ['#fff1a8', '#ffc233', '#ff6a1f', '#6b6f86'],
+        speed: 0.9,
+        size: 0.018,
+        life: 0.7,
+        glow: true
+      });
+    }
+    this.#blasts = game.blasts.length;
     this.particles.step(dt);
     this.floaters.step(dt);
-    const gold = needed(game) > 0 ? Math.min(1, game.collected / needed(game)) : 1;
-    const beaten = game.monsters.length ? game.monsters.filter((m) => !m.alive).length / game.monsters.length : 1;
-    const progress = game.princess ? -1 : game.monsters.length ? (gold + beaten) / 2 : gold;
+    const parts: number[] = [];
+    if (needed(game) > 0) parts.push(Math.min(1, game.collected / needed(game)));
+    if (game.monsters.length) parts.push(game.monsters.filter((m) => !m.alive).length / game.monsters.length);
+    const progress = game.princess ? -1 : parts.reduce((a, b) => a + b, 0) / Math.max(1, parts.length);
     return { progress, score: game.collected * COIN };
   }
 
@@ -126,12 +142,18 @@ export class PinFx {
       });
       return;
     }
-    if (game.result === 'eaten') {
+    if (game.result === 'eaten' || game.result === 'gassed' || game.result === 'drowned') {
       sounds.burn();
       this.shake.add(0.6);
     }
     if (game.result === 'clear') sfx.finish();
-    const words = { clear: 'やった！', eaten: 'やられた…', stuck: 'あれれ…' } as const;
+    const words = {
+      clear: 'やった！',
+      eaten: 'やられた…',
+      gassed: 'くるしい…',
+      drowned: 'ぶくぶく…',
+      stuck: 'あれれ…'
+    } as const;
     this.floaters.add(words[game.result ?? 'stuck'], x, y - 0.26, 0.1, '#ffc233');
     if (game.result !== 'clear') return;
     for (let k = 0; k < 4; k++)

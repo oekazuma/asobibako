@@ -178,7 +178,9 @@ export function paint(
   ctx.fillStyle = 'rgb(120 80 50 / 0.25)';
   ctx.fillRect(0, WORLD_H - 0.012, 1, 0.012);
 
-  for (const wall of state.level.walls) bar(ctx, wall, WALL * 2, ['#5b4636', '#a8845f', '#d6b48c']);
+  state.level.walls.forEach((wall, i) => {
+    if (!state.brokenWalls[i]) bar(ctx, wall, WALL * 2, ['#5b4636', '#a8845f', '#d6b48c']);
+  });
 
   // マグマの光は液体の下にしいて、ふちからにじませる
   ctx.globalCompositeOperation = 'lighter';
@@ -187,10 +189,11 @@ export function paint(
   ctx.globalCompositeOperation = 'source-over';
   liquid.draw(ctx, state.particles, 'water', now);
   liquid.draw(ctx, state.particles, 'lava', now);
+  liquid.draw(ctx, state.particles, 'gas', now);
 
   const d = R * 2.3;
   state.particles.forEach((p, i) => {
-    if (p.kind === 'water' || p.kind === 'lava') return;
+    if (p.kind === 'water' || p.kind === 'lava' || p.kind === 'gas') return;
     if (p.kind === 'rock') {
       ctx.save();
       ctx.translate(p.x, p.y);
@@ -215,6 +218,7 @@ export function paint(
 
 function pins(ctx: CanvasRenderingContext2D, state: GameState, pulledAt: number[], now: number) {
   state.level.pins.forEach((pin, i) => {
+    if (state.brokenPins[i]) return;
     const slide = state.pulled[i] ? (now - pulledAt[i]) / SLIDE_S : 0;
     if (slide >= 1) return;
     const [x1, y1, x2, y2] = pin.seg;

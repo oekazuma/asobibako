@@ -31,7 +31,7 @@ describe('pin-rescue engine', () => {
       const state = createState(level);
       level.pins.forEach((_, i) => pull(state, i));
       run(state, 8);
-      expect(state.result).toMatch(/^(burned|eaten|stuck)$/);
+      expect(state.result).toMatch(/^(burned|eaten|gassed|drowned|stuck)$/);
     }
   );
 
@@ -77,6 +77,8 @@ describe('pin-rescue engine', () => {
 
   describe('怪物と姫', () => {
     const FLOOR = 1.4 - HERO_R;
+    /** 仕切りの向こうの姫。抜かないかぎり、たどり着いてクリアにはならない */
+    const HIME = { x: 0.9, y: 1.34 };
     /** 勇者は左の床。右の部屋との仕切りがピン 0 */
     const room = (extra: Partial<Level>): Level => ({
       walls: [],
@@ -123,6 +125,51 @@ describe('pin-rescue engine', () => {
       const state = createState(room({ princess: { x: 0.85, y: 1.4 - 0.06 }, pools: [lava] }));
       run(state, 3);
       expect(state.result).toBe('burned');
+    });
+
+    it('毒ガスは昇り、上にいる怪物をたおす。勇者が触れると失敗', () => {
+      const gas: Level['pools'][number] = { kind: 'gas', x0: 0.72, y0: 1.2, x1: 0.98, y1: 1.38 };
+      const shelf: Level = room({ walls: [[0.6, 0.9, 1.0, 0.9]], monsters: [{ x: 0.85, y: 0.9 - 0.014 - 0.07 }] });
+      const up = createState({ ...shelf, walls: [], pools: [gas], monsters: [{ x: 0.85, y: 0.8 }] });
+      run(up, 3);
+      expect(up.monsters[0].alive).toBe(false);
+      const hero = createState(room({ pools: [{ ...gas, x0: 0.05, x1: 0.3 }], princess: HIME }));
+      run(hero, 3);
+      expect(hero.result).toBe('gassed');
+    });
+
+    it('上から落ちてきた岩は怪物をたおす', () => {
+      const rock: Level['pools'][number] = { kind: 'rock', x0: 0.72, y0: 0.3, x1: 0.98, y1: 0.5 };
+      const state = createState(room({ monsters: [{ x: 0.85, y: FLOOR }], pools: [rock] }));
+      run(state, 3);
+      expect(state.monsters[0].alive).toBe(false);
+    });
+
+    it('頭まで水に沈んだままだと息が切れる', () => {
+      const water: Level['pools'][number] = { kind: 'water', x0: 0.02, y0: 1.0, x1: 0.48, y1: 1.4 };
+      const state = createState(room({ pools: [water], princess: HIME }));
+      run(state, 4);
+      expect(state.result).toBe('drowned');
+    });
+
+    it('爆弾はマグマで爆発し、近くの壁と怪物をこわす。勇者が近いと巻きこまれる', () => {
+      const lava: Level['pools'][number] = { kind: 'lava', x0: 0.64, y0: 0.5, x1: 0.76, y1: 0.6 };
+      const level = room({
+        walls: [[0.55, 1.0, 1.0, 1.0]],
+        pools: [lava],
+        princess: HIME,
+        monsters: [{ x: 0.92, y: 1.0 - 0.014 - 0.07 }],
+        bombs: [{ x: 0.7, y: 1.0 - 0.014 - 0.045 }]
+      });
+      const state = createState(level);
+      run(state, 3);
+      expect(state.blasts).toHaveLength(1);
+      expect(state.brokenWalls[0]).toBe(true);
+      expect(state.monsters[0].alive).toBe(false);
+
+      const near = createState({ ...level, hero: { x: 0.62, y: FLOOR }, princess: { x: 0.1, y: 1.34 }, monsters: [] });
+      run(near, 3);
+      expect(near.result).toBe('burned');
     });
   });
 });
