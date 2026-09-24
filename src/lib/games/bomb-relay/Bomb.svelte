@@ -13,7 +13,7 @@
   style:--size="{BOMB_R * 200}%"
   aria-hidden="true"
 >
-  <span class="spark"></span>
+  <span class="wick"><span class="spark"></span><span class="cord"></span><span class="cap"></span></span>
 </div>
 
 <style>
@@ -53,14 +53,58 @@
     will-change: opacity;
   }
 
-  .spark {
+  /* 右上に斜めに立つ口金と導火線。熱いほど導火線が短くなり、火花が口金に近づく */
+  .wick {
     position: absolute;
-    top: -12%;
-    right: 4%;
-    width: 30%;
+    bottom: 72%;
+    left: 70%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    width: 34%;
+    height: 56%;
+    rotate: 40deg;
+    transform-origin: bottom center;
+  }
+
+  .cap {
+    flex: none;
+    width: 70%;
+    height: 22%;
+    border: 3px solid #fff;
+    border-radius: 6px;
+    background: #4a4f68;
+  }
+
+  .cord {
+    flex: none;
+    width: 14%;
+    height: calc((1 - var(--heat)) * 60%);
+    border-radius: 999px;
+    background: #c8a06a;
+  }
+
+  .spark {
+    flex: none;
+    width: 90%;
     aspect-ratio: 1;
+    margin-bottom: -30%;
     border-radius: 50%;
     background: radial-gradient(circle, #fff6c2, #ffb020 45%, transparent 70%);
+    animation: flicker 120ms steps(2) infinite;
+  }
+
+  @keyframes flicker {
+    50% {
+      scale: 0.75;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .spark {
+      animation: none;
+    }
   }
 
   .held.p1 {

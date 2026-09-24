@@ -25,15 +25,20 @@ export interface GameState {
   winner: Player | null;
 }
 
-export type StepEvent = { type: 'boom'; side: Player; x: number; y: number } | { type: 'win'; player: Player };
+/** boom の lost は、吹き飛んだメーターの量（0..1） */
+export type StepEvent =
+  { type: 'boom'; side: Player; x: number; y: number; lost: number } | { type: 'win'; player: Player };
 
 export const BOMB_R = 0.055;
 export const CATCH_R = 0.1;
 export const FUSE_MIN = 3.5;
 export const FUSE_MAX = 9;
 
-/** 熱いほど速くたまる。危ない爆弾ほど持っていたくなるのがこのゲームの誘惑 */
-const FILL_BASE = 0.07;
+/**
+ * 熱いほど速くたまる。危ない爆弾ほど持っていたくなるのがこのゲームの誘惑。
+ * いちばん長い導火線の爆弾を爆発まで持っても満タンに届かない速さにし、持ち続けるだけで勝てないようにする
+ */
+const FILL_BASE = 0.045;
 const FILL_HOT = 2;
 const FRICTION = 3;
 const MAX_SPEED = 5;
@@ -123,12 +128,13 @@ export function step(state: GameState, dt: number, rand: () => number = Math.ran
   bomb.age += dt;
   if (bomb.age >= bomb.fuse) {
     const side = sideOf(bomb.y);
-    state.meters[side] *= 0.5;
+    const lost = state.meters[side] * 0.5;
+    state.meters[side] -= lost;
     state.bomb = null;
     state.respawnIn = RESPAWN_S;
     // 同じ側へ落とすと、爆発まで持ち続けた人が次の爆弾も独り占めできてしまう
     state.nextSide = side === 1 ? 2 : 1;
-    return { type: 'boom', side, x: bomb.x, y: bomb.y };
+    return { type: 'boom', side, x: bomb.x, y: bomb.y, lost };
   }
 
   if (bomb.heldBy !== null) {

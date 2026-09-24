@@ -138,7 +138,7 @@ describe('border-rush engine', () => {
     const orb = spawnOrb(s, 'hold', 1, 0, seq(0.5));
     beginHold(s, orb.id);
     expect(step(s, HOLD_MS / 1000 - 0.01, 0, seq(0.99))).toEqual([]);
-    expect(step(s, 0.02, 0, seq(0.99))).toContainEqual({ type: 'pop', kind: 'hold' });
+    expect(step(s, 0.02, 0, seq(0.99))).toContainEqual(expect.objectContaining({ type: 'pop', kind: 'hold' }));
     expect(s.border).toBeCloseTo(0.5 - GAIN.hold);
 
     const t = createState();

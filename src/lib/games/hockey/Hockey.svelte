@@ -17,6 +17,12 @@
   const malletEls: Record<Player, HTMLDivElement[]> = { 1: [], 2: [] };
   let scores = $state<Record<Player, number>>({ 1: 0, 2: 0 });
   let goals = $state(0);
+  let scorer = $state<Player>(1);
+  let ringEl: HTMLDivElement;
+  /** 速いパックの残像。古い位置ほど薄く小さく描く */
+  const trailEls: HTMLDivElement[] = [];
+  const TRAIL = 4;
+  const trail: [number, number][] = [];
 
   const game = createState(1, Math.random() < 0.5 ? 1 : 2);
   const input = new BoardInput();
@@ -26,13 +32,17 @@
     const fingers = Array.from(input.fingers.all, ([id, f]) => ({ id, side: f.side, x: f.x, y: f.y }));
     updateMallets(game, fingers, dt);
     for (const event of step(game, dt)) {
-      if (event.type === 'hit') sounds.hit(event.speed);
-      else if (event.type === 'wall' && now - lastWall > 60) {
+      if (event.type === 'hit') {
+        sounds.hit(event.speed);
+        if (event.speed > 0.8) ring();
+      } else if (event.type === 'wall' && now - lastWall > 60) {
         lastWall = now;
         sounds.wall();
       } else if (event.type === 'goal') {
         scores = { ...game.scores };
+        scorer = event.scorer;
         goals += 1;
+        trail.length = 0;
         sounds.goal();
       } else if (event.type === 'win') {
         sfx.finish();
@@ -47,8 +57,30 @@
     el.style.transform = `translate(${px}px, ${py}px) translate(-50%, -50%)`;
   };
 
+  function ring() {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    place(ringEl, game.puck.x, game.puck.y);
+    ringEl.animate(
+      [
+        { scale: 0.5, opacity: 0.9 },
+        { scale: 2, opacity: 0 }
+      ],
+      { duration: 320, easing: 'ease-out' }
+    );
+  }
+
   function draw() {
     place(puckEl, game.puck.x, game.puck.y);
+    const speed = Math.hypot(game.puck.vx * game.aspect, game.puck.vy);
+    trail.unshift([game.puck.x, game.puck.y]);
+    trail.length = Math.min(trail.length, TRAIL * 2);
+    trailEls.forEach((el, i) => {
+      const at = trail[(i + 1) * 2 - 1];
+      el.hidden = !at || speed < 1;
+      if (el.hidden) return;
+      place(el, at[0], at[1]);
+      el.style.opacity = String((0.35 * (TRAIL - i)) / TRAIL);
+    });
     puckEl.classList.toggle('serving', game.pause > 0);
     const used: Record<Player, number> = { 1: 0, 2: 0 };
     for (const mallet of game.mallets) {
@@ -70,7 +102,12 @@
   style:--puck="{PUCK_R * 200}%"
   style:--mallet="{MALLET_R * 200}%"
 >
-  <Rink flash={goals} />
+  <Rink flash={goals} {scorer} />
+
+  {#each Array.from({ length: TRAIL }, (_, i) => i) as i (i)}
+    <div class="puck ghost" bind:this={trailEls[i]} hidden></div>
+  {/each}
+  <div class="ring" bind:this={ringEl}></div>
 
   {#each [1, 2] as const as player (player)}
     {#each Array.from({ length: MALLETS_PER_PLAYER }, (_, i) => i) as i (i)}
@@ -94,7 +131,8 @@
   }
 
   .puck,
-  .mallet {
+  .mallet,
+  .ring {
     position: absolute;
     left: 0;
     top: 0;
@@ -109,6 +147,17 @@
     border: 3px solid #fff;
     background: radial-gradient(circle at 35% 30%, #6d7390, #2b2d42 62%);
     box-shadow: 0 4px 0 rgb(43 45 66 / 0.25);
+  }
+
+  .ghost {
+    border-color: transparent;
+    box-shadow: none;
+  }
+
+  .ring {
+    height: calc(var(--puck) * 2);
+    border: 4px solid var(--gold);
+    opacity: 0;
   }
 
   /* 得点のあと、次のパックが動き出すまでは点滅させて「まだ触れない」ことを伝える */

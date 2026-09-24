@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { sideOf } from '$lib/player';
-import { BOMB_R, CATCH_R, createState, moveHeld, step, throwBomb, tryCatch, type GameState } from './engine';
+import { BOMB_R, CATCH_R, createState, FUSE_MAX, moveHeld, step, throwBomb, tryCatch, type GameState } from './engine';
 
 const fixed = (v: number) => () => v;
 
@@ -56,12 +56,20 @@ describe('bomb-relay engine', () => {
     const state = withBombAt(0.5, 0.25, 0.5);
     state.meters = { 1: 0.4, 2: 0.6 };
     const events = run(state, 0.6);
-    expect(events).toContainEqual(expect.objectContaining({ type: 'boom', side: 2 }));
+    expect(events).toContainEqual(expect.objectContaining({ type: 'boom', side: 2, lost: 0.3 }));
     expect(state.meters).toEqual({ 1: 0.4, 2: 0.3 });
 
     run(state, 2);
     expect(state.bomb).not.toBeNull();
     expect(sideOf(state.bomb!.y)).toBe(1);
+  });
+
+  it('いちばん長い導火線の爆弾を爆発まで持ち続けても、空のメーターは満タンにならない', () => {
+    const state = withBombAt(0.5, 0.75, FUSE_MAX);
+    tryCatch(state, 1, 0.5, 0.75);
+    const events = run(state, FUSE_MAX + 0.1);
+    expect(events).toContainEqual(expect.objectContaining({ type: 'boom', side: 1 }));
+    expect(state.winner).toBeNull();
   });
 
   it('メーターが満タンになったら 1 回だけ勝利を知らせ、それ以降は進まない', () => {

@@ -18,7 +18,8 @@
   let meters = $state<Record<Player, number>>({ 1: 0, 2: 0 });
   let heldBy = $state<Player | null>(null);
   let hasBomb = $state(true);
-  let boom = $state<{ id: number; side: Player; x: number; y: number } | null>(null);
+  let boom = $state<{ id: number; side: Player; x: number; y: number; lost: number } | null>(null);
+  let board: HTMLDivElement;
 
   const game = createState(1);
   /** 爆弾を持っている指の pointerId */
@@ -55,8 +56,9 @@
     if (event?.type === 'boom') {
       holder = null;
       heldBy = null;
-      boom = { id: (boom?.id ?? 0) + 1, side: event.side, x: event.x, y: event.y };
+      boom = { id: (boom?.id ?? 0) + 1, side: event.side, x: event.x, y: event.y, lost: event.lost };
       sounds.boom();
+      shake();
     } else if (event?.type === 'win') {
       sfx.finish();
       onfinish(event.player);
@@ -81,12 +83,21 @@
     bombEl.style.setProperty('--heat', h.toFixed(3));
   }
 
+  function shake() {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    board.animate(
+      [0, 10, -8, 6, -3, 0].map((px, i) => ({ translate: `${i % 2 ? px : -px}px ${px}px` })),
+      { duration: 380, easing: 'ease-out' }
+    );
+  }
+
   onMount(() => animate(frame));
 
   const percent = (v: number) => Math.floor(v * 10) * 10;
 </script>
 
 <div
+  bind:this={board}
   class="board"
   use:input.board={(aspect) => (game.aspect = aspect)}
   role="application"
@@ -97,7 +108,7 @@
 
   {#if boom}
     {#key boom.id}
-      <Blast side={boom.side} x={boom.x} y={boom.y} />
+      <Blast side={boom.side} x={boom.x} y={boom.y} lost={boom.lost} />
     {/key}
   {/if}
 

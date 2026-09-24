@@ -37,7 +37,8 @@ const RUSH_RAMP_S = 30;
 const CONTEST_CHANCE = 0.16;
 const HOLD_CHANCE = 0.28;
 
-const WIN_MARGIN = 0.06;
+/** 境界線が画面の端からこの距離まで押し込まれたら決着 */
+export const WIN_MARGIN = 0.06;
 /** 画面端側の余白。玉の半径に加えて Safe Area ぶんを逃がす */
 const OUTER = 0.08;
 /** 境界線側の余白。玉の半径と同じにして、線ぎりぎりまで玉が出るようにする */
@@ -95,7 +96,8 @@ function inOwnZone(state: GameState, orb: Orb): boolean {
   return orb.owner === 2 ? orb.y < state.border : orb.y > state.border;
 }
 
-export type BorderEvent = { type: 'pop'; kind: OrbKind } | { type: 'win'; player: Player };
+export type BorderEvent =
+  { type: 'pop'; kind: OrbKind; x: number; y: number; by: Player } | { type: 'win'; player: Player };
 
 /** 出現の周期ごとに、寿命切れを落とし、各陣地を上限まで埋め、境界の奪い合い玉をときどき出す */
 function spawnWave(state: GameState, now: number, rand: () => number) {
@@ -123,7 +125,8 @@ export function step(state: GameState, dt: number, now: number, rand: () => numb
     if (state.holds[id] * 1000 < HOLD_MS) continue;
     const orb = state.orbs.find((o) => o.id === id);
     delete state.holds[id];
-    if (orb && orb.owner !== null && pop(state, id, orb.owner)) events.push({ type: 'pop', kind: orb.kind });
+    if (orb && orb.owner !== null && pop(state, id, orb.owner))
+      events.push({ type: 'pop', kind: orb.kind, x: orb.x, y: orb.y, by: orb.owner });
     if (state.winner !== null) {
       events.push({ type: 'win', player: state.winner });
       break;
