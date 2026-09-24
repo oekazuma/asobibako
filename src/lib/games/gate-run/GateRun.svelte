@@ -55,6 +55,20 @@
         life: 0.6,
         gravity: h * 0.8
       });
+    } else if (event.type === 'cut' || event.type === 'join') {
+      const cut = event.type === 'cut';
+      (cut ? sounds.bad : sounds.good)();
+      const [x, y] = project(v, event.x, 1);
+      floaters.add(`${cut ? '-' : '+'}${event.n}`, x, y - h * 0.16, w * 0.1, cut ? '#ff4d5e' : '#1f9bff');
+      particles.burst(x, y - h * 0.06, {
+        count: 18,
+        color: cut ? ['#ffb3ba', '#ff4d5e', '#d7dbe7'] : ['#d3d6e0', '#9fd8ff', '#1f9bff'],
+        speed: w * 0.45,
+        size: w * 0.011,
+        life: 0.5,
+        gravity: h * 0.8
+      });
+      if (cut) shake.add(0.3);
     } else if (event.type === 'hit') {
       // 打ち合いの音と火花は毎回だと多すぎるので間引く
       if (hits++ % 3 !== 0) return;
