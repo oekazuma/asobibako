@@ -55,9 +55,10 @@ export const GOAL_W = 0.4;
 /** 1 人が使えるマレットの数。先に置いた指だけがマレットになり、ほかの指は無視する */
 export const MALLETS_PER_PLAYER = 1;
 
-const MAX_SPEED = 2.8;
+/** 強く打っても目で追える速さに抑え、打ったあとは少しずつ減速させる */
+export const MAX_SPEED = 2;
 const MAX_MALLET_SPEED = 6;
-const FRICTION = 0.25;
+const FRICTION = 0.45;
 const WALL_BOUNCE = 0.9;
 const HIT_BOUNCE = 0.9;
 const PAUSE_S = 0.9;
