@@ -1,5 +1,5 @@
 import { cloud, label, stamp } from '$lib/fx';
-import { isGood, type GameState, type Op } from './engine';
+import { crowdCenter, crowdHalf, isGood, MAX_DOTS, SAW_R, sawX, type GameState, type Op } from './engine';
 import { castle, runner, tree } from './sprites';
 
 const CLOUDS = [
@@ -16,12 +16,11 @@ const HORIZON = 0.3;
 const CROWD_Z = 1;
 const DEPTH = 1.25;
 const FAR = 9;
-/** 描く人数の上限。数字は別に出すので、多すぎる分は描かない */
-const MAX_DOTS = 140;
 const GOLDEN = 2.39996;
 
 const BLUE = ['#4db5ff', '#0b6fcc'] as const;
 const RED = ['#ff7a86', '#c42a3b'] as const;
+const GRAY = ['#d3d6e0', '#8a8fa3'] as const;
 
 export interface View {
   w: number;
@@ -99,8 +98,7 @@ function crowdDraws(
   now: number
 ): Draw[] {
   const dots = Math.min(n, MAX_DOTS);
-  const spread = 0.026 * Math.sqrt(dots);
-  const center = Math.min(1 - spread - 0.02, Math.max(spread + 0.02, lane));
+  const center = crowdCenter(lane, n);
   const draws: Draw[] = [];
   for (let i = 0; i < dots; i++) {
     const d = 0.026 * Math.sqrt(i);
@@ -125,14 +123,14 @@ function countTag(
   z: number,
   n: number,
   color: string,
-  big: boolean
+  big: boolean,
+  prefix = ''
 ) {
-  const spread = 0.026 * Math.sqrt(Math.min(n, MAX_DOTS));
-  const [x, y, s] = project(v, lane, z + spread * 0.9);
+  const [x, y, s] = project(v, lane, z + crowdHalf(n) * 0.9);
   const size = v.w * (big ? 0.085 : 0.065) * Math.min(1.4, s);
   label(
     c,
-    String(n),
+    prefix + String(n),
     Math.min(v.w * 0.85, Math.max(v.w * 0.15, x)),
     y - v.w * 0.075 * s * 0.9 - size * 0.4,
     size,
@@ -184,6 +182,14 @@ export function paint(c: CanvasRenderingContext2D, state: GameState, v: View, no
       ] as const) {
         draws.push({ z, draw: () => gate(c, v, op, l0, z, now) });
       }
+    } else if (item.type === 'saw' || item.type === 'wall' || item.type === 'ally') {
+      const z = zOf(state, item.at);
+      if (item.done || z < 0.45 || z > FAR) continue;
+      if (item.type === 'ally') {
+        draws.push(...crowdDraws(c, v, item.x, z, item.n, GRAY, now));
+        draws.push({ z: z - 0.01, draw: () => countTag(c, v, item.x, z, item.n, '#6b6f86', false, '+') });
+      } else if (item.type === 'saw') draws.push({ z, draw: () => saw(c, v, sawX(item, state.dist), z, now) });
+      else draws.push({ z, draw: () => fence(c, v, item.gap, item.width, z) });
     } else {
       const fighting = state.fight?.item === item;
       if (item.done && !fighting) continue;
@@ -238,4 +244,64 @@ function gate(c: CanvasRenderingContext2D, v: View, op: Op, l0: number, z: numbe
   c.roundRect(x0, y - gh, x1 - x0, gh, 10 * s);
   c.stroke();
   label(c, opText(op), (x0 + x1) / 2, y - gh / 2, v.w * 0.11 * s, good ? '#0b6fcc' : '#d02c3e');
+}
+
+/** レールの上を左右に動く、立った回転ノコギリ */
+function saw(c: CanvasRenderingContext2D, v: View, lane: number, z: number, now: number) {
+  const [l0, y, s] = project(v, 0.04, z);
+  const [l1] = project(v, 0.96, z);
+  c.fillStyle = '#6b6f86';
+  c.fillRect(l0, y - 6 * s, l1 - l0, 12 * s);
+  const [x] = project(v, lane, z);
+  const r = SAW_R * v.w * 0.92 * s;
+  c.save();
+  c.translate(x, y - r);
+  c.rotate(now * 12);
+  c.beginPath();
+  for (let i = 0; i < 24; i++) {
+    const a = (i / 24) * Math.PI * 2;
+    const rr = i % 2 ? r : r * 0.82;
+    c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+  }
+  c.closePath();
+  c.fillStyle = '#d7dbe7';
+  c.fill();
+  c.lineWidth = Math.max(1.5, 3 * s);
+  c.strokeStyle = '#5d6275';
+  c.stroke();
+  c.beginPath();
+  c.arc(0, 0, r * 0.28, 0, Math.PI * 2);
+  c.fillStyle = '#ff4d5e';
+  c.fill();
+  c.restore();
+}
+
+/** すき間のあいたトゲの柵。すき間の外にはみ出た仲間が減る */
+function fence(c: CanvasRenderingContext2D, v: View, gap: number, width: number, z: number) {
+  const [, y, s] = project(v, 0.5, z);
+  const h = v.w * 0.07 * s;
+  for (const [a, b] of [
+    [0.02, gap - width / 2],
+    [gap + width / 2, 0.98]
+  ]) {
+    if (b <= a) continue;
+    const [x0] = project(v, a, z);
+    const [x1] = project(v, b, z);
+    c.fillStyle = '#8a4b2a';
+    c.fillRect(x0, y - h * 0.45, x1 - x0, h * 0.45);
+    const n = Math.max(1, Math.round((x1 - x0) / (h * 0.7)));
+    c.fillStyle = '#d7dbe7';
+    c.strokeStyle = '#5d6275';
+    c.lineWidth = Math.max(1, 2 * s);
+    for (let i = 0; i < n; i++) {
+      const sx = x0 + ((i + 0.5) / n) * (x1 - x0);
+      c.beginPath();
+      c.moveTo(sx - h * 0.3, y - h * 0.45);
+      c.lineTo(sx, y - h * 1.2);
+      c.lineTo(sx + h * 0.3, y - h * 0.45);
+      c.closePath();
+      c.fill();
+      c.stroke();
+    }
+  }
 }
