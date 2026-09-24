@@ -19,6 +19,7 @@ export class PinFx {
   #t = 0;
   #hissAt = -1;
   #alive: boolean[] = [];
+  #blasts = 0;
 
   reset(): void {
     this.#collected = 0;
@@ -27,6 +28,7 @@ export class PinFx {
     this.#t = 0;
     this.#hissAt = -1;
     this.#alive = [];
+    this.#blasts = 0;
   }
 
   pulled(game: GameState, i: number): void {
@@ -102,6 +104,19 @@ export class PinFx {
       this.floaters.add('たおした！', m.x, m.y - 0.18, 0.06, '#3f9a36');
     });
     this.#alive = game.monsters.map((m) => m.alive);
+    for (const b of game.blasts.slice(this.#blasts)) {
+      sounds.burn();
+      this.shake.add(0.7);
+      this.particles.burst(b.x, b.y, {
+        count: 40,
+        color: ['#fff1a8', '#ffc233', '#ff6a1f', '#6b6f86'],
+        speed: 0.9,
+        size: 0.018,
+        life: 0.7,
+        glow: true
+      });
+    }
+    this.#blasts = game.blasts.length;
     this.particles.step(dt);
     this.floaters.step(dt);
     const gold = needed(game) > 0 ? Math.min(1, game.collected / needed(game)) : 1;
@@ -126,12 +141,18 @@ export class PinFx {
       });
       return;
     }
-    if (game.result === 'eaten') {
+    if (game.result === 'eaten' || game.result === 'gassed' || game.result === 'drowned') {
       sounds.burn();
       this.shake.add(0.6);
     }
     if (game.result === 'clear') sfx.finish();
-    const words = { clear: 'やった！', eaten: 'やられた…', stuck: 'あれれ…' } as const;
+    const words = {
+      clear: 'やった！',
+      eaten: 'やられた…',
+      gassed: 'くるしい…',
+      drowned: 'ぶくぶく…',
+      stuck: 'あれれ…'
+    } as const;
     this.floaters.add(words[game.result ?? 'stuck'], x, y - 0.26, 0.1, '#ffc233');
     if (game.result !== 'clear') return;
     for (let k = 0; k < 4; k++)

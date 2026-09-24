@@ -5,7 +5,7 @@ const DOWN = 3;
 /** ぼかした玉が重なった濃さがこれ以上のところを、液体の中とみなす */
 const EDGE = 120;
 
-export type Liquid = 'water' | 'lava';
+export type Liquid = 'water' | 'lava' | 'gas';
 
 /** その種類の粒がぼかし玉ごと収まる矩形(ピクセル、canvas の中に切り詰め)。粒がなければ null */
 export function liquidBox(
@@ -116,6 +116,14 @@ export class LiquidLayer {
           alpha = 150 + 80 * shade;
           if (y - top[x] < 2) [r, g, b, alpha] = [235, 250, 255, 250];
           else if (rim < 0.35) [r, g] = [r * 0.8, g * 0.85];
+        } else if (kind === 'gas') {
+          // 毒ガスは透けた緑のもや。渦のような濃淡をゆっくり流す
+          const swirl = noise(wx * 7 + now * 0.5, wy * 7 - now * 0.3);
+          r = 120 + 60 * swirl;
+          g = 200 + 40 * swirl;
+          b = 70 + 40 * swirl;
+          alpha = 120 + 70 * swirl;
+          if (rim < 0.3) [r, g, b] = [90, 160, 60];
         } else {
           // 表面は冷えて薄い黒い皮になり、細かい割れ目だけが光る。
           // 中は深いほど明るく、流れる明るい筋と、冷えかけた暗い斑が混ざる
