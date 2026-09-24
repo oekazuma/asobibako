@@ -34,8 +34,11 @@ export const CATCH_R = 0.1;
 export const FUSE_MIN = 3.5;
 export const FUSE_MAX = 9;
 
-/** 熱いほど速くたまる。危ない爆弾ほど持っていたくなるのがこのゲームの誘惑 */
-const FILL_BASE = 0.07;
+/**
+ * 熱いほど速くたまる。危ない爆弾ほど持っていたくなるのがこのゲームの誘惑。
+ * いちばん長い導火線の爆弾を爆発まで持っても満タンに届かない速さにし、持ち続けるだけで勝てないようにする
+ */
+const FILL_BASE = 0.045;
 const FILL_HOT = 2;
 const FRICTION = 3;
 const MAX_SPEED = 5;
