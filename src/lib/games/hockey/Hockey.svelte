@@ -58,6 +58,7 @@
   };
 
   function ring() {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     place(ringEl, game.puck.x, game.puck.y);
     ringEl.animate(
       [
