@@ -13,7 +13,7 @@ export function seeded(seed: number) {
   };
 }
 
-function texture(c: HTMLCanvasElement, color: boolean, repeat: boolean) {
+export function texture(c: HTMLCanvasElement, color: boolean, repeat: boolean) {
   const t = new THREE.CanvasTexture(c);
   if (color) t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 8;
@@ -21,7 +21,7 @@ function texture(c: HTMLCanvasElement, color: boolean, repeat: boolean) {
   return t;
 }
 
-function canvas(w: number, h: number, draw: (g: CanvasRenderingContext2D) => void) {
+export function canvas(w: number, h: number, draw: (g: CanvasRenderingContext2D) => void) {
   const c = document.createElement('canvas');
   c.width = w;
   c.height = h;
@@ -35,7 +35,7 @@ const cache = new Map<string, unknown>();
  * 大きな模様は描くのに数百 ms かかり、部屋と公園を行き来するたびに描き直すと画面が止まる。
  * 乱数の種が決まっていて毎回同じ絵なので、1 度描いたものを使い回す。scenes の release() が捨てないよう shared を付ける
  */
-function once<T extends object>(key: string, make: () => T): T {
+export function once<T extends object>(key: string, make: () => T): T {
   let v = cache.get(key) as T | undefined;
   if (!v) {
     v = make();
@@ -54,7 +54,7 @@ export function paint(w: number, h: number, draw: (g: CanvasRenderingContext2D) 
  * ぼやけた斑のむら。小さな乱数の格子を引き伸ばして重ねると、補間でなめらかな雲模様になる。
  * 壁のむら・芝の色むら・布の汚れの下地に使う
  */
-function mottle(
+export function mottle(
   g: CanvasRenderingContext2D,
   w: number,
   h: number,
@@ -69,20 +69,23 @@ function mottle(
     [9, 0.35],
     [23, 0.25]
   ]) {
-    const s = canvas(n, n, (m) => {
-      for (let y = 0; y < n; y++)
-        for (let x = 0; x < n; x++) {
-          m.fillStyle = rnd() < 0.5 ? dark : light;
-          m.globalAlpha = rnd() * a * k;
+    const cells = Array.from({ length: n * n }, () => [rnd() < 0.5 ? dark : light, rnd() * a * k] as const);
+    // 右端と下端に左端と上端の目を 1 列足し、画素の中心どうしで引き伸ばす。繰り返したときの継ぎ目で色がとばない
+    const s = canvas(n + 1, n + 1, (m) => {
+      for (let y = 0; y <= n; y++)
+        for (let x = 0; x <= n; x++) {
+          const [color, alpha] = cells[(y % n) * n + (x % n)];
+          m.fillStyle = color;
+          m.globalAlpha = alpha;
           m.fillRect(x, y, 1, 1);
         }
     });
-    g.drawImage(s, 0, 0, w, h);
+    g.drawImage(s, 0.5, 0.5, n, n, 0, 0, w, h);
   }
 }
 
 /** 画素ごとの細かいざらつき。k は強さ（0..255） */
-function grain(g: CanvasRenderingContext2D, w: number, h: number, rnd: () => number, k: number, stretchY = 1) {
+export function grain(g: CanvasRenderingContext2D, w: number, h: number, rnd: () => number, k: number, stretchY = 1) {
   const img = g.getImageData(0, 0, w, h);
   const d = img.data;
   let row: number[] = [];
@@ -100,17 +103,15 @@ function grain(g: CanvasRenderingContext2D, w: number, h: number, rnd: () => num
   g.putImageData(img, 0, 0);
 }
 
-/** 板張りの床。幅 0.15m の板が 8 枚で 1.2m 四方。板ごとに色とつやを少し変える */
-function drawPlanks() {
+/** 板張りの床。1.2m 四方に count 枚の板を並べる。板ごとに色とつやを少し変える */
+function drawPlanks(tones: string[], count = 8, S = 1024) {
   const rnd = seeded(7);
-  const S = 1024;
-  const w = S / 8;
-  const tones = ['#bb7c4b', '#b07043', '#c68a56', '#a8683c', '#c0834f', '#b57748'];
+  const w = S / count;
   const boards: { x: number; y: number; len: number; tone: string; gloss: number }[] = [];
-  for (let i = 0; i < 8; i++) {
-    let y = -rnd() * 700;
+  for (let i = 0; i < count; i++) {
+    let y = -rnd() * S * 0.7;
     while (y < S) {
-      const len = 420 + rnd() * 500;
+      const len = S * (0.41 + rnd() * 0.49);
       boards.push({ x: i * w, y, len, tone: tones[Math.floor(rnd() * tones.length)], gloss: rnd() });
       y += len;
     }
@@ -274,11 +275,11 @@ function drawLawn() {
   const S = 1024;
   return texture(
     canvas(S, S, (g) => {
-      g.fillStyle = '#548f33';
+      g.fillStyle = '#3f7d26';
       g.fillRect(0, 0, S, S);
-      mottle(g, S, S, rnd, '#3f7426', '#9cc45c');
-      const tones = ['#79b34c', '#4d8a2e', '#8fc25a', '#5d9838', '#a4c96a', '#44802a'];
-      for (let i = 0; i < 26000; i++) {
+      mottle(g, S, S, rnd, '#2c6118', '#7fb247');
+      const tones = ['#63a03a', '#3d7a22', '#77b049', '#4a8a2c', '#8cbd58', '#346e1d'];
+      for (let i = 0; i < 42000; i++) {
         g.strokeStyle = tones[i % tones.length];
         g.globalAlpha = 0.5 + rnd() * 0.5;
         g.lineWidth = 1 + rnd() * 1.5;
@@ -353,7 +354,10 @@ function drawSiding() {
   );
 }
 
-export const planks = () => once('planks', drawPlanks);
+/** 赤みのある深いオレンジの木。参考にしたゲームの床の色に寄せる */
+const WARM = ['#b86a36', '#a95e2e', '#c4783f', '#9e5628', '#bd713a', '#b06533'];
+export const planks = (tones = WARM, count = 8, size = 1024) =>
+  once(`planks:${tones.join()}:${count}`, () => drawPlanks(tones, count, size));
 export const rug = () => once('rug', drawRug);
 export const fabric = (seed = 3) => once(`fabric:${seed}`, () => drawFabric(seed));
 export const plaster = () => once('plaster', drawPlaster);

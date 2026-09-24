@@ -44,7 +44,8 @@
   /** 犬はリードで道をおさんぽして公園へ、猫はそのまま公園へ。つかれているときは goPark がことわる */
   function walk(s: Session) {
     if (s.scene !== 'room') return s.goHome();
-    if (kind === 'dog' && pet && pet.stats.energy >= SLEEPY && !s.asleep) return s.start(new WalkPlay());
+    if (kind === 'dog' && pet && pet.stats.energy >= SLEEPY && !s.asleep)
+      return s.start(new WalkPlay(), 'おさんぽに いくよ');
     s.goPark();
   }
 
@@ -64,11 +65,11 @@
         session = s;
         resize();
         // 1 匹目はふれあいひろばでえらぶ
-        if (!s.current) s.visit(new Plaza());
+        if (!s.current) s.visit(new Plaza(), 'ふれあいひろばへ いくよ');
         stop = animate((dt) => {
           s!.frame(dt);
           // 最初の数フレームはシェーダーの準備で止まりがちなので、落ち着いてから外す
-          if (loading && ++frames > 3) loading = false;
+          if (loading && !s!.moving && ++frames > 3) loading = false;
         });
       });
     });
@@ -136,6 +137,8 @@
   {/if}
   {#if loading}
     <Loading />
+  {:else if session?.moving}
+    <Loading title="いどうちゅう…" note={session.moving} />
   {/if}
 </div>
 

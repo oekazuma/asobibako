@@ -100,6 +100,90 @@ describe('pet-house behavior', () => {
     expect(actions).toContain('pounce');
   });
 
+  for (const [how, v] of [
+    ['転がした', { x: 0.2, y: 0, z: -1.6 }],
+    ['床に置いた', { x: 0, y: 0, z: 0 }]
+  ] as const) {
+    it(`${how}ねずみを猫が追い、身をかがめて前足でちょいちょいしてから飛びつく`, () => {
+      const s = setup(['mike'], 'room', [{ x: -0.9, z: -1.2 }]);
+      s.world.toy = throwToy('mouse', { x: 0.3, y: 0.03, z: 0.6 }, v);
+      const actions: string[] = [];
+      const events = run(s, 15, has('caught'), () => actions.push(s.actors[0].action));
+      expect(events).toContainEqual({ type: 'caught', petId: s.pets[0].id });
+      const paw = actions.indexOf('paw');
+      expect(actions.indexOf('pounce')).toBeGreaterThanOrEqual(0);
+      expect(actions.indexOf('pounce')).toBeLessThan(paw);
+    });
+  }
+
+  it('止めたねこじゃらしにも、少し身をかがめてから飛びつく', () => {
+    const s = setup(['mike'], 'room', [{ x: -0.8, z: -1 }]);
+    s.world.wand = { x: 0.3, z: 0, moving: true };
+    run(s, 0.1);
+    s.world.wand = { x: 0.3, z: 0, moving: false };
+    const actions: string[] = [];
+    const events = run(s, 10, has('caught'), () => actions.push(s.actors[0].action));
+    expect(events).toContainEqual({ type: 'caught', petId: s.pets[0].id });
+    expect(actions).toContain('down');
+    expect(actions).toContain('pounce');
+  });
+
+  it('高く持ち上げたねこじゃらしには、伸び上がって前足で打ち、跳びついて捕まえると噛む', () => {
+    const s = setup(['mike'], 'room', [{ x: -0.8, z: -1 }]);
+    const actions = new Set<string>();
+    const events = run(s, 20, has('caught'), (t) => {
+      s.world.wand = { x: 0.3 + Math.sin(t) * 0.05, y: 0.4, z: 0, moving: true };
+      actions.add(s.actors[0].action);
+    });
+    expect(events).toContainEqual({ type: 'caught', petId: s.pets[0].id });
+    expect(actions).toContain('jump');
+    expect(actions).not.toContain('pounce');
+    run(s, 0.2);
+    expect(['eat', 'roll']).toContain(s.actors[0].action);
+  });
+
+  it('犬はねこじゃらしに 1 度じゃれたら飽きる', () => {
+    const s = setup(['shiba'], 'room', [{ x: 0, z: 0 }]);
+    s.actors[0].wandPlay = true;
+    const actions: string[] = [];
+    run(s, 12, undefined, (t) => {
+      s.world.wand = { x: 0.3 + Math.sin(t * 2) * 0.2, z: 0.2, moving: true };
+      actions.push(s.actors[0].action);
+    });
+    expect(actions.filter((a, i) => a === 'paw' && actions[i - 1] !== 'paw')).toHaveLength(1);
+    expect(s.actors[0].wandPlay).toBe(false);
+  });
+
+  it('選んでいない子は、カメラのすぐ前に居座らない', () => {
+    const s = setup(['shiba', 'kuro', 'beagle'], 'room', [
+      { x: 0, z: -1 },
+      { x: 0, z: 0.8 },
+      { x: 0.5, z: 0.9 }
+    ]);
+    s.world.current = s.pets[0].id;
+    let near = 0;
+    let frames = 0;
+    run(s, 90, undefined, (t) => {
+      if (t < 10) return;
+      frames++;
+      for (const a of s.actors.slice(1)) if (a.z > ROOM.front.z - 0.4) near++;
+    });
+    expect(near / frames).toBeLessThan(0.05);
+  });
+
+  it('選んだ子を呼ぶと、front のそばのほかの子は場所をあける', () => {
+    const s = setup(['shiba', 'kuro'], 'room', [
+      { x: 0, z: -1.2 },
+      { x: 0.1, z: 0.85 }
+    ]);
+    s.world.current = s.pets[0].id;
+    const other = s.actors[1];
+    other.t = 30;
+    command(s.actors[0], s.pets[0], { type: 'call' });
+    run(s, 4);
+    expect(other.z).toBeLessThan(ROOM.front.z - 0.4);
+  });
+
   it('げんきが少ないとベッドへ行って寝て、起こすと起きる', () => {
     const s = setup(['saba']);
     s.pets[0].stats.energy = 10;

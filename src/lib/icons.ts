@@ -23,6 +23,20 @@ const WOOL =
   circle(7, 8.5, 3.3) + circle(12, 6.2, 3.6) + circle(17, 8.5, 3.3) + circle(5.8, 13, 3) + circle(18.2, 13, 3);
 const palm = 'M6.5 12.5h11v4.5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z';
 
+/** ななめ上から見た首輪。ふち線の太い輪に色の細い輪を重ね、白い縫い目の点線を入れる */
+const collar = (color: string): Layer[] => [
+  { d: ellipse(12, 9.5, 8.5, 4.2), stroke: LINE, width: 4.4 },
+  { d: ellipse(12, 9.5, 8.5, 4.2), stroke: color, width: 2.6 },
+  { d: 'M6 12.3l1.2.4M9.2 13.4l1.4.2M13.4 13.6l1.4-.2M16.8 12.7l1.2-.4', stroke: '#fff4dc', width: 0.8 },
+  { d: 'M12 13.8v1.4', stroke: LINE, width: 1.2 }
+];
+const BONE =
+  circle(8.2, 17.4, 1.5) +
+  circle(8.2, 19.8, 1.5) +
+  circle(15.8, 17.4, 1.5) +
+  circle(15.8, 19.8, 1.5) +
+  'M8.2 17.2h7.6v2.8H8.2z';
+
 /** 表情を重ねる前の、男の子と犬の顔 */
 const KID: Layer[] = [
   { d: circle(12, 12.5, 8.5), fill: SKIN },
@@ -434,6 +448,63 @@ export const ICONS = {
     { d: 'M3 7h18v3.5H3z', fill: '#ff8fa6', stroke: LINE, width: 1.4 },
     { d: 'M10.5 7h3v13.5h-3z', fill: '#ffc233' },
     { d: 'M12 7C9 2.5 5.5 4.5 8 7M12 7c3-4.5 6.5-2.5 4 0', stroke: LINE, width: 1.4 }
+  ],
+  'collar-red': [
+    ...collar('#e8414f'),
+    { d: circle(12, 18.3, 3.3), fill: '#ffc233', stroke: LINE, width: 1.2 },
+    { d: 'M8.9 17.6h6.2M12 19.6v2', stroke: LINE, width: 1 },
+    { d: 'M10.6 16.6a1.6 1.6 0 0 1 1.2-.8', stroke: '#fff', width: 0.9 }
+  ],
+  'collar-blue': [...collar('#3b82e0'), { d: BONE, stroke: LINE, width: 2.4 }, { d: BONE, fill: '#ffc233' }],
+  ribbon: [
+    {
+      d: 'M11 12.5l-4.2 8.3 2.4-.5 1.1 2.1 2.7-9zM13 12.5l4.2 8.3-2.4-.5-1.1 2.1-2.7-9z',
+      fill: '#ff5fa2',
+      stroke: LINE,
+      width: 1.2
+    },
+    {
+      d: 'M12 11C9 6.5 2.5 5 2.5 9.8v2.4c0 4.8 6.5 3.3 9.5-1.2zM12 11c3-4.5 9.5-6 9.5-1.2v2.4c0 4.8-6.5 3.3-9.5-1.2z',
+      fill: '#ff85be',
+      stroke: LINE,
+      width: 1.4
+    },
+    { d: 'M5 8.6c1.2-.9 2.8-.6 4 .4', stroke: '#fff', width: 1 },
+    { d: ellipse(12, 11.2, 2.3, 2.7), fill: '#e8468c', stroke: LINE, width: 1.2 }
+  ],
+  bandana: [
+    // 結んだ端を右上に出して、布を首に巻いた形に見せる（ただの三角だとピザに見える）
+    {
+      d: 'M17.5 5.5c1.5-2.5 3.5-3 5-2.5-.5 1.8-2 3-4 3.2M18 7c1.8 0 3.4.8 4 2.3-1.8.6-3.4 0-4.3-1.3',
+      fill: '#e2404f',
+      stroke: LINE,
+      width: 1.2
+    },
+    { d: 'M2.5 7.5h17c-1.6 4.8-4.4 9.6-8.5 14-4.1-4.4-6.9-9.2-8.5-14z', fill: '#e2404f', stroke: LINE, width: 1.4 },
+    {
+      d:
+        circle(7.5, 10.5, 1.2) +
+        circle(14.5, 10.5, 1.2) +
+        circle(11, 15, 1.2) +
+        circle(11, 10.2, 0.7) +
+        circle(9.2, 13, 0.6) +
+        circle(12.8, 13, 0.6),
+      fill: '#fff6ea'
+    },
+    { d: 'M3 4.5h15a1.8 1.8 0 0 1 0 3.6H3a1.8 1.8 0 0 1 0-3.6z', fill: '#ff6b78', stroke: LINE, width: 1.4 },
+    { d: circle(18.3, 6.3, 1.5), fill: '#e2404f', stroke: LINE, width: 1.2 }
+  ],
+  hat: [
+    { d: 'M4.5 17a7.5 9.5 0 0 1 15 0z', fill: '#f5b731', stroke: LINE, width: 1.4 },
+    { d: 'M6.2 12.2h11.6', stroke: '#fff3dc', width: 1.8 },
+    { d: circle(12, 5, 2.5), fill: '#fff3e0', stroke: LINE, width: 1.2 },
+    {
+      d: 'M4.5 16h15a1.5 1.5 0 0 1 1.5 1.5v2a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 19.5v-2A1.5 1.5 0 0 1 4.5 16z',
+      fill: '#e8a21a',
+      stroke: LINE,
+      width: 1.4
+    },
+    { d: 'M6.5 17v3M9.5 17v3M12.5 17v3M15.5 17v3M18 17v3', stroke: '#c98710', width: 0.9 }
   ],
   moon: [
     { d: 'M15.5 3a8.5 8.5 0 1 0 5.5 13.5A7 7 0 0 1 15.5 3z', fill: '#ffd966', stroke: LINE, width: 1.4 },

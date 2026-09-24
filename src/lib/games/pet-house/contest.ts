@@ -78,7 +78,8 @@ export const topRank = (save: Save, id: ContestId): number => Math.min(save.cont
 
 /** 1 位の賞金。おみせは 200〜1200 コイン、おこづかいは 1 日 500 コイン。上の階級ほど大きく伸ばして目標にする */
 export const PRIZE = [600, 1200, 2000, 3500, 5000];
-const SHARE = [1, 0.5, 0.25, 0.1];
+// 2 位以下も配ると、勝てない上の階級に出つづけるだけで稼げてしまう。お金の本命は初めての 1 位にする
+const SHARE = [1, 0.25, 0.1, 0.05];
 
 export function prize(rank: number, place: number): number {
   return Math.round(PRIZE[rank] * (SHARE[place - 1] ?? SHARE[SHARE.length - 1]));
@@ -107,13 +108,13 @@ export function award(
  * チャンピオンは上手に遊んでやっと届く
  */
 export const RIVALS: Record<ContestId, [number, number][]> = {
-  // 45 秒で 4〜6 回投げられ、1 回は 50〜90 点ほど
+  // はじめては 45 秒で 6 回ほど投げて 220〜340 点。4〜5m 先で空中でとらせるのを覚えると 400〜540 点
   frisbee: [
-    [60, 150],
-    [140, 230],
-    [220, 310],
-    [300, 380],
-    [370, 450]
+    [100, 250],
+    [220, 370],
+    [320, 430],
+    [380, 480],
+    [440, 540]
   ],
   wand: [
     [3, 6],
@@ -201,9 +202,14 @@ export function scoreText(id: ContestId, score: number): string {
   return id === 'agility' ? `${score.toFixed(1)}びょう` : `${score}${contestOf(id).unit}`;
 }
 
-/** フリスビー 1 投の点。front からの距離（メートル）と、空中でとったか */
+/**
+ * フリスビー 1 投の点。front からの距離（メートル）と、空中でとったか。
+ * 空中のボーナスを一律にすると、すぐ前へ弱く投げて空中でとらせるのをくり返すのがいちばん稼げてしまう。
+ * 2m より先の距離に比例させ、遠くで空中でとらせるほど高くする
+ */
 export function throwPoints(meters: number, air: boolean): number {
-  return Math.round(Math.max(0, meters) * 10) + (air ? 30 : 0);
+  const m = Math.max(0, meters);
+  return Math.round(m * 10 + (air ? Math.max(0, m - 2) * 20 : 0));
 }
 
 /** しつけ大会の 1 問の点。できたら 10 点、言われてから 1 秒以内なら 20 点まで上がる */

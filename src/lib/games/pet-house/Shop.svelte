@@ -1,15 +1,33 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import Icon from '$lib/components/Icon.svelte';
+  import type { RoomLook } from './decor';
+  import DecorShop from './DecorShop.svelte';
   import { SHOP, type Save, type ShopItem } from './engine';
   import type { AccessoryId, FoodId, ToyId } from './types';
-  import { ACCESSORY_COLOR, ITEM_ICON } from './ui';
+  import { ITEM_ICON } from './ui';
 
-  let { save, onbuy }: { save: Save; onbuy: (id: ShopItem['id']) => void } = $props();
+  let {
+    save,
+    trying,
+    onbuy,
+    ontry,
+    onroom
+  }: {
+    save: Save;
+    /** 試着しているアクセサリー */
+    trying: AccessoryId | null;
+    onbuy: (id: ShopItem['id']) => void;
+    /** アクセサリーを見た目だけ着せる。null で元に戻す */
+    ontry: (acc: AccessoryId | null) => void;
+    onroom: (look: Partial<RoomLook>) => void;
+  } = $props();
 
   const TABS: { type: ShopItem['type']; label: string }[] = [
     { type: 'food', label: 'たべもの' },
     { type: 'toy', label: 'おもちゃ' },
-    { type: 'accessory', label: 'きるもの' }
+    { type: 'accessory', label: 'きるもの' },
+    { type: 'room', label: 'へや' }
   ];
   let tab = $state<ShopItem['type']>('food');
   const items = $derived(SHOP.filter((i) => i.type === tab));
@@ -18,40 +36,64 @@
     if (item.type === 'toy') return save.toys.includes(item.id as ToyId);
     return item.type === 'accessory' && save.accessories.includes(item.id as AccessoryId);
   }
+
+  // 閉じ方（✕・外を押す・パネルの切り替え）によらず、おみせを出たら試着を戻す
+  onDestroy(() => ontry(null));
 </script>
 
 <div class="tabs">
   {#each TABS as t (t.type)}
-    <button class="tab" class:on={tab === t.type} aria-pressed={tab === t.type} onclick={() => (tab = t.type)}>
+    <button
+      class="tab"
+      class:on={tab === t.type}
+      aria-pressed={tab === t.type}
+      onclick={() => ((tab = t.type), ontry(null))}
+    >
       {t.label}
     </button>
   {/each}
   <span class="wallet"><Icon name="coin" />{save.money}</span>
 </div>
-<div class="grid">
-  {#each items as item (item.id)}
-    {@const have = owned(item)}
-    <button class="pet-choice" disabled={have || save.money < item.price} onclick={() => onbuy(item.id)}>
-      {#if item.type === 'accessory'}
-        <span class="swatch" style:background={ACCESSORY_COLOR[item.id as AccessoryId]}></span>
+{#if tab === 'room'}
+  <DecorShop {save} {onbuy} {onroom} />
+{:else}
+  <div class="grid">
+    {#each items as item (item.id)}
+      {@const have = owned(item)}
+      {@const acc = item.type === 'accessory' ? (item.id as AccessoryId) : null}
+      {#if acc && acc === trying}
+        <!-- 子どもがまちがえて買わないよう、1 回目は試着だけにして、買うのはこのボタン -->
+        <div class="pet-choice on">
+          <Icon name={acc} size="40px" />
+          <span class="name">{item.name}</span>
+          <button class="pill p2 buy" disabled={save.money < item.price} onclick={() => onbuy(item.id)}>
+            <Icon name="coin" />{item.price} かう
+          </button>
+        </div>
       {:else}
-        <Icon name={ITEM_ICON[item.id as FoodId | ToyId]} size="40px" />
+        <button
+          class="pet-choice"
+          disabled={have || (!acc && save.money < item.price)}
+          onclick={() => (acc ? ontry(acc) : onbuy(item.id))}
+        >
+          <Icon name={acc ?? ITEM_ICON[item.id as FoodId | ToyId]} size="40px" />
+          <span class="name">{item.name}{item.count ? ` ${item.count}こ` : ''}</span>
+          {#if item.kind}
+            <span class="for"><Icon name={item.kind} />{item.kind === 'dog' ? 'いぬ' : 'ねこ'}むけ</span>
+          {/if}
+          {#if have}
+            <span class="price"><Icon name="check" />もってる</span>
+          {:else}
+            <span class="price"><Icon name="coin" />{item.price}</span>
+          {/if}
+          {#if item.type === 'food'}
+            <span class="stock">いま {save.food[item.id as FoodId]}こ</span>
+          {/if}
+        </button>
       {/if}
-      <span class="name">{item.name}{item.count ? ` ${item.count}こ` : ''}</span>
-      {#if item.kind}
-        <span class="for"><Icon name={item.kind} />{item.kind === 'dog' ? 'いぬ' : 'ねこ'}むけ</span>
-      {/if}
-      {#if have}
-        <span class="price"><Icon name="check" />もってる</span>
-      {:else}
-        <span class="price"><Icon name="coin" />{item.price}</span>
-      {/if}
-      {#if item.type === 'food'}
-        <span class="stock">いま {save.food[item.id as FoodId]}こ</span>
-      {/if}
-    </button>
-  {/each}
-</div>
+    {/each}
+  </div>
+{/if}
 
 <style>
   .tabs {
@@ -92,13 +134,6 @@
     gap: 12px;
   }
 
-  .swatch {
-    width: 40px;
-    aspect-ratio: 1;
-    border: 3px solid var(--line);
-    border-radius: 50%;
-  }
-
   /* 分かち書きの空白でだけ折り返す（「おもち / ゃ」のように語の途中で割らない） */
   .name {
     font-size: 15px;
@@ -113,6 +148,15 @@
     gap: 2px;
     color: var(--line-soft);
     font-size: 12px;
+  }
+
+  .buy {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    font-size: 16px;
+    white-space: nowrap;
   }
 
   .price {

@@ -7,6 +7,7 @@ import {
   buy,
   catchUp,
   eat,
+  findPresent,
   FLOOR,
   hearts,
   loadSave,
@@ -19,7 +20,6 @@ import {
   tick,
   trickChance,
   TRICKS,
-  walkReward,
   wash,
   writePhotos,
   writeSave,
@@ -162,13 +162,17 @@ describe('pet-house engine', () => {
     expect(throws).toBeLessThanOrEqual(20);
   });
 
-  it('なでるたびに少しずつ増え、ハート 1 つは数分のなでで届く', () => {
+  it('なでるたびに少しずつ増え、最初のハートは 40 秒ほど、次からはゆっくり', () => {
     const { pet } = withPet();
-    stroke(pet, 60);
+    stroke(pet, 20);
     expect(hearts(pet)).toBe(0);
     expect(pet.love).toBeGreaterThan(0);
-    stroke(pet, 120);
+    stroke(pet, 20);
     expect(hearts(pet)).toBe(1);
+    stroke(pet, 100);
+    expect(hearts(pet)).toBe(1);
+    stroke(pet, 25);
+    expect(hearts(pet)).toBe(2);
   });
 
   it('自分の種類のごはんがいちばんおなかにたまる', () => {
@@ -207,8 +211,24 @@ describe('pet-house engine', () => {
     expect(pet.love).toBeLessThan(love + 0.3);
   });
 
-  it('おさんぽのプレゼントはお金か食べもの', () => {
-    expect(walkReward(() => 0)).toEqual({ money: 100 });
-    expect(walkReward(() => 0.9)).toMatchObject({ count: expect.any(Number) });
+  it('プレゼントはごはん・おやつが中心で、コインは少し、まれにおみせの品がただで出る', () => {
+    const seq =
+      (...xs: number[]) =>
+      () =>
+        xs.shift() ?? 0;
+    const { save } = withPet();
+    const money = save.money;
+    expect(findPresent(save, seq(0.9, 0, 0.9, 0.9))).toEqual({ food: 'dogfood', count: 3 });
+    expect(findPresent(save, seq(0.9, 0, 0.1, 0))).toEqual({ food: 'treat', count: 2 });
+    expect(save.food).toMatchObject({ dogfood: 8, treat: 5 });
+    expect(findPresent(save, seq(0.1, 0))).toEqual({ money: 30 });
+    expect(save.money).toBe(money + 30);
+    // 犬だけなら猫のおもちゃは出ない。持っていないものから選ぶ
+    expect(findPresent(save, seq(0, 0))).toMatchObject({ item: { id: 'frisbee' } });
+    expect(save.toys).toContain('frisbee');
+    for (let i = 0; i < 10; i++) findPresent(save, seq(0, 0));
+    expect(save.accessories).toHaveLength(5);
+    expect(save.toys).not.toContain('mouse');
+    expect(findPresent(save, seq(0, 0))).toEqual({ money: 150 });
   });
 });

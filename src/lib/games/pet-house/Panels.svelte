@@ -19,7 +19,7 @@
 
   function enter(id: ContestId, rank: number) {
     panel = null;
-    session.start(new ContestPlay(id, rank));
+    session.start(new ContestPlay(id, rank), 'コンテストの かいじょうへ いくよ');
   }
 
   /** ペットに何かさせたら、シートを閉じて 3D の様子を見せる */
@@ -46,7 +46,13 @@
   </Sheet>
 {:else if panel === 'shop'}
   <Sheet title="おみせ" onclose={close}>
-    <Shop save={session.save} onbuy={(id) => session.buy(id)} />
+    <Shop
+      save={session.save}
+      trying={session.trying}
+      onbuy={(id) => session.buy(id)}
+      ontry={(acc) => session.tryOn(acc)}
+      onroom={(look) => session.redecorate(look)}
+    />
   </Sheet>
 {:else if panel === 'album'}
   <Sheet title="アルバム" onclose={close}>
@@ -66,7 +72,7 @@
       onname={(id, name, calls) => session.setName(id, name, calls)}
       onadopt={() => {
         close();
-        session.visit(new Plaza());
+        session.visit(new Plaza(), 'ふれあいひろばへ いくよ');
       }}
     />
   </Sheet>

@@ -27,6 +27,8 @@ const CLOSE = 1.25;
 /** 寄り道する出来事までの、ペットの前の距離 */
 const REACH = 3.2;
 const DOGS: BreedId[] = ['shiba', 'beagle', 'poodle'];
+/** これより げんきが減ったら、ゆっくり歩いて「おうちへ かえろう」と声をかける（公園の中の声かけと同じ目安） */
+const WEARY = 15;
 
 type Mode = 'follow' | 'toSpot' | 'sniff' | 'pee' | 'poop' | 'greet' | 'arrive';
 
@@ -45,6 +47,7 @@ interface Npc {
  */
 export class WalkPlay implements Activity {
   readonly drives = true;
+  readonly awakeOnly = true;
   meters = $state(0);
   /** ひろっていないうんちがある */
   poop = $state(false);
@@ -68,6 +71,7 @@ export class WalkPlay implements Activity {
   #taut = false;
   #cheered = false;
   #met = 0;
+  #wearySaid = -Infinity;
   readonly #v = new Vector3();
 
   enter(host: ActivityHost): void {
@@ -78,6 +82,8 @@ export class WalkPlay implements Activity {
       layout: STREET,
       follow: FOLLOW,
       outdoor: true,
+      // 長い道では、公園の広さに合わせた霧だと向かいの家並みまでかすむ
+      fog: { near: 22, far: 58 },
       build: () => (this.#street = buildStreet(this.#stops, host.world.camera))
     });
     this.#stops.forEach((s, i) => s.kind === 'present' && host.view.presents.push({ id: i + 1, x: s.x, z: s.z }));
@@ -117,6 +123,13 @@ export class WalkPlay implements Activity {
     const mode = this.#mode;
     let want = f && (mode === 'follow' || mode === 'toSpot' || mode === 'sniff') ? WALK : 0;
     if (mode !== 'follow' && hand.z - a.z < CLOSE) want = 0;
+    if (this.#host.pet.stats.energy < WEARY) {
+      want *= 0.5;
+      if (this.#clock - this.#wearySaid > 10) {
+        this.#wearySaid = this.#clock;
+        this.#host.say('つかれたみたい。おうちへ かえろう', 4);
+      }
+    }
     // ひろわずに通りすぎたら声をかけ、カメラの後ろへ消えたら片づいたことにする（止めてしまうと先へ進めなくなる子がいる）
     const dung = this.#dung;
     if (dung && hand.z < dung.z - 0.3 && this.#clock > this.#nag) {
@@ -149,7 +162,7 @@ export class WalkPlay implements Activity {
     const host = this.#host;
     const hand = this.#hand;
     const s = this.#spot;
-    a.wag = 0.8;
+    a.wag = host.pet.stats.energy < WEARY ? 0.2 : 0.8;
     a.look = 0;
     switch (this.#mode) {
       case 'follow': {
@@ -264,7 +277,8 @@ export class WalkPlay implements Activity {
       this.#done.push(stop);
       const breed = DOGS.filter((b) => b !== host.pet.breed)[this.#met++ % 2];
       const model = createPet(breed, graphics.quality);
-      this.#street?.group.add(model.group);
+      // 道の group に入れると、場面の片付け（release）が全ペット共有の毛の材質と形まで捨ててしまう
+      host.world.scene.add(model.group);
       this.#npc = { model, breed, x: 0.4, z: stop.z - 5, heading: 0, state: 'come' };
     }
     const n = this.#npc;
@@ -369,7 +383,7 @@ export class WalkPlay implements Activity {
     this.#street?.clearPoop();
     this.#dung = null;
     this.poop = false;
-    stroke(host.pet, 20);
+    stroke(host.pet, 5);
     host.changed();
     const [x, y] = host.world.project(dung.x, 0.1, dung.z);
     host.fx.sparkle(x, y, 5);

@@ -34,8 +34,9 @@ export class Plaza implements Visit {
 
   #host!: SceneHost;
   #stage = plazaLayout();
-  /** think に渡す置き場所。おもちゃを持ってくる front だけを寄った子の前にする（カメラは stage と共有） */
-  #brain: Layout = { ...this.#stage, front: { ...this.#stage.front } };
+  #cam = { ...this.#stage.camera };
+  /** think に渡す置き場所。おもちゃを持ってくる front を寄った子の前にし、ペットが見上げる camera をいまのカメラにする */
+  #brain: Layout = { ...this.#stage, front: { ...this.#stage.front }, camera: this.#cam };
   #pets: Pet[] = BREED_IDS.map((breed) => ({
     id: idOf(breed),
     breed,
@@ -46,19 +47,19 @@ export class Plaza implements Visit {
     accessory: null
   }));
   #actors = this.#pets.map((p, i) => createActor(p, START[i]));
-  #cam = { ...this.#stage.camera };
   #finger: { id: number; x: number; y: number; rub: number; mode: 'rub' | 'floor' } | null = null;
   #wand = { x: 0, z: 0, tx: 0, tz: 0, on: false };
   #timers = { heart: 0, purr: 0, bark: 2, visit: 5, frolic: 3 };
   #pair: { a: Actor; b: Actor; t: number; on: boolean } | null = null;
+  /** 覚えたときの鳴き声。「おぼえた」の音と重ならないよう少し遅らせる */
+  #yelp: { t: number; breed: BreedId } | null = null;
 
   enter(host: SceneHost): void {
     this.#host = host;
     host.enter({
       id: 'plaza',
       layout: this.#stage,
-      // カメラはこのモードが stage.camera に書く。world3d の追いかけは効かないようにしておく
-      follow: { x: 50, zMin: -50, zMax: 50, near: -50, rate: 1000, shadow: 4.8 },
+      follow: { camera: (dt) => this.#aim(dt), shadow: 4.8 },
       outdoor: true,
       build: buildPlaza
     });
@@ -129,7 +130,11 @@ export class Plaza implements Visit {
     this.#rub(dt);
     this.#social(dt);
     for (const e of think(this.#actors, this.#pets, { ...view, layout: this.#brain }, dt, Math.random)) this.#event(e);
-    this.#aim(dt);
+    const y = this.#yelp;
+    if (y && (y.t -= dt) <= 0) {
+      this.#yelp = null;
+      voice(y.breed);
+    }
   }
 
   #event(e: BehaviorEvent) {
@@ -151,7 +156,7 @@ export class Plaza implements Visit {
 
   // --- カメラ ---
 
-  #aim(dt: number) {
+  #aim(dt: number): Layout['camera'] {
     const [w, h] = this.#host.size;
     const narrow = w / h < 0.6;
     const me = this.#me();
@@ -173,12 +178,7 @@ export class Plaza implements Visit {
     const k = this.#host.view.wand ? 0 : 1 - Math.exp(-3 * dt);
     const c = this.#cam;
     for (const key of ['x', 'y', 'z', 'lookX', 'lookY', 'lookZ', 'fov'] as const) c[key] += (want[key] - c[key]) * k;
-    Object.assign(this.#stage.camera, c);
-    const cam = this.#host.world.camera;
-    if (Math.abs(cam.fov - c.fov) > 0.01) {
-      cam.fov = c.fov;
-      cam.updateProjectionMatrix();
-    }
+    return c;
   }
 
   // --- 指 ---
@@ -365,7 +365,7 @@ export class Plaza implements Visit {
       fx.text('ん？', x, y, '#1f9bff', 40);
     } else {
       pose('happy', 2.2);
-      voice(breed);
+      this.#yelp = { t: 0.7, breed };
       fx.hearts(x, y, 5);
       fx.text('おぼえた！', x, y - 10, '#ff7a00', 38);
     }

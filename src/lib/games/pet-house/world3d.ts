@@ -1,13 +1,16 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import type { ActivityScene, Built, Follow } from './activity';
+import type { ActivityScene, Built, Follow, HeldCamera } from './activity';
 import type { Actor, Toy, WorldView } from './behavior';
 import type { Pet } from './engine';
 import { LAYOUTS, ROOM, type Layout } from './layout';
 import { graphics, type Quality } from '$lib/graphics.svelte';
+import { NATURAL_ROOM, type RoomLook } from './decor';
 import { createPet, type PetModel } from './models';
 import { bowl, brushModel, present, toyModel, wandModel } from './props';
-import { buildPark, buildRoom } from './scenes';
+import { buildRoom } from './scene-room';
+import { buildPark } from './scenes';
+import { createWand, stepWand, type Wand } from './wand';
 import type { Tool } from './session.svelte';
 import type { BaseScene, BreedId, ContestId, ToyId } from './types';
 
@@ -48,23 +51,28 @@ export class PetWorld {
   readonly #pets = new Map<string, PetView>();
   readonly #presents = new Map<number, THREE.Group>();
   readonly #wand = wandModel();
+  #wandRig: Wand | null = null;
   readonly #brush = brushModel();
   readonly #ring: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>;
   readonly #focus = new THREE.Vector3();
   #camZ = 0;
   readonly #ray = new THREE.Raycaster();
   readonly #v = new THREE.Vector3();
-  #follow: Follow = FOLLOW.room;
+  #follow: Follow | HeldCamera = FOLLOW.room;
   #layout: Layout = ROOM;
   #built: Built | null = null;
   /** 部屋の棚に飾るトロフィー。コンテストごとに、1 位をとった階級の数 */
   trophies: Partial<Record<ContestId, number>> = {};
+  room: RoomLook = NATURAL_ROOM;
   #bowls: { food: ReturnType<typeof bowl>; water: ReturnType<typeof bowl> } | null = null;
   #toy: { src: Toy; obj: THREE.Object3D } | null = null;
   #actors: Actor[] = [];
   #w = 1;
   #h = 1;
   #quality: Quality | null = null;
+  /** 絵を上へずらす割合（画面の高さに対して）。下をシートがふさいでも、試着したペットを上に見せる */
+  lift = 0;
+  #lifted = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -105,6 +113,7 @@ export class PetWorld {
     this.#h = h;
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
+    if (this.#lifted) this.camera.setViewOffset(w, h, 0, this.#lifted * h, w, h);
     this.camera.updateProjectionMatrix();
   }
 
@@ -126,7 +135,7 @@ export class PetWorld {
       typeof target !== 'string'
         ? target.build(SUN_DIR)
         : kind === 'room'
-          ? buildRoom(SUN_DIR, this.trophies)
+          ? buildRoom(SUN_DIR, this.trophies, this.room)
           : buildPark();
     this.scene.add(this.#built.group);
     const outdoor = typeof target === 'string' ? kind === 'park' : target.outdoor;
@@ -151,7 +160,8 @@ export class PetWorld {
       this.#sun.intensity = 3;
       this.#hemi.intensity = 0.7;
       // 遠くの家並みと木だけを空の色へかすませる。ペットのまわり（10m 以内）には掛からない
-      this.scene.fog = new THREE.Fog('#dbe9f2', 12, 42);
+      const fog = typeof target === 'string' ? undefined : target.fog;
+      this.scene.fog = new THREE.Fog('#dbe9f2', fog?.near ?? 12, fog?.far ?? 42);
     }
     const c = this.#layout.camera;
     this.camera.fov = c.fov;
@@ -159,6 +169,15 @@ export class PetWorld {
     this.#focus.set(this.#layout.front.x, 0, this.#layout.front.z);
     this.#camZ = c.z;
     this.#aim();
+  }
+
+  /** 部屋にいるときだけ、模様替えした見た目に組み直す。カメラ・ペット・お皿はそのまま */
+  refreshRoom(): void {
+    if (this.#layout !== ROOM || !this.#built) return;
+    this.#built.dispose();
+    this.#built.group.removeFromParent();
+    this.#built = buildRoom(SUN_DIR, this.trophies, this.room);
+    this.scene.add(this.#built.group);
   }
 
   /** 設定の画質を、画面の細かさ・影・毛並みに映す。設定の画面で変えたらすぐ効くよう毎フレーム見る */
@@ -244,7 +263,8 @@ export class PetWorld {
     const me = actors.find((a) => a.petId === current);
     this.#ring.visible = !!me && actors.length > 1;
     if (me) {
-      this.#ring.position.set(me.x, 0.008, me.z);
+      // ラグの上面（0.008）と同じ高さだとちらつく
+      this.#ring.position.set(me.x, 0.012, me.z);
       this.#ring.material.opacity = 0.45 + 0.15 * Math.sin(t * 3);
     }
 
@@ -258,9 +278,18 @@ export class PetWorld {
     const wand = view.wand;
     this.#wand.group.visible = !!wand;
     if (wand) {
-      const y = wand.moving ? 0.04 + 0.05 * Math.abs(Math.sin(t * 9)) : 0.1 + 0.02 * Math.sin(t * 3);
-      this.#wand.setTip(wand.x, y, wand.z);
-    }
+      // 揺れを持たずに先の位置だけ渡すモードもあるので、そのときはここで揺らす
+      let rig = wand.rig;
+      if (!rig) {
+        const at = { x: wand.x, y: wand.y ?? 0, z: wand.z };
+        rig = this.#wandRig ??= createWand(at);
+        stepWand(rig, at, dt);
+      }
+      // 竿の手元は、竿の先と同じ奥行きで画面の上の外に置く。どの場面のカメラでも、奥へ振っても根元が写らない
+      const grip = this.#v.set(rig.hand.x, rig.hand.y, rig.hand.z).project(this.camera);
+      grip.set(grip.x * 0.6 + 0.35, 1.35, grip.z).unproject(this.camera);
+      this.#wand.draw(rig, t, grip);
+    } else this.#wandRig = null;
     if (tool !== 'brush') this.#brush.visible = false;
 
     for (const p of view.presents) {
@@ -285,27 +314,51 @@ export class PetWorld {
     // ねこじゃらしを振っているあいだは止める。カメラが動くと、止めた指の下の床の点まで流れてしまう
     this.#built?.update?.(dt, t);
     const f = this.#follow;
-    const k = view.wand ? 0 : 1 - Math.exp(-f.rate * dt);
-    if (me) this.#focus.lerp(this.#v.set(me.x, 0, me.z), k);
-    const c = this.#layout.camera;
-    let z = c.z + this.#focus.z - this.#layout.front.z;
-    for (const a of actors) z = Math.max(z, a.z + f.near);
-    this.#camZ += (z - this.#camZ) * k;
-    this.#aim();
+    if ('rate' in f) {
+      const k = view.wand ? 0 : 1 - Math.exp(-f.rate * dt);
+      if (me) this.#focus.lerp(this.#v.set(me.x, 0, me.z), k);
+      const c = this.#layout.camera;
+      let z = c.z + this.#focus.z - this.#layout.front.z;
+      for (const a of actors) z = Math.max(z, a.z + f.near);
+      this.#camZ += (z - this.#camZ) * k;
+    }
+    this.#aim(dt);
+    const lifted = THREE.MathUtils.damp(this.#lifted, this.lift, 6, dt);
+    if (lifted !== this.#lifted) {
+      this.#lifted = Math.abs(lifted - this.lift) < 1e-3 ? this.lift : lifted;
+      // 見る範囲を下へずらすので、床をさわった点の変換（raycast）もこのずれのまま合う
+      if (this.#lifted) this.camera.setViewOffset(this.#w, this.#h, 0, this.#lifted * this.#h, this.#w, this.#h);
+      else this.camera.clearViewOffset();
+    }
   }
 
-  #aim() {
-    const c = this.#layout.camera;
+  #aim(dt = 0) {
     const f = this.#follow;
+    if ('camera' in f) this.#hold(f.camera(dt));
+    else this.#chase(f);
+    // 影の範囲はペットのまわりだけにして、影の 1 画素を細かく保つ
+    this.#sun.target.position.set(this.#focus.x, 0, this.#focus.z - 0.4);
+    this.#sun.position.copy(this.#sun.target.position).addScaledVector(SUN_DIR, 6);
+  }
+
+  #hold(c: Layout['camera']) {
+    this.camera.position.set(c.x, c.y, c.z);
+    this.camera.lookAt(c.lookX, c.lookY, c.lookZ);
+    if (this.camera.fov !== c.fov) {
+      this.camera.fov = c.fov;
+      this.camera.updateProjectionMatrix();
+    }
+    this.#focus.set(c.lookX, 0, c.lookZ);
+  }
+
+  #chase(f: Follow) {
+    const c = this.#layout.camera;
     const front = this.#layout.front;
     const fx = this.#focus.x;
     const dz = this.#focus.z - front.z;
     const z = THREE.MathUtils.clamp(this.#camZ, f.zMin, f.zMax);
     this.camera.position.set(THREE.MathUtils.clamp(c.x + fx - front.x, -f.x, f.x), c.y, z);
     this.camera.lookAt(c.lookX + fx - front.x, c.lookY, c.lookZ + dz);
-    // 影の範囲はペットのまわりだけにして、影の 1 画素を細かく保つ
-    this.#sun.target.position.set(fx, 0, this.#focus.z - 0.4);
-    this.#sun.position.copy(this.#sun.target.position).addScaledVector(SUN_DIR, 6);
   }
 
   #dropToy() {
@@ -367,6 +420,13 @@ export class PetWorld {
     // 地平線より上を指すと、遠すぎる点か交わらない。どちらも床の点としては使えない
     if (!hit || hit.distanceTo(this.camera.position) > 25) return null;
     return { x: hit.x, z: hit.z };
+  }
+
+  /** 指の下の、奥行き z に立てた面の点。ねこじゃらしをペットの顔の前で持ち上げるのに使う */
+  upright(px: number, py: number, z: number): { x: number; y: number; z: number } | null {
+    this.#ray.setFromCamera(new THREE.Vector2((px / this.#w) * 2 - 1, 1 - (py / this.#h) * 2), this.camera);
+    const hit = this.#ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), -z), this.#v);
+    return hit ? { x: hit.x, y: hit.y, z: hit.z } : null;
   }
 
   project(x: number, y: number, z: number): [number, number, number] {

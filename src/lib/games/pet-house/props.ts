@@ -1,5 +1,8 @@
 import * as THREE from 'three';
+import { furMaterial } from './fur';
+import { once, paint, seeded } from './textures';
 import type { ToyId } from './types';
+import { createWand, POM, type Wand } from './wand';
 
 /**
  * 部屋と公園に置く小物。単位はメートル。
@@ -198,44 +201,201 @@ export function toyModel(kind: ToyId): THREE.Object3D {
 }
 
 /**
- * ねこじゃらし。group はシーンの原点に置き、setTip にふさの位置（シーンの座標）を渡す。
- * 棒はふさから手前上へのび、画面の外で持っているように見せる
+ * ねこじゃらし。group はシーンの原点に置き、draw に wand.ts の揺れと竿の手元（grip）を渡す。
+ * 手元は画面の上の外に置き、細い竿を上から入れる（手前へのばすとカメラの前を太く横切る）。
+ * 竿の先から細いひもを垂らし、先に羽根を数枚とふわふわの房を付ける
  */
 export function wandModel() {
   const group = new THREE.Group();
-  const stick = mesh(cyl(0.006, 0.009, 1, 8), mat('#b9864f', { roughness: 0.55 }), 0, 0, 0, false);
+  const unit = cyl(1, 1, 1, 6);
+  const rodMat = mat('#2b2724', { roughness: 0.3, metalness: 0.15 });
+  const rod = Array.from({ length: ROD_SEGMENTS }, () => mesh(unit, rodMat));
+  const cord = Array.from({ length: POM }, () => mesh(unit, mat('#d8cfc2', { roughness: 0.9 })));
   const tuft = new THREE.Group();
-  const colors = ['#e59ab6', '#e8c35a', '#f2ede2'];
-  for (let i = 0; i < 9; i++) {
-    const a = (i / 9) * Math.PI * 2;
-    const f = mesh(
-      capsule(0.014, 0.06),
-      mat(colors[i % 3], { roughness: 1 }, { sheen: 1, sheenColor: new THREE.Color('#ffffff') }),
-      Math.cos(a) * 0.03,
-      -0.035,
-      Math.sin(a) * 0.03
-    );
-    f.rotation.set(Math.sin(a) * 0.8, 0, -Math.cos(a) * 0.8);
-    tuft.add(f);
-  }
-  tuft.add(mesh(sphere(0.02, 10, 8), mat('#d9789c', { roughness: 1 }), 0, 0, 0, false));
-  group.add(stick, tuft);
+  tuft.add(pom(), mesh(sphere(0.005, 10, 8), mat('#b9b4ad', { roughness: 0.3, metalness: 0.9 }), 0, 0.02, 0));
+  const kinds: Plume[] = ['pheasant', 'rose', 'guinea', 'pheasant', 'rose', 'guinea'];
+  const feathers = kinds.map((kind, i) => {
+    const holder = new THREE.Group();
+    holder.rotation.y = (i / kinds.length) * Math.PI * 2;
+    const f = new THREE.Mesh(featherGeometry(i % 2 ? 0.14 : 0.12), plume(kind));
+    holder.add(f);
+    tuft.add(holder);
+    return f;
+  });
+  group.add(...rod, ...cord, tuft);
 
-  const handle = new THREE.Vector3();
+  const grip = new THREE.Vector3();
+  const bend = new THREE.Vector3();
   const tip = new THREE.Vector3();
-  const up = new THREE.Vector3(0, 1, 0);
-  function setTip(x: number, y: number, z: number) {
-    tip.set(x, y, z);
-    tuft.position.set(x, y + 0.02, z);
-    handle.set(x * 0.6, y + 0.9, z + 0.8);
-    const dir = handle.clone().sub(tip);
-    const len = dir.length();
-    stick.scale.set(1, len, 1);
-    stick.position.copy(tip).addScaledVector(dir, 0.5);
-    stick.quaternion.setFromUnitVectors(up, dir.normalize());
+  const a = new THREE.Vector3();
+  const b = new THREE.Vector3();
+  const down = new THREE.Vector3(0, -1, 0);
+  const dir = new THREE.Vector3();
+  let spin = 0;
+  let last = 0;
+  function draw(w: Wand, t: number, at?: THREE.Vector3) {
+    const dt = Math.min(0.1, Math.max(0, t - last));
+    last = t;
+    const hand = w.hand;
+    if (at) grip.copy(at);
+    else grip.set(hand.x + 0.3, hand.y + 1.3, hand.z + 0.35);
+    // まっすぐな竿の 6 割の所を曲げの支点にし、しなって遅れた先（tip）まで 2 次曲線でつなぐ
+    bend
+      .set(hand.x, hand.y - 0.05, hand.z)
+      .sub(grip)
+      .multiplyScalar(0.55)
+      .add(grip);
+    tip.set(w.tip.x, w.tip.y, w.tip.z);
+    for (let i = 0; i < ROD_SEGMENTS; i++) {
+      quad(a, i / ROD_SEGMENTS, grip, bend, tip);
+      quad(b, (i + 1) / ROD_SEGMENTS, grip, bend, tip);
+      span(rod[i], a, b, 0.0055 - (0.0032 * i) / ROD_SEGMENTS);
+    }
+    for (let i = 0; i < POM; i++) {
+      const p = w.nodes[i];
+      const q = w.nodes[i + 1];
+      span(cord[i], a.set(p.x, p.y, p.z), b.set(q.x, q.y, q.z), 0.0011);
+    }
+    const p = w.nodes[POM];
+    const q = w.nodes[POM + 1];
+    tuft.position.set(p.x, p.y, p.z);
+    dir.set(q.x - p.x, q.y - p.y, q.z - p.z).normalize();
+    tuft.quaternion.setFromUnitVectors(down, dir);
+    // 羽根の房は振るとくるくる回り、1 枚ずつ風にあおられてふるえる
+    const gust = Math.min(1, w.speed / 1.5);
+    spin += dt * w.speed * 5;
+    tuft.rotateY(spin);
+    feathers.forEach((f, i) => {
+      const ph = i * 1.7;
+      f.rotation.x = -0.14 - gust * 0.25 - Math.sin(t * (9 + i * 1.3) + ph) * (0.03 + 0.3 * gust);
+      f.rotation.z = Math.sin(t * (6 + i) + ph * 2) * (0.02 + 0.2 * gust);
+    });
   }
-  setTip(0, 0.1, 0);
-  return { group, setTip };
+  draw(createWand({ x: 0, y: 0.1, z: 0 }), 0);
+  return { group, draw };
+}
+
+const ROD_SEGMENTS = 14;
+const up = new THREE.Vector3(0, 1, 0);
+
+function quad(out: THREE.Vector3, s: number, p0: THREE.Vector3, p1: THREE.Vector3, p2: THREE.Vector3) {
+  const u = 1 - s;
+  return out.set(
+    u * u * p0.x + 2 * u * s * p1.x + s * s * p2.x,
+    u * u * p0.y + 2 * u * s * p1.y + s * s * p2.y,
+    u * u * p0.z + 2 * u * s * p1.z + s * s * p2.z
+  );
+}
+
+/** 半径 1・高さ 1 の円柱を a から b へ渡す */
+function span(m: THREE.Mesh, a: THREE.Vector3, b: THREE.Vector3, r: number) {
+  m.position.addVectors(a, b).multiplyScalar(0.5);
+  const d = b.clone().sub(a);
+  const len = d.length();
+  m.scale.set(r, Math.max(len, 1e-4), r);
+  if (len > 1e-6) m.quaternion.setFromUnitVectors(up, d.divideScalar(len));
+}
+
+/** 羽根 1 枚。付け根が原点で -y へのび、先ほど外へ反る */
+function featherGeometry(len: number) {
+  return geo(`feather:${len}`, () => {
+    const g = new THREE.PlaneGeometry(len * 0.32, len, 1, 8).translate(0, -len / 2, 0);
+    const pos = g.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const y = pos.getY(i);
+      pos.setZ(i, 1.6 * y * y);
+    }
+    g.computeVertexNormals();
+    return g;
+  });
+}
+
+type Plume = 'pheasant' | 'rose' | 'guinea';
+
+/** 羽根の絵。上が付け根（羽柄の綿毛）、下が羽先。羽枝を 1 本ずつ引き、ところどころ裂け目を入れる */
+function plume(kind: Plume) {
+  const map = once(`plume:${kind}`, () =>
+    paint(64, 256, (g) => {
+      const rnd = seeded(kind.length * 31 + 5);
+      const cx = 32;
+      for (let y = 2; y < 250; y += 1.1) {
+        const u = y / 256;
+        const half = 29 * Math.pow(Math.sin(Math.PI * (0.06 + 0.9 * u)), 0.55);
+        const down = u < 0.24;
+        for (const side of [-1, 1]) {
+          if (!down && rnd() < 0.05) continue;
+          const len = half * (0.85 + 0.2 * rnd());
+          const bar = Math.sin(y * (kind === 'pheasant' ? 0.16 : 0.1)) > 0.55;
+          g.strokeStyle = barb(kind, u, bar, rnd);
+          g.globalAlpha = down ? 0.35 : 0.8;
+          g.lineWidth = down ? 0.8 : 1.1;
+          g.beginPath();
+          g.moveTo(cx, y);
+          const sag = down ? 10 * (rnd() - 0.5) : 0;
+          g.quadraticCurveTo(cx + side * len * 0.5, y + len * 0.15 + sag, cx + side * len, y + len * 0.5 + sag);
+          g.stroke();
+          if (kind === 'guinea' && !down && rnd() < 0.12) {
+            g.fillStyle = '#f4f1ea';
+            g.globalAlpha = 0.9;
+            g.beginPath();
+            g.arc(cx + side * len * (0.3 + 0.5 * rnd()), y + len * 0.3, 1.6, 0, Math.PI * 2);
+            g.fill();
+          }
+        }
+      }
+      g.globalAlpha = 1;
+      g.strokeStyle = kind === 'rose' ? '#f6d9e2' : '#efe3cf';
+      g.lineWidth = 1.8;
+      g.beginPath();
+      g.moveTo(cx, 0);
+      g.lineTo(cx, 252);
+      g.stroke();
+    })
+  );
+  return new THREE.MeshStandardMaterial({
+    map,
+    side: THREE.DoubleSide,
+    alphaTest: 0.25,
+    alphaToCoverage: true,
+    roughness: 0.8
+  });
+}
+
+function barb(kind: Plume, u: number, bar: boolean, rnd: () => number) {
+  const j = Math.round((rnd() - 0.5) * 12);
+  if (kind === 'pheasant') return bar ? `hsl(20 45% ${14 + j / 3}%)` : `hsl(${30 + j} 60% ${42 + u * 12}%)`;
+  if (kind === 'guinea') return `hsl(220 10% ${22 + j / 2}%)`;
+  return `hsl(${340 + j} ${70 - u * 20}% ${u < 0.24 ? 88 : 68 - u * 14}%)`;
+}
+
+/** 羽根の付け根を包むマラボーの房。ペットと同じ毛の殻を重ねて、ふわふわに見せる */
+function pom() {
+  const g = new THREE.Group();
+  const s = new THREE.SphereGeometry(0.016, 16, 12);
+  const n = s.attributes.position.count;
+  const color = new THREE.Color('#f8d3de');
+  s.setAttribute(
+    'color',
+    new THREE.BufferAttribute(
+      new Float32Array(n * 3).map((_, i) => color.toArray()[i % 3]),
+      3
+    )
+  );
+  s.setAttribute('furLen', new THREE.BufferAttribute(new Float32Array(n).fill(0.02), 1));
+  s.setAttribute(
+    'furComb',
+    new THREE.BufferAttribute(
+      new Float32Array(n * 3).map((_, i) => (i % 3 === 1 ? -0.7 : 0)),
+      3
+    )
+  );
+  const layers = 10;
+  for (let i = 0; i <= layers; i++) {
+    const m = new THREE.Mesh(s, furMaterial(i, layers, 0.0014));
+    m.castShadow = i === 0;
+    g.add(m);
+  }
+  return g;
 }
 
 /** プレゼント箱。原点は底の中心、0.2m 角 */

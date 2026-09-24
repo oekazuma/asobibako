@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { BREED_IDS, BREEDS } from './breeds';
+import { LOOKS } from './looks';
 import { FOAM_SPOTS, createPet } from './models';
+import { field } from './sculpt';
 import type { Quality } from '$lib/graphics.svelte';
 import type { AccessoryId, BreedId, PetAction } from './types';
 
@@ -104,6 +106,33 @@ describe('pet-house models', () => {
     }
     pet.setAccessory(null);
     expect(shown()).toHaveLength(0);
+  });
+
+  it.each(BREED_IDS)('%s のアクセサリーは描く物が 1〜3 個で形がこわれず、首に巻く物は体と同じ骨で曲がる', (id) => {
+    const pet = createPet(id);
+    const body = pet.group.getObjectsByProperty('isSkinnedMesh', true)[0] as THREE.SkinnedMesh;
+    for (const acc of ACCESSORIES) {
+      pet.setAccessory(acc);
+      const meshes = pet.group.getObjectsByProperty('name', 'accessory').find((a) => a.visible)!
+        .children as THREE.Mesh[];
+      expect(meshes.length, acc).toBeGreaterThanOrEqual(1);
+      expect(meshes.length, acc).toBeLessThanOrEqual(3);
+      for (const m of meshes) {
+        expect((m.geometry.attributes.position.array as Float32Array).every(Number.isFinite), acc).toBe(true);
+        if (acc !== 'hat') expect((m as THREE.SkinnedMesh).skeleton, acc).toBe(body.skeleton);
+      }
+    }
+  });
+
+  it.each(BREED_IDS)('%s のぼうしは耳に刺さらない', (id) => {
+    const pet = createPet(id);
+    pet.setAccessory('hat');
+    const ears = field(LOOKS[id].shapes.filter((s) => s.tag === 'ear'));
+    const hat = pet.group.getObjectsByProperty('name', 'accessory').find((a) => a.visible)!;
+    for (const m of hat.children as THREE.Mesh[]) {
+      const pos = m.geometry.attributes.position;
+      for (let i = 0; i < pos.count; i++) expect(ears(pos.getX(i), pos.getY(i), pos.getZ(i))).toBeGreaterThan(0);
+    }
   });
 
   it('mouth は頭の前にあり、首を下げると一緒に下がる。咥えたおもちゃは m の大きさのまま', () => {

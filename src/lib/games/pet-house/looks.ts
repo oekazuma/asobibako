@@ -47,9 +47,8 @@ export interface Look {
   /** p の場所の毛の長さ（fur.len に掛ける 0..2） */
   furLen: (p: V3, n: V3, tag: string) => number;
   paint: (p: V3, n: V3, tag: string) => string;
-  collar: { at: V3; r: number; tilt: number };
-  hat: V3;
-  ribbon: V3;
+  /** 首輪を巻く所（首の中心）と、首の付け根から頭への向き */
+  collar: { at: V3; axis: V3 };
   /** 肉球。左前足と左後ろ足の足先の中心と半径（右は x を反転）。前足を上げたときに見える */
   pads: { front: { at: V3; r: V3 }; hind: { at: V3; r: V3 }; color: string };
 }
@@ -202,12 +201,11 @@ function tailJoints(pts: V3[]) {
   return f;
 }
 
-/** 首輪は首の円すいの付け根から 4 割の所に、毛に少し沈むくらいの大きさで巻く */
-function collarOn(shapes: Part[], fur: number): Look['collar'] {
+/** 首輪は首の円すいの付け根から 55% の所（あごのすぐ下）に巻く */
+function collarOn(shapes: Part[]): Look['collar'] {
   const neck = shapes.find((s) => s.tag === 'neck')!;
-  const { b, ra, rb } = neck.cone!;
-  const at = lerp3(neck.a, b, 0.4);
-  return { at, r: ra + (rb - ra) * 0.4 + fur * 0.9, tilt: Math.atan2(b[2] - neck.a[2], b[1] - neck.a[1]) };
+  const b = neck.cone!.b;
+  return { at: lerp3(neck.a, b, 0.55), axis: [b[0] - neck.a[0], b[1] - neck.a[1], b[2] - neck.a[2]] };
 }
 
 /**
@@ -408,9 +406,7 @@ function dog(b: DogBuild): Look {
     fur: b.fur,
     furLen: wrap(b.furLen),
     paint: wrap(b.paint),
-    collar: collarOn(body, b.fur.len + (detail?.amp ?? 0)),
-    hat: H([0, 1.36, 0.62]),
-    ribbon: H([-0.1, 1.31, 0.7]),
+    collar: collarOn(body),
     pads: {
       front: { at: [0.13, pawR[1], 0.46 * k], r: pawR },
       hind: { at: [0.12, pawR[1], -0.42 * k], r: pawR },
@@ -659,9 +655,7 @@ function cat(b: CatBuild): Look {
     fur: b.fur,
     furLen: wrap(b.furLen),
     paint: wrap(b.paint),
-    collar: collarOn(body, b.fur.len),
-    hat: H([0, 1.26, 0.77]),
-    ribbon: H([-0.1, 1.21, 0.82]),
+    collar: collarOn(body),
     pads: {
       front: { at: [0.11, pawR[1], 0.575 * k], r: pawR },
       hind: { at: [0.1, pawR[1], -0.535 * k], r: pawR },

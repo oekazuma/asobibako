@@ -5,7 +5,6 @@
   import { canListen } from './listen';
   import NameCall from './NameCall.svelte';
   import type { AccessoryId } from './types';
-  import { ACCESSORY_COLOR } from './ui';
 
   let {
     save,
@@ -96,7 +95,7 @@
     </button>
     {#each save.accessories as acc (acc)}
       <button class="pet-choice" class:on={pet.accessory === acc} onclick={() => onwear(pet.id, acc)}>
-        <span class="swatch" style:background={ACCESSORY_COLOR[acc]}></span><span>{accName(acc)}</span>
+        <Icon name={acc} size="36px" /><span>{accName(acc)}</span>
       </button>
     {/each}
   </div>
@@ -170,12 +169,5 @@
     touch-action: manipulation;
     user-select: text;
     -webkit-user-select: text;
-  }
-
-  .swatch {
-    width: 36px;
-    aspect-ratio: 1;
-    border: 3px solid var(--line);
-    border-radius: 50%;
   }
 </style>

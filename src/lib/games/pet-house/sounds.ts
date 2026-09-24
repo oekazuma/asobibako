@@ -149,5 +149,15 @@ export const sounds = {
   greet: () => {
     tone(784, 110, 'triangle', 0.09);
     tone(1175, 180, 'triangle', 0.09, 110);
+  },
+  /** ねこじゃらしの羽根がこすれる、しゅっ。k は振る強さ 0..1 */
+  rustle: (k: number) => {
+    for (let i = 0; i < 3; i++) later(i * 35 + Math.random() * 15, () => noise(22, 0.006 + 0.014 * k));
+  },
+  /** 猫が飛びかかる、とんっ。床を蹴る低い音に爪のこすれを重ねる */
+  leap: () => {
+    sweep(170, 70, 130, 0.1);
+    noise(40, 0.04);
+    later(70, () => noise(30, 0.025));
   }
 };

@@ -1,14 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Activity, ActivityHost, SceneHost, Visit } from './activity';
-import { createActor, type Actor, type WorldView } from './behavior';
+import { createActor, throwToy, type Actor, type WorldView } from './behavior';
 import type { Pet } from './engine';
 
-const seen: { view?: WorldView; actors?: Actor[] } = {};
+const seen: { view?: WorldView; actors?: Actor[]; pets?: Pet[]; log: string[] } = { log: [] };
 
 vi.mock('./world3d', () => ({
   PetWorld: class {
-    setScene() {}
-    syncPets() {}
+    setScene() {
+      seen.log.push('scene');
+    }
+    syncPets(pets: Pet[]) {
+      seen.pets = pets;
+    }
     update(actors: Actor[], view: WorldView) {
       seen.actors = actors;
       seen.view = view;
@@ -55,6 +59,37 @@ function frames(s: S, sec: number, until?: () => boolean): boolean {
 beforeEach(() => localStorage.clear());
 
 describe('Session', () => {
+  it('試着は見た目だけ着せて save は変えず、買うと着たまま、ペットを替えると外れる', () => {
+    const s = make();
+    s.adopt('shiba', 'ポチ');
+    s.adopt('mike', 'タマ');
+    const [dog, cat] = s.save.pets;
+    s.select(dog.id);
+    const shown = () => seen.pets?.find((p) => p.id === s.save.current)?.accessory;
+    s.tryOn('ribbon');
+    frames(s, 0.1);
+    expect(shown()).toBe('ribbon');
+    expect(dog.accessory).toBeNull();
+    expect(s.save.accessories).toEqual([]);
+    s.select(cat.id);
+    frames(s, 0.1);
+    expect(s.trying).toBeNull();
+    expect(seen.pets?.every((p) => p.accessory === null)).toBe(true);
+    s.tryOn('hat');
+    s.tryOn(null);
+    frames(s, 0.1);
+    expect(shown()).toBeNull();
+    s.tryOn('bandana');
+    expect(s.buy('bandana')).toBe('ok');
+    frames(s, 0.1);
+    expect(s.trying).toBeNull();
+    expect(cat.accessory).toBe('bandana');
+    expect(shown()).toBe('bandana');
+    // 持っているものは試着しない（着せ替えで着る）
+    s.tryOn('bandana');
+    expect(s.trying).toBeNull();
+  });
+
   it('公園で咥えている子から切り替えると、おもちゃを落として次の子が拾える', () => {
     const s = make();
     s.adopt('shiba', 'ポチ');
@@ -118,7 +153,7 @@ describe('Session', () => {
       down: () => (got.push('down'), true),
       trick: (t) => void got.push(t)
     };
-    s.start(act);
+    s.start(act, 'テストへ いくよ');
     frames(s, 0.5);
     // think が動いていれば、部屋の外（x = 5）に置いたペットは範囲の中へ戻される
     expect(seen.actors?.[0].x).toBe(5);
@@ -126,6 +161,7 @@ describe('Session', () => {
     s.trick('sit');
     expect(got).toEqual(['down', 'sit']);
     host?.end();
+    frames(s, 0.2);
     expect(s.activity).toBeNull();
     expect(s.scene).toBe('room');
     expect(s.tool).toBe('brush');
@@ -145,14 +181,105 @@ describe('Session', () => {
       },
       frame() {}
     };
-    s.visit(visit);
+    s.visit(visit, 'テストへ いくよ');
+    frames(s, 0.1);
     expect(s.activity).toBe(visit);
     frames(s, 0.2);
     expect(seen.actors).toEqual([guest]);
     host?.end();
     s.adopt('shiba', 'ポチ');
     frames(s, 0.2);
+    // ひろばから戻る途中にむかえた子は、部屋の奥から歩いてくる
+    expect(seen.actors?.[0].z).toBeLessThan(0);
     expect(s.scene).toBe('room');
     expect(seen.actors?.map((a) => a.petId)).toEqual([s.save.current]);
+  });
+
+  it('場面を変えるときは「いどうちゅう」を 1 度描かせてから組み立て、落ち着いたら外す。重ねた操作は捨てる', () => {
+    const s = make();
+    s.adopt('shiba', 'ポチ');
+    seen.log = [];
+    s.goPark();
+    s.goPark();
+    expect(s.moving).toBe('こうえんへ いくよ');
+    s.frame(1 / 30);
+    expect(seen.log).toEqual([]);
+    s.frame(1 / 30);
+    expect(seen.log).toEqual(['scene']);
+    expect(s.scene).toBe('park');
+    expect(s.moving).not.toBeNull();
+    frames(s, 0.2);
+    expect(s.moving).toBeNull();
+    expect(seen.log).toEqual(['scene']);
+  });
+
+  it('モードを終えるときは、場面を片付ける前にモードの exit を呼ぶ（道の NPC の犬が共有の材質ごと捨てられないように）', () => {
+    const s = make();
+    s.adopt('shiba', 'ポチ');
+    let host: ActivityHost | undefined;
+    const act: Activity = {
+      drives: true,
+      enter: (h) => void (host = h),
+      frame() {},
+      exit: () => void seen.log.push('exit')
+    };
+    s.start(act, 'テストへ いくよ');
+    frames(s, 0.2);
+    seen.log = [];
+    host?.end();
+    frames(s, 0.2);
+    expect(seen.log).toEqual(['exit', 'scene']);
+  });
+
+  it('寝ている子とはおさんぽを始めない', () => {
+    const s = make();
+    s.adopt('shiba', 'ポチ');
+    s.save.pets[0].stats.energy = 5;
+    expect(frames(s, 30, () => s.asleep)).toBe(true);
+    const act: Activity = { drives: true, awakeOnly: true, enter() {}, frame() {} };
+    s.start(act, 'おさんぽに いくよ');
+    frames(s, 0.2);
+    expect(s.activity).toBeNull();
+    expect(s.moving).toBeNull();
+    expect(s.toast).toContain('ねているよ');
+  });
+
+  it('投げたボールは持ってくるまで次を投げられず、持ってきたら手元に戻る', () => {
+    const s = make();
+    s.adopt('shiba', 'ポチ');
+    s.goPark();
+    s.setTool('toy', 'ball');
+    frames(s, 1);
+    const flick = () => {
+      s.down(1, 200, 700);
+      s.up(1, 200, 600, 0, -1500);
+    };
+    flick();
+    frames(s, 0.1);
+    const first = seen.view?.toy;
+    expect(first).toBeTruthy();
+    expect(s.away).toBe(true);
+    flick();
+    expect(seen.view?.toy).toBe(first);
+    expect(s.toast).toContain('まってね');
+    expect(frames(s, 30, () => !s.away)).toBe(true);
+    flick();
+    frames(s, 0.1);
+    expect(seen.view?.toy).not.toBe(first);
+  });
+
+  it('床に残ったおもちゃはタップして拾える', () => {
+    const s = make();
+    s.adopt('shiba', 'ポチ');
+    s.goPark();
+    frames(s, 1);
+    const view = seen.view!;
+    view.toy = throwToy('ball', { x: 2, y: 0.05, z: -4 }, { x: 0, y: 0, z: 0 });
+    s.frame(1 / 30);
+    expect(s.away).toBe(true);
+    // 台本の project はどの点も (0, 0) に写す
+    s.down(1, 0, 0);
+    expect(view.toy).toBeNull();
+    expect(s.away).toBe(false);
   });
 });
