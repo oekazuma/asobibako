@@ -14,6 +14,7 @@ describe('backup', () => {
     localStorage.setItem('asobibako:muted', '1');
     localStorage.setItem('asobibako:last-error', 'old-error');
     localStorage.setItem('asobibako:gate', 'old-gate');
+    localStorage.setItem('asobibako:graphics', 'low');
     localStorage.setItem('other', 'keep');
     const b = parseBackup(exportAll('123-abc'));
     expect(b.version).toBe('123-abc');
@@ -24,12 +25,14 @@ describe('backup', () => {
     localStorage.setItem('asobibako:reached:stale', '9');
     localStorage.setItem('asobibako:last-error', 'new-error');
     localStorage.setItem('asobibako:gate', 'new-gate');
+    localStorage.setItem('asobibako:graphics', 'high');
     localStorage.setItem('other', 'keep');
     expect(importAll(b)).toBe(true);
     expect(localStorage.getItem('asobibako:reached:maze')).toBe('5');
     expect(localStorage.getItem('asobibako:reached:stale')).toBeNull();
     expect(localStorage.getItem('asobibako:last-error')).toBe('new-error');
     expect(localStorage.getItem('asobibako:gate')).toBe('new-gate');
+    expect(localStorage.getItem('asobibako:graphics')).toBe('high');
     expect(localStorage.getItem('other')).toBe('keep');
   });
 
@@ -49,6 +52,7 @@ describe('backup', () => {
     expect(() => parseBackup(file({ 'asobibako:muted': 1 }))).toThrow();
     expect(() => parseBackup(file({ 'asobibako:gate': '{}' }))).toThrow();
     expect(() => parseBackup(file({ 'asobibako:last-error': '{}' }))).toThrow();
+    expect(() => parseBackup(file({ 'asobibako:graphics': 'high' }))).toThrow();
     expect(parseBackup(file({})).data).toEqual({});
   });
 
