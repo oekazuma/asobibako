@@ -233,7 +233,8 @@ export function plant() {
   );
   basket.repeat.set(3, 3);
   g.add(mesh(cyl(0.19, 0.15, 0.36, 24), new THREE.MeshStandardMaterial({ map: basket, roughness: 0.95 }), 0, 0.18, 0));
-  g.add(mesh(cyl(0.175, 0.175, 0.02, 20), '#3b2a1c', 0, 0.35, 0, false));
+  // かごの円柱は上にふたがあるので、土をふたと同じ高さに置くと模様と土がちらつく。土の面を少し上に出す
+  g.add(mesh(cyl(0.182, 0.182, 0.02, 20), '#3b2a1c', 0, 0.363, 0, false));
   g.add(mesh(cyl(0.012, 0.02, 1.1, 6), '#5d4630', 0, 0.9, 0));
 
   const leaf = new THREE.Shape();

@@ -74,11 +74,16 @@
     font-weight: 800;
     white-space: nowrap;
     cursor: pointer;
+    container-type: inline-size;
   }
 
-  /* 5 文字のラベルは、細い画面でもボタンの幅に収まるよう少し小さくする */
-  .small {
-    font-size: clamp(8px, min(2cqw, 1.25cqh), 13px);
+  /* ラベルはボタンの幅から文字の大きさを決める。画面の幅から決めると、iPhone で 4〜5 文字がはみ出す */
+  .item span {
+    font-size: min(1em, 19cqi);
+  }
+
+  .small span {
+    font-size: min(1em, 16cqi);
     letter-spacing: -0.04em;
   }
 
