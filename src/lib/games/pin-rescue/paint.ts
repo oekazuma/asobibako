@@ -1,7 +1,8 @@
-import { icon, shadow, sprite, stamp } from '$lib/fx';
+import { sprite, stamp } from '$lib/fx';
 import type { Seg } from '$lib/segments';
+import { drawActors } from './actors';
 import type { LiquidLayer } from './liquid';
-import { HERO_R, R, WALL, WORLD_H, type GameState } from './engine';
+import { R, WALL, WORLD_H, type GameState } from './engine';
 
 /** 抜いたピンが外へ滑り出して消えるまでの秒 */
 export const SLIDE_S = 0.3;
@@ -179,6 +180,40 @@ export function paint(
 
   for (const wall of state.level.walls) bar(ctx, wall, WALL * 2, ['#5b4636', '#a8845f', '#d6b48c']);
 
+  // マグマの光は液体の下にしいて、ふちからにじませる
+  ctx.globalCompositeOperation = 'lighter';
+  const flicker = 0.85 + Math.sin(now * 9) * 0.15;
+  for (const p of state.particles) if (p.kind === 'lava') stamp(ctx, glow(), p.x, p.y, R * 6 * flicker);
+  ctx.globalCompositeOperation = 'source-over';
+  liquid.draw(ctx, state.particles, 'water', now);
+  liquid.draw(ctx, state.particles, 'lava', now);
+
+  const d = R * 2.3;
+  state.particles.forEach((p, i) => {
+    if (p.kind === 'water' || p.kind === 'lava') return;
+    if (p.kind === 'rock') {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(i * 1.7);
+      stamp(ctx, stone(i % 3), 0, 0, d * 1.1);
+      ctx.restore();
+      return;
+    }
+    // 6 粒に 1 粒は宝石にする。粒の番号で決めるので、流れても同じ粒は同じ見た目のまま
+    if (i % 6 === 0) return stamp(ctx, gem((i / 6) % 3), p.x, p.y, d * 1.1);
+    stamp(ctx, coin(), p.x, p.y, d);
+  });
+  state.particles.forEach((p, i) => {
+    if (p.kind !== 'gold') return;
+    const t = (now * 0.7 + i * 0.137) % 1;
+    if (t < 0.08) twinkle(ctx, p.x + R * 0.3, p.y - R * 0.3, R * 1.2 * Math.sin((t / 0.08) * Math.PI));
+  });
+  // 体は金の山より手前に立たせ、ピンはさらに手前にして、体に重なっても抜けることが分かるようにする
+  drawActors(ctx, state, now);
+  pins(ctx, state, pulledAt, now);
+}
+
+function pins(ctx: CanvasRenderingContext2D, state: GameState, pulledAt: number[], now: number) {
   state.level.pins.forEach((pin, i) => {
     const slide = state.pulled[i] ? (now - pulledAt[i]) / SLIDE_S : 0;
     if (slide >= 1) return;
@@ -211,40 +246,5 @@ export function paint(
     ctx.fillStyle = '#8a5a00';
     ctx.fill();
     ctx.globalAlpha = 1;
-  });
-
-  const { x, y } = state.level.hero;
-  shadow(ctx, x, WORLD_H - 0.01, HERO_R * 0.9, 0.25);
-  const face = state.result === 'burned' ? 'kid-scared' : state.result === 'clear' ? 'kid-happy' : 'kid';
-  const hop = state.result === 'clear' ? Math.abs(Math.sin(now * 8)) * 0.05 : Math.sin(now * 3) * 0.004;
-  icon(ctx, face, x, y - hop, HERO_R * 2.2);
-
-  // マグマの光は液体の下にしいて、ふちからにじませる
-  ctx.globalCompositeOperation = 'lighter';
-  const flicker = 0.85 + Math.sin(now * 9) * 0.15;
-  for (const p of state.particles) if (p.kind === 'lava') stamp(ctx, glow(), p.x, p.y, R * 6 * flicker);
-  ctx.globalCompositeOperation = 'source-over';
-  liquid.draw(ctx, state.particles, 'water', now);
-  liquid.draw(ctx, state.particles, 'lava', now);
-
-  const d = R * 2.3;
-  state.particles.forEach((p, i) => {
-    if (p.kind === 'water' || p.kind === 'lava') return;
-    if (p.kind === 'rock') {
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(i * 1.7);
-      stamp(ctx, stone(i % 3), 0, 0, d * 1.1);
-      ctx.restore();
-      return;
-    }
-    // 6 粒に 1 粒は宝石にする。粒の番号で決めるので、流れても同じ粒は同じ見た目のまま
-    if (i % 6 === 0) return stamp(ctx, gem((i / 6) % 3), p.x, p.y, d * 1.1);
-    stamp(ctx, coin(), p.x, p.y, d);
-  });
-  state.particles.forEach((p, i) => {
-    if (p.kind !== 'gold') return;
-    const t = (now * 0.7 + i * 0.137) % 1;
-    if (t < 0.08) twinkle(ctx, p.x + R * 0.3, p.y - R * 0.3, R * 1.2 * Math.sin((t / 0.08) * Math.PI));
   });
 }

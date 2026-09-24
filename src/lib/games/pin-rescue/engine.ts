@@ -8,6 +8,8 @@ export const WORLD_H = 1.4;
 export const R = 0.02;
 export const WALL = 0.014;
 export const HERO_R = 0.065;
+export const PRINCESS_R = 0.06;
+export const MONSTER_R = 0.07;
 
 export type Kind = 'gold' | 'lava' | 'water' | 'rock';
 
@@ -30,8 +32,21 @@ export interface Level {
   pins: Pin[];
   pools: Pool[];
   hero: { x: number; y: number };
+  /** いれば、勇者が歩いて姫のもとへたどり着けばクリア。金は集めなくてよい */
+  princess?: { x: number; y: number };
+  /** 勇者へ向かって歩いてくる怪物。マグマに触れるとたおれる。全部たおさないとクリアにならない */
+  monsters?: { x: number; y: number }[];
   /** クリアに要る金の割合 */
   need: number;
+}
+
+/** 壁とピンの上を歩き、落ちる体。粒とはぶつからず、粒のほうを押しのける */
+export interface Walker {
+  x: number;
+  y: number;
+  vy: number;
+  r: number;
+  alive: boolean;
 }
 
 export interface Particle {
@@ -46,6 +61,9 @@ export interface Particle {
 
 export interface GameState {
   level: Level;
+  hero: Walker;
+  princess: Walker | null;
+  monsters: Walker[];
   particles: Particle[];
   pulled: boolean[];
   /** 最後にピンを抜いてからの秒。全部抜いても決まらないときの見切りに使う */
@@ -53,7 +71,8 @@ export interface GameState {
   gold: number;
   /** 勇者のまわりに届いた金の粒 */
   collected: number;
-  result: 'clear' | 'burned' | 'stuck' | null;
+  /** burned はマグマ、eaten は怪物にやられた */
+  result: 'clear' | 'burned' | 'eaten' | 'stuck' | null;
   /** まだ進めていない時間（秒）。フレームが遅れても刻みを増やさず、余りを次に持ち越す */
   acc: number;
 }
@@ -72,6 +91,10 @@ const FLOOR_BAND = 0.3;
 const ROOM = 0.42;
 const STUCK_S = 5;
 const COOL_S = 0.05;
+const HERO_SPEED = 0.16;
+const MONSTER_SPEED = 0.12;
+
+const walker = (at: { x: number; y: number }, r: number): Walker => ({ x: at.x, y: at.y, vy: 0, r, alive: true });
 
 export function createState(level: Level): GameState {
   const particles: Particle[] = [];
@@ -84,6 +107,9 @@ export function createState(level: Level): GameState {
   }
   return {
     level,
+    hero: walker(level.hero, HERO_R),
+    princess: level.princess ? walker(level.princess, PRINCESS_R) : null,
+    monsters: (level.monsters ?? []).map((m) => walker(m, MONSTER_R)),
     particles,
     pulled: level.pins.map(() => false),
     idle: 0,
@@ -130,7 +156,7 @@ function substep(state: GameState, segs: Seg[]) {
     p.x += vx;
     p.y += vy + g;
   }
-  const { x: hx, y: hy } = state.level.hero;
+  const bodies = [state.hero, state.princess, ...state.monsters].filter((w): w is Walker => !!w?.alive);
   for (let it = 0; it < ITERATIONS; it++) {
     // ponytail: 粒どうしは総当たり。面の粒は 150 個ほどなので足りる。増やすなら格子で近傍だけ見る
     for (let i = 0; i < ps.length; i++) {
@@ -155,16 +181,54 @@ function substep(state: GameState, segs: Seg[]) {
         const out = pushOut(seg, WALL, p.x, p.y, R);
         if (out) [p.x, p.y] = out;
       }
-      const hd = Math.hypot(p.x - hx, p.y - hy);
-      if (hd < HERO_R + R && hd > 0) {
-        if (p.kind === 'lava') state.result = 'burned';
-        p.x = hx + ((p.x - hx) / hd) * (HERO_R + R);
-        p.y = hy + ((p.y - hy) / hd) * (HERO_R + R);
+      for (const w of bodies) {
+        const d = Math.hypot(p.x - w.x, p.y - w.y);
+        if (d >= w.r + R || d === 0) continue;
+        if (p.kind === 'lava') touchLava(state, w);
+        p.x = w.x + ((p.x - w.x) / d) * (w.r + R);
+        p.y = w.y + ((p.y - w.y) / d) * (w.r + R);
       }
       p.x = Math.min(1 - R, Math.max(R, p.x));
       p.y = Math.min(WORLD_H - R, Math.max(R, p.y));
     }
   }
+}
+
+/** マグマは勇者と姫をやけどさせ、怪物をたおす */
+function touchLava(state: GameState, w: Walker) {
+  if (state.monsters.includes(w)) w.alive = false;
+  else state.result = 'burned';
+}
+
+/** 目当ての x へ横に歩き、重さで落ちる。壁とまだ抜いていないピンにぶつかる。動いた横の距離を返す */
+function walk(w: Walker, targetX: number | null, speed: number, segs: Seg[], dt: number): number {
+  const x0 = w.x;
+  w.vy += GRAVITY * dt;
+  w.y += w.vy * dt;
+  if (targetX !== null && Math.abs(targetX - w.x) > 0.005) w.x += Math.sign(targetX - w.x) * speed * dt;
+  for (const seg of segs) {
+    const out = pushOut(seg, WALL, w.x, w.y, w.r);
+    if (!out) continue;
+    // 上へ押し戻されたら床に立っている
+    if (out[1] < w.y && w.vy > 0) w.vy = 0;
+    [w.x, w.y] = out;
+  }
+  if (w.y > WORLD_H - w.r) [w.y, w.vy] = [WORLD_H - w.r, 0];
+  w.x = Math.min(1 - w.r, Math.max(w.r, w.x));
+  return Math.abs(w.x - x0);
+}
+
+const touching = (a: Walker, b: Walker) => a.alive && b.alive && Math.hypot(a.x - b.x, a.y - b.y) < a.r + b.r;
+
+/** 勇者は姫がいれば姫へ、怪物は勇者へ歩く。怪物に触れたらやられ、姫に触れたらクリア */
+function move(state: GameState, segs: Seg[], dt: number): number {
+  const { hero, princess } = state;
+  let moved = walk(hero, princess?.alive ? princess.x : null, HERO_SPEED, segs, dt);
+  if (princess) walk(princess, null, 0, segs, dt);
+  for (const m of state.monsters) if (m.alive) moved += walk(m, hero.x, MONSTER_SPEED, segs, dt);
+  if (state.monsters.some((m) => touching(m, hero) || (princess && touching(m, princess)))) state.result = 'eaten';
+  else if (princess && touching(hero, princess)) state.result = 'clear';
+  return moved;
 }
 
 export function step(state: GameState, dt: number): void {
@@ -174,14 +238,20 @@ export function step(state: GameState, dt: number): void {
   // 1/60 ÷ 1/240 は浮動小数で 4 にわずかに届かないことがあるので、少し足してから切り捨てる
   const n = Math.floor(state.acc / SUB_DT + 1e-6);
   state.acc -= n * SUB_DT;
-  for (let i = 0; i < n && !state.result; i++) substep(state, segs);
+  let moved = 0;
+  for (let i = 0; i < n && !state.result; i++) {
+    substep(state, segs);
+    if (!state.result) moved += move(state, segs, SUB_DT);
+  }
   if (state.result) return;
-  const { x } = state.level.hero;
+  const { x } = state.hero;
   state.collected = state.particles.filter(
     (p) => p.kind === 'gold' && p.y > WORLD_H - FLOOR_BAND && Math.abs(p.x - x) < ROOM
   ).length;
-  if (state.collected >= needed(state)) state.result = 'clear';
-  state.idle += dt;
+  const cleared = !state.princess && state.collected >= needed(state) && state.monsters.every((m) => !m.alive);
+  if (cleared) state.result = 'clear';
+  // 誰かが歩いているあいだは、まだ決着を見切らない
+  state.idle = moved > 1e-4 ? 0 : state.idle + dt;
   if (state.pulled.every(Boolean) && state.idle > STUCK_S) state.result = 'stuck';
 }
 

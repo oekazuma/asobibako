@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import meta from './meta';
-import { createState, pinAt, pull, step, type GameState } from './engine';
+import { createState, HERO_R, pinAt, pull, step, type GameState, type Level } from './engine';
 import { LEVELS } from './levels';
 
 function run(state: GameState, seconds: number) {
@@ -31,7 +31,7 @@ describe('pin-rescue engine', () => {
       const state = createState(level);
       level.pins.forEach((_, i) => pull(state, i));
       run(state, 8);
-      expect(state.result).toMatch(/^(burned|stuck)$/);
+      expect(state.result).toMatch(/^(burned|eaten|stuck)$/);
     }
   );
 
@@ -73,5 +73,56 @@ describe('pin-rescue engine', () => {
     const [x1, y1, x2] = state.level.pins[0].seg;
     expect(pinAt(state, (x1 + x2) / 2, y1 + 0.01)).toBe(0);
     expect(pinAt(state, 0.5, 1.2)).toBe(-1);
+  });
+
+  describe('怪物と姫', () => {
+    const FLOOR = 1.4 - HERO_R;
+    /** 勇者は左の床。右の部屋との仕切りがピン 0 */
+    const room = (extra: Partial<Level>): Level => ({
+      walls: [],
+      pins: [{ seg: [0.5, 0.9, 0.5, 1.42], handle: 0 }],
+      pools: [],
+      hero: { x: 0.15, y: FLOOR },
+      need: 0.5,
+      ...extra
+    });
+
+    it('仕切りを抜くと、怪物が歩いてきて勇者がやられる', () => {
+      const state = createState(room({ monsters: [{ x: 0.85, y: FLOOR }] }));
+      run(state, 2);
+      expect(state.result).toBeNull();
+      pull(state, 0);
+      run(state, 8);
+      expect(state.result).toBe('eaten');
+    });
+
+    it('マグマに触れた怪物はたおれ、生きている怪物がいるうちは金がそろってもクリアにならない', () => {
+      const lava: Level['pools'][number] = { kind: 'lava', x0: 0.72, y0: 0.9, x1: 0.98, y1: 1.1 };
+      const gold: Level['pools'][number] = { kind: 'gold', x0: 0.02, y0: 1.0, x1: 0.3, y1: 1.2 };
+      const alive = createState(room({ monsters: [{ x: 0.85, y: FLOOR }], pools: [gold], need: 0.1 }));
+      run(alive, 3);
+      expect(alive.result).toBeNull();
+
+      const burned = createState(room({ monsters: [{ x: 0.85, y: FLOOR }], pools: [gold, lava], need: 0.1 }));
+      run(burned, 3);
+      expect(burned.monsters[0].alive).toBe(false);
+      expect(burned.result).toBe('clear');
+    });
+
+    it('仕切りを抜くと勇者が姫のもとへ歩き、たどり着けばクリア', () => {
+      const state = createState(room({ princess: { x: 0.85, y: 1.4 - 0.06 } }));
+      run(state, 2);
+      expect(state.result).toBeNull();
+      pull(state, 0);
+      run(state, 8);
+      expect(state.result).toBe('clear');
+    });
+
+    it('姫にマグマがかかると失敗', () => {
+      const lava: Level['pools'][number] = { kind: 'lava', x0: 0.72, y0: 1.0, x1: 0.98, y1: 1.2 };
+      const state = createState(room({ princess: { x: 0.85, y: 1.4 - 0.06 }, pools: [lava] }));
+      run(state, 3);
+      expect(state.result).toBe('burned');
+    });
   });
 });

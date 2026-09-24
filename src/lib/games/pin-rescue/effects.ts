@@ -18,6 +18,7 @@ export class PinFx {
   #since = 0;
   #t = 0;
   #hissAt = -1;
+  #alive: boolean[] = [];
 
   reset(): void {
     this.#collected = 0;
@@ -25,6 +26,7 @@ export class PinFx {
     this.#pending = 0;
     this.#t = 0;
     this.#hissAt = -1;
+    this.#alive = [];
   }
 
   pulled(game: GameState, i: number): void {
@@ -40,10 +42,13 @@ export class PinFx {
     });
   }
 
-  /** 毎フレーム呼ぶ。戻り値の progress はクリアに要る金貨をどれだけ集めたか（0..1） */
+  /**
+   * 毎フレーム呼ぶ。戻り値の progress はクリアまでの進み具合（0..1）で、金貨と怪物の両方がいればその平均。
+   * 姫の面は歩いてたどり着けば終わりなので -1 を返し、メーターを出さない
+   */
   update(game: GameState, dt: number): { progress: number; score: number } {
     this.#t += dt;
-    const { x, y } = game.level.hero;
+    const { x, y } = game.hero;
     if (game.collected > this.#collected) {
       sounds.coin();
       this.#pending += game.collected - this.#collected;
@@ -83,13 +88,30 @@ export class PinFx {
       sounds.hiss();
     }
     this.#kinds = game.particles.map((p) => p.kind);
+    game.monsters.forEach((m, i) => {
+      if (m.alive || this.#alive[i] === false) return;
+      sounds.defeat();
+      this.particles.burst(m.x, m.y, {
+        count: 24,
+        color: ['#8ee07a', '#3f9a36', 'rgb(255 255 255 / 0.8)'],
+        speed: 0.45,
+        size: 0.016,
+        life: 0.8,
+        gravity: -0.3
+      });
+      this.floaters.add('たおした！', m.x, m.y - 0.18, 0.06, '#3f9a36');
+    });
+    this.#alive = game.monsters.map((m) => m.alive);
     this.particles.step(dt);
     this.floaters.step(dt);
-    return { progress: Math.min(1, game.collected / needed(game)), score: game.collected * COIN };
+    const gold = needed(game) > 0 ? Math.min(1, game.collected / needed(game)) : 1;
+    const beaten = game.monsters.length ? game.monsters.filter((m) => !m.alive).length / game.monsters.length : 1;
+    const progress = game.princess ? -1 : game.monsters.length ? (gold + beaten) / 2 : gold;
+    return { progress, score: game.collected * COIN };
   }
 
   finished(game: GameState): void {
-    const { x, y } = game.level.hero;
+    const { x, y } = game.hero;
     if (game.result === 'burned') {
       sounds.burn();
       this.shake.add(0.8);
@@ -104,8 +126,13 @@ export class PinFx {
       });
       return;
     }
+    if (game.result === 'eaten') {
+      sounds.burn();
+      this.shake.add(0.6);
+    }
     if (game.result === 'clear') sfx.finish();
-    this.floaters.add(game.result === 'clear' ? 'やった！' : 'あれれ…', x, y - 0.18, 0.1, '#ffc233');
+    const words = { clear: 'やった！', eaten: 'やられた…', stuck: 'あれれ…' } as const;
+    this.floaters.add(words[game.result ?? 'stuck'], x, y - 0.26, 0.1, '#ffc233');
     if (game.result !== 'clear') return;
     for (let k = 0; k < 4; k++)
       this.particles.burst(0.15 + k * 0.23, 0.3, {

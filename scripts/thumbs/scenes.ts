@@ -200,17 +200,13 @@ async function catMouse(s: Stage): Promise<void> {
 
 export const SCENES: Scene[] = [
   {
-    // 金貨の部屋の下のピンを先に抜いておき、上のピンを抜いて金貨を男の子まで落とす。
-    // 上の金貨の部屋までは入らないので、落ちていく金貨とマグマの部屋の底と男の子を撮る
+    // 姫との間に怪物がいる面。マグマを落として怪物をたおしている途中の、勇者・怪物・姫を撮る
     id: 'pin-rescue',
-    level: 10,
-    clip: band(530),
+    level: 27,
+    clip: band(560),
     play: async (s) => {
       await s.startSolo();
-      await s.tap(1, 66, 553);
-      await s.wait(1200);
-      await s.tap(1, 66, 341);
-      await s.wait(800);
+      await s.wait(1800);
     }
   },
   {
