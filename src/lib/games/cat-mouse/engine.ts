@@ -44,6 +44,8 @@ export interface GameState {
   runners: Record<Player, Runner>;
   sticks: Record<Player, Stick | null>;
   cheese: { x: number; y: number };
+  /** ネコがチーズのそばに居座っている秒。GUARD_S を超えるとチーズが逃げる */
+  guard: number;
   /** ネズミのときに食べたチーズの合計 */
   scores: Record<Player, number>;
   timeLeft: number;
@@ -58,6 +60,7 @@ export interface GameState {
 
 export type CatMouseEvent =
   | { type: 'cheese'; player: Player }
+  | { type: 'hop' }
   | { type: 'caught' }
   | { type: 'escape' }
   | { type: 'round' }
@@ -98,6 +101,9 @@ export const HOLES = [
 /** 穴の口の高さ（半分） */
 export const HOLE_R = 0.05;
 const TUNNEL_S = 0.8;
+/** ネコがチーズのこの距離の内側に GUARD_S 秒いると、チーズはネコから離れた場所へ逃げる。居座ってネズミに 1 点も取らせない手を封じる */
+export const GUARD_R = 0.2;
+export const GUARD_S = 1.5;
 
 const other = (p: Player): Player => (p === 1 ? 2 : 1);
 const dist = (state: GameState, a: { x: number; y: number }, b: { x: number; y: number }) =>
@@ -111,6 +117,7 @@ export function createState(aspect: number, cat: Player, random: () => number = 
     runners: { 1: runner(1), 2: runner(2) },
     sticks: { 1: null, 2: null },
     cheese: { x: 0.5, y: 0.5 },
+    guard: 0,
     scores: { 1: 0, 2: 0 },
     timeLeft: ROUND_S,
     phase: 'ready',
@@ -129,7 +136,7 @@ function runner(player: Player): Runner {
 }
 
 /** チーズはネズミから離れた、ネコのすぐそばでない場所に出す。見つからなければ最後の候補で妥協する */
-export function placeCheese(state: GameState): void {
+export function placeCheese(state: GameState, awayFromCat = 0.2): void {
   const mouse = state.runners[other(state.cat)];
   const cat = state.runners[state.cat];
   const margin = 0.08;
@@ -140,9 +147,10 @@ export function placeCheese(state: GameState): void {
       y: margin + state.random() * (1 - margin * 2)
     };
     const clear = POTS.every((pot) => dist(state, spot, pot) > pot.r + CHEESE_R + 0.03);
-    if (clear && dist(state, spot, mouse) > 0.35 && dist(state, spot, cat) > 0.2) break;
+    if (clear && dist(state, spot, mouse) > 0.35 && dist(state, spot, cat) > awayFromCat) break;
   }
   state.cheese = spot;
+  state.guard = 0;
 }
 
 /** 各プレイヤーの先に置いた指だけをスティックにする。離せば、同じ陣地に残る次の指が新しいスティックになる */
@@ -288,6 +296,13 @@ export function step(state: GameState, dt: number): CatMouseEvent[] {
       return events;
     }
     placeCheese(state);
+  }
+
+  const near = dist(state, state.runners[state.cat], state.cheese) < GUARD_R;
+  state.guard = near ? state.guard + dt : Math.max(0, state.guard - dt);
+  if (state.guard > GUARD_S) {
+    placeCheese(state, 0.45);
+    events.push({ type: 'hop' });
   }
 
   if (dist(state, state.runners[mouse], state.runners[state.cat]) < CATCH_DIST) {
