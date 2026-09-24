@@ -18,7 +18,7 @@
   let meters = $state<Record<Player, number>>({ 1: 0, 2: 0 });
   let heldBy = $state<Player | null>(null);
   let hasBomb = $state(true);
-  let boom = $state<{ id: number; side: Player; x: number; y: number; lost: number } | null>(null);
+  let boom = $state<{ id: number; side: Player; x: number; y: number } | null>(null);
   let board: HTMLDivElement;
 
   const game = createState(1);
@@ -56,7 +56,7 @@
     if (event?.type === 'boom') {
       holder = null;
       heldBy = null;
-      boom = { id: (boom?.id ?? 0) + 1, side: event.side, x: event.x, y: event.y, lost: event.lost };
+      boom = { id: (boom?.id ?? 0) + 1, side: event.side, x: event.x, y: event.y };
       sounds.boom();
       shake();
     } else if (event?.type === 'win') {
@@ -108,7 +108,7 @@
 
   {#if boom}
     {#key boom.id}
-      <Blast side={boom.side} x={boom.x} y={boom.y} lost={boom.lost} />
+      <Blast side={boom.side} x={boom.x} y={boom.y} />
     {/key}
   {/if}
 

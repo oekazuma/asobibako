@@ -4,6 +4,7 @@ import {
   createState,
   GOAL,
   MALLETS_PER_PLAYER,
+  MAX_SPEED,
   PUCK_R,
   step,
   updateMallets,
@@ -73,7 +74,7 @@ describe('hockey engine', () => {
 
   it('速いパックでも止まっているマレットをすり抜けない', () => {
     const state = createState(1);
-    state.puck = { x: 0.5, y: 0.6, vx: 0, vy: 2.8 };
+    state.puck = { x: 0.5, y: 0.6, vx: 0, vy: MAX_SPEED };
     updateMallets(state, [{ id: 1, side: 1, x: 0.5, y: 0.9 }], 1 / 60);
     updateMallets(state, [{ id: 1, side: 1, x: 0.5, y: 0.9 }], 1 / 60);
     run(state, 0.3, 1 / 30);
@@ -166,6 +167,6 @@ describe('hockey engine', () => {
     const state = createState(1);
     state.puck = { x: 0.5, y: 0.5, vx: 0, vy: 50 };
     step(state, 1 / 60);
-    expect(Math.hypot(state.puck.vx, state.puck.vy)).toBeLessThanOrEqual(2.8 + 1e-9);
+    expect(Math.hypot(state.puck.vx, state.puck.vy)).toBeLessThanOrEqual(MAX_SPEED + 1e-9);
   });
 });

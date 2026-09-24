@@ -19,10 +19,6 @@
   let goals = $state(0);
   let scorer = $state<Player>(1);
   let ringEl: HTMLDivElement;
-  /** 速いパックの残像。古い位置ほど薄く小さく描く */
-  const trailEls: HTMLDivElement[] = [];
-  const TRAIL = 4;
-  const trail: [number, number][] = [];
 
   const game = createState(1, Math.random() < 0.5 ? 1 : 2);
   const input = new BoardInput();
@@ -42,7 +38,6 @@
         scores = { ...game.scores };
         scorer = event.scorer;
         goals += 1;
-        trail.length = 0;
         sounds.goal();
       } else if (event.type === 'win') {
         sfx.finish();
@@ -71,16 +66,6 @@
 
   function draw() {
     place(puckEl, game.puck.x, game.puck.y);
-    const speed = Math.hypot(game.puck.vx * game.aspect, game.puck.vy);
-    trail.unshift([game.puck.x, game.puck.y]);
-    trail.length = Math.min(trail.length, TRAIL * 2);
-    trailEls.forEach((el, i) => {
-      const at = trail[(i + 1) * 2 - 1];
-      el.hidden = !at || speed < 1;
-      if (el.hidden) return;
-      place(el, at[0], at[1]);
-      el.style.opacity = String((0.35 * (TRAIL - i)) / TRAIL);
-    });
     puckEl.classList.toggle('serving', game.pause > 0);
     const used: Record<Player, number> = { 1: 0, 2: 0 };
     for (const mallet of game.mallets) {
@@ -104,9 +89,6 @@
 >
   <Rink flash={goals} {scorer} />
 
-  {#each Array.from({ length: TRAIL }, (_, i) => i) as i (i)}
-    <div class="puck ghost" bind:this={trailEls[i]} hidden></div>
-  {/each}
   <div class="ring" bind:this={ringEl}></div>
 
   {#each [1, 2] as const as player (player)}
@@ -147,11 +129,6 @@
     border: 3px solid #fff;
     background: radial-gradient(circle at 35% 30%, #6d7390, #2b2d42 62%);
     box-shadow: 0 4px 0 rgb(43 45 66 / 0.25);
-  }
-
-  .ghost {
-    border-color: transparent;
-    box-shadow: none;
   }
 
   .ring {
