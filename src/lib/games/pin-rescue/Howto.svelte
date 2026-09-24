@@ -1,7 +1,7 @@
-<span class="howto-rule">ピンをタップして抜き、金貨を男の子にとどけよう</span>
+<span class="howto-rule">ピンを抜いて、勇者に金貨をとどけよう</span>
 <span class="howto-legend">
   <span class="howto-item"><span class="howto-mark gold"></span>金貨をあつめる</span>
-  <span class="howto-item"><span class="howto-mark lava"></span>マグマはあぶない</span>
+  <span class="howto-item"><span class="howto-mark lava"></span>マグマは怪物もたおす</span>
   <span class="howto-item"><span class="howto-mark water"></span>水でマグマが石に</span>
 </span>
 

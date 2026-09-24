@@ -92,9 +92,13 @@
   <canvas bind:this={canvas}></canvas>
   <span class="level sticker">レベル {level}</span>
   <span class="score sticker" role="status"><Icon name="coin" /> {score}</span>
-  <span class="meter" role="img" aria-label="クリアまで {Math.round(progress * 100)}%"
-    ><span class="fill" style:width="{progress * 100}%"></span></span
-  >
+  {#if progress < 0}
+    <span class="goal sticker">姫のもとへ</span>
+  {:else}
+    <span class="meter" role="img" aria-label="クリアまで {Math.round(progress * 100)}%"
+      ><span class="fill" style:width="{progress * 100}%"></span></span
+    >
+  {/if}
 </div>
 
 <style>
@@ -132,6 +136,15 @@
     border-radius: 999px;
     background: rgb(90 50 20 / 0.25);
     translate: -50% 0;
+  }
+
+  .goal {
+    position: absolute;
+    top: 56px;
+    left: 50%;
+    translate: -50% 0;
+    font-size: 20px;
+    color: #d0587a;
   }
 
   .fill {
