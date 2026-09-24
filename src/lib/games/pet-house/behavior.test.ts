@@ -184,6 +184,14 @@ describe('pet-house behavior', () => {
     expect(other.z).toBeLessThan(ROOM.front.z - 0.4);
   });
 
+  it('公園で眠くなると、その場で目を閉じて寝る（伏せて目を開けたままにしない）', () => {
+    const s = setup(['shiba'], 'park', [{ x: 0, z: 0 }]);
+    s.pets[0].stats.energy = 10;
+    expect(run(s, 20, has('sleep')).some((e) => e.type === 'sleep')).toBe(true);
+    run(s, 2);
+    expect(s.actors[0].action).toBe('sleep');
+  });
+
   it('げんきが少ないとベッドへ行って寝て、起こすと起きる', () => {
     const s = setup(['saba']);
     s.pets[0].stats.energy = 10;

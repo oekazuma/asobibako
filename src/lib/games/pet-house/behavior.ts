@@ -502,7 +502,7 @@ function needs(a: Actor, c: Ctx): boolean {
 function fallAsleep(a: Actor, c: Ctx) {
   a.mode = 'sleep';
   a.asleep = true;
-  a.pose = c.world.scene === 'room' ? 'sleep' : 'down';
+  a.pose = 'sleep';
   a.gaze = null;
   c.events.push({ type: 'sleep', petId: a.petId });
 }
