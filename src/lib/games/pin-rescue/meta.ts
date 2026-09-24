@@ -5,7 +5,7 @@ export default {
   name: 'ピンぬき',
   description: 'ピンを抜く順番を考えて、金貨を男の子にとどける。マグマに気をつけて',
   players: 1,
-  levels: 18,
+  levels: 23,
   minutes: '1分',
   load: async () => ({
     Game: (await import('./PinRescue.svelte')).default,
