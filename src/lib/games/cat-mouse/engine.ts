@@ -11,6 +11,8 @@ export interface Runner {
   vy: number;
   /** 向いている角度（時計回り、上が 0）。止まっても最後に走った向きを保つ */
   face: number;
+  /** 穴から出たばかりの残り秒。そのあいだは穴に入らない */
+  tunnel: number;
 }
 
 /** 指を置いた位置が中心のスティック。ずらした向きと量で走る */
@@ -80,6 +82,23 @@ const READY_S = 1.8;
 const END_S = 1.6;
 const DEAD_ZONE = 0.012;
 
+/**
+ * 床の植木鉢。ネコもネズミも通れないが、小回りのきくネズミはまわりを回って逃げられる。
+ * 穴は左右の壁にひとつずつで、ネズミだけが入れて反対の穴から出る。
+ * どちらも盤面を 180 度回すと重なる位置に置き、上下のプレイヤーで有利不利が出ないようにする
+ */
+export const POTS = [
+  { x: 0.26, y: 0.36, r: 0.075 },
+  { x: 0.74, y: 0.64, r: 0.075 }
+] as const;
+export const HOLES = [
+  { x: 0, y: 0.3 },
+  { x: 1, y: 0.7 }
+] as const;
+/** 穴の口の高さ（半分） */
+export const HOLE_R = 0.05;
+const TUNNEL_S = 0.8;
+
 const other = (p: Player): Player => (p === 1 ? 2 : 1);
 const dist = (state: GameState, a: { x: number; y: number }, b: { x: number; y: number }) =>
   Math.hypot((a.x - b.x) * state.aspect, a.y - b.y);
@@ -106,7 +125,7 @@ export function createState(aspect: number, cat: Player, random: () => number = 
 
 /** それぞれ自分の陣地の真ん中から、相手のほうを向いて始める */
 function runner(player: Player): Runner {
-  return { x: 0.5, y: player === 1 ? 0.8 : 0.2, vx: 0, vy: 0, face: player === 1 ? 0 : 180 };
+  return { x: 0.5, y: player === 1 ? 0.8 : 0.2, vx: 0, vy: 0, face: player === 1 ? 0 : 180, tunnel: 0 };
 }
 
 /** チーズはネズミから離れた、ネコのすぐそばでない場所に出す。見つからなければ最後の候補で妥協する */
@@ -120,7 +139,8 @@ export function placeCheese(state: GameState): void {
       x: margin + state.random() * (1 - margin * 2),
       y: margin + state.random() * (1 - margin * 2)
     };
-    if (dist(state, spot, mouse) > 0.35 && dist(state, spot, cat) > 0.2) break;
+    const clear = POTS.every((pot) => dist(state, spot, pot) > pot.r + CHEESE_R + 0.03);
+    if (clear && dist(state, spot, mouse) > 0.35 && dist(state, spot, cat) > 0.2) break;
   }
   state.cheese = spot;
 }
@@ -188,6 +208,29 @@ function run(state: GameState, player: Player, dt: number) {
     r.y = Math.min(1 - rad, Math.max(rad, r.y));
     r.vy = 0;
   }
+  for (const pot of POTS) {
+    const dx = (r.x - pot.x) * state.aspect;
+    const dy = r.y - pot.y;
+    const d = Math.hypot(dx, dy);
+    const reach = pot.r + rad;
+    if (d >= reach || d === 0) continue;
+    r.x = pot.x + (dx / d) * (reach / state.aspect);
+    r.y = pot.y + (dy / d) * reach;
+    // 鉢に向かう速さだけ消して、ふちに沿って滑らせる
+    const into = (r.vx * dx + r.vy * dy) / d;
+    if (into < 0) [r.vx, r.vy] = [r.vx - (into * dx) / d, r.vy - (into * dy) / d];
+  }
+  r.tunnel = Math.max(0, r.tunnel - dt);
+  if (isCat || r.tunnel > 0) return;
+  HOLES.forEach((hole, i) => {
+    const atWall = hole.x === 0 ? r.x <= rx + 0.005 : r.x >= 1 - rx - 0.005;
+    if (!atWall || Math.abs(r.y - hole.y) > HOLE_R) return;
+    const out = HOLES[1 - i];
+    r.x = out.x === 0 ? rx + 0.01 : 1 - rx - 0.01;
+    r.y = out.y;
+    r.vx = (out.x === 0 ? 1 : -1) * Math.abs(r.vx);
+    r.tunnel = TUNNEL_S;
+  });
 }
 
 function nextRound(state: GameState, events: CatMouseEvent[]) {

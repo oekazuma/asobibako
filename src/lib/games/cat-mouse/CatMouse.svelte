@@ -9,6 +9,7 @@
   import { CAT_R, CHEESE_R, createState, MOUSE_R, step, STICK_R, updateSticks } from './engine';
   import Critter from './Critter.svelte';
   import Hud from './Hud.svelte';
+  import Room from './Room.svelte';
   import { sounds } from './sounds';
 
   let { onfinish }: GameProps = $props();
@@ -91,6 +92,7 @@
   style:--cheese="{CHEESE_R * 260}%"
   style:--stick="{STICK_R * 200}%"
 >
+  <Room />
   <div class="cheese" hidden={view.phase !== 'play'} bind:this={cheeseEl}><Icon name="cheese" size="100%" /></div>
 
   {#each [1, 2] as const as player (player)}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CAT_R, createState, type GameState, ROUND_S, step, STICK_R, updateSticks } from './engine';
+import { CAT_R, createState, type GameState, HOLES, POTS, ROUND_S, step, STICK_R, updateSticks } from './engine';
 
 /** 始まりの間を飛ばして走れる状態にする */
 function playing(cat: 1 | 2 = 1): GameState {
@@ -107,5 +107,41 @@ describe('cat-mouse', () => {
     decided.scores = { 1: 1, 2: 3 };
     decided.runners[1].y = decided.runners[2].y + CAT_R;
     expect(run(decided, 2)).toContainEqual({ type: 'win', player: 2 });
+  });
+
+  /** プレイヤー p を、今いる位置から (dx, dy) の向きへ全速で走らせ続ける */
+  const drive = (state: GameState, p: 1 | 2, dx: number, dy: number) => {
+    const r = state.runners[p];
+    updateSticks(state, [{ id: p, side: p, x: r.x, y: r.y, ox: r.x, oy: r.y }]);
+    updateSticks(state, [{ id: p, side: p, x: r.x + dx * STICK_R, y: r.y + dy * STICK_R, ox: r.x, oy: r.y }]);
+  };
+
+  it('植木鉢は通り抜けられない', () => {
+    const state = playing();
+    const pot = POTS[0];
+    Object.assign(state.runners[2], { x: pot.x, y: pot.y - 0.25 });
+    Object.assign(state.runners[1], { x: 0.9, y: 0.95 });
+    drive(state, 2, 0, 1);
+    run(state, 1.5);
+    const r = state.runners[2];
+    expect(Math.hypot(r.x - pot.x, r.y - pot.y)).toBeGreaterThanOrEqual(pot.r);
+  });
+
+  it('ネズミは壁の穴から反対の穴へ抜けるが、ネコは抜けない', () => {
+    const state = playing(1);
+    const [a, b] = HOLES;
+    Object.assign(state.runners[2], { x: 0.15, y: a.y });
+    Object.assign(state.runners[1], { x: 0.5, y: 0.95 });
+    drive(state, 2, -1, 0);
+    run(state, 0.5);
+    expect(state.runners[2].x).toBeGreaterThan(0.8);
+    expect(Math.abs(state.runners[2].y - b.y)).toBeLessThan(0.05);
+
+    const cat = playing(1);
+    Object.assign(cat.runners[1], { x: 0.15, y: a.y });
+    Object.assign(cat.runners[2], { x: 0.9, y: 0.95 });
+    drive(cat, 1, -1, 0);
+    run(cat, 1);
+    expect(cat.runners[1].x).toBeLessThan(0.2);
   });
 });
