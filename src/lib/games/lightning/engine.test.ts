@@ -29,6 +29,36 @@ describe('lightning engine', () => {
     expect(answer(state, 2, 'up')).toEqual([{ type: 'score', player: 2 }]);
   });
 
+  it('点を取ると、指示から答えるまでの秒数が残る', () => {
+    const state = going('tap');
+    answer(state, 1, 'tap');
+    expect(state.reaction).toBeCloseTo(state.limit - 2);
+  });
+
+  it('逆向きの矢印は反対にスワイプすると点になる', () => {
+    const state = going('up');
+    state.reverse = true;
+    answer(state, 1, 'up');
+    expect(answer(state, 2, 'down')).toEqual([{ type: 'score', player: 2 }]);
+  });
+
+  it('勝ちが近づくと答えられる時間が縮み、逆向きの矢印が混ざる', () => {
+    const state = createState(() => 0);
+    step(state, 10, () => 0.99);
+    const calm = state.limit;
+    expect(state.reverse).toBe(false);
+
+    const hot = createState(() => 0);
+    hot.score[2] = GOAL - 1;
+    hot.command = 'tap';
+    // ドクロを避け、矢印（up）を選び、逆向きにする
+    const rolls = [0.99, 0.4, 0];
+    step(hot, 10, () => rolls.shift() ?? 0);
+    expect(hot.command).toBe('up');
+    expect(hot.reverse).toBe(true);
+    expect(hot.limit).toBeLessThan(calm);
+  });
+
   it('2 人とも間違えたら誰の点にもならない', () => {
     const state = going('tap');
     answer(state, 1, 'two');

@@ -20,6 +20,7 @@
 
   const locked = $derived(game.locked[player]);
   const look = $derived(LOOK[game.command]);
+  const reverse = $derived(game.reverse && look.icon === 'arrow');
   const result = $derived.by(() => {
     if (game.scorer === player) return 'ゲット！';
     if (game.scorer !== null) return 'とられた…';
@@ -36,13 +37,16 @@
   {:else if game.phase === 'go' && locked === 'miss'}
     <div class="card bad"><span class="label">ミス！</span></div>
   {:else if game.phase === 'go'}
-    <div class="card go" class:skull={game.command === 'skull'}>
+    <div class="card go" class:skull={game.command === 'skull'} class:reverse>
       <span class="icon"><Icon name={look.icon} rotate={look.rotate} /></span>
-      <span class="label">{look.label}</span>
+      <span class="label">{reverse ? 'ぎゃくに スワイプ' : look.label}</span>
     </div>
   {:else}
     <div class="card" class:win={game.scorer === player}>
       <span class="label">{result}</span>
+      {#if game.reaction !== null}
+        <span class="time">{game.reaction.toFixed(2)}びょう</span>
+      {/if}
     </div>
   {/if}
 </div>
@@ -104,6 +108,18 @@
   .skull {
     background: var(--ink);
     color: var(--p2);
+  }
+
+  /* 逆向きは工事中のしま模様で、ふつうの矢印と見分ける */
+  .reverse {
+    background: repeating-linear-gradient(-45deg, var(--gold) 0 16px, #ffd970 16px 32px);
+  }
+
+  .time {
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(16px, 2.6cqh, 26px);
+    opacity: 0.75;
   }
 
   .bad {
