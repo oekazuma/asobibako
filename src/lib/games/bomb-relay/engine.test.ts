@@ -56,7 +56,7 @@ describe('bomb-relay engine', () => {
     const state = withBombAt(0.5, 0.25, 0.5);
     state.meters = { 1: 0.4, 2: 0.6 };
     const events = run(state, 0.6);
-    expect(events).toContainEqual(expect.objectContaining({ type: 'boom', side: 2 }));
+    expect(events).toContainEqual(expect.objectContaining({ type: 'boom', side: 2, lost: 0.3 }));
     expect(state.meters).toEqual({ 1: 0.4, 2: 0.3 });
 
     run(state, 2);

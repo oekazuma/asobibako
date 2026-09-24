@@ -25,7 +25,9 @@ export interface GameState {
   winner: Player | null;
 }
 
-export type StepEvent = { type: 'boom'; side: Player; x: number; y: number } | { type: 'win'; player: Player };
+/** boom の lost は、吹き飛んだメーターの量（0..1） */
+export type StepEvent =
+  { type: 'boom'; side: Player; x: number; y: number; lost: number } | { type: 'win'; player: Player };
 
 export const BOMB_R = 0.055;
 export const CATCH_R = 0.1;
@@ -123,12 +125,13 @@ export function step(state: GameState, dt: number, rand: () => number = Math.ran
   bomb.age += dt;
   if (bomb.age >= bomb.fuse) {
     const side = sideOf(bomb.y);
-    state.meters[side] *= 0.5;
+    const lost = state.meters[side] * 0.5;
+    state.meters[side] -= lost;
     state.bomb = null;
     state.respawnIn = RESPAWN_S;
     // 同じ側へ落とすと、爆発まで持ち続けた人が次の爆弾も独り占めできてしまう
     state.nextSide = side === 1 ? 2 : 1;
-    return { type: 'boom', side, x: bomb.x, y: bomb.y };
+    return { type: 'boom', side, x: bomb.x, y: bomb.y, lost };
   }
 
   if (bomb.heldBy !== null) {

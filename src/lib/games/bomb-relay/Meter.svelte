@@ -2,10 +2,13 @@
   import type { Player } from '$lib/player';
 
   let { player, value, filling }: { player: Player; value: number; filling: boolean } = $props();
+
+  /** ここまでたまると、勝ちが近いことを相手にも分かるよう点滅させる */
+  const NEAR = 0.8;
 </script>
 
 <!-- 各プレイヤーの手元の辺に置く。向かい側は 180 度回して、どちらも左から満ちていく -->
-<div class="meter p{player}" class:filling style:--m={value}>
+<div class="meter p{player}" class:filling class:near={value >= NEAR} style:--m={value}>
   <div class="fill"></div>
 </div>
 
@@ -44,6 +47,22 @@
 
   .p2 .fill {
     background: var(--p2);
+  }
+
+  .near .fill {
+    animation: near 500ms steps(2) infinite;
+  }
+
+  @keyframes near {
+    50% {
+      background: var(--gold);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .near .fill {
+      animation: none;
+    }
   }
 
   /* 持っているあいだは、手元のメーターが光る */
