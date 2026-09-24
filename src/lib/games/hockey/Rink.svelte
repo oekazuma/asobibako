@@ -1,10 +1,12 @@
 <script lang="ts">
+  import type { Player } from '$lib/player';
   import { GOAL_W } from './engine';
 
-  let { flash }: { flash: number } = $props();
+  /** flash は得点のたびに増える数。scorer はそのとき点を取った側 */
+  let { flash, scorer }: { flash: number; scorer: Player } = $props();
 </script>
 
-<!-- 陣地・センターライン・ゴールの口。どれも動かないので、ここは一度描いたら触らない -->
+<!-- 陣地・センターライン・ゴールの口は動かない。得点のときだけ光らせ、点を取った側に向けて「ゴール！」を出す -->
 <div class="rink" style:--goal-w="{GOAL_W * 100}%" aria-hidden="true">
   <div class="zone p2"></div>
   <div class="zone p1"></div>
@@ -13,7 +15,10 @@
   <div class="goal p2"></div>
   <div class="goal p1"></div>
   {#key flash}
-    {#if flash > 0}<div class="flash"></div>{/if}
+    {#if flash > 0}
+      <div class="flash"></div>
+      <div class="cheer p{scorer}"><span class="sticker">ゴール！</span></div>
+    {/if}
   {/key}
 </div>
 
@@ -90,6 +95,63 @@
     inset: 0;
     background: var(--gold);
     animation: flash 450ms ease-out forwards;
+  }
+
+  .cheer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 50%;
+    display: grid;
+    place-items: center;
+  }
+
+  .cheer.p1 {
+    bottom: 0;
+  }
+
+  .cheer.p2 {
+    top: 0;
+    rotate: 180deg;
+  }
+
+  .cheer .sticker {
+    color: var(--gold-deep);
+    font-size: min(10cqh, 16cqw);
+    animation: cheer 900ms var(--spring) forwards;
+  }
+
+  @keyframes cheer {
+    0% {
+      scale: 0.3;
+      opacity: 0;
+    }
+    25% {
+      scale: 1;
+      opacity: 1;
+    }
+    75% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /* 動きを止めても、出たまま残らないよう薄れて消える */
+  @media (prefers-reduced-motion: reduce) {
+    .cheer .sticker {
+      animation-name: fade;
+    }
+  }
+
+  @keyframes fade {
+    75% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
   }
 
   @keyframes flash {

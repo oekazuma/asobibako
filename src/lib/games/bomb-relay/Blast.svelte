@@ -88,6 +88,15 @@
     }
   }
 
+  @keyframes fade {
+    75% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
   @keyframes flash {
     from {
       opacity: 0.85;
@@ -115,8 +124,7 @@
     }
 
     .loss .sticker {
-      animation: none;
-      opacity: 0;
+      animation-name: fade;
     }
   }
 </style>
