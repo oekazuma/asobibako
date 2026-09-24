@@ -174,6 +174,7 @@ export class ContestPlay implements Activity {
     this.phase = 'play';
     this.#t = 0;
     this.banner = 'スタート！';
+    host.music('contest-play');
     cs.go();
     this.#venue?.cheer(0.6);
     cs.applause(0.4);
@@ -216,6 +217,7 @@ export class ContestPlay implements Activity {
     this.#finger = null;
     if (this.id === 'agility') this.score = agilityTime(this.clock, COURSE.length - this.gate);
     cs.whistle();
+    host.music('contest');
     this.#venue?.cheer(0.8);
     cs.applause(0.7);
   }
@@ -234,11 +236,14 @@ export class ContestPlay implements Activity {
     this.#t = 0;
     // 結果の札のうしろで、会場のまん中へ呼び戻しておく
     [a.x, a.z, a.heading] = [ARENA.front.x, ARENA.front.z, 0];
+    host.music(null);
     cs.drum(RESULT_WAIT * 1000);
   }
 
   #reveal(a: Actor) {
     const n = this.board.length;
+    // ドラムロールとファンファーレのあいだは BGM を止めておき、鳴り終わってから戻す
+    if (this.shown >= n && this.#t > RESULT_WAIT + (n - 1) * REVEAL_EVERY + 2.5) this.#host.music('contest');
     if (this.shown >= n || this.#t < RESULT_WAIT + this.shown * REVEAL_EVERY) return;
     this.shown++;
     if (this.shown < n) {
@@ -252,7 +257,7 @@ export class ContestPlay implements Activity {
       this.#host.fx.confetti(x, y - 40);
       this.#venue?.cheer(1);
       cs.applause(1);
-      this.#host.voice();
+      this.#host.voice('happy');
     } else {
       cs.reveal();
       cs.applause(0.4);

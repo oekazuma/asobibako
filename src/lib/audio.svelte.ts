@@ -27,6 +27,14 @@ export function wake(): void {
   if (ctx.state === 'suspended') void ctx.resume();
 }
 
+/**
+ * 自分でノードを組む音（BGM・鳴き声）の出口。wake() の前・ミュート中・止まっているあいだは undefined。
+ * 鳴らす側は時刻を ctx.currentTime から先読みして組むので、tone() のようにその場で鳴らすものだけではない
+ */
+export function bus(): AudioContext | undefined {
+  return ctx && !audio.muted && ctx.state === 'running' ? ctx : undefined;
+}
+
 /** 各ゲームの効果音はこの部品を組み合わせて、ゲームのフォルダ側で定義する */
 export function tone(freq: number, ms: number, type: OscillatorType = 'triangle', gain = 0.14, delay = 0) {
   if (!ctx || audio.muted) return;

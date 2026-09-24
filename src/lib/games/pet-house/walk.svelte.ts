@@ -3,6 +3,7 @@ import { graphics } from '$lib/graphics.svelte';
 import type { Activity, ActivityHost, Follow } from './activity';
 import type { Actor } from './behavior';
 import { BREEDS } from './breeds';
+import { speakAt } from './cries';
 import { play, stroke } from './engine';
 import type { Layout, Spot } from './layout';
 import { createPet, type PetModel } from './models';
@@ -301,10 +302,12 @@ export class WalkPlay implements Activity {
       if (this.#t > 1.2 && !this.#cheered) {
         this.#cheered = true;
         sounds.greet();
-        host.voice();
+        host.voice('happy');
         host.fx.hearts(...host.above(a), 3);
         const [nx, ny] = host.world.project(n.x, 0.45, n.z);
         host.fx.hearts(nx, ny, 3);
+        // あいさつの相手も少しおくれて返す。同時だと 2 匹の声が 1 つに聞こえる
+        setTimeout(() => speakAt(host.fx, n.breed, 'happy', [nx, ny]), 450);
         host.say(`${BREEDS[n.breed].name}と あいさつ したよ`);
       }
       if (this.#t > 2.7) {

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { Rng } from '$lib/levels';
 import { command, createActor, think, throwToy, type Actor, type BehaviorEvent, type WorldView } from './behavior';
+import { NATURAL_ROOM } from './decor';
 import { adopt, newSave, type Pet } from './engine';
-import { LAYOUTS, PARK, ROOM, type Spot } from './layout';
+import { LAYOUTS, PARK, ROOM, roomPerches, type Perch, type Spot } from './layout';
 import type { BaseScene, BreedId } from './types';
 
 function setup(breeds: BreedId[], scene: BaseScene = 'room', at: Spot[] = [{ x: -0.6, z: 0.5 }]) {
@@ -240,11 +241,19 @@ describe('pet-house behavior', () => {
         { x: -0.1, z: 0.05 }
       ]);
       if (scene === 'park') s.world.presents = [{ id: 1, x: 1.7, z: -1.1 }];
+      else s.world.perches = roomPerches(NATURAL_ROOM);
       const layout = scene === 'room' ? ROOM : PARK;
       const b = layout.bounds;
       run(s, 120, undefined, (t) => {
         if (Math.abs(t % 20) < 1 / 30) s.world.toy = throwToy('ball', { x: 0, y: 1, z: 0.8 }, { x: 1, y: 2, z: -4 });
         for (const a of s.actors as Actor[]) {
+          if (a.hop) continue;
+          const on = s.world.perches?.find((p) => p.id === a.perch);
+          if (on) {
+            expectOn(a, on);
+            continue;
+          }
+          expect(a.y).toBe(0);
           expect(a.x).toBeGreaterThanOrEqual(b.x0);
           expect(a.x).toBeLessThanOrEqual(b.x1);
           expect(a.z).toBeGreaterThanOrEqual(b.z0);
@@ -254,4 +263,84 @@ describe('pet-house behavior', () => {
       });
     });
   }
+
+  describe('ソファとベッド', () => {
+    const inRoom = (breeds: BreedId[], at?: Spot[], seed = 7) => {
+      const s = setup(breeds, 'room', at);
+      s.world.perches = roomPerches(NATURAL_ROOM);
+      s.rng = new Rng(seed).next;
+      return s;
+    };
+    const perch = (s: Setup, id: Perch['id']) => s.world.perches!.find((p) => p.id === id)!;
+
+    it('ソファをタップして呼ぶと飛び乗って座面の上で座り、呼ぶと飛び降りて front に来る', () => {
+      const s = inRoom(['mike'], [{ x: 0.6, z: 0.3 }]);
+      const a = s.actors[0];
+      const seat = perch(s, 'sofa');
+      // 背もたれの上を指しても、座面の中に収まる
+      command(a, s.pets[0], { type: 'call', to: { x: 0.9, z: -2.3 }, perch: 'sofa' });
+      let hopped = false;
+      run(
+        s,
+        15,
+        () => a.perch === 'sofa' && a.mode === 'idle',
+        () => (hopped ||= !!a.hop)
+      );
+      expect(hopped).toBe(true);
+      expectOn(a, seat);
+      run(s, 0.5);
+      expect(a.action).toBe('sit');
+
+      command(a, s.pets[0], { type: 'call' });
+      run(s, 15, () => a.mode === 'idle');
+      expect(a.perch).toBeNull();
+      expect(a.y).toBe(0);
+      expect(Math.hypot(a.x - ROOM.front.x, a.z - ROOM.front.z)).toBeLessThan(0.15);
+    });
+
+    it('ソファの上でおすわりはそのまま、ジャンプは降りてからする', () => {
+      const s = inRoom(['shiba']);
+      const a = s.actors[0];
+      command(a, s.pets[0], { type: 'call', to: perch(s, 'sofa'), perch: 'sofa' });
+      run(s, 15, () => a.perch === 'sofa' && a.mode === 'idle');
+      command(a, s.pets[0], { type: 'trick', trick: 'sit', success: true });
+      run(s, 0.5);
+      expect(a.perch).toBe('sofa');
+      expect(a.action).toBe('sit');
+      run(s, 2);
+      command(a, s.pets[0], { type: 'trick', trick: 'jump', success: true });
+      run(s, 3, () => a.perch === null && a.action === 'jump');
+      expect(a.perch).toBeNull();
+      expect(a.action).toBe('jump');
+    });
+
+    it('眠いときはベッドかソファで寝る。猫はソファを選ぶこともある', () => {
+      const where = new Set<string | null>();
+      for (let seed = 1; seed <= 20; seed++) {
+        const s = inRoom(['saba'], undefined, seed);
+        const a = s.actors[0];
+        s.pets[0].stats.energy = 10;
+        run(s, 30, () => a.asleep);
+        where.add(a.asleep ? a.perch : 'awake');
+        if (a.perch) expectOn(a, perch(s, a.perch));
+      }
+      expect(where).toContain('sofa');
+      expect(where).toContain('bed');
+      expect(where).not.toContain('awake');
+    });
+
+    it('ひまな猫はときどき自分でソファに乗る', () => {
+      const s = inRoom(['kuro']);
+      const a = s.actors[0];
+      run(s, 240, () => a.perch === 'sofa' && a.mode === 'idle');
+      expectOn(a, perch(s, 'sofa'));
+    });
+  });
 });
+
+function expectOn(a: Actor, p: Perch) {
+  expect(a.perch).toBe(p.id);
+  expect(a.y).toBe(p.y);
+  expect(Math.abs(a.x - p.x)).toBeLessThanOrEqual(p.w + 1e-9);
+  expect(Math.abs(a.z - p.z)).toBeLessThanOrEqual(p.d + 1e-9);
+}
