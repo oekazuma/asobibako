@@ -34,13 +34,12 @@ describe('bug-rush engine', () => {
     expect(sideOf(bug.y)).toBe(2);
   });
 
-  it('残りが少なくなると、巣から虫が速く湧く', () => {
-    const calm = createState(1);
-    const rush = createState(1);
-    rush.timeLeft = RUSH_S;
-    run(calm, 2);
-    run(rush, 2);
-    expect(rush.bugs.length).toBeGreaterThan(calm.bugs.length);
+  it('残りが少なくなると、虫でいっぱいの盤面にもさらに速く湧く', () => {
+    const state = createState(1);
+    run(state, DURATION_S - RUSH_S - 0.1);
+    const full = state.bugs.length;
+    run(state, 2);
+    expect(state.bugs.length).toBeGreaterThanOrEqual(full + 2 / 0.3);
   });
 
   it('飛んでいる虫は叩けない', () => {
@@ -128,7 +127,7 @@ describe('bug-rush engine', () => {
   it('虫は無限に湧かず、上限で止まる', () => {
     const state = createState(1);
     run(state, 60);
-    expect(state.bugs.length).toBeLessThanOrEqual(36);
+    expect(state.bugs.length).toBeLessThanOrEqual(54);
   });
 
   it('歩いている虫は、左右の外周の内側に留まる', () => {

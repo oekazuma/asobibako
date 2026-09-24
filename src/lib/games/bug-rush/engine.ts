@@ -35,9 +35,10 @@ export const HP: Record<BugKind, number> = { bug: 1, beetle: 3 };
 export const WEIGHT: Record<BugKind, number> = { bug: 1, beetle: 3 };
 
 const SPAWN_S = 0.45;
-/** 残りがこの秒数を切ると、巣から湧く間隔が縮む（延長中も） */
+/** 残りがこの秒数を切ると、巣から湧く間隔が縮み、盤面に出せる数も増える（延長中も）。虫は消えないので、数を増やさないと湧く余地がない */
 export const RUSH_S = 10;
 const RUSH_SPAWN_S = 0.25;
+const RUSH_MAX_BUGS = 54;
 const MAX_BUGS = 36;
 const BEETLE_CHANCE = 0.12;
 const WALK_SPEED = 0.07;
@@ -117,10 +118,11 @@ export function step(state: GameState, dt: number, rand: () => number = Math.ran
   const events: BugEvent[] = [];
   if (state.winner !== null) return events;
 
+  const rush = state.timeLeft <= RUSH_S;
   state.spawnIn -= dt;
-  if (state.spawnIn <= 0 && state.bugs.length < MAX_BUGS) {
+  if (state.spawnIn <= 0 && state.bugs.length < (rush ? RUSH_MAX_BUGS : MAX_BUGS)) {
     spawn(state, rand);
-    state.spawnIn = state.timeLeft <= RUSH_S ? RUSH_SPAWN_S : SPAWN_S;
+    state.spawnIn = rush ? RUSH_SPAWN_S : SPAWN_S;
   }
 
   const rx = MARGIN / state.aspect;
