@@ -102,6 +102,11 @@ export class Session {
   /** 部屋のお皿。公園へ行っても残しておく */
   #bowls: WorldView['bowls'] = { food: null, foodLeft: 0, waterLeft: 0 };
   #touches: Touch[] = [];
+  /** 画面が 3D をほとんど隠している（おみせなどのシート）。画面が教える */
+  covered = false;
+  /** 最後に指が触れた時刻と、描かずにためた時間。描く回数を減らして端末の発熱を抑える */
+  #touched = 0;
+  #unrendered = 0;
   /** ねこじゃらしのふさ。指の下の点（tx, tz）を少し遅れて追う */
   /** plane は持ち上げはじめたときの立てた面の奥行き。寄ってくる子に合わせて動かすと、ふさが手前へ逃げ続ける */
   #wand = { tx: 0, ty: 0, tz: 0, on: false, rig: null as Wand | null, plane: null as number | null };
@@ -285,21 +290,38 @@ export class Session {
     }
     if ((this.#dirty && this.#now - this.#wrote > 1) || this.#now - this.#wrote > 30) this.#write();
 
+    this.#fx.step(dt);
+    this.#unrendered += dt;
+    // 少し早めに描いてよい幅を持たせる。ぴったりだと 60Hz の画面で 1 コマ待ちがちになり、狙いより遅くなる
+    if (this.#unrendered < 1 / this.#fps() - 0.004) return;
+    const step = this.#unrendered;
+    this.#unrendered = 0;
     const cast = this.#cast;
     const trying = this.trying;
     // おみせのシートが画面の下半分をふさぐので、試着のあいだは絵を上へずらしてペットを見せる
     this.#world.lift = trying ? 0.36 : 0;
     const shown = trying ? pets.map((p) => (p.id === this.save.current ? { ...p, accessory: trying } : p)) : pets;
     this.#world.syncPets(cast ? [...shown, ...cast.pets] : shown);
-    this.#world.update(cast?.actors ?? this.#actors, this.#view, dt, this.#now, this.save.current, this.tool);
+    this.#world.update(cast?.actors ?? this.#actors, this.#view, step, this.#now, this.save.current, this.tool);
     this.#world.render();
-    this.#fx.step(dt);
     const ctx = this.#ctx;
     if (!ctx) return;
     const dpr = this.#overlay.width / this.#w;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, this.#w, this.#h);
     this.#fx.draw(ctx, this.#w, this.#h);
+  }
+
+  /**
+   * 1 秒に描く回数。毛の殻・影・草を毎秒 60 回描き続けると、動きは足りていても端末が熱を持つ。
+   * 指で遊んでいる・おもちゃが飛んでいるあいだだけ 60 にし、のんびりしているときは減らす
+   */
+  #fps(): number {
+    const toy = this.#view.toy;
+    if (this.#touches.length || this.#wand.on || (toy && !toy.still) || this.#now - this.#touched < 2) return 60;
+    if (this.covered && !this.trying) return 15;
+    if (this.#now - this.#touched > 60) return 20;
+    return 30;
   }
 
   /** 食べる音・寝息の Z・公園のプレゼントの補充 */
@@ -411,6 +433,7 @@ export class Session {
   // --- 指 ---
 
   down(id: number, px: number, py: number): void {
+    this.#touched = this.#now;
     const act = this.activity;
     if (act && (act.down?.(id, px, py) || act.drives)) return;
     if (!this.current || !this.#actors.length) return;
@@ -441,6 +464,7 @@ export class Session {
   }
 
   move(id: number, px: number, py: number): void {
+    this.#touched = this.#now;
     if (this.activity?.move?.(id, px, py)) return;
     const touch = this.#touches.find((t) => t.id === id);
     if (!touch) return;

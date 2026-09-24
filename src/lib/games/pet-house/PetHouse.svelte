@@ -28,6 +28,9 @@
   let fx: HTMLCanvasElement;
   let session = $state<Session>();
   let panel = $state<Panel | null>(null);
+  $effect(() => {
+    if (session) session.covered = panel !== null;
+  });
   /** 3D の組み立て（毛並み・部屋のテクスチャ）は数百 ms 画面を止めるので、そのあいだ出す */
   let loading = $state(true);
   const input = createInput(() => session);

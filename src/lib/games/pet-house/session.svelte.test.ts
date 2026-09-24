@@ -3,7 +3,10 @@ import type { Activity, ActivityHost, SceneHost, Visit } from './activity';
 import { createActor, throwToy, type Actor, type WorldView } from './behavior';
 import type { Pet } from './engine';
 
-const seen: { view?: WorldView; actors?: Actor[]; pets?: Pet[]; log: string[] } = { log: [] };
+const seen: { view?: WorldView; actors?: Actor[]; pets?: Pet[]; log: string[]; renders: number } = {
+  log: [],
+  renders: 0
+};
 
 vi.mock('./world3d', () => ({
   PetWorld: class {
@@ -17,7 +20,9 @@ vi.mock('./world3d', () => ({
       seen.actors = actors;
       seen.view = view;
     }
-    render() {}
+    render() {
+      seen.renders++;
+    }
     resize() {}
     pick() {
       return null;
@@ -59,6 +64,24 @@ function frames(s: S, sec: number, until?: () => boolean): boolean {
 beforeEach(() => localStorage.clear());
 
 describe('Session', () => {
+  it('のんびりしているときは描く回数を減らし、指で触っているあいだは毎秒 60 回描く', () => {
+    const s = make();
+    s.adopt('shiba', 'ポチ');
+    const count = (sec: number) => {
+      seen.renders = 0;
+      for (let t = 0; t < sec; t += 1 / 60) s.frame(1 / 60);
+      return seen.renders;
+    };
+    count(3);
+    expect(count(2)).toBeLessThan(70);
+    s.down(1, 200, 700);
+    expect(count(2)).toBeGreaterThan(110);
+    s.up(1, 200, 700, 0, 0);
+    s.covered = true;
+    count(3);
+    expect(count(2)).toBeLessThan(40);
+  });
+
   it('試着は見た目だけ着せて save は変えず、買うと着たまま、ペットを替えると外れる', () => {
     const s = make();
     s.adopt('shiba', 'ポチ');
