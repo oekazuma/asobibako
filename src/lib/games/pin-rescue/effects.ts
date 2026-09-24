@@ -45,7 +45,7 @@ export class PinFx {
   }
 
   /**
-   * 毎フレーム呼ぶ。戻り値の progress はクリアまでの進み具合（0..1）で、金貨と怪物の両方がいればその平均。
+   * 毎フレーム呼ぶ。戻り値の progress はクリアまでの進み具合（0..1）で、金貨と怪物のうちその面にあるものの平均。
    * 姫の面は歩いてたどり着けば終わりなので -1 を返し、メーターを出さない
    */
   update(game: GameState, dt: number): { progress: number; score: number } {
@@ -119,9 +119,10 @@ export class PinFx {
     this.#blasts = game.blasts.length;
     this.particles.step(dt);
     this.floaters.step(dt);
-    const gold = needed(game) > 0 ? Math.min(1, game.collected / needed(game)) : 1;
-    const beaten = game.monsters.length ? game.monsters.filter((m) => !m.alive).length / game.monsters.length : 1;
-    const progress = game.princess ? -1 : game.monsters.length ? (gold + beaten) / 2 : gold;
+    const parts: number[] = [];
+    if (needed(game) > 0) parts.push(Math.min(1, game.collected / needed(game)));
+    if (game.monsters.length) parts.push(game.monsters.filter((m) => !m.alive).length / game.monsters.length);
+    const progress = game.princess ? -1 : parts.reduce((a, b) => a + b, 0) / Math.max(1, parts.length);
     return { progress, score: game.collected * COIN };
   }
 

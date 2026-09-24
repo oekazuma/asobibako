@@ -202,7 +202,7 @@ export const SCENES: Scene[] = [
   {
     // 姫との間に怪物がいる面。マグマを落として怪物をたおしている途中の、勇者・怪物・姫を撮る
     id: 'pin-rescue',
-    level: 27,
+    level: 36,
     clip: band(560),
     play: async (s) => {
       await s.startSolo();

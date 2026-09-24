@@ -76,11 +76,15 @@ export class LiquidLayer {
     const c = this.#ctx!;
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.clearRect(0, 0, width, height);
-    const d = R * 4.2 * scale;
-    for (const p of particles) {
-      if (p.kind !== kind) continue;
-      c.drawImage(this.#blob!, p.x * scale - d / 2, p.y * scale - d / 2, d, d);
-    }
+    const gas = kind === 'gas';
+    // ガスの粒は積んだ四角のまま昇るので、描くときだけ粒ごとに揺らして大きくぼかし、雲に見せる
+    const d = R * (gas ? 5.5 : 4.2) * scale;
+    particles.forEach((p, i) => {
+      if (p.kind !== kind) return;
+      const sway = gas ? Math.sin(now * 1.7 + i * 2.3) * R * 0.9 : 0;
+      const bob = gas ? Math.cos(now * 1.3 + i * 1.7) * R * 0.6 : 0;
+      c.drawImage(this.#blob!, (p.x + sway) * scale - d / 2, (p.y + bob) * scale - d / 2, d, d);
+    });
     const box = liquidBox(particles, kind, scale, d, width, height);
     if (!box) return;
 

@@ -202,7 +202,8 @@ function touch(state: GameState, p: Particle, w: Walker) {
   } else if (p.kind === 'lava' || p.kind === 'gas') {
     if (monster) w.alive = false;
     else state.result = p.kind === 'lava' ? 'burned' : 'gassed';
-  } else if (p.kind === 'rock' && monster && Math.hypot(p.x - p.px, p.y - p.py) / SUB_DT > CRUSH_SPEED) {
+  } else if (p.kind === 'rock' && monster && (p.y - p.py) / SUB_DT > CRUSH_SPEED) {
+    // 横の速さは数えない。歩いてきた怪物に押しのけられた岩も速く動くので、落ちてきた岩だけにする
     w.alive = false;
   }
 }

@@ -31,7 +31,7 @@ describe('pin-rescue engine', () => {
       const state = createState(level);
       level.pins.forEach((_, i) => pull(state, i));
       run(state, 8);
-      expect(state.result).toMatch(/^(burned|eaten|stuck)$/);
+      expect(state.result).toMatch(/^(burned|eaten|gassed|drowned|stuck)$/);
     }
   );
 
