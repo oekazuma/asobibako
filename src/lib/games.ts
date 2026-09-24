@@ -10,6 +10,7 @@ import gateRun from './games/gate-run/meta';
 import hirameki from './games/hirameki/meta';
 import hockey from './games/hockey/meta';
 import lightning from './games/lightning/meta';
+import petHouse from './games/pet-house/meta';
 import pinRescue from './games/pin-rescue/meta';
 import snowCamp from './games/snow-camp/meta';
 import type { Player } from './player';
@@ -71,6 +72,7 @@ export interface SoloMeta extends BaseMeta {
 export type GameMeta = DuelMeta | SoloMeta;
 
 export const games: GameMeta[] = [
+  petHouse,
   pinRescue,
   hirameki,
   gateRun,

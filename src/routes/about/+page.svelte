@@ -3,6 +3,7 @@
   import { resolve } from '$app/paths';
   import AppUpdate from '$lib/components/AppUpdate.svelte';
   import Backup from '$lib/components/Backup.svelte';
+  import GraphicsSetting from '$lib/components/GraphicsSetting.svelte';
   import Icon from '$lib/components/Icon.svelte';
   import { pwaStatus, type PwaStatus } from '$lib/pwa';
 
@@ -49,6 +50,11 @@
           <li><Icon name={ok ? 'check' : 'cross'} size="22px" />{ok ? good : bad}</li>
         {/each}
       </ul>
+    </section>
+
+    <section class="card">
+      <h2>がしつ</h2>
+      <GraphicsSetting />
     </section>
 
     <section class="card">

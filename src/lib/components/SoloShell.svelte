@@ -143,7 +143,11 @@
     font-weight: 800;
     letter-spacing: 0.06em;
     font-size: clamp(14px, min(2.6cqh, 4.6cqw), 24px);
-    white-space: nowrap;
+    /* 細い画面で長い一言（ペットの名前入りなど）が画面の外へはみ出さないよう、分かち書きの空白で折り返す */
+    width: max-content;
+    max-width: calc(100% - 32px);
+    text-align: center;
+    word-break: keep-all;
     translate: -50% 0;
     pointer-events: none;
     animation: pop 420ms var(--spring);

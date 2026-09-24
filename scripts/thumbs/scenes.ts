@@ -253,6 +253,36 @@ export const SCENES: Scene[] = [
     }
   },
   {
+    // 保存が空だとふれあいひろばから始まるので、柴犬を 1 匹飼っている保存を入れてから始め、手前に呼んでなでる
+    id: 'pet-house',
+    clip: band(470),
+    play: async (s) => {
+      await s.page.evaluate(() => {
+        const day = new Date().toISOString().slice(0, 10);
+        const pet = {
+          id: 'pochi',
+          breed: 'shiba',
+          name: 'ポチ',
+          stats: { food: 90, water: 90, clean: 100, energy: 100 },
+          love: 2.4,
+          tricks: {},
+          accessory: 'bandana'
+        };
+        localStorage.setItem(
+          'asobibako:pet-house',
+          JSON.stringify({ pets: [pet], current: 'pochi', money: 1000, seen: Date.now(), allowanceDay: day })
+        );
+      });
+      await s.startSolo();
+      await s.wait(1500);
+      await s.press('button[aria-label="よぶ"], button:has-text("よぶ")');
+      await s.wait(3500);
+      await s.drag(1, wave(330, 640, 120), 900);
+      await s.touch(1, 'up', 450, 640);
+      await s.wait(200);
+    }
+  },
+  {
     // カメラは主人公を追うので、クマの前で斧を振っているときに下のキャンプが画面に残る位置で撮る
     id: 'snow-camp',
     level: 1,

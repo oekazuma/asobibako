@@ -1,4 +1,5 @@
 import { GATE_KEY } from './gate.svelte';
+import { GRAPHICS_KEY } from './graphics.svelte';
 import { LAST_ERROR_KEY } from './last-error';
 import { today } from './today';
 
@@ -6,8 +7,8 @@ import { today } from './today';
 // （サーバーや同期は持たない。保護者が自分で持つファイルだけ）
 export type Backup = { app: 'asobibako'; version: string; at: string; data: Record<string, string> };
 const PREFIX = 'asobibako:';
-// 端末ごとの控え。持ち運ぶと別の端末のエラーやゲートの回数が混ざる
-const EXCLUDED = new Set([LAST_ERROR_KEY, GATE_KEY]);
+// 端末ごとの控え。持ち運ぶと別の端末のエラーやゲートの回数、端末の力に合わせた画質が混ざる
+const EXCLUDED = new Set([LAST_ERROR_KEY, GATE_KEY, GRAPHICS_KEY]);
 
 // 常識外のファイルを弾く上限（正規の書き出しは数 KB、キーはゲーム数 + 数個）
 const MAX_KEYS = 400;

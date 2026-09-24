@@ -366,6 +366,89 @@ export const ICONS = {
   cross: [
     { d: circle(12, 12, 10), fill: '#ff9fb3', stroke: LINE, width: 1.6 },
     { d: 'M8.5 8.5l7 7M15.5 8.5l-7 7', stroke: LINE, width: 2.2 }
+  ],
+  frisbee: [
+    { d: ellipse(12, 13, 10, 5.5), fill: '#ff8fa6', stroke: LINE, width: 1.4 },
+    { d: ellipse(12, 12, 5.5, 2.6), fill: '#ffb3c3', stroke: LINE, width: 1 }
+  ],
+  wand: [
+    { d: 'M4 21L15.5 8.5', stroke: '#c97b4a', width: 1.8 },
+    {
+      d: 'M15 9c-1-4 1.5-6.5 4.5-6.5.8 3-1 6.5-4.5 6.5zM15 9c2-2 4.5-2 6.5-.5-1.5 2.5-4.5 2.5-6.5.5z',
+      fill: '#ffd966',
+      stroke: LINE,
+      width: 1.2
+    }
+  ],
+  heart: [
+    {
+      d: 'M12 20.5C6 16.3 2.5 12.8 2.5 8.8A4.8 4.8 0 0 1 12 6.6a4.8 4.8 0 0 1 9.5 2.2c0 4-3.5 7.5-9.5 11.7z',
+      fill: '#ff6b8a',
+      stroke: LINE,
+      width: 1.4
+    },
+    { d: 'M6 8.5a2.4 2.4 0 0 1 2-2', stroke: '#fff', width: 1.4 }
+  ],
+  drop: [
+    {
+      d: 'M12 2.5c3.5 5 6.5 8.5 6.5 12a6.5 6.5 0 0 1-13 0c0-3.5 3-7 6.5-12z',
+      fill: '#7cc8ff',
+      stroke: LINE,
+      width: 1.4
+    },
+    { d: 'M9 14.5a3 3 0 0 0 2 3', stroke: '#fff', width: 1.4 }
+  ],
+  ball: [
+    { d: circle(12, 12, 9), fill: '#c8f05a', stroke: LINE, width: 1.4 },
+    { d: 'M4.5 7.5c4 1.5 4 7.5 0 9M19.5 7.5c-4 1.5-4 7.5 0 9', stroke: '#fff', width: 1.4 }
+  ],
+  bowl: [
+    { d: ellipse(12, 11, 7.5, 2.5), fill: '#c97b4a' },
+    { d: circle(8.5, 9.8, 1.6) + circle(12, 9.2, 1.7) + circle(15.5, 9.8, 1.6), fill: '#a8603a' },
+    { d: 'M2.5 12h19a9.5 7.5 0 0 1-19 0z', fill: '#57aef5', stroke: LINE, width: 1.4 }
+  ],
+  camera: [
+    {
+      d: 'M3 8.5a2 2 0 0 1 2-2h2.5L9 4h6l1.5 2.5H19a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+      fill: '#b9c2d6',
+      stroke: LINE,
+      width: 1.4
+    },
+    { d: circle(12, 13, 4.2), fill: '#3a4a6b', stroke: LINE, width: 1.2 },
+    { d: 'M10.3 11.6a2 2 0 0 1 1.6-1', stroke: '#fff', width: 1.2 }
+  ],
+  bag: [
+    { d: 'M8.5 8V6.5a3.5 3.5 0 0 1 7 0V8', stroke: LINE, width: 1.6 },
+    { d: 'M4.5 8h15l-1 12.5h-13z', fill: '#ffc233', stroke: LINE, width: 1.4 },
+    { d: circle(12, 14, 1.8), fill: '#ff6b8a' }
+  ],
+  paw: [
+    { d: ellipse(12, 16, 5, 4.2), fill: '#c97b4a', stroke: LINE, width: 1.2 },
+    {
+      d: circle(5.5, 10.5, 2) + circle(9.3, 6.8, 2.1) + circle(14.7, 6.8, 2.1) + circle(18.5, 10.5, 2),
+      fill: '#c97b4a'
+    }
+  ],
+  gift: [
+    { d: 'M4 10h16v10.5H4z', fill: '#ff6b8a', stroke: LINE, width: 1.4 },
+    { d: 'M3 7h18v3.5H3z', fill: '#ff8fa6', stroke: LINE, width: 1.4 },
+    { d: 'M10.5 7h3v13.5h-3z', fill: '#ffc233' },
+    { d: 'M12 7C9 2.5 5.5 4.5 8 7M12 7c3-4.5 6.5-2.5 4 0', stroke: LINE, width: 1.4 }
+  ],
+  moon: [
+    { d: 'M15.5 3a8.5 8.5 0 1 0 5.5 13.5A7 7 0 0 1 15.5 3z', fill: '#ffd966', stroke: LINE, width: 1.4 },
+    { d: 'M17 5.5h3l-3 3.5h3', stroke: LINE, width: 1.2 }
+  ],
+  plus: [
+    { d: circle(12, 12, 10), fill: '#9be0a6', stroke: LINE, width: 1.6 },
+    { d: 'M12 7v10M7 12h10', stroke: LINE, width: 2.2 }
+  ],
+  trophy: [
+    { d: 'M7 5H3.5v2.5A4 4 0 0 0 7.5 11.5M17 5h3.5v2.5a4 4 0 0 1-4 4', stroke: LINE, width: 1.5 },
+    { d: 'M6.5 3h11v5a5.5 5.5 0 0 1-11 0z', fill: '#ffc233', stroke: LINE, width: 1.4 },
+    { d: 'M10.5 13.3h3v3.7h-3z', fill: '#e39a00', stroke: LINE, width: 1.2 },
+    { d: 'M7.5 17h9v4h-9z', fill: '#a8683f', stroke: LINE, width: 1.4 },
+    { d: 'M9 5v3.5', stroke: '#fff3a0', width: 1.4 }
   ]
 } satisfies Record<string, Layer[]>;
 
