@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { sideOf } from '$lib/player';
-import { bugAt, BUG_R, counts, createState, DURATION_S, step, tap, type Bug, type GameState } from './engine';
+import { bugAt, BUG_R, counts, createState, DURATION_S, RUSH_S, step, tap, type Bug, type GameState } from './engine';
 
 const place = (state: GameState, kind: Bug['kind'], x: number, y: number): Bug => {
   const bug: Bug = {
@@ -30,8 +30,17 @@ describe('bug-rush engine', () => {
     expect(tap(state, bug.id)).toEqual({ type: 'send', to: 2 });
     expect(counts(state)).toEqual({ 1: 0, 2: 1 });
     const events = run(state, 0.6);
-    expect(events).toContainEqual({ type: 'land', side: 2 });
+    expect(events).toContainEqual(expect.objectContaining({ type: 'land', side: 2 }));
     expect(sideOf(bug.y)).toBe(2);
+  });
+
+  it('残りが少なくなると、巣から虫が速く湧く', () => {
+    const calm = createState(1);
+    const rush = createState(1);
+    rush.timeLeft = RUSH_S;
+    run(calm, 2);
+    run(rush, 2);
+    expect(rush.bugs.length).toBeGreaterThan(calm.bugs.length);
   });
 
   it('飛んでいる虫は叩けない', () => {

@@ -2,10 +2,11 @@
   import { onMount } from 'svelte';
   import { sfx } from '$lib/audio.svelte';
   import { BoardInput } from '$lib/board-input';
+  import { Particles } from '$lib/fx';
   import type { GameProps } from '$lib/games';
   import { animate } from '$lib/loop';
   import type { Player } from '$lib/player';
-  import { bugAt, counts, createState, step, tap } from './engine';
+  import { bugAt, counts, createState, RUSH_S, step, tap } from './engine';
   import Hud from './Hud.svelte';
   import { paint } from './paint';
   import { sounds } from './sounds';
@@ -18,6 +19,17 @@
   let timeLeft = $state(game.timeLeft);
   let lastSecond = Math.ceil(game.timeLeft);
   let size = { width: 1, height: 1 };
+  const particles = new Particles();
+  const SHELL = ['#3b9d4a', '#2c7d39', '#fff'];
+
+  function burst(x: number, y: number, count: number, color: readonly string[], speed: number) {
+    particles.burst(x * size.width, y * size.height, {
+      count,
+      color,
+      speed: speed * size.height,
+      size: size.height * 0.008
+    });
+  }
 
   function sync() {
     const next = counts(game);
@@ -28,8 +40,13 @@
     down: (_e, x, y) => {
       const bug = bugAt(game, x, y);
       const result = bug ? tap(game, bug.id) : null;
-      if (result?.type === 'hit') sounds.hit();
-      else if (result?.type === 'send') sounds.send();
+      if (result?.type === 'hit') {
+        sounds.hit();
+        burst(x, y, 5, ['#fff'], 0.25);
+      } else if (result?.type === 'send') {
+        sounds.send();
+        burst(x, y, 12, bug?.kind === 'beetle' ? ['#8a4b2a', '#6e3a1f', '#fff'] : SHELL, 0.45);
+      }
       sync();
     }
   });
@@ -51,16 +68,19 @@
 
   onMount(() => {
     const ctx = canvas.getContext('2d');
-    const stop = animate((dt) => {
+    const stop = animate((dt, now) => {
       for (const event of step(game, dt)) {
-        if (event.type === 'land') sounds.land();
-        else if (event.type === 'end') {
+        if (event.type === 'land') {
+          sounds.land();
+          burst(event.x, event.y, 8, ['#c9a47e', '#e4cfb6'], 0.18);
+        } else if (event.type === 'end') {
           sfx.finish();
           onfinish(event.winner);
         }
       }
       sync();
-      if (ctx) paint(ctx, game.bugs, size.width, size.height);
+      particles.step(dt);
+      if (ctx) paint(ctx, game.bugs, particles, size.width, size.height, now);
       // 時間のバーは CSS で滑らかに縮めるので、書き換えは 0.1 秒刻みで足りる
       if (Math.abs(timeLeft - game.timeLeft) >= 0.1) timeLeft = game.timeLeft;
       const second = Math.ceil(game.timeLeft);
@@ -74,7 +94,7 @@
 <div class="board" use:input.board={onResize} role="application" aria-label="虫送りの盤面">
   <div class="zone p2"></div>
   <div class="zone p1"></div>
-  <div class="nest"></div>
+  <div class="nest" class:rush={timeLeft <= RUSH_S}></div>
 
   <canvas bind:this={canvas}></canvas>
 
@@ -127,5 +147,23 @@
     background: radial-gradient(ellipse, #b98a5a, #8d6440 70%, transparent 71%);
     translate: -50% -50%;
     opacity: 0.55;
+  }
+
+  /* 終盤は巣が脈打ち、虫が一気に湧く合図にする */
+  .nest.rush {
+    opacity: 0.8;
+    animation: throb 400ms ease-in-out infinite alternate;
+  }
+
+  @keyframes throb {
+    to {
+      scale: 1.06 1.5;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nest.rush {
+      animation: none;
+    }
   }
 </style>

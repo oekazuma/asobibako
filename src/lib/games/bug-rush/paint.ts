@@ -1,10 +1,14 @@
-import { sprite, stamp } from '$lib/fx';
+import { sprite, stamp, type Particles } from '$lib/fx';
 import { radius, type Bug, type BugKind } from './engine';
 
-/** 1 回描いた虫の絵。iPad では 1 匹が 120px 前後になるので、縮小だけで済むよう 192px で描く */
-const body = (kind: BugKind) =>
-  sprite(`bug:${kind}`, 192, (c) => {
+/**
+ * 1 回描いた虫の絵。iPad では 1 匹が 120px 前後になるので、縮小だけで済むよう 192px で描く。
+ * 歩く足は 2 コマを交互に使う
+ */
+const body = (kind: BugKind, frame: number) =>
+  sprite(`bug:${kind}:${frame}`, 192, (c) => {
     c.translate(0.5, 0.5);
+    drawLegs(c, 0.36, frame);
     drawBody(c, kind, 0.36);
   });
 
@@ -12,8 +16,16 @@ const body = (kind: BugKind) =>
  * 虫は最大 36 匹が同時に動くので、DOM の要素ではなく 1 枚の canvas にまとめて描く。
  * 要素ごとに動かすと、影や合成のせいで描画が 1 秒に数回まで落ちた
  */
-export function paint(ctx: CanvasRenderingContext2D, bugs: Bug[], width: number, height: number) {
+export function paint(
+  ctx: CanvasRenderingContext2D,
+  bugs: Bug[],
+  particles: Particles,
+  width: number,
+  height: number,
+  now: number
+) {
   ctx.clearRect(0, 0, width, height);
+  particles.draw(ctx);
   // 飛んでいる虫はほかの虫より手前に描く
   for (const flying of [false, true]) {
     for (const bug of bugs) {
@@ -30,10 +42,36 @@ export function paint(ctx: CanvasRenderingContext2D, bugs: Bug[], width: number,
         ctx.fill();
       }
       ctx.rotate(bug.heading + Math.PI / 2);
-      stamp(ctx, body(bug.kind), 0, 0, r / 0.36);
+      // 虫ごとに足の動きをずらし、全員がそろって足踏みしないようにする
+      const frame = flying ? 0 : Math.floor(now / 90 + bug.id * 0.37) % 2;
+      stamp(ctx, body(bug.kind, frame), 0, 0, r / 0.36);
       ctx.restore();
       if (bug.kind === 'beetle') drawHp(ctx, bug, width, height, r);
     }
+  }
+}
+
+/** 左右 3 本ずつの足。コマごとに、左の前と後ろ・右の中が前へ出る組と、その逆の組が入れ替わる */
+function drawLegs(ctx: CanvasRenderingContext2D, r: number, frame: number) {
+  ctx.strokeStyle = '#2b2d42';
+  ctx.lineWidth = r * 0.11;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  for (const side of [-1, 1]) {
+    for (const [i, y] of [-0.3, 0.1, 0.5].entries()) {
+      const swing = ((i + (side > 0 ? 1 : 0) + frame) % 2 ? 1 : -1) * r * 0.16;
+      const splay = (i - 1) * r * 0.28;
+      ctx.beginPath();
+      ctx.moveTo(side * r * 0.5, r * y);
+      ctx.lineTo(side * r * 0.9, r * y + splay * 0.5 + swing);
+      ctx.lineTo(side * r * 1.08, r * y + splay + swing * 1.4);
+      ctx.stroke();
+    }
+    // 触角
+    ctx.beginPath();
+    ctx.moveTo(side * r * 0.12, -r * 0.9);
+    ctx.quadraticCurveTo(side * r * 0.2, -r * 1.2, side * r * 0.48, -r * 1.28);
+    ctx.stroke();
   }
 }
 
@@ -47,6 +85,12 @@ function drawBody(ctx: CanvasRenderingContext2D, kind: BugKind, r: number) {
   if (beetle) {
     ctx.beginPath();
     ctx.roundRect(-r * 0.12, -r * 1.25, r * 0.24, r * 0.6, r * 0.12);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#fff';
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.arc(side * r * 0.15, -r * 0.84, r * 0.08, 0, Math.PI * 2);
     ctx.fill();
   }
   // 白いふちの甲羅。左右で色を変えて羽の合わせ目を見せる
