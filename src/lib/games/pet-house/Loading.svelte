@@ -1,5 +1,8 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon.svelte';
+
+  let { title = 'よみこみちゅう…', note = 'いぬや ねこが じゅんびを しているよ' }: { title?: string; note?: string } =
+    $props();
 </script>
 
 <div class="loading" role="status">
@@ -8,8 +11,8 @@
       <span style:animation-delay="{i * 180}ms"><Icon name="paw" size="100%" /></span>
     {/each}
   </div>
-  <p class="yuru">よみこみちゅう…</p>
-  <p class="note">いぬや ねこが じゅんびを しているよ</p>
+  <p class="yuru">{title}</p>
+  <p class="note">{note}</p>
 </div>
 
 <style>

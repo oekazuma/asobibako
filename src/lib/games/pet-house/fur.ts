@@ -122,6 +122,8 @@ export function furMaterial(layer: number, layers: number, cell: number, wet = 0
       .replace('#include <color_fragment>', fragment);
   };
   m.customProgramCacheKey = () => (shell ? 'fur-shell' : 'fur-base');
+  // scenes の release() が捨てないように。全ペットで使い回している
+  m.userData.shared = true;
   cache.set(key, m);
   return m;
 }

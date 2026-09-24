@@ -18,49 +18,46 @@
   const love = $derived(hearts(pet));
 </script>
 
-<div class="card">
-  <span class="face" style:background={breed.color}><Icon name={breed.kind} size="80%" /></span>
-  <div class="rows">
-    <div class="top">
-      <span class="name">{pet.name}</span>
-      <span class="breed">{breed.name}</span>
-      <span class="hearts" role="img" aria-label="なかよし {love}">
-        {#each { length: 5 }, i (i)}
-          <span class:dim={i >= love}><Icon name="heart" /></span>
-        {/each}
-      </span>
-      <span class="money"><Icon name="coin" />{money}</span>
-    </div>
-    <div class="meters">
-      {#each METERS as m (m.id)}
-        {@const v = Math.round(pet.stats[m.id])}
-        <span class="meter" class:low={v < LOW} role="img" aria-label="{m.name} {v}">
-          <Icon name={m.icon} />
-          <span class="bar"><span class="fill" style:width="{v}%"></span></span>
-        </span>
+<div class="card pet-card">
+  <div class="top">
+    <span class="face" style:background={breed.color}><Icon name={breed.kind} size="80%" /></span>
+    <span class="name">{pet.name}</span>
+    <span class="breed">{breed.name}</span>
+    <span class="hearts" role="img" aria-label="なかよし {love}">
+      {#each { length: 5 }, i (i)}
+        <span class:dim={i >= love}><Icon name="heart" /></span>
       {/each}
-    </div>
+    </span>
+    <span class="money"><Icon name="coin" />{money}</span>
+  </div>
+  <div class="meters">
+    {#each METERS as m (m.id)}
+      {@const v = Math.round(pet.stats[m.id])}
+      <span class="meter" class:low={v < LOW} role="img" aria-label="{m.name} {v}">
+        <Icon name={m.icon} size="22px" />
+        <span class="label">{m.name}</span>
+        <span class="bar"><span class="fill" style:width="{v}%"></span></span>
+      </span>
+    {/each}
   </div>
 </div>
 
 <style>
-  /* ✕ と ↻（12..68px）のあいだ、ヒントの吹き出し（72px〜）より上に収める */
+  /* ✕ と ↻（12..68px）のあいだに収める。2 段なので、ヒントの吹き出しは札の下へずらす */
   .card {
     position: absolute;
     top: max(12px, env(safe-area-inset-top));
     left: 72px;
     right: 72px;
     z-index: 2;
-    display: flex;
-    align-items: center;
+    display: grid;
     gap: 6px;
-    max-width: 520px;
-    height: 54px;
+    max-width: 540px;
     margin-inline: auto;
-    padding: 4px 10px 4px 4px;
+    padding: 6px 12px 8px 6px;
     border: 3px solid var(--line);
-    border-radius: 999px;
-    background: rgb(255 250 242 / 0.92);
+    border-radius: 22px;
+    background: rgb(255 250 242 / 0.94);
     box-shadow: var(--soft-shadow);
     color: var(--line);
     font-weight: 800;
@@ -68,30 +65,26 @@
     container-type: inline-size;
   }
 
-  .face {
-    display: grid;
-    flex: none;
-    place-items: center;
-    width: 42px;
-    aspect-ratio: 1;
-    border: 2px solid var(--line);
-    border-radius: 50%;
-  }
-
-  .rows {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: 3px;
-    min-width: 0;
+  :global(.stage:has(.pet-card) > .hint) {
+    top: calc(max(12px, env(safe-area-inset-top)) + 118px);
   }
 
   .top {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: clamp(12px, 6cqw, 17px);
+    font-size: clamp(13px, 6cqw, 18px);
     white-space: nowrap;
+  }
+
+  .face {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 34px;
+    aspect-ratio: 1;
+    border: 2px solid var(--line);
+    border-radius: 50%;
   }
 
   .name {
@@ -107,7 +100,7 @@
 
   .hearts {
     display: flex;
-    font-size: 0.75em;
+    font-size: 0.8em;
   }
 
   .dim {
@@ -124,22 +117,23 @@
 
   .meters {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
-    font-size: 12px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px 12px;
+    padding-left: 4px;
   }
 
   .meter {
-    display: flex;
+    display: grid;
+    grid-template-columns: 22px auto 1fr;
     align-items: center;
-    gap: 2px;
+    gap: 5px;
+    font-size: clamp(12px, 4.6cqw, 15px);
   }
 
   .bar {
-    flex: 1;
-    height: 8px;
+    height: 12px;
     overflow: hidden;
-    border: 1.5px solid var(--line);
+    border: 2px solid var(--line);
     border-radius: 999px;
     background: #fff;
   }
@@ -155,6 +149,23 @@
     background: var(--pastel-p2);
   }
 
+  .low :global(.icon) {
+    animation: wobble 900ms ease-in-out infinite;
+  }
+
+  @keyframes wobble {
+    0%,
+    100% {
+      rotate: 0deg;
+    }
+    25% {
+      rotate: -12deg;
+    }
+    75% {
+      rotate: 12deg;
+    }
+  }
+
   @container (width < 300px) {
     .breed {
       display: none;
@@ -164,6 +175,10 @@
   @media (prefers-reduced-motion: reduce) {
     .fill {
       transition: none;
+    }
+
+    .low :global(.icon) {
+      animation: none;
     }
   }
 </style>

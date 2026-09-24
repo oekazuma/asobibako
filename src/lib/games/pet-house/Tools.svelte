@@ -50,13 +50,20 @@
   <button class="tool" class:on={tool === 'brush'} aria-pressed={tool === 'brush'} onclick={() => pick('brush')}>
     <Icon name="brush" size="60%" /><span>ブラシ</span>
   </button>
-  <button class="tool" onclick={() => session.start(new BathPlay())}>
+  <button class="tool" onclick={() => session.start(new BathPlay(), 'おふろへ いくよ')}>
     <Icon name="drop" size="60%" /><span>おふろ</span>
   </button>
   {#if toys.length > 0}
     <div class="with-bubble">
-      <button class="tool" class:on={tool === 'toy'} aria-pressed={tool === 'toy'} onclick={pickToy}>
-        <Icon name={ITEM_ICON[toys.includes(toy) ? toy : toys[0]]} size="60%" /><span>おもちゃ</span>
+      <button
+        class="tool"
+        class:on={tool === 'toy'}
+        class:out={session.away}
+        aria-pressed={tool === 'toy'}
+        onclick={pickToy}
+      >
+        <Icon name={ITEM_ICON[toys.includes(toy) ? toy : toys[0]]} size="60%" />
+        <span>{session.away ? 'なげてるよ' : 'おもちゃ'}</span>
       </button>
       {#if open}
         <div class="bubble">
@@ -119,6 +126,15 @@
 
   .on {
     background: var(--pastel-gold);
+  }
+
+  /* 投げたおもちゃが手元に戻るまで。手に持っていないのが見てわかるよう絵を薄くする */
+  .out {
+    border-style: dashed;
+  }
+
+  .out :global(svg) {
+    opacity: 0.3;
   }
 
   .photo {

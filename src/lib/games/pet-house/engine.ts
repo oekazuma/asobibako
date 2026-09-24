@@ -1,6 +1,16 @@
 import { BREED_IDS, BREEDS } from './breeds';
 import type { AccessoryId, BreedId, ContestId, FoodId, Kind, PetAction, Stat, ToyId, TrickId } from './types';
 import { MAX_CALLS } from './voice';
+import {
+  DECOR,
+  decorGain,
+  decorPrice,
+  NATURAL_ROOM,
+  repairDecor,
+  ROOM_PARTS,
+  type DecorId,
+  type RoomLook
+} from './decor';
 
 /**
  * わんにゃんハウスの決まりごと。DOM も three も使わない。
@@ -37,6 +47,10 @@ export interface Save {
    * 部屋の棚にはとった階級のトロフィーを並べる
    */
   contest: Record<ContestId, number>;
+  /** 買った部屋の部位（decor.ts の「部位:テーマ」）。ナチュラルは入れない */
+  decor: string[];
+  /** いまの部屋の見た目 */
+  room: RoomLook;
 }
 
 export const STORAGE_KEY = 'asobibako:pet-house';
@@ -61,8 +75,8 @@ const AWAY_REST = 30;
 const REST_RATE = 1.3;
 /** 投げっこ 1 回ぶんのげんき。満タンから 15〜20 回でベッドへ行く */
 const PLAY_COST = 4.5;
-/** なで 1 秒ぶんのなかよし。最初のハートは 2 分半ほどで届き、ハートが増えるほどゆっくりになる */
-const STROKE_RATE = 1 / 150;
+/** なで 1 秒ぶんのなかよし。最初のハートは 20〜40 秒で届き（速くこすると 1 秒に 2 秒ぶん進む）、ハートが増えるほどゆっくりになる */
+const STROKE_RATE = 1 / 40;
 const BRUSH_CLEAN = 8;
 
 const FOODS: readonly FoodId[] = ['dogfood', 'catfood', 'treat'];
@@ -94,7 +108,9 @@ export function newSave(now: number): Save {
     // 初日はおこづかいを出さない。最初のお金がそのぶん
     allowanceDay: day(now),
     photos: [],
-    contest: { frisbee: 0, wand: 0, agility: 0, obedience: 0 }
+    contest: { frisbee: 0, wand: 0, agility: 0, obedience: 0 },
+    decor: [],
+    room: { ...NATURAL_ROOM }
   };
 }
 
@@ -160,7 +176,8 @@ export function loadSave(): Save | null {
       photos: loadPhotos(),
       contest: Object.fromEntries(
         CONTEST_IDS.map((c) => [c, Math.floor(num(contest[c], 0, 0, CONTEST_RANKS))])
-      ) as Record<ContestId, number>
+      ) as Record<ContestId, number>,
+      ...repairDecor(raw.decor, raw.room)
     };
   } catch {
     return null;
@@ -235,12 +252,13 @@ export function play(pet: Pet, amount = 1): void {
   grow(pet, 0.04 * amount);
 }
 
+/** ハート n 個からは (1 + 2n) 倍かかる。最初はすぐ届き、5 つそろうのは毎日遊んで 1 週間ほど */
 function grow(pet: Pet, amount: number): void {
-  pet.love = Math.min(5, pet.love + amount / (1 + 0.5 * Math.floor(pet.love)));
+  pet.love = Math.min(5, pet.love + amount / (1 + 2 * Math.floor(pet.love)));
 }
 
 export function adoptPrice(save: Save): number {
-  return [0, 3000, 5000][save.pets.length] ?? Infinity;
+  return [0, 4000, 5000][save.pets.length] ?? Infinity;
 }
 
 export function adopt(save: Save, breed: BreedId, name: string): Pet | 'money' | 'full' {
@@ -320,8 +338,8 @@ export function mood(pet: Pet): Mood {
 }
 
 export interface ShopItem {
-  id: FoodId | ToyId | AccessoryId;
-  type: 'food' | 'toy' | 'accessory';
+  id: FoodId | ToyId | AccessoryId | DecorId;
+  type: 'food' | 'toy' | 'accessory' | 'room';
   name: string;
   price: number;
   count?: number;
@@ -341,12 +359,14 @@ export const SHOP: ShopItem[] = [
   { id: 'collar-blue', type: 'accessory', name: 'あおい くびわ', price: 600 },
   { id: 'ribbon', type: 'accessory', name: 'リボン', price: 800 },
   { id: 'bandana', type: 'accessory', name: 'バンダナ', price: 1000 },
-  { id: 'hat', type: 'accessory', name: 'ぼうし', price: 1200 }
+  { id: 'hat', type: 'accessory', name: 'ぼうし', price: 1200 },
+  ...DECOR.map((d) => ({ id: d.id, type: 'room' as const, name: d.name, price: d.price }))
 ];
 
 export function buy(save: Save, id: ShopItem['id']): 'ok' | 'money' | 'owned' {
   const item = SHOP.find((i) => i.id === id);
   if (!item) return 'owned';
+  if (item.type === 'room') return buyDecor(save, id as DecorId);
   if (item.type === 'toy' && save.toys.includes(id as ToyId)) return 'owned';
   if (item.type === 'accessory' && save.accessories.includes(id as AccessoryId)) return 'owned';
   if (save.money < item.price) return 'money';
@@ -354,6 +374,19 @@ export function buy(save: Save, id: ShopItem['id']): 'ok' | 'money' | 'owned' {
   if (item.type === 'food') save.food[id as FoodId] += item.count ?? 1;
   else if (item.type === 'toy') save.toys.push(id as ToyId);
   else save.accessories.push(id as AccessoryId);
+  return 'ok';
+}
+
+/** 買った部位はすぐ部屋に使う */
+function buyDecor(save: Save, id: DecorId): 'ok' | 'money' | 'owned' {
+  const item = DECOR.find((d) => d.id === id)!;
+  const gain = decorGain(save.decor, item);
+  if (!gain.length) return 'owned';
+  const price = decorPrice(save.decor, item);
+  if (save.money < price) return 'money';
+  save.money -= price;
+  save.decor.push(...gain);
+  for (const part of item.part ? [item.part] : ROOM_PARTS) save.room[part] = item.theme;
   return 'ok';
 }
 
@@ -399,10 +432,48 @@ export function praise(pet: Pet, trick: TrickId): { learned: boolean } {
   return { learned: count + 1 >= steps };
 }
 
-export function walkReward(rng: () => number): { money: number } | { food: FoodId; count: number } {
-  if (rng() < 0.65) return { money: [100, 100, 150, 200, 300][Math.floor(rng() * 5)] };
+export type Present = { money: number } | { food: FoodId; count: number } | { item: ShopItem };
+
+/** プレゼント 1 つでおみせの品が出る割合。道に 3 つあるおさんぽ 1 回で 1 割ほど */
+const RARE = 0.035;
+/** おみせの品を全部持っているときに、代わりに出すコイン */
+const RARE_MONEY = 150;
+
+/**
+ * おさんぽ・公園のプレゼントの中身を決めて save に足す。ごはんとおやつが中心で、コインは少し。
+ * 公園では見ているだけでも拾うので、稼ぎの中心はコンテスト・芸・おこづかいに残す。
+ * まれに、まだ持っていないおもちゃかアクセサリー（いる種類のペット向け）がただで出る
+ */
+export function findPresent(save: Save, rng: () => number): Present {
   const r = rng();
-  return r < 0.5 ? { food: 'treat', count: 2 } : { food: r < 0.75 ? 'dogfood' : 'catfood', count: 3 };
+  const kinds = save.pets.map((p) => kindOf(p.breed));
+  if (r < RARE) {
+    const left = SHOP.filter(
+      (i) =>
+        (i.type === 'toy'
+          ? !save.toys.includes(i.id as ToyId)
+          : i.type === 'accessory' && !save.accessories.includes(i.id as AccessoryId)) &&
+        (!i.kind || kinds.includes(i.kind))
+    );
+    const item = left[Math.floor(rng() * left.length)];
+    if (!item) {
+      save.money += RARE_MONEY;
+      return { money: RARE_MONEY };
+    }
+    if (item.type === 'toy') save.toys.push(item.id as ToyId);
+    else save.accessories.push(item.id as AccessoryId);
+    return { item };
+  }
+  if (r < RARE + 0.25) {
+    const money = [30, 50, 50, 80][Math.floor(rng() * 4)];
+    save.money += money;
+    return { money };
+  }
+  const kind = kinds[Math.floor(rng() * kinds.length)] ?? 'dog';
+  const food: FoodId = rng() < 0.5 ? 'treat' : kind === 'dog' ? 'dogfood' : 'catfood';
+  const count = 2 + Math.floor(rng() * 2);
+  save.food[food] += count;
+  return { food, count };
 }
 
 export function addPhoto(save: Save, url: string): void {

@@ -7,8 +7,11 @@ import {
   throwToy,
   type Actor,
   type BehaviorEvent,
-  type WorldView
+  type WorldView,
+  wandBalls,
+  wandBite
 } from './behavior';
+import { hasDecor, type RoomLook, type RoomPart, type RoomTheme } from './decor';
 import { PetFx } from './effects';
 import {
   SHOP,
@@ -22,6 +25,7 @@ import {
   catchUp,
   drink,
   eat,
+  findPresent,
   kindOf,
   loadSave,
   mood,
@@ -32,7 +36,6 @@ import {
   stroke,
   tick,
   trickChance,
-  walkReward,
   writePhotos,
   writeSave,
   type Pet,
@@ -42,6 +45,7 @@ import {
 import { LAYOUTS, PARK, ROOM, type Layout, type Spot } from './layout';
 import { sounds } from './sounds';
 import type { AccessoryId, BaseScene, BreedId, FoodId, Scene, ToyId, TrickId } from './types';
+import { createWand, POM, stepWand, type Wand } from './wand';
 import { PetWorld } from './world3d';
 
 export type Tool = 'hand' | 'brush' | 'toy';
@@ -73,6 +77,15 @@ export class Session {
    * モードは自分の $state の欄を持つので、深い proxy で包まずに同じものを保つ
    */
   activity: Activity | Visit | null = $state.raw(null);
+  /** 場面を組み立てているあいだの行き先（「こうえんへ いくよ」）。画面はこのあいだ「いどうちゅう…」を重ねる */
+  moving: string | null = $state(null);
+  /**
+   * 投げたおもちゃがまだ手元に戻っていない。ペットが front まで持ってくるか、床のおもちゃをタップして拾うまで次は投げられない。
+   * 遊びのモードのあいだはモードが決めるので false
+   */
+  away = $state(false);
+  /** おみせで試着しているアクセサリー。いまのペットに見た目だけ付け、save は変えない */
+  trying: AccessoryId | null = $state(null);
 
   readonly #world: PetWorld;
   readonly #overlay: HTMLCanvasElement;
@@ -90,7 +103,8 @@ export class Session {
   #bowls: WorldView['bowls'] = { food: null, foodLeft: 0, waterLeft: 0 };
   #touches: Touch[] = [];
   /** ねこじゃらしのふさ。指の下の点（tx, tz）を少し遅れて追う */
-  #wand = { x: 0, z: 0, tx: 0, tz: 0, speed: 0, on: false };
+  /** plane は持ち上げはじめたときの立てた面の奥行き。寄ってくる子に合わせて動かすと、ふさが手前へ逃げ続ける */
+  #wand = { tx: 0, ty: 0, tz: 0, on: false, rig: null as Wand | null, plane: null as number | null };
   #now = 0;
   #slow = 0;
   #w = 1;
@@ -103,7 +117,14 @@ export class Session {
   #presentWait = 0;
   /** 開いてから 1 度でもなでたか。まだなら何をすればいいかをヒントに出す */
   #stroked = false;
-  #timers = { heart: 0, purr: 0, bark: 2, sparkle: 0, munch: 0, zzz: 0 };
+  #timers = { heart: 0, purr: 0, bark: 2, sparkle: 0, munch: 0, zzz: 0, rustle: 0 };
+  /**
+   * 場面の組み立ては数百 ms 画面を止める。wait フレーム待って「いどうちゅう」を 1 度描かせてから run し、
+   * シェーダーの準備が落ち着くまでさらに数フレーム出したままにする
+   */
+  #move: { run: (() => void) | null; wait: number } | null = null;
+  /** むかえたばかりの子。次に部屋へ入ったとき、奥から歩いてこさせる */
+  #arrival: string | null = null;
 
   constructor(canvas: HTMLCanvasElement, overlay: HTMLCanvasElement, onhint?: (t: string) => void) {
     this.#onhint = onhint;
@@ -112,6 +133,7 @@ export class Session {
     this.#world = new PetWorld(canvas);
     this.#view = this.#emptyView('room');
     this.#world.trophies = this.save.contest;
+    this.#world.room = this.save.room;
     const { allowance } = catchUp(this.save, Date.now());
     this.#enter('room');
     this.#fitToy();
@@ -135,6 +157,7 @@ export class Session {
     this.scene = scene;
     this.#world.setScene(target);
     this.#view = this.#emptyView(scene);
+    this.away = false;
     this.#touches = [];
     this.#wand.on = false;
     this.#spawnActors();
@@ -146,7 +169,9 @@ export class Session {
     const front = this.#layout.front;
     const pets = this.scene === 'room' ? this.save.pets : this.save.pets.filter((p) => p.id === this.save.current);
     this.#actors = pets.map((p, i) =>
-      createActor(p, { x: front.x + [0, -0.55, 0.55][i % 3], z: front.z - 0.25 - (i ? 0.3 : 0) })
+      p.id === this.#arrival && this.scene === 'room'
+        ? this.#welcome(p)
+        : createActor(p, { x: front.x + [0, -0.55, 0.55][i % 3], z: front.z - 0.25 - (i ? 0.3 : 0) })
     );
     // 公園で咥えていた子と入れ替わったら、おもちゃはその場に落とす（いない子が咥えたままだと誰も拾えない）
     const toy = this.#view.toy;
@@ -215,6 +240,13 @@ export class Session {
   }
 
   frame(dt: number): void {
+    const m = this.#move;
+    if (m && --m.wait <= 0) {
+      const run = m.run;
+      [m.run, m.wait] = [null, 3];
+      if (run) run();
+      else [this.#move, this.moving] = [null, null];
+    }
     this.#now += dt;
     const pets = this.save.pets;
     // save は深い $state なので、毎フレーム書くとペットの札が 60 回/秒描き直される。ゆっくり変わる値はまとめて進める
@@ -234,15 +266,19 @@ export class Session {
     // frame の中で host.end() を呼んだモードには、もう出来事を渡さない
     const act = this.activity;
     if (!act?.drives) {
+      this.#view.current = this.save.current;
       this.#stepWand(dt);
       this.#rub(dt);
       for (const e of think(this.#actors, pets, this.#view, dt, Math.random)) if (!act?.event?.(e)) this.#event(e);
     }
     this.#ambient(dt);
+    const away = !this.activity && this.#toyAway();
+    if (away !== this.away) this.away = away;
 
     if (this.trickPending && this.#now > this.trickPending.until) this.trickPending = null;
     if (this.toast && this.#now > this.#toastUntil) this.toast = '';
-    const hint = this.toast || (this.activity ? '' : this.#moodText());
+    const hint =
+      this.toast || (this.activity ? '' : this.trying ? `${this.current?.name}に にあうかな？` : this.#moodText());
     if (hint !== this.#hint) {
       this.#hint = hint;
       this.#onhint?.(hint);
@@ -250,7 +286,11 @@ export class Session {
     if ((this.#dirty && this.#now - this.#wrote > 1) || this.#now - this.#wrote > 30) this.#write();
 
     const cast = this.#cast;
-    this.#world.syncPets(cast ? [...pets, ...cast.pets] : pets);
+    const trying = this.trying;
+    // おみせのシートが画面の下半分をふさぐので、試着のあいだは絵を上へずらしてペットを見せる
+    this.#world.lift = trying ? 0.36 : 0;
+    const shown = trying ? pets.map((p) => (p.id === this.save.current ? { ...p, accessory: trying } : p)) : pets;
+    this.#world.syncPets(cast ? [...shown, ...cast.pets] : shown);
     this.#world.update(cast?.actors ?? this.#actors, this.#view, dt, this.#now, this.save.current, this.tool);
     this.#world.render();
     this.#fx.step(dt);
@@ -278,10 +318,11 @@ export class Session {
         this.#fx.text('Z', x + 20, y, '#7a8cff', 26);
       }
     }
-    if (this.scene !== 'park' || this.#view.presents.length >= 2) return;
+    // 見ているだけで拾えるので、何匹いても 1 分に 1 つほどに抑える（おさんぽは道に 3 つ）
+    if (this.scene !== 'park' || this.#view.presents.length >= 1) return;
     this.#presentWait -= dt;
     if (this.#presentWait > 0) return;
-    this.#presentWait = 8;
+    this.#presentWait = 45;
     this.#spawnPresent();
   }
 
@@ -330,6 +371,9 @@ export class Session {
         sounds.catch();
         this.#fx.sparkle(x, y, 4);
         return;
+      case 'leap':
+        sounds.leap();
+        return;
       case 'found':
         play(pet);
         return this.#found(pet, x, y);
@@ -347,18 +391,20 @@ export class Session {
   }
 
   #found(pet: Pet, x: number, y: number) {
-    const reward = walkReward(Math.random);
-    if ('money' in reward) {
-      this.save.money += reward.money;
-      this.#fx.coins(x, y, this.#purse(), Math.min(8, Math.round(reward.money / 4)));
-      this.#fx.text(`+${reward.money}`, x, y - 20, '#e39a00', 40);
+    const found = findPresent(this.save, Math.random);
+    if ('money' in found) {
+      this.#fx.coins(x, y, this.#purse(), Math.min(8, Math.round(found.money / 10)));
+      this.#fx.text(`+${found.money}`, x, y - 20, '#e39a00', 40);
       sounds.coin();
-      this.#say(`${pet.name}が ${reward.money}コイン みつけた！`);
+      this.#say(`${pet.name}が ${found.money}コインを みつけた！`);
+    } else if ('item' in found) {
+      this.#fx.confetti(x, y);
+      sounds.learned();
+      this.#say(`${pet.name}が ${found.item.name}を みつけた！`, 4);
     } else {
-      this.save.food[reward.food] += reward.count;
       this.#fx.sparkle(x, y, 5);
       sounds.sparkle();
-      this.#say(`${pet.name}が ${itemName(reward.food)}を ${reward.count}こ みつけた！`);
+      this.#say(`${pet.name}が ${itemName(found.food)}を ${found.count}こ みつけた！`);
     }
   }
 
@@ -368,6 +414,7 @@ export class Session {
     const act = this.activity;
     if (act && (act.down?.(id, px, py) || act.drives)) return;
     if (!this.current || !this.#actors.length) return;
+    if (!act && this.#pickUp(px, py)) return;
     const touch: Touch = {
       id,
       x: px,
@@ -383,7 +430,7 @@ export class Session {
     this.#touches.push(touch);
     if (this.tool === 'toy') {
       touch.mode = this.toy === 'wand' ? 'wand' : 'throw';
-      if (touch.mode === 'wand') this.#aimWand(px, py, true);
+      if (touch.mode === 'wand') this.#aimWand(px, py);
       return;
     }
     const hit = this.#world.pick(px, py);
@@ -401,7 +448,7 @@ export class Session {
     touch.moved += d;
     touch.x = px;
     touch.y = py;
-    if (touch.mode === 'wand') return this.#aimWand(px, py, false);
+    if (touch.mode === 'wand') return this.#aimWand(px, py);
     if (touch.mode === 'throw') return;
     const hit = this.#world.pick(px, py);
     // 床から指をすべらせてペットに乗ったら、そこからなではじめる
@@ -500,6 +547,35 @@ export class Session {
     sounds.learned();
   }
 
+  #isDog(petId: string) {
+    const pet = this.#pet(petId);
+    return !!pet && kindOf(pet.breed) === 'dog';
+  }
+
+  /** 投げたおもちゃが、咥えられているか動いているか、front から離れた床にある */
+  #toyAway(): boolean {
+    const t = this.#view.toy;
+    if (!t || t.kind === 'wand') return false;
+    const front = this.#layout.front;
+    return !!t.holder || !t.still || Math.hypot(t.x - front.x, t.z - front.z) > 0.7;
+  }
+
+  /** 床に残ったおもちゃ（咥えたまま寝た子のものも）をタップして拾い、手元に戻す */
+  #pickUp(px: number, py: number): boolean {
+    const t = this.#view.toy;
+    if (!t || !this.away) return false;
+    const holder = t.holder ? this.#actor(t.holder) : undefined;
+    if (t.holder && !holder?.asleep) return false;
+    const [x, y] = this.#world.project(t.x, t.y, t.z);
+    if (Math.hypot(px - x, py - y) > 60) return false;
+    if (holder) holder.carrying = null;
+    this.#view.toy = null;
+    this.away = false;
+    this.#fx.sparkle(x, y, 3);
+    sounds.pop();
+    return true;
+  }
+
   #clampToFloor(p: Spot): Spot {
     const b = this.#layout.bounds;
     const q = { x: Math.min(b.x1, Math.max(b.x0, p.x)), z: Math.min(b.z1, Math.max(b.z0, p.z)) };
@@ -522,29 +598,45 @@ export class Session {
     command(a, pet, { type: 'call', to: this.#clampToFloor(p) });
   }
 
-  #aimWand(px: number, py: number, start: boolean) {
+  /**
+   * ふさは指の下の床の点へ運ぶ。指がいまの子のそばで足元より上へ行く（床の点がその子の奥になる）と、
+   * その子の顔の前に立てた面の点へぶら下げ、指の高さまで持ち上げる。指が面の手前の床へ戻るまで持ち上げたまま
+   */
+  #aimWand(px: number, py: number) {
     const p = this.#world.floor(px, py);
-    if (!p) return;
-    const q = this.#clampToFloor(p);
+    const q = p && this.#clampToFloor(p);
+    let t = q && { x: q.x, y: 0, z: q.z };
+    const a = this.#actor();
     const w = this.#wand;
-    [w.tx, w.tz] = [q.x, q.z];
-    if (start && !w.on) [w.x, w.z] = [q.x, q.z];
+    if (!w.on) w.plane = null;
+    const plane = w.plane ?? (a ? this.#clampToFloor({ x: a.x, z: a.z + 0.15 }).z : null);
+    const lift = plane === null ? null : this.#world.upright(px, py, plane);
+    const over = !!lift && lift.y > 0;
+    if (w.plane === null && over && a && Math.abs(lift.x - a.x) < 0.3) w.plane = plane;
+    else if (!over) w.plane = null;
+    if (lift && w.plane !== null) t = { x: lift.x, y: Math.min(lift.y, 0.6), z: lift.z };
+    if (!t) return;
+    [w.tx, w.ty, w.tz] = [t.x, t.y, t.z];
+    if (!w.on) w.rig = createWand(t);
     w.on = true;
   }
 
   #stepWand(dt: number) {
     const w = this.#wand;
-    if (!w.on) {
+    if (!w.on || !w.rig) {
       this.#view.wand = null;
       return;
     }
-    const k = 1 - Math.exp(-6 * dt);
-    const dx = (w.tx - w.x) * k;
-    const dz = (w.tz - w.z) * k;
-    w.x += dx;
-    w.z += dz;
-    w.speed = dt > 0 ? Math.hypot(dx, dz) / dt : 0;
-    this.#view.wand = { x: w.x, z: w.z, moving: w.speed > 0.12 };
+    const rig = w.rig;
+    stepWand(rig, { x: w.tx, y: w.ty, z: w.tz }, dt, wandBite(this.#actors), wandBalls(this.#actors));
+    const p = rig.nodes[POM];
+    this.#view.wand = { x: p.x, y: p.y, z: p.z, moving: rig.speed > 0.15, rig };
+    const t = this.#timers;
+    t.rustle -= dt;
+    if (rig.speed > 1.2 && t.rustle <= 0) {
+      t.rustle = 0.22;
+      sounds.rustle(Math.min(1, rig.speed / 3));
+    }
   }
 
   /**
@@ -554,6 +646,14 @@ export class Session {
   #throw(touch: Touch, px: number, py: number, vx: number, vy: number) {
     const kind = this.toy;
     if (kind === 'wand') return;
+    const out = this.#view.toy;
+    if (this.away && !this.activity && out) {
+      if (out.still && !out.holder) return this.#say('おもちゃを タップして ひろってね', 2);
+      const chaser = this.#actors.find((a) => a.mode === 'chase' && this.#isDog(a.petId));
+      const pet = this.#pet(out.holder ?? chaser?.petId ?? this.save.current);
+      const dog = pet && kindOf(pet.breed) === 'dog';
+      return this.#say(dog ? `${pet.name}が もってくるまで まってね` : 'おもちゃが とまるまで まってね', 2);
+    }
     const rolled = kind === 'mouse';
     const speed = Math.hypot(vx, vy) / this.#h;
     if (speed < 0.35) {
@@ -599,6 +699,7 @@ export class Session {
 
   select(petId: string): void {
     if (this.activity || !this.#pet(petId) || this.save.current === petId) return;
+    this.trying = null;
     this.save.current = petId;
     this.#dirty = true;
     this.#fitToy();
@@ -670,14 +771,25 @@ export class Session {
     if (this.activity || !pet || this.scene === 'park') return;
     if (this.#actor()?.asleep) return this.#say(`${pet.name}は ねているよ。おきるまで まってね`);
     if (pet.stats.energy < SLEEPY) return this.#say(`${pet.name}は つかれてるみたい。すこし やすませよう`);
-    this.#enter('park');
-    this.#say('こうえんに ついた！ プレゼントを さがそう');
+    this.#go('こうえんへ いくよ', () => {
+      this.#enter('park');
+      this.#say('こうえんに ついた！ プレゼントを さがそう');
+    });
   }
 
   goHome(): void {
     if (this.activity || this.scene === 'room') return;
-    this.#enter('room');
-    this.#say('おうちに かえってきた');
+    this.#go('おうちへ かえるよ', () => {
+      this.#enter('room');
+      this.#say('おうちに かえってきた');
+    });
+  }
+
+  /** 重ねて押されたら、あとのほうは捨てる */
+  #go(label: string, run: () => void) {
+    if (this.#move) return;
+    this.moving = label;
+    this.#move = { run, wait: 2 };
   }
 
   buy(id: ShopItem['id']): 'ok' | 'money' | 'owned' {
@@ -686,24 +798,59 @@ export class Session {
       sounds.coin();
       this.#dirty = true;
       this.#say(`${itemName(id)}を かったよ`);
+      // 試着して買ったものは、そのまま着せておく（外すと買ったのに消えたように見える）
+      if (id === this.trying && this.current) {
+        this.current.accessory = this.trying;
+        this.trying = null;
+      }
+      if (SHOP.find((i) => i.id === id)?.type === 'room') this.#world.refreshRoom();
     }
     return r;
   }
 
+  /** 買ってある部位に部屋を替える。セットをまとめて替えても、組み直しと音は 1 回 */
+  redecorate(look: Partial<RoomLook>): void {
+    let changed = false;
+    for (const [part, theme] of Object.entries(look) as [RoomPart, RoomTheme][]) {
+      if (!hasDecor(this.save.decor, part, theme) || this.save.room[part] === theme) continue;
+      this.save.room[part] = theme;
+      changed = true;
+    }
+    if (!changed) return;
+    this.#dirty = true;
+    this.#world.refreshRoom();
+    sounds.pop();
+  }
+
+  /** ふれあいひろばを出る途中（host.end の組み立て待ち）なら、部屋に入ったときに奥から歩いてくる */
   adopt(breed: BreedId, name: string): 'ok' | 'money' | 'full' {
-    if (this.scene === 'park') this.#enter('room');
     const r = adopt(this.save, breed, name);
     if (typeof r === 'string') return r;
-    // 部屋の奥から歩いてきて、手前であいさつする
-    const a = createActor(r, { x: 0.4, z: this.#layout.bounds.z0 + 0.1 });
-    command(a, r, { type: 'call' });
-    this.#actors.push(a);
+    this.#arrival = r.id;
+    if (!this.activity) this.#actors.push(this.#welcome(r));
     this.#world.syncPets(this.save.pets);
     this.#fitToy();
     this.#write();
     sounds.learned();
     this.#say(`${r.name}が やってきた！ よろしくね`, 4);
     return 'ok';
+  }
+
+  /** 部屋の奥から歩いてきて、手前であいさつする */
+  #welcome(pet: Pet): Actor {
+    this.#arrival = null;
+    const a = createActor(pet, { x: 0.4, z: this.#layout.bounds.z0 + 0.1 });
+    command(a, pet, { type: 'call' });
+    return a;
+  }
+
+  /** まだ持っていないアクセサリーを、いまのペットに見た目だけ付ける。null で元に戻す。着けて見せるため front へ呼ぶ */
+  tryOn(acc: AccessoryId | null): void {
+    if (acc === this.trying || (acc && (this.activity || this.save.accessories.includes(acc)))) return;
+    this.trying = acc;
+    if (!acc) return;
+    this.call();
+    sounds.pop();
   }
 
   wear(petId: string, acc: AccessoryId | null): void {
@@ -724,22 +871,30 @@ export class Session {
 
   // --- 遊びのモード ---
 
-  start(activity: Activity): void {
+  /** going は組み立てを待つあいだに出す行き先（「おふろへ いくよ」） */
+  start(activity: Activity, going: string): void {
     const pet = this.current;
     if (this.activity || !pet) return;
-    this.#pause();
-    const a = this.#actor();
-    if (a) command(a, pet, { type: 'wake' });
-    this.activity = activity;
-    activity.enter(this.#host(pet));
+    if (activity.awakeOnly && this.asleep) return this.#say(`${pet.name}は ねているよ。おきるまで まってね`);
+    this.#go(going, () => {
+      if (this.activity) return;
+      this.#pause();
+      const a = this.#actor();
+      if (a) command(a, pet, { type: 'wake' });
+      this.activity = activity;
+      activity.enter(this.#host(pet));
+    });
   }
 
   /** 飼っているペットを連れないモード。0 匹でも始められる */
-  visit(mode: Visit): void {
+  visit(mode: Visit, going: string): void {
     if (this.activity) return;
-    this.#pause();
-    this.activity = mode;
-    mode.enter(this.#host(null));
+    this.#go(going, () => {
+      if (this.activity) return;
+      this.#pause();
+      this.activity = mode;
+      mode.enter(this.#host(null));
+    });
   }
 
   #pause() {
@@ -757,6 +912,7 @@ export class Session {
     this.#cast = null;
     act.exit?.();
     this.#world.trophies = this.save.contest;
+    this.#world.room = this.save.room;
     this.#enter(scene);
     this.setTool(this.#before.tool, this.#before.toy);
     this.#fitToy();
@@ -796,7 +952,8 @@ export class Session {
         play(p);
         this.#found(p, ...this.#above(a));
       },
-      end: (scene?: BaseScene) => this.#end(scene)
+      end: (scene?: BaseScene) =>
+        this.#go(scene === 'park' ? 'こうえんへ いくよ' : 'おうちへ かえるよ', () => this.#end(scene))
     };
   }
 

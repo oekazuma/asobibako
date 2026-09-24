@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { BREEDS } from './breeds';
+import { accessory, hit } from './accessories';
 import { furMaterial } from './fur';
 import { LOOKS, type Look, type Part } from './looks';
 import { KEYS, jumpArc, pounceArc, target } from './pose';
@@ -73,23 +74,6 @@ const smooth = (e0: number, e1: number, x: number) => {
 
 // ---- 形を面にする ----
 
-/** 面が origin から dir へ出る所。origin は形の内側にあること */
-function hit(f: Field, origin: THREE.Vector3, dir: THREE.Vector3) {
-  let lo = 0;
-  let hi = 0.02;
-  const p = new THREE.Vector3();
-  while (hi < 1 && f(...(p.copy(origin).addScaledVector(dir, hi).toArray() as [number, number, number])) < 0) {
-    lo = hi;
-    hi += 0.02;
-  }
-  for (let i = 0; i < 20; i++) {
-    const m = (lo + hi) / 2;
-    if (f(...(p.copy(origin).addScaledVector(dir, m).toArray() as [number, number, number])) < 0) lo = m;
-    else hi = m;
-  }
-  return origin.clone().addScaledVector(dir, (lo + hi) / 2);
-}
-
 interface Body {
   geo: THREE.BufferGeometry;
   /** 殻に使う粗い面 */
@@ -102,6 +86,8 @@ interface Body {
   dirt: { geo: THREE.BufferGeometry; bone: string }[];
   foam: FoamSpot[];
   omega?: THREE.Vector3[][];
+  /** 削る形を除いた体の形。アクセサリーを体の面に合わせるのに使う */
+  plain: Field;
 }
 
 interface FoamSpot {
@@ -299,7 +285,7 @@ function bodyOf(id: BreedId, look: Look, q: Quality): Body {
   if (look.kind === 'cat')
     for (const geom of [g, coarse])
       eyes.forEach((e, i) => weighEye(geom, e.surf, r, bones.indexOf(i ? 'eye.r' : 'eye.l')));
-  const body = { geo: g, shell: coarse, bones, eyes, nose, dirt, foam: foamSpots(look, plain), omega };
+  const body = { geo: g, shell: coarse, bones, eyes, nose, dirt, foam: foamSpots(look, plain), omega, plain };
   bodies.set(`${id}:${q}`, body);
   return body;
 }
@@ -542,8 +528,9 @@ interface Rig {
   tongue: THREE.Object3D;
   tongueAt: THREE.Vector3;
   mouth: THREE.Object3D;
-  neckAnchor: THREE.Object3D;
   headAnchor: THREE.Object3D;
+  skeleton: THREE.Skeleton;
+  body: Body;
   dirt: THREE.Object3D[];
   /** 毛の material を持つ形と、その殻の番号。ぬれたら material を差し替える */
   fur: { mesh: THREE.Mesh; layer: number }[];
@@ -743,7 +730,6 @@ function build(look: Look, id: BreedId, q: Quality): Rig {
     const g = space(`${leg}.3`);
     add(g, padGeo(`pads:${id}:${leg[0]}:${sx}`, mirror(pad.at, sx), pad.r), padMat, false);
   }
-  const neckAnchor = space('neck');
   const headAnchor = new THREE.Group();
   headSpace.add(headAnchor);
 
@@ -812,8 +798,9 @@ function build(look: Look, id: BreedId, q: Quality): Rig {
     tongue,
     tongueAt: tongue.position.clone(),
     mouth,
-    neckAnchor,
     headAnchor,
+    skeleton,
+    body,
     dirt,
     fur,
     layers: L,
@@ -822,75 +809,6 @@ function build(look: Look, id: BreedId, q: Quality): Rig {
     foamSpots: body.foam,
     foamBase
   };
-}
-
-function accessory(id: AccessoryId, look: Look, len: number) {
-  const g = new THREE.Group();
-  g.name = 'accessory';
-  g.userData.id = id;
-  const torus = (r: number, tube: number) => geo(`torus:${r}:${tube}`, () => new THREE.TorusGeometry(r, tube, 10, 36));
-  const sphere = geo('sphere:1', () => new THREE.SphereGeometry(1, 16, 12));
-  if (id === 'collar-red' || id === 'collar-blue' || id === 'bandana') {
-    // 首輪の太さは毛の長さ（画質で変わる）に合わせる
-    const c = { ...look.collar, r: look.collar.r + look.fur.len * 0.9 * (len - 1) };
-    const color = id === 'collar-red' ? '#d8323f' : id === 'collar-blue' ? '#2f6fd6' : '#1ba89c';
-    g.position.set(...c.at);
-    g.rotation.x = c.tilt;
-    const band = new THREE.Mesh(torus(c.r, 0.02), mat(color, { roughness: 0.55 }));
-    band.rotation.x = Math.PI / 2;
-    g.add(band);
-    if (id === 'bandana') {
-      const cloth = new THREE.Mesh(
-        geo('bandana', () => new THREE.ConeGeometry(1, 1, 3, 1, true)),
-        mat(color, { roughness: 0.8, side: THREE.DoubleSide })
-      );
-      cloth.scale.set(c.r * 0.95, c.r * 1.3, c.r * 0.3);
-      cloth.rotation.set(Math.PI + 0.35, Math.PI / 6, 0);
-      cloth.position.set(0, -c.r * 0.55, c.r * 0.85);
-      g.add(cloth);
-    } else {
-      const tag = new THREE.Mesh(
-        geo('tag', () => new THREE.CylinderGeometry(0.035, 0.035, 0.012, 20)),
-        mat('#f2b830', { metalness: 0.7, roughness: 0.3 })
-      );
-      tag.rotation.x = Math.PI / 2;
-      tag.position.set(0, -c.r * 0.35, c.r * 1.02);
-      g.add(tag);
-    }
-    return g;
-  }
-  if (id === 'ribbon') {
-    const pink = mat('#ff5fa2', { roughness: 0.55 });
-    for (const sx of [1, -1]) {
-      const loop = new THREE.Mesh(sphere, pink);
-      loop.position.set(sx * 0.055, 0, 0);
-      loop.scale.set(0.06, 0.04, 0.022);
-      loop.rotation.z = sx * 0.3;
-      g.add(loop);
-    }
-    const knot = new THREE.Mesh(sphere, pink);
-    knot.scale.setScalar(0.024);
-    g.add(knot);
-    g.position.set(...look.ribbon);
-    g.rotation.set(-0.3, 0.3, 0.35);
-    return g;
-  }
-  if (id === 'hat') {
-    const straw = mat('#f0c860', { roughness: 0.9 });
-    const cyl = (r0: number, r1: number, h: number) =>
-      geo(`cyl:${r0}:${r1}:${h}`, () => new THREE.CylinderGeometry(r0, r1, h, 28));
-    const brim = new THREE.Mesh(cyl(0.2, 0.2, 0.014), straw);
-    const crown = new THREE.Mesh(cyl(0.1, 0.115, 0.1), straw);
-    crown.position.y = 0.055;
-    const band = new THREE.Mesh(cyl(0.117, 0.117, 0.03), mat('#e8414f'));
-    band.position.y = 0.02;
-    for (const m of [brim, crown, band]) m.castShadow = true;
-    g.add(brim, crown, band);
-    g.position.set(...look.hat);
-    g.rotation.set(-0.2, 0, 0.15);
-    return g;
-  }
-  return g;
 }
 
 // ---- 動き ----
@@ -969,6 +887,7 @@ export function createPet(breed: BreedId, quality: Quality = 'normal'): PetModel
   let rig!: Rig;
   let acc = new Map<AccessoryId, THREE.Group>();
   let worn: AccessoryId | null = null;
+  let fitKey = '';
   let dirty = 0;
   let wet = 0;
   const foam = new Float32Array(FOAM_SPOTS);
@@ -998,13 +917,9 @@ export function createPet(breed: BreedId, quality: Quality = 'normal'): PetModel
       prev.root.removeFromParent();
     }
     group.add(rig.root);
+    fitKey = `${breed}:${q}`;
     acc = new Map();
-    for (const id of ['collar-red', 'collar-blue', 'bandana', 'ribbon', 'hat'] as AccessoryId[]) {
-      const a = accessory(id, look, QUALITY[q].len);
-      a.visible = id === worn;
-      (id === 'ribbon' || id === 'hat' ? rig.headAnchor : rig.neckAnchor).add(a);
-      acc.set(id, a);
-    }
+    wear();
     const n = Math.round(dirty * rig.dirt.length);
     rig.dirt.forEach((d, i) => (d.visible = i < n));
     wetFur();
@@ -1014,6 +929,21 @@ export function createPet(breed: BreedId, quality: Quality = 'normal'): PetModel
     ears = [bone('ear.l'), bone('ear.r')];
     tail = Array.from({ length: look.tail }, (_, i) => bone(`tail.${i}`));
     eyeBones = ['eye.l', 'eye.r'].flatMap((n) => rig.bone.get(n) ?? []);
+  }
+  // 着けたことのあるものだけ作る。首まわりを測るのは種類と画質ごとに 1 度
+  function wear() {
+    if (worn && !acc.has(worn)) {
+      const { group: a, on } = accessory(worn, {
+        look,
+        key: fitKey,
+        field: rig.body.plain,
+        body: rig.body.shell,
+        skeleton: rig.skeleton
+      });
+      (on === 'head' ? rig.headAnchor : rig.root).add(a);
+      acc.set(worn, a);
+    }
+    for (const [k, a] of acc) a.visible = k === worn;
   }
   function wetFur() {
     for (const f of rig.fur) f.mesh.material = furMaterial(f.layer, rig.layers, rig.cell, wet);
@@ -1256,7 +1186,7 @@ export function createPet(breed: BreedId, quality: Quality = 'normal'): PetModel
     update,
     setAccessory(id) {
       worn = id;
-      for (const [k, a] of acc) a.visible = k === id;
+      wear();
     },
     setDirt(v) {
       dirty = THREE.MathUtils.clamp(v, 0, 1);

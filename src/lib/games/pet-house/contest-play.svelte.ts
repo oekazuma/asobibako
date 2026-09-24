@@ -32,8 +32,8 @@ const JUDGE = { near: { x: -0.9, z: -3.4 }, side: { x: -2.7, z: 0.6 } };
 const RESULT_WAIT = 1.2;
 /** フリスビーが落ちぎわに浮いていられる秒 */
 const HOVER = 1.5;
-/** フリスビー大会で追いかけるときの速さ（m/s）。ふだんは 1.5 */
-const SPRINT = 2.4;
+/** フリスビー大会で追いかけるときの速さ（m/s）。ふだんは 1.5。4〜5m 先へ投げたフリスビーに空中で追いつける速さ */
+const SPRINT = 3;
 const REVEAL_EVERY = 0.9;
 
 /**

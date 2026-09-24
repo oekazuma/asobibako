@@ -36,9 +36,9 @@ describe('contest', () => {
     expect(save.contest.frisbee).toBe(1);
     expect(topRank(save, 'frisbee')).toBe(1);
     expect(award(save, 'frisbee', 0, 1)).toEqual({ money: 300, trophy: false, next: null });
-    expect(award(save, 'frisbee', 1, 2)).toEqual({ money: 600, trophy: false, next: null });
+    expect(award(save, 'frisbee', 1, 2)).toEqual({ money: 300, trophy: false, next: null });
     expect(save.contest.frisbee).toBe(1);
-    expect(save.money).toBe(money + 1500);
+    expect(save.money).toBe(money + 1200);
     // チャンピオンで勝つと棚は 5 つ、そのあともチャンピオンに出られる
     save.contest.frisbee = 4;
     expect(award(save, 'frisbee', 4, 1)).toMatchObject({ money: 5000, trophy: true, next: null });
@@ -101,6 +101,8 @@ describe('contest', () => {
   it('フリスビーは遠く・空中ほど高く、しつけは早く出すほど高い', () => {
     expect(throwPoints(6, false)).toBe(60);
     expect(throwPoints(6, true)).toBeGreaterThan(throwPoints(8, false));
+    // すぐ前で空中でとらせても、遠くへ投げて地面でとるより低い
+    expect(throwPoints(2.5, true)).toBeLessThan(throwPoints(5, false));
     expect(throwPoints(-1, false)).toBe(0);
     expect(trickPoints(false, 0.5)).toBe(0);
     expect(trickPoints(true, 0.5)).toBe(20);

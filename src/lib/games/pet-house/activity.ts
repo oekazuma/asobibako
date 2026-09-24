@@ -12,7 +12,8 @@ import type { PetWorld } from './world3d';
  *
  * 挿し方:
  * - Activity を実装したクラスを `.svelte.ts` に置き、画面に出す値はそのクラスの `$state` の欄に持つ
- * - 画面は `session.start(new MyActivity(...))` で始める。Session はすぐ `enter(host)` を呼ぶ。
+ * - 画面は `session.start(new MyActivity(...), 'おふろへ いくよ')` で始める。Session は「いどうちゅう」を
+ *   1 度描かせてから `enter(host)` を呼ぶ（2 フレームあと）。
  *   PetHouse.svelte はモードのあいだ下のメニュー・道具・ペットの札を隠すので、
  *   `session.activity instanceof MyActivity` のときに自分の HUD（例 ContestHud.svelte）を出す
  * - 自分の場面へは `host.enter(scene)`。ActivityScene の layout がペットの歩ける範囲とカメラ、
@@ -26,13 +27,16 @@ import type { PetWorld } from './world3d';
  * - ペットの出来事（caught・fetched など）は Session の演出より先に event へ渡る。true を返すと
  *   Session の演出とげんきの減りを飛ばす
  * - しつけのボタンと声の芸（session.trick）は、モードのあいだ trick へ渡る（無ければ何もしない）
- * - 終わるときは `host.end()`。部屋へ戻り、持ち替えた道具も戻して、session.activity は null になる
+ * - 終わるときは `host.end()`。部屋へ戻り、持ち替えた道具も戻して、session.activity は null になる。
+ *   戻るのは 2 フレームあとで、それまでは frame が呼ばれつづけ、重ねて呼んだ end() は捨てる
  * - 飼っているペットを連れないモード（ふれあいひろば）は Visit を実装して `session.visit(...)` で始める。
  *   0 匹でも始められ、host に pet・actor・voice が無い。動物は `host.cast(pets, actors)` で自分の子を出し、
  *   drives を true にして think もモードが呼ぶ（例 plaza.svelte.ts）
  */
 export interface Activity {
   readonly drives: boolean;
+  /** 寝ている子とは始めない（おさんぽ）。無ければ start が起こしてから始める */
+  readonly awakeOnly?: boolean;
   enter(host: ActivityHost): void;
   frame(dt: number): void;
   down?(id: number, px: number, py: number): boolean;
@@ -72,7 +76,7 @@ export interface SceneHost {
   purse(): [number, number];
   /** save を書き換えたら呼ぶ。少しあとでまとめて保存する */
   changed(): void;
-  /** scene を渡すと部屋ではなくその場面へ出る（おさんぽの道の先の公園） */
+  /** scene を渡すと部屋ではなくその場面へ出る（おさんぽの道の先の公園）。組み立てを待つので 2 フレームあとに効く */
   end(scene?: BaseScene): void;
 }
 
@@ -98,6 +102,15 @@ export interface Follow {
   shadow: number;
 }
 
+/**
+ * モードが持つカメラ。world3d はペットを追わず、毎フレーム camera(dt) が返した構えのとおりに置く。
+ * 日の影はその見ている点のまわり shadow m に落とす
+ */
+export interface HeldCamera {
+  camera(dt: number): Layout['camera'];
+  shadow: number;
+}
+
 export interface Built {
   group: THREE.Group;
   dispose(): void;
@@ -108,8 +121,10 @@ export interface Built {
 export interface ActivityScene {
   id: Scene;
   layout: Layout;
-  follow: Follow;
+  follow: Follow | HeldCamera;
   /** 空と霧と日の強さを公園と同じにする。false なら部屋と同じ */
   outdoor: boolean;
+  /** 外の霧がかかりはじめる距離と、空の色に消える距離（m）。無ければ公園と同じ */
+  fog?: { near: number; far: number };
   build(sun: THREE.Vector3): Built;
 }

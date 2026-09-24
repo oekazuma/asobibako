@@ -1,6 +1,7 @@
 import { kindOf, LOW, SLEEPY, TRICKS, type Pet } from './engine';
 import type { Layout, RoomLayout, Spot } from './layout';
 import type { FoodId, PetAction, Scene, ToyId, TrickId } from './types';
+import type { Wand } from './wand';
 
 /**
  * ペットの頭の中（状態機械）と、投げたおもちゃの物理。DOM も three も使わない。
@@ -26,9 +27,11 @@ export interface WorldView {
   /** 0..1。部屋だけ */
   bowls: { food: FoodId | null; foodLeft: number; waterLeft: number };
   toy: Toy | null;
-  /** ねこじゃらしの先（床の上）。指で動かしているあいだだけ */
-  wand: { x: number; z: number; moving: boolean } | null;
+  /** ねこじゃらしのふさ（y は床からの高さ）。指で動かしているあいだだけ。rig は描くための揺れ */
+  wand: { x: number; z: number; y?: number; moving: boolean; rig?: Wand } | null;
   presents: { id: number; x: number; z: number }[];
+  /** 画面で選んでいるペット。ほかの子はカメラのすぐ前（front のまわり）に居座らない */
+  current?: string;
 }
 
 type Mode = 'idle' | 'go' | 'eat' | 'drink' | 'sleep' | 'chase' | 'carry' | 'stalk' | 'pounce' | 'act' | 'held';
@@ -94,6 +97,8 @@ export type BehaviorEvent =
   | { type: 'drank'; petId: string }
   | { type: 'fetched'; petId: string }
   | { type: 'caught'; petId: string }
+  /** 飛びかかった瞬間 */
+  | { type: 'leap'; petId: string }
   | { type: 'found'; petId: string; present: number }
   | { type: 'voice'; petId: string }
   | { type: 'sleep'; petId: string }
@@ -125,6 +130,16 @@ const dist = (a: Spot, b: Spot) => Math.hypot(a.x - b.x, a.z - b.z);
 const angleTo = (a: Spot, b: Spot) => Math.atan2(b.x - a.x, b.z - a.z);
 const between = (rng: () => number, a: number, b: number) => a + (b - a) * rng();
 const isRoom = (l: Layout): l is RoomLayout => 'bed' in l;
+/** 選ばれていない子が入らない、カメラのすぐ前の帯。ここにいると奥の子に重なって画面をふさぐ */
+const FRONT_BAND = 0.5;
+const aside = (a: Actor, c: Ctx) =>
+  c.world.current !== undefined && a.petId !== c.world.current && a.z > c.world.layout.front.z - FRONT_BAND;
+/** 止めたねこじゃらしを身をかがめて見つめる秒。過ぎたら寄って飛びつく */
+const CROUCH = 1.5;
+/** ふさがこれより高いと、かがまずに前足で打つか跳びつく */
+const HIGH = 0.2;
+/** ねずみのおもちゃの前で、身をかがめてから前足でちょいちょいし、跳ぶまでの秒 */
+const MOUSE_PLAY = 1.7;
 
 export function createActor(pet: Pet, at: Spot): Actor {
   return {
@@ -405,8 +420,12 @@ function wanderSpot(a: Actor, c: Ctx): Spot {
       x: clamp(a.x + between(c.rng, -reach, reach), b.x0, b.x1),
       z: clamp(a.z + between(c.rng, -reach, reach), b.z0, b.z1)
     };
-    if (c.world.layout.blocks.every((k) => dist(p, k) > k.r + BODY + 0.1)) break;
+    const free =
+      c.world.layout.blocks.every((k) => dist(p, k) > k.r + BODY + 0.1) &&
+      c.actors.every((o) => o === a || dist(p, { x: o.tx, z: o.tz }) > GAP * 1.5);
+    if (free && !aside({ ...a, ...p }, c)) break;
   }
+  if (aside({ ...a, ...p }, c)) p.z = c.world.layout.front.z - FRONT_BAND - between(c.rng, 0.3, 0.9);
   return p;
 }
 
@@ -449,9 +468,12 @@ function needs(a: Actor, c: Ctx): boolean {
   if (toy && !toy.holder && a.seen !== toy) {
     a.seen = toy;
     const chasing = actors.some((o) => o.mode === 'chase' || o.mode === 'carry');
+    // ねずみは猫のおもちゃなので、犬はときどきしか追わない（追うと先に咥えて猫の出番がなくなる）
     const want = c.dog
-      ? toy.kind !== 'wand' && (!toy.still || dist(toy, world.layout.front) > 0.5)
-      : !toy.still && c.rng() < { mouse: 1, ball: 0.3, frisbee: 0.1, wand: 0 }[toy.kind];
+      ? toy.kind !== 'wand' &&
+        (!toy.still || dist(toy, world.layout.front) > 0.5) &&
+        (toy.kind !== 'mouse' || c.rng() < 0.3)
+      : toy.kind === 'mouse' || (!toy.still && c.rng() < { mouse: 1, ball: 0.3, frisbee: 0.1, wand: 0 }[toy.kind]);
     if (want && !chasing) {
       a.mode = 'chase';
       a.t = 12;
@@ -462,6 +484,7 @@ function needs(a: Actor, c: Ctx): boolean {
   if (wand?.moving && a.wandPlay === null) a.wandPlay = c.rng() < (c.dog ? 0.4 : 0.95);
   if (wand && a.wandPlay) {
     a.mode = 'stalk';
+    a.t = CROUCH;
     return true;
   }
   const sense = c.dog ? 1.8 : 1;
@@ -493,6 +516,7 @@ function decide(a: Actor, c: Ctx) {
     go(a, 'beg', besideBowl(room.food, room));
     return;
   }
+  if (aside(a, c)) return go(a, 'wander', wanderSpot(a, c));
   const tired = pet.stats.energy < 45;
   const park = world.scene === 'park';
   const options: [number, () => void][] = [
@@ -544,6 +568,13 @@ function runMode(a: Actor, c: Ctx, dt: number) {
       if (a.gaze && a.pose === 'stand') turn(a, angleTo(a, a.gaze), dt * 0.5);
       if (needs(a, c)) return;
       if (toy && !toy.still && !toy.holder) a.gaze = toy;
+      else if (world.wand?.moving) a.gaze = world.wand;
+      // 選んだ子を呼んだら、その行き先のそばにいるほかの子は場所をあける
+      if (
+        aside(a, c) &&
+        c.actors.some((o) => o.petId === world.current && o.mode === 'go' && (o.goal === 'front' || o.goal === 'spot'))
+      )
+        return go(a, 'wander', wanderSpot(a, c));
       if (a.t <= 0) decide(a, c);
       return;
     case 'go': {
@@ -636,7 +667,7 @@ function runMode(a: Actor, c: Ctx, dt: number) {
       if (!dog && !flying && reach < 0.45) {
         a.aim = 'toy';
         a.mode = 'pounce';
-        a.t = 0.6;
+        a.t = toy.kind === 'mouse' ? MOUSE_PLAY : 0.6;
         return;
       }
       steer(a, toyGoal(toy, layout), run, dt, layout, 0);
@@ -672,19 +703,40 @@ function runMode(a: Actor, c: Ctx, dt: number) {
       if (!wand || !a.wandPlay) return decide(a, c);
       a.gaze = wand;
       const d = dist(a, wand);
-      if (!wand.moving && d < 0.7) {
+      const y = wand.y ?? 0;
+      // 犬は寄って 1 度じゃれたら飽きる
+      if (dog) {
+        a.pose = 'stand';
+        if (d > 0.5) return void steer(a, wand, walk * 0.7, dt, layout, 0);
+        a.wandPlay = false;
+        return act(a, y > HIGH ? 'jump' : 'paw', 0.8);
+      }
+      if (y > HIGH) {
+        a.t = CROUCH;
+        a.pose = 'stand';
+        if (d > 0.35) return void steer(a, wand, walk, dt, layout, 0);
+        if (!faceThen(a, angleTo(a, wand), dt)) return;
+        a.aim = 'wand';
+        if (c.rng() < 0.5) return act(a, 'paw', 0.7, 'stalk');
+        events.push({ type: 'leap', petId: a.petId });
+        return act(a, 'jump', 0.95, 'stalk');
+      }
+      if (wand.moving || d >= 0.7) a.t = CROUCH;
+      else if (a.t > 0) {
+        a.t = Math.min(a.t, CROUCH);
         a.pose = dog ? 'stand' : 'down';
         return void faceThen(a, angleTo(a, wand), dt);
       }
       a.pose = 'stand';
-      if (d < (dog ? 0.4 : 0.55)) {
-        if (dog) return act(a, 'jump', 0.5, 'stalk');
+      if (d < 0.55) {
+        // 止めたふさには前足でちょいと手を出す。足元にあると跳べないので、手を出すだけにする
+        if (!wand.moving && (d < 0.2 || (d < 0.4 && c.rng() < 0.4))) return act(a, 'paw', 0.7, 'stalk');
         a.aim = 'wand';
         a.mode = 'pounce';
         a.t = between(c.rng, 0.7, 1.3) + 0.35;
         return;
       }
-      steer(a, wand, dog ? walk * 1.2 : walk * 0.8, dt, layout, 0);
+      steer(a, wand, walk * 0.8, dt, layout, 0);
       return;
     }
     case 'pounce': {
@@ -692,8 +744,13 @@ function runMode(a: Actor, c: Ctx, dt: number) {
       if (!target) return decide(a, c);
       a.pose = 'pounce';
       a.gaze = target;
-      // 身をかがめてお尻を振るあいだは止まり、最後の 0.35 秒で跳ぶ
-      if (a.t > 0.35) return void faceThen(a, angleTo(a, target), dt);
+      // 身をかがめてお尻を振るあいだは止まり、最後の 0.35 秒で跳ぶ。ねずみは跳ぶ前に前足でちょいちょいする
+      if (a.t > 0.35) {
+        if (a.aim === 'toy' && toy?.kind === 'mouse' && a.t < MOUSE_PLAY - 0.5 && Math.floor(a.t * 5) % 2)
+          a.pose = 'paw';
+        return void faceThen(a, angleTo(a, target), dt);
+      }
+      if (a.t + dt > 0.35) events.push({ type: 'leap', petId: a.petId });
       turn(a, angleTo(a, target), dt);
       a.v = Math.min(1.8, dist(a, target) / Math.max(a.t, 0.05));
       if (a.t > 0) return;
@@ -704,8 +761,10 @@ function runMode(a: Actor, c: Ctx, dt: number) {
           toy.vx = toy.vz = 0;
           toy.still = toy.y <= TOY[toy.kind].r + 0.001;
         }
-        return act(a, 'sit', 1.2, a.aim === 'wand' ? 'stalk' : 'idle');
+        return a.aim === 'wand' ? bite(a, c) : act(a, 'sit', 1.2);
       }
+      // ねずみを逃したら、もう一度ねらいなおす
+      if (a.aim === 'toy' && toy?.kind === 'mouse') a.seen = null;
       return act(a, 'stand', 0.8, a.aim === 'wand' ? 'stalk' : 'idle');
     }
     case 'act':
@@ -713,7 +772,10 @@ function runMode(a: Actor, c: Ctx, dt: number) {
       accelerate(a, 0, dt);
       if (a.show) turn(a, angleTo(a, c.camera), dt);
       if (a.mode === 'act' && a.pose === 'jump' && a.next === 'stalk' && a.t <= 0 && world.wand) {
-        if (dist(a, world.wand) < 0.35) events.push({ type: 'caught', petId: a.petId });
+        if (dist(a, world.wand) < 0.35) {
+          events.push({ type: 'caught', petId: a.petId });
+          return bite(a, c);
+        }
       }
       if (a.t > 0) return;
       a.puzzled = false;
@@ -729,6 +791,29 @@ function runMode(a: Actor, c: Ctx, dt: number) {
       return;
     }
   }
+}
+
+/** 捕まえたふさを、少し噛むか、抱えて転がる */
+function bite(a: Actor, c: Ctx) {
+  a.aim = 'wand';
+  act(a, c.rng() < 0.4 ? 'roll' : 'eat', 1.2, 'stalk');
+}
+
+/** ねこじゃらしのふさが通り抜けない、胴と頭の球 */
+export function wandBalls(actors: Actor[]): { x: number; y: number; z: number; r: number }[] {
+  return actors.flatMap((a) => [
+    { x: a.x, y: 0.13, z: a.z, r: 0.1 },
+    { x: a.x + Math.sin(a.heading) * 0.16, y: 0.2, z: a.z + Math.cos(a.heading) * 0.16, r: 0.07 }
+  ]);
+}
+
+/** ふさを噛んでいる子の口の位置。ねこじゃらしの揺れはそのあいだふさをここに留める */
+export function wandBite(actors: Actor[]): { x: number; y: number; z: number } | null {
+  const a = actors.find(
+    (o) => o.mode === 'act' && o.aim === 'wand' && o.next === 'stalk' && (o.pose === 'eat' || o.pose === 'roll')
+  );
+  if (!a) return null;
+  return { x: a.x + Math.sin(a.heading) * MOUTH.cat, y: 0.05, z: a.z + Math.cos(a.heading) * MOUTH.cat };
 }
 
 function grab(a: Actor, toy: Toy) {

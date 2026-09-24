@@ -73,9 +73,6 @@ export function buildStreet(stops: Stop[], camera: THREE.Camera): Street {
     },
     update(dt) {
       sky.position.copy(camera.position);
-      // world3d の外の霧は公園の広さに合わせてあり、長い道では向かいの家並みまでかすむ。道のあいだだけ遠くへのばす
-      const fog = group.parent instanceof THREE.Scene ? group.parent.fog : null;
-      if (fog instanceof THREE.Fog) [fog.near, fog.far] = [22, 58];
       for (const p of puddles) {
         p.t = Math.min(1, p.t + dt / 2);
         p.m.scale.setScalar(0.25 + 0.75 * p.t);
