@@ -569,6 +569,8 @@ interface Rig {
   bone: Map<string, THREE.Bone>;
   legs: Leg[];
   lids: { upper: THREE.Object3D; lower: THREE.Object3D }[];
+  /** 閉じた目の線（左右）。y を縮めると丸い弧が横線になる */
+  lashes: THREE.Object3D[];
   /** 目玉とその光。閉じたときは隠し、まぶたを穴の奥に収める */
   eyeParts: THREE.Object3D[];
   inner: THREE.Object3D[];
@@ -697,8 +699,26 @@ function build(look: Look, id: BreedId, q: Quality): Rig {
     return mergeGeometries(parts);
   });
   eyeParts.push(add(headSpace, shineGeo, shineMat, false));
+  // 閉じた目は、まぶたの面だけだと小さく見て閉じたのがわからない（黒猫は面が毛にとけて消える）。
+  // 目の前に下へ丸い弧の線を浮かせて描く。黒い毛の上では暗い線が見えないので明るくする
+  const coat = new THREE.Color(look.eye.lid);
+  const lashMat = mat(coat.r * 0.3 + coat.g * 0.6 + coat.b * 0.1 < 0.1 ? '#e8dcc6' : '#3a2419', { roughness: 1 });
+  const lashGeo = geo(`lash:${r}`, () => {
+    const pts = Array.from({ length: 9 }, (_, i) => {
+      const x = (i / 8) * 2 - 1;
+      return new THREE.Vector3(x * r * 1.05, r * 0.42 * (x * x - 1) + r * 0.1, 0);
+    });
+    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 16, r * 0.13, 6);
+  });
+  const lashes: THREE.Object3D[] = [];
   for (const eye of body.eyes) {
     const gazeQ = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), eye.gaze);
+    const lash = add(headSpace, lashGeo, lashMat, false);
+    lash.position.copy(eye.surf).addScaledVector(eye.gaze, r * 0.2);
+    lash.quaternion.copy(gazeQ);
+    lash.name = 'lash';
+    lash.visible = false;
+    lashes.push(lash);
     if (cat) continue;
     const lidSpace = new THREE.Group();
     lidSpace.position.copy(eye.surf).addScaledVector(eye.gaze, -look.eye.r * 0.35);
@@ -830,6 +850,7 @@ function build(look: Look, id: BreedId, q: Quality): Rig {
     bone,
     legs,
     lids,
+    lashes,
     eyeParts,
     inner: [innerMesh, tongue],
     tongue,
@@ -1284,6 +1305,12 @@ export function createPet(breed: BreedId, quality: Quality = 'normal'): PetModel
     }
     // 猫は目のまわりの毛をたてにつぶして閉じる。開いていても少しつぶし、上下のふちを瞳にかぶせてやわらかい目つきにする
     for (const e of eyeBones) e.scale.y = THREE.MathUtils.lerp(0.06, 0.82, Math.min(open, 1));
+    // うっとり・寝るときは丸い弧、ふつうのまばたきは平たい線
+    const arc = Math.max(cur.smile, 1 - cur.eye * 3);
+    for (const l of rig.lashes) {
+      l.visible = open < 0.15;
+      l.scale.y = THREE.MathUtils.clamp(arc, 0.25, 1);
+    }
 
     // 垂れ耳は体の上下の加速度で揺らす。跳ねたり弾んだりすると耳がぱたぱたする
     if (dt > 0) {

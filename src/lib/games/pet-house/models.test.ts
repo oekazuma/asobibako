@@ -218,6 +218,15 @@ describe('pet-house models', () => {
     expect(skin(a.group)).toBe(skin(b.group));
   });
 
+  it.each(BREED_IDS)('%s は目を閉じると目の線が 2 本出て、開くと消える', (id) => {
+    const pet = createPet(id);
+    const shown = () => pet.group.getObjectsByProperty('name', 'lash').filter((l) => l.visible).length;
+    for (let f = 0; f < 60; f++) pet.update('stand', 1 / 60, o);
+    expect(shown()).toBe(0);
+    for (let f = 0; f < 60; f++) pet.update('sleep', 1 / 60, o);
+    expect(shown()).toBe(2);
+  });
+
   it('いちばん汚れた段だけノミが跳ね、泡を付けると消える', () => {
     const pet = createPet('shiba');
     const fleas = () => pet.group.getObjectByName('fleas') as THREE.InstancedMesh;
