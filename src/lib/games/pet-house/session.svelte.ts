@@ -624,6 +624,7 @@ export class Session {
     if (this.#move) return;
     this.moving = label;
     this.#move = { run, wait: 2 };
+    sounds.door();
   }
 
   buy(id: ShopItem['id']): 'ok' | 'money' | 'owned' {

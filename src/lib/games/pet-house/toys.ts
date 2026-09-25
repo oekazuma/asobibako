@@ -12,6 +12,9 @@ export class Toys {
   readonly #c: Core;
   /** 床のおもちゃを誰も構わずに置いておいた秒。TOY_IDLE を過ぎると手元へ戻す */
   #idle = 0;
+  /** 前のフレームの落ちる速さ（弾んだ瞬間を知る）と、ねずみのカシャカシャの間 */
+  #vy = 0;
+  #rattle = 0;
 
   constructor(core: Core) {
     this.#c = core;
@@ -61,6 +64,7 @@ export class Toys {
   tick(dt: number) {
     const c = this.#c;
     const t = c.view.toy;
+    this.#sound(dt);
     const holder = t?.holder ? c.actor(t.holder) : undefined;
     const left =
       !!t && t.kind !== 'wand' && (holder ? holder.asleep : t.still) && !c.touches.length && !c.actors.some(playing);
@@ -120,7 +124,24 @@ export class Toys {
           : [Math.min(speed * 1.4, 3.5), 0];
     const y = rolled ? 0.03 : 0.55;
     c.view.toy = throwToy(kind, { x: from.x, y, z: from.z }, { x: dx * h, y: v, z: dz * h });
-    sounds.throw();
+    sounds.throw(kind);
+  }
+
+  /** 床で弾んだ音（落ちる速さが上向きに変わった瞬間）と、転がるねずみの中の粒の音 */
+  #sound(dt: number) {
+    const c = this.#c;
+    const t = c.view.toy;
+    const vy = this.#vy;
+    this.#vy = t && !t.holder ? t.vy : 0;
+    this.#rattle -= dt;
+    if (!t || t.holder || t.kind === 'wand') return;
+    const surface = c.s.scene === 'room' ? 'floor' : 'grass';
+    if (t.kind !== 'mouse' && vy < -0.5 && t.vy >= 0 && t.y < 0.2) sounds.bounce(surface, -vy, t.kind);
+    const speed = Math.hypot(t.vx, t.vz);
+    if (t.kind === 'mouse' && !t.still && speed > 0.15 && this.#rattle <= 0) {
+      this.#rattle = 0.1 + 0.15 / (1 + speed);
+      sounds.rattle(Math.min(1, speed / 1.5));
+    }
   }
 
   #isDog(petId: string) {

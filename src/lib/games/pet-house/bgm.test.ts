@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { Bgm, loopSeconds, midi, score, Tune } from './bgm';
 import { SONGS } from './songs';
 
-/** 鳴らした音の高さと時刻だけを覚える AudioContext の代わり */
+/** 鳴らした音の時刻と、高さ（楽器の音は高さごとに作る AudioBuffer の番号）だけを覚える AudioContext の代わり */
 function fakeContext() {
+  let buffers = 0;
   const starts: { t: number; f: number }[] = [];
   const param = () => {
     const p = {
@@ -21,11 +22,12 @@ function fakeContext() {
       frequency: param(),
       Q: param(),
       delayTime: param(),
+      playbackRate: param(),
       type: '',
-      buffer: null,
+      buffer: null as { id: number } | null,
       connect: (to: unknown) => to,
       disconnect: () => {},
-      start: (t = 0) => starts.push({ t, f: n.frequency.value }),
+      start: (t = 0) => starts.push({ t, f: n.frequency.value || (n.buffer?.id ?? 0) }),
       stop: () => {}
     };
     return n;
@@ -40,7 +42,9 @@ function fakeContext() {
     createBiquadFilter: node,
     createDelay: node,
     createBufferSource: node,
-    createBuffer: (_c: number, n: number) => ({ getChannelData: () => new Float32Array(n) })
+    createWaveShaper: node,
+    createConvolver: node,
+    createBuffer: (_c: number, n: number) => ({ id: ++buffers, getChannelData: () => new Float32Array(n) })
   };
   return { ctx: ctx as unknown as BaseAudioContext & { currentTime: number }, starts };
 }
