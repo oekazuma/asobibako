@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
+  import { version } from '$app/environment';
+  import { snapshot } from '$lib/mirror';
   import { canListen, pushToTalk } from './listen';
   import type { Session } from './session.svelte';
   import { parse } from './voice';
@@ -24,6 +26,9 @@
   }
 
   const talk = pushToTalk(() => {
+    // iPad でマイクを許可した直後に固まり、終わらせたら記録が全部消えたことがある。聞く前に記録と控えを書いておく
+    session.flush();
+    void snapshot(version);
     listening = true;
     return {
       result(alts) {

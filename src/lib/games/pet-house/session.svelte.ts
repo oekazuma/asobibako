@@ -360,6 +360,11 @@ export class Session {
    * 条件の多くはハート・芸・持ちものなど save から数えるので、書くたび（1 秒に 1 回まで）にまとめて確かめる。
    * 閉じる・隠れるときは押しても見せられないので確かめず、次に開いたときに押す
    */
+  /** いまの記録をすぐ書く。固まるおそれのある操作（マイク）の前に呼ぶ */
+  flush() {
+    this.#write(false);
+  }
+
   #write(stamp = true) {
     if (stamp) this.#stamps.add(...check(this.save));
     writeSave($state.snapshot(this.save));

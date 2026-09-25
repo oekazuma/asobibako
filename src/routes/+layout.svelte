@@ -1,20 +1,28 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { version } from '$app/environment';
+  import { beforeNavigate } from '$app/navigation';
   import { updated } from '$app/state';
   import '../app.css';
   import { keepScreenAwake } from '$lib/wake-lock.svelte';
   import { watch } from '$lib/last-error';
+  import { snapshot, watch as mirror } from '$lib/mirror';
 
   let { children } = $props();
 
   onMount(() => {
     const unwatch = watch();
+    const unmirror = mirror(version);
     const release = keepScreenAwake();
     return () => {
       unwatch();
+      unmirror();
       release();
     };
   });
+
+  // 子どもは一覧とゲームを行き来するので、移るたびにも控えを取る
+  beforeNavigate(() => void snapshot(version));
 
   // ホーム画面のアプリはページ遷移が少なくポーリングも止まりがちなので、前面に戻ったときに新版を確認する（1 分に 1 回まで）
   let lastCheck = 0;
