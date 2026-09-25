@@ -37,10 +37,15 @@
     {#if !first}<span class="money"><Icon name="coin" />{session.save.money}</span>{/if}
   </header>
 
-  {#if !plaza.focus}
+  {#if plaza.swapping}
+    <p class="swap" role="status">ほかの子たちを よんでいるよ…</p>
+  {:else if !plaza.focus}
     <div class="foot">
       <p class="hint">{first ? 'いっしょに くらす 子を さがそう。' : ''}きになる子に さわってみよう</p>
-      {#if !first}<button class="pill" onclick={() => plaza.end()}>おうちへ もどる</button>{/if}
+      <div class="row">
+        <button class="pill gold" onclick={() => plaza.others()}>ほかの子たち</button>
+        {#if !first}<button class="pill" onclick={() => plaza.end()}>おうちへ もどる</button>{/if}
+      </div>
     </div>
   {:else}
     <section class="panel" aria-label="{BREEDS[plaza.focus].name}の しょうかい">
@@ -71,7 +76,8 @@
   }
 
   .bar,
-  .hint {
+  .hint,
+  .swap {
     border: 3px solid var(--line);
     border-radius: 999px;
     background: var(--paper);
@@ -110,6 +116,24 @@
     flex-direction: column;
     align-items: center;
     gap: 12px;
+  }
+
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .swap {
+    position: absolute;
+    top: 45%;
+    left: 50%;
+    margin: 0;
+    padding: 12px 24px;
+    box-shadow: var(--soft-shadow);
+    white-space: nowrap;
+    translate: -50% -50%;
   }
 
   .hint {

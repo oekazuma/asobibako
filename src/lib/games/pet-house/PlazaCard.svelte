@@ -9,7 +9,9 @@
   const b = $derived(BREEDS[breed]);
 </script>
 
-<h2 class="yuru" style:--fill={b.kind === 'dog' ? 'var(--pastel-p1)' : 'var(--pastel-p2)'}>{b.name}</h2>
+<h2 class="yuru" style:--fill={b.kind === 'dog' ? 'var(--pastel-p1)' : 'var(--pastel-p2)'} style:--n={b.name.length}>
+  {b.name}
+</h2>
 <p class="note">{b.note}</p>
 <p class="how">
   {b.kind === 'dog'
@@ -26,7 +28,8 @@
 
 <style>
   h2 {
-    font-size: clamp(26px, min(4.4cqh, 9cqw), 44px);
+    /* スコティッシュフォールドのような長い名前も 1 行に収める */
+    font-size: clamp(20px, min(4.4cqh, 9cqw, 80cqw / var(--n)), 44px);
     white-space: nowrap;
   }
 

@@ -1,29 +1,46 @@
 import type { SceneHost, Visit } from './activity';
 import { command, createActor, think, throwToy, type Actor, type BehaviorEvent } from './behavior';
-import { BREED_IDS } from './breeds';
+import { BREED_IDS, BREEDS } from './breeds';
 import { speakAt, type Cry } from './cries';
 import { kindOf, type Pet } from './engine';
 import type { Layout, Spot } from './layout';
 import { buildPlaza, plazaLayout } from './scene-plaza';
 import { sounds } from './sounds';
-import type { BreedId, PetAction } from './types';
+import type { BreedId, Kind, PetAction } from './types';
 
 export type Step = 'look' | 'name' | 'call';
 
 const START: Spot[] = [
   { x: -0.9, z: -0.4 },
   { x: 0.9, z: -0.9 },
-  { x: -0.2, z: -2.1 },
-  { x: 1.1, z: -2.9 },
-  { x: -1.1, z: -3.4 },
-  { x: 0.3, z: -4 }
+  { x: -0.2, z: -1.7 },
+  { x: 1.2, z: -2.4 },
+  { x: -1.2, z: -2.7 },
+  { x: 0.3, z: -3.3 },
+  { x: -0.7, z: -4.2 },
+  { x: 1.0, z: -4.4 }
 ];
 /** 寄ったときのカメラ。ペットの手前 back m、高さ y から見下ろす */
 const CLOSE = { y: 0.95, back: 1.55 };
 const idOf = (breed: BreedId) => `plaza:${breed}`;
 
 /**
- * ふれあいひろば。柵の中で 6 種の子犬・子猫（まだ誰のペットでもない。save には入れない）が遊び、
+ * ひろばに出す子。全部の種類を一度に出すと重いので、犬と猫を START の数の半分ずつ選んで交互に並べる。
+ * 飼っていない種類と、いま出ていない種類（「ほかの子たち」で入れ替えたとき）を先に選ぶ
+ */
+export function roster(owned: readonly BreedId[], shown: readonly BreedId[], rng: () => number): BreedId[] {
+  const pick = (kind: Kind) =>
+    BREED_IDS.filter((b) => BREEDS[b].kind === kind)
+      .map((b) => ({ b, k: (owned.includes(b) ? 2 : 0) + (shown.includes(b) ? 1 : 0) + rng() }))
+      .sort((x, y) => x.k - y.k)
+      .slice(0, START.length / 2)
+      .map((e) => e.b);
+  const cats = pick('cat');
+  return pick('dog').flatMap((dog, i) => [dog, cats[i]]);
+}
+
+/**
+ * ふれあいひろば。柵の中で 8 匹の子犬・子猫（まだ誰のペットでもない。save には入れない）が遊び、
  * さわった子にカメラが寄る。なでる・ボールを投げる（犬）・ねこじゃらし（猫）で遊んでから、
  * 「この子に する」で名前の画面へ進む。むかえる手続き（お金と save）は画面が Session で行う
  */
@@ -32,22 +49,18 @@ export class Plaza implements Visit {
   /** 寄って見ている子 */
   focus: BreedId | null = $state(null);
   step: Step = $state('look');
+  /** 「ほかの子たち」で入れ替えているあいだ。形を組み立てるあいだ止まるので、先に知らせを描かせる */
+  swapping = $state(false);
+  #swapIn = 0;
 
   #host!: SceneHost;
   #stage = plazaLayout();
   #cam = { ...this.#stage.camera };
   /** think に渡す置き場所。おもちゃを持ってくる front を寄った子の前にし、ペットが見上げる camera をいまのカメラにする */
   #brain: Layout = { ...this.#stage, front: { ...this.#stage.front }, camera: this.#cam };
-  #pets: Pet[] = BREED_IDS.map((breed) => ({
-    id: idOf(breed),
-    breed,
-    name: '',
-    stats: { food: 100, water: 100, clean: 100, energy: 100 },
-    love: 1,
-    tricks: {},
-    accessory: null
-  }));
-  #actors = this.#pets.map((p, i) => createActor(p, START[i]));
+  // 入れ替えるときも同じ配列の中身を替える（host.cast に渡した配列を Session がそのまま読む）
+  #pets: Pet[] = [];
+  #actors: Actor[] = [];
   #finger: { id: number; x: number; y: number; rub: number; mode: 'rub' | 'floor' } | null = null;
   #wand = { x: 0, z: 0, tx: 0, tz: 0, on: false };
   #timers = { heart: 0, purr: 0, bark: 2, visit: 5, frolic: 3 };
@@ -64,9 +77,40 @@ export class Plaza implements Visit {
       outdoor: true,
       build: buildPlaza
     });
+    this.#fill(
+      roster(
+        host.save.pets.map((p) => p.breed),
+        [],
+        Math.random
+      )
+    );
     host.cast(this.#pets, this.#actors);
     host.setTool('hand');
+  }
+
+  #fill(breeds: BreedId[]) {
+    const pets = breeds.map((breed) => ({
+      id: idOf(breed),
+      breed,
+      name: '',
+      stats: { food: 100, water: 100, clean: 100, energy: 100 },
+      love: 1,
+      tricks: {},
+      accessory: null
+    }));
+    this.#pets.splice(0, Infinity, ...pets);
+    this.#actors.splice(0, Infinity, ...pets.map((p, i) => createActor(p, START[i])));
     for (const a of this.#actors) a.heading = Math.random() * 6;
+  }
+
+  /** 「ほかの子たち」。いどうちゅうと同じく、知らせを 1 度描かせてから入れ替える */
+  others(): void {
+    if (this.swapping) return;
+    this.back();
+    this.#pair = null;
+    this.#yelp = null;
+    this.swapping = true;
+    this.#swapIn = 2;
   }
 
   get dog(): boolean {
@@ -117,6 +161,17 @@ export class Plaza implements Visit {
   }
 
   frame(dt: number): void {
+    if (this.swapping && --this.#swapIn <= 0) {
+      if (this.#swapIn === 0)
+        this.#fill(
+          roster(
+            this.#host.save.pets.map((p) => p.breed),
+            this.#pets.map((p) => p.breed),
+            Math.random
+          )
+        );
+      else this.swapping = false;
+    }
     const host = this.#host;
     const view = host.view;
     const me = this.#me();

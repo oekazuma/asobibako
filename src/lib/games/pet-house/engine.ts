@@ -402,6 +402,8 @@ export const SHOP: ShopItem[] = [
   ...DECOR.map((d) => ({ id: d.id, type: 'room' as const, name: d.name, price: d.price }))
 ];
 
+export const itemName = (id: ShopItem['id']) => SHOP.find((i) => i.id === id)?.name ?? '';
+
 export function buy(save: Save, id: ShopItem['id']): 'ok' | 'money' | 'owned' {
   const item = SHOP.find((i) => i.id === id);
   if (!item) return 'owned';

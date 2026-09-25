@@ -87,3 +87,17 @@ export const PARK: Layout = {
 };
 
 export const LAYOUTS: Record<BaseScene, Layout> = { room: ROOM, park: PARK };
+
+/** 投げる元・呼ぶ先・ふさの位置を、歩ける範囲の中の、ペットが通れる床に収める */
+export function clampToFloor(layout: Layout, p: Spot): Spot {
+  const b = layout.bounds;
+  const q = { x: Math.min(b.x1, Math.max(b.x0, p.x)), z: Math.min(b.z1, Math.max(b.z0, p.z)) };
+  for (const k of layout.blocks) {
+    const d = Math.hypot(q.x - k.x, q.z - k.z);
+    const need = k.r + 0.22;
+    if (d >= need || d < 1e-6) continue;
+    q.x = k.x + ((q.x - k.x) / d) * need;
+    q.z = k.z + ((q.z - k.z) / d) * need;
+  }
+  return q;
+}

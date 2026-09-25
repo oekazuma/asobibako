@@ -1,46 +1,27 @@
 import type { Activity, ActivityScene, Visit } from './activity';
-import {
-  command,
-  createActor,
-  eats,
-  think,
-  throwToy,
-  type Actor,
-  type BehaviorEvent,
-  type WorldView,
-  playing,
-  wandBalls,
-  wandBite
-} from './behavior';
-import { Bgm, type Track } from './bgm';
+import { command, createActor, think, type Actor, type WorldView } from './behavior';
+import { Bgm } from './bgm';
+import { Bowls } from './bowls';
+import type { Core, Touch } from './core';
 import { speakAt, type Cry } from './cries';
 import { hasDecor, type RoomLook, type RoomPart, type RoomTheme } from './decor';
-import { BADGE_LIFE, PetFx } from './effects';
+import { PetFx } from './effects';
 import {
   SHOP,
   SLEEPY,
-  TRICKS,
-  TRICK_REWARD,
   addPhoto,
   adopt,
-  brush,
   buy,
   catchUp,
   count,
-  drink,
-  eat,
-  findPresent,
+  itemName,
   kindOf,
   loadSave,
   mood,
   newSave,
   play,
-  praise,
   rest,
-  stroke,
   tick,
-  trickChance,
-  trickName,
   writePhotos,
   writeSave,
   type CounterId,
@@ -48,22 +29,26 @@ import {
   type Save,
   type ShopItem
 } from './engine';
-import { LAYOUTS, PARK, ROOM, roomPerches, type Layout, type Spot } from './layout';
-import { dislikes, FEEL, PART_NAME, strokeWeight, TRY, type Feel, type Part } from './petting';
+import { clampToFloor, LAYOUTS, ROOM, roomPerches, type Layout } from './layout';
 import { FLEA_CLEAN } from './models';
+import { Reactions } from './reactions';
+import { Rubbing } from './rubbing';
 import { sounds } from './sounds';
-import { done, drawHint, LESSONS, stroke as startStroke, track, type Stroke } from './teach';
-import { check, nearly, type Stamp } from './stamps';
+import { StampQueue } from './stamp-queue';
+import { check } from './stamps';
+import { Modes } from './modes';
+import { LESSONS } from './teach';
+import { Toys, WandHand } from './toys';
+import { Training } from './training';
 import type { AccessoryId, BaseScene, BreedId, FoodId, Scene, ToyId, TrickId } from './types';
-import { createWand, POM, stepWand, type Wand } from './wand';
-import { bodyMarks, PetWorld } from './world3d';
+import { PetWorld } from './world3d';
 
 export type Tool = 'hand' | 'brush' | 'toy';
 
-const TOY_IDLE = 20;
-
 /**
  * わんにゃんハウスの進行。画面（PetHouse.svelte）はこの状態を読み、ボタンと指をここへ渡す。
+ * おもちゃ（toys.ts）・なでる（rubbing.ts）・芸（training.ts）・出来事の演出（reactions.ts）・お皿（bowls.ts）・
+ * スタンプ（stamp-queue.ts）・遊びのモードの出入り（modes.ts）は core.ts の Core を受け取る部品で、ここは配線と画面から見える口を持つ。
  *
  * 画面側の配線:
  * - `new Session(gl, overlay, onhint)` を onMount で作り、`animate((dt) => session.frame(dt))`、unmount で `dispose()`
@@ -100,6 +85,8 @@ export class Session {
   away = $state(false);
   /** おみせで試着しているアクセサリー。いまのペットに見た目だけ付け、save は変えない */
   trying: AccessoryId | null = $state(null);
+  /** 画面が 3D をほとんど隠している（おみせなどのシート）。画面が教える */
+  covered = false;
 
   readonly #world: PetWorld;
   readonly #overlay: HTMLCanvasElement;
@@ -107,28 +94,21 @@ export class Session {
   readonly #fx = new PetFx();
   readonly #bgm = new Bgm();
   readonly #onhint?: (t: string) => void;
+  readonly #toys: Toys;
+  readonly #wand: WandHand;
+  readonly #training: Training;
+  readonly #rubbing: Rubbing;
+  readonly #reactions: Reactions;
+  readonly #stamps: StampQueue;
+  readonly #bowls: Bowls;
+  readonly #modes: Modes;
   #actors: Actor[] = [];
-  /** モードが 3D に出している子。あいだは飼っているペットの代わりにこの子たちを描く */
-  #cast: { pets: Pet[]; actors: Actor[] } | null = null;
   #layout: Layout = ROOM;
   #view: WorldView;
-  /** モードを始める前の道具。モードがおもちゃを持ち替えても、終わったら戻す */
-  #before: { tool: Tool; toy: ToyId } = { tool: 'hand', toy: 'ball' };
-  /** 部屋のお皿。公園へ行っても残しておく */
-  #bowls: WorldView['bowls'] = { food: null, foodLeft: 0, waterLeft: 0 };
   #touches: Touch[] = [];
-  /** 教えている指。lesson が 'done' になったら、同じ指ではもう数えない */
-  #lesson: { touch: Touch; stroke: Stroke; lesson: TrickId | 'done' } | null = null;
-  /** 画面が 3D をほとんど隠している（おみせなどのシート）。画面が教える */
-  covered = false;
   /** 最後に指が触れた時刻と、描かずにためた時間。描く回数を減らして端末の発熱を抑える */
   #touched = 0;
-  /** 床のおもちゃを誰も構わずに置いておいた秒。TOY_IDLE を過ぎると手元へ戻す */
-  #toyIdle = 0;
   #unrendered = 0;
-  /** ねこじゃらしのふさ。指の下の点（tx, tz）を少し遅れて追う */
-  /** plane は持ち上げはじめたときの立てた面の奥行き。寄ってくる子に合わせて動かすと、ふさが手前へ逃げ続ける */
-  #wand = { tx: 0, ty: 0, tz: 0, on: false, rig: null as Wand | null, plane: null as number | null };
   #now = 0;
   #slow = 0;
   #w = 1;
@@ -137,15 +117,6 @@ export class Session {
   #toastUntil = 0;
   #dirty = false;
   #wrote = 0;
-  #presentId = 0;
-  #presentWait = 0;
-  /** 開いてから 1 度でもなでたか。まだなら何をすればいいかをヒントに出す */
-  #stroked = false;
-  /** なで方のヒントを出した回数と、この回に好きな所としてなでた場所 */
-  #tips = 0;
-  #felt: Part[] = [];
-  #timers = { heart: 0, purr: 0, bark: 2, sparkle: 0, munch: 0, zzz: 0, rustle: 0, tip: 20 };
-  #snore = 0;
   /**
    * 場面の組み立ては数百 ms 画面を止める。wait フレーム待って「いどうちゅう」を 1 度描かせてから run し、
    * シェーダーの準備が落ち着くまでさらに数フレーム出したままにする
@@ -153,20 +124,36 @@ export class Session {
   #move: { run: (() => void) | null; wait: number } | null = null;
   /** むかえたばかりの子。次に部屋へ入ったとき、奥から歩いてこさせる */
   #arrival: string | null = null;
-  /**
-   * 押すのを待つスタンプ。1 つずつ間をあけて押す。配列は開いた直後の判定でまとめて見つかったもの
-   * （前の版の保存で満たしていた分）で、1 つずつ押すと長く続くので 1 回の演出にまとめる
-   */
-  #stamps: (Stamp | Stamp[])[] = [];
-  /** 開いた直後は「よみこみちゅう」の下で押してしまわないよう少し待つ */
-  #stampWait = 3;
-  #nudged = 0;
 
   constructor(canvas: HTMLCanvasElement, overlay: HTMLCanvasElement, onhint?: (t: string) => void) {
     this.#onhint = onhint;
     this.#overlay = overlay;
     this.#ctx = overlay.getContext('2d');
     this.#world = new PetWorld(canvas);
+    const core = this.#core();
+    this.#toys = new Toys(core);
+    this.#wand = new WandHand(core);
+    this.#training = new Training(core);
+    this.#rubbing = new Rubbing(core, this.#training);
+    this.#reactions = new Reactions(core);
+    this.#stamps = new StampQueue(core, () => !this.#moodText());
+    this.#bowls = new Bowls(core);
+    this.#modes = new Modes(core, {
+      enter: (target) => this.#enter(target),
+      go: (label, run) => this.#go(label, run),
+      pause: () => this.#pause(),
+      settle: () => {
+        this.#fitToy();
+        this.#write();
+      },
+      music: (track) => this.#bgm.play(track),
+      found: (a) => {
+        const p = this.#pet(a.petId);
+        if (!p) return;
+        play(p);
+        this.#reactions.found(p, ...this.#above(a));
+      }
+    });
     this.#view = this.#emptyView('room');
     this.#world.trophies = this.save.contest;
     this.#world.room = this.save.room;
@@ -174,10 +161,56 @@ export class Session {
     this.#enter('room');
     this.#fitToy();
     const back = check(this.save);
-    if (back.length) this.#stamps.push(back.length > 1 ? back : back[0]);
+    if (back.length) this.#stamps.add(back.length > 1 ? back : back[0]);
     this.#dirty = true;
     if (allowance) this.#say(`おこづかい ${allowance}コイン もらったよ！`);
     document.addEventListener('visibilitychange', this.#onVisibility);
+  }
+
+  /** 部品に渡す口。view・actors・layout は場面に入るたびに作り直すので、読むたびに今のものを返す */
+  #core(): Core {
+    const now = () => this.#now;
+    const view = () => this.#view;
+    const layout = () => this.#layout;
+    const actors = () => this.#actors;
+    const touches = () => this.#touches;
+    const w = () => this.#w;
+    const h = () => this.#h;
+    return {
+      s: this,
+      world: this.#world,
+      fx: this.#fx,
+      get view() {
+        return view();
+      },
+      get layout() {
+        return layout();
+      },
+      get actors() {
+        return actors();
+      },
+      get touches() {
+        return touches();
+      },
+      get now() {
+        return now();
+      },
+      get w() {
+        return w();
+      },
+      get h() {
+        return h();
+      },
+      actor: (petId) => this.#actor(petId),
+      pet: (petId) => this.#pet(petId),
+      above: (a, y) => this.#above(a, y),
+      purse: () => this.#purse(),
+      say: (text, seconds) => this.#say(text, seconds),
+      voice: (pet, cry) => this.#voice(pet, cry),
+      count: (key, n) => this.#count(key, n),
+      changed: () => void (this.#dirty = true),
+      smooth: () => void (this.#touched = this.#now + 1)
+    };
   }
 
   #onVisibility = () => {
@@ -189,7 +222,7 @@ export class Session {
 
   #emptyView(scene: Scene): WorldView {
     const perches = scene === 'room' ? roomPerches(this.save.room) : undefined;
-    return { scene, layout: this.#layout, bowls: this.#bowls, toy: null, wand: null, presents: [], perches };
+    return { scene, layout: this.#layout, bowls: this.#bowls.state, toy: null, wand: null, presents: [], perches };
   }
 
   #enter(target: BaseScene | ActivityScene) {
@@ -202,7 +235,7 @@ export class Session {
     this.#touches = [];
     this.#wand.on = false;
     this.#spawnActors();
-    if (scene === 'park') for (let i = 0; i < 3; i++) this.#spawnPresent();
+    if (scene === 'park') for (let i = 0; i < 3; i++) this.#reactions.spawnPresent();
     if (scene === 'park') this.#count('walk');
     this.#music();
   }
@@ -231,23 +264,6 @@ export class Session {
     this.#world.syncPets(this.save.pets);
   }
 
-  #spawnPresent() {
-    const b = PARK.bounds;
-    for (let i = 0; i < 12; i++) {
-      const p = {
-        x: b.x0 + 0.3 + Math.random() * (b.x1 - b.x0 - 0.6),
-        z: b.z0 + 0.4 + Math.random() * (b.z1 - b.z0 - 1.8)
-      };
-      const clear =
-        PARK.blocks.every((k) => Math.hypot(p.x - k.x, p.z - k.z) > k.r + 0.35) &&
-        this.#actors.every((a) => Math.hypot(p.x - a.x, p.z - a.z) > 1) &&
-        this.#view.presents.every((q) => Math.hypot(p.x - q.x, p.z - q.z) > 1);
-      if (!clear) continue;
-      this.#view.presents.push({ id: ++this.#presentId, ...p });
-      return;
-    }
-  }
-
   #actor(petId = this.save.current) {
     return this.#actors.find((a) => a.petId === petId);
   }
@@ -272,12 +288,23 @@ export class Session {
     this.#toastUntil = this.#now + seconds;
   }
 
+  #voice(pet: Pet, cry: Cry = moodCry(pet)) {
+    const a = this.#actor(pet.id);
+    if (a) speakAt(this.#fx, pet.breed, cry, this.#above(a));
+  }
+
+  /** 押すかどうかは次の #write でまとめて確かめる */
+  #count(key: CounterId, n = 1) {
+    count(this.save, key, n);
+    this.#dirty = true;
+  }
+
   /**
    * 条件の多くはハート・芸・持ちものなど save から数えるので、書くたび（1 秒に 1 回まで）にまとめて確かめる。
    * 閉じる・隠れるときは押しても見せられないので確かめず、次に開いたときに押す
    */
   #write(stamp = true) {
-    if (stamp) this.#stamps.push(...check(this.save));
+    if (stamp) this.#stamps.add(...check(this.save));
     writeSave($state.snapshot(this.save));
     this.#dirty = false;
     this.#wrote = this.#now;
@@ -320,20 +347,21 @@ export class Session {
     const act = this.activity;
     if (!act?.drives) {
       this.#view.current = this.save.current;
-      this.#stepWand(dt);
-      this.#rub(dt);
-      this.#teachTick();
-      for (const e of think(this.#actors, pets, this.#view, dt, Math.random)) if (!act?.event?.(e)) this.#event(e);
+      this.#wand.step(dt);
+      this.#rubbing.tick(dt);
+      this.#training.tick();
+      for (const e of think(this.#actors, pets, this.#view, dt, Math.random))
+        if (!act?.event?.(e)) this.#reactions.event(e);
     }
-    this.#ambient(dt);
+    this.#reactions.ambient(dt);
     this.#bgm.tick();
-    if (!this.activity) this.#toyReturn(dt);
-    const away = !this.activity && this.#toyAway();
+    if (!this.activity) this.#toys.tick(dt);
+    const away = !this.activity && this.#toys.away();
     if (away !== this.away) this.away = away;
 
     if (this.trickPending && this.#now > this.trickPending.until) this.trickPending = null;
     if (this.toast && this.#now > this.#toastUntil) this.toast = '';
-    this.#stampTick(dt);
+    this.#stamps.tick(dt);
     const hint =
       this.toast ||
       (this.activity
@@ -355,7 +383,7 @@ export class Session {
     if (this.#unrendered < 1 / this.#fps() - 0.004) return;
     const step = this.#unrendered;
     this.#unrendered = 0;
-    const cast = this.#cast;
+    const cast = this.#modes.cast;
     const trying = this.trying;
     // おみせのシートが画面の下半分をふさぐので、試着のあいだは絵を上へずらしてペットを見せる
     this.#world.lift = trying ? 0.36 : 0;
@@ -369,7 +397,7 @@ export class Session {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, this.#w, this.#h);
     this.#fx.draw(ctx, this.#w, this.#h);
-    this.#drawLesson(ctx);
+    this.#training.draw(ctx);
   }
 
   /**
@@ -382,33 +410,6 @@ export class Session {
     if (this.covered && !this.trying) return 15;
     if (this.#now - this.#touched > 60) return 20;
     return 30;
-  }
-
-  /** 食べる音・寝息の Z・公園のプレゼントの補充 */
-  #ambient(dt: number) {
-    const t = this.#timers;
-    t.munch -= dt;
-    t.zzz -= dt;
-    for (const a of this.#actors) {
-      if ((a.mode === 'eat' || a.mode === 'drink') && t.munch <= 0) {
-        t.munch = 0.7;
-        (a.mode === 'eat' ? sounds.eat : sounds.drink)();
-      }
-      if (a.asleep && t.zzz <= 0) {
-        t.zzz = 1.3;
-        const [x, y] = this.#above(a, 0.3);
-        this.#fx.text('Z', x + 20, y, '#7a8cff', 26);
-        const pet = this.#pet(a.petId);
-        // 寝息は見ている子だけ、Z 2 つに 1 回。何匹もの寝息が重なると部屋がうるさい
-        if (pet && a.petId === this.save.current && this.#snore++ % 2) speakAt(this.#fx, pet.breed, 'sleep', [x, y]);
-      }
-    }
-    // 見ているだけで拾えるので、何匹いても 1 分に 1 つほどに抑える（おさんぽは道に 3 つ）
-    if (this.scene !== 'park' || this.#view.presents.length >= 1) return;
-    this.#presentWait -= dt;
-    if (this.#presentWait > 0) return;
-    this.#presentWait = 45;
-    this.#spawnPresent();
   }
 
   #moodText(): string {
@@ -428,115 +429,7 @@ export class Session {
       case 'sleepy':
         return `${n}は ねむそう`;
       default:
-        return !this.#stroked && pet.love < 1 ? `${n}を ゆびで なでて あげよう` : '';
-    }
-  }
-
-  #event(e: BehaviorEvent) {
-    const pet = this.#pet(e.petId);
-    const a = this.#actor(e.petId);
-    if (!pet || !a) return;
-    const [x, y] = this.#above(a);
-    this.#dirty = true;
-    switch (e.type) {
-      case 'ate':
-        this.#count('meal');
-        eat(pet, e.food);
-        this.#fx.hearts(x, y, 3);
-        return;
-      case 'drank':
-        drink(pet);
-        this.#fx.hearts(x, y, 2);
-        return;
-      case 'fetched':
-        this.#count('fetch');
-        play(pet);
-        if (a.mode === 'offer') return this.#say(`${pet.name}の くちの おもちゃを タップして うけとろう`, 4);
-        this.#fx.hearts(x, y, 4);
-        this.#fx.text('よく できました！', x, y - 30);
-        return;
-      case 'urge':
-        this.#fx.text('なげて！', x, y - 30);
-        return;
-      case 'played':
-        play(pet, 0.2);
-        this.#fx.hearts(x, y, 1);
-        return;
-      case 'caught':
-        play(pet);
-        sounds.catch();
-        this.#fx.sparkle(x, y, 4);
-        return;
-      case 'leap':
-        if (this.#view.wand && !a.hop) this.#count('leap');
-        sounds.leap();
-        return;
-      case 'found':
-        play(pet);
-        return this.#found(pet, x, y);
-      case 'voice':
-        this.#voice(pet, e.cry);
-        this.#fx.note(x, y);
-        return;
-      case 'sleep':
-        if (a.perch === 'sofa') this.#count('nap');
-        if (a.perch && this.#actors.some((o) => o !== a && o.asleep && o.perch === a.perch)) this.#count('napTogether');
-        return this.#voice(pet, 'yawn');
-      case 'petted':
-        return this.#petted(pet, e.feel, x, y);
-    }
-  }
-
-  #petted(pet: Pet, feel: Feel, x: number, y: number) {
-    const f = FEEL[feel];
-    const n = 1 + Math.floor(pet.love / 2);
-    const sour = feel === 'enough' || feel === 'flick' || feel === 'swat';
-    this.#fx.text(f.say, x, y - 72, sour ? '#9a7b66' : '#ff5fa2', 30);
-    this.#voice(pet, f.cry[kindOf(pet.breed)]);
-    if (feel === 'melt') {
-      this.#fx.hearts(x, y, 2 + n);
-      this.#fx.sparkle(x, y, 3);
-    } else if (feel === 'like') {
-      this.#fx.hearts(x, y, n);
-      this.#fx.note(x, y);
-    } else if (feel === 'swat') this.#fx.sparkle(x, y, 2);
-    else if (!sour) this.#fx.note(x, y);
-  }
-
-  /** なで方の発見をうながす。1 度なでたあと、まだなでていない好きな所があれば、最初の数回だけ出す */
-  #tip() {
-    this.#timers.tip = 35;
-    const pet = this.current;
-    if (!pet || !this.#stroked || this.#tips >= 3 || this.activity || this.trying || this.teaching || this.toast)
-      return;
-    const kind = kindOf(pet.breed);
-    const part = TRY[kind].find((p) => !this.#felt.includes(p) && !dislikes(kind, pet.love, p));
-    if (!part) return;
-    this.#tips++;
-    this.#say(`${PART_NAME[part]}を なでてみよう`, 4);
-  }
-
-  #voice(pet: Pet, cry: Cry = moodCry(pet)) {
-    const a = this.#actor(pet.id);
-    if (a) speakAt(this.#fx, pet.breed, cry, this.#above(a));
-  }
-
-  #found(pet: Pet, x: number, y: number) {
-    this.#count('found');
-    const found = findPresent(this.save, Math.random);
-    if ('money' in found) {
-      this.#fx.coins(x, y, this.#purse(), Math.min(8, Math.round(found.money / 10)));
-      this.#fx.text(`+${found.money}`, x, y - 20, '#e39a00', 40);
-      sounds.coin();
-      this.#say(`${pet.name}が ${found.money}コインを みつけた！`);
-    } else if ('item' in found) {
-      this.#fx.confetti(x, y);
-      sounds.learned();
-      this.#say(`${pet.name}が ${found.item.name}を みつけた！`, 4);
-    } else {
-      this.#fx.sparkle(x, y, 5);
-      sounds.sparkle();
-      this.#say(`${pet.name}が ${itemName(found.food)}を ${found.count}こ みつけた！`);
+        return !this.#rubbing.stroked && pet.love < 1 ? `${n}を ゆびで なでて あげよう` : '';
     }
   }
 
@@ -547,7 +440,7 @@ export class Session {
     const act = this.activity;
     if (act && (act.down?.(id, px, py) || act.drives)) return;
     if (!this.current || !this.#actors.length) return;
-    if (!act && this.#pickUp(px, py)) return;
+    if (!act && this.#toys.pickUp(px, py)) return;
     const touch: Touch = {
       id,
       x: px,
@@ -563,10 +456,10 @@ export class Session {
       mode: 'floor'
     };
     this.#touches.push(touch);
-    if (this.#teachDown(touch)) return;
+    if (this.#training.down(touch)) return;
     if (this.tool === 'toy') {
       touch.mode = this.toy === 'wand' ? 'wand' : 'throw';
-      if (touch.mode === 'wand') this.#aimWand(px, py);
+      if (touch.mode === 'wand') this.#wand.aim(px, py);
       return;
     }
     const hit = this.#world.pickPart(px, py);
@@ -586,21 +479,10 @@ export class Session {
     touch.moved += d;
     touch.x = px;
     touch.y = py;
-    if (touch.mode === 'wand') return this.#aimWand(px, py);
+    if (touch.mode === 'wand') return this.#wand.aim(px, py);
     if (touch.mode === 'throw') return;
-    if (touch.mode === 'teach') return this.#teachMove(touch);
-    const hit = this.#world.pickPart(px, py);
-    // 床から指をすべらせてペットに乗ったら、そこからなではじめる
-    if (touch.mode === 'floor' && hit && touch.moved > 20) {
-      touch.mode = 'rub';
-      touch.pet = hit.id;
-    }
-    if (touch.mode === 'rub' && hit?.id === touch.pet) {
-      touch.rub += d;
-      // 場所の境目の上で指を往復させても、なで続けた秒が切れないよう、別の場所をしばらくなでてから移る
-      touch.stray = hit.part === touch.part ? 0 : touch.stray + d;
-      if (!touch.part || touch.stray > this.#h * 0.04) [touch.part, touch.stray] = [hit.part, 0];
-    }
+    if (touch.mode === 'teach') return this.#training.move(touch);
+    this.#rubbing.move(touch, d);
   }
 
   up(id: number, px: number, py: number, vx: number, vy: number): void {
@@ -608,175 +490,12 @@ export class Session {
     const touch = this.#touches.find((t) => t.id === id);
     this.#touches = this.#touches.filter((t) => t !== touch);
     if (!touch) return;
-    if (this.#lesson?.touch === touch) this.#lesson = null;
+    this.#training.release(touch);
     if (touch.mode === 'rub') this.#world.setBrush(null);
     if (touch.mode === 'rub' && this.tool === 'hand' && touch.moved > 30) this.#count('stroke');
     if (touch.mode === 'wand') this.#wand.on = this.#touches.some((t) => t.mode === 'wand');
-    if (touch.mode === 'throw') this.#throw(touch, px, py, vx, vy);
+    if (touch.mode === 'throw') this.#toys.throw(touch, px, py, vx, vy);
     if (touch.mode === 'floor' && touch.moved < 16 && this.#now - touch.t0 < 0.6) this.#callTo(px, py);
-  }
-
-  /** なでる・ブラシ。このフレームに指がペットの上で動いた距離だけ効く */
-  #rub(dt: number) {
-    const t = this.#timers;
-    for (const k of ['heart', 'purr', 'bark', 'sparkle', 'tip'] as const) t[k] -= dt;
-    if (t.tip <= 0) this.#tip();
-    for (const touch of this.#touches) {
-      if (touch.mode !== 'rub' || !touch.pet) continue;
-      const pet = this.#pet(touch.pet);
-      const a = this.#actor(touch.pet);
-      const brushing = this.tool === 'brush';
-      if (brushing) this.#world.setBrush(this.#brushAt(touch));
-      const amount = Math.min(touch.rub / (this.#h * 0.3), dt * 2);
-      touch.rub = 0;
-      if (!pet || !a || a.asleep || amount <= 0) continue;
-      const at = this.#world.floor(touch.x, touch.y, a.y + 0.25) ?? undefined;
-      command(a, pet, brushing ? { type: 'brush' } : { type: 'stroke', part: touch.part ?? undefined, amount, at });
-      this.#dirty = true;
-      if (brushing) {
-        const was = pet.stats.clean;
-        brush(pet, amount);
-        if (t.sparkle <= 0) {
-          t.sparkle = 0.18;
-          this.#fx.sparkle(touch.x, touch.y);
-        }
-        // 遊んでいるあいだの減りで 99.9 になっただけのときは出さない（こするたびに出てしまう）
-        if (was < 95 && pet.stats.clean >= 100) {
-          const [x, y] = this.#above(a);
-          this.#fx.text('ぴかぴか！', x, y, '#1f9bff', 36);
-          sounds.sparkle();
-        }
-        continue;
-      }
-      if (a.shy > 0) continue;
-      const kind = kindOf(pet.breed);
-      const part = a.rub?.part ?? touch.part;
-      const weight = part ? strokeWeight(kind, pet.love, part, a.rub?.s ?? 0) : 1;
-      stroke(pet, amount, weight);
-      this.#stroked = true;
-      if (part && weight > 0 && !this.#felt.includes(part)) this.#felt.push(part);
-      if (weight > 0 && t.heart <= 0) {
-        // 好きな所ほど、なかよしが多いほど、ハートがよく出る
-        t.heart = 0.22 / Math.min(2, weight * (1 + 0.1 * Math.floor(pet.love)));
-        // 顔の上に出すと、目を細めているのが隠れる
-        const face = part === 'head' || part === 'chin' || part === 'cheek';
-        this.#fx.hearts(touch.x, touch.y - (face ? 80 : 20));
-      }
-      const cat = kind === 'cat';
-      if (cat && weight > 0 && t.purr <= 0) {
-        t.purr = part === 'chin' || part === 'cheek' ? 0.7 : 1.05;
-        speakAt(this.#fx, pet.breed, 'purr', this.#above(a));
-      }
-      if (weight > 0 && t.bark <= 0) {
-        t.bark = cat ? 5 + Math.random() * 4 : 2.5 + Math.random() * 2;
-        if (Math.random() < 0.5) {
-          this.#voice(pet, cat ? 'sweet' : 'happy');
-          this.#fx.note(...this.#above(a));
-        }
-      }
-      const pending = this.trickPending;
-      if (pending?.petId === pet.id) this.#praise(pet, a, pending.trick);
-    }
-  }
-
-  #brushAt(touch: Touch) {
-    const y = 0.26 + (touch.pet ? (this.#actor(touch.pet)?.y ?? 0) : 0);
-    const p = this.#world.floor(touch.x, touch.y, y);
-    return p && { x: p.x, y, z: p.z };
-  }
-
-  #praise(pet: Pet, a: Actor, trick: TrickId) {
-    this.trickPending = null;
-    const [x, y] = this.#above(a);
-    const { learned } = praise(pet, trick);
-    this.#fx.hearts(x, y, 5);
-    if (!learned) {
-      this.#fx.text('いいこ！', x, y - 30);
-      sounds.sparkle();
-      return;
-    }
-    this.save.money += TRICK_REWARD;
-    if (this.teaching === trick) this.teaching = null;
-    const t = TRICKS.find((k) => k.id === trick);
-    const name = t ? trickName(t, kindOf(pet.breed)) : '';
-    this.#say(`「${name}」を おぼえた！ +${TRICK_REWARD}コイン`, 4);
-    this.#fx.confetti(x, y);
-    this.#fx.coins(x, y, this.#purse(), 6);
-    sounds.learned();
-  }
-
-  #isDog(petId: string) {
-    const pet = this.#pet(petId);
-    return !!pet && kindOf(pet.breed) === 'dog';
-  }
-
-  /** 投げたおもちゃが、咥えられているか動いているか、front から離れた床にある */
-  #toyAway(): boolean {
-    const t = this.#view.toy;
-    if (!t || t.kind === 'wand') return false;
-    const front = this.#layout.front;
-    return !!t.holder || !t.still || Math.hypot(t.x - front.x, t.z - front.z) > 0.7;
-  }
-
-  /** 床に残ったおもちゃ（咥えたまま寝た子のものも）をタップして拾い、手元に戻す */
-  #pickUp(px: number, py: number): boolean {
-    const t = this.#view.toy;
-    if (!t || !this.away) return false;
-    const holder = t.holder ? this.#actor(t.holder) : undefined;
-    const offered = holder?.mode === 'offer';
-    if (t.holder && !holder?.asleep && !offered) return false;
-    const [x, y] = this.#world.project(t.x, t.y, t.z);
-    if (Math.hypot(px - x, py - y) > 60) return false;
-    this.#toHand(x, y);
-    const pet = holder && this.#pet(holder.petId);
-    if (!offered || !holder || !pet) return true;
-    const [hx, hy] = this.#above(holder);
-    this.#fx.hearts(hx, hy, 4);
-    this.#fx.text('ありがとう！', hx, hy - 30);
-    this.#voice(pet, 'happy');
-    return true;
-  }
-
-  #toHand(x: number, y: number) {
-    const t = this.#view.toy;
-    const holder = t?.holder ? this.#actor(t.holder) : undefined;
-    if (holder) holder.carrying = null;
-    this.#view.toy = null;
-    this.away = false;
-    this.#toyIdle = 0;
-    this.#fx.sparkle(x, y, 3);
-    sounds.pop();
-  }
-
-  /** 止まったまま誰も構わない（咥えたまま寝た子のものも）おもちゃは、しばらくするとひとりでに手元へ戻る */
-  #toyReturn(dt: number) {
-    const t = this.#view.toy;
-    const holder = t?.holder ? this.#actor(t.holder) : undefined;
-    const left =
-      !!t &&
-      t.kind !== 'wand' &&
-      (holder ? holder.asleep : t.still) &&
-      !this.#touches.length &&
-      !this.#actors.some(playing);
-    this.#toyIdle = left ? this.#toyIdle + dt : 0;
-    if (!t || this.#toyIdle < TOY_IDLE) return;
-    const away = this.#toyAway();
-    const [x, y] = this.#world.project(t.x, t.y, t.z);
-    this.#toHand(x, y);
-    if (away) this.#say(`${itemName(t.kind)}が もどってきたよ`);
-  }
-
-  #clampToFloor(p: Spot): Spot {
-    const b = this.#layout.bounds;
-    const q = { x: Math.min(b.x1, Math.max(b.x0, p.x)), z: Math.min(b.z1, Math.max(b.z0, p.z)) };
-    for (const k of this.#layout.blocks) {
-      const d = Math.hypot(q.x - k.x, q.z - k.z);
-      const need = k.r + 0.22;
-      if (d >= need || d < 1e-6) continue;
-      q.x = k.x + ((q.x - k.x) / d) * need;
-      q.z = k.z + ((q.z - k.z) / d) * need;
-    }
-    return q;
   }
 
   #callTo(px: number, py: number) {
@@ -792,97 +511,7 @@ export class Session {
     const p = this.#world.floor(px, py);
     if (!p) return;
     this.#fx.ripple(px, py);
-    command(a, pet, { type: 'call', to: this.#clampToFloor(p) });
-  }
-
-  /**
-   * ふさは指の下の床の点へ運ぶ。指がいまの子のそばで足元より上へ行く（床の点がその子の奥になる）と、
-   * その子の顔の前に立てた面の点へぶら下げ、指の高さまで持ち上げる。指が面の手前の床へ戻るまで持ち上げたまま
-   */
-  #aimWand(px: number, py: number) {
-    const p = this.#world.floor(px, py);
-    const q = p && this.#clampToFloor(p);
-    let t = q && { x: q.x, y: 0, z: q.z };
-    const a = this.#actor();
-    const w = this.#wand;
-    if (!w.on) w.plane = null;
-    const plane = w.plane ?? (a ? this.#clampToFloor({ x: a.x, z: a.z + 0.15 }).z : null);
-    const lift = plane === null ? null : this.#world.upright(px, py, plane);
-    const over = !!lift && lift.y > 0;
-    if (w.plane === null && over && a && Math.abs(lift.x - a.x) < 0.3) w.plane = plane;
-    else if (!over) w.plane = null;
-    if (lift && w.plane !== null) t = { x: lift.x, y: Math.min(lift.y, 0.6), z: lift.z };
-    if (!t) return;
-    [w.tx, w.ty, w.tz] = [t.x, t.y, t.z];
-    if (!w.on) w.rig = createWand(t);
-    w.on = true;
-  }
-
-  #stepWand(dt: number) {
-    const w = this.#wand;
-    if (!w.on || !w.rig) {
-      this.#view.wand = null;
-      return;
-    }
-    const rig = w.rig;
-    stepWand(rig, { x: w.tx, y: w.ty, z: w.tz }, dt, wandBite(this.#actors), wandBalls(this.#actors));
-    const p = rig.nodes[POM];
-    this.#view.wand = { x: p.x, y: p.y, z: p.z, moving: rig.speed > 0.15, rig };
-    const t = this.#timers;
-    t.rustle -= dt;
-    if (rig.speed > 1.2 && t.rustle <= 0) {
-      t.rustle = 0.22;
-      sounds.rustle(Math.min(1, rig.speed / 3));
-    }
-  }
-
-  /**
-   * はじいた向きは、指の下の床の点と、はじいた先の床の点を結んで決める（画面の上へはじけば奥へ飛ぶ）。
-   * 速さは画面の高さに対する指の速さで決め、上へ強くはじくほど遠くへ飛ぶ
-   */
-  #throw(touch: Touch, px: number, py: number, vx: number, vy: number) {
-    const kind = this.toy;
-    if (kind === 'wand') return;
-    const out = this.#view.toy;
-    if (this.away && !this.activity && out) {
-      if (out.still && !out.holder) return this.#say('おもちゃを タップして ひろってね', 2);
-      if (out.holder && this.#actor(out.holder)?.mode === 'offer')
-        return this.#say('くちの おもちゃを タップして うけとってね', 2);
-      const chaser = this.#actors.find((a) => a.mode === 'chase' && this.#isDog(a.petId));
-      const pet = this.#pet(out.holder ?? chaser?.petId ?? this.save.current);
-      const dog = pet && kindOf(pet.breed) === 'dog';
-      return this.#say(dog ? `${pet.name}が もってくるまで まってね` : 'おもちゃが とまるまで まってね', 2);
-    }
-    const rolled = kind === 'mouse';
-    const speed = Math.hypot(vx, vy) / this.#h;
-    if (speed < 0.35) {
-      const y = rolled ? 0.03 : 0.3;
-      const p = this.#clampToFloor(this.#world.floor(px, py) ?? this.#layout.front);
-      this.#view.toy = throwToy(kind, { x: p.x, y, z: p.z }, { x: 0, y: 0, z: 0 });
-      return;
-    }
-    // 手に持った高さから投げる。指を置いた床の点から出すと、足もとのペットにすぐ当たってしまう
-    const from = this.#clampToFloor(this.#world.floor(touch.sx, touch.sy) ?? this.#layout.front);
-    const at = this.#world.floor(px, py);
-    const ahead = at && this.#world.floor(px + vx * 0.05, py + vy * 0.05);
-    let dx = ahead && at ? ahead.x - at.x : vx / (Math.hypot(vx, vy) * 2);
-    let dz = ahead && at ? ahead.z - at.z : -1;
-    const len = Math.hypot(dx, dz) || 1;
-    dx /= len;
-    dz /= len;
-    // コンテストの会場のような外の場面も、公園と同じだけ遠くへ飛ばせる
-    const park = this.scene !== 'room';
-    const up = Math.max(0, -vy / this.#h);
-    // カメラが低いので、高く上げると画面の上へ消える。遠くへは横の速さで飛ばす
-    const [h, v] =
-      kind === 'frisbee'
-        ? [Math.min(1 + speed * 1.8, park ? 8 : 5), Math.min(0.4 + up * 0.2, 1.2)]
-        : kind === 'ball'
-          ? [Math.min(0.8 + speed * 1.5, park ? 7 : 5), Math.min(1 + up * 0.35, park ? 3.2 : 2.3)]
-          : [Math.min(speed * 1.4, 3.5), 0];
-    const y = rolled ? 0.03 : 0.55;
-    this.#view.toy = throwToy(kind, { x: from.x, y, z: from.z }, { x: dx * h, y: v, z: dz * h });
-    sounds.throw();
+    command(a, pet, { type: 'call', to: clampToFloor(this.#layout, p) });
   }
 
   resize(w: number, h: number): void {
@@ -912,28 +541,11 @@ export class Session {
   }
 
   feed(food: FoodId): void {
-    const pet = this.current;
-    if (this.scene !== 'room') return this.#say('ごはんは おうちで あげようね');
-    if (this.save.food[food] <= 0) return this.#say(`${itemName(food)}が もう ないよ。おみせで かおう`);
-    const bowl = this.#bowls;
-    if (bowl.foodLeft > 0.3) {
-      // 犬と猫がいると、片方の食べものが残ったままもう片方が食べられなくなる。いまのペットが食べないものなら入れ替える
-      if (!pet || !bowl.food || eatsFood(pet, bowl.food)) return this.#say('まだ ごはんが のこってるよ');
-      if (bowl.foodLeft > 0.9) this.save.food[bowl.food] += 1;
-    }
-    this.save.food[food] -= 1;
-    this.#bowls.food = food;
-    this.#bowls.foodLeft = 1;
-    this.#dirty = true;
-    sounds.pop();
-    if (pet && !eatsFood(pet, food)) return this.#say(`${pet.name}は ${itemName(food)}を たべないみたい`);
-    if (pet && !this.#actor()?.asleep) this.#voice(pet, 'happy');
+    this.#bowls.feed(food);
   }
 
   water(): void {
-    if (this.scene !== 'room') return this.#say('おみずは おうちで あげようね');
-    this.#bowls.waterLeft = 1;
-    sounds.pop();
+    this.#bowls.water();
   }
 
   call(): void {
@@ -946,102 +558,17 @@ export class Session {
 
   trick(trick: TrickId): void {
     if (this.activity) return this.activity.trick?.(trick);
-    const pet = this.current;
-    const a = this.#actor();
-    if (!pet || !a) return;
-    if (a.asleep || a.carrying || a.mode === 'eat' || a.mode === 'drink') return this.#say('いまは できないみたい');
-    const success = Math.random() < trickChance(pet, trick);
-    command(a, pet, { type: 'trick', trick, success });
-    const [x, y] = this.#above(a);
-    if (success) {
-      this.trickPending = { petId: pet.id, trick, until: this.#now + 4 };
-      this.#fx.sparkle(x, y, 4);
-      this.#say('できた！ すぐに なでて ほめて あげよう');
-    } else {
-      this.trickPending = null;
-      this.#fx.text('？', x, y, '#1f9bff', 44);
-      this.#say('うまく できなかった。もう いちど');
-    }
+    this.#training.trick(trick);
   }
-
-  // --- 体で教える ---
 
   /** 芸を体で教えはじめる。null でやめる */
   teach(trick: TrickId | null): void {
-    this.#lesson = null;
-    const pet = this.current;
-    const a = this.#actor();
-    if (!trick || !pet || !a || this.activity) return void (this.teaching = null);
-    if (a.asleep || a.carrying || a.mode === 'eat' || a.mode === 'drink') return this.#say('いまは できないみたい');
-    this.teaching = trick;
-    this.trickPending = null;
-    this.setTool('hand');
-    command(a, pet, { type: 'teach' });
+    this.#training.teach(trick);
   }
 
-  /** 教えるあいだはその場で待たせる。寝てしまったらやめる */
-  #teachTick() {
-    const trick = this.teaching;
-    if (!trick) return;
-    const pet = this.current;
-    const a = this.#actor();
-    if (!pet || !a || a.asleep) return void (this.teaching = null);
-    const l = this.#lesson;
-    if (l && l.lesson !== 'done' && LESSONS[trick].motion === 'hold') this.#teachMove(l.touch);
-    if (a.mode !== 'act' && a.mode !== 'held' && a.mode !== 'hop' && !this.trickPending)
-      command(a, pet, { type: 'teach' });
-  }
-
-  /** 案内の場所に指を置いたら、なでるかわりに教える指にする */
-  #teachDown(touch: Touch): boolean {
-    const trick = this.teaching;
-    if (!trick || this.tool !== 'hand' || this.trickPending) return false;
-    const hit = this.#world.pickPart(touch.x, touch.y);
-    if (!hit || hit.id !== this.save.current || !LESSONS[trick].parts.includes(hit.part)) return false;
-    touch.mode = 'teach';
-    this.#lesson = { touch, stroke: startStroke(touch.x, touch.y, this.#now), lesson: trick };
-    this.#teachMove(touch);
-    return true;
-  }
-
-  #teachMove(touch: Touch) {
-    const l = this.#lesson;
-    const pet = this.current;
-    const a = this.#actor();
-    if (!l || l.touch !== touch || l.lesson === 'done' || !pet || !a) return;
-    track(l.stroke, touch.x, touch.y);
-    const at = this.#partAt(pet.id, LESSONS[l.lesson].parts[0]);
-    if (!done(LESSONS[l.lesson], l.stroke, this.#now, at?.unit ?? 120)) return;
-    // 体をそのかっこうへ導いたので、ボタンとちがって必ずできる
-    const trick = l.lesson;
-    l.lesson = 'done';
-    command(a, pet, { type: 'trick', trick, success: true });
-    this.trickPending = { petId: pet.id, trick, until: this.#now + 4 };
-    this.#fx.sparkle(...this.#above(a), 4);
-    sounds.sparkle();
-    this.#say('できた！ ゆびを はなして なでて ほめて あげよう');
-  }
-
-  /** 体の場所の画面の位置と、画面でのペットの大きさの目安（ピクセル）。案内の印を置く */
-  #partAt(petId: string, part: Part) {
-    const group = this.#world.model(petId)?.group;
-    if (!group) return null;
-    group.updateMatrixWorld(true);
-    const mark = bodyMarks(group).find((m) => m.part === part);
-    if (!mark) return null;
-    const [x, y, k] = this.#world.project(mark.at.x, mark.at.y, mark.at.z);
-    return { x, y, unit: k * 0.3 };
-  }
-
-  #drawLesson(ctx: CanvasRenderingContext2D) {
-    const trick = this.teaching;
-    const pet = this.current;
-    const a = this.#actor();
-    // 横を向いて待っているあいだだけ出す。芸のあとカメラを向いているあいだは、印が体の別の所に重なる
-    if (!trick || !pet || this.trickPending || this.activity || a?.mode !== 'act' || !a.side) return;
-    const l = LESSONS[trick];
-    const at = this.#partAt(pet.id, l.parts[0]);
-    if (at) drawHint(ctx, l, at.x, at.y, this.#now, at.unit);
+  /** 声で「いいこ」とほめたとき。芸の直後なら、なでてほめたのと同じに数える */
+  cheer(): void {
+    this.#training.cheer();
   }
 
   /** いまのペットが寝ている。おさんぽ（モード）を始める前に画面が確かめる */
@@ -1160,159 +687,6 @@ export class Session {
     this.#say('しゃしんを とったよ');
   }
 
-  // --- 遊びのモード ---
-
-  /** going は組み立てを待つあいだに出す行き先（「おふろへ いくよ」） */
-  start(activity: Activity, going: string): void {
-    const pet = this.current;
-    if (this.activity || !pet) return;
-    if (activity.awakeOnly && this.asleep) return this.#say(`${pet.name}は ねているよ。おきるまで まってね`);
-    this.#go(going, () => {
-      if (this.activity) return;
-      this.#pause();
-      const a = this.#actor();
-      if (a) command(a, pet, { type: 'wake' });
-      this.activity = activity;
-      activity.enter(this.#host(pet));
-    });
-  }
-
-  /** 飼っているペットを連れないモード。0 匹でも始められる */
-  visit(mode: Visit, going: string): void {
-    if (this.activity) return;
-    this.#go(going, () => {
-      if (this.activity) return;
-      this.#pause();
-      this.activity = mode;
-      mode.enter(this.#host(null));
-    });
-  }
-
-  #pause() {
-    for (const t of this.#touches) if (t.mode === 'rub') this.#world.setBrush(null);
-    this.#touches = [];
-    this.#wand.on = false;
-    this.trickPending = null;
-    this.teaching = null;
-    this.#before = { tool: this.tool, toy: this.toy };
-  }
-
-  #end(scene: BaseScene = 'room') {
-    const act = this.activity;
-    if (!act) return;
-    this.activity = null;
-    this.#cast = null;
-    act.exit?.();
-    this.#world.trophies = this.save.contest;
-    this.#world.room = this.save.room;
-    this.#enter(scene);
-    this.setTool(this.#before.tool, this.#before.toy);
-    this.#fitToy();
-    this.#write();
-  }
-
-  #host<P extends Pet | null>(pet: P) {
-    // view と actor は場面に入るたびに作り直すので、読むたびに今のものを返す
-    const view = () => this.#view;
-    const actor = () => (pet ? this.#actor(pet.id) : undefined);
-    const size = () => [this.#w, this.#h] as const;
-    return {
-      save: this.save,
-      pet,
-      get actor() {
-        return actor();
-      },
-      get view() {
-        return view();
-      },
-      fx: this.#fx,
-      world: this.#world,
-      get size() {
-        return size();
-      },
-      enter: (scene: ActivityScene) => this.#enter(scene),
-      cast: (pets: Pet[], actors: Actor[]) => void (this.#cast = { pets, actors }),
-      setTool: (tool: Tool, toy?: ToyId) => this.setTool(tool, toy),
-      say: (text: string, seconds?: number) => this.#say(text, seconds),
-      above: (a: Actor, y?: number) => this.#above(a, y),
-      purse: () => this.#purse(),
-      voice: (cry?: Cry) => void (pet && this.#voice(pet, cry)),
-      music: (track: Track | null) => this.#bgm.play(track),
-      changed: () => (this.#dirty = true),
-      count: (key: CounterId, n?: number) => this.#count(key, n),
-      found: (a: Actor) => {
-        const p = this.#pet(a.petId);
-        if (!p) return;
-        play(p);
-        this.#found(p, ...this.#above(a));
-      },
-      end: (scene?: BaseScene) =>
-        this.#go(scene === 'park' ? 'こうえんへ いくよ' : 'おうちへ かえるよ', () => this.#end(scene))
-    };
-  }
-
-  // --- スタンプ帳 ---
-
-  /** 押すかどうかは次の #write でまとめて確かめる */
-  #count(key: CounterId, n = 1) {
-    count(this.save, key, n);
-    this.#dirty = true;
-  }
-
-  /**
-   * たまったスタンプを 1 つずつ押す。シートの下・移動中・遊びのモードの HUD の上では見えにくいので、部屋か公園に戻るまで待つ。
-   * あと少しで押せるものは、ほかに言うことがないときだけ 2 分半に 1 回ほど知らせる
-   */
-  #stampTick(dt: number) {
-    this.#stampWait -= dt;
-    if (this.#stamps.length && this.#stampWait <= 0 && !this.covered && !this.moving && !this.activity)
-      this.#press(this.#stamps.shift()!);
-    if (this.activity || this.covered || this.toast || this.#now - this.#nudged < 150) return;
-    this.#nudged = this.#now;
-    const near = !this.#moodText() && nearly(this.save);
-    if (near) this.#say(`あと すこしで スタンプ「${near.name}」が もらえるよ`, 4);
-  }
-
-  #press(item: Stamp | Stamp[]) {
-    const list = [item].flat();
-    const one = list.length === 1 ? list[0] : null;
-    const reward = list.reduce((sum, s) => sum + (s.reward ?? 0), 0);
-    const coins = reward ? ` +${reward}コイン` : '';
-    this.#stampWait = BADGE_LIFE + 0.4;
-    // 描く回数を落とすと押される動きがかくつくので、指で遊んでいるときと同じにする
-    this.#touched = this.#now + 1;
-    const r = Math.max(48, Math.min(90, Math.min(this.#w, this.#h) * 0.13));
-    const [x, y] = [this.#w / 2, this.#h * 0.34];
-    if (one) this.#fx.stamp(one.name, one.icon, one.color, x, y, r);
-    else this.#fx.stamp(`スタンプ ${list.length}こ`, 'star', '#ffc233', x, y, r);
-    sounds.stamp();
-    if (reward) setTimeout(() => this.#fx.coins(x, y, this.#purse(), one ? 6 : 12), 900);
-    if (one) this.#say(`スタンプ ゲット！${coins}`, 4);
-    else this.#say(`これまでの がんばりで スタンプが ${list.length}こ もらえたよ！${coins}`, 6);
-  }
-
-  dispose(): void {
-    this.activity?.exit?.();
-    // お皿は保存しないので、入れたばかりで手つかずのごはんは在庫へ戻す
-    const bowl = this.#bowls;
-    if (bowl.food && bowl.foodLeft > 0.9) this.save.food[bowl.food] += 1;
-    this.#write(false);
-    document.removeEventListener('visibilitychange', this.#onVisibility);
-    this.#bgm.stop();
-    this.#world.dispose();
-  }
-
-  /** 声で「いいこ」とほめたとき。芸の直後なら、なでてほめたのと同じに数える */
-  cheer(): void {
-    const pet = this.current;
-    const a = this.#actor();
-    if (!pet || !a) return;
-    const pending = this.trickPending;
-    if (pending?.petId === pet.id) return this.#praise(pet, a, pending.trick);
-    this.#fx.hearts(...this.#above(a), 2);
-    this.#voice(pet, 'happy');
-  }
-
   /** 名前と、声で覚えさせた呼び名を書きかえる */
   setName(petId: string, name: string, calls: string[]): void {
     const pet = this.#pet(petId);
@@ -1322,30 +696,36 @@ export class Session {
     pet.calls = calls;
     this.#dirty = true;
   }
+
+  // --- 遊びのモード ---
+
+  /** going は組み立てを待つあいだに出す行き先（「おふろへ いくよ」） */
+  start(activity: Activity, going: string): void {
+    this.#modes.start(activity, going);
+  }
+
+  /** 飼っているペットを連れないモード。0 匹でも始められる */
+  visit(mode: Visit, going: string): void {
+    this.#modes.visit(mode, going);
+  }
+
+  #pause() {
+    for (const t of this.#touches) if (t.mode === 'rub') this.#world.setBrush(null);
+    this.#touches = [];
+    this.#wand.on = false;
+    this.trickPending = null;
+    this.teaching = null;
+  }
+
+  dispose(): void {
+    this.activity?.exit?.();
+    this.#bowls.putBack();
+    this.#write(false);
+    document.removeEventListener('visibilitychange', this.#onVisibility);
+    this.#bgm.stop();
+    this.#world.dispose();
+  }
 }
-
-interface Touch {
-  id: number;
-  x: number;
-  y: number;
-  /** 置いた位置 */
-  sx: number;
-  sy: number;
-  t0: number;
-  moved: number;
-  /** このフレームにペットの上で動いた距離（ピクセル） */
-  rub: number;
-  pet: string | null;
-  /** 指の下の体の場所。ペットの上を動くたびに引き直す */
-  part: Part | null;
-  /** part と違う場所の上を続けて動いた距離（ピクセル） */
-  stray: number;
-  mode: 'rub' | 'floor' | 'wand' | 'throw' | 'teach';
-}
-
-const eatsFood = (pet: Pet, food: FoodId) => eats(kindOf(pet.breed) === 'dog', food);
-
-const itemName = (id: ShopItem['id']) => SHOP.find((i) => i.id === id)?.name ?? '';
 
 /** ひとりで鳴くときの鳴き方。おなか・のどがへったら甘え、ねむければあくび */
 function moodCry(pet: Pet): Cry {

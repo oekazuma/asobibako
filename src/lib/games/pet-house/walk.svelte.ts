@@ -2,7 +2,7 @@ import { Vector3 } from 'three';
 import { graphics } from '$lib/graphics.svelte';
 import type { Activity, ActivityHost, Follow } from './activity';
 import type { Actor } from './behavior';
-import { BREEDS } from './breeds';
+import { BREED_IDS, BREEDS } from './breeds';
 import { speakAt } from './cries';
 import { play, stroke } from './engine';
 import type { Layout, Spot } from './layout';
@@ -27,7 +27,7 @@ const LEASH = 2.4;
 const CLOSE = 1.25;
 /** 寄り道する出来事までの、ペットの前の距離 */
 const REACH = 3.2;
-const DOGS: BreedId[] = ['shiba', 'beagle', 'poodle'];
+const DOGS = BREED_IDS.filter((b) => BREEDS[b].kind === 'dog');
 /** これより げんきが減ったら、ゆっくり歩いて「おうちへ かえろう」と声をかける（公園の中の声かけと同じ目安） */
 const WEARY = 15;
 
@@ -71,7 +71,6 @@ export class WalkPlay implements Activity {
   #tired = 0;
   #taut = false;
   #cheered = false;
-  #met = 0;
   #wearySaid = -Infinity;
   readonly #v = new Vector3();
 
@@ -276,7 +275,8 @@ export class WalkPlay implements Activity {
     const stop = this.#stops.find((s) => s.kind === 'dog' && !this.#done.includes(s) && hand.z < s.z + 14);
     if (!this.#npc && stop) {
       this.#done.push(stop);
-      const breed = DOGS.filter((b) => b !== host.pet.breed)[this.#met++ % 2];
+      const others = DOGS.filter((b) => b !== host.pet.breed);
+      const breed = others[Math.floor(Math.random() * others.length)];
       const model = createPet(breed, graphics.quality);
       // 道の group に入れると、場面の片付け（release）が全ペット共有の毛の材質と形まで捨ててしまう
       host.world.scene.add(model.group);
