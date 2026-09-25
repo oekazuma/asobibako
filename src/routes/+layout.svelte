@@ -32,3 +32,24 @@
 </svelte:head>
 
 {@render children()}
+
+<!--
+  iOS 27 のホーム画面アプリは、上端に固定した背景のある要素が無いと画面の上をぼかす（プログレッシブブラー）。
+  背景を文字の形に切り抜くので何も描かれないが、WebKit はこれを上端の背景とみなしてぼかしをやめる
+-->
+<div class="ios-blur-fix" aria-hidden="true"></div>
+
+<style>
+  .ios-blur-fix {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 11px;
+    z-index: 2147483647;
+    pointer-events: none;
+    background-color: #fffaf2;
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+</style>
