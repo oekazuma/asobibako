@@ -138,7 +138,8 @@ export function target(kind: Kind, action: PetAction, since: number, o: { speed:
       p.y += 0.18;
       p.hp = p.pitch * 1.3 - 0.15;
       p.fy = 0.5;
-      p.fz = 0.1;
+      // 胸の前へ出す。胸に近いと、上げた前足が胸と首のバンダナを突き抜ける
+      p.fz = 0.2;
       p.fa = -0.2;
       p.ff = 1.1;
       p.ear = 0.3;
@@ -379,7 +380,7 @@ export function target(kind: Kind, action: PetAction, since: number, o: { speed:
       p.hp = p.pitch * 1.3 - 0.2;
       // 前足は胸の前に寄せ、手首から先を曲げて肉球を正面へ向ける
       p.fy = 0.44;
-      p.fz = cat ? 0.12 : 0.06;
+      p.fz = cat ? 0.18 : 0.15;
       p.fa = -0.4;
       p.ff = -1.35;
       p.prance = 0.6;
