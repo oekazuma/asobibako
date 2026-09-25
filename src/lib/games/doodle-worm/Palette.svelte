@@ -7,8 +7,16 @@
     ready,
     ongo,
     onundo,
-    onsummon
-  }: { color: string; ready: boolean; ongo: () => void; onundo: () => void; onsummon: () => void } = $props();
+    onsummon,
+    onstock
+  }: {
+    color: string;
+    ready: boolean;
+    ongo: () => void;
+    onundo: () => void;
+    onsummon: () => void;
+    onstock: () => void;
+  } = $props();
 </script>
 
 <div class="palette">
@@ -30,6 +38,9 @@
   <button class="summon" aria-label="ムシを よぶ" onclick={onsummon}>
     <span class="hair"></span>
     <span class="eyes"></span>
+  </button>
+  <button class="tool" aria-label="ずかん" onclick={onstock}>
+    <Icon name="book" size="75%" />
   </button>
 </div>
 

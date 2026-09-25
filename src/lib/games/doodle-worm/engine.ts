@@ -91,7 +91,7 @@ const radius = (pts: Point[], [cx, cy]: Point) =>
   pts.reduce((sum, [x, y]) => sum + Math.hypot(x - cx, y - cy), 0) / pts.length;
 
 // 長く描きためると点が数万になり、Math.min(...xs) は引数の数の上限で落ちるので 1 つずつ見る
-function bounds(pts: Point[]): [number, number, number, number] {
+export function bounds(pts: Point[]): [number, number, number, number] {
   const box: [number, number, number, number] = [Infinity, Infinity, -Infinity, -Infinity];
   for (const [x, y] of pts) {
     box[0] = Math.min(box[0], x);
@@ -230,9 +230,13 @@ export function random(aspect: number, rand = Math.random): Creature {
       pts: Array.from({ length: 10 }, (_, i): Point => [x + s * (r + (len * i) / 9), y])
     });
   }
-  const c = hatch(strokes, rand)!;
-  // しっぽが画面の外にはみ出さないよう、内側へ寄せる
+  return fit(hatch(strokes, rand)!, aspect);
+}
+
+/** 画面の外にはみ出さないよう、内側へ寄せる */
+export function fit(c: Creature, aspect: number): Creature {
   c.x = Math.min(Math.max(c.x, -c.box[0]), aspect - c.box[2]);
+  c.y = Math.min(Math.max(c.y, -c.box[1]), 1 - c.box[3]);
   return c;
 }
 

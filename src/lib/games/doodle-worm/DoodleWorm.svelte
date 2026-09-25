@@ -3,10 +3,12 @@
   import { BoardInput } from '$lib/board-input';
   import type { SoloProps } from '$lib/games';
   import { animate } from '$lib/loop';
-  import { add, COLORS, hatch, random, step, type Stroke, type World } from './engine';
+  import { add, COLORS, fit, hatch, random, step, type Stroke, type World } from './engine';
   import { creature, pen, sketch } from './paint';
   import Palette from './Palette.svelte';
   import { sounds } from './sounds';
+  import Stock from './Stock.svelte';
+  import { loadStock, pack, place, saveStock, type Doodle } from './stock';
 
   let { onhint }: SoloProps = $props();
 
@@ -22,6 +24,8 @@
   let lines = $state.raw<Stroke[]>([]);
   let drawing: { id: number; stroke: Stroke } | null = null;
   let hintTimer: ReturnType<typeof setTimeout> | undefined;
+  let stock = $state.raw<Doodle[]>([]);
+  let stockOpen = $state(false);
 
   const input = new BoardInput({
     down: (event, x, y) => {
@@ -48,6 +52,7 @@
     const c = hatch(lines);
     if (!c) return;
     add(world, c);
+    stock = saveStock([pack(lines), ...stock]);
     lines = [];
     cheer();
   }
@@ -56,6 +61,23 @@
     lines = lines.slice(0, -1);
     sounds.undo();
     if (!lines.length) onhint?.(FIRST);
+  }
+
+  function call(d: Doodle) {
+    stockOpen = false;
+    const x = world.aspect * (0.2 + Math.random() * 0.6);
+    add(world, fit(hatch(place(d, x, 0.2 + Math.random() * 0.5))!, world.aspect));
+    cheer();
+  }
+
+  function remove(d: Doodle) {
+    stock = saveStock(stock.filter((other) => other !== d));
+    sounds.undo();
+  }
+
+  function tidy() {
+    world.creatures = [];
+    stockOpen = false;
   }
 
   function summon() {
@@ -95,6 +117,7 @@
 
   onMount(() => {
     onhint?.(FIRST);
+    stock = loadStock();
     const stop = animate(frame);
     return () => {
       stop();
@@ -106,7 +129,17 @@
 <div class="board" use:input.board={resize} role="application" aria-label="らくがきパレードの画用紙">
   <canvas bind:this={canvas}></canvas>
 </div>
-<Palette bind:color ready={lines.length > 0} ongo={go} onundo={undo} onsummon={summon} />
+<Palette
+  bind:color
+  ready={lines.length > 0}
+  ongo={go}
+  onundo={undo}
+  onsummon={summon}
+  onstock={() => (stockOpen = true)}
+/>
+{#if stockOpen}
+  <Stock doodles={stock} oncall={call} onremove={remove} onclear={tidy} onclose={() => (stockOpen = false)} />
+{/if}
 
 <style>
   .board {

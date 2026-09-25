@@ -5,7 +5,7 @@
 </script>
 
 <div class="sheet-layer">
-  <!-- シートの外を押すと閉じる。3D の盤面へは指を通さない -->
+  <!-- シートの外を押すと閉じる。盤面へは指を通さない -->
   <button class="backdrop" onclick={onclose} aria-label="とじる"></button>
   <section class="panel" aria-label={title}>
     <header>

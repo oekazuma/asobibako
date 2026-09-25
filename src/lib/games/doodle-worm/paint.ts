@@ -1,4 +1,4 @@
-import { area, closed, pose, type Creature, type Part, type Point, type Stroke } from './engine';
+import { area, closed, hatch, pose, type Creature, type Part, type Point, type Stroke } from './engine';
 
 /** 描いている途中の線の太さ */
 export const PEN = 0.012;
@@ -127,4 +127,21 @@ export function creature(ctx: CanvasRenderingContext2D, c: Creature) {
   }
   if (c.eyes) eyes(ctx, c);
   ctx.restore();
+}
+
+/** ずかんの絵。ふくらみきって跳ねる前の、止まったかっこうで枠いっぱいに描く */
+export function portrait(canvas: HTMLCanvasElement, strokes: Stroke[]) {
+  const c = hatch(strokes);
+  const ctx = canvas.getContext('2d');
+  if (!c || !ctx) return;
+  c.age = 1;
+  const [l, t, r, b] = c.box;
+  const pad = Math.max(PEN * 3, c.r * 0.5);
+  const s = Math.min(canvas.width / (r - l + pad * 2), canvas.height / (b - t + pad * 2));
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.setTransform(s, 0, 0, s, canvas.width / 2 - s * (c.x + (l + r) / 2), canvas.height / 2 - s * (c.y + (t + b) / 2));
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  creature(ctx, c);
 }
