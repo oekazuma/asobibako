@@ -4,6 +4,7 @@ import {
   addPhoto,
   adopt,
   bathe,
+  brush,
   buy,
   catchUp,
   eat,
@@ -14,6 +15,7 @@ import {
   newSave,
   play,
   praise,
+  rest,
   SLEEPY,
   STORAGE_KEY,
   stroke,
@@ -280,5 +282,41 @@ describe('pet-house engine', () => {
     expect(save.accessories).toHaveLength(5);
     expect(save.toys).not.toContain('mouse');
     expect(findPresent(save, seq(0, 0))).toEqual({ money: 150 });
+  });
+});
+
+describe('げんきの戻り方', () => {
+  const tired = () => {
+    const save = newSave(0);
+    save.money = 99999;
+    const pet = adopt(save, 'shiba', 'ハチ') as Pet;
+    pet.stats.energy = 30;
+    return pet;
+  };
+
+  it('おやつを食べると げんきも戻る。ごはんでは戻らない', () => {
+    const pet = tired();
+    eat(pet, 'dogfood');
+    expect(pet.stats.energy).toBe(30);
+    eat(pet, 'treat');
+    expect(pet.stats.energy).toBe(50);
+  });
+
+  it('なでる・ブラシで少しずつ戻る。いやな所をなでても戻らない', () => {
+    const pet = tired();
+    stroke(pet, 10);
+    expect(pet.stats.energy).toBe(35);
+    stroke(pet, 10, -1);
+    expect(pet.stats.energy).toBe(35);
+    brush(pet, 10);
+    expect(pet.stats.energy).toBe(40);
+  });
+
+  it('伏せて休むと、寝るときの半分の速さで戻る', () => {
+    const a = tired();
+    const b = tired();
+    rest(a, 10);
+    rest(b, 10, true);
+    expect(b.stats.energy - 30).toBeCloseTo((a.stats.energy - 30) / 2);
   });
 });
