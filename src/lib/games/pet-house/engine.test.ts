@@ -213,6 +213,15 @@ describe('pet-house engine', () => {
     expect(results.filter(Boolean)).toHaveLength(1);
   });
 
+  it('体で教えたあとにほめると 2 回ぶん進み、覚える回数を超えない', () => {
+    const { pet } = withPet();
+    const sit = TRICKS.find((t) => t.id === 'sit')!;
+    const results = Array.from({ length: Math.ceil(sit.steps / 2) }, () => praise(pet, 'sit', 2).learned);
+    expect(results.at(-1)).toBe(true);
+    expect(pet.tricks.sit).toBe(sit.steps);
+    expect(praise(pet, 'sit', 2).learned).toBe(false);
+  });
+
   it('おふろはシャワーで流すほど汚れが落ち、最後まで入るとぴかぴかでなかよしが少し増える', () => {
     const { pet } = withPet();
     pet.stats.clean = 10;

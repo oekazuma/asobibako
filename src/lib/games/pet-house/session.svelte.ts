@@ -67,7 +67,8 @@ export class Session {
   scene: Scene = $state('room');
   tool: Tool = $state('hand');
   toy: ToyId = $state('ball');
-  trickPending: { petId: string; trick: TrickId; until: number } | null = $state(null);
+  /** taught は体で教えた直後。ほめると 2 回ぶん進む */
+  trickPending: { petId: string; trick: TrickId; until: number; taught?: boolean } | null = $state(null);
   /** 体で教えている芸。あいだはペットをその場で待たせ、指の動かし方の案内を描く */
   teaching: TrickId | null = $state(null);
   toast = $state('');

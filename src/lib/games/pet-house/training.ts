@@ -39,13 +39,16 @@ export class Training {
 
   praise(pet: Pet, a: Actor, trick: TrickId) {
     const c = this.#c;
+    const taught = c.s.trickPending?.taught ? 2 : 1;
     c.s.trickPending = null;
     const [x, y] = c.above(a);
-    const { learned } = praise(pet, trick);
+    const { learned } = praise(pet, trick, taught);
     c.fx.hearts(x, y, 5);
     if (!learned) {
       c.fx.text('いいこ！', x, y - 30);
       sounds.sparkle();
+      // 教えているあいだは、芸のかっこうが終わるのを待たずに次の練習の向きへ戻す
+      if (c.s.teaching === trick) command(a, pet, { type: 'teach' });
       return;
     }
     c.s.save.money += TRICK_REWARD;
@@ -124,7 +127,7 @@ export class Training {
     const trick = l.lesson;
     l.lesson = 'done';
     command(a, pet, { type: 'trick', trick, success: true });
-    c.s.trickPending = { petId: pet.id, trick, until: c.now + 4 };
+    c.s.trickPending = { petId: pet.id, trick, until: c.now + 4, taught: true };
     c.fx.sparkle(...c.above(a), 4);
     sounds.sparkle();
     c.say('できた！ ゆびを はなして なでて ほめて あげよう');
