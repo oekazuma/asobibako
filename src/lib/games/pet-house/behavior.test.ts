@@ -1,8 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { Rng } from '$lib/levels';
-import { command, createActor, think, throwToy, type Actor, type BehaviorEvent, type WorldView } from './behavior';
+import {
+  command,
+  createActor,
+  naughty,
+  playing,
+  think,
+  throwToy,
+  type Actor,
+  type BehaviorEvent,
+  type WorldView
+} from './behavior';
 import { NATURAL_ROOM } from './decor';
-import { adopt, newSave, type Pet } from './engine';
+import { adopt, newSave, rest, type Pet } from './engine';
 import { LAYOUTS, PARK, ROOM, roomPerches, type Perch, type Spot } from './layout';
 import type { BaseScene, BreedId } from './types';
 
@@ -467,3 +477,118 @@ function expectOn(a: Actor, p: Perch) {
   expect(Math.abs(a.x - p.x)).toBeLessThanOrEqual(p.w + 1e-9);
   expect(Math.abs(a.z - p.z)).toBeLessThanOrEqual(p.d + 1e-9);
 }
+
+describe('声の頼みごと', () => {
+  const lively = (s: Setup) => {
+    for (const p of s.pets) [p.stats.food, p.stats.water, p.stats.clean] = [100, 100, 100];
+  };
+
+  it('「ねんね」は、眠くなくてもベッドかソファへ行って寝て、げんきが戻ると起きる', () => {
+    const s = setup(['shiba']);
+    lively(s);
+    s.world.perches = roomPerches(NATURAL_ROOM);
+    s.pets[0].stats.energy = 60;
+    const a = s.actors[0];
+    command(a, s.pets[0], { type: 'sleep' });
+    expect(run(s, 20, has('sleep')).some((e) => e.type === 'sleep')).toBe(true);
+    expect(a.asleep).toBe(true);
+    expect(a.perch).not.toBe(null);
+    const woke = run(s, 60, has('wake'), () => a.asleep && rest(s.pets[0], 1 / 30));
+    expect(woke.some((e) => e.type === 'wake')).toBe(true);
+    expect(s.pets[0].stats.energy).toBeGreaterThanOrEqual(90);
+  });
+
+  it('げんきなら、少し横になるだけで寝つかない', () => {
+    const s = setup(['mike']);
+    lively(s);
+    s.pets[0].stats.energy = 95;
+    const a = s.actors[0];
+    command(a, s.pets[0], { type: 'sleep', brief: true });
+    let lay = false;
+    const events = run(s, 6, undefined, () => (lay ||= a.action === 'sleep'));
+    expect(lay).toBe(true);
+    expect(events.some((e) => e.type === 'sleep')).toBe(false);
+    expect(a.asleep).toBe(false);
+    expect(a.action).not.toBe('sleep');
+  });
+
+  it('「おきて」はのびをして起きる', () => {
+    const s = setup(['shiba']);
+    lively(s);
+    s.pets[0].stats.energy = 20;
+    const a = s.actors[0];
+    run(s, 20, () => a.asleep);
+    expect(a.asleep).toBe(true);
+    command(a, s.pets[0], { type: 'wake', stretch: true });
+    expect(a.asleep).toBe(false);
+    run(s, 0.2);
+    expect(a.action).toBe('bow');
+  });
+
+  it('「まて」のあいだは、なでても転がるおもちゃが来ても座って待ち、よぶと来る', () => {
+    const s = setup(['shiba']);
+    lively(s);
+    const a = s.actors[0];
+    command(a, s.pets[0], { type: 'stay', t: 12 });
+    const at = { x: a.x, z: a.z };
+    s.world.toy = throwToy('ball', { x: a.x + 0.8, y: 0.05, z: a.z - 0.3 }, { x: -1, y: 0, z: 0 });
+    run(s, 10, undefined, (t) => {
+      if (t > 2 && t < 4) command(a, s.pets[0], { type: 'stroke', part: 'head', amount: 1 / 30 });
+    });
+    expect(a.stay).toBe(true);
+    expect(a.action).toBe('sit');
+    expect(Math.hypot(a.x - at.x, a.z - at.z)).toBeLessThan(0.15);
+    command(a, s.pets[0], { type: 'call' });
+    expect(a.stay).toBe(false);
+    expect(a.mode).toBe('go');
+  });
+
+  it('「まて」は時間が尽きると自分で立つ', () => {
+    const s = setup(['mike']);
+    lively(s);
+    const a = s.actors[0];
+    command(a, s.pets[0], { type: 'stay', t: 3 });
+    run(s, 3.5);
+    expect(a.stay).toBe(false);
+  });
+
+  it('「だめ」で、おもちゃを追うのをやめて伏せ、すぐ元にもどる', () => {
+    const s = setup(['shiba']);
+    lively(s);
+    const a = s.actors[0];
+    s.world.toy = throwToy('ball', { x: a.x, y: 0.55, z: a.z }, { x: 0, y: 1, z: -2.5 });
+    run(s, 0.5, () => a.mode === 'chase');
+    expect(naughty(a)).toBe(true);
+    a.seen = s.world.toy;
+    command(a, s.pets[0], { type: 'scold' });
+    run(s, 0.2);
+    expect(a.action).toBe('down');
+    expect(playing(a)).toBe(false);
+    run(s, 4);
+    expect(a.mode).not.toBe('chase');
+    expect(a.action).not.toBe('down');
+  });
+
+  it('「あそぼ」は、おじぎで誘ってから走りまわる', () => {
+    const s = setup(['shiba']);
+    lively(s);
+    const a = s.actors[0];
+    command(a, s.pets[0], { type: 'play' });
+    run(s, 0.2);
+    expect(a.action).toBe('bow');
+    let ran = 0;
+    run(s, 8, undefined, () => (ran += a.action === 'run' ? 1 : 0));
+    expect(ran).toBeGreaterThan(30);
+  });
+
+  it('写真は、カメラの方を向いて座る', () => {
+    const s = setup(['mike']);
+    lively(s);
+    const a = s.actors[0];
+    a.heading = Math.PI;
+    command(a, s.pets[0], { type: 'face' });
+    run(s, 1);
+    expect(a.action).toBe('sit');
+    expect(Math.abs(Math.atan2(Math.sin(a.heading), Math.cos(a.heading)))).toBeLessThan(0.5);
+  });
+});

@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { BREEDS } from './breeds';
 import { loadSave, STORAGE_KEY } from './engine';
-import { MAX_CALLS, addCalls, callKey, normalize, parse } from './voice';
+import { HELP, MAX_CALLS, addCalls, callKey, normalize, parse } from './voice';
 
 const PETS = [
   { id: 'a', name: 'ポチ' },
@@ -121,6 +121,143 @@ describe('よぶ・ほめる', () => {
   });
 });
 
+describe('芸のほかの頼みごと', () => {
+  it.each([
+    ['ねんね', 'sleep'],
+    ['ねんねして', 'sleep'],
+    ['ネンネ', 'sleep'],
+    ['おやすみ', 'sleep'],
+    ['お休み', 'sleep'],
+    ['おやすみなさい', 'sleep'],
+    ['寝て', 'sleep'],
+    ['ねて', 'sleep'],
+    ['寝んね', 'sleep'],
+    ['おきて', 'wake'],
+    ['起きて', 'wake'],
+    ['おきろー', 'wake'],
+    ['おはよう', 'wake'],
+    ['おはよー', 'wake'],
+    ['ごはん', 'feed'],
+    ['ごはんだよ', 'feed'],
+    ['ご飯だよー', 'feed'],
+    ['コハン', 'feed'],
+    ['おみず', 'water'],
+    ['お水', 'water'],
+    ['ソファ', 'sofa'],
+    ['ソファー', 'sofa'],
+    ['ソファに のって', 'sofa'],
+    ['ソファにおいで', 'sofa'],
+    ['ベッド', 'bed'],
+    ['ベット', 'bed'],
+    ['ベッドに のって', 'bed'],
+    ['まて', 'stay'],
+    ['待て', 'stay'],
+    ['まって', 'stay'],
+    ['待って！', 'stay'],
+    ['ストップ', 'stay'],
+    ['おすわり、まて', 'stay'],
+    ['よし', 'release'],
+    ['よーし', 'release'],
+    ['良し', 'release'],
+    ['オッケー', 'release'],
+    ['とってこい', 'fetch'],
+    ['取ってこい', 'fetch'],
+    ['とってきて', 'fetch'],
+    ['もってきて', 'fetch'],
+    ['もってこい', 'fetch'],
+    ['持って来い', 'fetch'],
+    ['取って来い！', 'fetch'],
+    ['持って来て', 'fetch'],
+    ['ボール', 'fetch'],
+    ['ぼーる なげるよ', 'fetch'],
+    ['ねずみ', 'fetch'],
+    ['ボールで あそぼ', 'fetch'],
+    ['あそぼ', 'play'],
+    ['あそぼう', 'play'],
+    ['遊ぼう', 'play'],
+    ['あそんで', 'play'],
+    ['おさんぽ いこう', 'walk'],
+    ['お散歩', 'walk'],
+    ['さんぽ', 'walk'],
+    ['こうえん', 'walk'],
+    ['公園に行こう', 'walk'],
+    ['こうえんで あそぼ', 'walk'],
+    ['おうち かえろう', 'home'],
+    ['お家に帰ろう', 'home'],
+    ['かえろう', 'home'],
+    ['おふろ', 'bath'],
+    ['お風呂', 'bath'],
+    ['おふろに はいろう', 'bath'],
+    ['はい チーズ', 'photo'],
+    ['はいチーズ！', 'photo'],
+    ['しゃしん', 'photo'],
+    ['写真とるよ', 'photo'],
+    ['だめ', 'scold'],
+    ['ダメ！', 'scold'],
+    ['駄目', 'scold'],
+    ['こら', 'scold'],
+    ['こらー！', 'scold'],
+    ['やめて', 'scold']
+  ])('「%s」は %s', (text, action) => {
+    expect(act(text)).toBe(action);
+  });
+
+  it('芸の言葉とぶつからない', () => {
+    expect(act('はねて')).toBe('jump');
+    expect(act('ふせ')).toBe('down');
+    expect(act('ねんね')).toBe('sleep');
+    expect(act('たって')).toBe('beg');
+    expect(act('まって')).toBe('stay');
+    expect(act('まわって')).toBe('spin');
+    expect(act('のびて')).toBe('bow');
+  });
+
+  it('「おきて」は呼ぶではなく起きる。「きて」だけなら呼ぶ', () => {
+    expect(act('おきて')).toBe('wake');
+    expect(act('きて')).toBe('call');
+    expect(act('こっち きて')).toBe('call');
+  });
+
+  it('「よしよし」はほめる、「よし」だけなら「まて」のおしまい', () => {
+    expect(act('よしよし')).toBe('praise');
+    expect(act('よし')).toBe('release');
+    expect(act('よし おいで')).toBe('call');
+  });
+
+  it('いくつも言ったら、くわしい方を取る', () => {
+    expect(act('ベッドで ねんね')).toBe('sleep');
+    expect(act('おうちで ねんね')).toBe('sleep');
+    expect(act('ごはんと おみず')).toBe('feed');
+    expect(act('おいで ねんね')).toBe('sleep');
+    expect(act('いいこ まて')).toBe('stay');
+  });
+
+  it('名前と一緒でも、その子への頼みごとになる', () => {
+    expect(parse('ポチ ねんね', PETS)).toEqual({ petId: 'a', action: 'sleep' });
+    expect(parse('タマちゃん おきて', PETS)).toEqual({ petId: 'b', action: 'wake' });
+    expect(parse('ポチ、まて！', PETS)).toEqual({ petId: 'a', action: 'stay' });
+    expect(parse('ココア とってこい', PETS)).toEqual({ petId: 'd', action: 'fetch' });
+    expect(parse('だめ ポチ', PETS)).toEqual({ petId: 'a', action: 'scold' });
+    expect(parse('はい チーズ', PETS)).toEqual({ petId: null, action: 'photo' });
+  });
+
+  it('命令の中に名前が入っていても、名前ではなく命令として聞く', () => {
+    const pets = [
+      { id: 's', name: 'スミ' },
+      { id: 'p', name: 'ポチ' }
+    ];
+    expect(parse('おやすみ', pets)).toEqual({ petId: null, action: 'sleep' });
+    expect(parse('ポチ おやすみ', pets)).toEqual({ petId: 'p', action: 'sleep' });
+    expect(parse('スミ おやすみ', pets)).toEqual({ petId: 's', action: 'sleep' });
+    expect(parse('スミ', pets)).toEqual({ petId: 's', action: 'call' });
+    expect(parse('ねずみ', pets)).toEqual({ petId: null, action: 'fetch' });
+  });
+
+  it('しつけのシートの「こえで できること」は、どれも書いたとおりに聞き取れる', () => {
+    for (const h of HELP) for (const say of h.say) expect(act(say), say).toBe(h.action);
+  });
+});
+
 describe('名前', () => {
   it('名前だけなら、そのペットを呼ぶ', () => {
     expect(parse('ポチ', PETS)).toEqual({ petId: 'a', action: 'call' });
@@ -145,7 +282,11 @@ describe('名前', () => {
     for (const { name } of pets) {
       expect(parse(name, pets), name).toEqual({ petId: name, action: 'call' });
       expect(parse(`${name} ふせ`, pets), name).toEqual({ petId: name, action: 'down' });
+      for (const h of HELP)
+        for (const say of h.say)
+          expect(parse(`${name} ${say}`, pets), `${name} ${say}`).toEqual({ petId: name, action: h.action });
     }
+    for (const h of HELP) for (const say of h.say) expect(parse(say, pets)?.action, say).toBe(h.action);
   });
 
   it('濁点の聞き違いでも当たる', () => {
@@ -189,6 +330,12 @@ describe('声で覚えさせた呼び名', () => {
     expect(callKey('小太郎くーん')).toBe('小太郎');
     expect(callKey('だいふく おいで')).toBe(normalize('だいふく'));
     expect(callKey('麦')).toBe('麦');
+  });
+
+  it('2 字の命令（まて・よし）が入った名前は崩さない', () => {
+    expect(callKey('マテオ')).toBe(normalize('まておー'));
+    expect(callKey('ヨシコちゃん')).toBe(normalize('よしこ'));
+    expect(callKey('ポチ ねんね')).toBe(normalize('ぽち'));
   });
 
   it('命令だけ・かな 1 字・長い文は覚えない', () => {

@@ -38,9 +38,13 @@ import { sounds } from './sounds';
 import { StampQueue } from './stamp-queue';
 import { check } from './stamps';
 import { Modes } from './modes';
+import { Orders } from './orders';
 import { Toys, WandHand } from './toys';
 import { Training } from './training';
 import type { AccessoryId, BaseScene, BreedId, FoodId, Scene, ToyId, TrickId } from './types';
+import type { Heard } from './voice';
+import { BathPlay } from './bath.svelte';
+import { WalkPlay } from './walk.svelte';
 import { PetWorld } from './world3d';
 
 export type Tool = 'hand' | 'brush' | 'toy';
@@ -102,6 +106,7 @@ export class Session {
   readonly #stamps: StampQueue;
   readonly #bowls: Bowls;
   readonly #modes: Modes;
+  readonly #orders: Orders;
   #actors: Actor[] = [];
   #layout: Layout = ROOM;
   #view: WorldView;
@@ -141,6 +146,17 @@ export class Session {
     this.#reactions = new Reactions(core);
     this.#stamps = new StampQueue(core, () => !this.#moodText());
     this.#bowls = new Bowls(core);
+    this.#orders = new Orders(core, this.#toys, {
+      call: () => this.call(),
+      cheer: () => this.cheer(),
+      trick: (t) => this.trick(t),
+      feed: (f) => this.feed(f),
+      water: () => this.water(),
+      walk: () => this.walk(),
+      home: () => this.goHome(),
+      bath: () => this.start(new BathPlay(), 'おふろへ いくよ'),
+      photo: () => this.photo()
+    });
     this.#modes = new Modes(core, {
       enter: (target) => this.#enter(target),
       go: (label, run) => this.#go(label, run),
@@ -394,6 +410,7 @@ export class Session {
     this.#reactions.ambient(dt);
     this.#bgm.tick();
     if (!this.activity) this.#toys.tick(dt);
+    if (!this.activity) this.#orders.tick();
     const away = !this.activity && this.#toys.away();
     if (away !== this.away) this.away = away;
 
@@ -581,8 +598,16 @@ export class Session {
     const pet = this.current;
     const a = this.#actor();
     if (!pet || !a) return;
+    this.#orders.released(pet, a);
     this.#voice(pet, a.asleep ? 'yawn' : 'answer');
     command(a, pet, { type: 'call' });
+  }
+
+  /** 声の頼みごと（voice.ts の parse の結果）。名前で呼ばれたら、その子に切り替えてから頼む */
+  voice(h: Heard): void {
+    if (this.activity) return;
+    if (h.petId) this.select(h.petId);
+    this.#orders.run(h);
   }
 
   trick(trick: TrickId): void {
@@ -590,14 +615,23 @@ export class Session {
     this.#training.trick(trick);
   }
 
-  /** 声で「いいこ」とほめたとき。芸の直後なら、なでてほめたのと同じに数える */
+  /** 声で「いいこ」とほめたとき。芸の直後なら、なでてほめたのと同じに数える。「まて」ができた直後もほめられる */
   cheer(): void {
-    this.#training.cheer();
+    if (!this.#orders.cheer()) this.#training.cheer();
   }
 
   /** いまのペットが寝ている。おさんぽ（モード）を始める前に画面が確かめる */
   get asleep(): boolean {
     return !!this.#actor()?.asleep;
+  }
+
+  /** 犬はリードで道をおさんぽして公園へ、猫はそのまま公園へ。公園からはおうちへ。つかれているときは goPark がことわる */
+  walk(): void {
+    const pet = this.current;
+    if (this.scene !== 'room') return this.goHome();
+    if (pet && kindOf(pet.breed) === 'dog' && pet.stats.energy >= SLEEPY && !this.asleep)
+      return this.start(new WalkPlay(), 'おさんぽに いくよ');
+    this.goPark();
   }
 
   goPark(): void {

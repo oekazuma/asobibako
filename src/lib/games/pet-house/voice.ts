@@ -1,6 +1,24 @@
 import type { TrickId } from './types';
 
-export type VoiceAction = TrickId | 'call' | 'praise';
+/** 芸のほかに声で頼めること。release は「まて」をおしまいにする「よし」 */
+export type Order =
+  | 'sleep'
+  | 'wake'
+  | 'feed'
+  | 'water'
+  | 'sofa'
+  | 'bed'
+  | 'stay'
+  | 'release'
+  | 'fetch'
+  | 'play'
+  | 'walk'
+  | 'home'
+  | 'bath'
+  | 'photo'
+  | 'scold';
+
+export type VoiceAction = TrickId | 'call' | 'praise' | Order;
 
 export interface Heard {
   /** 名前を呼ばれたペット。呼ばれなければ null（いまのペットに言う） */
@@ -23,8 +41,13 @@ export function normalize(text: string): string {
     .replace(/[^\p{L}\p{N}]|[ーっ〜]/gu, '');
 }
 
-/** 並びが優先の順。芸 → よぶ → ほめる（「おいで、おすわり」はおすわり） */
+/**
+ * 並びが優先の順。「まて」は芸より先（「おすわり、まて」はまて）、芸はほかの頼みより先（「はねて」の「ねて」はジャンプ）、
+ * おきるは呼ぶより先（「おきて」に「きて」が入っている）、ほめる（よしよし）は「よし」より先。
+ * 呼ぶ・ほめるはいちばんあと（「おいで、おすわり」はおすわり、「ソファに おいで」はソファ）
+ */
 const WORDS = Object.entries({
+  stay: ['まて', 'まって', '待て', '待って', 'すてい', 'ストップ', 'とまれ', '止まれ', 'とまって'],
   sit: ['おすわり', 'すわれ', 'すわって', 'お座り', '座', 'おさわり', 'お触り'],
   down: ['ふせ', '伏せ', '臥せ', '布施'],
   paw: ['おて', 'お手', '御手', '大手', 'ぱんち'],
@@ -35,11 +58,63 @@ const WORDS = Object.entries({
   high: ['はいたっち', 'たっち'],
   bow: ['おじぎ', 'お辞儀', 'のびー', 'のびて', '伸び', 'ぺこり'],
   dead: ['しんだふり', '死んだふり', '死んだ振り', 'ばたんきゅ'],
+  wake: ['おきて', '起きて', 'おきろ', '起きろ', 'おはよう', 'おはよ', 'お早う'],
+  sleep: ['ねんね', 'おやすみ', 'お休み', 'ねて', 'ねよう', 'ねなさい', 'ねむって', '寝', '眠'],
+  scold: ['だめ', '駄目', 'こら', 'やめて', 'いけません'],
+  fetch: [
+    'もってこい',
+    '持ってこい',
+    '持って来い',
+    '持って来て',
+    '取って来い',
+    'とってこい',
+    '取ってこい',
+    'とってきて',
+    '取ってきて',
+    'もってきて',
+    '持ってきて',
+    'ボール',
+    'フリスビー',
+    'ねずみ',
+    '投げ'
+  ],
+  photo: ['ちーず', 'しゃしん', '写真', 'カメラ'],
+  bath: ['おふろ', 'ふろ', '風呂'],
+  walk: ['おさんぽ', 'さんぽ', '散歩', 'こうえん', '公園'],
+  play: ['あそぼ', 'あそんで', '遊'],
+  home: ['おうち', 'お家', 'かえろ', 'かえる', '帰'],
+  feed: ['ごはん', 'ご飯', '御飯', 'まんま', 'えさ', '餌'],
+  water: ['おみず', 'お水', 'みず', '水'],
+  sofa: ['ソファ', 'そふぁ'],
+  bed: ['ベッド', 'ベット', 'ねどこ'],
   call: ['おいで', 'こっち', 'きて', '来', 'お出で', '置いて'],
-  praise: ['いいこ', 'いい子', '良い子', 'よしよし', '良し良し', 'えらい', '偉い', 'じょうず', '上手', 'すごい']
+  praise: ['いいこ', 'いい子', '良い子', 'よしよし', '良し良し', 'えらい', '偉い', 'じょうず', '上手', 'すごい'],
+  release: ['よし', '良し', 'よーし', 'おっけー', 'いいよ']
 } satisfies Record<VoiceAction, string[]>).map(
   ([action, words]) => [action as VoiceAction, words.map(normalize)] as const
 );
+
+/** しつけのシートに出す「こえで できること」。say はどれもその action に聞き取れる（voice.test.ts が確かめる） */
+export const HELP: { say: string[]; does: string; action: VoiceAction }[] = [
+  { say: ['ねんね', 'おやすみ'], does: 'ベッドや ソファで ねる', action: 'sleep' },
+  { say: ['おきて', 'おはよう'], does: 'のびを して おきる', action: 'wake' },
+  { say: ['まて'], does: 'すわって じっと まつ', action: 'stay' },
+  { say: ['よし'], does: '「まて」を おしまいに する', action: 'release' },
+  { say: ['ごはん'], does: 'おさらに ごはんを いれる', action: 'feed' },
+  { say: ['おみず'], does: 'おさらに おみずを いれる', action: 'water' },
+  { say: ['ソファ'], does: 'ソファに とびのる', action: 'sofa' },
+  { say: ['ベッド'], does: 'ベッドに とびのる', action: 'bed' },
+  { say: ['とってこい', 'ボール'], does: 'おもちゃを なげて もってくる', action: 'fetch' },
+  { say: ['あそぼ'], does: 'おおはしゃぎ', action: 'play' },
+  { say: ['おさんぽ', 'こうえん'], does: 'おでかけ', action: 'walk' },
+  { say: ['おうち かえろう'], does: 'おうちへ かえる', action: 'home' },
+  { say: ['おふろ'], does: 'おふろに はいる', action: 'bath' },
+  { say: ['はい チーズ'], does: 'こっちを むいて しゃしん', action: 'photo' },
+  { say: ['だめ', 'こら'], does: 'いたずらを やめる', action: 'scold' },
+  { say: ['おいで'], does: 'かけよって くる', action: 'call' },
+  { say: ['いいこ'], does: 'ほめる', action: 'praise' },
+  { say: ['おすわり'], does: 'げい（げいの なまえで）', action: 'sit' }
+];
 
 /** 用意した名前がひらがな・漢字で聞き取られたとき用の読み。ひとが付けた名前はかなだけで照らす */
 const NAME_KANJI: Record<string, string[]> = {
@@ -90,26 +165,41 @@ export interface Named {
   calls?: readonly string[];
 }
 
-function findPet(text: string, pets: readonly Named[]) {
-  let best: { id: string; key: string } | null = null;
+/** 聞こえた名前の候補。長い順（ココア と ココ なら ココア が先） */
+function findPets(text: string, pets: readonly Named[]): { id: string; key: string }[] {
+  const found: { id: string; key: string }[] = [];
   for (const p of pets) {
     const name = normalize(p.name);
-    for (const key of [name, ...(KANJI.get(name) ?? []), ...(p.calls ?? []).map(normalize)]) {
-      if (key && text.includes(key) && (!best || key.length > best.key.length)) best = { id: p.id, key };
-    }
+    for (const key of [name, ...(KANJI.get(name) ?? []), ...(p.calls ?? []).map(normalize)])
+      if (key && text.includes(key)) found.push({ id: p.id, key });
   }
-  return best;
+  return found.sort((a, b) => b.key.length - a.key.length);
 }
 
-/** 聞き取った文字を命令にする。名前だけなら呼ぶ。何も当たらなければ null */
+function order(text: string): { action: VoiceAction; word: string } | null {
+  for (const [action, words] of WORDS) {
+    const word = words.find((w) => text.includes(w));
+    if (word) return { action, word };
+  }
+  return null;
+}
+
+/**
+ * 聞き取った文字を命令にする。名前だけなら呼ぶ。何も当たらなければ null。
+ * 名前の中の言葉（オテンバ の「おて」）を命令と取りちがえないよう、名前の分は消してから命令を探す。
+ * 消すと命令が崩れる名前（「ココ あそぼ」の ココア）は飛ばして短い名前を試し、
+ * 命令の中にまるごと入っている名前（「おやすみ」の スミ）は名前として聞かない
+ */
 export function parse(text: string, pets: readonly Named[]): Heard | null {
-  let rest = normalize(text);
-  const pet = findPet(rest, pets);
-  // 名前の中の言葉（オテンバ の「おて」など）を命令と取りちがえないよう、名前の分は消してから探す
-  if (pet) rest = rest.replace(pet.key, ' ');
-  const hit = WORDS.find(([, words]) => words.some((w) => rest.includes(w)));
-  if (!hit && !pet) return null;
-  return { petId: pet?.id ?? null, action: hit ? hit[0] : 'call' };
+  const all = normalize(text);
+  const found = findPets(all, pets);
+  for (const p of found) {
+    const hit = order(all.replace(p.key, ' '));
+    if (hit) return { petId: p.id, action: hit.action };
+  }
+  const whole = order(all);
+  if (whole && found.every((p) => whole.word.includes(p.key))) return { petId: null, action: whole.action };
+  return found.length ? { petId: found[0].id, action: 'call' } : null;
 }
 
 export const MAX_CALLS = 8;
@@ -117,14 +207,24 @@ export const MAX_CALLS = 8;
 export const CALLS_TO_LEARN = 3;
 
 /**
+ * 名前といっしょに言いがちな言葉。呼ぶ言葉と 3 字以上の命令だけにする。
+ * 2 字の命令（まて・よし・ため）まで外すと、マテオ・ヨシコのような名前が崩れて覚えられない
+ */
+const SUFFIX = /(ちゃん|くん|さん|たん)+$/;
+const STRIP = WORDS.flatMap(([action, words]) =>
+  words.filter((w) => w.length > 2 || (action === 'call' && w.length > 1))
+);
+
+/**
  * 名前を呼んだ声を、呼び名として覚える形にする。「おいで」などの命令と「ちゃん」「くん」は外す
  * （呼び名に命令が混ざると、あとでその命令が名前として当たってしまう）。
  * かな 1 字は何にでも当たるので覚えない。長すぎるものは名前でなく文なので覚えない
  */
 export function callKey(text: string): string | null {
-  let key = normalize(text);
-  for (const [, words] of WORDS) for (const w of words) if (w.length > 1) key = key.replaceAll(w, '');
-  key = key.replace(/(ちゃん|くん|さん|たん)+$/, '');
+  // 「ヨシコちゃん」の「こちゃ」を「こっち」と取らないよう、先にも外す
+  let key = normalize(text).replace(SUFFIX, '');
+  for (const w of STRIP) key = key.replaceAll(w, '');
+  key = key.replace(SUFFIX, '');
   if (!key || key.length > 12) return null;
   return key.length >= 2 || /\p{Script=Han}/u.test(key) ? key : null;
 }

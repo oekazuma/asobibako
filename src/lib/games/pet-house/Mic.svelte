@@ -2,7 +2,7 @@
   import { onDestroy } from 'svelte';
   import { canListen, pushToTalk } from './listen';
   import type { Session } from './session.svelte';
-  import { parse, type Heard } from './voice';
+  import { parse } from './voice';
 
   let { session }: { session: Session } = $props();
 
@@ -23,13 +23,6 @@
     clear = setTimeout(() => (said = ''), ms);
   }
 
-  function run(h: Heard) {
-    if (h.petId) session.select(h.petId);
-    if (h.action === 'call') session.call();
-    else if (h.action === 'praise') session.cheer();
-    else session.trick(h.action);
-  }
-
   const talk = pushToTalk(() => {
     listening = true;
     return {
@@ -39,7 +32,7 @@
           const h = parse(text, session.save.pets);
           if (!h) continue;
           show(`「${text}」`, 2500);
-          return run(h);
+          return session.voice(h);
         }
         show(`「${alts[0]}」？ わからなかった`, 3000);
       },

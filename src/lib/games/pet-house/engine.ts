@@ -72,6 +72,8 @@ export const COUNTERS = [
   'fetch',
   'nap',
   'napTogether',
+  'voice',
+  'voiceSleep',
   'days'
 ] as const;
 export type CounterId = (typeof COUNTERS)[number];

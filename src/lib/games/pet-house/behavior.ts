@@ -159,6 +159,12 @@ export interface Actor {
   palAt: number;
   /** 最後に言いつけ（なでる・芸・呼ぶ）を受けた clock。プレイヤーと遊んでいる子は誘われない */
   toldAt: number;
+  /** 「ねんね」と言われた。眠くなくても、次にひまになったらベッドかソファへ寝に行く */
+  bedtime: boolean;
+  /** 「まて」のあいだ。その場で座ってカメラを見て、なでても t が尽きるまで動かない */
+  stay: boolean;
+  /** 「あそぼ」のあと、はしゃいで走りまわる残りの回数 */
+  romp: number;
 }
 
 export type Command =
@@ -169,7 +175,18 @@ export type Command =
   /** at はなでている指の、頭の高さでの床の上の位置。頭や顔なら、そちらへ頭を寄せる */
   | { type: 'stroke'; part?: Part; amount?: number; at?: Spot }
   | { type: 'brush' }
-  | { type: 'wake' };
+  /** stretch なら、起きたあとのびをする（声の「おきて」） */
+  | { type: 'wake'; stretch?: boolean }
+  /** 寝に行く。brief なら眠くないので、少し横になるだけ */
+  | { type: 'sleep'; brief?: boolean }
+  /** t 秒その場で待つ */
+  | { type: 'stay'; t: number }
+  /** いたずらをやめて、しゅんとする */
+  | { type: 'scold' }
+  /** おじぎで誘って走りまわる */
+  | { type: 'play' }
+  /** カメラの方を向いて座る（写真） */
+  | { type: 'face' };
 
 export type BehaviorEvent =
   | { type: 'ate'; petId: string; food: FoodId }
@@ -301,7 +318,10 @@ export function createActor(pet: Pet, at: Spot): Actor {
     body: bodyOf(pet.breed),
     pal: null,
     palAt: 6,
-    toldAt: -99
+    toldAt: -99,
+    bedtime: false,
+    stay: false,
+    romp: 0
   };
 }
 
@@ -388,19 +408,29 @@ function offBowls(layout: Layout, p: Spot): Spot {
 }
 
 function apply(a: Actor, cmd: Command) {
-  if (cmd.type === 'wake') return wakeUp(a);
+  if (cmd.type === 'wake') {
+    const slept = a.asleep;
+    wakeUp(a);
+    // のびのかっこうはないので、前足をのばすおじぎで代わりにする
+    if (!slept || !cmd.stretch) return;
+    act(a, 'bow', 1.4);
+    a.show = true;
+    return;
+  }
   if (a.mode === 'eat' || a.mode === 'drink') return;
   if (cmd.type === 'stroke' || cmd.type === 'brush') {
-    // 寝ているあいだはなでても起きない
-    if (a.asleep || (cmd.type === 'stroke' && a.shy > 0)) return;
+    // 寝ているあいだはなでても起きない。「まて」のあいだはなでても待つ
+    if (a.asleep || a.stay || (cmd.type === 'stroke' && a.shy > 0)) return;
     if (a.mode !== 'held') a.next = a.carrying ? 'carry' : 'idle';
     a.mode = 'held';
     a.pose = cmd.type === 'stroke' ? 'happy' : 'stand';
     a.t = 0.6;
     return;
   }
+  if (cmd.type === 'scold') return scolded(a);
   if (cmd.type === 'call') {
     wakeUp(a);
+    [a.stay, a.bedtime] = [false, false];
     if (a.carrying) return;
     a.mode = 'go';
     a.goal = cmd.perch ? 'perch' : cmd.to ? 'spot' : 'front';
@@ -411,12 +441,54 @@ function apply(a: Actor, cmd: Command) {
     return;
   }
   if (a.asleep || a.carrying) return;
+  // 「まて」のあいだに撮る写真は、待ったまま撮る
+  if (cmd.type === 'face' && a.stay) return;
+  [a.stay, a.bedtime, a.romp] = [false, false, 0];
+  if (cmd.type === 'sleep') {
+    if (cmd.brief) return act(a, 'sleep', 3);
+    // 眠いときと同じ道（needs）で、ベッドかソファ、公園ならその場で寝る
+    [a.bedtime, a.awake, a.mode, a.t] = [true, 0, 'idle', 0];
+    return;
+  }
+  if (cmd.type === 'stay') {
+    [a.stay, a.mode, a.t, a.gaze] = [true, 'idle', cmd.t, null];
+    a.pose = a.pose === 'down' ? 'down' : 'sit';
+    return;
+  }
+  if (cmd.type === 'play') {
+    act(a, 'bow', 1.2);
+    [a.show, a.romp] = [true, 4];
+    return;
+  }
+  if (cmd.type === 'face') {
+    act(a, a.pose === 'down' ? 'down' : 'sit', 1.8);
+    [a.show, a.gaze] = [true, null];
+    return;
+  }
   const trick = cmd.type === 'trick' ? TRICKS.find((t) => t.id === cmd.trick) : undefined;
   if (cmd.success && trick) act(a, trick.action, TRICK_TIME[trick.action] ?? 1.6);
   else act(a, 'stand', 1.3, 'idle', true);
   a.show = true;
   a.gaze = null;
 }
+
+/** おもちゃの持ち逃げ・苦手な所をさわられて離れる・追いかけっこをやめて、伏せてしゅんとする。咥えたおもちゃは画面が床に落とす */
+function scolded(a: Actor) {
+  if (a.asleep) return;
+  [a.carrying, a.shy, a.tease, a.wandPlay, a.play] = [null, 0, false, false, -1];
+  [a.stay, a.bedtime, a.romp, a.pal] = [false, false, 0, null];
+  act(a, 'down', 2.2);
+  [a.show, a.gaze] = [true, null];
+}
+
+/** 「だめ」でやめさせることをしている */
+export const naughty = (a: Actor): boolean =>
+  a.shy > 0 ||
+  a.mode === 'tease' ||
+  a.mode === 'chase' ||
+  a.mode === 'stalk' ||
+  a.mode === 'pounce' ||
+  (a.mode === 'social' && (a.pal?.kind === 'play' || a.pal?.kind === 'rival'));
 
 export function throwToy(
   kind: ToyId,
@@ -709,7 +781,7 @@ function needs(a: Actor, c: Ctx): boolean {
   const room = isRoom(world.layout) ? world.layout : null;
   const busy = (goal: Goal, mode: Mode) =>
     actors.some((o) => o !== a && ((o.mode === 'go' && o.goal === goal) || o.mode === mode));
-  if (s.energy < SLEEPY + 15 * (world.night ?? 0) && a.awake <= 0) {
+  if ((a.bedtime || s.energy < SLEEPY + 15 * (world.night ?? 0)) && a.awake <= 0) {
     if (snuggle(a, c)) return true;
     const bed = room && nest(a, c);
     if (bed) goPerch(a, c, bed, 'sleep');
@@ -790,6 +862,7 @@ function needs(a: Actor, c: Ctx): boolean {
 }
 
 function fallAsleep(a: Actor, c: Ctx) {
+  a.bedtime = false;
   a.mode = 'sleep';
   a.asleep = true;
   a.pose = 'sleep';
@@ -1019,6 +1092,7 @@ function decide(a: Actor, c: Ctx) {
   a.gaze = null;
   a.pal = null;
   a.mode = 'idle';
+  [a.stay, a.romp] = [false, 0];
   if (room && pet.stats.food < LOW && world.bowls.foodLeft <= 0.05 && rng() < 0.3) {
     go(a, 'beg', besideBowl(room.food, room));
     return;
@@ -1090,6 +1164,12 @@ function runMode(a: Actor, c: Ctx, dt: number) {
   if (perch && grounded(a)) return startHop(a, { x: inside(perch, a).x, z: perch.z + perch.d + REACH, y: 0 }, null);
   switch (a.mode) {
     case 'idle':
+      if (a.stay) {
+        a.gaze = c.camera;
+        faceThen(a, angleTo(a, c.camera), dt);
+        if (a.t <= 0) decide(a, c);
+        return;
+      }
       accelerate(a, 0, dt);
       // 座ったり伏せたりしているあいだは体を回さず、首だけで追う
       if (a.gaze && a.pose === 'stand') turn(a, angleTo(a, a.gaze), dt * 0.5);
@@ -1129,10 +1209,11 @@ function runMode(a: Actor, c: Ctx, dt: number) {
         }
       }
       const far = dist(a, { x: a.tx, z: a.tz }) > 1.2;
-      const hurry = a.goal === 'present' ? dog : (a.goal === 'front' || a.goal === 'spot') && far;
+      const hurry = a.goal === 'present' ? dog : a.romp > 0 || ((a.goal === 'front' || a.goal === 'spot') && far);
       if (!steer(a, { x: a.tx, z: a.tz }, hurry ? run : walk, dt, layout, a.goal === 'present' ? 0.2 : 0.08)) return;
       switch (a.goal) {
         case 'wander':
+          if (a.romp > 0 && --a.romp > 0) return go(a, 'wander', wanderSpot(a, c));
           a.mode = 'idle';
           a.t = between(c.rng, 0.5, 1.5);
           return;
@@ -1360,6 +1441,7 @@ function runMode(a: Actor, c: Ctx, dt: number) {
         a.rub = null;
         if (a.shy > 0 && !a.carrying) return go(a, 'wander', away(a, c, a.shy > 2 ? 1.1 : 0.35));
       }
+      if (a.next === 'idle' && a.romp > 0) return go(a, 'wander', wanderSpot(a, c));
       if (a.next === 'idle') {
         a.mode = 'idle';
         a.t = between(c.rng, 1, 2.5);

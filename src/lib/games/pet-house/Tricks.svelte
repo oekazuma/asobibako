@@ -2,6 +2,7 @@
   import Icon from '$lib/components/Icon.svelte';
   import { kindOf, trickName, trickSteps, tricksFor, type Pet } from './engine';
   import type { TrickId } from './types';
+  import { HELP } from './voice';
 
   let { pet, ontrick, onteach }: { pet: Pet; ontrick: (trick: TrickId) => void; onteach: (trick: TrickId) => void } =
     $props();
@@ -33,6 +34,15 @@
     </div>
   {/each}
 </div>
+<details class="voice">
+  <summary><Icon name="speaker" size="20px" />こえで できること</summary>
+  <p>「こえ」の ボタンを おしながら はなしてね。なまえを よぶと その子が するよ</p>
+  <ul>
+    {#each HELP as h (h.action)}
+      <li><b>{h.say.map((w) => `「${w}」`).join('')}</b>{h.does}</li>
+    {/each}
+  </ul>
+</details>
 
 <style>
   .lead {
@@ -107,5 +117,42 @@
 
   .teach:active {
     translate: 0 2px;
+  }
+
+  .voice {
+    margin-top: 16px;
+    padding: 10px 14px;
+    border: 3px solid var(--line);
+    border-radius: 20px;
+    background: #fff;
+    font-weight: 700;
+  }
+
+  .voice summary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 17px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .voice p {
+    margin: 8px 0;
+    font-size: 14px;
+  }
+
+  .voice ul {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 4px 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 15px;
+  }
+
+  .voice b {
+    margin-right: 6px;
   }
 </style>
