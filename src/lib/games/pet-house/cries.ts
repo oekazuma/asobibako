@@ -110,9 +110,25 @@ function cat(cry: Cry, l: number): Syl[] {
       return [{ at: 0, ms: 260 * l, pitch: [0.9, 1, 1.4], vowel: ['n', 'i', 'a'], gain: 1.5 }];
     case 'grumble':
     case 'bath':
-      return [{ at: 0, ms: 150 * l, pitch: [1.25, 1, 0.7], vowel: ['n', 'a', 'a'], gain: 0.6, breath: 0.35 }];
+      return [{ at: 0, ms: 150 * l, pitch: [1.25, 1, 0.9], vowel: ['n', 'a', 'a'], gain: 0.6, breath: 0.35 }];
+    // 猫の声を低く下げると、うめき声のように聞こえて怖い。あくびも「ふぁ〜ん」と高めで終える
+    case 'yawn':
+      return [
+        {
+          at: 0,
+          ms: 800 * l,
+          pitch: [1.1, 1.35, 1.2, 1, 0.9],
+          vowel: ['i', 'a', 'a', 'a', 'n'],
+          gain: 0.6,
+          breath: 0.6,
+          voiced: 0.5
+        }
+      ];
     default:
-      return shared(cry, l);
+      return [
+        { at: 0, ms: 700, pitch: [1, 1], vowel: ['u', 'u'], gain: 0.25, breath: 1, voiced: 0 },
+        { at: 0.9, ms: 1000, pitch: [1, 1], vowel: ['u', 'u'], gain: 0.3, breath: 1, voiced: 0 }
+      ];
   }
 }
 
@@ -204,36 +220,36 @@ function syllable(ctx: BaseAudioContext, out: AudioNode, t0: number, s: Syl, f: 
 }
 
 /**
- * ゴロゴロ。25 回/秒ほどの低いのこぎり波（1 回ごとに息の強さで脈打つ）を低い音だけ残して、
- * 吸う・吐くの 2 回で大きさを揺らす
+ * ゴロゴロ。息のノイズを中くらいの高さだけ残し、25 回/秒ほどで細かく脈打たせる。
+ * 低いのこぎり波で作ると、iPad の小さなスピーカーではうなり声（ウーッ）に聞こえて子どもが怖がる
  */
 function purr(ctx: BaseAudioContext, out: AudioNode, t0: number, gain: number): number {
-  const osc = ctx.createOscillator();
-  osc.type = 'sawtooth';
-  osc.frequency.setValueAtTime(24, t0);
-  osc.frequency.linearRampToValueAtTime(27, t0 + 0.5);
-  osc.frequency.linearRampToValueAtTime(23, t0 + 1.1);
   const n = ctx.createBufferSource();
   n.buffer = whiteNoise(ctx);
-  const ng = ctx.createGain();
-  ng.gain.value = 0.25;
-  const lp = ctx.createBiquadFilter();
-  lp.type = 'lowpass';
-  lp.frequency.value = 420;
-  lp.Q.value = 2;
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = 520;
+  bp.Q.value = 1.2;
+  const flutter = ctx.createGain();
+  flutter.gain.value = 0.5;
+  const lfo = ctx.createOscillator();
+  lfo.frequency.setValueAtTime(25, t0);
+  lfo.frequency.linearRampToValueAtTime(28, t0 + 0.5);
+  lfo.frequency.linearRampToValueAtTime(24, t0 + 1.1);
+  const depth = ctx.createGain();
+  depth.gain.value = 0.5;
+  lfo.connect(depth).connect(flutter.gain);
   const amp = ctx.createGain();
   amp.gain.setValueAtTime(0, t0);
   amp.gain.linearRampToValueAtTime(gain * 0.7, t0 + 0.15);
-  amp.gain.linearRampToValueAtTime(gain * 0.4, t0 + 0.5);
+  amp.gain.linearRampToValueAtTime(gain * 0.45, t0 + 0.5);
   amp.gain.linearRampToValueAtTime(gain, t0 + 0.7);
   amp.gain.linearRampToValueAtTime(0, t0 + 1.1);
-  osc.connect(lp);
-  n.connect(ng).connect(lp);
-  lp.connect(amp).connect(out);
-  osc.start(t0);
-  n.start(t0);
-  osc.stop(t0 + 1.15);
+  n.connect(bp).connect(flutter).connect(amp).connect(out);
+  n.start(t0, Math.random() * 0.5);
+  lfo.start(t0);
   n.stop(t0 + 1.15);
+  lfo.stop(t0 + 1.15);
   return 1.1;
 }
 
@@ -253,7 +269,7 @@ export function render(
   const isDog = BREEDS[breed].kind === 'dog';
   if (cry === 'purr') {
     if (isDog) cry = 'sweet';
-    else return purr(ctx, out, t0, GAIN * 0.55);
+    else return purr(ctx, out, t0, GAIN * 1.1);
   }
   // 同じ子でも毎回少しずつ高さを変える。いつも同じ高さだと録音を流しているように聞こえる
   const f = v.f * (0.96 + rnd() * 0.08);
