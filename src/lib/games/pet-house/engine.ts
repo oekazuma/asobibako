@@ -95,6 +95,10 @@ export const FLOOR = 20;
 const AWAY_REST = 30;
 /** 寝ているあいだ 1 秒に戻るげんき。25 から 1 分ほどで満タン近くになる */
 const REST_RATE = 1.3;
+/** なでる・ブラシのあいだ、1 秒ごとに戻るげんき。寝るよりゆっくり */
+const CALM_RATE = 0.5;
+/** おやつで戻るげんき */
+const TREAT_ENERGY = 20;
 /** 投げっこ 1 回ぶんのげんき。満タンから 15〜20 回でベッドへ行く */
 const PLAY_COST = 4.5;
 /** なで 1 秒ぶんのなかよし。最初のハートは 20〜40 秒で届き（速くこすると 1 秒に 2 秒ぶん進む）、ハートが増えるほどゆっくりになる */
@@ -286,8 +290,11 @@ export function tick(save: Save, seconds: number): void {
   save.seen += seconds * 1000;
 }
 
-export function rest(pet: Pet, seconds: number): void {
-  pet.stats.energy = Math.min(100, pet.stats.energy + REST_RATE * seconds);
+const energize = (pet: Pet, amount: number) => (pet.stats.energy = Math.min(100, pet.stats.energy + amount));
+
+/** 寝ているあいだ。ソファやベッドで伏せて休んでいるあいだは lying で半分の速さ */
+export function rest(pet: Pet, seconds: number, lying = false): void {
+  energize(pet, REST_RATE * seconds * (lying ? 0.5 : 1));
 }
 
 /** 投げっこ・飛びつき・プレゼント 1 つぶんを 1 とする。公園を歩くあいだは秒 / 20 くらいで呼ぶ */
@@ -332,6 +339,7 @@ export function eat(pet: Pet, food: FoodId): void {
   const gain = food === 'treat' ? 15 : own ? 45 : 25;
   const hungry = pet.stats.food < 60;
   pet.stats.food = Math.min(100, pet.stats.food + gain);
+  if (food === 'treat') energize(pet, TREAT_ENERGY);
   grow(pet, food === 'treat' ? 0.2 : hungry ? 0.1 : 0.03);
 }
 
@@ -343,11 +351,14 @@ export function drink(pet: Pet): void {
 /** amount はこすった秒数、weight はなでた所の好き嫌い（petting.ts の strokeWeight） */
 export function stroke(pet: Pet, amount: number, weight = 1): void {
   grow(pet, amount * STROKE_RATE * weight);
+  // なでられて気持ちいい所なら、落ち着いてげんきも少し戻る
+  if (weight > 0) energize(pet, CALM_RATE * amount);
 }
 
 /** amount はブラシでこすった秒数。0 から 12 秒ほどでぴかぴか */
 export function brush(pet: Pet, amount: number): void {
   pet.stats.clean = Math.min(100, pet.stats.clean + BRUSH_CLEAN * amount);
+  energize(pet, CALM_RATE * amount);
   grow(pet, (amount * STROKE_RATE) / 2);
 }
 

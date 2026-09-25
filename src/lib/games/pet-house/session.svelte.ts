@@ -389,7 +389,7 @@ export class Session {
       for (const a of this.#actors) {
         const pet = this.#pet(a.petId);
         if (!pet) continue;
-        if (a.asleep) rest(pet, step);
+        if (a.asleep || (a.perch && a.pose === 'down')) rest(pet, step, !a.asleep);
         if (this.scene === 'park' && a.v > 0.05) play(pet, step / 20);
       }
     }
@@ -551,7 +551,8 @@ export class Session {
       const sleepy = pet.stats.energy < RESTED;
       if (!a.carrying) {
         if (seat.id === 'sofa') this.#say(`${pet.name}、ソファに おいで`);
-        else this.#say(sleepy ? `${pet.name}、ねんね しようね` : `${pet.name}は まだ ねむくないみたい`);
+        else
+          this.#say(sleepy ? `${pet.name}、ねんね しようね` : `${pet.name}は まだ ねむくないみたい。ひとやすみ しよう`);
       }
       const then = seat.id === 'bed' ? (sleepy ? 'sleep' : 'down') : undefined;
       return command(a, pet, { type: 'call', to: seat, perch: seat.id, then });
