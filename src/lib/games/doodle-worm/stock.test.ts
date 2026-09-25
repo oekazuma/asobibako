@@ -58,4 +58,39 @@ describe('stock', () => {
     expect(kept.map((d) => d.id).slice(-3)).toEqual(['47', '48', '49']);
     expect(kept.some((d) => d.id === '46')).toBe(false);
   });
+
+  it('★ の絵で埋まっていても、新しく描いた絵は押し出されず、いちばん古い ★ の絵が落ちる', () => {
+    const stars = Array.from({ length: 48 }, (_, i) => pack([stroke], String(i)));
+    stars.forEach((d) => (d.star = true));
+    const kept = saveStock([pack([stroke], 'new'), ...stars], 1);
+    expect(kept).toHaveLength(48);
+    expect(kept[0].id).toBe('new');
+    expect(kept.some((d) => d.id === '47')).toBe(false);
+  });
+
+  it('容量が足りないときは保存済みのずかんを消さない', () => {
+    const saved = ['a', 'b'].map((id) => pack([stroke], id));
+    saveStock(saved);
+    const before = localStorage.getItem(STOCK_KEY);
+    const removeItem = vi.fn(localStorage.removeItem.bind(localStorage));
+    vi.stubGlobal('localStorage', {
+      ...localStorage,
+      getItem: localStorage.getItem.bind(localStorage),
+      removeItem,
+      setItem: () => {
+        throw new DOMException('full', 'QuotaExceededError');
+      }
+    });
+    const kept = saveStock([pack([stroke], 'new'), ...saved]);
+    expect(removeItem).not.toHaveBeenCalled();
+    expect(localStorage.getItem(STOCK_KEY)).toBe(before);
+    expect(kept.map((d) => d.id)).toEqual(loadStock().map((d) => d.id));
+  });
+
+  it('全部消すとキーごと消える', () => {
+    saveStock([pack([stroke], 'a')]);
+    expect(localStorage.getItem(STOCK_KEY)).not.toBeNull();
+    saveStock([]);
+    expect(localStorage.getItem(STOCK_KEY)).toBeNull();
+  });
 });
