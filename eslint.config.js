@@ -15,6 +15,10 @@ export default ts.config(
   prettier,
   ...svelte.configs.prettier,
   {
+    // シェルから受けても使わない props は _ で始めて受ける
+    rules: { '@typescript-eslint/no-unused-vars': ['error', { varsIgnorePattern: '^_' }] }
+  },
+  {
     languageOptions: {
       globals: {
         ...globals.browser,
