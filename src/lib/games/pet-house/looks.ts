@@ -870,6 +870,7 @@ function curls(x: number, y: number, z: number) {
 
 const POODLE = '#e3b27a';
 const POODLE_DARK = '#b98452';
+const POODLE_FACE = '#f0cc9c';
 
 const LOOKS_DATA = {
   shiba: dog({
@@ -945,12 +946,13 @@ const LOOKS_DATA = {
         [0, 1.0, -0.64],
         [0, 1.1, -0.64]
       ],
-      r: [0.06, 0.07, 0.11]
+      r: [0.045, 0.04, 0.115]
     },
     h: 0.016,
     fur: { len: 0.038, layers: 6, cell: 0.005 },
-    // 巻き毛は頭のてっぺんまで。顔まわりはなめらかにする
-    furLen: (p, n, tag) => (tag === 'skull' ? 0.8 : furBase(p, n, tag) === 0 ? 0 : 1),
+    // 巻き毛は頭のてっぺん・耳・体まで。顔と足先は短く刈ってなめらかにする
+    furLen: (p, n, tag) =>
+      tag === 'skull' || tag === 'ear' ? 0.8 : tag === 'paw' ? 0.25 : furBase(p, n, tag) === 0 ? 0 : 1,
     detail: (H) => {
       const eye = H([0.078, 1.225, 0.8]);
       const nose = H([0, 1.12, 0.9]);
@@ -964,20 +966,29 @@ const LOOKS_DATA = {
             Math.hypot(Math.abs(x) - eye[0], y - eye[1], z - eye[2]),
             Math.hypot(x, y - nose[1], z - nose[2])
           );
-          if (face < r || y < 0.07) return 0;
+          // 目のすぐ上に巻き毛の影が落ちると、目頭が下がってにらんだ顔に見える
+          if (face < r * 1.3 || y < 0.12) return 0;
           const front = smooth(r * 2.2, r * 3.4, Math.hypot(x, y - mid[1], z - mid[2]));
-          return 0.015 * curls(x, y, z) * smooth(r, r * 1.7, face) * front;
+          return 0.015 * curls(x, y, z) * smooth(r * 1.3, r * 2.3, face) * front * smooth(0.12, 0.2, y);
         }
       };
     },
-    // 巻き毛のくぼみを暗くしすぎると砂の像に見える
-    paint: (p) => mixHex(POODLE_DARK, POODLE, 0.65 + 0.35 * curls(p[0], p[1], p[2])),
+    // 巻き毛のくぼみを暗くしすぎると砂の像に見える。刈った顔と足先は明るく、耳は少し濃くして、
+    // 小さく見ても顔・耳・体の境目がわかるようにする
+    paint: (p, n, tag) => {
+      if (['muzzle', 'lip', 'chin', 'paw'].includes(tag)) return POODLE_FACE;
+      const c = mixHex(POODLE_DARK, POODLE, 0.65 + 0.35 * curls(p[0], p[1], p[2]));
+      return tag === 'ear' ? mixHex(c, POODLE_DARK, 0.6) : c;
+    },
     eye: { iris: '#4a2a16', rim: '#140e0c', lid: POODLE },
     nose: '#2a1f1c',
-    // ふわっと丸い頭のてっぺんと、ほほの毛
+    // 丸い頭のてっぺんと、顔の横に垂れるふわふわの丸い耳
     extra: (H) => [
-      ell(H([0, 1.33, 0.62]), [0.15, 0.1, 0.14], 'head', 'skull', 0.07),
-      ...both((s) => [ell(mirror(H([0.1, 1.1, 0.74]), s), [0.08, 0.085, 0.08], 'head', 'cheek', 0.05)])
+      ell(H([0, 1.34, 0.62]), [0.165, 0.125, 0.15], 'head', 'skull', 0.06),
+      ...both((s, side) => [
+        ell(mirror(H([0.1, 1.1, 0.74]), s), [0.065, 0.07, 0.07], 'head', 'cheek', 0.05),
+        ell(mirror(H([0.19, 1.04, 0.64]), s), [0.075, 0.13, 0.1], `ear.${side}`, 'ear', 0.02, { comb: [0, -1, 0] })
+      ])
     ]
   }),
   mike: cat({
@@ -1029,9 +1040,15 @@ const LOOKS_DATA = {
 
     fur: { len: 0.038, layers: 7, cell: 0.0052 },
     furLen: furBase,
-    paint: (p, n, tag) => (tag === 'earIn' ? '#4a3a40' : mixHex('#221f25', '#2e2a31', 0.5 + 0.5 * wobble(p, 5))),
+    // 鼻先とひげの付け根は少し明るい灰にして、暗い口の線と鼻が黒い顔に沈まないようにする
+    paint: (p, n, tag) =>
+      tag === 'earIn'
+        ? '#4a3a40'
+        : tag === 'pad' || tag === 'muzzle' || tag === 'chin'
+          ? '#4a4450'
+          : mixHex('#221f25', '#2e2a31', 0.5 + 0.5 * wobble(p, 5)),
     eye: { iris: '#b8963e', rim: '#141216', lid: '#221f25' },
-    nose: '#3a3336'
+    nose: '#6a5058'
   }),
   saba: cat({
     S: 0.22,

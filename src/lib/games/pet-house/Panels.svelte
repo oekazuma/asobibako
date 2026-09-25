@@ -9,6 +9,7 @@
   import type { Session } from './session.svelte';
   import Sheet from './Sheet.svelte';
   import Shop from './Shop.svelte';
+  import TeachHud from './TeachHud.svelte';
   import Tricks from './Tricks.svelte';
   import type { ContestId, Kind } from './types';
 
@@ -42,7 +43,7 @@
   </Sheet>
 {:else if panel === 'tricks'}
   <Sheet title="しつけ" onclose={close}>
-    <Tricks {pet} ontrick={(t) => act(() => session.trick(t))} />
+    <Tricks {pet} ontrick={(t) => act(() => session.trick(t))} onteach={(t) => act(() => session.teach(t))} />
   </Sheet>
 {:else if panel === 'shop'}
   <Sheet title="おみせ" onclose={close}>
@@ -56,7 +57,7 @@
   </Sheet>
 {:else if panel === 'album'}
   <Sheet title="アルバム" onclose={close}>
-    <Album photos={session.save.photos} />
+    <Album save={session.save} />
   </Sheet>
 {:else if panel === 'contest'}
   <Sheet title="コンテスト" onclose={close}>
@@ -76,6 +77,10 @@
       }}
     />
   </Sheet>
+{/if}
+
+{#if session.teaching && !session.activity && !panel}
+  <TeachHud {session} trick={session.teaching} {kind} />
 {/if}
 
 <style>

@@ -266,6 +266,7 @@ export class BathPlay implements Activity {
     if (this.#t < SHAKE_TIME + 0.2) return;
     this.#wet = 0;
     bathe(host.pet);
+    host.count('bath');
     host.changed();
     this.#next('done');
     const [x, y] = host.above(a, this.#top * 1.2);

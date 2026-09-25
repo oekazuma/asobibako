@@ -301,6 +301,7 @@ export class WalkPlay implements Activity {
       action = this.#t > 1.2 && this.#t < 2.4 ? 'happy' : 'stand';
       if (this.#t > 1.2 && !this.#cheered) {
         this.#cheered = true;
+        host.count('greet');
         sounds.greet();
         host.voice('happy');
         host.fx.hearts(...host.above(a), 3);
@@ -387,6 +388,7 @@ export class WalkPlay implements Activity {
     this.#dung = null;
     this.poop = false;
     stroke(host.pet, 5);
+    host.count('poop');
     host.changed();
     const [x, y] = host.world.project(dung.x, 0.1, dung.z);
     host.fx.sparkle(x, y, 5);

@@ -116,6 +116,17 @@ describe('contest', () => {
     for (let i = 1; i < o.length; i++) expect(o[i]).not.toBe(o[i - 1]);
   });
 
+  it('しつけ大会は新しい芸も出し、猫には猫が覚えない芸を出さない', () => {
+    const dog = new Set(Array.from({ length: 40 }, (_, i) => orders(seq(i / 40, ((i + 20) % 40) / 40), 2)).flat());
+    expect(dog.has('dead')).toBe(true);
+    const cat = new Set(
+      Array.from({ length: 40 }, (_, i) => orders(seq(i / 40, ((i + 20) % 40) / 40), 2, 'cat')).flat()
+    );
+    expect(cat.has('spin')).toBe(true);
+    expect(cat.has('dead')).toBe(false);
+    expect(cat.has('beg')).toBe(false);
+  });
+
   it('コースの門は、線分をまたいだときだけ通ったことになる', () => {
     const hurdle = COURSE[0];
     expect(crossed({ x: 0, z: 0 }, { x: 0, z: -1.5 }, hurdle)).toBe(true);

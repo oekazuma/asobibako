@@ -38,6 +38,26 @@ function run(s: Setup, seconds: number, until?: (e: BehaviorEvent[]) => boolean,
 const has = (type: BehaviorEvent['type']) => (e: BehaviorEvent[]) => e.some((x) => x.type === type);
 
 describe('pet-house behavior', () => {
+  it('汚れがいちばんひどいと、ひまなときにときどき体をかく。きれいならかかない', () => {
+    const count = (clean: number) => {
+      const s = setup(['shiba', 'mike'], 'room', [
+        { x: -0.6, z: 0.3 },
+        { x: 0.6, z: -0.5 }
+      ]);
+      for (const p of s.pets) [p.stats.clean, p.stats.food, p.stats.water, p.stats.energy] = [clean, 100, 100, 100];
+      let scratches = 0;
+      let was = false;
+      run(s, 90, undefined, () => {
+        const now = s.actors.some((a) => a.action === 'scratch');
+        if (now && !was) scratches++;
+        was = now;
+      });
+      return scratches;
+    };
+    expect(count(5)).toBeGreaterThanOrEqual(3);
+    expect(count(60)).toBe(0);
+  });
+
   it('おなかがすいていると、お皿へ行って食べ、食べきると ate', () => {
     const s = setup(['shiba']);
     s.pets[0].stats.food = 20;
@@ -48,15 +68,85 @@ describe('pet-house behavior', () => {
     expect(Math.hypot(s.actors[0].x - ROOM.food.x, s.actors[0].z - ROOM.food.z)).toBeLessThan(0.4);
   });
 
-  it('投げたボールを犬が取りに行き、front まで持ってきて fetched', () => {
+  /** ボールを投げて、犬が持ってきて持ち主の前でくわえて待つところまで回す */
+  const fetchToFront = () => {
     const s = setup(['beagle'], 'room', [ROOM.front]);
     s.world.toy = throwToy('ball', { x: 0, y: 1, z: 0.9 }, { x: 0.4, y: 1.5, z: -2.6 });
-    const events = run(s, 25, has('fetched'));
+    const events = run(s, 25, has('fetched'), () => (s.actors[0].tease = false));
     expect(events).toContainEqual({ type: 'fetched', petId: s.pets[0].id });
+    return s;
+  };
+
+  it('ときどき、持ってきたおもちゃを渡す前に少し逃げて「とってごらん」と誘ってから持ってくる', () => {
+    const s = setup(['beagle'], 'room', [ROOM.front]);
+    s.world.toy = throwToy('ball', { x: 0, y: 1, z: 0.9 }, { x: 0.4, y: 1.5, z: -2.6 });
+    const a = s.actors[0];
+    const actions = new Set<string>();
+    const events = run(s, 30, has('fetched'), () => {
+      if (a.mode === 'chase') a.tease = true;
+      actions.add(a.mode === 'tease' ? 'tease' : a.action);
+    });
+    expect(actions).toContain('tease');
+    expect(actions).toContain('bow');
+    expect(events).toContainEqual({ type: 'fetched', petId: s.pets[0].id });
+    expect(a.mode).toBe('offer');
+  });
+
+  it('投げたボールを犬が取りに行き、持ち主の前でおすわりしてくわえたまま待つ', () => {
+    const s = fetchToFront();
+    const a = s.actors[0];
+    run(s, 1);
+    expect(a.mode).toBe('offer');
+    expect(a.action).toBe('sit');
+    expect(s.world.toy!.holder).toBe(a.petId);
+    expect(Math.hypot(a.x - ROOM.front.x, a.z - ROOM.front.z)).toBeLessThan(0.3);
+  });
+
+  it('くわえて待つおもちゃを受け取ると喜び、受け取らないと足元に置いて催促する', () => {
+    const got = fetchToFront();
+    got.world.toy = null;
+    run(got, 0.1);
+    expect(got.actors[0].carrying).toBeNull();
+    expect(got.actors[0].action).toBe('happy');
+
+    const s = fetchToFront();
+    const events = run(s, 8, has('urge'));
+    expect(events).toContainEqual({ type: 'urge', petId: s.pets[0].id });
+    run(s, 2);
     const toy = s.world.toy!;
     expect(toy.holder).toBeNull();
-    expect(Math.hypot(toy.x - ROOM.front.x, toy.z - ROOM.front.z)).toBeLessThan(0.4);
+    expect(toy.still).toBe(true);
+    expect(Math.hypot(toy.x - ROOM.front.x, toy.z - ROOM.front.z)).toBeLessThan(0.6);
     expect(s.actors[0].carrying).toBeNull();
+  });
+
+  it('大会や広場では、持ってきたおもちゃをすぐ front に置く', () => {
+    const s = setup(['beagle'], 'room', [ROOM.front]);
+    s.world.scene = 'contest';
+    s.world.toy = throwToy('ball', { x: 0, y: 1, z: 0.9 }, { x: 0.4, y: 1.5, z: -2.6 });
+    run(s, 25, has('fetched'));
+    expect(s.world.toy!.holder).toBeNull();
+    expect(s.actors[0].carrying).toBeNull();
+  });
+
+  it('猫はそばへ転がってきたボールを前足で何度も転がして遊び、飽きると離れる', () => {
+    // 遊ぶかどうかは気まぐれなので、遊びはじめた回を見る
+    let plays = 0;
+    for (let seed = 1; seed <= 10 && !plays; seed++) {
+      const s = { ...setup(['mike'], 'room', [{ x: -0.3, z: -0.6 }]), rng: new Rng(seed).next };
+      const toy = throwToy('ball', { x: 0.6, y: 0.05, z: 0.4 }, { x: -0.5, y: 0, z: -0.6 });
+      s.world.toy = toy;
+      const spots = new Set<string>();
+      const events = run(s, 40, undefined, () => {
+        if (s.actors[0].action === 'paw') spots.add(`${toy.x.toFixed(1)},${toy.z.toFixed(1)}`);
+      });
+      plays = events.filter((e) => e.type === 'played').length;
+      if (!plays) continue;
+      expect(plays).toBeGreaterThanOrEqual(3);
+      expect(spots.size).toBeGreaterThanOrEqual(2);
+      expect(s.actors[0].mode).not.toBe('chase');
+    }
+    expect(plays).toBeGreaterThan(0);
   });
 
   it('フリスビーはボールよりゆっくり落ちて遠くまで飛ぶ', () => {

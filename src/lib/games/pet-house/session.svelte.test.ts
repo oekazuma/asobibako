@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Activity, ActivityHost, SceneHost, Visit } from './activity';
 import { createActor, throwToy, type Actor, type WorldView } from './behavior';
 import type { Pet } from './engine';
+import { STAMPS } from './stamps';
 
 const seen: { view?: WorldView; actors?: Actor[]; pets?: Pet[]; log: string[]; renders: number } = {
   log: [],
@@ -25,6 +26,9 @@ vi.mock('./world3d', () => ({
     }
     resize() {}
     pick() {
+      return null;
+    }
+    pickPart() {
       return null;
     }
     // 画面の下の中ほどが front、上へ行くほど奥
@@ -262,6 +266,8 @@ describe('Session', () => {
     const s = make();
     s.adopt('shiba', 'ポチ');
     s.save.pets[0].stats.energy = 5;
+    // ソファで寝るとスタンプの一言が「ねているよ」を上書きするので、押し終えたことにしておく
+    s.save.stamps = STAMPS.map((t) => t.id);
     expect(frames(s, 30, () => s.asleep)).toBe(true);
     const act: Activity = { drives: true, awakeOnly: true, enter() {}, frame() {} };
     s.start(act, 'おさんぽに いくよ');
@@ -310,6 +316,38 @@ describe('Session', () => {
     expect(s.away).toBe(false);
   });
 
+  it('犬が持ってきておすわりしてくわえているおもちゃは、タップすると受け取れる', () => {
+    const s = make();
+    s.adopt('shiba', 'ポチ');
+    s.goPark();
+    s.setTool('toy', 'ball');
+    frames(s, 1);
+    s.down(1, 200, 700);
+    s.up(1, 200, 600, 0, -1500);
+    const me = () => seen.actors?.find((a) => a.petId === s.save.current);
+    expect(frames(s, 40, () => me()?.mode === 'offer')).toBe(true);
+    expect(s.away).toBe(true);
+    s.down(2, 0, 0);
+    expect(seen.view?.toy).toBeNull();
+    expect(s.away).toBe(false);
+    frames(s, 0.2);
+    expect(me()?.carrying).toBeNull();
+  });
+
+  it('止まったまま 20 秒だれも構わないおもちゃは、ひとりでに手元へ戻る', () => {
+    const s = make();
+    s.adopt('mike', 'タマ');
+    s.goPark();
+    frames(s, 1);
+    const view = seen.view!;
+    view.toy = throwToy('ball', { x: 2, y: 0.05, z: -4 }, { x: 0, y: 0, z: 0 });
+    frames(s, 15);
+    expect(view.toy).not.toBeNull();
+    expect(frames(s, 10, () => !view.toy)).toBe(true);
+    expect(s.toast).toBe('ボールが もどってきたよ');
+    expect(s.away).toBe(false);
+  });
+
   it('ソファをタップすると「〇〇、ソファに おいで」で呼んで、飛び乗らせる', () => {
     const s = make();
     s.adopt('mike', 'タマ');
@@ -320,5 +358,47 @@ describe('Session', () => {
     const me = () => seen.actors?.find((a) => a.petId === s.save.current);
     expect(frames(s, 20, () => me()?.perch === 'sofa')).toBe(true);
     expect(me()?.y).toBeGreaterThan(0.4);
+  });
+
+  it('開いた直後に満たしていたスタンプは 1 回にまとめ、そのあと満たしたものは 1 つずつ押す', () => {
+    const pet = (id: string, breed: string, accessory: string | null) => ({
+      id,
+      breed,
+      name: id,
+      stats: {},
+      love: 3.2,
+      tricks: {},
+      accessory
+    });
+    localStorage.setItem(
+      'asobibako:pet-house',
+      JSON.stringify({
+        pets: [pet('a', 'shiba', 'ribbon'), pet('b', 'mike', null)],
+        current: 'a',
+        money: 0,
+        accessories: ['ribbon']
+      })
+    );
+    const s = new Session(document.createElement('canvas'), document.createElement('canvas'));
+    s.resize(400, 800);
+    const got = [...s.save.stamps];
+    expect(got).toEqual(expect.arrayContaining(['heart1', 'heart3', 'pets2', 'both', 'dress']));
+    const toasts = new Set<string>();
+    const run = (sec: number) => {
+      for (let t = 0; t < sec; t += 0.1) {
+        s.frame(0.1);
+        if (s.toast) toasts.add(s.toast);
+      }
+    };
+    run(12);
+    const batch = [...toasts].filter((t) => t.startsWith('これまでの がんばりで'));
+    expect(batch).toEqual([`これまでの がんばりで スタンプが ${got.length}こ もらえたよ！ +${s.save.money}コイン`]);
+    expect([...toasts].some((t) => t.startsWith('スタンプ ゲット'))).toBe(false);
+
+    s.photo();
+    run(6);
+    expect(s.save.stamps).toContain('photo1');
+    expect([...toasts].filter((t) => t.startsWith('スタンプ ゲット'))).toEqual(['スタンプ ゲット！']);
+    localStorage.clear();
   });
 });

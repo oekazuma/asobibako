@@ -274,7 +274,8 @@ export const SCENES: Scene[] = [
         );
       });
       await s.startSolo();
-      await s.wait(1500);
+      // 開いた直後は、これまでのぶんのスタンプをまとめて押す演出が出るので、消えるまで待つ
+      await s.wait(10000);
       await s.press('button[aria-label="よぶ"], button:has-text("よぶ")');
       await s.wait(3500);
       await s.drag(1, wave(330, 640, 120), 900);

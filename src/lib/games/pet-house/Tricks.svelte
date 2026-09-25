@@ -1,29 +1,36 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon.svelte';
-  import { kindOf, TRICKS, type Pet } from './engine';
+  import { kindOf, trickName, trickSteps, tricksFor, type Pet } from './engine';
   import type { TrickId } from './types';
 
-  let { pet, ontrick }: { pet: Pet; ontrick: (trick: TrickId) => void } = $props();
+  let { pet, ontrick, onteach }: { pet: Pet; ontrick: (trick: TrickId) => void; onteach: (trick: TrickId) => void } =
+    $props();
 
   const kind = $derived(kindOf(pet.breed));
 </script>
 
-<p class="lead">できたら すぐに なでて ほめてあげよう</p>
+<p class="lead">できたら すぐに なでて ほめてあげよう。「おしえる」で からだを さわって おしえられるよ</p>
 <div class="list">
-  {#each TRICKS as trick (trick.id)}
+  {#each tricksFor(kind) as trick (trick.id)}
     {@const done = pet.tricks[trick.id] ?? 0}
-    <button class="pet-choice trick" class:learned={done >= trick.steps} onclick={() => ontrick(trick.id)}>
-      <span class="name">{trick[kind]}</span>
-      <span class="sr-only">おぼえた ぐあい {Math.min(done, trick.steps)} / {trick.steps}</span>
-      <span class="steps">
-        {#each { length: trick.steps }, i (i)}
-          <span class="step" class:dim={i >= done}><Icon name="star" /></span>
-        {/each}
-      </span>
-      {#if done >= trick.steps}
-        <span class="badge"><Icon name="check" />おぼえた</span>
-      {/if}
-    </button>
+    {@const steps = trickSteps(trick, kind)}
+    <div class="tile">
+      <button class="pet-choice trick" class:learned={done >= steps} onclick={() => ontrick(trick.id)}>
+        <span class="name">{trickName(trick, kind)}</span>
+        <span class="sr-only">おぼえた ぐあい {Math.min(done, steps)} / {steps}</span>
+        <span class="steps">
+          {#each { length: steps }, i (i)}
+            <span class="step" class:dim={i >= done}><Icon name="star" /></span>
+          {/each}
+        </span>
+        {#if done >= steps}
+          <span class="badge"><Icon name="check" />おぼえた</span>
+        {/if}
+      </button>
+      <button class="teach" onclick={() => onteach(trick.id)}>
+        <Icon name="pat" size="16px" />おしえる
+      </button>
+    </div>
   {/each}
 </div>
 
@@ -39,6 +46,11 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 12px;
+  }
+
+  .tile {
+    display: grid;
+    gap: 6px;
   }
 
   .trick {
@@ -76,5 +88,24 @@
     border-radius: 999px;
     background: var(--pastel-gold);
     font-size: 12px;
+  }
+
+  .teach {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 8px;
+    border: 2px solid var(--line);
+    border-radius: 999px;
+    background: var(--pastel-p1);
+    color: var(--line);
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .teach:active {
+    translate: 0 2px;
   }
 </style>

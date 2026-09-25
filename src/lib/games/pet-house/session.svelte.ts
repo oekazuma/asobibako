@@ -8,13 +8,14 @@ import {
   type Actor,
   type BehaviorEvent,
   type WorldView,
+  playing,
   wandBalls,
   wandBite
 } from './behavior';
 import { Bgm, type Track } from './bgm';
 import { speakAt, type Cry } from './cries';
 import { hasDecor, type RoomLook, type RoomPart, type RoomTheme } from './decor';
-import { PetFx } from './effects';
+import { BADGE_LIFE, PetFx } from './effects';
 import {
   SHOP,
   SLEEPY,
@@ -25,6 +26,7 @@ import {
   brush,
   buy,
   catchUp,
+  count,
   drink,
   eat,
   findPresent,
@@ -38,19 +40,27 @@ import {
   stroke,
   tick,
   trickChance,
+  trickName,
   writePhotos,
   writeSave,
+  type CounterId,
   type Pet,
   type Save,
   type ShopItem
 } from './engine';
 import { LAYOUTS, PARK, ROOM, roomPerches, type Layout, type Spot } from './layout';
+import { dislikes, FEEL, PART_NAME, strokeWeight, TRY, type Feel, type Part } from './petting';
+import { FLEA_CLEAN } from './models';
 import { sounds } from './sounds';
+import { done, drawHint, LESSONS, stroke as startStroke, track, type Stroke } from './teach';
+import { check, nearly, type Stamp } from './stamps';
 import type { AccessoryId, BaseScene, BreedId, FoodId, Scene, ToyId, TrickId } from './types';
 import { createWand, POM, stepWand, type Wand } from './wand';
-import { PetWorld } from './world3d';
+import { bodyMarks, PetWorld } from './world3d';
 
 export type Tool = 'hand' | 'brush' | 'toy';
+
+const TOY_IDLE = 20;
 
 /**
  * わんにゃんハウスの進行。画面（PetHouse.svelte）はこの状態を読み、ボタンと指をここへ渡す。
@@ -72,6 +82,8 @@ export class Session {
   tool: Tool = $state('hand');
   toy: ToyId = $state('ball');
   trickPending: { petId: string; trick: TrickId; until: number } | null = $state(null);
+  /** 体で教えている芸。あいだはペットをその場で待たせ、指の動かし方の案内を描く */
+  teaching: TrickId | null = $state(null);
   toast = $state('');
   current: Pet | undefined = $derived(this.save.pets.find((p) => p.id === this.save.current));
   /**
@@ -105,10 +117,14 @@ export class Session {
   /** 部屋のお皿。公園へ行っても残しておく */
   #bowls: WorldView['bowls'] = { food: null, foodLeft: 0, waterLeft: 0 };
   #touches: Touch[] = [];
+  /** 教えている指。lesson が 'done' になったら、同じ指ではもう数えない */
+  #lesson: { touch: Touch; stroke: Stroke; lesson: TrickId | 'done' } | null = null;
   /** 画面が 3D をほとんど隠している（おみせなどのシート）。画面が教える */
   covered = false;
   /** 最後に指が触れた時刻と、描かずにためた時間。描く回数を減らして端末の発熱を抑える */
   #touched = 0;
+  /** 床のおもちゃを誰も構わずに置いておいた秒。TOY_IDLE を過ぎると手元へ戻す */
+  #toyIdle = 0;
   #unrendered = 0;
   /** ねこじゃらしのふさ。指の下の点（tx, tz）を少し遅れて追う */
   /** plane は持ち上げはじめたときの立てた面の奥行き。寄ってくる子に合わせて動かすと、ふさが手前へ逃げ続ける */
@@ -125,7 +141,10 @@ export class Session {
   #presentWait = 0;
   /** 開いてから 1 度でもなでたか。まだなら何をすればいいかをヒントに出す */
   #stroked = false;
-  #timers = { heart: 0, purr: 0, bark: 2, sparkle: 0, munch: 0, zzz: 0, rustle: 0 };
+  /** なで方のヒントを出した回数と、この回に好きな所としてなでた場所 */
+  #tips = 0;
+  #felt: Part[] = [];
+  #timers = { heart: 0, purr: 0, bark: 2, sparkle: 0, munch: 0, zzz: 0, rustle: 0, tip: 20 };
   #snore = 0;
   /**
    * 場面の組み立ては数百 ms 画面を止める。wait フレーム待って「いどうちゅう」を 1 度描かせてから run し、
@@ -134,6 +153,14 @@ export class Session {
   #move: { run: (() => void) | null; wait: number } | null = null;
   /** むかえたばかりの子。次に部屋へ入ったとき、奥から歩いてこさせる */
   #arrival: string | null = null;
+  /**
+   * 押すのを待つスタンプ。1 つずつ間をあけて押す。配列は開いた直後の判定でまとめて見つかったもの
+   * （前の版の保存で満たしていた分）で、1 つずつ押すと長く続くので 1 回の演出にまとめる
+   */
+  #stamps: (Stamp | Stamp[])[] = [];
+  /** 開いた直後は「よみこみちゅう」の下で押してしまわないよう少し待つ */
+  #stampWait = 3;
+  #nudged = 0;
 
   constructor(canvas: HTMLCanvasElement, overlay: HTMLCanvasElement, onhint?: (t: string) => void) {
     this.#onhint = onhint;
@@ -146,13 +173,17 @@ export class Session {
     const { allowance } = catchUp(this.save, Date.now());
     this.#enter('room');
     this.#fitToy();
+    const back = check(this.save);
+    if (back.length) this.#stamps.push(back.length > 1 ? back : back[0]);
+    this.#dirty = true;
     if (allowance) this.#say(`おこづかい ${allowance}コイン もらったよ！`);
     document.addEventListener('visibilitychange', this.#onVisibility);
   }
 
   #onVisibility = () => {
-    if (document.visibilityState === 'hidden') return this.#write();
+    if (document.visibilityState === 'hidden') return this.#write(false);
     const { allowance } = catchUp(this.save, Date.now());
+    this.#dirty = true;
     if (allowance) this.#say(`おこづかい ${allowance}コイン もらったよ！`);
   };
 
@@ -172,6 +203,7 @@ export class Session {
     this.#wand.on = false;
     this.#spawnActors();
     if (scene === 'park') for (let i = 0; i < 3; i++) this.#spawnPresent();
+    if (scene === 'park') this.#count('walk');
     this.#music();
   }
 
@@ -240,7 +272,12 @@ export class Session {
     this.#toastUntil = this.#now + seconds;
   }
 
-  #write() {
+  /**
+   * 条件の多くはハート・芸・持ちものなど save から数えるので、書くたび（1 秒に 1 回まで）にまとめて確かめる。
+   * 閉じる・隠れるときは押しても見せられないので確かめず、次に開いたときに押す
+   */
+  #write(stamp = true) {
+    if (stamp) this.#stamps.push(...check(this.save));
     writeSave($state.snapshot(this.save));
     this.#dirty = false;
     this.#wrote = this.#now;
@@ -285,17 +322,27 @@ export class Session {
       this.#view.current = this.save.current;
       this.#stepWand(dt);
       this.#rub(dt);
+      this.#teachTick();
       for (const e of think(this.#actors, pets, this.#view, dt, Math.random)) if (!act?.event?.(e)) this.#event(e);
     }
     this.#ambient(dt);
     this.#bgm.tick();
+    if (!this.activity) this.#toyReturn(dt);
     const away = !this.activity && this.#toyAway();
     if (away !== this.away) this.away = away;
 
     if (this.trickPending && this.#now > this.trickPending.until) this.trickPending = null;
     if (this.toast && this.#now > this.#toastUntil) this.toast = '';
+    this.#stampTick(dt);
     const hint =
-      this.toast || (this.activity ? '' : this.trying ? `${this.current?.name}に にあうかな？` : this.#moodText());
+      this.toast ||
+      (this.activity
+        ? ''
+        : this.trying
+          ? `${this.current?.name}に にあうかな？`
+          : this.teaching
+            ? LESSONS[this.teaching].text
+            : this.#moodText());
     if (hint !== this.#hint) {
       this.#hint = hint;
       this.#onhint?.(hint);
@@ -322,6 +369,7 @@ export class Session {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, this.#w, this.#h);
     this.#fx.draw(ctx, this.#w, this.#h);
+    this.#drawLesson(ctx);
   }
 
   /**
@@ -375,6 +423,7 @@ export class Session {
       case 'thirsty':
         return `${n}は のどが かわいてるみたい`;
       case 'dirty':
+        if (pet.stats.clean < FLEA_CLEAN) return `${n}が かゆそう。おふろに いれてあげよう`;
         return `${n}が よごれてるよ。ブラシで きれいに しよう`;
       case 'sleepy':
         return `${n}は ねむそう`;
@@ -391,6 +440,7 @@ export class Session {
     this.#dirty = true;
     switch (e.type) {
       case 'ate':
+        this.#count('meal');
         eat(pet, e.food);
         this.#fx.hearts(x, y, 3);
         return;
@@ -399,9 +449,18 @@ export class Session {
         this.#fx.hearts(x, y, 2);
         return;
       case 'fetched':
+        this.#count('fetch');
         play(pet);
+        if (a.mode === 'offer') return this.#say(`${pet.name}の くちの おもちゃを タップして うけとろう`, 4);
         this.#fx.hearts(x, y, 4);
         this.#fx.text('よく できました！', x, y - 30);
+        return;
+      case 'urge':
+        this.#fx.text('なげて！', x, y - 30);
+        return;
+      case 'played':
+        play(pet, 0.2);
+        this.#fx.hearts(x, y, 1);
         return;
       case 'caught':
         play(pet);
@@ -409,6 +468,7 @@ export class Session {
         this.#fx.sparkle(x, y, 4);
         return;
       case 'leap':
+        if (this.#view.wand && !a.hop) this.#count('leap');
         sounds.leap();
         return;
       case 'found':
@@ -419,8 +479,41 @@ export class Session {
         this.#fx.note(x, y);
         return;
       case 'sleep':
+        if (a.perch === 'sofa') this.#count('nap');
+        if (a.perch && this.#actors.some((o) => o !== a && o.asleep && o.perch === a.perch)) this.#count('napTogether');
         return this.#voice(pet, 'yawn');
+      case 'petted':
+        return this.#petted(pet, e.feel, x, y);
     }
+  }
+
+  #petted(pet: Pet, feel: Feel, x: number, y: number) {
+    const f = FEEL[feel];
+    const n = 1 + Math.floor(pet.love / 2);
+    const sour = feel === 'enough' || feel === 'flick' || feel === 'swat';
+    this.#fx.text(f.say, x, y - 72, sour ? '#9a7b66' : '#ff5fa2', 30);
+    this.#voice(pet, f.cry[kindOf(pet.breed)]);
+    if (feel === 'melt') {
+      this.#fx.hearts(x, y, 2 + n);
+      this.#fx.sparkle(x, y, 3);
+    } else if (feel === 'like') {
+      this.#fx.hearts(x, y, n);
+      this.#fx.note(x, y);
+    } else if (feel === 'swat') this.#fx.sparkle(x, y, 2);
+    else if (!sour) this.#fx.note(x, y);
+  }
+
+  /** なで方の発見をうながす。1 度なでたあと、まだなでていない好きな所があれば、最初の数回だけ出す */
+  #tip() {
+    this.#timers.tip = 35;
+    const pet = this.current;
+    if (!pet || !this.#stroked || this.#tips >= 3 || this.activity || this.trying || this.teaching || this.toast)
+      return;
+    const kind = kindOf(pet.breed);
+    const part = TRY[kind].find((p) => !this.#felt.includes(p) && !dislikes(kind, pet.love, p));
+    if (!part) return;
+    this.#tips++;
+    this.#say(`${PART_NAME[part]}を なでてみよう`, 4);
   }
 
   #voice(pet: Pet, cry: Cry = moodCry(pet)) {
@@ -429,6 +522,7 @@ export class Session {
   }
 
   #found(pet: Pet, x: number, y: number) {
+    this.#count('found');
     const found = findPresent(this.save, Math.random);
     if ('money' in found) {
       this.#fx.coins(x, y, this.#purse(), Math.min(8, Math.round(found.money / 10)));
@@ -464,19 +558,23 @@ export class Session {
       moved: 0,
       rub: 0,
       pet: null,
+      part: null,
+      stray: 0,
       mode: 'floor'
     };
     this.#touches.push(touch);
+    if (this.#teachDown(touch)) return;
     if (this.tool === 'toy') {
       touch.mode = this.toy === 'wand' ? 'wand' : 'throw';
       if (touch.mode === 'wand') this.#aimWand(px, py);
       return;
     }
-    const hit = this.#world.pick(px, py);
+    const hit = this.#world.pickPart(px, py);
     if (!hit) return;
     touch.mode = 'rub';
-    touch.pet = hit;
-    if (hit !== this.save.current) this.select(hit);
+    touch.pet = hit.id;
+    touch.part = hit.part;
+    if (hit.id !== this.save.current) this.select(hit.id);
   }
 
   move(id: number, px: number, py: number): void {
@@ -490,13 +588,19 @@ export class Session {
     touch.y = py;
     if (touch.mode === 'wand') return this.#aimWand(px, py);
     if (touch.mode === 'throw') return;
-    const hit = this.#world.pick(px, py);
+    if (touch.mode === 'teach') return this.#teachMove(touch);
+    const hit = this.#world.pickPart(px, py);
     // 床から指をすべらせてペットに乗ったら、そこからなではじめる
     if (touch.mode === 'floor' && hit && touch.moved > 20) {
       touch.mode = 'rub';
-      touch.pet = hit;
+      touch.pet = hit.id;
     }
-    if (touch.mode === 'rub' && hit === touch.pet) touch.rub += d;
+    if (touch.mode === 'rub' && hit?.id === touch.pet) {
+      touch.rub += d;
+      // 場所の境目の上で指を往復させても、なで続けた秒が切れないよう、別の場所をしばらくなでてから移る
+      touch.stray = hit.part === touch.part ? 0 : touch.stray + d;
+      if (!touch.part || touch.stray > this.#h * 0.04) [touch.part, touch.stray] = [hit.part, 0];
+    }
   }
 
   up(id: number, px: number, py: number, vx: number, vy: number): void {
@@ -504,7 +608,9 @@ export class Session {
     const touch = this.#touches.find((t) => t.id === id);
     this.#touches = this.#touches.filter((t) => t !== touch);
     if (!touch) return;
+    if (this.#lesson?.touch === touch) this.#lesson = null;
     if (touch.mode === 'rub') this.#world.setBrush(null);
+    if (touch.mode === 'rub' && this.tool === 'hand' && touch.moved > 30) this.#count('stroke');
     if (touch.mode === 'wand') this.#wand.on = this.#touches.some((t) => t.mode === 'wand');
     if (touch.mode === 'throw') this.#throw(touch, px, py, vx, vy);
     if (touch.mode === 'floor' && touch.moved < 16 && this.#now - touch.t0 < 0.6) this.#callTo(px, py);
@@ -513,7 +619,8 @@ export class Session {
   /** なでる・ブラシ。このフレームに指がペットの上で動いた距離だけ効く */
   #rub(dt: number) {
     const t = this.#timers;
-    for (const k of ['heart', 'purr', 'bark', 'sparkle'] as const) t[k] -= dt;
+    for (const k of ['heart', 'purr', 'bark', 'sparkle', 'tip'] as const) t[k] -= dt;
+    if (t.tip <= 0) this.#tip();
     for (const touch of this.#touches) {
       if (touch.mode !== 'rub' || !touch.pet) continue;
       const pet = this.#pet(touch.pet);
@@ -523,7 +630,8 @@ export class Session {
       const amount = Math.min(touch.rub / (this.#h * 0.3), dt * 2);
       touch.rub = 0;
       if (!pet || !a || a.asleep || amount <= 0) continue;
-      command(a, pet, { type: brushing ? 'brush' : 'stroke' });
+      const at = this.#world.floor(touch.x, touch.y, a.y + 0.25) ?? undefined;
+      command(a, pet, brushing ? { type: 'brush' } : { type: 'stroke', part: touch.part ?? undefined, amount, at });
       this.#dirty = true;
       if (brushing) {
         const was = pet.stats.clean;
@@ -540,18 +648,26 @@ export class Session {
         }
         continue;
       }
-      stroke(pet, amount);
+      if (a.shy > 0) continue;
+      const kind = kindOf(pet.breed);
+      const part = a.rub?.part ?? touch.part;
+      const weight = part ? strokeWeight(kind, pet.love, part, a.rub?.s ?? 0) : 1;
+      stroke(pet, amount, weight);
       this.#stroked = true;
-      if (t.heart <= 0) {
-        t.heart = 0.22;
-        this.#fx.hearts(touch.x, touch.y - 20);
+      if (part && weight > 0 && !this.#felt.includes(part)) this.#felt.push(part);
+      if (weight > 0 && t.heart <= 0) {
+        // 好きな所ほど、なかよしが多いほど、ハートがよく出る
+        t.heart = 0.22 / Math.min(2, weight * (1 + 0.1 * Math.floor(pet.love)));
+        // 顔の上に出すと、目を細めているのが隠れる
+        const face = part === 'head' || part === 'chin' || part === 'cheek';
+        this.#fx.hearts(touch.x, touch.y - (face ? 80 : 20));
       }
-      const cat = kindOf(pet.breed) === 'cat';
-      if (cat && t.purr <= 0) {
-        t.purr = 1.05;
+      const cat = kind === 'cat';
+      if (cat && weight > 0 && t.purr <= 0) {
+        t.purr = part === 'chin' || part === 'cheek' ? 0.7 : 1.05;
         speakAt(this.#fx, pet.breed, 'purr', this.#above(a));
       }
-      if (t.bark <= 0) {
+      if (weight > 0 && t.bark <= 0) {
         t.bark = cat ? 5 + Math.random() * 4 : 2.5 + Math.random() * 2;
         if (Math.random() < 0.5) {
           this.#voice(pet, cat ? 'sweet' : 'happy');
@@ -580,8 +696,9 @@ export class Session {
       return;
     }
     this.save.money += TRICK_REWARD;
+    if (this.teaching === trick) this.teaching = null;
     const t = TRICKS.find((k) => k.id === trick);
-    const name = t ? (kindOf(pet.breed) === 'dog' ? t.dog : t.cat) : '';
+    const name = t ? trickName(t, kindOf(pet.breed)) : '';
     this.#say(`「${name}」を おぼえた！ +${TRICK_REWARD}コイン`, 4);
     this.#fx.confetti(x, y);
     this.#fx.coins(x, y, this.#purse(), 6);
@@ -606,15 +723,47 @@ export class Session {
     const t = this.#view.toy;
     if (!t || !this.away) return false;
     const holder = t.holder ? this.#actor(t.holder) : undefined;
-    if (t.holder && !holder?.asleep) return false;
+    const offered = holder?.mode === 'offer';
+    if (t.holder && !holder?.asleep && !offered) return false;
     const [x, y] = this.#world.project(t.x, t.y, t.z);
     if (Math.hypot(px - x, py - y) > 60) return false;
+    this.#toHand(x, y);
+    const pet = holder && this.#pet(holder.petId);
+    if (!offered || !holder || !pet) return true;
+    const [hx, hy] = this.#above(holder);
+    this.#fx.hearts(hx, hy, 4);
+    this.#fx.text('ありがとう！', hx, hy - 30);
+    this.#voice(pet, 'happy');
+    return true;
+  }
+
+  #toHand(x: number, y: number) {
+    const t = this.#view.toy;
+    const holder = t?.holder ? this.#actor(t.holder) : undefined;
     if (holder) holder.carrying = null;
     this.#view.toy = null;
     this.away = false;
+    this.#toyIdle = 0;
     this.#fx.sparkle(x, y, 3);
     sounds.pop();
-    return true;
+  }
+
+  /** 止まったまま誰も構わない（咥えたまま寝た子のものも）おもちゃは、しばらくするとひとりでに手元へ戻る */
+  #toyReturn(dt: number) {
+    const t = this.#view.toy;
+    const holder = t?.holder ? this.#actor(t.holder) : undefined;
+    const left =
+      !!t &&
+      t.kind !== 'wand' &&
+      (holder ? holder.asleep : t.still) &&
+      !this.#touches.length &&
+      !this.#actors.some(playing);
+    this.#toyIdle = left ? this.#toyIdle + dt : 0;
+    if (!t || this.#toyIdle < TOY_IDLE) return;
+    const away = this.#toyAway();
+    const [x, y] = this.#world.project(t.x, t.y, t.z);
+    this.#toHand(x, y);
+    if (away) this.#say(`${itemName(t.kind)}が もどってきたよ`);
   }
 
   #clampToFloor(p: Spot): Spot {
@@ -697,6 +846,8 @@ export class Session {
     const out = this.#view.toy;
     if (this.away && !this.activity && out) {
       if (out.still && !out.holder) return this.#say('おもちゃを タップして ひろってね', 2);
+      if (out.holder && this.#actor(out.holder)?.mode === 'offer')
+        return this.#say('くちの おもちゃを タップして うけとってね', 2);
       const chaser = this.#actors.find((a) => a.mode === 'chase' && this.#isDog(a.petId));
       const pet = this.#pet(out.holder ?? chaser?.petId ?? this.save.current);
       const dog = pet && kindOf(pet.breed) === 'dog';
@@ -748,6 +899,7 @@ export class Session {
   select(petId: string): void {
     if (this.activity || !this.#pet(petId) || this.save.current === petId) return;
     this.trying = null;
+    this.teaching = null;
     this.save.current = petId;
     this.#dirty = true;
     this.#fitToy();
@@ -810,6 +962,86 @@ export class Session {
       this.#fx.text('？', x, y, '#1f9bff', 44);
       this.#say('うまく できなかった。もう いちど');
     }
+  }
+
+  // --- 体で教える ---
+
+  /** 芸を体で教えはじめる。null でやめる */
+  teach(trick: TrickId | null): void {
+    this.#lesson = null;
+    const pet = this.current;
+    const a = this.#actor();
+    if (!trick || !pet || !a || this.activity) return void (this.teaching = null);
+    if (a.asleep || a.carrying || a.mode === 'eat' || a.mode === 'drink') return this.#say('いまは できないみたい');
+    this.teaching = trick;
+    this.trickPending = null;
+    this.setTool('hand');
+    command(a, pet, { type: 'teach' });
+  }
+
+  /** 教えるあいだはその場で待たせる。寝てしまったらやめる */
+  #teachTick() {
+    const trick = this.teaching;
+    if (!trick) return;
+    const pet = this.current;
+    const a = this.#actor();
+    if (!pet || !a || a.asleep) return void (this.teaching = null);
+    const l = this.#lesson;
+    if (l && l.lesson !== 'done' && LESSONS[trick].motion === 'hold') this.#teachMove(l.touch);
+    if (a.mode !== 'act' && a.mode !== 'held' && a.mode !== 'hop' && !this.trickPending)
+      command(a, pet, { type: 'teach' });
+  }
+
+  /** 案内の場所に指を置いたら、なでるかわりに教える指にする */
+  #teachDown(touch: Touch): boolean {
+    const trick = this.teaching;
+    if (!trick || this.tool !== 'hand' || this.trickPending) return false;
+    const hit = this.#world.pickPart(touch.x, touch.y);
+    if (!hit || hit.id !== this.save.current || !LESSONS[trick].parts.includes(hit.part)) return false;
+    touch.mode = 'teach';
+    this.#lesson = { touch, stroke: startStroke(touch.x, touch.y, this.#now), lesson: trick };
+    this.#teachMove(touch);
+    return true;
+  }
+
+  #teachMove(touch: Touch) {
+    const l = this.#lesson;
+    const pet = this.current;
+    const a = this.#actor();
+    if (!l || l.touch !== touch || l.lesson === 'done' || !pet || !a) return;
+    track(l.stroke, touch.x, touch.y);
+    const at = this.#partAt(pet.id, LESSONS[l.lesson].parts[0]);
+    if (!done(LESSONS[l.lesson], l.stroke, this.#now, at?.unit ?? 120)) return;
+    // 体をそのかっこうへ導いたので、ボタンとちがって必ずできる
+    const trick = l.lesson;
+    l.lesson = 'done';
+    command(a, pet, { type: 'trick', trick, success: true });
+    this.trickPending = { petId: pet.id, trick, until: this.#now + 4 };
+    this.#fx.sparkle(...this.#above(a), 4);
+    sounds.sparkle();
+    this.#say('できた！ ゆびを はなして なでて ほめて あげよう');
+  }
+
+  /** 体の場所の画面の位置と、画面でのペットの大きさの目安（ピクセル）。案内の印を置く */
+  #partAt(petId: string, part: Part) {
+    const group = this.#world.model(petId)?.group;
+    if (!group) return null;
+    group.updateMatrixWorld(true);
+    const mark = bodyMarks(group).find((m) => m.part === part);
+    if (!mark) return null;
+    const [x, y, k] = this.#world.project(mark.at.x, mark.at.y, mark.at.z);
+    return { x, y, unit: k * 0.3 };
+  }
+
+  #drawLesson(ctx: CanvasRenderingContext2D) {
+    const trick = this.teaching;
+    const pet = this.current;
+    const a = this.#actor();
+    // 横を向いて待っているあいだだけ出す。芸のあとカメラを向いているあいだは、印が体の別の所に重なる
+    if (!trick || !pet || this.trickPending || this.activity || a?.mode !== 'act' || !a.side) return;
+    const l = LESSONS[trick];
+    const at = this.#partAt(pet.id, l.parts[0]);
+    if (at) drawHint(ctx, l, at.x, at.y, this.#now, at.unit);
   }
 
   /** いまのペットが寝ている。おさんぽ（モード）を始める前に画面が確かめる */
@@ -921,6 +1153,7 @@ export class Session {
 
   photo(): void {
     addPhoto(this.save, this.#world.snapshot());
+    this.#count('photo');
     writePhotos(this.save);
     this.#fx.flash();
     sounds.shutter();
@@ -960,6 +1193,7 @@ export class Session {
     this.#touches = [];
     this.#wand.on = false;
     this.trickPending = null;
+    this.teaching = null;
     this.#before = { tool: this.tool, toy: this.toy };
   }
 
@@ -1005,6 +1239,7 @@ export class Session {
       voice: (cry?: Cry) => void (pet && this.#voice(pet, cry)),
       music: (track: Track | null) => this.#bgm.play(track),
       changed: () => (this.#dirty = true),
+      count: (key: CounterId, n?: number) => this.#count(key, n),
       found: (a: Actor) => {
         const p = this.#pet(a.petId);
         if (!p) return;
@@ -1016,12 +1251,52 @@ export class Session {
     };
   }
 
+  // --- スタンプ帳 ---
+
+  /** 押すかどうかは次の #write でまとめて確かめる */
+  #count(key: CounterId, n = 1) {
+    count(this.save, key, n);
+    this.#dirty = true;
+  }
+
+  /**
+   * たまったスタンプを 1 つずつ押す。シートの下・移動中・遊びのモードの HUD の上では見えにくいので、部屋か公園に戻るまで待つ。
+   * あと少しで押せるものは、ほかに言うことがないときだけ 2 分半に 1 回ほど知らせる
+   */
+  #stampTick(dt: number) {
+    this.#stampWait -= dt;
+    if (this.#stamps.length && this.#stampWait <= 0 && !this.covered && !this.moving && !this.activity)
+      this.#press(this.#stamps.shift()!);
+    if (this.activity || this.covered || this.toast || this.#now - this.#nudged < 150) return;
+    this.#nudged = this.#now;
+    const near = !this.#moodText() && nearly(this.save);
+    if (near) this.#say(`あと すこしで スタンプ「${near.name}」が もらえるよ`, 4);
+  }
+
+  #press(item: Stamp | Stamp[]) {
+    const list = [item].flat();
+    const one = list.length === 1 ? list[0] : null;
+    const reward = list.reduce((sum, s) => sum + (s.reward ?? 0), 0);
+    const coins = reward ? ` +${reward}コイン` : '';
+    this.#stampWait = BADGE_LIFE + 0.4;
+    // 描く回数を落とすと押される動きがかくつくので、指で遊んでいるときと同じにする
+    this.#touched = this.#now + 1;
+    const r = Math.max(48, Math.min(90, Math.min(this.#w, this.#h) * 0.13));
+    const [x, y] = [this.#w / 2, this.#h * 0.34];
+    if (one) this.#fx.stamp(one.name, one.icon, one.color, x, y, r);
+    else this.#fx.stamp(`スタンプ ${list.length}こ`, 'star', '#ffc233', x, y, r);
+    sounds.stamp();
+    if (reward) setTimeout(() => this.#fx.coins(x, y, this.#purse(), one ? 6 : 12), 900);
+    if (one) this.#say(`スタンプ ゲット！${coins}`, 4);
+    else this.#say(`これまでの がんばりで スタンプが ${list.length}こ もらえたよ！${coins}`, 6);
+  }
+
   dispose(): void {
     this.activity?.exit?.();
     // お皿は保存しないので、入れたばかりで手つかずのごはんは在庫へ戻す
     const bowl = this.#bowls;
     if (bowl.food && bowl.foodLeft > 0.9) this.save.food[bowl.food] += 1;
-    this.#write();
+    this.#write(false);
     document.removeEventListener('visibilitychange', this.#onVisibility);
     this.#bgm.stop();
     this.#world.dispose();
@@ -1061,7 +1336,11 @@ interface Touch {
   /** このフレームにペットの上で動いた距離（ピクセル） */
   rub: number;
   pet: string | null;
-  mode: 'rub' | 'floor' | 'wand' | 'throw';
+  /** 指の下の体の場所。ペットの上を動くたびに引き直す */
+  part: Part | null;
+  /** part と違う場所の上を続けて動いた距離（ピクセル） */
+  stray: number;
+  mode: 'rub' | 'floor' | 'wand' | 'throw' | 'teach';
 }
 
 const eatsFood = (pet: Pet, food: FoodId) => eats(kindOf(pet.breed) === 'dog', food);

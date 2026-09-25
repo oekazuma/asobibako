@@ -51,7 +51,28 @@ export interface Save {
   decor: string[];
   /** いまの部屋の見た目 */
   room: RoomLook;
+  /** 押したスタンプ（stamps.ts の id）。押した順 */
+  stamps: string[];
+  /** スタンプのために数える回数。days は遊んだ日数（連続でなくてよい） */
+  counters: Record<CounterId, number>;
 }
+
+export const COUNTERS = [
+  'stroke',
+  'meal',
+  'bath',
+  'walk',
+  'photo',
+  'found',
+  'greet',
+  'poop',
+  'leap',
+  'fetch',
+  'nap',
+  'napTogether',
+  'days'
+] as const;
+export type CounterId = (typeof COUNTERS)[number];
 
 export const STORAGE_KEY = 'asobibako:pet-house';
 /**
@@ -110,8 +131,18 @@ export function newSave(now: number): Save {
     photos: [],
     contest: { frisbee: 0, wand: 0, agility: 0, obedience: 0 },
     decor: [],
-    room: { ...NATURAL_ROOM }
+    room: { ...NATURAL_ROOM },
+    stamps: [],
+    counters: newCounters()
   };
+}
+
+const newCounters = () =>
+  Object.fromEntries(COUNTERS.map((c) => [c, c === 'days' ? 1 : 0])) as Record<CounterId, number>;
+
+/** スタンプのために 1 つ数える */
+export function count(save: Save, key: CounterId, n = 1): void {
+  save.counters[key] = Math.min(999999, save.counters[key] + n);
 }
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -159,6 +190,7 @@ export function loadSave(): Save | null {
       .slice(0, MAX_PETS);
     const food = isObj(raw.food) ? raw.food : {};
     const contest = isObj(raw.contest) ? raw.contest : {};
+    const counters = isObj(raw.counters) ? raw.counters : {};
     const list = <T extends string>(all: readonly T[], v: unknown): T[] =>
       Array.isArray(v) ? all.filter((id) => v.includes(id)) : [];
     return {
@@ -177,7 +209,13 @@ export function loadSave(): Save | null {
       contest: Object.fromEntries(
         CONTEST_IDS.map((c) => [c, Math.floor(num(contest[c], 0, 0, CONTEST_RANKS))])
       ) as Record<ContestId, number>,
-      ...repairDecor(raw.decor, raw.room)
+      ...repairDecor(raw.decor, raw.room),
+      stamps: Array.isArray(raw.stamps)
+        ? [...new Set(raw.stamps.filter((v): v is string => typeof v === 'string' && v.length <= 32))]
+        : [],
+      counters: Object.fromEntries(
+        COUNTERS.map((c) => [c, Math.floor(num(counters[c], c === 'days' ? 1 : 0, 0, 999999))])
+      ) as Record<CounterId, number>
     };
   } catch {
     return null;
@@ -231,6 +269,7 @@ export function catchUp(save: Save, now: number): { allowance: number } {
   if (save.allowanceDay === today) return { allowance: 0 };
   save.allowanceDay = today;
   save.money += ALLOWANCE;
+  count(save, 'days');
   return { allowance: ALLOWANCE };
 }
 
@@ -296,9 +335,9 @@ export function drink(pet: Pet): void {
   grow(pet, 0.03);
 }
 
-/** amount はこすった秒数 */
-export function stroke(pet: Pet, amount: number): void {
-  grow(pet, amount * STROKE_RATE);
+/** amount はこすった秒数、weight はなでた所の好き嫌い（petting.ts の strokeWeight） */
+export function stroke(pet: Pet, amount: number, weight = 1): void {
+  grow(pet, amount * STROKE_RATE * weight);
 }
 
 /** amount はブラシでこすった秒数。0 から 12 秒ほどでぴかぴか */
@@ -393,10 +432,13 @@ function buyDecor(save: Save, id: DecorId): 'ok' | 'money' | 'owned' {
 export interface Trick {
   id: TrickId;
   dog: string;
-  cat: string;
+  /** 猫の呼び名。猫が覚えない芸には無い */
+  cat?: string;
   action: PetAction;
   /** 覚えきるまでにほめる回数 */
   steps: number;
+  /** 猫が覚えきるまでの回数。無ければ steps */
+  catSteps?: number;
 }
 
 export const TRICKS: Trick[] = [
@@ -404,18 +446,31 @@ export const TRICKS: Trick[] = [
   { id: 'down', dog: 'ふせ', cat: 'ふせ', action: 'down', steps: 5 },
   { id: 'paw', dog: 'おて', cat: 'ねこパンチ', action: 'paw', steps: 5 },
   { id: 'roll', dog: 'ごろん', cat: 'ごろん', action: 'roll', steps: 6 },
-  { id: 'jump', dog: 'ジャンプ', cat: 'ジャンプ', action: 'jump', steps: 5 }
+  { id: 'jump', dog: 'ジャンプ', cat: 'ジャンプ', action: 'jump', steps: 5 },
+  { id: 'beg', dog: 'ちんちん', action: 'beg', steps: 6 },
+  { id: 'spin', dog: 'おまわり', cat: 'くるりん', action: 'spin', steps: 5, catSteps: 7 },
+  { id: 'high', dog: 'ハイタッチ', cat: 'ハイタッチ', action: 'high', steps: 6, catSteps: 8 },
+  { id: 'bow', dog: 'おじぎ', cat: 'のびー', action: 'bow', steps: 5, catSteps: 7 },
+  { id: 'dead', dog: 'しんだふり', action: 'dead', steps: 6 }
 ];
 
 const trickOf = (id: TrickId) => TRICKS.find((t) => t.id === id) ?? TRICKS[0];
 
+/** その種類が覚えられる芸。猫は犬より少ない */
+export const tricksFor = (kind: Kind) => TRICKS.filter((t) => kind === 'dog' || t.cat);
+
+export const trickName = (t: Trick, kind: Kind) => (kind === 'dog' ? t.dog : (t.cat ?? t.dog));
+
+export const trickSteps = (t: Trick, kind: Kind) => (kind === 'cat' ? (t.catSteps ?? t.steps) : t.steps);
+
 /** 覚えた度合い 0..1 */
 export function trickProgress(pet: Pet, trick: TrickId): number {
-  return Math.min(1, (pet.tricks[trick] ?? 0) / trickOf(trick).steps);
+  return Math.min(1, (pet.tricks[trick] ?? 0) / trickSteps(trickOf(trick), kindOf(pet.breed)));
 }
 
-/** 覚えはじめでも 3 回に 1 回は成功し、ほめるほど上がる。覚えきればほぼ失敗しない */
+/** 覚えはじめでも 3 回に 1 回は成功し、ほめるほど上がる。覚えきればほぼ失敗しない。猫が覚えない芸はできない */
 export function trickChance(pet: Pet, trick: TrickId): number {
+  if (!tricksFor(kindOf(pet.breed)).some((t) => t.id === trick)) return 0;
   const p = trickProgress(pet, trick);
   if (p >= 1) return 0.95;
   const sleepy = pet.stats.energy < SLEEPY ? 0.1 : 0;
@@ -425,7 +480,7 @@ export function trickChance(pet: Pet, trick: TrickId): number {
 /** 成功した直後にほめたとき。覚えきった瞬間だけ learned。お金は画面が TRICK_REWARD を足す */
 export function praise(pet: Pet, trick: TrickId): { learned: boolean } {
   grow(pet, 0.05);
-  const steps = trickOf(trick).steps;
+  const steps = trickSteps(trickOf(trick), kindOf(pet.breed));
   const count = pet.tricks[trick] ?? 0;
   if (count >= steps) return { learned: false };
   pet.tricks[trick] = count + 1;

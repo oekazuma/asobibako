@@ -1,4 +1,4 @@
-import { CONFETTI, Floaters, Particles, icon } from '$lib/fx';
+import { CONFETTI, Floaters, Particles, icon, label } from '$lib/fx';
 import type { IconName } from '$lib/icons';
 
 /**
@@ -20,6 +20,21 @@ interface Bit {
   to?: [number, number];
 }
 
+interface Badge {
+  name: string;
+  icon: IconName;
+  color: string;
+  x: number;
+  y: number;
+  r: number;
+  age: number;
+}
+
+/** スタンプが上から押されるまで・押されたまま見せる・消える、の秒 */
+const BADGE_HIT = 0.2;
+const BADGE_HOLD = 2.4;
+export const BADGE_LIFE = 2.8;
+
 interface Ripple {
   x: number;
   y: number;
@@ -34,6 +49,7 @@ export class PetFx {
   readonly bits: Bit[] = [];
   readonly ripples: Ripple[] = [];
   #flash = 0;
+  #badge: Badge | null = null;
 
   hearts(x: number, y: number, n = 1): void {
     for (let i = 0; i < n; i++)
@@ -118,6 +134,11 @@ export class PetFx {
     this.#flash = 1;
   }
 
+  /** スタンプ帳のスタンプを、(x, y) を中心に半径 r で押す。前のものが残っていれば置きかえる */
+  stamp(name: string, kind: IconName, color: string, x: number, y: number, r: number): void {
+    this.#badge = { name, icon: kind, color, x, y, r, age: 0 };
+  }
+
   step(dt: number): void {
     this.particles.step(dt);
     this.floaters.step(dt);
@@ -139,6 +160,13 @@ export class PetFx {
     for (const r of this.ripples) r.age += dt;
     for (let i = this.ripples.length - 1; i >= 0; i--) if (this.ripples[i].age > 0.6) this.ripples.splice(i, 1);
     this.#flash = Math.max(0, this.#flash - dt * 2.5);
+    const b = this.#badge;
+    if (!b) return;
+    const was = b.age;
+    b.age += dt;
+    if (was < BADGE_HIT && b.age >= BADGE_HIT)
+      this.particles.burst(b.x, b.y, { count: 28, color: CONFETTI, speed: 360, size: 5, life: 0.9, gravity: 500 });
+    if (b.age > BADGE_LIFE) this.#badge = null;
   }
 
   draw(ctx: CanvasRenderingContext2D, w: number, h: number): void {
@@ -163,6 +191,7 @@ export class PetFx {
     }
     ctx.globalAlpha = 1;
     this.floaters.draw(ctx);
+    if (this.#badge) badge(ctx, this.#badge);
     if (this.#flash > 0) {
       ctx.globalAlpha = this.#flash;
       ctx.fillStyle = '#ffffff';
@@ -191,4 +220,37 @@ function note(ctx: CanvasRenderingContext2D, x: number, y: number, size: number)
   ctx.lineWidth = 3;
   ctx.stroke(stem);
   ctx.restore();
+}
+
+/** 上から大きく落ちてきて、ぽんと押されたスタンプ。少し傾けて、はんこらしく見せる */
+function badge(ctx: CanvasRenderingContext2D, b: Badge) {
+  const t = b.age;
+  const fall = Math.min(1, t / BADGE_HIT);
+  const bounce = t < BADGE_HIT ? 0 : Math.exp(-(t - BADGE_HIT) * 9) * Math.sin((t - BADGE_HIT) * 30) * 0.08;
+  const scale = (2.4 - 1.4 * fall * fall) * (1 + bounce);
+  ctx.save();
+  ctx.globalAlpha = Math.min(1, fall * 1.5, (BADGE_LIFE - t) / (BADGE_LIFE - BADGE_HOLD));
+  ctx.translate(b.x, b.y);
+  ctx.rotate(-0.16);
+  ctx.scale(scale, scale);
+  const r = b.r;
+  ctx.fillStyle = '#fffaf0';
+  ctx.strokeStyle = b.color;
+  ctx.lineWidth = r * 0.16;
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.setLineDash([r * 0.1, r * 0.09]);
+  ctx.lineWidth = r * 0.04;
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 0.78, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  icon(ctx, b.icon, 0, -r * 0.05, r * 1.05, 0, 192);
+  ctx.restore();
+  if (t < BADGE_HIT) return;
+  ctx.globalAlpha = Math.min(1, (t - BADGE_HIT) * 5, (BADGE_LIFE - t) / (BADGE_LIFE - BADGE_HOLD));
+  label(ctx, b.name, b.x, b.y + r * 1.4, Math.min(r * 0.42, (r * 5) / b.name.length), '#5b4a42');
+  ctx.globalAlpha = 1;
 }

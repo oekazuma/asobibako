@@ -1,4 +1,4 @@
-import { CONTEST_RANKS, SLEEPY, TRICKS, kindOf, type Pet, type Save } from './engine';
+import { CONTEST_RANKS, SLEEPY, kindOf, tricksFor, type Pet, type Save } from './engine';
 import type { Layout, Spot } from './layout';
 import type { ContestId, Kind, TrickId } from './types';
 
@@ -220,11 +220,12 @@ export function trickPoints(ok: boolean, seconds: number): number {
 
 export const OBEDIENCE_ROUNDS = 5;
 
-/** しつけ大会で審判が言う芸。同じ芸は続けない */
-export function orders(rng: () => number, n = OBEDIENCE_ROUNDS): TrickId[] {
+/** しつけ大会で審判が言う芸。その種類が覚えられる芸から出し、同じ芸は続けない */
+export function orders(rng: () => number, n = OBEDIENCE_ROUNDS, kind: Kind = 'dog'): TrickId[] {
+  const pool = tricksFor(kind);
   const out: TrickId[] = [];
   while (out.length < n) {
-    const t = TRICKS[Math.floor(rng() * TRICKS.length)].id;
+    const t = pool[Math.floor(rng() * pool.length)].id;
     if (t !== out[out.length - 1]) out.push(t);
   }
   return out;

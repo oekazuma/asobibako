@@ -7,6 +7,7 @@ import { LAYOUTS, ROOM, type Layout, type Perch } from './layout';
 import { graphics, type Quality } from '$lib/graphics.svelte';
 import { NATURAL_ROOM, type RoomLook } from './decor';
 import { createPet, type PetModel } from './models';
+import type { Part } from './petting';
 import { bowl, brushModel, present, toyModel, wandModel } from './props';
 import { buildRoom } from './scene-room';
 import { buildPark } from './scenes';
@@ -30,6 +31,83 @@ const SUN_DIR = new THREE.Vector3(-2.6, 4, -0.8).normalize();
 const HIT_R = 0.24;
 const HIT_Y = 0.18;
 const PHOTO_MAX = 512;
+
+/**
+ * なでる場所を、体を丸でおおった当たりで決める。丸は models.ts の骨（頭・あご・耳・首・胸・腰・しっぽ・前足）の
+ * 世界の位置から置く。首と胴の丸は、当たった点が骨より下（up の逆）なら below の場所にする。
+ * 上向きは胸の骨から取るので、あお向けになってもおなかは上に来る
+ */
+export interface BodyMark {
+  part: Part;
+  at: THREE.Vector3;
+  r: number;
+  below?: { part: Part; up: THREE.Vector3 };
+}
+
+export function bodyMarks(group: THREE.Object3D): BodyMark[] {
+  const bone = (n: string) => group.getObjectByName(n)?.getWorldPosition(new THREE.Vector3());
+  const [head, jaw, earL, earR, neck, chest, hips] = ['head', 'jaw', 'ear.l', 'ear.r', 'neck', 'chest', 'hips'].map(
+    bone
+  );
+  if (!head || !jaw || !earL || !earR || !neck || !chest || !hips) return [];
+  const L = chest.distanceTo(hips);
+  const hr = earL.distanceTo(earR) * 0.7;
+  const marks: BodyMark[] = [];
+  const ears = earL.clone().add(earR).multiplyScalar(0.5);
+  const skull = head.clone().lerp(ears, 0.5);
+  marks.push({ part: 'head', at: skull, r: hr });
+  // 耳は付け根の骨から外へのびるので、丸を耳の先のほうへずらす
+  for (const e of [earL, earR])
+    marks.push({
+      part: 'head',
+      at: e.clone().add(
+        e
+          .clone()
+          .sub(skull)
+          .setLength(hr * 0.6)
+      ),
+      r: hr * 0.7
+    });
+  const face = skull.clone().lerp(jaw, 0.4);
+  const down = face.clone().sub(ears).normalize();
+  marks.push({ part: 'chin', at: jaw.clone().addScaledVector(down, hr * 0.5), r: hr * 0.72 });
+  const side = earL.clone().sub(ears).multiplyScalar(1.3);
+  for (const s of [1, -1]) marks.push({ part: 'cheek', at: face.clone().addScaledVector(side, s), r: hr * 0.55 });
+  const up = new THREE.Vector3();
+  group.getObjectByName('chest')!.matrixWorld.extractBasis(new THREE.Vector3(), up, new THREE.Vector3());
+  up.normalize();
+  // のどをなでるのはあごと同じ
+  marks.push({ part: 'back', at: neck, r: L * 0.45, below: { part: 'chin', up } });
+  for (const t of [0, 0.33, 0.66, 1])
+    marks.push({ part: 'back', at: chest.clone().lerp(hips, t), r: L * 0.75, below: { part: 'belly', up } });
+  const tail: THREE.Vector3[] = [];
+  for (let i = 0, p; (p = bone(`tail.${i}`)); i++) tail.push(p);
+  if (tail.length) marks.push({ part: 'rear', at: tail[0], r: L * 0.35 });
+  for (const p of tail.slice(1)) marks.push({ part: 'tail', at: p, r: L * 0.22 });
+  for (const n of ['fl.2', 'fr.2', 'fl.3', 'fr.3']) {
+    const p = bone(n);
+    if (p) marks.push({ part: 'paw', at: p, r: L * 0.25 });
+  }
+  return marks;
+}
+
+/** ray が最初に入る丸の場所と、そこまでの距離。どの丸にも当たらなければ null */
+export function partOnRay(marks: BodyMark[], ray: THREE.Ray): { part: Part; d: number } | null {
+  const sphere = new THREE.Sphere();
+  const at = new THREE.Vector3();
+  let best: { part: Part; d: number } | null = null;
+  for (const m of marks) {
+    if (!ray.intersectSphere(sphere.set(m.at, m.r), at)) continue;
+    const d = at.distanceTo(ray.origin);
+    if (!best || d < best.d) best = { part: markPart(m, at), d };
+  }
+  return best;
+}
+
+/** 丸の中の点 p の場所。横腹の下半分から下をおなかにする（上から見下ろすカメラでは、体の下側はほとんど見えない） */
+function markPart(m: BodyMark, p: THREE.Vector3): Part {
+  return m.below && p.clone().sub(m.at).dot(m.below.up) < -0.15 * m.r ? m.below.part : m.part;
+}
 
 interface PetView {
   breed: BreedId;
@@ -413,6 +491,36 @@ export class PetWorld {
 
   pick(px: number, py: number): string | null {
     return this.#screenHit(px, py);
+  }
+
+  /**
+   * 指の下のペットと、なでた体の場所。体をおおう丸に当たればその場所、
+   * 丸から外れてもペットのまわりの余白（pick の当たり）なら、画面でいちばん近い丸の場所
+   */
+  pickPart(px: number, py: number): { id: string; part: Part } | null {
+    this.#ray.setFromCamera(new THREE.Vector2((px / this.#w) * 2 - 1, 1 - (py / this.#h) * 2), this.camera);
+    const all = this.#actors.flatMap((a) => {
+      const group = this.#pets.get(a.petId)?.model.group;
+      if (!group?.visible) return [];
+      // 何も起きていないあいだは描くのを間引くので、骨の行列が古いことがある
+      group.updateMatrixWorld(true);
+      return [{ id: a.petId, marks: bodyMarks(group) }];
+    });
+    let best: { id: string; part: Part; d: number } | null = null;
+    for (const { id, marks } of all) {
+      const on = partOnRay(marks, this.#ray.ray);
+      if (on && (!best || on.d < best.d)) best = { id, ...on };
+    }
+    if (best) return { id: best.id, part: best.part };
+    const id = this.#screenHit(px, py);
+    const marks = all.find((p) => p.id === id)?.marks;
+    if (!id || !marks?.length) return null;
+    const near = (m: BodyMark) => {
+      const [sx, sy, k] = this.project(m.at.x, m.at.y, m.at.z);
+      return Math.hypot(px - sx, py - sy) - m.r * k;
+    };
+    const m = marks.reduce((a, b) => (near(b) < near(a) ? b : a));
+    return { id, part: markPart(m, this.#ray.ray.closestPointToPoint(m.at, this.#v)) };
   }
 
   /** 指の下の部屋のソファかベッドと、当たった点 */

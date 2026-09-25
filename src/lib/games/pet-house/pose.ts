@@ -7,7 +7,7 @@ import type { Kind, PetAction } from './types';
  */
 // y・z は腰の上下と前後、pitch は前が上がる向き、spine は背中を丸める、bend は背中を横へ曲げる。
 // hp・hy・hr は首の下向き・左右・かしげ。fz・fy は前足の先を前・上へ、fa は手首から先を前へ倒す角度（b は後ろ足）。
-// fr* は右前足だけに足す分（おて）。ff は前足の足先を曲げて足の裏を前へ向ける角度（負で前）。level は胴を傾けても肩の位置を保つ割合（おすわり）。
+// fr* は右前足だけに足す分（おて）、br* は右後ろ足だけに足す分（体をかく）。ff は前足の足先を曲げて足の裏を前へ向ける角度（負で前）。level は胴を傾けても肩の位置を保つ割合（おすわり）。
 // tuck は足を体に引き寄せる、reach は跳ぶときに前足を前・後ろ足を後ろへのばす、splay はひざを外へ開く。
 // shake はぬれた体をぶるぶる振る強さ（振るのは models.ts が自分の位相で行う）
 export const KEYS = [
@@ -32,6 +32,10 @@ export const KEYS = [
   'fra',
   'ff',
   'frf',
+  'brx',
+  'brz',
+  'bry',
+  'bra',
   'splay',
   'tuck',
   'reach',
@@ -65,6 +69,16 @@ function rest(kind: Kind): Pose {
 }
 
 export const ease = (u: number) => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u));
+
+/** うっとりした目の開き。なでられはじめは半目で、3 秒ほどでほとんど閉じる */
+export const melt = (since: number) => 0.55 - 0.5 * ease(since / 3);
+
+/**
+ * このフレームの目の開き。閉じていた目（うっとり・寝起き）は、ふつうの寄せ方（damped）より遅く、
+ * 1.5 秒ほどかけてゆっくり開く
+ */
+export const reopen = (prev: number, want: number, damped: number, dt: number) =>
+  want > damped && prev < 0.9 ? Math.min(damped, prev + dt / 1.5) : damped;
 
 /** action の目標のかっこう。since はその action になってからの秒 */
 export function target(kind: Kind, action: PetAction, since: number, o: { speed: number; wag: number }): Pose {
@@ -111,22 +125,154 @@ export function target(kind: Kind, action: PetAction, since: number, o: { speed:
       down(p, cat);
       break;
     case 'sleep':
-      down(p, cat);
-      p.y -= 0.02;
-      p.roll = cat ? 0.35 : 0.2;
-      p.bend = cat ? 0.75 : 0.5;
-      p.hp = cat ? 0.9 : 0.75;
-      p.hy = cat ? 0.9 : 0.75;
-      p.hr = cat ? -0.4 : -0.3;
-      p.fz = cat ? 0.15 : 0.25;
+      if (cat) curl(p);
+      else side(p, false, false);
       p.eye = 0;
-      p.ear = 0.5;
       p.breath = 0.035;
-      // しっぽを体に沿わせて前へ回す
-      p.tail = cat ? 0.5 : -0.9;
-      p.tailYaw = cat ? 1.25 : 1.1;
-      p.tailBend = cat ? 0.28 : 0.18;
-      p.curl = 0;
+      p.wag = 0;
+      break;
+    case 'beg':
+      // 後ろ足で立ち上がるほど胴を起こし、前足は胸の前でそろえて手首から下へたらす
+      sit(p, cat);
+      p.pitch = 1.1;
+      p.y += 0.18;
+      p.hp = p.pitch * 1.3 - 0.15;
+      p.fy = 0.5;
+      p.fz = 0.1;
+      p.fa = -0.2;
+      p.ff = 1.1;
+      p.ear = 0.3;
+      p.jaw = cat ? 0 : 0.45;
+      p.tongue = cat ? 0 : 0.6;
+      p.wag = cat ? 0.1 : 0.9;
+      break;
+    case 'spin':
+      // その場で回る向きは behavior.ts が変え、ここは足を運ぶだけ
+      p.swing = 1;
+      p.bob = 0.015;
+      p.hp = 0.1;
+      p.jaw = cat ? 0 : 0.4;
+      p.tongue = cat ? 0 : 0.5;
+      p.wag = cat ? 0.2 : 1;
+      if (cat) p.tail = 1.3;
+      break;
+    case 'dead':
+      // 横へばたんと倒れて、足をのばしたまま動かない
+      side(p, cat, true);
+      p.eye = 0;
+      p.jaw = cat ? 0 : 0.3;
+      p.tongue = cat ? 0 : 1;
+      p.breath = 0.006;
+      p.wag = 0;
+      break;
+    case 'high':
+      // おての前足を顔より高く上げ、足の裏を前へ向ける
+      sit(p, cat);
+      // 顔の前に出すと顔が隠れるので、真上へ上げて頭を反対へかしげる
+      p.fry = 1.3;
+      p.fra = -1.8;
+      p.frf = -1.4;
+      p.hp -= 0.25;
+      p.hr = -0.35;
+      p.jaw = cat ? 0 : 0.5;
+      p.tongue = cat ? 0 : 0.4;
+      p.wag = cat ? 0.2 : 0.9;
+      break;
+    case 'bow':
+      // 前足をのばして胸を床へつけ、お尻は高く上げたまま（あそぼうのおじぎ）
+      p.pitch = -0.42;
+      p.y = -0.12;
+      p.fz = 0.38;
+      p.fa = 1.35;
+      p.hp = -0.55;
+      p.ear = 0.2;
+      p.tail = cat ? 1.2 : 0.3;
+      p.wag = cat ? 0.15 : 1;
+      p.jaw = cat ? 0 : 0.4;
+      p.tongue = cat ? 0 : 0.5;
+      break;
+    case 'belly': {
+      // あお向けになって前足は胸の前でたたみ、後ろ足を開く。体を左右にくねらせる
+      const wig = Math.sin(since * 3.4);
+      p.roll = 2.75 + 0.16 * wig;
+      p.y = cat ? -0.5 : -0.27;
+      p.tuck = 0.75;
+      p.splay = 0.9;
+      p.hr = -1.2 - 0.15 * wig;
+      p.hp = -0.2;
+      p.eye = 0.55;
+      p.smile = 1;
+      p.jaw = cat ? 0.1 : 0.5;
+      p.tongue = cat ? 0 : 0.7;
+      p.ear = 0.5;
+      p.tail = cat ? 0.2 : -0.2;
+      p.wag = cat ? 0.3 : 1;
+      break;
+    }
+    case 'bliss':
+      // 座ったまま、あごを上げてうっとりする。なでられているあいだに目を閉じていく
+      sit(p, cat);
+      p.hp -= 0.35;
+      p.hr = 0.22 + 0.05 * Math.sin(since * 1.3);
+      p.eye = melt(since);
+      p.smile = 1;
+      p.ear = 0.45;
+      p.breath = 0.02;
+      // 犬はしっぽをゆっくり大きく振る（振る速さは models.ts が bliss で落とす）
+      p.wag = cat ? 0.05 : 1.3;
+      break;
+    case 'arch':
+      // 猫は背中をなでられると、お尻を持ち上げて背中を指へ押しつける
+      p.pitch = -0.2;
+      p.y = 0.03;
+      p.bz = -0.05;
+      p.hp = -0.1;
+      p.eye = melt(since);
+      p.smile = 1;
+      p.ear = 0.45;
+      p.tail = 1.45;
+      p.curl = 0.2;
+      p.wag = 0.05;
+      break;
+    case 'swat': {
+      // 片方の前足で素早くはたく。0.6 秒ごとに振りかぶって前へ打ち下ろす
+      const u = (since % 0.6) / 0.6;
+      const strike = u < 0.35 ? 0 : Math.sin((Math.PI * (u - 0.35)) / 0.65);
+      p.y = -0.08;
+      p.pitch = 0.12;
+      p.fry = 0.5 - 0.25 * strike;
+      p.frz = 0.05 + 0.45 * strike;
+      p.fra = -0.8;
+      p.frf = -1;
+      p.hp = -0.15;
+      p.eye = 0.85;
+      p.ear = 0.9;
+      p.jaw = 0.35;
+      p.tail = cat ? 0.6 : 0;
+      p.wag = 0.8;
+      break;
+    }
+    case 'flick':
+      // しっぽをさわられて、しっぽを速く左右にぴしぴし振る（速さは models.ts）
+      p.tail = cat ? 0.9 : 0.4;
+      p.wag = 1.4;
+      p.ear = 0.7;
+      p.eye = 0.8;
+      p.hy = -0.35;
+      break;
+    case 'scratch':
+      // 座って右の後ろ足を首のあたりへ上げ、かりかりと小刻みに動かす
+      sit(p, cat);
+      p.roll = 0.18;
+      p.brx = 0.25;
+      p.bry = 0.7 + 0.12 * Math.sin(since * 32);
+      p.brz = 0.4;
+      p.bra = -1.2;
+      p.hr = -0.45;
+      p.hy = -0.3;
+      p.hp += 0.15;
+      p.eye = 0.4;
+      p.ear = 0.4;
       p.wag = 0;
       break;
     case 'eat':
@@ -246,6 +392,37 @@ function sit(p: Pose, cat: boolean) {
     p.tailBend = 0.24;
     p.curl = 0.35;
   }
+}
+
+/** 横向きに寝そべる。stiff は足をまっすぐのばす（しんだふり） */
+function side(p: Pose, cat: boolean, stiff: boolean) {
+  p.y = cat ? -0.33 : -0.49;
+  p.roll = -1.35;
+  p.tuck = stiff ? 0 : 0.5;
+  p.reach = stiff ? 0.6 : 0;
+  p.hy = stiff ? 0 : 0.05;
+  p.hp = 0.1;
+  p.ear = 0.3;
+  p.tail = -0.3;
+}
+
+/** 猫が丸くなる。足を体の下へたたみ、背中を丸めて頭を前足にのせ、しっぽを体に巻く */
+function curl(p: Pose) {
+  down(p, true);
+  // 足先は体の下へ寄せる。胴だけ曲げると、足先が前に残ってつっぱり、立っているように見える
+  p.y = -0.42;
+  p.fz = -0.1;
+  p.roll = 0.6;
+  p.bend = 1;
+  p.tuck = 0.6;
+  p.hp = 1.8;
+  p.hy = 0.6;
+  p.hr = 0.3;
+  p.ear = 0.5;
+  p.tail = 0.4;
+  p.tailYaw = 1.4;
+  p.tailBend = 0.35;
+  p.curl = 0;
 }
 
 function down(p: Pose, cat: boolean) {

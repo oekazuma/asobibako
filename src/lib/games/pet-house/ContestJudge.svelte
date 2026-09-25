@@ -1,7 +1,7 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon.svelte';
   import type { ContestPlay } from './contest-play.svelte';
-  import { TRICKS } from './engine';
+  import { trickName, tricksFor } from './engine';
   import type { TrickId } from './types';
 
   /** しつけ大会の審判の吹き出しと、芸のボタン */
@@ -19,8 +19,8 @@
 
 {#if play.phase === 'play'}
   <div class="tricks">
-    {#each TRICKS as t (t.id)}
-      <button class="trick" onclick={() => ontrick(t.id)}>{play.dog ? t.dog : t.cat}</button>
+    {#each tricksFor(play.dog ? 'dog' : 'cat') as t (t.id)}
+      <button class="trick" onclick={() => ontrick(t.id)}>{trickName(t, play.dog ? 'dog' : 'cat')}</button>
     {/each}
   </div>
 {/if}
@@ -71,8 +71,8 @@
   }
 
   .trick {
-    min-width: 96px;
-    padding: 14px 12px;
+    min-width: 84px;
+    padding: 12px 10px;
     border: 3px solid var(--line);
     border-radius: 20px;
     background: #fff;
