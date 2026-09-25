@@ -86,6 +86,20 @@ describe('pet-house engine', () => {
     expect(loadSave()).toBeNull();
   });
 
+  it('リズムあそびのハイスコアは芸ごとに戻り、壊れた値は捨てる', () => {
+    const { save, pet } = withPet();
+    pet.best = { sit: 3120, roll: 900 };
+    writeSave(save);
+    expect(loadSave()?.pets[0].best).toEqual({ sit: 3120, roll: 900 });
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ pets: [{ id: 'a', breed: 'shiba', best: { sit: 'x', roll: -4, jump: 1e9, fly: 5 } }] })
+    );
+    expect(loadSave()?.pets[0].best).toEqual({ roll: 0, jump: 99999 });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ pets: [{ id: 'a', breed: 'shiba', best: [1, 2] }] }));
+    expect(loadSave()?.pets[0].best).toBeUndefined();
+  });
+
   it('コンテストの階級は保存から戻り、古い保存や壊れた値は 0..5 の整数にそろえる', () => {
     const { save } = withPet();
     save.contest.frisbee = 2;

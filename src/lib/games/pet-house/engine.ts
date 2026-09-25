@@ -28,6 +28,8 @@ export interface Pet {
   accessory: AccessoryId | null;
   /** 声で覚えさせた呼び名（voice.ts の callKey の形）。自分で付けた名前が漢字などで聞き取られても当てるため */
   calls?: string[];
+  /** 芸ごとの、リズムあそびのハイスコア */
+  best?: Partial<Record<TrickId, number>>;
 }
 
 export interface Save {
@@ -157,6 +159,11 @@ function repairPet(raw: unknown, taken: Set<string>): Pet | null {
   taken.add(id);
   const stats = isObj(raw.stats) ? raw.stats : {};
   const tricks = isObj(raw.tricks) ? raw.tricks : {};
+  const best = isObj(raw.best) ? raw.best : {};
+  const scores = TRICKS.filter((t) => typeof best[t.id] === 'number').map((t) => [
+    t.id,
+    Math.floor(num(best[t.id], 0, 0, 99999))
+  ]);
   const calls = (Array.isArray(raw.calls) ? raw.calls : [])
     .filter((c): c is string => typeof c === 'string' && c.length > 0 && c.length <= 12)
     .slice(0, MAX_CALLS);
@@ -170,7 +177,8 @@ function repairPet(raw: unknown, taken: Set<string>): Pet | null {
       TRICKS.filter((t) => typeof tricks[t.id] === 'number').map((t) => [t.id, Math.floor(num(tricks[t.id], 0, 0, 99))])
     ),
     accessory: pick(ACCESSORIES, raw.accessory) ? raw.accessory : null,
-    ...(calls.length ? { calls } : {})
+    ...(calls.length ? { calls } : {}),
+    ...(scores.length ? { best: Object.fromEntries(scores) } : {})
   };
 }
 

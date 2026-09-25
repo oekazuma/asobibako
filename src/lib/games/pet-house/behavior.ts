@@ -127,8 +127,6 @@ export interface Actor {
   puzzled: boolean;
   /** 芸を見せるあいだはカメラの方を向く */
   show: boolean;
-  /** 体で教えるあいだは、お尻から頭まで見えるようカメラに横を向ける */
-  side: boolean;
   /** 向きを変えている速さ rad/s。その場で回るときも足を動かすのに使う */
   spin: number;
   next: 'idle' | 'carry' | 'stalk' | 'chase';
@@ -167,8 +165,6 @@ export type Command =
   /** to があれば front ではなくその点へ来る（床をタップして呼ぶ）。perch があればその面の上の to へ飛び乗る */
   | { type: 'call'; to?: Spot; perch?: Perch['id'] }
   | { type: 'trick'; trick: TrickId; success: boolean }
-  /** 体で教えるあいだ、その場で止まってカメラの方を向いて待つ */
-  | { type: 'teach' }
   /** part があれば、その所の好き嫌いで反応する。amount はこのフレームになでた秒 */
   /** at はなでている指の、頭の高さでの床の上の位置。頭や顔なら、そちらへ頭を寄せる */
   | { type: 'stroke'; part?: Part; amount?: number; at?: Spot }
@@ -287,7 +283,6 @@ export function createActor(pet: Pet, at: Spot): Actor {
     gaze: null,
     puzzled: false,
     show: false,
-    side: false,
     spin: 0,
     next: 'idle',
     aim: 'toy',
@@ -317,7 +312,6 @@ function act(a: Actor, pose: PetAction, t: number, next: Actor['next'] = 'idle',
   a.next = next;
   a.puzzled = puzzled;
   a.show = false;
-  a.side = false;
 }
 
 function wakeUp(a: Actor) {
@@ -418,11 +412,9 @@ function apply(a: Actor, cmd: Command) {
   }
   if (a.asleep || a.carrying) return;
   const trick = cmd.type === 'trick' ? TRICKS.find((t) => t.id === cmd.trick) : undefined;
-  if (cmd.type === 'teach') act(a, 'stand', 3);
-  else if (cmd.success && trick) act(a, trick.action, TRICK_TIME[trick.action] ?? 1.6);
+  if (cmd.success && trick) act(a, trick.action, TRICK_TIME[trick.action] ?? 1.6);
   else act(a, 'stand', 1.3, 'idle', true);
   a.show = true;
-  a.side = cmd.type === 'teach';
   a.gaze = null;
 }
 
@@ -588,14 +580,6 @@ function turn(a: Actor, want: number, dt: number): number {
   a.heading = wrap(a.heading + step);
   a.spin = dt > 0 ? Math.abs(step) / dt : 0;
   return Math.abs(wrap(want - a.heading));
-}
-
-/** カメラに横を見せる向き。いまの向きに近いほう */
-function sideOn(a: Actor, camera: Spot): number {
-  const to = angleTo(a, camera);
-  return Math.abs(wrap(to + Math.PI / 2 - a.heading)) < Math.abs(wrap(to - Math.PI / 2 - a.heading))
-    ? to + Math.PI / 2
-    : to - Math.PI / 2;
 }
 
 /** 目標へ向きを変えながら進む。止まるべき所まで来たら true */
@@ -1363,7 +1347,7 @@ function runMode(a: Actor, c: Ctx, dt: number) {
     case 'held': {
       accelerate(a, 0, dt);
       if (a.mode === 'act' && a.pose === 'spin') a.heading = wrap(a.heading + SPIN_RATE * dt);
-      else if (a.show) turn(a, a.side ? sideOn(a, c.camera) : angleTo(a, c.camera), dt);
+      else if (a.show) turn(a, angleTo(a, c.camera), dt);
       if (a.mode === 'act' && a.pose === 'jump' && a.next === 'stalk' && a.t <= 0 && world.wand) {
         if (dist(a, world.wand) < 0.35) {
           events.push({ type: 'caught', petId: a.petId });

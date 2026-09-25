@@ -5,7 +5,7 @@ import type { Core } from './core';
 import type { Cry } from './cries';
 import type { CounterId, Pet } from './engine';
 import type { Tool } from './session.svelte';
-import type { BaseScene, ToyId } from './types';
+import type { BaseScene, ToyId, TrickId } from './types';
 
 /** 場面の出入りのうち、Session が持っているもの */
 export interface Stage {
@@ -18,6 +18,7 @@ export interface Stage {
   settle(): void;
   music(track: Track | null): void;
   found(a: Actor): void;
+  praise(trick: TrickId, amount: number): void;
 }
 
 /** 遊びのモードの出入り。モードに渡す口（activity.ts の ActivityHost / SceneHost）もここで組む */
@@ -108,6 +109,7 @@ export class Modes {
       changed: () => c.changed(),
       count: (key: CounterId, n?: number) => c.count(key, n),
       found: (a: Actor) => stage.found(a),
+      praise: (trick: TrickId, amount: number) => stage.praise(trick, amount),
       end: (scene?: BaseScene) =>
         stage.go(scene === 'park' ? 'こうえんへ いくよ' : 'おうちへ かえるよ', () => this.#end(scene))
     };

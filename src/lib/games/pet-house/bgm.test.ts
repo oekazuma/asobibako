@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Bgm, loopSeconds, midi, score } from './bgm';
+import { Bgm, loopSeconds, midi, score, Tune } from './bgm';
 import { SONGS } from './songs';
 
 /** 鳴らした音の高さと時刻だけを覚える AudioContext の代わり */
@@ -115,5 +115,30 @@ describe('BGM', () => {
       expect(n.midi).toBeGreaterThanOrEqual(midi('g4'));
       expect(n.midi).toBeLessThanOrEqual(midi('g6'));
     }
+  });
+
+  it('Tune は譜面の時計の位置から鳴らし、耳に届く遅れのぶん早めに予約する。ミュートのあいだの拍は飛ばす', () => {
+    const fake = fakeContext();
+    const tune = new Tune('lesson', 100);
+    const sd = 0.3;
+    let t = 0;
+    const tick = (on: boolean, sec: number) => {
+      const from = fake.starts.length;
+      for (let i = 0; i < sec * 60; i++) {
+        fake.ctx.currentTime += 1 / 60;
+        t += 1 / 60;
+        tune.tick(on ? fake.ctx : undefined, t, 0.05);
+      }
+      // 予約した時刻を、その音が聞こえるときの譜面の秒に直す
+      const lag = fake.ctx.currentTime - t;
+      return fake.starts.slice(from).map((s) => +(s.t + 0.05 - lag).toFixed(3));
+    };
+    const first = tick(true, 2);
+    expect(first.length).toBeGreaterThan(5);
+    for (const at of first) expect(Math.abs(at / sd - Math.round(at / sd))).toBeLessThan(1e-3);
+    tick(false, 2);
+    const back = tick(true, 1);
+    expect(Math.min(...back)).toBeGreaterThanOrEqual(4);
+    expect(new Set(back).size).toBeLessThanOrEqual(back.length);
   });
 });

@@ -20,7 +20,9 @@ const TRACKS: Record<Track, { song: SongId; bpm: number; gain: number }> = {
   bath: { song: 'bath', bpm: 108, gain: 0.8 },
   contest: { song: 'contest', bpm: 120, gain: 0.85 },
   'contest-play': { song: 'contest', bpm: 144, gain: 1 },
-  plaza: { song: 'plaza', bpm: 88, gain: 0.75 }
+  plaza: { song: 'plaza', bpm: 88, gain: 0.75 },
+  // リズムあそびの曲は Tune が譜面の時計に合わせて流す。場面に入った直後の 1 フレームだけここを通る
+  lesson: { song: 'lesson', bpm: 100, gain: 0.9 }
 };
 
 /** 全体の大きさ。効果音や鳴き声より 1 段小さく、流れていても気にならない */
@@ -333,6 +335,48 @@ export class Bgm {
     this.#now = null;
     ramp(n.bus.gain, n.ctx.currentTime, 0);
     // 予約ずみの音が鳴り終わるまで待ってから外す
+    setTimeout(() => n.bus.disconnect(), (AHEAD + FADE + 2) * 1000);
+  }
+}
+
+/**
+ * 譜面の時計に合わせて 1 度だけ流す曲（しつけのリズムあそび）。時計は呼ぶ側が持ち、t はいま聞こえている曲の秒、
+ * latency は予約してから耳に届くまでの秒。ミュートなどで鳴らせなかったあいだの音は飛ばし、戻ったらいまの位置から続ける
+ */
+export class Tune {
+  readonly #sc: Score;
+  readonly #sd: number;
+  #step = 0;
+  #now: { ctx: BaseAudioContext; bus: GainNode } | null = null;
+
+  constructor(song: SongId, bpm: number) {
+    this.#sc = scoreOf(song);
+    this.#sd = 30 / bpm;
+  }
+
+  tick(ctx: BaseAudioContext | undefined, t: number, latency: number): void {
+    if (!ctx) return this.stop();
+    if (this.#now?.ctx !== ctx) {
+      this.stop();
+      const b = ctx.createGain();
+      b.gain.value = 0.9;
+      b.connect(output(ctx));
+      this.#now = { ctx, bus: b };
+    }
+    const sd = this.#sd;
+    // 過ぎた拍は鳴らさない
+    this.#step = Math.max(this.#step, Math.ceil((t + latency) / sd - 0.01));
+    while (this.#step < this.#sc.notes.length && this.#step * sd < t + AHEAD) {
+      playStep(ctx, this.#now.bus, this.#sc, this.#step, ctx.currentTime + this.#step * sd - t - latency, sd);
+      this.#step++;
+    }
+  }
+
+  stop(): void {
+    const n = this.#now;
+    if (!n) return;
+    this.#now = null;
+    ramp(n.bus.gain, n.ctx.currentTime, 0);
     setTimeout(() => n.bus.disconnect(), (AHEAD + FADE + 2) * 1000);
   }
 }

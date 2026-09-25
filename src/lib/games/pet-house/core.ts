@@ -20,7 +20,6 @@ export interface Core {
     | 'moving'
     | 'away'
     | 'trickPending'
-    | 'teaching'
     | 'trying'
     | 'toast'
     | 'covered'
@@ -67,5 +66,5 @@ export interface Touch {
   part: Part | null;
   /** part と違う場所の上を続けて動いた距離（ピクセル） */
   stray: number;
-  mode: 'rub' | 'floor' | 'wand' | 'throw' | 'teach';
+  mode: 'rub' | 'floor' | 'wand' | 'throw';
 }

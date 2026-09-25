@@ -6,10 +6,11 @@
   import type { Panel } from './Menu.svelte';
   import Pets from './Pets.svelte';
   import { Plaza } from './plaza.svelte';
+  import { RhythmPlay } from './rhythm-play.svelte';
+  import RhythmHud from './RhythmHud.svelte';
   import type { Session } from './session.svelte';
   import Sheet from './Sheet.svelte';
   import Shop from './Shop.svelte';
-  import TeachHud from './TeachHud.svelte';
   import Tricks from './Tricks.svelte';
   import type { ContestId, Kind } from './types';
 
@@ -43,7 +44,11 @@
   </Sheet>
 {:else if panel === 'tricks'}
   <Sheet title="しつけ" onclose={close}>
-    <Tricks {pet} ontrick={(t) => act(() => session.trick(t))} onteach={(t) => act(() => session.teach(t))} />
+    <Tricks
+      {pet}
+      ontrick={(t) => act(() => session.trick(t))}
+      onteach={(t) => act(() => session.start(new RhythmPlay(t), 'れんしゅうの じゅんび'))}
+    />
   </Sheet>
 {:else if panel === 'shop'}
   <Sheet title="おみせ" onclose={close}>
@@ -79,8 +84,9 @@
   </Sheet>
 {/if}
 
-{#if session.teaching && !session.activity && !panel}
-  <TeachHud {session} trick={session.teaching} {kind} />
+<!-- リズムあそびの HUD はここに置く（PetHouse.svelte は 200 行の手前） -->
+{#if session.activity instanceof RhythmPlay}
+  <RhythmHud play={session.activity} />
 {/if}
 
 <style>

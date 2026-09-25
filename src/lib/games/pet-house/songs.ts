@@ -68,6 +68,28 @@ export const SONGS = {
       e5 - g5 - c6 - e6 - | d6 - b5 - g5 - - . | a5 - c6 - f6 - - e6 | e6 - - - c6 - . . |
       c6 - e6 - a5 - c6 - | a5 - f5 - c6 - a5 - | g5 - b5 - d6 - b5 - | c6 - - - - - . .`,
     chords: 'C Em F C F C Dm G C Em F C Am F G C'
+  },
+  /** しつけのリズムあそび。拍がわかりやすいよう、4 分音符ごとに伴奏がはずむ */
+  lesson: {
+    beats: 4,
+    lead: 'mallet',
+    style: 'bounce',
+    melody: `e5 . g5 . c6 . g5 . | d6 . b5 . g5 - . . | c6 . a5 . e5 . a5 . | f5 . a5 . c6 - . . |
+      e5 g5 c6 . e6 . c6 . | d6 . b5 . g5 . b5 . | a5 . c6 . f6 . e6 d6 | d6 - - - . . . . |
+      e6 . c6 . a5 . c6 . | c6 . a5 . f5 . a5 . | g5 . e5 . c6 . e6 . | d6 . b5 . g5 - . . |
+      a5 . c6 . f6 . a5 . | b5 . d6 . g5 . b5 . | c6 . e6 . g5 . e5 . | c6 - - - . . . .`,
+    chords: 'C G Am F C G F G Am F C G F G C C'
+  },
+  /** しつけのリズムあそびの 2 曲目。オルゴールで少しゆっくり */
+  lesson2: {
+    beats: 4,
+    lead: 'box',
+    style: 'bounce',
+    melody: `d5 . g5 . b5 . g5 . | a5 . f#5 . d5 - . . | e5 . g5 . b5 . e6 . | c6 - b5 . a5 - . . |
+      b5 . d6 . g6 . d6 . | c6 . a5 . f#5 . a5 . | e5 . g5 . c6 . e6 . | d6 - - - . . . . |
+      g5 . b5 . e6 . b5 . | a5 . c6 . e6 - . . | d6 . b5 . g5 . b5 . | a5 . d6 . f#5 - . . |
+      e5 g5 c6 . e6 . c6 . | d6 . c6 . a5 . f#5 . | g5 . b5 . d6 . b5 . | g5 - - - . . . .`,
+    chords: 'G D Em C G D C D Em C G D C D G G'
   }
 } satisfies Record<string, Song>;
 

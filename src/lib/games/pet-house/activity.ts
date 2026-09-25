@@ -11,7 +11,7 @@ import type { BaseScene, Scene, ToyId, TrickId } from './types';
 import type { PetWorld } from './world3d';
 
 /**
- * 遊びのモード（コンテスト・おふろ・リードのおさんぽ・ふれあいひろば）を Session に挿す口。
+ * 遊びのモード（コンテスト・おふろ・リードのおさんぽ・ふれあいひろば・しつけのリズムあそび）を Session に挿す口。
  *
  * 挿し方:
  * - Activity を実装したクラスを `.svelte.ts` に置き、画面に出す値はそのクラスの `$state` の欄に持つ
@@ -32,12 +32,16 @@ import type { PetWorld } from './world3d';
  * - しつけのボタンと声の芸（session.trick）は、モードのあいだ trick へ渡る（無ければ何もしない）
  * - 終わるときは `host.end()`。部屋へ戻り、持ち替えた道具も戻して、session.activity は null になる。
  *   戻るのは 2 フレームあとで、それまでは frame が呼ばれつづけ、重ねて呼んだ end() は捨てる
+ * - Session は描く回数を減らして発熱を抑えるので、動きの細かさが遊びそのもののモード（リズムあそび）は smooth を true にする。
+ *   draw は 3D の上の 2D の canvas に、ハートなどの演出より先に描く口（盤面の中のピクセル）
  * - 飼っているペットを連れないモード（ふれあいひろば）は Visit を実装して `session.visit(...)` で始める。
  *   0 匹でも始められ、host に pet・actor・voice が無い。動物は `host.cast(pets, actors)` で自分の子を出し、
  *   drives を true にして think もモードが呼ぶ（例 plaza.svelte.ts）
  */
 export interface Activity {
   readonly drives: boolean;
+  /** 指が止まっていても 1 秒に 60 回描く */
+  readonly smooth?: boolean;
   /** 寝ている子とは始めない（おさんぽ）。無ければ start が起こしてから始める */
   readonly awakeOnly?: boolean;
   enter(host: ActivityHost): void;
@@ -47,6 +51,7 @@ export interface Activity {
   up?(id: number, px: number, py: number, vx: number, vy: number): boolean;
   event?(e: BehaviorEvent): boolean;
   trick?(trick: TrickId): void;
+  draw?(ctx: CanvasRenderingContext2D): void;
   /** host.end() とゲームを閉じたとき */
   exit?(): void;
 }
@@ -97,6 +102,8 @@ export interface ActivityHost extends SceneHost {
   voice(cry?: Cry): void;
   /** 公園と同じに、道ばたのプレゼントを開けて中身をもらう */
   found(a: Actor): void;
+  /** しつけのボタンでほめたのと同じに、芸を覚えた回数を amount 進める。覚えきったらコインと演出 */
+  praise(trick: TrickId, amount: number): void;
 }
 
 /** カメラがペットを追う範囲。値の意味は world3d.ts の FOLLOW と同じ */
