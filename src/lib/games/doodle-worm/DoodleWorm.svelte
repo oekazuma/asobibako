@@ -3,16 +3,15 @@
   import { BoardInput } from '$lib/board-input';
   import type { SoloProps } from '$lib/games';
   import { animate } from '$lib/loop';
-  import { add, COLORS, hatch, random, step, type Stroke, type World } from './engine';
+  import { add, COLORS, fit, hatch, random, step, type Stroke, type World } from './engine';
   import { creature, pen, sketch } from './paint';
   import Palette from './Palette.svelte';
   import { sounds } from './sounds';
+  import Stock from './Stock.svelte';
+  import { loadStock, pack, place, saveStock, type Doodle } from './stock';
 
-  let { onhint }: SoloProps = $props();
-
-  const FIRST = 'すきな えを かいてね';
-  const MORE = 'かけたら「うごけ！」';
-  const HATCH = 'うごいた！';
+  // 自由あそびで指示文も出さないので、シェルから受ける level と onhint は使わない
+  const _props: SoloProps = $props();
 
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D | null = null;
@@ -21,7 +20,8 @@
   /** 描き終えて、「うごけ！」を待っている線 */
   let lines = $state.raw<Stroke[]>([]);
   let drawing: { id: number; stroke: Stroke } | null = null;
-  let hintTimer: ReturnType<typeof setTimeout> | undefined;
+  let stock = $state.raw<Doodle[]>([]);
+  let stockOpen = $state(false);
 
   const input = new BoardInput({
     down: (event, x, y) => {
@@ -33,34 +33,43 @@
       lines = [...lines, drawing.stroke];
       drawing = null;
       sounds.line();
-      if (lines.length === 1) onhint?.(MORE);
     }
   });
-
-  function cheer() {
-    sounds.hatch();
-    onhint?.(HATCH);
-    clearTimeout(hintTimer);
-    hintTimer = setTimeout(() => onhint?.(lines.length ? MORE : FIRST), 1200);
-  }
 
   function go() {
     const c = hatch(lines);
     if (!c) return;
     add(world, c);
+    stock = saveStock([pack(lines), ...stock]);
     lines = [];
-    cheer();
+    sounds.hatch();
   }
 
   function undo() {
     lines = lines.slice(0, -1);
     sounds.undo();
-    if (!lines.length) onhint?.(FIRST);
+  }
+
+  function call(d: Doodle) {
+    stockOpen = false;
+    const x = world.aspect * (0.2 + Math.random() * 0.6);
+    add(world, fit(hatch(place(d, x, 0.2 + Math.random() * 0.5))!, world.aspect));
+    sounds.hatch();
+  }
+
+  function remove(d: Doodle) {
+    stock = saveStock(stock.filter((other) => other !== d));
+    sounds.undo();
+  }
+
+  function tidy() {
+    world.creatures = [];
+    stockOpen = false;
   }
 
   function summon() {
     add(world, random(world.aspect));
-    cheer();
+    sounds.hatch();
   }
 
   function resize(aspect: number) {
@@ -94,19 +103,25 @@
   }
 
   onMount(() => {
-    onhint?.(FIRST);
-    const stop = animate(frame);
-    return () => {
-      stop();
-      clearTimeout(hintTimer);
-    };
+    stock = loadStock();
+    return animate(frame);
   });
 </script>
 
 <div class="board" use:input.board={resize} role="application" aria-label="らくがきパレードの画用紙">
   <canvas bind:this={canvas}></canvas>
 </div>
-<Palette bind:color ready={lines.length > 0} ongo={go} onundo={undo} onsummon={summon} />
+<Palette
+  bind:color
+  ready={lines.length > 0}
+  ongo={go}
+  onundo={undo}
+  onsummon={summon}
+  onstock={() => (stockOpen = true)}
+/>
+{#if stockOpen}
+  <Stock doodles={stock} oncall={call} onremove={remove} onclear={tidy} onclose={() => (stockOpen = false)} />
+{/if}
 
 <style>
   .board {

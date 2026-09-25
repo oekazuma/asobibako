@@ -9,7 +9,7 @@
   import { RhythmPlay } from './rhythm-play.svelte';
   import RhythmHud from './RhythmHud.svelte';
   import type { Session } from './session.svelte';
-  import Sheet from './Sheet.svelte';
+  import Sheet from '$lib/components/Sheet.svelte';
   import Shop from './Shop.svelte';
   import Tricks from './Tricks.svelte';
   import type { ContestId, Kind } from './types';

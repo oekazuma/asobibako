@@ -7,8 +7,16 @@
     ready,
     ongo,
     onundo,
-    onsummon
-  }: { color: string; ready: boolean; ongo: () => void; onundo: () => void; onsummon: () => void } = $props();
+    onsummon,
+    onstock
+  }: {
+    color: string;
+    ready: boolean;
+    ongo: () => void;
+    onundo: () => void;
+    onsummon: () => void;
+    onstock: () => void;
+  } = $props();
 </script>
 
 <div class="palette">
@@ -27,9 +35,11 @@
     <Icon name="undo" size="70%" />
   </button>
   <button class="hatch" disabled={!ready} onclick={ongo}>うごけ！</button>
-  <button class="summon" aria-label="ムシを よぶ" onclick={onsummon}>
-    <span class="hair"></span>
+  <button class="summon" aria-label="なかまを よぶ" onclick={onsummon}>
     <span class="eyes"></span>
+  </button>
+  <button class="tool" aria-label="ずかん" onclick={onstock}>
+    <Icon name="book" size="75%" />
   </button>
 </div>
 
@@ -103,7 +113,7 @@
     cursor: default;
   }
 
-  /* 押すとムシが出てくるボタン。ムシと同じ顔 */
+  /* 押すと、まるい子が出てくるボタン。出てくる子と同じ顔 */
   .summon {
     position: relative;
     background: #ffd84d;
@@ -116,30 +126,16 @@
     box-shadow: none;
   }
 
-  .eyes,
-  .hair {
+  .eyes {
     position: absolute;
     left: 50%;
     translate: -50% 0;
-  }
-
-  .eyes {
     top: 34%;
     width: 44%;
     height: 32%;
     background:
       radial-gradient(ellipse 22% 50%, var(--ink) 95%, transparent) left / 50% 100% no-repeat,
       radial-gradient(ellipse 22% 50%, var(--ink) 95%, transparent) right / 50% 100% no-repeat;
-  }
-
-  .hair {
-    top: -26%;
-    width: 44%;
-    height: 34%;
-    background:
-      linear-gradient(var(--ink), var(--ink)) left / 3px 100% no-repeat,
-      linear-gradient(var(--ink), var(--ink)) center / 3px 100% no-repeat,
-      linear-gradient(var(--ink), var(--ink)) right / 3px 100% no-repeat;
   }
 
   @media (prefers-reduced-motion: reduce) {
