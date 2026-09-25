@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hatch, isLoop, random, step, type Point, type Stroke, type World } from './engine';
+import { hatch, isLoop, poke, random, step, type Point, type Stroke, type World } from './engine';
 
 const ring = (cx: number, cy: number, r: number, turns = 1): Point[] =>
   Array.from({ length: 20 }, (_, i) => {
@@ -98,5 +98,26 @@ describe('step', () => {
         expect(c.y + c.box[3]).toBeLessThan(1.05);
       }
     }
+  });
+});
+
+describe('poke', () => {
+  const tap = (x: number, y: number): Stroke => ({ color: 'c', pts: [[x, y]] });
+
+  it('画面の子をタップすると跳ね、跳ね終わると元に戻る', () => {
+    const world: World = { aspect: 1, creatures: [hatch([body])!] };
+    expect(poke(world, [], tap(0.9, 0.9))).toBe(false);
+    expect(poke(world, [], tap(0.5, 0.5))).toBe(true);
+    step(world, 0.2);
+    expect(world.creatures[0].jump).toBeGreaterThan(0);
+    step(world, 1);
+    expect(world.creatures[0].jump).toBe(-1);
+  });
+
+  it('線を引いたときや、描きかけの絵のそばの点では跳ねない', () => {
+    const world: World = { aspect: 1, creatures: [hatch([body])!] };
+    expect(poke(world, [], s(line(0.45, 0.5, 0.55, 0.5)))).toBe(false);
+    expect(poke(world, [s(ring(0.52, 0.52, 0.05))], tap(0.5, 0.5))).toBe(false);
+    expect(world.creatures[0].jump).toBe(-1);
   });
 });
