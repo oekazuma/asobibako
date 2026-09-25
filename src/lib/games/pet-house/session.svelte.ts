@@ -15,6 +15,7 @@ import {
   buy,
   catchUp,
   count,
+  day,
   itemName,
   kindOf,
   loadSave,
@@ -188,7 +189,13 @@ export class Session {
     const back = check(this.save);
     if (back.length) this.#stamps.add(back.length > 1 ? back : back[0]);
     this.#dirty = true;
-    this.#say(allowance ? `おこづかい ${allowance}コイン もらったよ！` : greeting(this.sky.phase, this.sky.weather));
+    // おこづかいの日はそちらを見せ、天気の一言はその日の次に開いたときに回す
+    const today = day(Date.now());
+    if (allowance) this.#say(`おこづかい ${allowance}コイン もらったよ！`);
+    else if (this.save.greetedDay !== today) {
+      this.save.greetedDay = today;
+      this.#say(greeting(this.sky.phase, this.sky.weather));
+    }
     document.addEventListener('visibilitychange', this.#onVisibility);
   }
 
@@ -296,22 +303,21 @@ export class Session {
     if (!this.activity) this.#music();
   }
 
-  /** 部屋には全員、公園にはいまのペットだけ。front のまわりに並べる */
+  /**
+   * 部屋と公園には全員、遊びのモードの場面（道・おふろなど）にはモードが動かすいまのペットだけ。front のまわりに並べる。
+   * 公園では、いまの子を front に、ほかの子を先に来て待っていたように少し奥へ置く
+   */
   #spawnActors() {
-    const front = this.#layout.front;
-    const pets = this.scene === 'room' ? this.save.pets : this.save.pets.filter((p) => p.id === this.save.current);
+    const { front } = this.#layout;
+    const park = this.scene === 'park';
+    const all = this.save.pets;
+    const me = all.filter((p) => p.id === this.save.current);
+    const pets = this.scene === 'room' ? all : park ? [...me, ...all.filter((p) => !me.includes(p))] : me;
     this.#actors = pets.map((p, i) =>
       p.id === this.#arrival && this.scene === 'room'
         ? this.#welcome(p)
-        : createActor(p, { x: front.x + [0, -0.55, 0.55][i % 3], z: front.z - 0.25 - (i ? 0.3 : 0) })
+        : createActor(p, { x: front.x + [0, -0.55, 0.55][i % 3], z: front.z - 0.25 - (i ? (park ? 1 : 0.3) : 0) })
     );
-    // 公園で咥えていた子と入れ替わったら、おもちゃはその場に落とす（いない子が咥えたままだと誰も拾えない）
-    const toy = this.#view.toy;
-    if (toy?.holder && !this.#actor(toy.holder)) {
-      toy.holder = null;
-      toy.still = false;
-      toy.vx = toy.vy = toy.vz = 0;
-    }
     this.#world.syncPets(this.save.pets);
   }
 
@@ -578,7 +584,6 @@ export class Session {
     this.save.current = petId;
     this.#dirty = true;
     this.#fitToy();
-    if (this.scene === 'park') this.#spawnActors();
   }
 
   setTool(tool: Tool, toy?: ToyId): void {
@@ -641,7 +646,7 @@ export class Session {
     if (pet.stats.energy < SLEEPY) return this.#say(`${pet.name}は つかれてるみたい。すこし やすませよう`);
     this.#go('こうえんへ いくよ', () => {
       this.#enter('park');
-      this.#say('こうえんに ついた！ プレゼントを さがそう');
+      this.#say(`こうえんに ついた！ ${this.save.pets.length > 1 ? 'みんなで ' : ''}プレゼントを さがそう`);
     });
   }
 

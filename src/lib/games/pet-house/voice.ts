@@ -26,19 +26,25 @@ export interface Heard {
   action: VoiceAction;
 }
 
-/**
- * 聞き取りの揺れをならす。カタカナはひらがなに、濁点・半濁点は外し（「おいで」が「置いて」と聞こえる）、
- * 長音・小さい「っ」・記号・空白は捨てる（「おすわーりっ！」も「おすわり」になる）
- */
-export function normalize(text: string): string {
+/** カタカナをひらがなに、長音・小さい「っ」・記号・空白を捨てる。濁点は残す */
+function fold(text: string): string {
   return text
     .normalize('NFKC')
     .toLowerCase()
     .replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60))
+    .replace(/[^\p{L}\p{N}]|[ーっ〜]/gu, '');
+}
+
+/**
+ * 聞き取りの揺れをならす。カタカナはひらがなに、濁点・半濁点は外し（「おいで」が「置いて」と聞こえる）、
+ * 長音・小さい「っ」・記号・空白は捨てる（「おすわーりっ！」も「おすわり」になる）。
+ * 1 字は 1 字のままなので、fold した文字と同じ位置で照らせる
+ */
+export function normalize(text: string): string {
+  return fold(text)
     .normalize('NFD')
     .replace(/[゙゚]/g, '')
-    .normalize('NFC')
-    .replace(/[^\p{L}\p{N}]|[ーっ〜]/gu, '');
+    .normalize('NFC');
 }
 
 /**
@@ -176,13 +182,34 @@ function findPets(text: string, pets: readonly Named[]): { id: string; key: stri
   return found.sort((a, b) => b.key.length - a.key.length);
 }
 
-function order(text: string): { action: VoiceAction; word: string } | null {
+/**
+ * 濁点を外すと取りちがえる言葉は、濁点つきの文字（raw）でも照らす。
+ * ならすと「ペット」も「ベッド」になるので、ベッドは濁点まで合っているときだけ受ける
+ */
+const VOICED: Partial<Record<VoiceAction, string[]>> = { bed: ['べど', 'べと', 'ねどこ'] };
+
+/** 「ここまで」「そこまで」の「まで」は、ならすと「まて」になる */
+function until(raw: string, i: number): boolean {
+  return raw.startsWith('まで', i) && 'こそあど'.includes(raw[i - 1] ?? '');
+}
+
+function heard(action: VoiceAction, word: string, text: string, raw: string): boolean {
+  const voiced = VOICED[action];
+  if (voiced) return text.includes(word) && voiced.some((w) => raw.includes(w));
+  for (let i = text.indexOf(word); i >= 0; i = text.indexOf(word, i + 1)) if (!until(raw, i)) return true;
+  return false;
+}
+
+function order(text: string, raw: string): { action: VoiceAction; word: string } | null {
   for (const [action, words] of WORDS) {
-    const word = words.find((w) => text.includes(w));
+    const word = words.find((w) => heard(action, w, text, raw));
     if (word) return { action, word };
   }
   return null;
 }
+
+/** 「ねてない」「たべないで」のような打ち消しは、頼みごとではない */
+const NEGATED = /ない(て|よ|の)?$/;
 
 /**
  * 聞き取った文字を命令にする。名前だけなら呼ぶ。何も当たらなければ null。
@@ -191,13 +218,16 @@ function order(text: string): { action: VoiceAction; word: string } | null {
  * 命令の中にまるごと入っている名前（「おやすみ」の スミ）は名前として聞かない
  */
 export function parse(text: string, pets: readonly Named[]): Heard | null {
+  const raw = fold(text);
   const all = normalize(text);
+  if (NEGATED.test(all)) return null;
   const found = findPets(all, pets);
   for (const p of found) {
-    const hit = order(all.replace(p.key, ' '));
+    // raw と位置をそろえるため、名前は同じ字数の空白で消す
+    const hit = order(all.replace(p.key, ' '.repeat(p.key.length)), raw);
     if (hit) return { petId: p.id, action: hit.action };
   }
-  const whole = order(all);
+  const whole = order(all, raw);
   if (whole && found.every((p) => whole.word.includes(p.key))) return { petId: null, action: whole.action };
   return found.length ? { petId: found[0].id, action: 'call' } : null;
 }

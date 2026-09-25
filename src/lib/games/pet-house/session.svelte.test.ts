@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Activity, ActivityHost, SceneHost, Visit } from './activity';
+import type { Activity, ActivityHost, ActivityScene, SceneHost, Visit } from './activity';
+import { PARK } from './layout';
 import { createActor, throwToy, type Actor, type WorldView } from './behavior';
 import type { Pet } from './engine';
 import { STAMPS } from './stamps';
@@ -122,21 +123,22 @@ describe('Session', () => {
     expect(s.trying).toBeNull();
   });
 
-  it('公園で咥えている子から切り替えると、おもちゃを落として次の子が拾える', () => {
+  it('公園で咥えている子から切り替えても、その子がそのまま持ってくる', () => {
     const s = make();
     s.adopt('shiba', 'ポチ');
     s.adopt('beagle', 'ハチ');
-    const [first, second] = s.save.pets;
-    s.select(first.id);
     s.goPark();
     s.setTool('toy', 'ball');
     frames(s, 1);
     s.down(1, 200, 700);
     s.up(1, 200, 600, 0, -1500);
-    expect(frames(s, 20, () => seen.view?.toy?.holder === first.id)).toBe(true);
-    s.select(second.id);
-    expect(seen.view?.toy?.holder).toBeNull();
-    expect(frames(s, 30, () => seen.view?.toy?.holder === second.id)).toBe(true);
+    // 2 匹とも追うので、先にくわえた子から、もう 1 匹へ切り替える
+    expect(frames(s, 20, () => !!seen.view?.toy?.holder)).toBe(true);
+    const holder = seen.view!.toy!.holder!;
+    s.select(s.save.pets.find((p) => p.id !== holder)!.id);
+    expect(seen.view?.toy?.holder).toBe(holder);
+    const carrier = () => seen.actors!.find((a) => a.petId === holder)!;
+    expect(frames(s, 40, () => carrier().mode === 'offer' || !s.away)).toBe(true);
   });
 
   it('いまのペットが食べないごはんが残っていたら入れ替え、手つかずなら在庫へ戻す', () => {
@@ -261,6 +263,65 @@ describe('Session', () => {
     host?.end();
     frames(s, 0.2);
     expect(seen.log).toEqual(['exit', 'scene']);
+  });
+
+  it('天気の一言は 1 日 1 回だけ。同じ日にまた開いても言わない', () => {
+    const clock = globalThis as { __asobibakoClock?: { hour?: number; weather?: string } };
+    clock.__asobibakoClock = { hour: 13, weather: 'rain' };
+    try {
+      const first = make();
+      expect(first.toast).toBe('きょうは あめだね');
+      first.dispose();
+      const again = make();
+      expect(again.toast).toBe('');
+      again.dispose();
+    } finally {
+      delete clock.__asobibakoClock;
+    }
+  });
+
+  it('公園には飼っている子がみんな来て、いまの子を選び直しても並べ直さない。おさんぽの道はいまの子だけ', () => {
+    const s = make();
+    s.adopt('shiba', 'ポチ');
+    s.adopt('mike', 'ミケ');
+    s.adopt('poodle', 'モコ');
+    const ids = s.save.pets.map((p) => p.id);
+    s.select(ids[1]);
+    s.goPark();
+    frames(s, 0.5);
+    expect(s.scene).toBe('park');
+    expect(s.toast).toContain('みんなで');
+    expect(seen.actors?.map((a) => a.petId).sort()).toEqual([...ids].sort());
+    // いまの子が front、ほかの子は奥で待っている
+    const me = seen.actors!.find((a) => a.petId === ids[1])!;
+    expect(seen.actors!.every((a) => a === me || a.z < me.z)).toBe(true);
+    const before = seen.actors;
+    s.select(ids[2]);
+    frames(s, 0.1);
+    expect(seen.actors).toBe(before);
+
+    s.goHome();
+    frames(s, 0.5);
+    expect(s.scene).toBe('room');
+    expect(seen.actors).toHaveLength(3);
+
+    let host: ActivityHost | undefined;
+    const street: Activity = {
+      drives: true,
+      enter(h) {
+        host = h;
+        h.enter({ id: 'street', layout: { ...PARK }, build: () => ({}) } as unknown as ActivityScene);
+      },
+      frame() {}
+    };
+    s.start(street, 'おさんぽに いくよ');
+    frames(s, 0.2);
+    expect(seen.actors?.map((a) => a.petId)).toEqual([ids[2]]);
+    host?.end('park');
+    frames(s, 0.5);
+    expect(s.scene).toBe('park');
+    expect(seen.actors).toHaveLength(3);
+    expect(s.toast).toContain('みんなも きてるよ');
   });
 
   it('寝ている子とはおさんぽを始めない', () => {

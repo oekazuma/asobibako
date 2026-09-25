@@ -192,6 +192,43 @@ export function target(kind: Kind, action: PetAction, since: number, o: { speed:
       p.jaw = cat ? 0 : 0.4;
       p.tongue = cat ? 0 : 0.5;
       break;
+    case 'stretch':
+      // 寝起きののび。おじぎのように前足をのばしてお尻を上げ、目を細めてあくびをしてから、
+      // 胴を前へ送って後ろ足を後ろへのばす
+      if (since < 1.4) {
+        p.pitch = -0.45;
+        p.y = -0.12;
+        p.fz = 0.45;
+        p.fa = 1.35;
+        p.hp = -0.75;
+        p.jaw = Math.sin(Math.PI * Math.min(1, since / 1.3)) * (cat ? 0.9 : 1);
+      } else {
+        p.pitch = 0.12;
+        p.y = -0.08;
+        p.z = 0.12;
+        p.fz = -0.05;
+        p.bz = -0.25;
+        // 右の後ろ足だけ床から浮かせて、後ろへぐっとのばす
+        p.brz = -0.45;
+        p.bry = 0.12;
+        p.bra = 0.6;
+        p.hp = -0.35;
+      }
+      p.eye = 0.2;
+      p.ear = 0.8;
+      p.tail = cat ? 1.1 : 0.2;
+      p.wag = 0.1;
+      break;
+    case 'sad':
+      // しかられてしゅんとする。座ったまま耳を後ろへ伏せ、頭と目を下げ、しっぽも下げて振らない
+      sit(p, cat);
+      p.hp += 0.4;
+      p.eye = 0.55;
+      p.ear = 1.8;
+      p.tail = cat ? 0.2 : -0.6;
+      p.wag = 0;
+      p.breath = 0.008;
+      break;
     case 'belly': {
       // あお向けになって前足は胸の前でたたみ、後ろ足を開く。体を左右にくねらせる
       const wig = Math.sin(since * 3.4);

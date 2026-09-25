@@ -175,7 +175,7 @@ export class Orders {
     c.changed();
   }
 
-  /** 怒りすぎない。いたずらをやめて伏せ、少ししゅんとしたらすぐ元にもどる */
+  /** 怒りすぎない。いたずらをやめて少ししゅんとしたらすぐ元にもどる */
   #scold(pet: Pet, a: Actor) {
     const c = this.#c;
     if (!naughty(a)) return c.say(`${pet.name}は いいこに してるよ`);

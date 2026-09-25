@@ -67,6 +67,7 @@ export class Plaza implements Visit {
   #pair: { a: Actor; b: Actor; t: number; on: boolean } | null = null;
   /** 覚えたときの鳴き声。「おぼえた」の音と重ならないよう少し遅らせる */
   #yelp: { t: number; a: Actor } | null = null;
+  #vy = 0;
 
   enter(host: SceneHost): void {
     this.#host = host;
@@ -190,6 +191,10 @@ export class Plaza implements Visit {
     this.#rub(dt);
     this.#social(dt);
     for (const e of think(this.#actors, this.#pets, { ...view, layout: this.#brain }, dt, Math.random)) this.#event(e);
+    // 遊びのモードのあいだは toys.ts の弾む音が回らないので、ここで床に当たった瞬間（落ちる速さが上向きに変わった）に鳴らす
+    const toy = view.toy;
+    if (toy && !toy.holder && this.#vy < -0.5 && toy.vy >= 0 && toy.y < 0.2) sounds.bounce('grass', -this.#vy);
+    this.#vy = toy && !toy.holder ? toy.vy : 0;
     const y = this.#yelp;
     if (y && (y.t -= dt) <= 0) {
       this.#yelp = null;

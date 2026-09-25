@@ -70,6 +70,7 @@ export class ContestPlay implements Activity {
   #air = false;
   #scored = false;
   #hover = 0;
+  #vy = 0;
   #target: Spot | null = null;
   /** アジリティで押さえている指と、その画面の位置 */
   #finger: { id: number; x: number; y: number } | null = null;
@@ -269,7 +270,10 @@ export class ContestPlay implements Activity {
   #frisbee(dt: number) {
     const host = this.#host;
     const toy = host.view.toy;
-    if (toy !== this.#toy) [this.#toy, this.#air, this.#scored, this.#hover] = [toy, false, false, HOVER];
+    if (toy !== this.#toy) [this.#toy, this.#air, this.#scored, this.#hover, this.#vy] = [toy, false, false, HOVER, 0];
+    // 遊びのモードのあいだは toys.ts の着地の音が回らない。浮いてすべったあとはゆっくり降りるので、弾まない着地も拾う
+    if (toy && !toy.holder && this.#vy < -0.02 && toy.vy >= 0 && toy.y < 0.2)
+      sounds.bounce('grass', -this.#vy, 'frisbee');
     // ふつうの投げ方では犬がフリスビーに追いつけず、空中でとれない。大会のフリスビーは地面の近くで
     // しばらく浮いてすべるので、ほどよく投げれば犬が空中でとれ、遠くへ投げすぎると地面に落ちる
     if (toy && !toy.holder && !toy.still && toy.y > 0.05 && toy.y < 0.35 && toy.vy < 0 && this.#hover > 0) {
@@ -279,6 +283,7 @@ export class ContestPlay implements Activity {
       toy.vx *= k;
       toy.vz *= k;
     }
+    this.#vy = toy && !toy.holder ? toy.vy : 0;
     // 大会では本気で走る。think は目標の速さへ少しずつしか落とさないので、先に上げておけばその速さで走る
     const me = host.actor;
     if (me?.mode === 'chase' && !this.#scored) me.v = Math.max(me.v, SPRINT);
