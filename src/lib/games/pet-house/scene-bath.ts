@@ -18,7 +18,8 @@ export interface Bathroom extends Built {
   pour(stopY: number): void;
 }
 
-export const TUB = { x: 0, z: 0.35, r: 0.44, water: 0.075 };
+// 水は足先がつかるくらい。深いとおすわりした子の腰まで沈んで見える
+export const TUB = { x: 0, z: 0.35, r: 0.44, water: 0.035 };
 const WALL = { back: -1.7, side: 1.3, front: 2.4, height: 2.4, tiles: 1.25 };
 // 部屋の映り込みを控えめにしているので、金属はそのぶん映り込みを強めないと黒ずむ
 const CHROME = { color: '#f4f6f8', metal: { metalness: 0.9, roughness: 0.18, envMapIntensity: 2.6 } };
@@ -270,7 +271,7 @@ function tarai() {
     return m;
   };
   const water = new THREE.Mesh(
-    new THREE.CircleGeometry(r * 0.9, 48),
+    new THREE.CircleGeometry(r * 0.85, 48),
     new THREE.MeshStandardMaterial({
       color: '#7cc3e3',
       roughness: 0.04,

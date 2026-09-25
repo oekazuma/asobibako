@@ -67,24 +67,41 @@ const mats = new Map<string, THREE.Material>();
 /** 体の面の頂点を CELL 角の升に分けた表。近い頂点を升のまわりだけで探す（総当たりだと付けるたびに止まる） */
 const CELL = 0.06;
 const buckets = new WeakMap<THREE.BufferGeometry, Map<string, number[]>>();
-function bucketsOf(body: THREE.BufferGeometry) {
-  let m = buckets.get(body);
+const neckBuckets = new WeakMap<THREE.BufferGeometry, Map<string, number[]>>();
+/** 首と胸の骨がいちばん重い頂点だけ。首に巻く物・胸の布はここから重さを借りる */
+const NECK = /^(neck|chest)$/;
+const HEAD = /^(head|jaw|ear|eye)/;
+
+function bucketsOf(body: THREE.BufferGeometry, skeleton?: THREE.Skeleton) {
+  const cache = skeleton ? neckBuckets : buckets;
+  let m = cache.get(body);
   if (m) return m;
   m = new Map();
   const pos = body.attributes.position;
+  const si = body.attributes.skinIndex;
+  const sw = body.attributes.skinWeight;
   for (let i = 0; i < pos.count; i++) {
+    if (skeleton) {
+      const top = [0, 1, 2, 3].reduce((a, k) => (sw.getComponent(i, k) > sw.getComponent(i, a) ? k : a), 0);
+      if (!NECK.test(skeleton.bones[si.getComponent(i, top)].name)) continue;
+    }
     const k = `${Math.floor(pos.getX(i) / CELL)},${Math.floor(pos.getY(i) / CELL)},${Math.floor(pos.getZ(i) / CELL)}`;
     let list = m.get(k);
     if (!list) m.set(k, (list = []));
     list.push(i);
   }
-  buckets.set(body, m);
+  cache.set(body, m);
   return m;
 }
 
-function nearest(body: THREE.BufferGeometry, p: THREE.Vector3): { fur: number; skin: Skin } {
+/**
+ * p にいちばん近い体の面の頂点の毛の長さと骨の重さ。skeleton を渡すと首と胸の頂点から探し、頭の骨の重さを除く
+ * （うなじ側が後頭部の重さを借りると、頭を下げたときに後頭部と一緒に持ち上がって首から浮く。
+ * 前足の重さを借りると、前足を上げたときに布が一緒に持ち上がる）
+ */
+function nearest(body: THREE.BufferGeometry, p: THREE.Vector3, skeleton?: THREE.Skeleton): { fur: number; skin: Skin } {
   const pos = body.attributes.position;
-  const m = bucketsOf(body);
+  const m = bucketsOf(body, skeleton);
   const [ci, cj, ck] = [p.x, p.y, p.z].map((v) => Math.floor(v / CELL));
   let best = 0;
   let bd = Infinity;
@@ -101,21 +118,14 @@ function nearest(body: THREE.BufferGeometry, p: THREE.Vector3): { fur: number; s
         }
   const si = body.attributes.skinIndex;
   const sw = body.attributes.skinWeight;
-  return {
-    fur: body.attributes.furLen.getX(best),
-    skin: {
-      index: [0, 1, 2, 3].map((k) => si.getComponent(best, k)),
-      weight: [0, 1, 2, 3].map((k) => sw.getComponent(best, k))
-    }
-  };
-}
-
-/**
- * 首に巻く物は首の骨だけで動かす。まわりの面の重さを借りると、うなじ側は後頭部や肩の点に引かれ、
- * 頭を下げる（食べる・寝る）と首だけが下がって帯が宙に残る
- */
-function neckSkin(skeleton: THREE.Skeleton): Skin {
-  return { index: [skeleton.bones.findIndex((b) => b.name === 'neck'), 0, 0, 0], weight: [1, 0, 0, 0] };
+  const index = [0, 1, 2, 3].map((k) => si.getComponent(best, k));
+  let weight = [0, 1, 2, 3].map((k) => sw.getComponent(best, k));
+  if (skeleton) {
+    weight = weight.map((w, k) => (HEAD.test(skeleton.bones[index[k]].name) ? 0 : w));
+    const sum = weight.reduce((a, w) => a + w, 0) || 1;
+    weight = weight.map((w) => w / sum);
+  }
+  return { fur: body.attributes.furLen.getX(best), skin: { index, weight } };
 }
 
 /** 首輪を巻く高さで首を 1 周測る。前（θ = 0）がのど */
@@ -136,7 +146,7 @@ function neckOf(fit: Fit): Neck {
     const t = (i / N) * Math.PI * 2;
     const out = front.clone().multiplyScalar(Math.cos(t)).addScaledVector(side, Math.sin(t));
     const at = hit(fit.field, c, out);
-    ring.push({ at, out, fur: nearest(fit.body, at).fur, skin: neckSkin(fit.skeleton) });
+    ring.push({ at, out, ...nearest(fit.body, at, fit.skeleton) });
   }
   // 顔の毛・耳のふちに当たって飛び出た点をならす
   const rad = ring.map((s) => s.at.distanceTo(c));
@@ -619,7 +629,7 @@ function bandana(fit: Fit) {
           // 三角のふちを少しふくらませ、ネクタイのように細く見えないようにする
           if (v < 1) p.x *= (1 - v) ** -0.45;
           // 平らな三角を垂らし、胸にめりこむ所だけ前へ押し出して毛の上に乗せる。胸から離れる所は宙に垂れる
-          const near = nearest(fit.body, p);
+          const near = nearest(fit.body, p, fit.skeleton);
           const lift = near.fur * 0.85 + R * (0.03 + 0.04 * Math.sin(Math.PI * v) * (1 - Math.abs(u)));
           for (let k = 0; k < 60 && chest(p.x, p.y, p.z) < lift; k++) p.addScaledVector(forward, R * 0.015);
           const q = p;

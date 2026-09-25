@@ -25,8 +25,8 @@ vFur = furLen;
 vComb = furComb;
 vec3 fc = furComb - normal * dot(normal, furComb);
 // ぬれた毛は短く縮んで、流れの向きへ寝る
-float wk = 1.0 - 0.55 * uWet;
-transformed += (normal * uShell * wk + fc * (uShell * uShell) * (0.5 + 1.2 * uWet)) * furLen * wk;
+float wk = 1.0 - 0.35 * uWet;
+transformed += (normal * uShell * wk + fc * (uShell * uShell) * (0.5 + 0.8 * uWet)) * furLen * wk;
 `;
 
 // 毛 1 本を格子の 1 マスに 1 本置く。マスごとに長さ・太さ・明るさを散らし、粗いかたまりで房を作る
@@ -74,7 +74,7 @@ float furDark = 0.0;
     float speck = smoothstep(edge, edge + 0.05, 0.7 * furNoise(vRest * 24.0 + 11.0) + 0.3 * n1);
     diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.15, 0.09, 0.045), max(sock * 0.8, speck * 0.7));
   }
-  diffuseColor.rgb *= shade * (1.0 - 0.3 * uWet);
+  diffuseColor.rgb *= shade * (1.0 - 0.18 * uWet);
   furDark = smoothstep(0.05, 0.012, dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722)));
 }
 `;
