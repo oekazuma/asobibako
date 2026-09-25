@@ -3,8 +3,6 @@
   import Adopt from './Adopt.svelte';
   import { BREEDS } from './breeds';
   import { adoptPrice } from './engine';
-  import { canListen } from './listen';
-  import NameCall from './NameCall.svelte';
   import PlazaCard from './PlazaCard.svelte';
   import type { Plaza } from './plaza.svelte';
   import type { Session } from './session.svelte';
@@ -14,20 +12,13 @@
   const first = $derived(session.save.pets.length === 0);
   const price = $derived(adoptPrice(session.save));
   const short = $derived(Math.max(0, price - session.save.money));
-  let name = $state('');
-
-  function named(n: string) {
-    name = n;
-    if (canListen()) plaza.go('call');
-    else welcome([]);
-  }
 
   /** ひろばを出て部屋に戻ってからむかえる。その子が部屋の奥から歩いてくる */
-  function welcome(calls: string[]) {
+  function welcome(name: string) {
     const breed = plaza.focus;
     if (!breed) return;
     plaza.end();
-    if (session.adopt(breed, name) === 'ok' && calls.length) session.setName(session.save.current, name, calls);
+    session.adopt(breed, name);
   }
 </script>
 
@@ -51,10 +42,8 @@
     <section class="panel" aria-label="{BREEDS[plaza.focus].name}の しょうかい">
       {#if plaza.step === 'look'}
         <PlazaCard {plaza} breed={plaza.focus} {price} {short} />
-      {:else if plaza.step === 'name'}
-        <Adopt breed={plaza.focus} {price} onname={named} onback={() => plaza.go('look')} />
       {:else}
-        <NameCall {name} breed={plaza.focus} onfinish={welcome} onheard={(n) => plaza.heard(n)} />
+        <Adopt breed={plaza.focus} {price} onname={welcome} onback={() => plaza.go('look')} />
       {/if}
     </section>
   {/if}

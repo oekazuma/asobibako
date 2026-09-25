@@ -24,14 +24,8 @@ export function toggleMute(): void {
 /** iOS は操作イベントの中で resume() しないと無音のままになる */
 export function wake(): void {
   ctx ??= new AudioContext();
-  // iOS はマイクが音の出口を取ると 'interrupted'（型には無い）にして、そのまま戻さないことがある
+  // iOS は電話などで音の出口を取られると 'interrupted'（型には無い）にして、そのまま戻さないことがある
   if (ctx.state === 'suspended' || (ctx.state as string) === 'interrupted') void ctx.resume();
-}
-
-/** 音声認識のあいだ音を止める。iOS は鳴らしながらマイクを使うと音の出口の取り合いになる */
-export function hush(on: boolean): void {
-  if (!ctx) return;
-  void (on ? ctx.suspend() : ctx.resume()).catch(() => {});
 }
 
 /**

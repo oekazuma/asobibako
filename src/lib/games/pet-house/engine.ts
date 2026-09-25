@@ -1,6 +1,5 @@
 import { BREED_IDS, BREEDS } from './breeds';
 import type { AccessoryId, BreedId, ContestId, FoodId, Kind, PetAction, Stat, ToyId, TrickId } from './types';
-import { MAX_CALLS } from './voice';
 import {
   DECOR,
   decorGain,
@@ -26,8 +25,6 @@ export interface Pet {
   /** 芸ごとに、成功してほめた回数 */
   tricks: Partial<Record<TrickId, number>>;
   accessory: AccessoryId | null;
-  /** 声で覚えさせた呼び名（voice.ts の callKey の形）。自分で付けた名前が漢字などで聞き取られても当てるため */
-  calls?: string[];
   /** 芸ごとの、リズムあそびのハイスコア */
   best?: Partial<Record<TrickId, number>>;
 }
@@ -74,8 +71,6 @@ export const COUNTERS = [
   'fetch',
   'nap',
   'napTogether',
-  'voice',
-  'voiceSleep',
   'days'
 ] as const;
 export type CounterId = (typeof COUNTERS)[number];
@@ -169,9 +164,6 @@ function repairPet(raw: unknown, taken: Set<string>): Pet | null {
     t.id,
     Math.floor(num(best[t.id], 0, 0, 99999))
   ]);
-  const calls = (Array.isArray(raw.calls) ? raw.calls : [])
-    .filter((c): c is string => typeof c === 'string' && c.length > 0 && c.length <= 12)
-    .slice(0, MAX_CALLS);
   return {
     id,
     breed: raw.breed,
@@ -182,7 +174,6 @@ function repairPet(raw: unknown, taken: Set<string>): Pet | null {
       TRICKS.filter((t) => typeof tricks[t.id] === 'number').map((t) => [t.id, Math.floor(num(tricks[t.id], 0, 0, 99))])
     ),
     accessory: pick(ACCESSORIES, raw.accessory) ? raw.accessory : null,
-    ...(calls.length ? { calls } : {}),
     ...(scores.length ? { best: Object.fromEntries(scores) } : {})
   };
 }

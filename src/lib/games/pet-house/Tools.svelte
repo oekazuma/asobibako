@@ -2,7 +2,6 @@
   import Icon from '$lib/components/Icon.svelte';
   import { BathPlay } from './bath.svelte';
   import { SHOP } from './engine';
-  import Mic from './Mic.svelte';
   import type { Session } from './session.svelte';
   import type { ToyId } from './types';
   import { ITEM_ICON } from './ui';
@@ -83,7 +82,6 @@
       {/if}
     </div>
   {/if}
-  <Mic {session} />
   <button class="tool photo" onclick={onphoto}>
     <Icon name="camera" size="60%" /><span>しゃしん</span>
   </button>
