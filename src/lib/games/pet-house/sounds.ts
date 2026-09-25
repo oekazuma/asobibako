@@ -49,6 +49,14 @@ export const sounds = {
     later(90, () => noise(60, 0.1));
   },
   pop: () => sweep(380, 1250, 80, 0.1),
+  /** スタンプを押す、ぽんっ。落ちてきて台紙に当たる音のあとに、覚えたときのファンファーレ */
+  stamp: () => {
+    later(180, () => {
+      sweep(240, 70, 110, 0.16);
+      noise(50, 0.12);
+    });
+    later(300, sounds.learned);
+  },
   /** 泡がはじける、ぷくぷく。高さを散らした短い音を 3 つ */
   foam: () => {
     for (let i = 0; i < 3; i++) tone(900 + Math.random() * 900, 45, 'sine', 0.035, i * 55 + Math.random() * 20);

@@ -64,14 +64,41 @@ const necks = new Map<string, Neck>();
 const shapes = new Map<string, THREE.BufferGeometry[]>();
 const mats = new Map<string, THREE.Material>();
 
+/** 体の面の頂点を CELL 角の升に分けた表。近い頂点を升のまわりだけで探す（総当たりだと付けるたびに止まる） */
+const CELL = 0.06;
+const buckets = new WeakMap<THREE.BufferGeometry, Map<string, number[]>>();
+function bucketsOf(body: THREE.BufferGeometry) {
+  let m = buckets.get(body);
+  if (m) return m;
+  m = new Map();
+  const pos = body.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const k = `${Math.floor(pos.getX(i) / CELL)},${Math.floor(pos.getY(i) / CELL)},${Math.floor(pos.getZ(i) / CELL)}`;
+    let list = m.get(k);
+    if (!list) m.set(k, (list = []));
+    list.push(i);
+  }
+  buckets.set(body, m);
+  return m;
+}
+
 function nearest(body: THREE.BufferGeometry, p: THREE.Vector3): { fur: number; skin: Skin } {
   const pos = body.attributes.position;
+  const m = bucketsOf(body);
+  const [ci, cj, ck] = [p.x, p.y, p.z].map((v) => Math.floor(v / CELL));
   let best = 0;
   let bd = Infinity;
-  for (let i = 0; i < pos.count; i++) {
-    const d = (pos.getX(i) - p.x) ** 2 + (pos.getY(i) - p.y) ** 2 + (pos.getZ(i) - p.z) ** 2;
-    if (d < bd) [bd, best] = [d, i];
-  }
+  // 升を内から 1 周ずつ広げる。r 周目の頂点は、点が升の端にあれば (r - 1) 升ぶんまで近づく
+  for (let r = 0; r < 40 && bd > (Math.max(0, r - 1) * CELL) ** 2; r++)
+    for (let i = -r; i <= r; i++)
+      for (let j = -r; j <= r; j++)
+        for (let k = -r; k <= r; k++) {
+          if (Math.max(Math.abs(i), Math.abs(j), Math.abs(k)) !== r) continue;
+          for (const v of m.get(`${ci + i},${cj + j},${ck + k}`) ?? []) {
+            const d = (pos.getX(v) - p.x) ** 2 + (pos.getY(v) - p.y) ** 2 + (pos.getZ(v) - p.z) ** 2;
+            if (d < bd) [bd, best] = [d, v];
+          }
+        }
   const si = body.attributes.skinIndex;
   const sw = body.attributes.skinWeight;
   return {
@@ -81,6 +108,14 @@ function nearest(body: THREE.BufferGeometry, p: THREE.Vector3): { fur: number; s
       weight: [0, 1, 2, 3].map((k) => sw.getComponent(best, k))
     }
   };
+}
+
+/**
+ * 首に巻く物は首の骨だけで動かす。まわりの面の重さを借りると、うなじ側は後頭部や肩の点に引かれ、
+ * 頭を下げる（食べる・寝る）と首だけが下がって帯が宙に残る
+ */
+function neckSkin(skeleton: THREE.Skeleton): Skin {
+  return { index: [skeleton.bones.findIndex((b) => b.name === 'neck'), 0, 0, 0], weight: [1, 0, 0, 0] };
 }
 
 /** 首輪を巻く高さで首を 1 周測る。前（θ = 0）がのど */
@@ -101,7 +136,7 @@ function neckOf(fit: Fit): Neck {
     const t = (i / N) * Math.PI * 2;
     const out = front.clone().multiplyScalar(Math.cos(t)).addScaledVector(side, Math.sin(t));
     const at = hit(fit.field, c, out);
-    ring.push({ at, out, ...nearest(fit.body, at) });
+    ring.push({ at, out, fur: nearest(fit.body, at).fur, skin: neckSkin(fit.skeleton) });
   }
   // 顔の毛・耳のふちに当たって飛び出た点をならす
   const rad = ring.map((s) => s.at.distanceTo(c));

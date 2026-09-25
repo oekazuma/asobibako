@@ -208,7 +208,10 @@ export function field(
   f.near = (x, y, z, r) => {
     // 半径 r の球の中で距離はせいぜい d0 + r。それより k 以上遠い形は球の中の値を変えない
     const top = f(x, y, z) + r;
-    const keep = (p: Prim, lim: number) => Math.hypot(x - p.cx, y - p.cy, z - p.cz) - p.br - r < lim + p.k * 2;
+    const keep = (p: Prim, lim: number) => {
+      const [dx, dy, dz] = [x - p.cx, y - p.cy, z - p.cz];
+      return Math.sqrt(dx * dx + dy * dy + dz * dz) - p.br - r < lim + p.k * 2;
+    };
     return make(
       adds.filter((p) => keep(p, top)),
       cuts.filter((p) => keep(p, 0))
@@ -261,8 +264,11 @@ export function mesh(f: Field, bounds: number[], h: number, slack = 0): Surface 
   // 測るときは、その点を持つ粗いセルのまわりで効く形だけに絞る（形が 40 以上あるので数倍速い）
   const local = new Map<number, (x: number, y: number, z: number) => number>();
   // 細かい格子の点 (i, j, k) を持つ粗いセルの関数。半径は面の頂点が 1 マスはみ出しても収まる大きさ
+  const cell0 = (v: number, a: number) => Math.max(0, Math.min(Math.floor(v / C), cn[a] - 2));
   const near = (i: number, j: number, k: number) => {
-    const [bi, bj, bk] = [i, j, k].map((v, a) => Math.max(0, Math.min(Math.floor(v / C), cn[a] - 2)));
+    const bi = cell0(i, 0);
+    const bj = cell0(j, 1);
+    const bk = cell0(k, 2);
     const b = bi + (cn[0] - 1) * (bj + (cn[1] - 1) * bk);
     let g = local.get(b);
     if (!g) {

@@ -186,7 +186,9 @@ describe('pet-house models', () => {
     expect(pet.group.getObjectByName('hips')!.position.y).toBeCloseTo(hipsY, 5);
     const shown = pet.group.getObjectsByProperty('name', 'accessory').filter((a) => a.visible);
     expect(shown.map((a) => a.userData.id)).toEqual(['ribbon']);
-    expect(pet.group.getObjectsByProperty('name', 'dirt').some((d) => d.parent!.visible)).toBe(true);
+    const skin = (g: THREE.Object3D) =>
+      (g.getObjectsByProperty('isSkinnedMesh', true)[0] as THREE.SkinnedMesh).material;
+    expect(skin(pet.group)).not.toBe(skin(createPet('mike', 'low').group));
     expect(toy.parent).toBe(pet.mouth);
     pet.update('sit', 1 / 60, o);
   });
@@ -204,6 +206,43 @@ describe('pet-house models', () => {
     a.setWet(0);
     const meshes = (g: THREE.Object3D) => g.getObjectsByProperty('isSkinnedMesh', true) as THREE.SkinnedMesh[];
     meshes(a.group).forEach((m, i) => expect(m.material).toBe(meshes(b.group)[i].material));
+  });
+
+  it('汚れた子だけ毛の material が別のものになり、きれいになると共有の material に戻る', () => {
+    const skin = (g: THREE.Object3D) =>
+      (g.getObjectsByProperty('isSkinnedMesh', true)[0] as THREE.SkinnedMesh).material;
+    const [a, b] = [createPet('beagle'), createPet('beagle')];
+    a.setDirt(0.8);
+    expect(skin(a.group)).not.toBe(skin(b.group));
+    a.setDirt(0);
+    expect(skin(a.group)).toBe(skin(b.group));
+  });
+
+  it('いちばん汚れた段だけノミが跳ね、泡を付けると消える', () => {
+    const pet = createPet('shiba');
+    const fleas = () => pet.group.getObjectByName('fleas') as THREE.InstancedMesh;
+    const run = () => {
+      for (let f = 0; f < 120; f++) pet.update('stand', 1 / 60, o);
+      return fleas().visible;
+    };
+    pet.setDirt(0.66);
+    expect(run()).toBe(false);
+    pet.setDirt(1);
+    const heights = new Set<number>();
+    const m = new THREE.Matrix4();
+    for (let f = 0; f < 90; f++) {
+      pet.update('stand', 1 / 60, o);
+      fleas().getMatrixAt(0, m);
+      heights.add(Math.round(m.elements[13] * 100));
+    }
+    expect(fleas().visible).toBe(true);
+    expect(heights.size).toBeGreaterThan(3);
+    pet.setFoam(new Array(FOAM_SPOTS).fill(1));
+    expect(run()).toBe(false);
+    pet.setFoam([]);
+    pet.setDirt(0);
+    pet.setDirt(1);
+    expect(run()).toBe(true);
   });
 
   it.each(QUALITIES)('%s でも泡は量に合わせて見え、体の上にあり、ぬれと泡は画質を変えても残る', (q) => {

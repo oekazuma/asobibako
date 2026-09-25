@@ -6,11 +6,34 @@ export type BreedId = 'shiba' | 'beagle' | 'poodle' | 'mike' | 'kuro' | 'saba';
 
 /** ペットの 1 つのかっこう。3D モデルはこの名前でポーズを取り、切り替わりはモデル側でなめらかにつなぐ */
 export type PetAction =
-  'stand' | 'walk' | 'run' | 'sit' | 'down' | 'sleep' | 'eat' | 'paw' | 'roll' | 'jump' | 'pounce' | 'happy' | 'shake';
+  | 'stand'
+  | 'walk'
+  | 'run'
+  | 'sit'
+  | 'down'
+  | 'sleep'
+  | 'eat'
+  | 'paw'
+  | 'roll'
+  | 'jump'
+  | 'pounce'
+  | 'happy'
+  | 'shake'
+  | 'beg'
+  | 'spin'
+  | 'dead'
+  | 'high'
+  | 'bow'
+  | 'belly'
+  | 'bliss'
+  | 'scratch'
+  | 'swat'
+  | 'flick'
+  | 'arch';
 
 export type Stat = 'food' | 'water' | 'clean' | 'energy';
 
-export type TrickId = 'sit' | 'down' | 'paw' | 'roll' | 'jump';
+export type TrickId = 'sit' | 'down' | 'paw' | 'roll' | 'jump' | 'beg' | 'spin' | 'dead' | 'high' | 'bow';
 
 /** 食べもの（使うと減る） */
 export type FoodId = 'dogfood' | 'catfood' | 'treat';

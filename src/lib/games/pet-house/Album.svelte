@@ -1,15 +1,27 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon.svelte';
-  import { MAX_PHOTOS } from './engine';
+  import { MAX_PHOTOS, type Save } from './engine';
+  import Stamps from './Stamps.svelte';
 
-  let { photos }: { photos: string[] } = $props();
+  let { save }: { save: Save } = $props();
 
+  let tab = $state<'photo' | 'stamp'>('photo');
   // 同じ絵の写真が 2 枚あると each の鍵がぶつかるので 1 枚にまとめる
-  const shots = $derived([...new Set(photos)]);
+  const shots = $derived([...new Set(save.photos)]);
   let big = $state<number | null>(null);
 </script>
 
-{#if big !== null && shots[big]}
+<div class="tabs">
+  {#each [['photo', 'しゃしん'], ['stamp', 'スタンプ']] as const as [id, name] (id)}
+    <button class="tab" class:on={tab === id} aria-pressed={tab === id} onclick={() => ((tab = id), (big = null))}>
+      {name}
+    </button>
+  {/each}
+</div>
+
+{#if tab === 'stamp'}
+  <Stamps {save} />
+{:else if big !== null && shots[big]}
   <div class="big">
     <img src={shots[big]} width="480" height="640" alt="{big + 1}まいめの しゃしん" />
     <button class="pill" onclick={() => (big = null)}>もどる</button>
@@ -30,6 +42,28 @@
 {/if}
 
 <style>
+  .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .tab {
+    padding: 6px 20px;
+    border: 3px solid var(--line);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--line);
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .tab.on {
+    background: var(--pastel-gold);
+  }
+
   .lead,
   .empty {
     margin-bottom: 12px;

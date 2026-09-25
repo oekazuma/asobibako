@@ -1,6 +1,7 @@
 import { kindOf, LOW, SLEEPY, TRICKS, type Pet } from './engine';
 import type { Cry } from './cries';
 import type { Layout, Perch, RoomLayout, Spot } from './layout';
+import { dislikes, feelOf, rubPose, type Feel, type Part } from './petting';
 import type { FoodId, PetAction, Scene, ToyId, TrickId } from './types';
 import type { Wand } from './wand';
 
@@ -37,7 +38,21 @@ export interface WorldView {
   perches?: Perch[];
 }
 
-type Mode = 'idle' | 'go' | 'eat' | 'drink' | 'sleep' | 'chase' | 'carry' | 'stalk' | 'pounce' | 'act' | 'held' | 'hop';
+type Mode =
+  | 'idle'
+  | 'go'
+  | 'eat'
+  | 'drink'
+  | 'sleep'
+  | 'chase'
+  | 'carry'
+  | 'stalk'
+  | 'pounce'
+  | 'act'
+  | 'held'
+  | 'hop'
+  | 'offer'
+  | 'tease';
 type Goal = 'wander' | 'food' | 'water' | 'bed' | 'front' | 'spot' | 'present' | 'beg' | 'perch';
 
 /** 飛び乗り・飛び降り。着いたら then の動きに戻る。under は影を落とす面の高さ */
@@ -94,9 +109,11 @@ export interface Actor {
   puzzled: boolean;
   /** 芸を見せるあいだはカメラの方を向く */
   show: boolean;
+  /** 体で教えるあいだは、お尻から頭まで見えるようカメラに横を向ける */
+  side: boolean;
   /** 向きを変えている速さ rad/s。その場で回るときも足を動かすのに使う */
   spin: number;
-  next: 'idle' | 'carry' | 'stalk';
+  next: 'idle' | 'carry' | 'stalk' | 'chase';
   aim: 'wand' | 'toy';
   present: number | null;
   /** 追うかどうかをもう決めたおもちゃ。投げるたびに新しい Toy になる */
@@ -105,23 +122,42 @@ export interface Actor {
   wandPlay: boolean | null;
   /** 起こされてから、また眠くなるまでの秒 */
   awake: number;
+  /** 汚れがひどいとき、次に体をかいてよい clock */
+  itchAt: number;
   bark: number;
   clock: number;
   queue: BehaviorEvent[];
+  /** なでられている所と、そこを続けてなでられた秒。手が止まって held が終わると null */
+  rub: { part: Part; s: number } | null;
+  /** 苦手な所をなでられて離れていくあいだの秒。このあいだはなでても寄ってこない */
+  shy: number;
+  /** 猫がおもちゃを前足で転がす残りの回数。まだ遊びはじめていなければ -1 */
+  play: number;
+  /** 持ってきたおもちゃを渡す前に、いちど「とってごらん」と逃げる */
+  tease: boolean;
 }
 
 export type Command =
   /** to があれば front ではなくその点へ来る（床をタップして呼ぶ）。perch があればその面の上の to へ飛び乗る */
   | { type: 'call'; to?: Spot; perch?: Perch['id'] }
   | { type: 'trick'; trick: TrickId; success: boolean }
-  | { type: 'stroke' }
+  /** 体で教えるあいだ、その場で止まってカメラの方を向いて待つ */
+  | { type: 'teach' }
+  /** part があれば、その所の好き嫌いで反応する。amount はこのフレームになでた秒 */
+  /** at はなでている指の、頭の高さでの床の上の位置。頭や顔なら、そちらへ頭を寄せる */
+  | { type: 'stroke'; part?: Part; amount?: number; at?: Spot }
   | { type: 'brush' }
   | { type: 'wake' };
 
 export type BehaviorEvent =
   | { type: 'ate'; petId: string; food: FoodId }
   | { type: 'drank'; petId: string }
+  /** 持ち主の前まで持ってきた。ふだんの場面では、このあとくわえたまま受け取ってもらうのを待つ */
   | { type: 'fetched'; petId: string }
+  /** 猫が前足でおもちゃを転がした・抱えた */
+  | { type: 'played'; petId: string }
+  /** 受け取ってもらえなかったおもちゃを足元に置いて、投げてと催促した */
+  | { type: 'urge'; petId: string }
   | { type: 'caught'; petId: string }
   /** 飛びかかった瞬間 */
   | { type: 'leap'; petId: string }
@@ -129,7 +165,13 @@ export type BehaviorEvent =
   /** cry が無ければ、そのときの気分（おなか・のど・ねむけ）で鳴き方を決める */
   | { type: 'voice'; petId: string; cry?: Cry }
   | { type: 'sleep'; petId: string }
-  | { type: 'wake'; petId: string };
+  | { type: 'wake'; petId: string }
+  | { type: 'petted'; petId: string; feel: Feel };
+
+/** おまわりは 1 周で 1.6 秒 */
+export const SPIN_RATE = (Math.PI * 2) / 1.6;
+/** 芸を見せる秒。しんだふりは少し長く倒れたままでいてから起きる */
+const TRICK_TIME: Partial<Record<PetAction, number>> = { spin: 1.6, dead: 2.8 };
 
 const G = 9.8;
 /** 地面に触れている高さ（半径）・弾み・転がりの減り（1/秒）・空気で浮く強さ */
@@ -145,6 +187,8 @@ const GAP = 0.34;
 const WALK = { dog: 0.45, cat: 0.35 };
 const RUN = { dog: 1.5, cat: 1.3 };
 const MOUTH = { dog: 0.29, cat: 0.21 };
+/** きれいがこれより下だと、ときどき体をかく */
+const ITCHY = 10;
 /** 寝ているところから起きる、げんきの高さ */
 const RESTED = 90;
 /** 自分からお皿へ行く目安。子どもが入れたらすぐ食べに行くよう高めにしてある */
@@ -167,6 +211,20 @@ const CROUCH = 1.5;
 const HIGH = 0.2;
 /** ねずみのおもちゃの前で、身をかがめてから前足でちょいちょいし、跳ぶまでの秒 */
 const MOUSE_PLAY = 1.7;
+/** 持ってきたおもちゃをくわえて見上げ、受け取ってもらうのを待つ秒 */
+const OFFER = 5;
+/** 猫が前足でおもちゃに届く距離 */
+const PAW_REACH = 0.28;
+/** 持ち主がおもちゃを受け取れる場面。大会や広場では遊びのモードがおもちゃを扱う */
+const handing = (w: WorldView) => w.scene === 'room' || w.scene === 'park';
+/** おもちゃにかかわっているあいだ。ほかの子は同じおもちゃを追わず、画面も手元へ戻さない */
+export const playing = (a: Actor) =>
+  a.mode === 'chase' ||
+  a.mode === 'carry' ||
+  a.mode === 'offer' ||
+  a.mode === 'tease' ||
+  (a.mode === 'pounce' && a.aim === 'toy') ||
+  (a.mode === 'act' && (a.next === 'chase' || a.next === 'carry'));
 
 export function createActor(pet: Pet, at: Spot): Actor {
   return {
@@ -194,6 +252,7 @@ export function createActor(pet: Pet, at: Spot): Actor {
     gaze: null,
     puzzled: false,
     show: false,
+    side: false,
     spin: 0,
     next: 'idle',
     aim: 'toy',
@@ -201,9 +260,14 @@ export function createActor(pet: Pet, at: Spot): Actor {
     seen: null,
     wandPlay: null,
     awake: 0,
+    itchAt: 8,
     bark: 12,
     clock: 0,
-    queue: []
+    queue: [],
+    rub: null,
+    shy: 0,
+    play: -1,
+    tease: false
   };
 }
 
@@ -214,6 +278,7 @@ function act(a: Actor, pose: PetAction, t: number, next: Actor['next'] = 'idle',
   a.next = next;
   a.puzzled = puzzled;
   a.show = false;
+  a.side = false;
 }
 
 function wakeUp(a: Actor) {
@@ -229,6 +294,7 @@ function wakeUp(a: Actor) {
 export function command(actor: Actor, pet: Pet, cmd: Command): void {
   const hop = actor.hop;
   apply(actor, cmd);
+  if (cmd.type === 'stroke' && cmd.part && actor.mode === 'held') rubbed(actor, pet, cmd.part, cmd.amount ?? 0, cmd.at);
   // 跳んでいるあいだの言いつけは、着いてからの動きにする
   if (hop && actor.mode !== 'hop') {
     hop.then = { mode: actor.mode, pose: actor.pose, t: actor.t };
@@ -236,12 +302,44 @@ export function command(actor: Actor, pet: Pet, cmd: Command): void {
   }
 }
 
+function rubbed(a: Actor, pet: Pet, touched: Part, amount: number, at?: Spot) {
+  const kind = kindOf(pet.breed);
+  // おなかをなでているあいだは、転がったり身をよじったりして指の下が背中になっても、おなかをなで続けたことにする
+  const part = a.rub?.part === 'belly' && touched === 'back' ? 'belly' : touched;
+  const from = a.rub?.part === part ? a.rub.s : 0;
+  const s = from + amount;
+  a.rub = { part, s };
+  a.pose = rubPose(kind, pet.love, part, s);
+  if (!from) a.gaze = null;
+  // 指が体の真上に近いと向きが定まらず首が左右に揺れるので、少し離れているときだけ寄せる
+  const face = part === 'head' || part === 'chin' || part === 'cheek';
+  if (at && face && dist(a, at) > 0.1 && !dislikes(kind, pet.love, part)) a.gaze = at;
+  // 猫はしっぽをさわられているあいだ、いやがってしっぽを大きく振る
+  if (kind === 'cat' && part === 'tail') a.wag = 1;
+  const feel = feelOf(kind, pet.love, part, from, s);
+  if (!feel) return;
+  a.queue.push({ type: 'petted', petId: a.petId, feel });
+  // 振り返って、さわられたしっぽを見る
+  if (feel === 'turn') a.gaze = { x: a.x - Math.sin(a.heading), z: a.z - Math.cos(a.heading) };
+  if (feel === 'enough' || (feel === 'tickle' && dislikes(kind, pet.love, part))) {
+    a.shy = feel === 'enough' ? 5 : 1;
+    a.t = 0;
+  }
+}
+
+/** なでる人（カメラ）から遠ざかる向きへ d だけ行った所 */
+function away(a: Actor, c: Ctx, d: number): Spot {
+  const b = c.world.layout.bounds;
+  const dir = angleTo(c.camera, a) + between(c.rng, -0.7, 0.7);
+  return { x: clamp(a.x + Math.sin(dir) * d, b.x0, b.x1), z: clamp(a.z + Math.cos(dir) * d, b.z0, b.z1) };
+}
+
 function apply(a: Actor, cmd: Command) {
   if (cmd.type === 'wake') return wakeUp(a);
   if (a.mode === 'eat' || a.mode === 'drink') return;
   if (cmd.type === 'stroke' || cmd.type === 'brush') {
     // 寝ているあいだはなでても起きない
-    if (a.asleep) return;
+    if (a.asleep || (cmd.type === 'stroke' && a.shy > 0)) return;
     if (a.mode !== 'held') a.next = a.carrying ? 'carry' : 'idle';
     a.mode = 'held';
     a.pose = cmd.type === 'stroke' ? 'happy' : 'stand';
@@ -260,10 +358,12 @@ function apply(a: Actor, cmd: Command) {
     return;
   }
   if (a.asleep || a.carrying) return;
-  const trick = TRICKS.find((t) => t.id === cmd.trick);
-  if (cmd.success && trick) act(a, trick.action, 1.6);
+  const trick = cmd.type === 'trick' ? TRICKS.find((t) => t.id === cmd.trick) : undefined;
+  if (cmd.type === 'teach') act(a, 'stand', 3);
+  else if (cmd.success && trick) act(a, trick.action, TRICK_TIME[trick.action] ?? 1.6);
   else act(a, 'stand', 1.3, 'idle', true);
   a.show = true;
+  a.side = cmd.type === 'teach';
   a.gaze = null;
 }
 
@@ -382,6 +482,14 @@ function turn(a: Actor, want: number, dt: number): number {
   a.heading = wrap(a.heading + step);
   a.spin = dt > 0 ? Math.abs(step) / dt : 0;
   return Math.abs(wrap(want - a.heading));
+}
+
+/** カメラに横を見せる向き。いまの向きに近いほう */
+function sideOn(a: Actor, camera: Spot): number {
+  const to = angleTo(a, camera);
+  return Math.abs(wrap(to + Math.PI / 2 - a.heading)) < Math.abs(wrap(to - Math.PI / 2 - a.heading))
+    ? to + Math.PI / 2
+    : to - Math.PI / 2;
 }
 
 /** 目標へ向きを変えながら進む。止まるべき所まで来たら true */
@@ -517,18 +625,24 @@ function needs(a: Actor, c: Ctx): boolean {
     }
   }
   const toy = world.toy;
-  if (toy && !toy.holder && a.seen !== toy) {
+  // 猫は遠くを転がっていくボールには構わず、そばまで転がってきたら遊ぶかどうか決める
+  const far = !c.dog && toy?.kind === 'ball' && !toy.still && dist(a, toy) > 1.5;
+  if (toy && !toy.holder && a.seen !== toy && !far) {
     a.seen = toy;
-    const chasing = actors.some((o) => o.mode === 'chase' || o.mode === 'carry');
+    const chasing = actors.some((o) => o !== a && playing(o));
     // ねずみは猫のおもちゃなので、犬はときどきしか追わない（追うと先に咥えて猫の出番がなくなる）
     const want = c.dog
       ? toy.kind !== 'wand' &&
         (!toy.still || dist(toy, world.layout.front) > 0.5) &&
         (toy.kind !== 'mouse' || c.rng() < 0.3)
-      : toy.kind === 'mouse' || (!toy.still && c.rng() < { mouse: 1, ball: 0.3, frisbee: 0.1, wand: 0 }[toy.kind]);
+      : toy.kind === 'mouse' ||
+        (toy.kind === 'ball' && c.rng() < (!toy.still ? 0.8 : dist(a, toy) < 1 ? 0.3 : 0)) ||
+        (toy.kind === 'frisbee' && !toy.still && c.rng() < 0.1);
     if (want && !chasing) {
       a.mode = 'chase';
       a.t = 12;
+      a.play = -1;
+      a.tease = c.dog && handing(world) && c.rng() < 0.12;
       return true;
     }
   }
@@ -617,6 +731,8 @@ const grounded = (a: Actor) =>
       ? a.pose === 'jump' || a.pose === 'roll'
       : a.mode === 'chase' ||
         a.mode === 'carry' ||
+        a.mode === 'offer' ||
+        a.mode === 'tease' ||
         a.mode === 'stalk' ||
         a.mode === 'pounce' ||
         a.mode === 'eat' ||
@@ -711,6 +827,11 @@ function decide(a: Actor, c: Ctx) {
   if (room && pet.stats.food < LOW && world.bowls.foodLeft <= 0.05 && rng() < 0.3) {
     go(a, 'beg', besideBowl(room.food, room));
     return;
+  }
+  // 汚れがいちばんひどいと、ひまなときに 10〜20 秒に 1 回ほど体をかくか、ぶるっと振る
+  if (pet.stats.clean < ITCHY && a.clock >= a.itchAt) {
+    a.itchAt = a.clock + between(rng, 10, 20);
+    return act(a, rng() < 0.65 ? 'scratch' : 'shake', 1.8);
   }
   const here = perchOf(world, a.perch);
   if (here) return perched(a, c, here);
@@ -874,10 +995,13 @@ function runMode(a: Actor, c: Ctx, dt: number) {
         events.push({ type: 'caught', petId: a.petId });
         return act(a, 'jump', 0.5, 'carry');
       }
+      if (!dog && !flying && a.play >= 0) return dribble(a, c, toy, dt, run);
       if (!dog && !flying && reach < 0.45) {
+        a.play = Math.round(between(c.rng, 6, 10));
+        if (toy.kind !== 'mouse') return dribble(a, c, toy, dt, run);
         a.aim = 'toy';
         a.mode = 'pounce';
-        a.t = toy.kind === 'mouse' ? MOUSE_PLAY : 0.6;
+        a.t = MOUSE_PLAY;
         return;
       }
       steer(a, toyGoal(toy, layout), run, dt, layout, 0);
@@ -891,22 +1015,55 @@ function runMode(a: Actor, c: Ctx, dt: number) {
       }
       a.pose = 'stand';
       a.gaze = null;
+      if (a.tease && dist(a, layout.front) < 1.2) {
+        a.tease = false;
+        const p = away(a, c, 0.9);
+        [a.tx, a.tz, a.t, a.mode] = [p.x, p.z, 3, 'tease'];
+        events.push({ type: 'voice', petId: a.petId, cry: 'happy' });
+        return;
+      }
       const there = steer(a, layout.front, dist(a, layout.front) > 0.8 ? run : walk, dt, layout, 0.1);
       if (!there && a.t > 0) return;
       if (!faceThen(a, angleTo(a, c.camera), dt)) return;
-      toy.holder = null;
-      toy.still = true;
-      toy.x = a.x + Math.sin(a.heading) * MOUTH.dog;
-      toy.z = a.z + Math.cos(a.heading) * MOUTH.dog;
-      toy.y = TOY[toy.kind].r;
-      toy.vx = toy.vy = toy.vz = 0;
-      a.carrying = null;
       events.push({ type: 'fetched', petId: a.petId }, { type: 'voice', petId: a.petId, cry: 'proud' });
-      a.mode = 'idle';
       a.pose = 'sit';
       a.gaze = c.camera;
+      if (handing(world)) {
+        a.mode = 'offer';
+        a.t = OFFER;
+        return;
+      }
+      drop(a, toy, 0);
+      a.mode = 'idle';
       a.t = 2.5;
       return;
+    }
+    case 'tease': {
+      if (!toy || toy.holder !== a.petId) {
+        a.carrying = null;
+        return decide(a, c);
+      }
+      a.pose = 'stand';
+      if (!steer(a, { x: a.tx, z: a.tz }, run, dt, layout, 0.15) && a.t > 0) return;
+      if (!faceThen(a, angleTo(a, c.camera), dt)) return;
+      // おじぎのかっこうで「とってごらん」と誘ってから、また持ってくる
+      a.gaze = c.camera;
+      return act(a, 'bow', 1.2, 'carry');
+    }
+    case 'offer': {
+      accelerate(a, 0, dt);
+      // 画面が指で受け取ると、view.toy が消える
+      if (!toy || toy.holder !== a.petId) {
+        a.carrying = null;
+        return act(a, 'happy', 1.2);
+      }
+      if (a.t > 0) return;
+      drop(a, toy, 0.25);
+      // 足元のおもちゃを、ほかの子が新しく投げたものと思って追わないように
+      for (const o of c.actors) o.seen = toy;
+      events.push({ type: 'urge', petId: a.petId }, { type: 'voice', petId: a.petId, cry: 'happy' });
+      // 鼻先で押し出すかっこう
+      return act(a, 'eat', 0.6);
     }
     case 'stalk': {
       const wand = world.wand;
@@ -968,6 +1125,7 @@ function runMode(a: Actor, c: Ctx, dt: number) {
       if (dist(a, target) < 0.3) {
         events.push({ type: 'caught', petId: a.petId });
         if (a.aim === 'toy' && toy) {
+          if (a.play > 0) return bat(a, c, toy);
           toy.vx = toy.vz = 0;
           toy.still = toy.y <= TOY[toy.kind].r + 0.001;
         }
@@ -975,12 +1133,13 @@ function runMode(a: Actor, c: Ctx, dt: number) {
       }
       // ねずみを逃したら、もう一度ねらいなおす
       if (a.aim === 'toy' && toy?.kind === 'mouse') a.seen = null;
-      return act(a, 'stand', 0.8, a.aim === 'wand' ? 'stalk' : 'idle');
+      return act(a, 'stand', 0.8, a.aim === 'wand' ? 'stalk' : a.play > 0 ? 'chase' : 'idle');
     }
     case 'act':
     case 'held': {
       accelerate(a, 0, dt);
-      if (a.show) turn(a, angleTo(a, c.camera), dt);
+      if (a.mode === 'act' && a.pose === 'spin') a.heading = wrap(a.heading + SPIN_RATE * dt);
+      else if (a.show) turn(a, a.side ? sideOn(a, c.camera) : angleTo(a, c.camera), dt);
       if (a.mode === 'act' && a.pose === 'jump' && a.next === 'stalk' && a.t <= 0 && world.wand) {
         if (dist(a, world.wand) < 0.35) {
           events.push({ type: 'caught', petId: a.petId });
@@ -989,10 +1148,14 @@ function runMode(a: Actor, c: Ctx, dt: number) {
       }
       if (a.t > 0) return;
       a.puzzled = false;
+      if (a.mode === 'held') {
+        a.rub = null;
+        if (a.shy > 0 && !a.carrying) return go(a, 'wander', away(a, c, a.shy > 2 ? 1.1 : 0.35));
+      }
       if (a.next === 'idle') {
         a.mode = 'idle';
         a.t = between(c.rng, 1, 2.5);
-        // 芸のあとは座って、ほめられるのを待つ
+        // 芸のあとは座って、ほめられるのを待つ。うっとりしていた子も座り、閉じた目は models.ts がゆっくり開く
         if (a.pose !== 'down') a.pose = 'sit';
       } else {
         a.mode = a.next;
@@ -1001,6 +1164,58 @@ function runMode(a: Actor, c: Ctx, dt: number) {
       return;
     }
   }
+}
+
+/** 猫がおもちゃを前足で転がしては追う。触る回数を使いきると飽きて離れていく */
+function dribble(a: Actor, c: Ctx, toy: Toy, dt: number, run: number) {
+  if (a.play <= 0) {
+    a.play = -1;
+    return go(a, 'wander', wanderSpot(a, c));
+  }
+  const layout = c.world.layout;
+  const d = dist(a, toy);
+  if (d > PAW_REACH) return void steer(a, toyGoal(toy, layout), clamp(d * 2, 0.35, run), dt, layout, PAW_REACH - 0.05);
+  if (!faceThen(a, angleTo(a, toy), dt)) return;
+  const r = c.rng();
+  if (toy.kind === 'ball' && r < 0.15) {
+    // 両前足で抱えて転がる。あいだは think がボールを胸元に留める
+    a.play--;
+    c.events.push({ type: 'played', petId: a.petId });
+    return act(a, 'roll', 1.4, 'chase');
+  }
+  if (r < 0.35) {
+    // 見つめてお尻を振ってから飛びつき、捕まえたらまた前足で転がす
+    a.aim = 'toy';
+    a.mode = 'pounce';
+    a.t = between(c.rng, 0.8, 1.3) + 0.35;
+    return;
+  }
+  bat(a, c, toy);
+}
+
+/** 前足でちょいと押す。ボールは物理でそのまま転がっていく */
+function bat(a: Actor, c: Ctx, toy: Toy) {
+  const dir = a.heading + between(c.rng, -0.6, 0.6);
+  const v = between(c.rng, 0.5, 0.95);
+  toy.vx = Math.sin(dir) * v;
+  toy.vz = Math.cos(dir) * v;
+  toy.still = false;
+  a.play--;
+  c.events.push({ type: 'played', petId: a.petId });
+  act(a, 'paw', 0.45, 'chase');
+}
+
+/** くわえているおもちゃを口の先の床に置く。push は鼻で前へ押し出す速さ */
+function drop(a: Actor, toy: Toy, push: number) {
+  toy.holder = null;
+  toy.x = a.x + Math.sin(a.heading) * MOUTH.dog;
+  toy.z = a.z + Math.cos(a.heading) * MOUTH.dog;
+  toy.y = TOY[toy.kind].r;
+  toy.vx = Math.sin(a.heading) * push;
+  toy.vz = Math.cos(a.heading) * push;
+  toy.vy = 0;
+  toy.still = !push;
+  a.carrying = null;
 }
 
 /** 捕まえたふさを、少し噛むか、抱えて転がる */
@@ -1036,13 +1251,20 @@ function grab(a: Actor, toy: Toy) {
 }
 
 function outputs(a: Actor, c: Ctx, dt: number) {
-  const free = a.mode === 'idle' || a.mode === 'go' || a.mode === 'chase' || a.mode === 'carry' || a.mode === 'stalk';
+  const free =
+    a.mode === 'idle' ||
+    a.mode === 'go' ||
+    a.mode === 'chase' ||
+    a.mode === 'carry' ||
+    a.mode === 'stalk' ||
+    a.mode === 'tease';
   const moving = free && (a.v > 0.04 || a.spin > 1);
   a.action = !moving ? a.pose : a.v > 0.8 ? 'run' : 'walk';
   a.speed = moving ? clamp(a.v / 1.5, 0.2, 1) : 0;
   a.spin = 0;
   const h = Math.floor(c.pet.love);
-  const lively = a.mode === 'held' || a.pose === 'happy' || a.mode === 'carry' || a.mode === 'chase';
+  const lively =
+    a.mode === 'held' || a.pose === 'happy' || a.mode === 'carry' || a.mode === 'chase' || a.mode === 'offer';
   const want = a.asleep
     ? 0
     : c.dog
@@ -1074,6 +1296,7 @@ export function think(actors: Actor[], pets: Pet[], world: WorldView, dt: number
     events.push(...a.queue.splice(0));
     a.clock += dt;
     a.awake = Math.max(0, a.awake - dt);
+    a.shy = Math.max(0, a.shy - dt);
     if (!world.wand) a.wandPlay = null;
     runMode(a, c, dt);
     a.x += Math.sin(a.heading) * a.v * dt;
@@ -1091,6 +1314,12 @@ export function think(actors: Actor[], pets: Pet[], world: WorldView, dt: number
       toy.x = a.x + Math.sin(a.heading) * m;
       toy.z = a.z + Math.cos(a.heading) * m;
       toy.y = dog ? 0.2 : 0.14;
+    }
+    if (toy && !toy.holder && a.mode === 'act' && a.next === 'chase' && a.pose === 'roll') {
+      toy.x = a.x + Math.sin(a.heading) * 0.12;
+      toy.z = a.z + Math.cos(a.heading) * 0.12;
+      toy.vx = toy.vz = 0;
+      toy.still = true;
     }
   }
   return events;

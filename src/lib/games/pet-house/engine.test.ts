@@ -19,6 +19,8 @@ import {
   stroke,
   tick,
   trickChance,
+  trickSteps,
+  tricksFor,
   TRICKS,
   wash,
   writePhotos,
@@ -195,6 +197,20 @@ describe('pet-house engine', () => {
       expect(results).toEqual([...Array(trick.steps - 1).fill(false), true, false]);
       expect(trickChance(pet, trick.id)).toBeGreaterThan(before);
     }
+  });
+
+  it('猫は覚えられる芸が犬より少なく、新しい芸は犬より多くほめないと覚えない', () => {
+    const save = newSave(0);
+    const cat = adopt(save, 'mike', 'タマ') as Pet;
+    const cats = tricksFor('cat');
+    expect(cats.length).toBeLessThan(tricksFor('dog').length);
+    expect(trickChance(cat, 'dead')).toBe(0);
+    for (const t of cats) expect(trickChance(cat, t.id)).toBeGreaterThan(0);
+    const spin = TRICKS.find((t) => t.id === 'spin')!;
+    expect(trickSteps(spin, 'cat')).toBeGreaterThan(trickSteps(spin, 'dog'));
+    const results = Array.from({ length: trickSteps(spin, 'cat') }, () => praise(cat, 'spin').learned);
+    expect(results.at(-1)).toBe(true);
+    expect(results.filter(Boolean)).toHaveLength(1);
   });
 
   it('おふろはシャワーで流すほど汚れが落ち、最後まで入るとぴかぴかでなかよしが少し増える', () => {

@@ -3,7 +3,7 @@ import type { Actor, BehaviorEvent, WorldView } from './behavior';
 import type { Track } from './bgm';
 import type { Cry } from './cries';
 import type { PetFx } from './effects';
-import type { Pet, Save } from './engine';
+import type { CounterId, Pet, Save } from './engine';
 import type { Layout } from './layout';
 import type { Tool } from './session.svelte';
 import type { BaseScene, Scene, ToyId, TrickId } from './types';
@@ -80,6 +80,8 @@ export interface SceneHost {
   music(track: Track | null): void;
   /** save を書き換えたら呼ぶ。少しあとでまとめて保存する */
   changed(): void;
+  /** スタンプ帳の回数を数える（おふろ・あいさつ・うんち） */
+  count(key: CounterId, n?: number): void;
   /** scene を渡すと部屋ではなくその場面へ出る（おさんぽの道の先の公園）。組み立てを待つので 2 フレームあとに効く */
   end(scene?: BaseScene): void;
 }

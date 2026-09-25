@@ -1,5 +1,5 @@
 import type { Activity, ActivityHost, ActivityScene } from './activity';
-import type { Actor, BehaviorEvent, Toy } from './behavior';
+import { SPIN_RATE, type Actor, type BehaviorEvent, type Toy } from './behavior';
 import {
   ARENA,
   COURSE,
@@ -19,7 +19,7 @@ import {
   type Entry
 } from './contest';
 import { contestSounds as cs } from './contest-sounds';
-import { TRICKS, kindOf, trickChance } from './engine';
+import { TRICKS, kindOf, trickChance, trickName } from './engine';
 import type { Spot } from './layout';
 import { buildContest, type Venue } from './scene-contest';
 import { sounds } from './sounds';
@@ -120,7 +120,7 @@ export class ContestPlay implements Activity {
     const j = this.id === 'obedience' ? JUDGE.near : JUDGE.side;
     v?.judge(j.x, j.z, ARENA.front.x, ARENA.front.z);
     this.#rivals = rivals(this.id, this.rank, kindOf(host.pet.breed), host.pet.name, Math.random);
-    this.#orders = orders(Math.random);
+    this.#orders = orders(Math.random, undefined, kindOf(host.pet.breed));
     const a = host.actor;
     if (a) [a.x, a.z, a.heading] = [ARENA.front.x, ARENA.front.z, Math.PI];
     host.setTool('hand');
@@ -422,7 +422,7 @@ export class ContestPlay implements Activity {
       this.#step = 'ask';
       this.#t = 0;
       const trick = TRICKS.find((k) => k.id === this.#orders[this.round - 1]);
-      this.judge = `「${trick ? (this.dog ? trick.dog : trick.cat) : ''}」！`;
+      this.judge = `「${trick ? trickName(trick, this.dog ? 'dog' : 'cat') : ''}」！`;
       this.#venue?.call(true);
       cs.beep();
     } else if (this.#step === 'ask' && this.#t > 5) {
@@ -477,6 +477,7 @@ export class ContestPlay implements Activity {
     a.action = action;
     a.wag = action === 'happy' ? 1 : 0.5;
     a.look = 0;
+    if (action === 'spin') return void (a.heading = wrap(a.heading + SPIN_RATE * dt));
     if (!face) return;
     const cam = ARENA.camera;
     const diff = wrap(Math.atan2(cam.x - a.x, cam.z - a.z) - a.heading);

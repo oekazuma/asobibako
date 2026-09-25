@@ -15,6 +15,7 @@ varying vec3 vComb;
 uniform float uShell;
 uniform float uCell;
 uniform float uWet;
+uniform float uDirt;
 `;
 
 const vertex = /* glsl */ `
@@ -31,6 +32,7 @@ transformed += (normal * uShell * wk + fc * (uShell * uShell) * (0.5 + 1.2 * uWe
 // 毛 1 本を格子の 1 マスに 1 本置く。マスごとに長さ・太さ・明るさを散らし、粗いかたまりで房を作る
 const fragment = /* glsl */ `
 #include <color_fragment>
+float furDark = 0.0;
 {
   vec3 q = vRest * uCell;
   vec3 id = floor(q);
@@ -62,8 +64,25 @@ const fragment = /* glsl */ `
   float streak = 0.6 * furNoise(sp) + 0.4 * furNoise(sp * 2.3 + 7.1);
   shade *= mix(0.9 + 0.16 * streak, 1.0, fur);
 #endif
+  // 汚れは毛全体のくすみと泥。足先は下から泥をかぶり、胸・顔・体には小さなはねが散る（vRest は肩の高さが 1 の座標）
+  if (uDirt > 0.0) {
+    diffuseColor.rgb *= mix(vec3(1.0), vec3(0.82, 0.76, 0.68), uDirt);
+    float n1 = 0.6 * furNoise(vRest * 6.0) + 0.4 * furNoise(vRest * 17.0 + 3.7);
+    float sock = smoothstep(0.04, -0.04, vRest.y - 0.1 - 0.22 * uDirt - (n1 - 0.5) * 0.3);
+    float front = smoothstep(0.15, 0.6, vRest.z) * smoothstep(1.0, 0.5, vRest.y);
+    float edge = 0.8 - 0.14 * uDirt - 0.08 * front;
+    float speck = smoothstep(edge, edge + 0.05, 0.7 * furNoise(vRest * 24.0 + 11.0) + 0.3 * n1);
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.15, 0.09, 0.045), max(sock * 0.8, speck * 0.7));
+  }
   diffuseColor.rgb *= shade * (1.0 - 0.3 * uWet);
+  furDark = smoothstep(0.05, 0.012, dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722)));
 }
+`;
+
+// 黒い毛は光をほとんど返さず、目のほかは輪郭も鼻も闇に沈む。ふちに空の明るさを足し、つやを少し出して形を見せる
+const rim = /* glsl */ `
+#include <emissivemap_fragment>
+totalEmissiveRadiance += furDark * (0.012 + 0.3 * pow(1.0 - saturate(dot(normal, normalize(vViewPosition))), 2.0)) * vec3(0.5, 0.52, 0.62);
 `;
 
 const hash = /* glsl */ `
@@ -86,10 +105,16 @@ float furNoise(vec3 p) {
 
 /**
  * layer は 0（地肌、影を落とす）から layers（毛先）まで。cell は毛 1 本の間隔（m）。wet はぬれ具合 0..1 で、
- * 毛を寝かせて暗く、つやを出す。同じ引数なら同じ material を返し、shader は殻どうし・ぬれ具合どうしで共有する
+ * 毛を寝かせて暗く、つやを出す。dirt は汚れ具合 0..1。同じ引数なら同じ material を返し、shader は殻どうしで共有する
  */
-export function furMaterial(layer: number, layers: number, cell: number, wet = 0): THREE.MeshStandardMaterial {
-  const key = `${layer}/${layers}/${cell}${wet ? `/${wet}` : ''}`;
+export function furMaterial(
+  layer: number,
+  layers: number,
+  cell: number,
+  wet = 0,
+  dirt = 0
+): THREE.MeshStandardMaterial {
+  const key = `${layer}/${layers}/${cell}${wet ? `/${wet}` : ''}${dirt ? `/d${dirt}` : ''}`;
   let m = cache.get(key);
   if (m) return m;
   const shell = layer > 0;
@@ -114,12 +139,18 @@ export function furMaterial(layer: number, layers: number, cell: number, wet = 0
     s.uniforms.uShell = { value: h };
     s.uniforms.uCell = { value: 1 / cell };
     s.uniforms.uWet = { value: wet };
+    s.uniforms.uDirt = { value: dirt };
     s.vertexShader = s.vertexShader
       .replace('#include <common>', `#include <common>\n${common}\nattribute float furLen;\nattribute vec3 furComb;`)
       .replace('#include <begin_vertex>', vertex);
     s.fragmentShader = s.fragmentShader
       .replace('#include <common>', `#include <common>\n${common}\n${hash}`)
-      .replace('#include <color_fragment>', fragment);
+      .replace('#include <color_fragment>', fragment)
+      .replace(
+        '#include <roughnessmap_fragment>',
+        '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.7, furDark);'
+      )
+      .replace('#include <emissivemap_fragment>', rim);
   };
   m.customProgramCacheKey = () => (shell ? 'fur-shell' : 'fur-base');
   // scenes の release() が捨てないように。全ペットで使い回している
