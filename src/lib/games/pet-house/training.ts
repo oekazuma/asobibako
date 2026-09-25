@@ -52,16 +52,4 @@ export class Training {
     c.fx.coins(x, y, c.purse(), 6);
     sounds.learned();
   }
-
-  /** 声で「いいこ」とほめたとき。芸の直後なら、なでてほめたのと同じに数える */
-  cheer() {
-    const c = this.#c;
-    const pet = c.s.current;
-    const a = c.actor();
-    if (!pet || !a) return;
-    const pending = c.s.trickPending;
-    if (pending?.petId === pet.id) return this.praise(pet, a, pending.trick);
-    c.fx.hearts(...c.above(a), 2);
-    c.voice(pet, 'happy');
-  }
 }

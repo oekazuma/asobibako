@@ -8,7 +8,7 @@ import { buildPlaza, plazaLayout } from './scene-plaza';
 import { sounds } from './sounds';
 import type { BreedId, Kind, PetAction } from './types';
 
-export type Step = 'look' | 'name' | 'call';
+export type Step = 'look' | 'name';
 
 const START: Spot[] = [
   { x: -0.9, z: -0.4 },
@@ -65,8 +65,6 @@ export class Plaza implements Visit {
   #wand = { x: 0, z: 0, tx: 0, tz: 0, on: false };
   #timers = { heart: 0, purr: 0, bark: 2, visit: 5, frolic: 3 };
   #pair: { a: Actor; b: Actor; t: number; on: boolean } | null = null;
-  /** 覚えたときの鳴き声。「おぼえた」の音と重ならないよう少し遅らせる */
-  #yelp: { t: number; a: Actor } | null = null;
   #vy = 0;
 
   enter(host: SceneHost): void {
@@ -109,7 +107,6 @@ export class Plaza implements Visit {
     if (this.swapping) return;
     this.back();
     this.#pair = null;
-    this.#yelp = null;
     this.swapping = true;
     this.#swapIn = 2;
   }
@@ -195,11 +192,6 @@ export class Plaza implements Visit {
     const toy = view.toy;
     if (toy && !toy.holder && this.#vy < -0.5 && toy.vy >= 0 && toy.y < 0.2) sounds.bounce('grass', -this.#vy);
     this.#vy = toy && !toy.holder ? toy.vy : 0;
-    const y = this.#yelp;
-    if (y && (y.t -= dt) <= 0) {
-      this.#yelp = null;
-      this.#voice(y.a, 'happy');
-    }
   }
 
   #event(e: BehaviorEvent) {
@@ -408,30 +400,5 @@ export class Plaza implements Visit {
     const want = Math.atan2(other.x - a.x, other.z - a.z);
     const diff = Math.atan2(Math.sin(want - a.heading), Math.cos(want - a.heading));
     a.heading += Math.max(-5 * dt, Math.min(5 * dt, diff));
-  }
-
-  // --- 名前を呼んで覚えさせるあいだ ---
-
-  /** n 回目に名前を呼んだとき。1 回目はピクッとし、2 回目は首をかしげ、3 回目でよろこぶ */
-  heard(n: number): void {
-    const me = this.#me();
-    if (!me) return;
-    const [x, y] = this.#host.above(me, 0.3);
-    const fx = this.#host.fx;
-    const pose = (p: PetAction, t: number, puzzled = false) =>
-      Object.assign(me, { mode: 'act', pose: p, t, next: 'idle', show: true, puzzled, gaze: null });
-    if (n === 1) {
-      pose('stand', 1.4);
-      this.#voice(me, 'answer');
-      fx.text('ピクッ！', x, y, '#1f9bff', 36);
-    } else if (n === 2) {
-      pose('sit', 1.8, true);
-      fx.text('ん？', x, y, '#1f9bff', 40);
-    } else {
-      pose('happy', 2.2);
-      this.#yelp = { t: 0.7, a: me };
-      fx.hearts(x, y, 5);
-      fx.text('おぼえた！', x, y - 10, '#ff7a00', 38);
-    }
   }
 }

@@ -75,7 +75,7 @@
       {pet}
       onselect={(id) => session.select(id)}
       onwear={(id, acc) => session.wear(id, acc)}
-      onname={(id, name, calls) => session.setName(id, name, calls)}
+      onname={(id, name) => session.setName(id, name)}
       onadopt={() => {
         close();
         session.visit(new Plaza(), 'ふれあいひろばへ いくよ');

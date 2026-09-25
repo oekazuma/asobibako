@@ -2,8 +2,6 @@
   import Icon from '$lib/components/Icon.svelte';
   import { BREEDS } from './breeds';
   import { adoptPrice, hearts, MAX_PETS, SHOP, type Pet, type Save } from './engine';
-  import { canListen } from './listen';
-  import NameCall from './NameCall.svelte';
   import type { AccessoryId } from './types';
 
   let {
@@ -19,30 +17,22 @@
     pet: Pet;
     onselect: (petId: string) => void;
     onwear: (petId: string, acc: AccessoryId | null) => void;
-    /** 名前と、声で覚えさせた呼び名を書きかえる */
-    onname: (petId: string, name: string, calls: string[]) => void;
+    onname: (petId: string, name: string) => void;
     onadopt: () => void;
   } = $props();
 
   const price = $derived(adoptPrice(save));
   const full = $derived(save.pets.length >= MAX_PETS);
   const accName = (id: AccessoryId) => SHOP.find((i) => i.id === id)?.name ?? '';
-  const voice = canListen();
 
-  let mode = $state<'rename' | 'learn' | null>(null);
+  let renaming = $state(false);
   let draft = $state('');
 
-  // 呼び名は前の名前の聞き取りなので、名前を変えたら消して覚え直してもらう
   function rename(event: SubmitEvent) {
     event.preventDefault();
     if (!draft.trim()) return;
-    onname(pet.id, draft.trim(), []);
-    mode = voice ? 'learn' : null;
-  }
-
-  function learned(calls: string[]) {
-    if (calls.length) onname(pet.id, pet.name, calls);
-    mode = null;
+    onname(pet.id, draft.trim());
+    renaming = false;
   }
 </script>
 
@@ -68,20 +58,15 @@
 </div>
 
 <h3>{pet.name}の なまえ</h3>
-{#if mode === 'rename'}
+{#if renaming}
   <form class="row" onsubmit={rename}>
     <input bind:value={draft} maxlength="8" aria-label="あたらしい なまえ" autocomplete="off" />
     <button type="submit" class="pill p2" disabled={!draft.trim()}>かえる</button>
-    <button type="button" class="pill" onclick={() => (mode = null)}>やめる</button>
+    <button type="button" class="pill" onclick={() => (renaming = false)}>やめる</button>
   </form>
-{:else if mode === 'learn'}
-  <div class="row"><NameCall name={pet.name} breed={pet.breed} onfinish={learned} /></div>
 {:else}
   <div class="row">
-    <button class="pill" onclick={() => ((draft = pet.name), (mode = 'rename'))}>なまえを かえる</button>
-    {#if voice}
-      <button class="pill" onclick={() => (mode = 'learn')}>よびかたを おぼえなおす</button>
-    {/if}
+    <button class="pill" onclick={() => ((draft = pet.name), (renaming = true))}>なまえを かえる</button>
   </div>
 {/if}
 
