@@ -1,3 +1,5 @@
+import { hush } from '$lib/audio.svelte';
+
 /** lib.dom には結果とエラーのイベントしかなく、認識そのものの型がないので必要な分だけ書く */
 interface Recognition {
   lang: string;
@@ -64,6 +66,7 @@ export function listen(on: Listener): { stop(): void } {
     if (ended) return;
     ended = true;
     clearTimeout(giveUp);
+    hush(false);
     on.end();
   };
   // stop() しても onend が来ない実装があると、ボタンが聞いている見た目のまま戻らなくなる
@@ -91,6 +94,7 @@ export function listen(on: Listener): { stop(): void } {
   };
   rec.onend = end;
   try {
+    hush(true);
     rec.start();
   } catch {
     on.error('うまく きけなかった。もう いちど', false);

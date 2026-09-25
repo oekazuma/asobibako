@@ -10,13 +10,49 @@ const PREFIX = 'asobibako:';
 // 端末ごとの控え。持ち運ぶと別の端末のエラーやゲートの回数、端末の力に合わせた画質が混ざる
 const EXCLUDED = new Set([LAST_ERROR_KEY, GATE_KEY, GRAPHICS_KEY]);
 
-// 常識外のファイルを弾く上限（正規の書き出しは数 KB、キーはゲーム数 + 数個）
+// 常識外のファイルを弾く上限。わんにゃんハウスの写真やらくがきパレードのずかんで 1MB を超えるが、
+// localStorage そのものが数 MB までなので、それより大きな正規の書き出しはない。キーはゲーム数 + 数個
 const MAX_KEYS = 400;
-const MAX_CHARS = 1024 * 1024;
+const MAX_CHARS = 16 * 1024 * 1024;
+/** 最後に書き出した日（YYYY-MM-DD）。書き出しにも入るので、別の端末へ移しても「いつの控えか」が残る */
+export const BACKUP_AT_KEY = 'asobibako:backup-at';
+/** これより前に書き出したきりなら、一覧の「？」に印を付けて書き出しを勧める */
+const DUE_DAYS = 7;
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const backedUp = (k: string) => k.startsWith(PREFIX) && !EXCLUDED.has(k);
 const keys = () => Object.keys(localStorage).filter(backedUp);
+
+/** 書き出して残す記録が 1 つでもあるか */
+export const hasRecords = () => keys().some((k) => k !== BACKUP_AT_KEY);
+
+export function markBackedUp(): void {
+  try {
+    localStorage.setItem(BACKUP_AT_KEY, today());
+  } catch {
+    // 残せなくても書き出しそのものは済んでいる
+  }
+}
+
+/** 最後に書き出した日。まだなら null */
+export function backedUpAt(): string | null {
+  try {
+    return localStorage.getItem(BACKUP_AT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** 記録があるのに、まだ書き出していないか最後の書き出しが DUE_DAYS 日より前 */
+export function backupDue(now = today()): boolean {
+  try {
+    if (!hasRecords()) return false;
+  } catch {
+    return false;
+  }
+  const at = backedUpAt();
+  return !at || (Date.parse(now) - Date.parse(at)) / 86_400_000 > DUE_DAYS;
+}
 
 export function exportAll(version: string): string {
   const data: Record<string, string> = {};
