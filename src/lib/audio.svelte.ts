@@ -1,4 +1,4 @@
-const KEY = 'asobibako:muted';
+export const MUTED_KEY = 'asobibako:muted';
 
 let ctx: AudioContext | undefined;
 
@@ -6,7 +6,7 @@ export const audio = $state({ muted: read() });
 
 function read(): boolean {
   try {
-    return localStorage.getItem(KEY) === '1';
+    return localStorage.getItem(MUTED_KEY) === '1';
   } catch {
     return false;
   }
@@ -15,7 +15,7 @@ function read(): boolean {
 export function toggleMute(): void {
   audio.muted = !audio.muted;
   try {
-    localStorage.setItem(KEY, audio.muted ? '1' : '0');
+    localStorage.setItem(MUTED_KEY, audio.muted ? '1' : '0');
   } catch {
     // プライベートブラウズでは保存できないが、音は鳴らせる
   }

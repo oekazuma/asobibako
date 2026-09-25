@@ -1,13 +1,13 @@
 // 一覧画面の覚えごと。プライベートブラウズなど localStorage が使えない環境では覚えずに動く
 
-const RECENT = 'asobibako:recent';
-const TAB = 'asobibako:menu-tab';
+export const RECENT_KEY = 'asobibako:recent';
+export const MENU_TAB_KEY = 'asobibako:menu-tab';
 const MAX = 3;
 
 /** 最近開いたゲームの id。新しい順に 3 本まで。壊れていたり読めなければ空 */
 export function recentGames(): string[] {
   try {
-    const list: unknown = JSON.parse(localStorage.getItem(RECENT) ?? '[]');
+    const list: unknown = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]');
     return Array.isArray(list) ? list.filter((id) => typeof id === 'string').slice(0, MAX) : [];
   } catch {
     return [];
@@ -17,7 +17,7 @@ export function recentGames(): string[] {
 export function rememberGame(id: string): void {
   try {
     const list = [id, ...recentGames().filter((other) => other !== id)].slice(0, MAX);
-    localStorage.setItem(RECENT, JSON.stringify(list));
+    localStorage.setItem(RECENT_KEY, JSON.stringify(list));
   } catch {
     // 保存できなくても遊ぶのには困らない
   }
@@ -26,7 +26,7 @@ export function rememberGame(id: string): void {
 /** 一覧で最後に選んだ側。1 がひとりで、2 がふたりで */
 export function menuTab(): 1 | 2 {
   try {
-    return localStorage.getItem(TAB) === '2' ? 2 : 1;
+    return localStorage.getItem(MENU_TAB_KEY) === '2' ? 2 : 1;
   } catch {
     return 1;
   }
@@ -34,7 +34,7 @@ export function menuTab(): 1 | 2 {
 
 export function setMenuTab(tab: 1 | 2): void {
   try {
-    localStorage.setItem(TAB, String(tab));
+    localStorage.setItem(MENU_TAB_KEY, String(tab));
   } catch {
     // 保存できなくても遊ぶのには困らない
   }
