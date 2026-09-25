@@ -51,6 +51,10 @@ export interface Look {
   collar: { at: V3; axis: V3 };
   /** 肉球。左前足と左後ろ足の足先の中心と半径（右は x を反転）。前足を上げたときに見える */
   pads: { front: { at: V3; r: V3 }; hind: { at: V3; r: V3 }; color: string };
+  /** 足が短い子の、胴から上を下げた量。かっこうの腰の高さをこの分だけ浅くする（models.ts） */
+  low?: number;
+  /** 横やあお向けに寝ころぶときに腰を持ち上げる量。頭と耳の大きい子（チワワ）が床に刺さらないように */
+  lie?: number;
 }
 
 // ---- 小さな道具 ----
@@ -226,6 +230,44 @@ function compress(joints: Frame, shapes: Part[], k: number) {
   });
 }
 
+/**
+ * 足を短くする（コーギー・ダックス・マンチカン）。足先より上・胴の下の端より下の足だけを縦に leg 倍に縮め、
+ * 胴から上はその分だけ下げる。模様と毛の長さは縮める前の座標で塗れるよう、逆の写像を通す
+ */
+function lower(look: Look, leg: number, belly: number): Look {
+  const foot = 0.1;
+  const low = (belly - foot) * (1 - leg);
+  const f = (y: number) => (y < foot ? y : y < belly ? foot + (y - foot) * leg : y - low);
+  const inv = (y: number) => (y < foot ? y : y < belly - low ? foot + (y - foot) / leg : y + low);
+  const P = (p: V3): V3 => [p[0], f(p[1]), p[2]];
+  const U = (p: V3): V3 => [p[0], inv(p[1]), p[2]];
+  const part = (s: Part): Part => ({ ...s, a: P(s.a), ...(s.cone && { cone: { ...s.cone, b: P(s.cone.b) } }) });
+  const back =
+    <T>(fn: (p: V3, n: V3, tag: string) => T) =>
+    (p: V3, n: V3, tag: string) =>
+      fn(U(p), n, tag);
+  const detail = look.detail;
+  return {
+    ...look,
+    joints: Object.fromEntries(Object.entries(look.joints).map(([k, p]) => [k, P(p)])),
+    shapes: look.shapes.map(part),
+    detail: detail && { amp: detail.amp, fn: (x, y, z) => detail.fn(x, inv(y), z) },
+    eye: { ...look.eye, at: P(look.eye.at) },
+    nose: { ...look.nose, at: P(look.nose.at) },
+    lip: look.lip === undefined ? undefined : f(look.lip),
+    omega: look.omega?.map((line) => line.map(P)),
+    chin: look.chin.map(part),
+    inner: { ...look.inner, at: P(look.inner.at) },
+    tongue: { ...look.tongue, at: P(look.tongue.at) },
+    mouth: P(look.mouth),
+    whiskers: look.whiskers && { ...look.whiskers, at: P(look.whiskers.at) },
+    furLen: back(look.furLen),
+    paint: back(look.paint),
+    collar: { ...look.collar, at: P(look.collar.at) },
+    low
+  };
+}
+
 // ---- 犬 ----
 
 /** 頭の形の名前。模様は頭の大きさ・位置を変える前の座標で塗る */
@@ -262,6 +304,11 @@ interface DogBuild {
   short?: number;
   paw?: number;
   ear?: number;
+  /** 立ち耳の先を外へ開く量（チワワ） */
+  earOut?: number;
+  /** 足の長さ（胴の下の端より下）の倍率。1 より小さいと短い足 */
+  leg?: number;
+  lie?: number;
   pads?: string;
   ears: 'prick' | 'drop';
   tail: { pts: V3[]; r: number[] };
@@ -367,12 +414,12 @@ function dog(b: DogBuild): Look {
       ]
     ),
     ...tailShapes(b.tail.pts, b.tail.r),
-    ...earShapes(b.ears, H, hd, b.ear ?? 1),
+    ...earShapes(b.ears, H, hd, b.ear ?? 1, b.earOut ?? 0),
     ...(b.extra?.(H) ?? [])
   ];
   const body = compress(joints, shapes, k);
   const detail = b.detail?.(H);
-  return {
+  const look: Look = {
     kind: 'dog',
     S: b.S,
     joints,
@@ -411,11 +458,13 @@ function dog(b: DogBuild): Look {
       front: { at: [0.13, pawR[1], 0.46 * k], r: pawR },
       hind: { at: [0.12, pawR[1], -0.42 * k], r: pawR },
       color: b.pads ?? '#4a3a37'
-    }
+    },
+    lie: b.lie
   };
+  return b.leg ? lower(look, b.leg, 0.36) : look;
 }
 
-function earShapes(kind: 'prick' | 'drop', H: (p: V3) => V3, hd: number, es: number): Part[] {
+function earShapes(kind: 'prick' | 'drop', H: (p: V3) => V3, hd: number, es: number, out: number): Part[] {
   // 耳は付け根を中心に es 倍する
   const E = (base: V3, p: V3): V3 => [
     base[0] + (p[0] - base[0]) * es,
@@ -428,7 +477,7 @@ function earShapes(kind: 'prick' | 'drop', H: (p: V3) => V3, hd: number, es: num
     return both((s, side) => [
       cone(
         mirror(H(P([0.1, 1.27, 0.62])), s),
-        mirror(H(P([0.18, 1.43, 0.63])), s),
+        mirror(H(P([0.18 + out, 1.43 - out * 0.4, 0.63])), s),
         0.08 * hd,
         0.036 * hd,
         `ear.${side}`,
@@ -441,7 +490,7 @@ function earShapes(kind: 'prick' | 'drop', H: (p: V3) => V3, hd: number, es: num
       ),
       cone(
         mirror(H(P([0.11, 1.3, 0.652])), s),
-        mirror(H(P([0.17, 1.4, 0.655])), s),
+        mirror(H(P([0.17 + out * 0.9, 1.4 - out * 0.4, 0.655])), s),
         0.04 * hd,
         0.016 * hd,
         `ear.${side}`,
@@ -484,6 +533,11 @@ interface CatBuild {
   paw?: number;
   ear?: number;
   eyeR?: number;
+  /** ほほの大きさの倍率（丸い顔） */
+  cheek?: number;
+  /** 耳の先を前へ折って頭に伏せる（スコティッシュフォールド） */
+  fold?: boolean;
+  leg?: number;
   pads?: string;
   fur: Look['fur'];
   furLen: Look['furLen'];
@@ -500,6 +554,7 @@ function cat(b: CatBuild): Look {
   const bn = b.bone ?? 1;
   const pw = b.paw ?? 1;
   const es = b.ear ?? 1;
+  const ck = b.cheek ?? 1;
   const atlas: V3 = [0, 0.95, 0.63 * k];
   const { H, wrap } = headMap(design, atlas, hd);
   const P = (p: V3): V3 => {
@@ -556,7 +611,7 @@ function cat(b: CatBuild): Look {
     cone([0, 0.78, 0.38], H([0, 1.0, 0.7]), 0.17 * g, 0.14 * hd, 'neck', 'neck', 0.1, { comb: [0, -0.6, -1] }),
     ell(H([0, 1.105, 0.8]), [0.19 * hd, 0.16 * hd, 0.16 * hd], 'head', 'skull', 0.06, { comb: [0, 0.3, -1] }),
     ...both((s) => [
-      ell(mirror(H([0.085, 1.02, 0.86]), s), [0.085 * hd, 0.08 * hd, 0.08 * hd], 'head', 'cheek', 0.06, {
+      ell(mirror(H([0.085 * ck, 1.02, 0.86]), s), [0.085 * hd * ck, 0.08 * hd * ck, 0.08 * hd], 'head', 'cheek', 0.06, {
         comb: [s, -0.3, -0.5]
       }),
       ell(mirror(H([0.032, 1.022, 0.946]), s), [0.042 * hd, 0.034 * hd, 0.036 * hd], 'head', 'pad', 0.035, {
@@ -579,38 +634,10 @@ function cat(b: CatBuild): Look {
       ]
     ),
     ...tailShapes(tail, [0.075, 0.068, 0.062, 0.058, 0.055, 0.053, 0.052, 0.046]),
-    ...both((s, side) => [
-      cone(
-        mirror(H(P([0.095, 1.2, 0.77])), s),
-        mirror(H(P([0.16, 1.4, 0.752])), s),
-        0.09 * hd * es,
-        0.01 * hd * es,
-        `ear.${side}`,
-        'ear',
-        0.03,
-        {
-          squash: [1, 1, 0.3],
-          turn: [0.1, 0, 0]
-        }
-      ),
-      cone(
-        mirror(H(P([0.097, 1.22, 0.79])), s),
-        mirror(H(P([0.155, 1.38, 0.772])), s),
-        0.066 * hd * es,
-        0.006 * hd * es,
-        `ear.${side}`,
-        'earIn',
-        0.01,
-        {
-          squash: [1, 1, 0.2],
-          turn: [0.1, 0, 0],
-          cut: true
-        }
-      )
-    ])
+    ...(b.fold ? foldEars(H, P, hd * es) : catEars(H, P, hd * es))
   ];
   const body = compress(joints, shapes, k);
-  return {
+  const look: Look = {
     kind: 'cat',
     S: b.S,
     joints,
@@ -662,6 +689,58 @@ function cat(b: CatBuild): Look {
       color: b.pads ?? '#e89aa6'
     }
   };
+  return b.leg ? lower(look, b.leg, 0.43) : look;
+}
+
+function catEars(H: (p: V3) => V3, P: (p: V3) => V3, hd: number): Part[] {
+  return both((s, side) => [
+    cone(
+      mirror(H(P([0.095, 1.2, 0.77])), s),
+      mirror(H(P([0.16, 1.4, 0.752])), s),
+      0.09 * hd,
+      0.01 * hd,
+      `ear.${side}`,
+      'ear',
+      0.03,
+      {
+        squash: [1, 1, 0.3],
+        turn: [0.1, 0, 0]
+      }
+    ),
+    cone(
+      mirror(H(P([0.097, 1.22, 0.79])), s),
+      mirror(H(P([0.155, 1.38, 0.772])), s),
+      0.066 * hd,
+      0.006 * hd,
+      `ear.${side}`,
+      'earIn',
+      0.01,
+      {
+        squash: [1, 1, 0.2],
+        turn: [0.1, 0, 0],
+        cut: true
+      }
+    )
+  ]);
+}
+
+/** 折れ耳。付け根から前へ倒した小さな丸い耳を、頭のてっぺんに沿わせて伏せる */
+function foldEars(H: (p: V3) => V3, P: (p: V3) => V3, hd: number): Part[] {
+  return both((s, side) => [
+    cone(
+      mirror(H(P([0.095, 1.19, 0.765])), s),
+      mirror(H(P([0.115, 1.2, 0.84])), s),
+      0.058 * hd,
+      0.032 * hd,
+      `ear.${side}`,
+      'ear',
+      0.03,
+      {
+        squash: [1, 0.36, 1],
+        turn: [0.55, 0, 0]
+      }
+    )
+  ]);
 }
 
 // ---- 毛の長さの共通のくせ ----
@@ -725,79 +804,88 @@ const shibaTail: V3[] = [
   [0.06, 1.12, -0.39]
 ];
 
-/** 柴犬の裏白（ほほ・口もと・のど・胸・腹・足の内側としっぽの裏） */
-function shibaPaint(p: V3, n: V3, tag: string) {
-  const w = 0.05 * wobble(p, 9);
-  let white = 0;
-  switch (tag) {
-    // 裏白: 口もと・あご・ほほは白く、鼻筋の上だけうすく色を残す
-    case 'muzzle':
-    case 'lip':
-    case 'chin':
-      // 鼻筋は赤く残し、口もとと鼻の下を白くする（柴の顔の見分けどころ）
-      white = 1 - 0.85 * smooth(0.3, 0.7, n[1]) * smooth(0.05, 0.025, Math.abs(p[0]) + w * 0.3);
-      break;
-    case 'cheek':
-      white = smooth(1.18, 1.13, p[1] + w);
-      break;
-    case 'skull':
-    case 'brow':
-      // 目の下から横へ白を回し、目の下のふちを白く見せる
-      white = Math.max(
-        smooth(1.17, 1.12, p[1] + w),
-        smooth(1.205, 1.185, p[1] + w * 0.3) * smooth(0.72, 0.77, p[2]) * smooth(0.03, 0.06, Math.abs(p[0]))
-      );
-      break;
-    case 'neck':
-      white = smooth(-0.1, 0.35, dot(n, [0, -0.55, 0.83]) + w * 2);
-      break;
-    case 'brisket':
-      white = smooth(-0.2, 0.3, n[2] - n[1] * 0.3 + w * 2);
-      break;
-    case 'rib':
-    case 'loin':
-      white = smooth(0.62, 0.52, p[1] + w);
-      break;
-    case 'arm':
-    case 'fore':
-    case 'elbow':
-      white = Math.max(
-        smooth(0.3, 0.2, p[1] + w),
-        smooth(0.0, -0.45, n[0] * Math.sign(p[0]) - w * 2),
-        smooth(0.2, 0.7, n[2]) * smooth(0.45, 0.3, p[1])
-      );
-      break;
-    case 'past':
-    case 'paw':
-      white = 1;
-      break;
-    case 'thigh':
-    case 'ham':
-    case 'calf':
-    case 'shin':
-    case 'meta':
-      white = Math.max(
-        smooth(0.22, 0.12, p[1] + w),
-        smooth(-0.05, -0.5, n[0] * Math.sign(p[0]) - w * 2),
-        smooth(-0.3, -0.8, n[2]) * smooth(0.7, 0.55, p[1])
-      );
-      break;
-    case 'tail': {
-      const c: V3 = [0.03, 1.07, -0.55];
-      white = smooth(0.0, 0.5, dot(n, [c[0] - p[0], c[1] - p[1], c[2] - p[2]]) / Math.max(0.01, dist(p, c)) + w * 2);
-      break;
+/**
+ * 柴犬の裏白（ほほ・口もと・のど・胸・腹・足の内側としっぽの裏）。tan があれば地の色と白の境目を
+ * 黄褐色にする（黒柴の四つ目と足・ほほの茶色）。mask は顔の白の境目を下げる量（黒柴は目のまわりまで黒い）
+ */
+const shibaPaint =
+  (coat: { base: string; white: string; brow: string; tan?: string; mask?: number }) => (p: V3, n: V3, tag: string) => {
+    const mask = coat.mask ?? 0;
+    const w = 0.05 * wobble(p, 9);
+    let white = 0;
+    switch (tag) {
+      // 裏白: 口もと・あご・ほほは白く、鼻筋の上だけうすく色を残す
+      case 'muzzle':
+      case 'lip':
+      case 'chin':
+        // 鼻筋は赤く残し、口もとと鼻の下を白くする（柴の顔の見分けどころ）
+        white = 1 - 0.85 * smooth(0.3, 0.7, n[1]) * smooth(0.05, 0.025, Math.abs(p[0]) + w * 0.3);
+        break;
+      case 'cheek':
+        white = smooth(1.18, 1.13, p[1] + mask + w);
+        break;
+      case 'skull':
+      case 'brow':
+        // 目の下から横へ白を回し、目の下のふちを白く見せる
+        white = Math.max(
+          smooth(1.17, 1.12, p[1] + mask + w),
+          smooth(1.205, 1.185, p[1] + mask + w * 0.3) * smooth(0.72, 0.77, p[2]) * smooth(0.03, 0.06, Math.abs(p[0]))
+        );
+        break;
+      case 'neck':
+        white = smooth(-0.1, 0.35, dot(n, [0, -0.55, 0.83]) + w * 2);
+        break;
+      case 'brisket':
+        white = smooth(-0.2, 0.3, n[2] - n[1] * 0.3 + w * 2);
+        break;
+      case 'rib':
+      case 'loin':
+        white = smooth(0.62, 0.52, p[1] + w);
+        break;
+      case 'arm':
+      case 'fore':
+      case 'elbow':
+        white = Math.max(
+          smooth(0.3, 0.2, p[1] + w),
+          smooth(0.0, -0.45, n[0] * Math.sign(p[0]) - w * 2),
+          smooth(0.2, 0.7, n[2]) * smooth(0.45, 0.3, p[1])
+        );
+        break;
+      case 'past':
+      case 'paw':
+        white = 1;
+        break;
+      case 'thigh':
+      case 'ham':
+      case 'calf':
+      case 'shin':
+      case 'meta':
+        white = Math.max(
+          smooth(0.22, 0.12, p[1] + w),
+          smooth(-0.05, -0.5, n[0] * Math.sign(p[0]) - w * 2),
+          smooth(-0.3, -0.8, n[2]) * smooth(0.7, 0.55, p[1])
+        );
+        break;
+      case 'tail': {
+        const c: V3 = [0.03, 1.07, -0.55];
+        white = smooth(0.0, 0.5, dot(n, [c[0] - p[0], c[1] - p[1], c[2] - p[2]]) / Math.max(0.01, dist(p, c)) + w * 2);
+        break;
+      }
+      case 'earIn':
+        return coat.brow;
     }
-    case 'earIn':
-      return SHIBA_CREAM;
-  }
-  let c = mixHex(SHIBA_RED, SHIBA_WHITE, white);
-  // 麻呂眉（目の上の丸い点）。大きいと目の上にかぶさって怒った眉に見える
-  for (const s of [1, -1]) {
-    const d = dist(p, [0.055 * s, 1.295, 0.785]);
-    if (d < 0.03) c = mixHex(c, SHIBA_CREAM, smooth(0.028, 0.018, d));
-  }
-  return c;
-}
+    let c = coat.tan
+      ? white < 0.5
+        ? mixHex(coat.base, coat.tan, white * 2)
+        : mixHex(coat.tan, coat.white, white * 2 - 1)
+      : mixHex(coat.base, coat.white, white);
+    // 麻呂眉（目の上の丸い点）。大きいと目の上にかぶさって怒った眉に見える
+    for (const s of [1, -1]) {
+      const d = dist(p, [0.055 * s, 1.295, 0.785]);
+      if (d < 0.03) c = mixHex(c, coat.brow, smooth(0.028, 0.018, d));
+    }
+    return c;
+  };
 
 const BEAGLE_TAN = '#b8732f';
 const BEAGLE_BLACK = '#2a2420';
@@ -872,6 +960,138 @@ const POODLE = '#e3b27a';
 const POODLE_DARK = '#b98452';
 const POODLE_FACE = '#f0cc9c';
 
+/** しまもよう（サバトラ・茶トラ・キジトラ）。口もと・あご・おなかは light、足先は少し light */
+const tabby =
+  (c: { base: string; dark: string; light: string; earIn: string; belly?: number }) => (p: V3, n: V3, tag: string) => {
+    if (tag === 'earIn') return c.earIn;
+    const w = wobble(p, 6);
+    let stripe: number;
+    if (tag === 'skull' || tag === 'brow') stripe = smooth(0.3, 0.7, Math.sin(p[0] * 60 + w) * smooth(1.1, 1.2, p[1]));
+    else if (tag === 'tail') stripe = smooth(0.2, 0.6, Math.sin(p[2] * 22 + w));
+    else if (['fore', 'shin', 'arm', 'thigh', 'calf', 'meta', 'past'].includes(tag))
+      stripe = smooth(0.3, 0.7, Math.sin(p[1] * 30 + w));
+    else stripe = smooth(0.25, 0.65, Math.sin(p[2] * 17 + Math.abs(p[0]) * 3 + w * 1.5)) * smooth(0.55, 0.7, p[1]);
+    const legs = ['fore', 'shin', 'arm', 'thigh', 'calf', 'meta', 'past', 'elbow', 'ham', 'flank'].includes(tag);
+    const light =
+      tag === 'muzzle' || tag === 'pad' || tag === 'chin'
+        ? 1
+        : tag === 'paw'
+          ? 0.75
+          : legs
+            ? 0
+            : smooth(0.6, 0.5, p[1] + 0.05 * w) * (c.belly ?? 0.8);
+    return mixHex(mixHex(c.base, c.dark, stripe * (1 - light)), c.light, light);
+  };
+
+/**
+ * 1 色の短毛（黒猫・ロシアンブルー）。地は a と b をむらに混ぜる。
+ * 鼻先とひげの付け根は face にして、暗い口の線と鼻が顔に沈まないようにする
+ */
+const solid = (c: { a: string; b: string; face: string; earIn: string }) => (p: V3, n: V3, tag: string) =>
+  tag === 'earIn'
+    ? c.earIn
+    : tag === 'pad' || tag === 'muzzle' || tag === 'chin'
+      ? c.face
+      : mixHex(c.a, c.b, 0.5 + 0.5 * wobble(p, 5));
+
+const CORGI_RED = '#cf7a36';
+const CORGI_WHITE = '#f8f1e6';
+const CORGI_CREAM = '#f0d2a8';
+
+/** コーギーの白。鼻筋から額への細い白い筋・口もと・首まわり・胸とおなか・足。お尻のふわふわは淡い */
+function corgiPaint(p: V3, n: V3, tag: string) {
+  const w = 0.05 * wobble(p, 8);
+  let white = 0;
+  switch (tag) {
+    case 'muzzle':
+    case 'lip':
+    case 'chin':
+      white = 1;
+      break;
+    case 'skull':
+    case 'brow':
+      white = Math.max(
+        smooth(0.035, 0.02, Math.abs(p[0]) - 0.12 * (1.28 - p[1]) + w * 0.2) * smooth(0.62, 0.74, p[2]),
+        smooth(1.17, 1.12, p[1] + w)
+      );
+      break;
+    case 'cheek':
+      white = smooth(1.17, 1.11, p[1] + w);
+      break;
+    case 'neck':
+      white = smooth(-0.35, 0.15, dot(n, [0, -0.45, 0.89]) + w * 2);
+      break;
+    case 'brisket':
+      white = 1;
+      break;
+    case 'rib':
+    case 'loin':
+      white = smooth(0.64, 0.54, p[1] + w);
+      break;
+    case 'arm':
+    case 'elbow':
+      white = Math.max(smooth(0.5, 0.4, p[1] + w), smooth(0.1, 0.6, n[2]));
+      break;
+    case 'fore':
+    case 'past':
+    case 'paw':
+    case 'shin':
+    case 'meta':
+    case 'calf':
+      white = 1;
+      break;
+    case 'thigh':
+      white = smooth(-0.1, -0.5, n[0] * Math.sign(p[0]) - w * 2);
+      break;
+    case 'rump':
+    case 'ham':
+      return mixHex(CORGI_RED, CORGI_CREAM, 0.35 + 0.45 * smooth(-0.2, -0.8, n[2]));
+    case 'earIn':
+      return CORGI_CREAM;
+  }
+  return mixHex(CORGI_RED, CORGI_WHITE, white);
+}
+
+const DACHS = '#b0602a';
+const DACHS_DARK = '#8a4420';
+
+const LAB = '#e3bb80';
+const LAB_LIGHT = '#efd3a4';
+
+const CHI = '#d9a86c';
+const CHI_WHITE = '#f6ead6';
+
+/** チワワは淡い茶色に、口もと・胸・おなか・足先が白っぽい */
+function chiPaint(p: V3, n: V3, tag: string) {
+  const w = 0.05 * wobble(p, 8);
+  let white = 0;
+  switch (tag) {
+    case 'muzzle':
+    case 'lip':
+    case 'chin':
+      white = 0.75;
+      break;
+    case 'neck':
+      white = smooth(-0.1, 0.4, dot(n, [0, -0.55, 0.83]) + w * 2);
+      break;
+    case 'brisket':
+      white = 0.9;
+      break;
+    case 'rib':
+    case 'loin':
+      white = smooth(0.62, 0.52, p[1] + w);
+      break;
+    case 'paw':
+    case 'past':
+    case 'meta':
+      white = 0.8;
+      break;
+    case 'earIn':
+      return '#eab3a4';
+  }
+  return mixHex(CHI, CHI_WHITE, white);
+}
+
 const LOOKS_DATA = {
   shiba: dog({
     S: 0.3,
@@ -892,7 +1112,7 @@ const LOOKS_DATA = {
     tail: { pts: shibaTail, r: [0.07, 0.085, 0.085, 0.08, 0.07, 0.05] },
     fur: { len: 0.05, layers: 8, cell: 0.0048 },
     furLen: furBase,
-    paint: shibaPaint,
+    paint: shibaPaint({ base: SHIBA_RED, white: SHIBA_WHITE, brow: SHIBA_CREAM }),
     eye: { iris: '#5a3218', rim: '#140e0c', lid: SHIBA_RED },
     nose: '#1e1a1a'
   }),
@@ -991,6 +1211,174 @@ const LOOKS_DATA = {
       ])
     ]
   }),
+  kuroshiba: dog({
+    S: 0.3,
+    girth: 1.14,
+    deep: 1.2,
+    bone: 1.3,
+    head: 1.4,
+    muzzle: 0.6,
+    muzzleW: 1.02,
+    headAt: [-0.12, -0.02],
+    eyeR: 1.12,
+    ear: 0.8,
+    short: 0.84,
+    paw: 1.05,
+    pads: '#3a2e2c',
+
+    ears: 'prick',
+    tail: { pts: shibaTail, r: [0.07, 0.085, 0.085, 0.08, 0.07, 0.05] },
+    fur: { len: 0.05, layers: 8, cell: 0.0048 },
+    furLen: furBase,
+    paint: shibaPaint({ base: '#241d1c', white: '#f4ece0', brow: '#e2c29a', tan: '#b77a47', mask: 0.06 }),
+    eye: { iris: '#4a2a16', rim: '#140e0c', lid: '#241d1c' },
+    nose: '#1e1a1a'
+  }),
+  corgi: dog({
+    S: 0.32,
+    girth: 1.2,
+    deep: 1.2,
+    bone: 1.4,
+    head: 1.42,
+    muzzle: 0.68,
+    muzzleW: 1.05,
+    headAt: [-0.12, -0.02],
+    eyeR: 1.1,
+    ear: 1.35,
+    short: 0.95,
+    paw: 1.05,
+    leg: 0.4,
+
+    ears: 'prick',
+    tail: {
+      pts: [
+        [0, 0.88, -0.6],
+        [0, 0.9, -0.66],
+        [0, 0.9, -0.7]
+      ],
+      r: [0.06, 0.06, 0.05]
+    },
+    fur: { len: 0.048, layers: 8, cell: 0.0048 },
+    // お尻とももの裏はとくに長く、ふわふわのハート形に見せる
+    furLen: (p, n, tag) => (tag === 'rump' || tag === 'ham' ? 1.9 : furBase(p, n, tag)),
+    paint: corgiPaint,
+    eye: { iris: '#5a3218', rim: '#140e0c', lid: CORGI_RED },
+    nose: '#1e1a1a'
+  }),
+  dachshund: dog({
+    S: 0.26,
+    girth: 1.02,
+    deep: 1.2,
+    bone: 1.25,
+    head: 1.2,
+    muzzle: 0.95,
+    muzzleW: 0.95,
+    headAt: [-0.06, 0.03],
+    eyeR: 1.12,
+    ear: 1.15,
+    short: 1.2,
+    paw: 1.0,
+    leg: 0.32,
+
+    ears: 'drop',
+    tail: {
+      pts: [
+        [0, 0.88, -0.6],
+        [0, 0.9, -0.75],
+        [0, 0.86, -0.9],
+        [0, 0.8, -1.03]
+      ],
+      r: [0.05, 0.045, 0.038, 0.03]
+    },
+    fur: { len: 0.06, layers: 8, cell: 0.0046 },
+    // ロングの毛は耳・胸・おなか・しっぽになびく。顔と背中は短め
+    furLen: (p, n, tag) =>
+      tag === 'ear'
+        ? 1.1
+        : tag === 'tail'
+          ? 2.2
+          : (tag === 'rib' || tag === 'loin') && n[1] < -0.3
+            ? 1.7
+            : tag === 'rib' || tag === 'loin'
+              ? 0.7
+              : furBase(p, n, tag),
+    paint: (p, n, tag) => {
+      if (tag === 'earIn') return DACHS_DARK;
+      const w = wobble(p, 5);
+      const dark = tag === 'ear' ? 0.55 : smooth(0.85, 0.95, p[1] + 0.03 * w) * 0.35;
+      return mixHex(mixHex(DACHS, '#c27238', 0.3 + 0.3 * w), DACHS_DARK, dark);
+    },
+    eye: { iris: '#4a2a16', rim: '#140e0c', lid: DACHS },
+    nose: '#221c1b'
+  }),
+  labrador: dog({
+    S: 0.3,
+    girth: 1.22,
+    deep: 1.25,
+    bone: 1.36,
+    head: 1.38,
+    muzzle: 0.74,
+    muzzleW: 1.25,
+    headAt: [-0.12, -0.02],
+    eyeR: 1.08,
+    ear: 1.0,
+    short: 0.86,
+    paw: 1.08,
+    pads: '#3e302d',
+
+    ears: 'drop',
+    tail: {
+      pts: [
+        [0, 0.9, -0.6],
+        [0, 0.92, -0.72],
+        [0, 0.88, -0.84],
+        [0, 0.8, -0.94]
+      ],
+      r: [0.07, 0.062, 0.05, 0.036]
+    },
+    fur: { len: 0.03, layers: 6, cell: 0.0054 },
+    furLen: (p, n, tag) => Math.min(1.1, furBase(p, n, tag)),
+    paint: (p, n, tag) => {
+      if (tag === 'earIn') return '#d7a987';
+      if (tag === 'muzzle' || tag === 'lip' || tag === 'chin' || tag === 'brisket') return LAB_LIGHT;
+      if (tag === 'ear') return mixHex(LAB, '#d4ac72', 0.6);
+      return mixHex(LAB, LAB_LIGHT, 0.3 + 0.3 * wobble(p, 5));
+    },
+    eye: { iris: '#4a2a16', rim: '#140e0c', lid: LAB },
+    nose: '#2e2422'
+  }),
+  chihuahua: dog({
+    S: 0.22,
+    girth: 1.0,
+    deep: 1.1,
+    bone: 1.12,
+    head: 1.62,
+    muzzle: 0.45,
+    muzzleW: 0.92,
+    headAt: [-0.1, -0.03],
+    eyeR: 1.4,
+    ear: 1.25,
+    earOut: 0.06,
+    lie: 0.16,
+    short: 0.82,
+    paw: 0.95,
+
+    ears: 'prick',
+    tail: {
+      pts: [
+        [0, 0.88, -0.6],
+        [0, 1.0, -0.66],
+        [0, 1.1, -0.62],
+        [0, 1.16, -0.52]
+      ],
+      r: [0.04, 0.035, 0.03, 0.022]
+    },
+    fur: { len: 0.022, layers: 5, cell: 0.0056 },
+    furLen: (p, n, tag) => Math.min(1, furBase(p, n, tag)),
+    paint: chiPaint,
+    eye: { iris: '#3c2212', rim: '#140e0c', lid: CHI },
+    nose: '#2a1f1c'
+  }),
   mike: cat({
     S: 0.22,
     girth: 1.08,
@@ -1040,13 +1428,7 @@ const LOOKS_DATA = {
 
     fur: { len: 0.038, layers: 7, cell: 0.0052 },
     furLen: furBase,
-    // 鼻先とひげの付け根は少し明るい灰にして、暗い口の線と鼻が黒い顔に沈まないようにする
-    paint: (p, n, tag) =>
-      tag === 'earIn'
-        ? '#4a3a40'
-        : tag === 'pad' || tag === 'muzzle' || tag === 'chin'
-          ? '#4a4450'
-          : mixHex('#221f25', '#2e2a31', 0.5 + 0.5 * wobble(p, 5)),
+    paint: solid({ a: '#221f25', b: '#2e2a31', face: '#4a4450', earIn: '#4a3a40' }),
     eye: { iris: '#b8963e', rim: '#141216', lid: '#221f25' },
     nose: '#6a5058'
   }),
@@ -1062,29 +1444,90 @@ const LOOKS_DATA = {
 
     fur: { len: 0.045, layers: 8, cell: 0.005 },
     furLen: furBase,
-    paint: (p, n, tag) => {
-      if (tag === 'earIn') return '#e3aaa8';
-      const w = wobble(p, 6);
-      let stripe: number;
-      if (tag === 'skull' || tag === 'brow')
-        stripe = smooth(0.3, 0.7, Math.sin(p[0] * 60 + w) * smooth(1.1, 1.2, p[1]));
-      else if (tag === 'tail') stripe = smooth(0.2, 0.6, Math.sin(p[2] * 22 + w));
-      else if (['fore', 'shin', 'arm', 'thigh', 'calf', 'meta', 'past'].includes(tag))
-        stripe = smooth(0.3, 0.7, Math.sin(p[1] * 30 + w));
-      else stripe = smooth(0.25, 0.65, Math.sin(p[2] * 17 + Math.abs(p[0]) * 3 + w * 1.5)) * smooth(0.55, 0.7, p[1]);
-      const legs = ['fore', 'shin', 'arm', 'thigh', 'calf', 'meta', 'past', 'elbow', 'ham', 'flank'].includes(tag);
-      const light =
-        tag === 'muzzle' || tag === 'pad' || tag === 'chin'
-          ? 1
-          : tag === 'paw'
-            ? 0.75
-            : legs
-              ? 0
-              : smooth(0.6, 0.5, p[1] + 0.05 * w) * 0.8;
-      return mixHex(mixHex('#8e9398', '#3f444a', stripe * (1 - light)), '#e4e6e6', light);
-    },
+    paint: tabby({ base: '#8e9398', dark: '#3f444a', light: '#e4e6e6', earIn: '#e3aaa8' }),
     eye: { iris: '#8f9ea4', rim: '#2e3034', lid: '#8e9398' },
     nose: '#d99aa0'
+  }),
+  chatora: cat({
+    S: 0.22,
+    girth: 1.1,
+    head: 1.5,
+    short: 0.84,
+    bone: 1.2,
+    paw: 1.1,
+    ear: 1.0,
+    eyeR: 1.08,
+
+    fur: { len: 0.048, layers: 8, cell: 0.005 },
+    furLen: furBase,
+    paint: tabby({ base: '#eeb070', dark: '#cf7a36', light: '#fbf1e2', earIn: '#eaa9a4', belly: 0.9 }),
+    eye: { iris: '#b8914a', rim: '#2a2320', lid: '#eeb070' },
+    nose: '#eb9a98'
+  }),
+  russian: cat({
+    S: 0.22,
+    girth: 1.0,
+    head: 1.48,
+    short: 0.86,
+    bone: 1.12,
+    paw: 1.05,
+    ear: 1.04,
+    eyeR: 1.08,
+    pads: '#7a6a78',
+
+    fur: { len: 0.036, layers: 7, cell: 0.0052 },
+    furLen: furBase,
+    paint: solid({ a: '#7a8692', b: '#8e99a5', face: '#9aa4ae', earIn: '#9a8a96' }),
+    eye: { iris: '#6fb35a', rim: '#1e2226', lid: '#7a8692' },
+    nose: '#5c6570'
+  }),
+  fold: cat({
+    S: 0.22,
+    girth: 1.16,
+    head: 1.62,
+    cheek: 1.15,
+    short: 0.82,
+    bone: 1.22,
+    paw: 1.12,
+    ear: 1.0,
+    eyeR: 1.14,
+    fold: true,
+
+    fur: { len: 0.05, layers: 8, cell: 0.005 },
+    furLen: furBase,
+    paint: tabby({ base: '#8f7c62', dark: '#3b3026', light: '#f3ede2', earIn: '#d9a4a0' }),
+    eye: { iris: '#c29a42', rim: '#2a2320', lid: '#8f7c62' },
+    nose: '#c98a82'
+  }),
+  munchkin: cat({
+    S: 0.22,
+    girth: 1.12,
+    head: 1.54,
+    short: 0.9,
+    bone: 1.3,
+    paw: 1.1,
+    ear: 1.0,
+    eyeR: 1.1,
+    leg: 0.38,
+
+    fur: { len: 0.05, layers: 8, cell: 0.005 },
+    furLen: furBase,
+    // しろ地に、頭と背中としっぽにミルクティー色のぶち
+    paint: (p, n, tag) => {
+      if (tag === 'earIn') return '#eeb0b0';
+      if (tag === 'muzzle' || tag === 'pad' || tag === 'chin') return '#fbf7f0';
+      const w = 0.05 * wobble(p, 6);
+      const patch = Math.max(
+        smooth(0.16, 0.1, dist(p, [0, 1.24, 0.74]) + w),
+        smooth(0.07, 0.04, dist(p, [0.06, 1.14, 0.86]) + w),
+        smooth(0.24, 0.16, dist(p, [0.02, 0.95, -0.2]) + w),
+        smooth(0.18, 0.12, dist(p, [-0.04, 0.95, -0.6]) + w),
+        tag === 'tail' ? 1 : 0
+      );
+      return mixHex('#fbf7f0', '#d9b58a', patch);
+    },
+    eye: { iris: '#a4a85a', rim: '#2a2320', lid: '#fbf7f0' },
+    nose: '#eba0a8'
   })
 } satisfies Record<BreedId, Look>;
 

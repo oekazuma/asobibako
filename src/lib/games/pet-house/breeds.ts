@@ -35,6 +35,46 @@ export const BREEDS: Record<BreedId, Breed> = {
     names: ['モコ', 'プリン', 'ミルク', 'ムギ', 'クッキー', 'ティアラ'],
     color: '#e9c48f'
   },
+  kuroshiba: {
+    id: 'kuroshiba',
+    kind: 'dog',
+    name: '黒柴',
+    note: 'くろい せなかに まゆげの てんてん。しろい むねが チャームポイント',
+    names: ['コテツ', 'ゴマ', 'アズキ', 'スミレ', 'ノリ', 'クウ'],
+    color: '#3a302c'
+  },
+  corgi: {
+    id: 'corgi',
+    kind: 'dog',
+    name: 'コーギー',
+    note: 'みじかい あしと おおきな みみ。ふわふわの おしりを ふって あるく',
+    names: ['ワッフル', 'ポテト', 'ビスケ', 'モカ', 'ラテ', 'テン'],
+    color: '#d9843e'
+  },
+  dachshund: {
+    id: 'dachshund',
+    kind: 'dog',
+    name: 'ミニチュアダックス',
+    note: 'ながい どうに みじかい あし。たれた みみの けが さらさら',
+    names: ['ショコラ', 'クルミ', 'ナッツ', 'ベリー', 'チャイ', 'レオ'],
+    color: '#a95a2a'
+  },
+  labrador: {
+    id: 'labrador',
+    kind: 'dog',
+    name: 'ラブラドール',
+    note: 'クリームいろの がっしりした からだ。だれとでも すぐ なかよし',
+    names: ['ハル', 'シロ', 'ダイ', 'バニラ', 'ミルキー', 'ルーク'],
+    color: '#e3c48e'
+  },
+  chihuahua: {
+    id: 'chihuahua',
+    kind: 'dog',
+    name: 'チワワ',
+    note: 'ちいさな からだに おおきな みみと まんまるの め',
+    names: ['チビ', 'ピコ', 'リボン', 'ココア', 'ミニ', 'ポッキー'],
+    color: '#dcae78'
+  },
   mike: {
     id: 'mike',
     kind: 'cat',
@@ -58,7 +98,39 @@ export const BREEDS: Record<BreedId, Breed> = {
     note: 'はいいろの しましま。あそぶのが だいすきな やんちゃもの',
     names: ['サバ', 'グレイ', 'シマ', 'ギン', 'ネズ', 'トラ'],
     color: '#8d949b'
+  },
+  chatora: {
+    id: 'chatora',
+    kind: 'cat',
+    name: '茶トラ',
+    note: 'オレンジいろの しましま。ひとなつっこい あまえんぼう',
+    names: ['チャチャ', 'ミカン', 'ユズ', 'コハク', 'ムサシ', 'ポン'],
+    color: '#e39a4f'
+  },
+  russian: {
+    id: 'russian',
+    kind: 'cat',
+    name: 'ロシアンブルー',
+    note: 'あおみがかった はいいろの けと みどりの め。ひかえめで やさしい',
+    names: ['アオ', 'ミント', 'シルバー', 'ネネ', 'ソフィ', 'リン'],
+    color: '#8793a0'
+  },
+  fold: {
+    id: 'fold',
+    kind: 'cat',
+    name: 'スコティッシュフォールド',
+    note: 'おれた みみと まんまるの かお。のんびり おっとり',
+    names: ['マル', 'モチ', 'ダンゴ', 'フク', 'オハギ', 'ポコ'],
+    color: '#9a8466'
+  },
+  munchkin: {
+    id: 'munchkin',
+    kind: 'cat',
+    name: 'マンチカン',
+    note: 'みじかい あしで ちょこちょこ あるく。こうきしんが いっぱい',
+    names: ['プチ', 'キャラメル', 'ポポ', 'ミュウ', 'コロ', 'シフォン'],
+    color: '#e8d4b8'
   }
 };
 
-export const BREED_IDS: BreedId[] = ['shiba', 'beagle', 'poodle', 'mike', 'kuro', 'saba'];
+export const BREED_IDS = Object.keys(BREEDS) as BreedId[];

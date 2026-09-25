@@ -20,7 +20,18 @@ const ACTIONS: PetAction[] = [
   'jump',
   'pounce',
   'happy',
-  'shake'
+  'shake',
+  'beg',
+  'spin',
+  'dead',
+  'high',
+  'bow',
+  'belly',
+  'bliss',
+  'scratch',
+  'swat',
+  'flick',
+  'arch'
 ];
 const ACCESSORIES: AccessoryId[] = ['collar-red', 'collar-blue', 'ribbon', 'hat', 'bandana'];
 const o = { speed: 0.7, wag: 1, look: 0.5, t: 0 };
@@ -53,7 +64,8 @@ describe('pet-house models', () => {
     pet.update('stand', 1 / 60, o);
     const box = bodyBox(pet.group, false);
     const [lo, hi] = BREEDS[id].kind === 'dog' ? [0.33, 0.48] : [0.26, 0.33];
-    expect(box.max.y).toBeGreaterThanOrEqual(lo);
+    // 足の短い子は、胴を下げた分だけ低い
+    expect(box.max.y).toBeGreaterThanOrEqual(lo - (LOOKS[id].low ?? 0) * LOOKS[id].S);
     expect(box.max.y).toBeLessThanOrEqual(hi);
     expect(box.min.y).toBeGreaterThan(-0.01);
     expect(box.min.y).toBeLessThan(0.01);

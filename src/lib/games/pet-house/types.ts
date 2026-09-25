@@ -2,7 +2,22 @@
 
 export type Kind = 'dog' | 'cat';
 
-export type BreedId = 'shiba' | 'beagle' | 'poodle' | 'mike' | 'kuro' | 'saba';
+export type BreedId =
+  | 'shiba'
+  | 'beagle'
+  | 'poodle'
+  | 'kuroshiba'
+  | 'corgi'
+  | 'dachshund'
+  | 'labrador'
+  | 'chihuahua'
+  | 'mike'
+  | 'kuro'
+  | 'saba'
+  | 'chatora'
+  | 'russian'
+  | 'fold'
+  | 'munchkin';
 
 /** ペットの 1 つのかっこう。3D モデルはこの名前でポーズを取り、切り替わりはモデル側でなめらかにつなぐ */
 export type PetAction =

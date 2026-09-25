@@ -46,7 +46,16 @@ const VOICE: Record<BreedId, { f: number; size: number; len: number; gain: numbe
   poodle: { f: 760, size: 1.15, len: 0.8, gain: 1.4 },
   mike: { f: 800, size: 1, len: 1, gain: 2.2 },
   kuro: { f: 720, size: 0.95, len: 1.2, gain: 1.9 },
-  saba: { f: 880, size: 1.08, len: 0.85, gain: 2.4 }
+  saba: { f: 880, size: 1.08, len: 0.85, gain: 2.4 },
+  kuroshiba: { f: 580, size: 0.98, len: 1, gain: 1 },
+  corgi: { f: 640, size: 1.02, len: 0.9, gain: 1.1 },
+  dachshund: { f: 560, size: 0.95, len: 1.1, gain: 1 },
+  labrador: { f: 460, size: 0.86, len: 1.25, gain: 0.95 },
+  chihuahua: { f: 880, size: 1.25, len: 0.7, gain: 1.7 },
+  chatora: { f: 780, size: 0.98, len: 1.05, gain: 2.1 },
+  russian: { f: 700, size: 0.94, len: 1.15, gain: 1.9 },
+  fold: { f: 840, size: 1.05, len: 0.95, gain: 2.3 },
+  munchkin: { f: 920, size: 1.12, len: 0.8, gain: 2.5 }
 };
 
 const wan = (at: number, ms: number, top = 1.4, gain = 1): Syl => ({

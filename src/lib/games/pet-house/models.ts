@@ -5,7 +5,7 @@ import { BREEDS } from './breeds';
 import { accessory, hit } from './accessories';
 import { furMaterial } from './fur';
 import { LOOKS, type Look, type Part } from './looks';
-import { KEYS, jumpArc, pounceArc, reopen, target } from './pose';
+import { KEYS, jumpArc, pounceArc, reopen, target, type Pose } from './pose';
 import { bounds, field, mesh as surface, type Field, type Shape, type Surface, type V3 } from './sculpt';
 import type { Quality } from '$lib/graphics.svelte';
 import type { AccessoryId, BreedId, PetAction } from './types';
@@ -102,7 +102,7 @@ const surfaces = new Map<string, Surface>();
 // ---- 形の控え ----
 
 /**
- * 面にして色と骨の重さを付けた体の形は 1 種類で 1 秒ほどかかる（ふれあいひろばは 6 種類）。
+ * 面にして色と骨の重さを付けた体の形は 1 種類で 1 秒ほどかかる（ふれあいひろばは 8 種類）。
  * IndexedDB に版ごとに控え、次に開いたときは読むだけにする。読むのは非同期なので、ペットを作る前に loadShapes で読む
  */
 const ATTRS = { position: 3, normal: 3, color: 3, furLen: 1, furComb: 3, skinIndex: 4, skinWeight: 4 } as const;
@@ -948,6 +948,30 @@ function solveLeg(
   leg.bones[3].quaternion.copy(q.copy(qc).invert().multiply(tmp.q2));
 }
 
+/**
+ * 足の短い子のかっこう。腰を下げるかっこうは胴が低いぶん浅くし、おすわりのように胴を起こすかっこうは、
+ * ふつうの足の子と同じ高さまで腰が下がる角度に起こし方を減らす（そのままだと腰が床に沈む）。
+ * reach はふつうの胴の長さの子の、腰から肩までの前後の長さ（胴の長いダックスもこれで測る）
+ */
+function shorten(p: Pose, low: number, sh: THREE.Vector3, reach: number) {
+  const y = p.y;
+  if (p.y < 0) p.y += low * Math.min(1, -p.y / 0.25);
+  // 腰で pitch だけ起こすと、肩は y·cos + z·sin − y だけ上がる（肩の高さを保つかっこうでは、そのぶん腰が下がる）
+  const lift = (z: number, a: number) => sh.y * Math.cos(a) + z * Math.sin(a) - sh.y;
+  const solve = (want: number) =>
+    Math.asin(THREE.MathUtils.clamp((want + sh.y) / Math.hypot(sh.y, sh.z), -1, 1)) - Math.atan2(sh.y, sh.z);
+  const ref = lift(Math.min(sh.z, reach), p.pitch);
+  if (p.level > 0 && p.pitch > 0) {
+    const pitch = Math.max(0, solve(ref - low * p.level));
+    // 首は胴を起こした分だけ下げてあるので、減らした分は戻して顔を前へ向ける
+    p.hp -= (p.pitch - pitch) * 1.3;
+    p.pitch = pitch;
+  } else if (p.level <= 0 && p.pitch < 0) {
+    // 前へ伏せるかっこう（おじぎ）は、胸がふつうの子と同じ高さで止まるまで傾きを減らす
+    p.pitch = Math.min(0, solve(ref + low - (p.y - y)));
+  }
+}
+
 // 足を出す順（1 周を 1 とした位相）。歩きは左後ろ → 左前 → 右後ろ → 右前、走りは後ろ 2 本と前 2 本で跳ねる
 const WALK_PHASE = [0.25, 0.75, 0, 0.5];
 const RUN_PHASE = [0.5, 0.6, 0, 0.1];
@@ -1142,6 +1166,8 @@ export function createPet(breed: BreedId, quality: Quality = 'normal'): PetModel
     } else since += dt;
     const goal = target(kind, action, since, o);
     goal.hy += o.look * 0.6;
+    if (look.low) shorten(goal, look.low, shoulder, kind === 'cat' ? 0.88 : 0.72);
+    if (look.lie) goal.y += look.lie * Math.min(1, Math.abs(goal.roll));
     const rate = action === 'jump' || action === 'swat' ? 14 : 9;
     for (const k of KEYS) cur[k] = THREE.MathUtils.damp(cur[k], goal[k], rate, dt);
     cur.eye = prevEye = reopen(prevEye, goal.eye, cur.eye, dt);
