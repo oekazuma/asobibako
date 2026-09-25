@@ -168,8 +168,11 @@ export interface Actor {
 }
 
 export type Command =
-  /** to があれば front ではなくその点へ来る（床をタップして呼ぶ）。perch があればその面の上の to へ飛び乗る */
-  | { type: 'call'; to?: Spot; perch?: Perch['id'] }
+  /**
+   * to があれば front ではなくその点へ来る（床をタップして呼ぶ）。perch があればその面の上の to へ飛び乗り、
+   * then で乗ったあとにすること（ベッドなら寝る・伏せる）を決める。無ければこちらを見て座る
+   */
+  | { type: 'call'; to?: Spot; perch?: Perch['id']; then?: 'sleep' | 'down' }
   | { type: 'trick'; trick: TrickId; success: boolean }
   /** part があれば、その所の好き嫌いで反応する。amount はこのフレームになでた秒 */
   /** at はなでている指の、頭の高さでの床の上の位置。頭や顔なら、そちらへ頭を寄せる */
@@ -238,7 +241,7 @@ const MOUTH = { dog: 0.29, cat: 0.21 };
 /** きれいがこれより下だと、ときどき体をかく */
 const ITCHY = 10;
 /** 寝ているところから起きる、げんきの高さ */
-const RESTED = 90;
+export const RESTED = 90;
 /** 自分からお皿へ行く目安。子どもが入れたらすぐ食べに行くよう高めにしてある */
 const PECKISH = 80;
 const THIRSTY = 70;
@@ -436,7 +439,7 @@ function apply(a: Actor, cmd: Command) {
     if (a.carrying) return;
     a.mode = 'go';
     a.goal = cmd.perch ? 'perch' : cmd.to ? 'spot' : 'front';
-    if (cmd.perch) a.seat = { id: cmd.perch, then: 'call' };
+    if (cmd.perch) a.seat = { id: cmd.perch, then: cmd.then ?? 'call' };
     const to = cmd.to ?? a;
     [a.tx, a.tz] = [to.x, to.z];
     a.t = 15;

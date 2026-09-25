@@ -1,5 +1,5 @@
 import type { Activity, ActivityScene, Visit } from './activity';
-import { command, createActor, think, type Actor, type WorldView } from './behavior';
+import { command, createActor, RESTED, think, type Actor, type WorldView } from './behavior';
 import { Bgm } from './bgm';
 import { Bowls } from './bowls';
 import type { Core, Touch } from './core';
@@ -547,8 +547,14 @@ export class Session {
     const seat = this.#world.furniture(px, py);
     if (seat && this.#view.perches?.some((q) => q.id === seat.id)) {
       this.#fx.ripple(px, py);
-      if (!a.carrying) this.#say(`${pet.name}、${seat.id === 'sofa' ? 'ソファ' : 'ベッド'}に おいで`);
-      return command(a, pet, { type: 'call', to: seat, perch: seat.id });
+      // ベッドは寝かせに行く場所。元気いっぱいの子は寝てもすぐ起きてしまうので、伏せて休むだけにする
+      const sleepy = pet.stats.energy < RESTED;
+      if (!a.carrying) {
+        if (seat.id === 'sofa') this.#say(`${pet.name}、ソファに おいで`);
+        else this.#say(sleepy ? `${pet.name}、ねんね しようね` : `${pet.name}は まだ ねむくないみたい`);
+      }
+      const then = seat.id === 'bed' ? (sleepy ? 'sleep' : 'down') : undefined;
+      return command(a, pet, { type: 'call', to: seat, perch: seat.id, then });
     }
     const p = this.#world.floor(px, py);
     if (!p) return;

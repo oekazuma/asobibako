@@ -431,6 +431,25 @@ describe('pet-house behavior', () => {
       expect(Math.hypot(a.x - ROOM.front.x, a.z - ROOM.front.z)).toBeLessThan(0.15);
     });
 
+    it('ベッドをタップして寝かせると、飛び乗って寝る。元気いっぱいの子は伏せるだけ', () => {
+      const s = inRoom(['shiba']);
+      const a = s.actors[0];
+      s.pets[0].stats.energy = 50;
+      command(a, s.pets[0], { type: 'call', to: perch(s, 'bed'), perch: 'bed', then: 'sleep' });
+      run(s, 15, () => a.asleep);
+      expect(a.asleep).toBe(true);
+      expect(a.perch).toBe('bed');
+
+      const t = inRoom(['mike']);
+      const b = t.actors[0];
+      t.pets[0].stats.energy = 100;
+      command(b, t.pets[0], { type: 'call', to: perch(t, 'bed'), perch: 'bed', then: 'down' });
+      run(t, 15, () => b.perch === 'bed' && b.mode === 'idle');
+      run(t, 0.5);
+      expect(b.asleep).toBe(false);
+      expect(b.action).toBe('down');
+    });
+
     it('ソファの上でおすわりはそのまま、ジャンプは降りてからする', () => {
       const s = inRoom(['shiba']);
       const a = s.actors[0];
