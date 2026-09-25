@@ -8,12 +8,14 @@
     oncall,
     onremove,
     onclear,
+    onparade,
     onclose
   }: {
     doodles: Doodle[];
     oncall: (d: Doodle) => void;
     onremove: (d: Doodle) => void;
     onclear: () => void;
+    onparade: () => void;
     onclose: () => void;
   } = $props();
 
@@ -27,6 +29,7 @@
 
 <Sheet title="ずかん" {onclose}>
   <div class="tools">
+    <button class="pill gold" disabled={!doodles.length} onclick={onparade}>パレード！</button>
     <button class="pill" class:p2={erasing} aria-pressed={erasing} onclick={() => (erasing = !erasing)}>
       {erasing ? 'けしおわる' : 'けす'}
     </button>

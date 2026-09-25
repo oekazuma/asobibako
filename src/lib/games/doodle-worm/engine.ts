@@ -43,6 +43,8 @@ export interface Creature {
   age: number;
   /** タップされて跳ねてからの秒数。跳ねていなければ -1 */
   jump: number;
+  /** パレードの列にいる。そろって右へ進み、右へ抜けたら列のうしろへ回る */
+  march: boolean;
 }
 
 export interface World {
@@ -202,7 +204,8 @@ export function hatch(strokes: Stroke[], rand = Math.random): Creature | null {
     dir,
     vy: kind === 'fly' ? (rand() - 0.5) * 0.12 : 0,
     age: 0,
-    jump: -1
+    jump: -1,
+    march: false
   };
 }
 
@@ -302,6 +305,14 @@ export function step(world: World, dt: number): void {
     c.age += dt;
     if (c.jump >= 0) c.jump = c.jump + dt < JUMP ? c.jump + dt : -1;
     if (c.age < 0.6) continue;
+    if (c.march) {
+      c.x += MARCH * dt;
+      if (c.x + c.box[0] > world.aspect) {
+        const tail = Math.min(0, ...world.creatures.filter((m) => m.march).map((m) => m.x + m.box[0]));
+        c.x = tail - GAP - c.box[2];
+      }
+      continue;
+    }
     let v = SPEED[c.kind];
     if (c.kind === 'hop') v *= pose(c).lift > 0 ? 1 : 0;
     if (c.kind === 'crawl') v *= 1 + Math.sin(c.age * 7);
@@ -312,6 +323,29 @@ export function step(world: World, dt: number): void {
     if (c.x + r > world.aspect) c.dir = -1;
     if (c.y + t < 0) c.vy = Math.abs(c.vy);
     if (c.y + b > 1) c.vy = -Math.abs(c.vy);
+  }
+}
+
+const MARCH = 0.12;
+/** パレードの列の、となりの子とのすきま */
+const GAP = 0.05;
+/** パレードの足もとの高さ */
+const STREET = 0.62;
+
+/** ずかんの絵（まんなかが原点）を画面の左の外から 1 列に並べ、足もとをそろえて行進させる。画面にいた子は下がる */
+export function parade(world: World, drawings: Stroke[][]): void {
+  world.creatures = [];
+  let front = 0;
+  for (const strokes of drawings.slice(0, MAX)) {
+    const c = hatch(strokes);
+    if (!c) continue;
+    c.march = true;
+    c.dir = 1;
+    c.vy = 0;
+    c.x = front - c.box[2];
+    c.y = STREET - c.box[3];
+    front = c.x + c.box[0] - GAP;
+    world.creatures.push(c);
   }
 }
 
