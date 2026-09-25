@@ -20,18 +20,18 @@
   /** 描き終えて、「うごけ！」を待っている線 */
   let lines = $state.raw<Stroke[]>([]);
   /** 描いている途中の線。2 人で同時に描けるよう、指ごとに持つ */
-  const drawing = new Map<number, Stroke>();
+  let drawing: { id: number; stroke: Stroke }[] = [];
   let stock = $state.raw<Doodle[]>([]);
   let stockOpen = $state(false);
 
   const input = new BoardInput({
     down: (event, x, y) => {
-      drawing.set(event.pointerId, { color, pts: [[x * world.aspect, y]] });
+      drawing.push({ id: event.pointerId, stroke: { color, pts: [[x * world.aspect, y]] } });
     },
     up: (event) => {
-      const stroke = drawing.get(event.pointerId);
+      const stroke = drawing.find((d) => d.id === event.pointerId)?.stroke;
       if (!stroke) return;
-      drawing.delete(event.pointerId);
+      drawing = drawing.filter((d) => d.stroke !== stroke);
       if (poke(world, lines, stroke)) {
         sounds.boing();
         return;
@@ -101,7 +101,10 @@
   }
 
   function frame(dt: number) {
-    for (const [id, { pts }] of drawing) {
+    for (const {
+      id,
+      stroke: { pts }
+    } of drawing) {
       const finger = input.fingers.all.get(id);
       if (!finger) continue;
       const [lx, ly] = pts[pts.length - 1];
@@ -118,7 +121,7 @@
     ctx.lineJoin = 'round';
     for (const c of world.creatures) creature(ctx, c);
     sketch(ctx, lines);
-    for (const stroke of drawing.values()) pen(ctx, stroke.pts, stroke.color);
+    for (const { stroke } of drawing) pen(ctx, stroke.pts, stroke.color);
   }
 
   onMount(() => {
