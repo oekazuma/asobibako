@@ -72,6 +72,37 @@ export class Reactions {
         return c.voice(pet, 'yawn');
       case 'petted':
         return this.#petted(pet, e.feel, x, y);
+      case 'social':
+        return this.#social(pet, e.with, e.kind, x, y);
+    }
+  }
+
+  /** ペット同士のかかわり。ハートと音符は 2 匹のあいだに出す */
+  #social(pet: Pet, other: string, kind: Extract<BehaviorEvent, { type: 'social' }>['kind'], x: number, y: number) {
+    const c = this.#c;
+    const b = c.actor(other);
+    const [bx, by] = b ? c.above(b) : [x, y];
+    const [mx, my] = [(x + bx) / 2, (y + by) / 2];
+    const cat = kindOf(pet.breed) === 'cat';
+    switch (kind) {
+      case 'greet':
+        c.fx.note(x, y);
+        c.fx.hearts(mx, my, 1);
+        return c.voice(pet, cat ? 'sweet' : 'happy');
+      case 'invite':
+      case 'rival':
+        c.fx.note(x, y);
+        return cat ? undefined : c.voice(pet, 'happy');
+      case 'refuse':
+        return c.voice(pet, 'grumble');
+      case 'groom':
+        c.fx.hearts(bx, by, 2);
+        return c.voice(pet, cat ? 'purr' : 'sweet');
+      case 'snuggle':
+        return c.fx.hearts(mx, my, 2);
+      case 'done':
+        c.fx.hearts(mx, my, 3);
+        return c.fx.text('なかよし！', mx, my - 40);
     }
   }
 

@@ -506,6 +506,41 @@ export const ICONS = {
     },
     { d: 'M6.5 17v3M9.5 17v3M12.5 17v3M15.5 17v3M18 17v3', stroke: '#c98710', width: 0.9 }
   ],
+  sun: [
+    {
+      d: 'M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3M4.8 4.8l2.1 2.1M17.1 17.1l2.1 2.1M4.8 19.2l2.1-2.1M17.1 6.9l2.1-2.1',
+      stroke: '#f0a020',
+      width: 1.8
+    },
+    { d: circle(12, 12, 5), fill: '#ffc233', stroke: LINE, width: 1.4 }
+  ],
+  sunset: [
+    { d: 'M12 3.5V6M5.2 7.2l1.7 1.7M18.8 7.2l-1.7 1.7', stroke: '#ff8a3c', width: 1.8 },
+    { d: 'M5 16.5a7 7 0 0 1 14 0z', fill: '#ffa45a', stroke: LINE, width: 1.4 },
+    { d: 'M2.5 16.5h19M6 20h12', stroke: LINE, width: 1.4 }
+  ],
+  cloud: [
+    {
+      d: 'M7 18.5h10.5a4 4 0 0 0 .6-8a5.6 5.6 0 0 0-10.8-1.2A4.3 4.3 0 0 0 7 18.5z',
+      fill: '#eef2f7',
+      stroke: LINE,
+      width: 1.4
+    }
+  ],
+  rain: [
+    { d: 'M8.5 17.5l-1.2 3M12.5 17.5l-1.2 3M16.5 17.5l-1.2 3', stroke: '#3d9be9', width: 1.9 },
+    {
+      d: 'M7 14.5h10.5a4 4 0 0 0 .6-8a5.6 5.6 0 0 0-10.8-1.2A4.3 4.3 0 0 0 7 14.5z',
+      fill: '#dfe6ee',
+      stroke: LINE,
+      width: 1.4
+    }
+  ],
+  snow: [
+    { d: 'M12 2.5v19M3.8 7.2l16.4 9.6M3.8 16.8l16.4-9.6', stroke: '#5aa9f0', width: 1.9 },
+    { d: 'M9.8 3.8L12 6l2.2-2.2M9.8 20.2L12 18l2.2 2.2', stroke: '#5aa9f0', width: 1.4 },
+    { d: circle(12, 12, 2.4), fill: '#ffffff', stroke: '#5aa9f0', width: 1.2 }
+  ],
   moon: [
     { d: 'M15.5 3a8.5 8.5 0 1 0 5.5 13.5A7 7 0 0 1 15.5 3z', fill: '#ffd966', stroke: LINE, width: 1.4 },
     { d: 'M17 5.5h3l-3 3.5h3', stroke: LINE, width: 1.2 }

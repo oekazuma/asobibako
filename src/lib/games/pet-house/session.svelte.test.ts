@@ -46,6 +46,7 @@ vi.mock('./world3d', () => ({
       return 'data:image/jpeg;base64,xx';
     }
     setBrush() {}
+    setDaylight() {}
     dispose() {}
   }
 }));

@@ -180,6 +180,39 @@ describe('pet-house behavior', () => {
     expect(toy.z).toBeLessThanOrEqual(b.z1);
   });
 
+  it('お皿に向けて転がしても投げても、おもちゃはお皿に入らず、食べる子の前にも止まらない', () => {
+    const rng = new Rng(3).next;
+    for (let i = 0; i < 60; i++) {
+      const s = setup([], 'room');
+      const kind = i % 2 ? 'mouse' : 'ball';
+      const bowl = i % 4 < 2 ? ROOM.food : ROOM.water;
+      const from = { x: -0.8 + rng() * 1.8, y: kind === 'mouse' ? 0.03 : 0.55, z: -0.3 + rng() * 1.2 };
+      const aim = { x: bowl.x + (rng() - 0.5) * 0.2, z: bowl.z + (rng() - 0.5) * 0.2 };
+      const len = Math.hypot(aim.x - from.x, aim.z - from.z);
+      const h = 1 + rng() * 2.5;
+      const toy = throwToy(kind, from, {
+        x: ((aim.x - from.x) / len) * h,
+        y: kind === 'ball' ? rng() * 2 : 0,
+        z: ((aim.z - from.z) / len) * h
+      });
+      s.world.toy = toy;
+      run(
+        s,
+        30,
+        () => toy.still,
+        () => {
+          for (const k of [ROOM.food, ROOM.water])
+            if (toy.y < 0.06) expect(Math.hypot(toy.x - k.x, toy.z - k.z)).toBeGreaterThan(0.12);
+        }
+      );
+      expect(toy.still).toBe(true);
+      for (const k of [ROOM.food, ROOM.water]) {
+        const inLane = toy.x <= k.x && toy.x > k.x - 0.5 && Math.abs(toy.z - k.z) < 0.18;
+        expect(inLane).toBe(false);
+      }
+    }
+  });
+
   it('猫は振っているねこじゃらしに近づき、飛びついて caught', () => {
     const s = setup(['mike'], 'room', [{ x: -0.8, z: -1 }]);
     const actions = new Set<string>();

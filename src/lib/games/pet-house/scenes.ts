@@ -3,6 +3,7 @@ import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { PARK } from './layout';
 import { cyl, geo, mat, mesh, sphere } from './props';
+import { streetLamp } from './sky3d';
 import { concrete, foliage, lawn, paint, seeded, siding } from './textures';
 
 /**
@@ -47,6 +48,8 @@ export function skyDome() {
   });
   const dome = new THREE.Mesh(new THREE.SphereGeometry(SKY, 24, 16), m);
   dome.renderOrder = -1;
+  // world3d が名前で探して、時刻の空の色に描き直す
+  dome.name = 'sky';
   return dome;
 }
 
@@ -303,6 +306,12 @@ export function buildPark(): { group: THREE.Group; dispose(): void } {
     seat.position.set(x, 0.03, -7.2);
     group.add(seat);
   }
+  for (const [x, z] of [
+    [1.25, -7.1],
+    [-3.4, -3],
+    [3.4, -0.6]
+  ])
+    group.add(streetLamp(x, z));
 
   const hedgeMap = foliage(41);
   hedgeMap.repeat.set(60, 1);

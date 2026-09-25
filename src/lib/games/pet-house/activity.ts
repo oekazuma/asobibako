@@ -2,6 +2,7 @@ import type * as THREE from 'three';
 import type { Actor, BehaviorEvent, WorldView } from './behavior';
 import type { Track } from './bgm';
 import type { Cry } from './cries';
+import type { Daylight } from './daytime';
 import type { PetFx } from './effects';
 import type { CounterId, Pet, Save } from './engine';
 import type { Layout } from './layout';
@@ -122,6 +123,8 @@ export interface Built {
   dispose(): void;
   /** 旗や観客のように、場面そのものが動くとき */
   update?(dt: number, t: number): void;
+  /** 時刻と天気が変わったとき（組み立てた直後にも 1 度）。空・光・雨は world3d が映すので、場面だけの物（窓の外など）を合わせる */
+  daylight?(d: Daylight): void;
 }
 
 export interface ActivityScene {

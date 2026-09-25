@@ -8,12 +8,13 @@ import type { Scene } from './types';
  * （タイマーで 1 音ずつ鳴らすと、描画が重いフレームで拍がよれる）
  */
 
-export type Track = Scene | 'night' | 'contest-play';
+export type Track = Scene | 'night' | 'rain' | 'contest-play';
 
-/** 同じ曲を指す行き先へは、頭から流し直さずにテンポと大きさだけ変える（競技が始まる・夜の部屋に模様替え） */
+/** 同じ曲を指す行き先へは、頭から流し直さずにテンポと大きさだけ変える（競技が始まる・夜になる・雨の日） */
 const TRACKS: Record<Track, { song: SongId; bpm: number; gain: number }> = {
   room: { song: 'room', bpm: 100, gain: 1 },
   night: { song: 'room', bpm: 84, gain: 0.6 },
+  rain: { song: 'room', bpm: 92, gain: 0.75 },
   park: { song: 'park', bpm: 124, gain: 1 },
   street: { song: 'park', bpm: 124, gain: 1 },
   bath: { song: 'bath', bpm: 108, gain: 0.8 },

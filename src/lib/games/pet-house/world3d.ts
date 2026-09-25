@@ -6,11 +6,13 @@ import type { Pet } from './engine';
 import { LAYOUTS, ROOM, type Layout, type Perch } from './layout';
 import { graphics, type Quality } from '$lib/graphics.svelte';
 import { NATURAL_ROOM, type RoomLook } from './decor';
+import { daylight, now, type Daylight } from './daytime';
 import { createPet, type PetModel } from './models';
 import type { Part } from './petting';
 import { bowl, brushModel, present, toyModel, wandModel } from './props';
 import { buildRoom } from './scene-room';
 import { buildPark } from './scenes';
+import { lampGlass, lampPool, paintDome, SkyFx } from './sky3d';
 import { createWand, stepWand, type Wand } from './wand';
 import type { Tool } from './session.svelte';
 import type { BaseScene, BreedId, ContestId, ToyId } from './types';
@@ -25,8 +27,6 @@ const FOLLOW: Record<BaseScene, Follow> = {
   room: { x: 0.7, zMin: 1.7, zMax: 3.3, near: 1.8, rate: 1.6, shadow: 2 },
   park: { x: 1.4, zMin: -2.5, zMax: 3.6, near: 1.9, rate: 1.8, shadow: 2.4 }
 };
-/** 日の差す向き。部屋では左の窓から、床と壁に斜めの影が落ちる */
-const SUN_DIR = new THREE.Vector3(-2.6, 4, -0.8).normalize();
 /** 当たりはこの半径（メートル）の球。指は絵より太いので、見た目の体より大きめにとる */
 const HIT_R = 0.24;
 const HIT_Y = 0.18;
@@ -125,6 +125,11 @@ export class PetWorld {
   readonly camera = new THREE.PerspectiveCamera(50, 1, 0.05, 60);
   readonly #sun = new THREE.DirectionalLight('#ffe2c2', 2.6);
   readonly #hemi = new THREE.HemisphereLight('#f4f1ff', '#b08a66', 0.55);
+  /** 日の差す向き（daytime.ts）。部屋では左の窓から、床と壁に斜めの影が落ちる */
+  readonly #sunDir = new THREE.Vector3();
+  #day: Daylight;
+  #outdoor = false;
+  readonly #sky = new SkyFx();
   readonly #blob = blobMaterial();
   readonly #pets = new Map<string, PetView>();
   readonly #presents = new Map<number, THREE.Group>();
@@ -153,6 +158,9 @@ export class PetWorld {
   #lifted = 0;
 
   constructor(canvas: HTMLCanvasElement) {
+    const c = now();
+    this.#day = daylight(c.hour, c.weather);
+    this.#sunDir.set(...this.#day.sun.dir);
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 0.95;
@@ -183,7 +191,7 @@ export class PetWorld {
     this.#ring.rotation.x = -Math.PI / 2;
     this.#wand.group.visible = false;
     this.#brush.visible = false;
-    this.scene.add(this.#ring, this.#wand.group, this.#brush);
+    this.scene.add(this.#ring, this.#wand.group, this.#brush, this.#sky.group);
   }
 
   resize(w: number, h: number): void {
@@ -211,12 +219,13 @@ export class PetWorld {
     this.#follow = typeof target === 'string' ? FOLLOW[target] : target.follow;
     this.#built =
       typeof target !== 'string'
-        ? target.build(SUN_DIR)
+        ? target.build(this.#sunDir)
         : kind === 'room'
-          ? buildRoom(SUN_DIR, this.trophies, this.room)
+          ? buildRoom(this.#sunDir, this.trophies, this.room)
           : buildPark();
     this.scene.add(this.#built.group);
     const outdoor = typeof target === 'string' ? kind === 'park' : target.outdoor;
+    this.#outdoor = outdoor;
     if (kind === 'room') {
       this.#bowls = { food: bowl(), water: bowl() };
       this.#bowls.food.group.position.set(ROOM.food.x, 0, ROOM.food.z);
@@ -230,17 +239,13 @@ export class PetWorld {
     s.near = 0.5;
     s.far = 14;
     s.updateProjectionMatrix();
-    if (!outdoor) {
-      this.#sun.intensity = 3;
-      this.#hemi.intensity = 0.45;
-      this.scene.fog = null;
-    } else {
-      this.#sun.intensity = 3;
-      this.#hemi.intensity = 0.7;
+    if (!outdoor) this.scene.fog = null;
+    else {
       // 遠くの家並みと木だけを空の色へかすませる。ペットのまわり（10m 以内）には掛からない
       const fog = typeof target === 'string' ? undefined : target.fog;
       this.scene.fog = new THREE.Fog('#dbe9f2', fog?.near ?? 12, fog?.far ?? 42);
     }
+    this.#applyDay();
     const c = this.#layout.camera;
     this.camera.fov = c.fov;
     this.camera.updateProjectionMatrix();
@@ -254,8 +259,47 @@ export class PetWorld {
     if (this.#layout !== ROOM || !this.#built) return;
     this.#built.dispose();
     this.#built.group.removeFromParent();
-    this.#built = buildRoom(SUN_DIR, this.trophies, this.room);
+    this.#built = buildRoom(this.#sunDir, this.trophies, this.room);
     this.scene.add(this.#built.group);
+    this.#built.daylight?.(this.#day);
+  }
+
+  /** 時刻と天気。変わったときだけ呼ぶ（空の絵を描き直すので毎フレームは呼ばない） */
+  setDaylight(d: Daylight): void {
+    this.#day = d;
+    this.#applyDay();
+  }
+
+  /** 光・空・霧・明かり・雨と雪を、いまの場面と時刻に合わせる。昼の晴れは時刻を入れる前と同じ数字になる */
+  #applyDay() {
+    const d = this.#day;
+    const out = this.#outdoor;
+    const light = out ? d.sun : d.room;
+    this.#sun.color.set(light.color);
+    this.#sun.intensity = light.power;
+    // くもりや夜の弱い光でくっきりした影が落ちると、晴れの昼に見える
+    this.#sun.shadow.intensity = 0.8 * Math.min(1, light.power / 2.2);
+    this.#sunDir.set(...light.dir);
+    if (out) {
+      this.#hemi.color.set(d.hemi.sky);
+      this.#hemi.groundColor.set(d.hemi.ground);
+      this.#hemi.intensity = 0.7 * d.hemi.power;
+    } else {
+      this.#hemi.color.set(d.room.hemi);
+      this.#hemi.groundColor.set('#b08a66');
+      this.#hemi.intensity = 0.45 * d.room.hemiPower;
+    }
+    // 映り込みの RoomEnvironment も部屋を照らすので、夜と明かりをつけた部屋では弱めて暗さを残す
+    this.scene.environmentIntensity = 0.35 * (1 - 0.45 * (out ? d.night : d.lamps));
+    this.scene.fog?.color.set(d.fog);
+    (this.scene.background as THREE.Color).set(out ? d.sky[2] : '#bfe0fb');
+    lampGlass.emissiveIntensity = 2.6 * d.lamps;
+    lampPool.opacity = 0.45 * d.lamps;
+    const dome = this.#built?.group.getObjectByName('sky');
+    if (dome) paintDome(dome, d);
+    this.#built?.daylight?.(d);
+    this.#sky.set(d, out);
+    this.#sun.position.copy(this.#sun.target.position).addScaledVector(this.#sunDir, 6);
   }
 
   /** 設定の画質を、画面の細かさ・影・毛並みに映す。設定の画面で変えたらすぐ効くよう毎フレーム見る */
@@ -401,6 +445,7 @@ export class PetWorld {
       this.#camZ += (z - this.#camZ) * k;
     }
     this.#aim(dt);
+    this.#sky.step(dt, this.camera);
     const lifted = THREE.MathUtils.damp(this.#lifted, this.lift, 6, dt);
     if (lifted !== this.#lifted) {
       this.#lifted = Math.abs(lifted - this.lift) < 1e-3 ? this.lift : lifted;
@@ -416,7 +461,7 @@ export class PetWorld {
     else this.#chase(f);
     // 影の範囲はペットのまわりだけにして、影の 1 画素を細かく保つ
     this.#sun.target.position.set(this.#focus.x, 0, this.#focus.z - 0.4);
-    this.#sun.position.copy(this.#sun.target.position).addScaledVector(SUN_DIR, 6);
+    this.#sun.position.copy(this.#sun.target.position).addScaledVector(this.#sunDir, 6);
   }
 
   #hold(c: Layout['camera']) {
@@ -572,6 +617,7 @@ export class PetWorld {
 
   dispose(): void {
     this.#built?.dispose();
+    this.#sky.dispose();
     for (const view of this.#pets.values()) view.model.dispose();
     this.#ring.geometry.dispose();
     this.#ring.material.dispose();

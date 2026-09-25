@@ -16,6 +16,7 @@
   import { Plaza } from './plaza.svelte';
   import PlazaHud from './PlazaHud.svelte';
   import { Session } from './session.svelte';
+  import Sky from './Sky.svelte';
   import Tools from './Tools.svelte';
   import { createInput } from './touch';
   import { WalkPlay } from './walk.svelte';
@@ -104,6 +105,7 @@
       {/if}
     {:else if pet}
       <PetCard {pet} money={session.save.money} />
+      <Sky sky={session.sky} />
       {#if session.save.pets.length > 1}
         <div class="faces">
           {#each session.save.pets as p (p.id)}
