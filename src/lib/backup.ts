@@ -1,14 +1,18 @@
+import { MUTED_KEY } from './audio.svelte';
 import { GATE_KEY } from './gate.svelte';
 import { GRAPHICS_KEY } from './graphics.svelte';
 import { LAST_ERROR_KEY } from './last-error';
+import { MENU_TAB_KEY, RECENT_KEY } from './recent';
 import { today } from './today';
 
 // 記録のバックアップ。localStorage の asobibako: で始まるキーをまとめて 1 つの JSON にし、読み込みは全部置き換える
 // （サーバーや同期は持たない。保護者が自分で持つファイルだけ）
 export type Backup = { app: 'asobibako'; version: string; at: string; data: Record<string, string> };
 const PREFIX = 'asobibako:';
+/** 前の起動で控えを読み切れなかった印。端末ごとの状態なので書き出さない */
+export const RESTORE_PENDING_KEY = 'asobibako:restore-pending';
 // 端末ごとの控え。持ち運ぶと別の端末のエラーやゲートの回数、端末の力に合わせた画質が混ざる
-const EXCLUDED = new Set([LAST_ERROR_KEY, GATE_KEY, GRAPHICS_KEY]);
+const EXCLUDED = new Set([LAST_ERROR_KEY, GATE_KEY, GRAPHICS_KEY, RESTORE_PENDING_KEY]);
 
 // 常識外のファイルを弾く上限。わんにゃんハウスの写真やらくがきパレードのずかんで 1MB を超えるが、
 // localStorage そのものが数 MB までなので、それより大きな正規の書き出しはない。キーはゲーム数 + 数個
@@ -18,13 +22,16 @@ const MAX_CHARS = 16 * 1024 * 1024;
 export const BACKUP_AT_KEY = 'asobibako:backup-at';
 /** これより前に書き出したきりなら、一覧の「？」に印を付けて書き出しを勧める */
 const DUE_DAYS = 7;
+// 書き出しには入れるが「記録がある」とは数えない。ゲームを開くだけで書かれるので、これで記録ありとみなすと、
+// 消えたあとの起動で控えから戻さず、空に近い中身で控えを上書きしてしまう
+const NOT_RECORDS = new Set([BACKUP_AT_KEY, RECENT_KEY, MENU_TAB_KEY, MUTED_KEY]);
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const backedUp = (k: string) => k.startsWith(PREFIX) && !EXCLUDED.has(k);
 const keys = () => Object.keys(localStorage).filter(backedUp);
 
 /** 書き出して残す記録が 1 つでもあるか */
-export const hasRecords = () => keys().some((k) => k !== BACKUP_AT_KEY);
+export const hasRecords = () => keys().some((k) => !NOT_RECORDS.has(k));
 
 export function markBackedUp(): void {
   try {
@@ -75,10 +82,13 @@ export function parseBackup(text: string): Backup {
   if (typeof v.version !== 'string' || typeof v.at !== 'string') throw new Error('backup');
   const entries = Object.entries(v.data);
   if (entries.length > MAX_KEYS) throw new Error('backup');
+  const data: Record<string, string> = {};
   for (const [k, val] of entries) {
-    if (!backedUp(k) || typeof val !== 'string') throw new Error('backup');
+    if (!k.startsWith(PREFIX) || typeof val !== 'string') throw new Error('backup');
+    // 端末ごとの控えは持ち込まない。拒むと、除くキーを足す前に書き出したファイルや控えが読めなくなる
+    if (!EXCLUDED.has(k)) data[k] = val;
   }
-  return v as Backup;
+  return { app: 'asobibako', version: v.version, at: v.at, data };
 }
 
 // 途中で容量超過しても記録を失わないよう、いまの記録を控えてから置き換え、失敗したら控えを戻す
