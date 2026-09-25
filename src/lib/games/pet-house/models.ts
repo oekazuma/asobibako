@@ -948,12 +948,21 @@ function solveLeg(
   leg.bones[3].quaternion.copy(q.copy(qc).invert().multiply(tmp.q2));
 }
 
+const X_AXIS = new THREE.Vector3(1, 0, 0);
+/** 足の短い子のおすわりで、胴を起こす角度のうち腰で起こす割合。残りは胸で起こす */
+const REAR = 0.25;
+
+/** (y, z) を x 軸まわりに前が上がる向きへ a だけ回す */
+const up = (y: number, z: number, a: number) => [y * Math.cos(a) + z * Math.sin(a), z * Math.cos(a) - y * Math.sin(a)];
+
 /**
  * 足の短い子のかっこう。腰を下げるかっこうは胴が低いぶん浅くし、おすわりのように胴を起こすかっこうは、
- * ふつうの足の子と同じ高さまで腰が下がる角度に起こし方を減らす（そのままだと腰が床に沈む）。
+ * ふつうの足の子と同じ高さまで腰が下がるところで止める（それより起こすと腰が床に沈む）。
+ * 足が短いと肩の高さはほとんど上げられないので、起こせる角度は小さい。胴全体で起こすと胴の長いダックスは
+ * 伏せているように見えるため、腰では少しだけ起こし、残りは胸で起こして上半身を立てる（前足で立ち、お尻は床）。
  * reach はふつうの胴の長さの子の、腰から肩までの前後の長さ（胴の長いダックスもこれで測る）
  */
-function shorten(p: Pose, low: number, sh: THREE.Vector3, reach: number) {
+function shorten(p: Pose, low: number, sh: THREE.Vector3, chest: THREE.Vector3, reach: number) {
   const y = p.y;
   if (p.y < 0) p.y += low * Math.min(1, -p.y / 0.25);
   // 腰で pitch だけ起こすと、肩は y·cos + z·sin − y だけ上がる（肩の高さを保つかっこうでは、そのぶん腰が下がる）
@@ -962,10 +971,19 @@ function shorten(p: Pose, low: number, sh: THREE.Vector3, reach: number) {
     Math.asin(THREE.MathUtils.clamp((want + sh.y) / Math.hypot(sh.y, sh.z), -1, 1)) - Math.atan2(sh.y, sh.z);
   const ref = lift(Math.min(sh.z, reach), p.pitch);
   if (p.level > 0 && p.pitch > 0) {
-    const pitch = Math.max(0, solve(ref - low * p.level));
-    // 首は胴を起こした分だけ下げてあるので、減らした分は戻して顔を前へ向ける
-    p.hp -= (p.pitch - pitch) * 1.3;
-    p.pitch = pitch;
+    const want = ref - low * p.level;
+    const hips = Math.max(0, solve(want)) * REAR;
+    // 腰で hips、胸で a だけ起こしたときの肩の上がり。a について増えるので二分法で want に合わせる
+    const bent = (a: number) => {
+      const [dy, dz] = up(sh.y - chest.y, sh.z - chest.z, a);
+      return up(chest.y + dy, chest.z + dz, hips)[0] - sh.y;
+    };
+    let [lo, hi] = [0, 1.4];
+    for (let i = 0; i < 20; i++) [lo, hi] = bent((lo + hi) / 2) < want ? [(lo + hi) / 2, hi] : [lo, (lo + hi) / 2];
+    // 首は胴を起こした分だけ下げてあるので、減らした分は戻して顔を前へ向ける。胸で起こした分は首を立てたまま頭だけ戻す（update）
+    p.hp -= (p.pitch - hips) * 1.3;
+    p.pitch = hips;
+    p.spine -= lo;
   } else if (p.level <= 0 && p.pitch < 0) {
     // 前へ伏せるかっこう（おじぎ）は、胸がふつうの子と同じ高さで止まるまで傾きを減らす
     p.pitch = Math.min(0, solve(ref + low - (p.y - y)));
@@ -983,6 +1001,7 @@ export function createPet(breed: BreedId, quality: Quality = 'normal'): PetModel
   const J = (n: string) => v3(look.joints[n]);
   const hipsRest = J('hips');
   const shoulder = J('fl.0').sub(hipsRest).setX(0);
+  const chestAt = J('chest').sub(hipsRest).setX(0);
   const pivot = new THREE.Vector3(0, 0.34, -0.1);
 
   // 画質を変えるときは形を作り直して入れ替える。update が使う骨はここで差し替える
@@ -1166,7 +1185,7 @@ export function createPet(breed: BreedId, quality: Quality = 'normal'): PetModel
     } else since += dt;
     const goal = target(kind, action, since, o);
     goal.hy += o.look * 0.6;
-    if (look.low) shorten(goal, look.low, shoulder, kind === 'cat' ? 0.88 : 0.72);
+    if (look.low) shorten(goal, look.low, shoulder, chestAt, kind === 'cat' ? 0.88 : 0.72);
     if (look.lie) goal.y += look.lie * Math.min(1, Math.abs(goal.roll));
     const rate = action === 'jump' || action === 'swat' ? 14 : 9;
     for (const k of KEYS) cur[k] = THREE.MathUtils.damp(cur[k], goal[k], rate, dt);
@@ -1223,7 +1242,12 @@ export function createPet(breed: BreedId, quality: Quality = 'normal'): PetModel
     tmp.e.set(-pitch, wig * 0.2 + cur.bend * -0.3 + shake * 0.12, cur.roll - shake * 0.18, 'YXZ');
     hips.quaternion.setFromEuler(tmp.e);
     // おすわりでは胴を腰で起こしても、肩の位置（前足の上）を保つ
-    const sh = tmp.v.copy(shoulder).applyQuaternion(hips.quaternion);
+    const sh = tmp.v
+      .copy(shoulder)
+      .sub(chestAt)
+      .applyAxisAngle(X_AXIS, cur.spine)
+      .add(chestAt)
+      .applyQuaternion(hips.quaternion);
     const bob =
       cur.bob * (swing > 0.02 ? Math.cos(ph * 2) * (1 - run) + Math.sin(ph) * run : Math.abs(Math.sin(prancePh)));
     hips.position.set(
@@ -1242,7 +1266,13 @@ export function createPet(breed: BreedId, quality: Quality = 'normal'): PetModel
       shakeHead * 0.3,
       'YXZ'
     );
-    head.rotation.set(cur.hp * 0.4 - cur.pitch * 0.3, cur.hy * 0.5 + shakeHead * 0.3, cur.hr + shakeHead * 0.55, 'YXZ');
+    // 胸で起こした分（spine が負）は首を立てたまま頭だけ戻し、顔を前へ向ける（shorten のおすわり）
+    head.rotation.set(
+      cur.hp * 0.4 - cur.pitch * 0.3 - cur.spine,
+      cur.hy * 0.5 + shakeHead * 0.3,
+      cur.hr + shakeHead * 0.55,
+      'YXZ'
+    );
 
     // roll は寝ころんだ体の真ん中を軸に回す
     const root = rig.root;

@@ -4,7 +4,9 @@ import type { RoomLook, RoomTheme } from './decor';
 import { CONTEST_IDS } from './engine';
 import { ROOM } from './layout';
 import { box, cyl, geo, mat, mesh, torus } from './props';
-import { petBed, plant, rugOf, sofa, wallDecor, windowDressing } from './room-furniture';
+import type { Built } from './activity';
+import { floorLamp, petBed, plant, rugOf, sofa, wallDecor, windowDressing } from './room-furniture';
+import { glassDrops, windowRain, windowSnow, windowStars } from './sky3d';
 import { floorMap, outside, wainscot, wallpaper } from './room-textures';
 import { release, rounded } from './scenes';
 import { fabric, paint, planks } from './textures';
@@ -24,11 +26,45 @@ const FRAME: Record<RoomTheme, string> = {
   castle: '#efe2c4'
 };
 
-function windowFrame(width: number, height: number, look: RoomLook, weave: THREE.Texture) {
+/** 窓の外の景色の手前に重ねる、星・降る雨や雪・ガラスの雨つぶ。どれも 2 つの窓で同じ材質を使う */
+interface Glass {
+  view: THREE.MeshBasicMaterial[];
+  stars: THREE.MeshBasicMaterial;
+  fall: THREE.MeshBasicMaterial;
+  drops: THREE.MeshBasicMaterial;
+}
+
+function glass(): Glass {
+  const layer = (map: THREE.Texture, blending: THREE.Blending = THREE.NormalBlending) =>
+    new THREE.MeshBasicMaterial({
+      map,
+      transparent: true,
+      depthWrite: false,
+      toneMapped: false,
+      visible: false,
+      blending
+    });
+  return {
+    view: [],
+    stars: layer(windowStars(), THREE.AdditiveBlending),
+    fall: layer(windowRain()),
+    drops: layer(glassDrops())
+  };
+}
+
+function windowFrame(width: number, height: number, look: RoomLook, weave: THREE.Texture, panes: Glass) {
   const g = new THREE.Group();
   // 窓の外は照明もトーンマップも通さず、そのままの明るさで見せる
   const view = new THREE.MeshBasicMaterial({ map: outside(look.view), toneMapped: false });
-  g.add(new THREE.Mesh(new THREE.PlaneGeometry(width, height), view));
+  panes.view.push(view);
+  const plane = new THREE.PlaneGeometry(width, height);
+  g.add(new THREE.Mesh(plane, view));
+  for (const [m, z] of [
+    [panes.stars, 0.002],
+    [panes.fall, 0.004],
+    [panes.drops, 0.006]
+  ] as const)
+    g.add(mesh(plane, m, 0, 0, z, false));
   const white = mat(FRAME[look.wall], { roughness: 0.5 });
   const t = 0.07;
   g.add(mesh(rounded(width + t, t, 0.06, 0.012), white, 0, height / 2, 0.02, false));
@@ -65,17 +101,9 @@ function sunPatch(sun: THREE.Vector3) {
       ])
         g.fillRect(x0, y0, x1 - x0, y1 - y0);
   });
-  const corner = (u: number, v: number) => {
-    const y = SIDE_WINDOW.y + (v - 0.5) * SIDE_WINDOW.h;
-    const z = SIDE_WINDOW.z + (u - 0.5) * SIDE_WINDOW.w;
-    const k = y / sun.y;
-    return [-WALL.side - sun.x * k, 0.012, z - sun.z * k];
-  };
   const geom = new THREE.BufferGeometry();
-  geom.setAttribute(
-    'position',
-    new THREE.Float32BufferAttribute([corner(0, 0), corner(1, 0), corner(0, 1), corner(1, 1)].flat(), 3)
-  );
+  geom.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(12), 3));
+  placePatch(geom, sun);
   geom.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 1, 1], 2));
   geom.setIndex([0, 1, 2, 2, 1, 3]);
   const m = new THREE.MeshBasicMaterial({
@@ -92,6 +120,20 @@ function sunPatch(sun: THREE.Vector3) {
   const patch = new THREE.Mesh(geom, m);
   patch.renderOrder = 2;
   return patch;
+}
+
+/** 窓の四隅を日の向きで床へ写す。日が動いたら同じ形のまま置き直す */
+function placePatch(geom: THREE.BufferGeometry, sun: THREE.Vector3) {
+  const corner = (u: number, v: number) => {
+    const y = SIDE_WINDOW.y + (v - 0.5) * SIDE_WINDOW.h;
+    const z = SIDE_WINDOW.z + (u - 0.5) * SIDE_WINDOW.w;
+    const k = y / sun.y;
+    return [-WALL.side - sun.x * k, 0.012, z - sun.z * k];
+  };
+  const p = geom.attributes.position as THREE.BufferAttribute;
+  p.set([corner(0, 0), corner(1, 0), corner(0, 1), corner(1, 1)].flat());
+  p.needsUpdate = true;
+  geom.computeBoundingSphere();
 }
 
 const SHELF = { w: 0.96, h: 0.64, d: 0.3, t: 0.025 };
@@ -259,13 +301,10 @@ function walls(group: THREE.Group, theme: RoomTheme) {
   }
 }
 
-export function buildRoom(
-  sun: THREE.Vector3,
-  trophies: Partial<Record<ContestId, number>>,
-  look: RoomLook
-): { group: THREE.Group; dispose(): void } {
+export function buildRoom(sun: THREE.Vector3, trophies: Partial<Record<ContestId, number>>, look: RoomLook): Built {
   const group = new THREE.Group();
   const weave = fabric();
+  const panes = glass();
 
   const depth = WALL.front - WALL.back;
   const { material, tile } = floorMaterial(look.floor);
@@ -284,15 +323,21 @@ export function buildRoom(
 
   walls(group, look.wall);
 
-  const win = windowFrame(1.0, 1.1, look, weave);
+  const win = windowFrame(1.0, 1.1, look, weave, panes);
   win.position.set(-1.0, 1.3, WALL.back + 0.005);
   group.add(win);
-  const side = windowFrame(SIDE_WINDOW.w, SIDE_WINDOW.h, look, weave);
+  const side = windowFrame(SIDE_WINDOW.w, SIDE_WINDOW.h, look, weave, panes);
   side.rotation.y = Math.PI / 2;
   side.position.set(-WALL.side + 0.005, SIDE_WINDOW.y, SIDE_WINDOW.z);
   group.add(side);
   // 夜空の窓から日だまりが落ちるとおかしい
-  if (look.view !== 'castle') group.add(sunPatch(sun));
+  const night = look.view === 'castle';
+  const patch = night ? null : sunPatch(sun);
+  if (patch) group.add(patch);
+
+  const light = floorLamp();
+  light.position.set(0.98, 0, WALL.back + 0.16);
+  group.add(light);
 
   const couch = sofa(look.sofa, weave);
   couch.position.set(ROOM.sofa.x, 0, ROOM.sofa.z);
@@ -334,5 +379,36 @@ export function buildRoom(
   );
   group.add(placemat);
 
-  return { group, dispose: () => release(group) };
+  const fall = { map: null as THREE.Texture | null, speed: 0, sway: 0 };
+  const dir = new THREE.Vector3();
+  return {
+    group,
+    dispose: () => release(group),
+    update(dt, t) {
+      if (!fall.map) return;
+      fall.map.offset.y = (fall.map.offset.y + fall.speed * dt) % 1;
+      fall.map.offset.x = Math.sin(t * 0.7) * fall.sway;
+    },
+    daylight(d) {
+      // おしろの窓の外はいつも夜空なので、時刻の色を掛けない
+      for (const v of panes.view) v.color.set(night ? '#ffffff' : d.view);
+      panes.stars.visible = !night && d.stars > 0.02;
+      panes.stars.opacity = d.stars;
+      panes.drops.visible = d.weather === 'rain';
+      const wet = d.weather === 'rain' || d.weather === 'snow';
+      panes.fall.visible = wet;
+      fall.map = wet ? (d.weather === 'rain' ? windowRain() : windowSnow()) : null;
+      [fall.speed, fall.sway] = d.weather === 'rain' ? [2.2, 0] : [0.18, 0.04];
+      if (fall.map) {
+        fall.map.repeat.set(2, 2);
+        panes.fall.map = fall.map;
+      }
+      if (patch) {
+        placePatch(patch.geometry, dir.set(...d.sun.dir));
+        patch.material.color.set(d.patch.color);
+        patch.material.opacity = 0.32 * d.patch.power;
+        patch.visible = d.patch.power > 0.02;
+      }
+    }
+  };
 }

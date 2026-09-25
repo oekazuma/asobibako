@@ -4,6 +4,7 @@ import type { RoomTheme } from './decor';
 import { box, cyl, geo, mat, mesh, sphere, torus } from './props';
 import { dots, lace, patternRug, shag, shojiPaper } from './room-textures';
 import { rounded } from './scenes';
+import { lampGlass, lampPool, pool } from './sky3d';
 import { paint, rug as kilim, seeded } from './textures';
 
 /** 部屋の家具のテーマ違い。置き場所と大きさ（ペットの当たり）はテーマで変えない */
@@ -272,6 +273,23 @@ export function plant() {
   );
   base.dispose();
   for (const p of parts) p.dispose();
+  return g;
+}
+
+/**
+ * ソファの右の、あたたかい電球色のフロアランプ。夜はかさが光り、うしろの壁と床にぼんやり明るい丸が出る
+ * （光源を足すと毛の殻まで全部の材質を描き直すので、明るさは絵で見せる）
+ */
+export function floorLamp() {
+  const g = new THREE.Group();
+  const brass = mat('#b89160', { metalness: 0.6, roughness: 0.4 });
+  g.add(mesh(cyl(0.13, 0.15, 0.03, 24), brass, 0, 0.015, 0));
+  g.add(mesh(cyl(0.012, 0.012, 1.28, 8), brass, 0, 0.66, 0));
+  const shade = geo('lamp-shade', () => new THREE.CylinderGeometry(0.12, 0.2, 0.26, 24, 1, true));
+  g.add(mesh(shade, lampGlass, 0, 1.42, 0, false));
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4), lampPool);
+  wall.position.set(0, 1.35, -0.15);
+  g.add(wall, pool(0, 0.1, 0.7));
   return g;
 }
 

@@ -4,6 +4,7 @@ import { Bgm } from './bgm';
 import { Bowls } from './bowls';
 import type { Core, Touch } from './core';
 import { speakAt, type Cry } from './cries';
+import { daylight, greeting, now, phaseOf, type Phase, type Weather } from './daytime';
 import { hasDecor, type RoomLook, type RoomPart, type RoomTheme } from './decor';
 import { PetFx } from './effects';
 import {
@@ -87,6 +88,8 @@ export class Session {
   trying: AccessoryId | null = $state(null);
   /** 画面が 3D をほとんど隠している（おみせなどのシート）。画面が教える */
   covered = false;
+  /** いまの時間帯と、その日の天気（daytime.ts）。上の札のそばのアイコンが読む */
+  sky: { phase: Phase; weather: Weather } = $state(((c) => ({ phase: phaseOf(c.hour), weather: c.weather }))(now()));
 
   readonly #world: PetWorld;
   readonly #overlay: HTMLCanvasElement;
@@ -124,6 +127,9 @@ export class Session {
   #move: { run: (() => void) | null; wait: number } | null = null;
   /** むかえたばかりの子。次に部屋へ入ったとき、奥から歩いてこさせる */
   #arrival: string | null = null;
+  #dayKey = '';
+  #dayAt = 0;
+  #night = 0;
 
   constructor(canvas: HTMLCanvasElement, overlay: HTMLCanvasElement, onhint?: (t: string) => void) {
     this.#onhint = onhint;
@@ -158,12 +164,13 @@ export class Session {
     this.#world.trophies = this.save.contest;
     this.#world.room = this.save.room;
     const { allowance } = catchUp(this.save, Date.now());
+    this.#checkDay();
     this.#enter('room');
     this.#fitToy();
     const back = check(this.save);
     if (back.length) this.#stamps.add(back.length > 1 ? back : back[0]);
     this.#dirty = true;
-    if (allowance) this.#say(`おこづかい ${allowance}コイン もらったよ！`);
+    this.#say(allowance ? `おこづかい ${allowance}コイン もらったよ！` : greeting(this.sky.phase, this.sky.weather));
     document.addEventListener('visibilitychange', this.#onVisibility);
   }
 
@@ -222,7 +229,16 @@ export class Session {
 
   #emptyView(scene: Scene): WorldView {
     const perches = scene === 'room' ? roomPerches(this.save.room) : undefined;
-    return { scene, layout: this.#layout, bowls: this.#bowls.state, toy: null, wand: null, presents: [], perches };
+    return {
+      scene,
+      layout: this.#layout,
+      bowls: this.#bowls.state,
+      toy: null,
+      wand: null,
+      presents: [],
+      perches,
+      night: this.#night
+    };
   }
 
   #enter(target: BaseScene | ActivityScene) {
@@ -240,9 +256,26 @@ export class Session {
     this.#music();
   }
 
-  /** 窓の外が星空の部屋は夜の曲（同じ曲を静かにゆっくり） */
+  /** 夜の部屋と、窓の外が星空の部屋は夜の曲（同じ曲を静かにゆっくり）。雨の日の部屋は少しゆっくり、しっとり */
   #music() {
-    this.#bgm.play(this.scene === 'room' && this.save.room.view === 'castle' ? 'night' : this.scene);
+    const room = this.scene === 'room';
+    const night = this.sky.phase === 'night' || this.save.room.view === 'castle';
+    this.#bgm.play(room && night ? 'night' : room && this.sky.weather === 'rain' ? 'rain' : this.scene);
+  }
+
+  /** 時刻と天気を見て、変わっていたら 3D と眠さに映す。空の色は 3 分ごとに描き直す */
+  #checkDay() {
+    const { hour, weather } = now();
+    const key = `${Math.round(hour * 20)}:${weather}`;
+    if (key === this.#dayKey) return;
+    this.#dayKey = key;
+    const d = daylight(hour, weather);
+    this.#world.setDaylight(d);
+    this.#night = this.#view.night = d.night;
+    if (d.phase === this.sky.phase && weather === this.sky.weather) return;
+    this.sky = { phase: d.phase, weather };
+    // 遊びのモードは自分の曲を流しているので替えない。部屋に戻ったときに合わせる
+    if (!this.activity) this.#music();
   }
 
   /** 部屋には全員、公園にはいまのペットだけ。front のまわりに並べる */
@@ -328,6 +361,10 @@ export class Session {
       else [this.#move, this.moving] = [null, null];
     }
     this.#now += dt;
+    if ((this.#dayAt -= dt) <= 0) {
+      this.#dayAt = 2;
+      this.#checkDay();
+    }
     const pets = this.save.pets;
     // save は深い $state なので、毎フレーム書くとペットの札が 60 回/秒描き直される。ゆっくり変わる値はまとめて進める
     this.#slow += dt;

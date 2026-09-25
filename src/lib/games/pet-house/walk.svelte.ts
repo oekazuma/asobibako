@@ -4,6 +4,7 @@ import type { Activity, ActivityHost, Follow } from './activity';
 import type { Actor } from './behavior';
 import { BREED_IDS, BREEDS } from './breeds';
 import { speakAt } from './cries';
+import { now } from './daytime';
 import { play, stroke } from './engine';
 import type { Layout, Spot } from './layout';
 import { createPet, type PetModel } from './models';
@@ -72,6 +73,8 @@ export class WalkPlay implements Activity {
   #taut = false;
   #cheered = false;
   #wearySaid = -Infinity;
+  /** 雨と雪の日は、歩きだす前に体をぶるっと振る（残りの秒） */
+  #shiver = 0;
   readonly #v = new Vector3();
 
   enter(host: ActivityHost): void {
@@ -92,7 +95,10 @@ export class WalkPlay implements Activity {
     this.#hand = { x: 0, z: (a?.z ?? 0) + LEAD, v: 0 };
     this.#start = this.#hand.z;
     host.setTool('hand');
-    host.say('がめんを おしている あいだ あるくよ', 5);
+    const w = now().weather;
+    this.#shiver = w === 'rain' || w === 'snow' ? 1.6 : 0;
+    const sky = w === 'rain' ? 'あめだね。' : w === 'snow' ? 'ゆきだね。' : '';
+    host.say(`${sky}がめんを おしている あいだ あるくよ`, 5);
   }
 
   frame(dt: number): void {
@@ -100,6 +106,12 @@ export class WalkPlay implements Activity {
     if (!a || !this.#street) return;
     this.#t += dt;
     this.#clock += dt;
+    if (this.#shiver > 0 && this.#clock > 0.8) {
+      this.#shiver -= dt;
+      this.#hold(a, 'shake', dt);
+      this.#leash(a);
+      return;
+    }
     this.#walk(dt, a);
     this.#pet(dt, a);
     // 公園に着いて host.end() したあとは、もう道の上の物を動かさない

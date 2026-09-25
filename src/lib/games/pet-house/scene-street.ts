@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Built } from './activity';
 import { box, cyl, mat, mesh, sphere } from './props';
+import { lampGlass, pool } from './sky3d';
 import { bench, bush, house, release, rounded, skyDome, tree } from './scenes';
 import { concrete, foliage, lawn, paint, siding } from './textures';
 import { CROSSING, LENGTH, POLE_X, POLES, SIDEWALK, type Stop } from './walk';
@@ -286,6 +287,11 @@ function poles(g: THREE.Group) {
     g.add(mesh(cyl(0.1, 0.15, 9, 14), pole, POLE_X, 4.5, z));
     g.add(mesh(cyl(0.165, 0.165, 1.1, 14), guard, POLE_X, 0.55, z));
     g.add(mesh(box(1.3, 0.09, 0.09), pole, POLE_X, 8.3, z, false));
+    // 歩道の側へ腕をのばした街灯
+    g.add(mesh(box(1.1, 0.06, 0.06), pole, POLE_X + 0.55, 5.2, z, false));
+    g.add(mesh(box(0.42, 0.08, 0.2), pole, POLE_X + 1.1, 5.16, z, false));
+    g.add(mesh(box(0.36, 0.05, 0.15), lampGlass, POLE_X + 1.1, 5.1, z, false));
+    g.add(pool(POLE_X + 1.6, z, 2.4));
   }
   for (let i = 1; i < zs.length; i++) {
     const len = zs[i - 1] - zs[i];

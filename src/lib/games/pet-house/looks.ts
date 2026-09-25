@@ -724,24 +724,43 @@ function catEars(H: (p: V3) => V3, P: (p: V3) => V3, hd: number): Part[] {
   ]);
 }
 
-/** 折れ耳。付け根から前へ倒した小さな丸い耳を、頭のてっぺんに沿わせて伏せる */
+/**
+ * 折れ耳。付け根の短い立ち上がり（折れ目の段）から、先のとがった三角の耳を前へ倒して頭のてっぺんに沿わせる。
+ * 段と三角のふちが見えないと、遠くからは丸い頭にしか見えない
+ */
 function foldEars(H: (p: V3) => V3, P: (p: V3) => V3, hd: number): Part[] {
   return both((s, side) => [
     cone(
-      mirror(H(P([0.095, 1.19, 0.765])), s),
-      mirror(H(P([0.115, 1.2, 0.84])), s),
-      0.058 * hd,
-      0.032 * hd,
+      mirror(H(P([0.092, 1.19, 0.755])), s),
+      mirror(H(P([0.1, 1.228, 0.765])), s),
+      0.056 * hd,
+      0.05 * hd,
       `ear.${side}`,
       'ear',
-      0.03,
+      0.02,
+      { squash: [1, 1, 0.55] }
+    ),
+    cone(
+      mirror(H(P([0.1, 1.225, 0.77])), s),
+      mirror(H(P([0.124, 1.19, 0.88])), s),
+      0.066 * hd,
+      0.008 * hd,
+      `ear.${side}`,
+      'ear',
+      0.008,
       {
-        squash: [1, 0.36, 1],
-        turn: [0.55, 0, 0]
+        squash: [1, 0.34, 1],
+        turn: [0.4, 0, 0]
       }
     )
   ]);
 }
+
+/** 折れ耳の色。頭と同じしまだと頭にまぎれるので、耳は少し濃い地にし、横と前を向くふちをさらに濃くする */
+const foldPaint =
+  (paint: Look['paint'], ear: string, rim: string): Look['paint'] =>
+  (p, n, tag) =>
+    tag === 'ear' ? mixHex(ear, rim, smooth(0.7, 0.25, n[1])) : paint(p, n, tag);
 
 // ---- 毛の長さの共通のくせ ----
 
@@ -1489,13 +1508,17 @@ const LOOKS_DATA = {
     short: 0.82,
     bone: 1.22,
     paw: 1.12,
-    ear: 1.0,
+    ear: 1.2,
     eyeR: 1.14,
     fold: true,
 
     fur: { len: 0.05, layers: 8, cell: 0.005 },
     furLen: furBase,
-    paint: tabby({ base: '#8f7c62', dark: '#3b3026', light: '#f3ede2', earIn: '#d9a4a0' }),
+    paint: foldPaint(
+      tabby({ base: '#8f7c62', dark: '#3b3026', light: '#f3ede2', earIn: '#d9a4a0' }),
+      '#7a6852',
+      '#43372b'
+    ),
     eye: { iris: '#c29a42', rim: '#2a2320', lid: '#8f7c62' },
     nose: '#c98a82'
   }),

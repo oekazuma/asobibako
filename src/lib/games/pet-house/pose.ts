@@ -275,6 +275,33 @@ export function target(kind: Kind, action: PetAction, since: number, o: { speed:
       p.ear = 0.4;
       p.wag = 0;
       break;
+    case 'sniff':
+      // ほかの子へ鼻をのばして、くんくんにおいをかぐ
+      p.hp = 0.3 + 0.06 * Math.sin(since * 11);
+      p.pitch = -0.06;
+      p.fz = 0.04;
+      p.ear = 0.25;
+      if (cat) {
+        p.tail = 1.3;
+        p.curl = 0.3;
+      }
+      break;
+    case 'groom': {
+      // 相手の頭をなめる。首を少しのばして舌を出し、下から上へなめ上げるように頭を小さく振る
+      const lick = Math.sin(since * 6.5);
+      p.hp = 0.3 + 0.18 * lick;
+      p.hr = 0.2;
+      p.pitch = -0.04;
+      p.jaw = 0.35 + 0.1 * lick;
+      p.tongue = 0.8;
+      p.eye = 0.4;
+      p.ear = 0.3;
+      if (cat) {
+        p.tail = 1.2;
+        p.curl = 0.3;
+      }
+      break;
+    }
     case 'eat':
       p.pitch = -0.1;
       p.hp = cat ? 1.05 : 1.1;

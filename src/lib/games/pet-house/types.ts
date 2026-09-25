@@ -44,7 +44,9 @@ export type PetAction =
   | 'scratch'
   | 'swat'
   | 'flick'
-  | 'arch';
+  | 'arch'
+  | 'sniff'
+  | 'groom';
 
 export type Stat = 'food' | 'water' | 'clean' | 'energy';
 
