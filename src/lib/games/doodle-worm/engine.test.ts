@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hatch, isLoop, poke, random, step, type Point, type Stroke, type World } from './engine';
+import { hatch, isLoop, parade, poke, random, step, type Point, type Stroke, type World } from './engine';
 
 const ring = (cx: number, cy: number, r: number, turns = 1): Point[] =>
   Array.from({ length: 20 }, (_, i) => {
@@ -119,5 +119,22 @@ describe('poke', () => {
     expect(poke(world, [], s(line(0.45, 0.5, 0.55, 0.5)))).toBe(false);
     expect(poke(world, [s(ring(0.52, 0.52, 0.05))], tap(0.5, 0.5))).toBe(false);
     expect(world.creatures[0].jump).toBe(-1);
+  });
+});
+
+describe('parade', () => {
+  it('足もとをそろえて左の外から並び、右へ抜けた子は列のうしろへ回る', () => {
+    const world: World = { aspect: 0.75, creatures: [hatch([body])!] };
+    const kids = [[body], [body, s(ring(0.45, 0.62, 0.04))], [s(line(0.1, 0.5, 0.3, 0.5))]];
+    parade(world, kids);
+    expect(world.creatures).toHaveLength(3);
+    const feet = world.creatures.map((c) => c.y + c.box[3]);
+    expect(new Set(feet.map((f) => f.toFixed(6))).size).toBe(1);
+    expect(world.creatures.every((c) => c.x + c.box[2] <= 0)).toBe(true);
+    for (let i = 0; i < 400; i++) {
+      step(world, 0.05);
+      for (const c of world.creatures) expect(c.x + c.box[0]).toBeLessThanOrEqual(0.75 + 0.01);
+    }
+    expect(world.creatures.some((c) => c.x + c.box[2] > 0)).toBe(true);
   });
 });

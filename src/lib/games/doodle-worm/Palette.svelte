@@ -116,8 +116,8 @@
   /* 押すと、まるい子が出てくるボタン。出てくる子と同じ顔 */
   .summon {
     position: relative;
-    background: #ffd84d;
-    box-shadow: 0 3px 0 var(--gold-deep);
+    background: #ffb3d1;
+    box-shadow: 0 3px 0 #e07ba5;
   }
 
   .hatch:active:enabled,

@@ -3,7 +3,7 @@
   import { BoardInput } from '$lib/board-input';
   import type { SoloProps } from '$lib/games';
   import { animate } from '$lib/loop';
-  import { add, COLORS, fit, hatch, poke, random, step, type Stroke, type World } from './engine';
+  import { add, COLORS, fit, hatch, parade, poke, random, step, type Stroke, type World } from './engine';
   import { creature, pen, sketch } from './paint';
   import Palette from './Palette.svelte';
   import { sounds } from './sounds';
@@ -72,6 +72,15 @@
     stockOpen = false;
   }
 
+  function march() {
+    parade(
+      world,
+      stock.map((d) => d.strokes)
+    );
+    stockOpen = false;
+    sounds.parade();
+  }
+
   function summon() {
     add(world, random(world.aspect));
     sounds.hatch();
@@ -125,7 +134,14 @@
   onstock={() => (stockOpen = true)}
 />
 {#if stockOpen}
-  <Stock doodles={stock} oncall={call} onremove={remove} onclear={tidy} onclose={() => (stockOpen = false)} />
+  <Stock
+    doodles={stock}
+    oncall={call}
+    onremove={remove}
+    onclear={tidy}
+    onparade={march}
+    onclose={() => (stockOpen = false)}
+  />
 {/if}
 
 <style>
