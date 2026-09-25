@@ -4,7 +4,9 @@ import { drink, eat, findPresent, itemName, kindOf, play, type Pet } from './eng
 import { PARK } from './layout';
 import { FEEL, type Feel } from './petting';
 import type { Core } from './core';
-import { sounds } from './sounds';
+import { sounds, type Surface } from './sounds';
+import type { Actor } from './behavior';
+import type { Scene } from './types';
 
 /** ペットの出来事（食べた・持ってきた・なでられた…）の演出と、食べる音・寝息・公園のプレゼント */
 export class Reactions {
@@ -14,6 +16,9 @@ export class Reactions {
   #snore = 0;
   #presentId = 0;
   #presentWait = 0;
+  /** 足音の次の 1 歩までの秒と、跳んでいたか（降りた瞬間を知る） */
+  readonly #feet = new WeakMap<Actor, { step: number; air: boolean }>();
+  #lastStep = 0;
 
   constructor(core: Core) {
     this.#c = core;
@@ -128,6 +133,7 @@ export class Reactions {
     const c = this.#c;
     c.count('found');
     const found = findPresent(c.s.save, Math.random);
+    sounds.unwrap();
     if ('money' in found) {
       c.fx.coins(x, y, c.purse(), Math.min(8, Math.round(found.money / 10)));
       c.fx.text(`+${found.money}`, x, y - 20, '#e39a00', 40);
@@ -144,12 +150,14 @@ export class Reactions {
     }
   }
 
-  /** 食べる音・寝息の Z・公園のプレゼントの補充 */
+  /** 食べる音・寝息の Z・足音・公園のプレゼントの補充 */
   ambient(dt: number) {
     const c = this.#c;
     this.#munch -= dt;
     this.#zzz -= dt;
+    this.#lastStep += dt;
     for (const a of c.actors) {
+      this.#footsteps(a, dt);
       if ((a.mode === 'eat' || a.mode === 'drink') && this.#munch <= 0) {
         this.#munch = 0.7;
         (a.mode === 'eat' ? sounds.eat : sounds.drink)();
@@ -171,6 +179,28 @@ export class Reactions {
     this.spawnPresent();
   }
 
+  /**
+   * 歩いている子の足音と、ソファ・ベッド・床に降りた音。おふろ（たらいの水の音）とおさんぽ（自分で刻む）は鳴らさない。
+   * 何匹も歩くと足音がつながってうるさいので、全体で 0.09 秒に 1 歩まで
+   */
+  #footsteps(a: Actor, dt: number) {
+    const c = this.#c;
+    const ground = GROUND[c.s.scene];
+    const f = this.#feet.get(a) ?? this.#feet.set(a, { step: 0, air: false }).get(a)!;
+    if (a.hop) f.air = true;
+    else if (f.air) {
+      f.air = false;
+      sounds.land(a.perch === 'sofa' || a.perch === 'bed' ? 'sofa' : 'floor');
+    }
+    f.step -= dt;
+    if (!ground || a.hop || (a.action !== 'walk' && a.action !== 'run') || f.step > 0) return;
+    f.step = a.action === 'run' ? 0.17 : 0.3;
+    if (this.#lastStep < 0.09) return;
+    this.#lastStep = 0;
+    const pet = c.pet(a.petId);
+    sounds.step(ground, !!pet && kindOf(pet.breed) === 'cat');
+  }
+
   spawnPresent() {
     const c = this.#c;
     const b = PARK.bounds;
@@ -189,3 +219,11 @@ export class Reactions {
     }
   }
 }
+
+const GROUND: Partial<Record<Scene, Surface>> = {
+  room: 'floor',
+  lesson: 'floor',
+  park: 'grass',
+  plaza: 'grass',
+  contest: 'grass'
+};

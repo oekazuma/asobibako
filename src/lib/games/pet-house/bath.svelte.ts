@@ -54,6 +54,7 @@ export class BathPlay implements Activity {
   #fuss = 0;
   #flee = 0;
   #bark = 3;
+  #slosh = 0;
   readonly #v = new Vector3();
   readonly #at = new Vector3();
 
@@ -327,6 +328,12 @@ export class BathPlay implements Activity {
       a.z += (dz / d) * stepLen;
     }
     const walking = (moving && stepLen > 0) || Math.abs(turn) > 0.01;
+    // たらいの中で足を動かすと、水がちゃぷちゃぷ鳴る
+    this.#slosh -= dt;
+    if (walking && this.#slosh <= 0) {
+      this.#slosh = 0.32;
+      sounds.slosh(moving ? 1 : 0.5);
+    }
     const still: PetAction =
       this.step === 'shake' && this.#t < SHAKE_TIME ? 'shake' : this.step === 'done' ? 'happy' : 'stand';
     a.action = walking && still !== 'shake' ? 'walk' : still;

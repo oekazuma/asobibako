@@ -35,6 +35,14 @@ export function bus(): AudioContext | undefined {
   return ctx && !audio.muted && ctx.state === 'running' ? ctx : undefined;
 }
 
+/**
+ * その場で鳴らす効果音の出口。bus() と違って止まっているあいだも返し、予約した音は resume() が済むと鳴る
+ * （iOS では wake() と同じタッチの音が、まだ suspended の ctx に届く）
+ */
+export function sink(): AudioContext | undefined {
+  return ctx && !audio.muted ? ctx : undefined;
+}
+
 /** 各ゲームの効果音はこの部品を組み合わせて、ゲームのフォルダ側で定義する */
 export function tone(freq: number, ms: number, type: OscillatorType = 'triangle', gain = 0.14, delay = 0) {
   if (!ctx || audio.muted) return;

@@ -1,9 +1,11 @@
 import { bus } from '$lib/audio.svelte';
+import { note, type Instrument } from './instruments';
+import { bgmOut, play } from './synth';
 import { SONGS, type Lead, type Song, type SongId } from './songs';
 import type { Scene } from './types';
 
 /**
- * 場面ごとの BGM。音声ファイルは使わず、songs.ts の楽譜をオシレータで鳴らす。
+ * 場面ごとの BGM。音声ファイルは使わず、songs.ts の楽譜を instruments.ts の楽器の音で鳴らす。
  * Session が毎フレーム tick() を呼び、AudioContext の時計で AHEAD 秒先までの音を予約する
  * （タイマーで 1 音ずつ鳴らすと、描画が重いフレームで拍がよれる）
  */
@@ -25,8 +27,6 @@ const TRACKS: Record<Track, { song: SongId; bpm: number; gain: number }> = {
   lesson: { song: 'lesson', bpm: 100, gain: 0.9 }
 };
 
-/** 全体の大きさ。効果音や鳴き声より 1 段小さく、流れていても気にならない */
-const MASTER = 0.3;
 const AHEAD = 0.5;
 const FADE = 0.4;
 
@@ -77,115 +77,32 @@ const hz = (m: number) => 440 * 2 ** ((m - 69) / 12);
 
 // --- 音色 ---
 
-function voice(ctx: BaseAudioContext, out: AudioNode, type: OscillatorType, f: number, t: number, end: number) {
-  const o = ctx.createOscillator();
-  o.type = type;
-  o.frequency.setValueAtTime(f, t);
-  o.connect(out);
-  o.start(t);
-  o.stop(end + 0.05);
-  return o;
-}
-
-/** 立ち上がって hold 秒のばし、release 秒で消える大きさの形 */
-function envelope(
-  ctx: BaseAudioContext,
-  out: AudioNode,
-  t: number,
-  g: number,
-  attack: number,
-  hold: number,
-  release: number
-) {
-  const a = ctx.createGain();
-  a.gain.setValueAtTime(0.0001, t);
-  a.gain.exponentialRampToValueAtTime(g, t + attack);
-  a.gain.setValueAtTime(g, t + attack + hold);
-  a.gain.exponentialRampToValueAtTime(0.0001, t + attack + hold + release);
-  a.connect(out);
-  return { amp: a, end: t + attack + hold + release };
-}
-
 type Play = (ctx: BaseAudioContext, out: AudioNode, t: number, f: number, dur: number, g: number) => void;
 
+/** たたく・はじく楽器は自然に消えるまで鳴らし、のばす楽器は楽譜の長さで切る */
+const hit =
+  (name: Instrument, k = 1): Play =>
+  (ctx, out, t, f, _dur, g) =>
+    play(ctx, out, t, note(ctx, name, f), g * k);
+const hold =
+  (name: Instrument, k: number, release: number, cut = 1): Play =>
+  (ctx, out, t, f, dur, g) =>
+    play(ctx, out, t, note(ctx, name, f), g * k, { end: t + dur * cut, release });
+
 const LEADS: Record<Lead | 'pluck' | 'bass' | 'pad', Play> = {
-  /** オルゴール。基音に 2 倍の音をうっすら重ね、長く響かせる */
-  box: (ctx, out, t, f, dur, g) => {
-    const { amp, end } = envelope(ctx, out, t, g, 0.005, 0, Math.max(1, dur + 0.5));
-    voice(ctx, amp, 'sine', f, t, end);
-    const hi = ctx.createGain();
-    hi.gain.value = 0.3;
-    hi.connect(amp);
-    voice(ctx, hi, 'sine', f * 2.01, t, end);
-  },
-  /** 木琴。高い倍音をすぐ消して、たたいた音にする */
-  mallet: (ctx, out, t, f, dur, g) => {
-    const { amp, end } = envelope(ctx, out, t, g, 0.004, 0, Math.min(0.6, dur + 0.25));
-    voice(ctx, amp, 'sine', f, t, end);
-    const k = envelope(ctx, out, t, g * 0.25, 0.002, 0, 0.06);
-    voice(ctx, k.amp, 'sine', f * 4, t, k.end);
-  },
-  /** 泡。下からすっと上がる丸い音 */
-  bubble: (ctx, out, t, f, dur, g) => {
-    const { amp, end } = envelope(ctx, out, t, g, 0.01, Math.max(0, dur - 0.15), 0.2);
-    const o = voice(ctx, amp, 'sine', f * 0.6, t, end);
-    o.frequency.exponentialRampToValueAtTime(f, t + 0.05);
-  },
-  /** ラッパ。のこぎり波の高いところを削る */
-  brass: (ctx, out, t, f, dur, g) => {
-    const lp = ctx.createBiquadFilter();
-    lp.type = 'lowpass';
-    lp.frequency.value = 1800;
-    lp.connect(out);
-    const { amp, end } = envelope(ctx, lp, t, g * 0.55, 0.02, dur * 0.7, 0.1);
-    voice(ctx, amp, 'sawtooth', f, t, end);
-  },
-  /** 笛。ゆっくり立ち上がり、かすかに揺らす */
-  flute: (ctx, out, t, f, dur, g) => {
-    const { amp, end } = envelope(ctx, out, t, g, 0.08, Math.max(0, dur - 0.1), 0.25);
-    const o = voice(ctx, amp, 'triangle', f, t, end);
-    const lfo = ctx.createOscillator();
-    const depth = ctx.createGain();
-    lfo.frequency.value = 5;
-    depth.gain.value = f * 0.007;
-    lfo.connect(depth).connect(o.frequency);
-    lfo.start(t);
-    lfo.stop(end + 0.05);
-  },
-  pluck: (ctx, out, t, f, dur, g) => {
-    const { amp, end } = envelope(ctx, out, t, g, 0.004, 0, Math.min(0.35, dur + 0.1));
-    voice(ctx, amp, 'triangle', f, t, end);
-  },
-  pad: (ctx, out, t, f, dur, g) => {
-    const { amp, end } = envelope(ctx, out, t, g, 0.12, Math.max(0, dur - 0.2), 0.35);
-    voice(ctx, amp, 'triangle', f, t, end);
-  },
-  bass: (ctx, out, t, f, dur, g) => {
-    const { amp, end } = envelope(ctx, out, t, g, 0.01, dur * 0.5, dur * 0.5);
-    voice(ctx, amp, 'triangle', f, t, end);
-  }
+  box: hit('box', 0.45),
+  mallet: hit('marimba', 0.75),
+  bubble: hit('drop', 0.7),
+  brass: hold('horn', 0.8, 0.08, 0.85),
+  flute: hold('flute', 0.6, 0.2),
+  pluck: hit('harp', 1.1),
+  pad: hold('pad', 1.6, 0.4),
+  bass: hold('bass', 1.3, 0.12)
 };
 
-const noises = new WeakMap<BaseAudioContext, AudioBuffer>();
-
-/** 行進曲の小太鼓のかわりの、短いシャッという音 */
+/** 行進曲の小太鼓。ブラシで軽くたたいたシャッ */
 function tick(ctx: BaseAudioContext, out: AudioNode, t: number, g: number) {
-  let b = noises.get(ctx);
-  if (!b) {
-    b = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.05), ctx.sampleRate);
-    const d = b.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length) ** 3;
-    noises.set(ctx, b);
-  }
-  const s = ctx.createBufferSource();
-  s.buffer = b;
-  const hp = ctx.createBiquadFilter();
-  hp.type = 'highpass';
-  hp.frequency.value = 5000;
-  const a = ctx.createGain();
-  a.gain.value = g;
-  s.connect(hp).connect(a).connect(out);
-  s.start(t);
+  play(ctx, out, t, note(ctx, 'snare', 0), g * 3);
 }
 
 /** コードの音を C4 のまわり（G3..F#4）に、根音を E2..D#3 に置く */
@@ -231,32 +148,8 @@ function playStep(ctx: BaseAudioContext, out: AudioNode, sc: Score, step: number
   }
 }
 
-const outs = new WeakMap<BaseAudioContext, AudioNode>();
-
-/** BGM の出口。こだま（DelayNode の折り返し）を少し混ぜて、狭い音を部屋に響かせる */
-function output(ctx: BaseAudioContext): AudioNode {
-  const had = outs.get(ctx);
-  if (had) return had;
-  const input = ctx.createGain();
-  const master = ctx.createGain();
-  master.gain.value = MASTER;
-  master.connect(ctx.destination);
-  const echo = ctx.createDelay(1);
-  echo.delayTime.value = 0.3;
-  const dull = ctx.createBiquadFilter();
-  dull.type = 'lowpass';
-  dull.frequency.value = 2400;
-  const back = ctx.createGain();
-  back.gain.value = 0.3;
-  const wet = ctx.createGain();
-  wet.gain.value = 0.25;
-  input.connect(master);
-  input.connect(echo).connect(dull);
-  dull.connect(back).connect(echo);
-  dull.connect(wet).connect(master);
-  outs.set(ctx, input);
-  return input;
-}
+/** BGM の出口。部屋の響きは synth の出口がまとめてかける */
+const output = bgmOut;
 
 /** OfflineAudioContext に 1 曲を seconds 秒ぶん書く（書き出して確かめる用） */
 export function renderTrack(ctx: BaseAudioContext, track: Track, seconds: number): void {

@@ -321,7 +321,7 @@ export class Plaza implements Visit {
       { x: me.x, y: 0.55, z: me.z + 0.6 },
       { x: ((ahead.x - at.x) / len) * v, y: Math.min(1 + up * 0.35, 2.2), z: ((ahead.z - at.z) / len) * v }
     );
-    sounds.throw();
+    sounds.throw('ball');
   }
 
   #aimWand(px: number, py: number, start: boolean) {

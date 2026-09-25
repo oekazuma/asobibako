@@ -15,7 +15,7 @@ export class Rubbing {
   /** なで方のヒントを出した回数と、この回に好きな所としてなでた場所 */
   #tips = 0;
   #felt: Part[] = [];
-  #timers = { heart: 0, purr: 0, bark: 2, sparkle: 0, tip: 20 };
+  #timers = { heart: 0, purr: 0, bark: 2, sparkle: 0, tip: 20, brush: 0 };
 
   constructor(core: Core, training: Training) {
     this.#c = core;
@@ -41,7 +41,7 @@ export class Rubbing {
   tick(dt: number) {
     const c = this.#c;
     const t = this.#timers;
-    for (const k of ['heart', 'purr', 'bark', 'sparkle', 'tip'] as const) t[k] -= dt;
+    for (const k of ['heart', 'purr', 'bark', 'sparkle', 'tip', 'brush'] as const) t[k] -= dt;
     if (t.tip <= 0) this.#tip();
     for (const touch of c.touches) {
       if (touch.mode !== 'rub' || !touch.pet) continue;
@@ -58,6 +58,10 @@ export class Rubbing {
       if (brushing) {
         const was = pet.stats.clean;
         brush(pet, amount);
+        if (t.brush <= 0) {
+          t.brush = 0.22;
+          sounds.brush(Math.min(1, amount / (dt * 1.2)));
+        }
         if (t.sparkle <= 0) {
           t.sparkle = 0.18;
           c.fx.sparkle(touch.x, touch.y);

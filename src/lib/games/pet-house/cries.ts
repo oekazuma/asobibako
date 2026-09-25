@@ -1,6 +1,7 @@
 import { bus } from '$lib/audio.svelte';
 import { BREEDS } from './breeds';
 import type { PetFx } from './effects';
+import { master } from './synth';
 import type { BreedId } from './types';
 
 /**
@@ -321,7 +322,7 @@ export function speak(breed: BreedId, cry: Cry): string {
   for (let i = busy.length - 1; i >= 0; i--) if (busy[i] <= now) busy.splice(i, 1);
   if (busy.length >= MAX_VOICES || now - lastStart < GAP) return '';
   lastStart = now;
-  busy.push(now + render(ctx, ctx.destination, now + 0.01, breed, cry));
+  busy.push(now + render(ctx, master(ctx), now + 0.01, breed, cry));
   return label;
 }
 
