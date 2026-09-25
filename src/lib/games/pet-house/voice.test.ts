@@ -256,6 +256,50 @@ describe('芸のほかの頼みごと', () => {
   it('しつけのシートの「こえで できること」は、どれも書いたとおりに聞き取れる', () => {
     for (const h of HELP) for (const say of h.say) expect(act(say), say).toBe(h.action);
   });
+
+  it.each([
+    'ねてない',
+    'ねてないよ',
+    '寝てない',
+    'ねない',
+    '寝ない',
+    'おきない',
+    '起きないの',
+    'たべない',
+    'だめじゃない',
+    'ポチ ねてない',
+    'おすわり しないで',
+    'ごはん たべないで'
+  ])('打ち消しの「%s」は頼みごとにしない', (text) => {
+    expect(parse(text, PETS)).toBe(null);
+  });
+
+  it('打ち消しの前に言った頼みごとは受ける', () => {
+    expect(act('ねてないで おきて')).toBe('wake');
+    expect(act('なかないで ねんね')).toBe('sleep');
+  });
+
+  it('「ペット」は、ならすと同じになる「ベッド」と取りちがえない', () => {
+    expect(normalize('ペット')).toBe(normalize('ベッド'));
+    expect(act('ペット')).toBe(null);
+    expect(act('ペットの ポチ')).toBe('call');
+    expect(act('ぺっと')).toBe(null);
+    expect(act('べっど')).toBe('bed');
+    expect(act('ねどこ')).toBe('bed');
+    expect(act('ポチ ベッド')).toBe('bed');
+  });
+
+  it.each([
+    ['ここまで おいで', 'call'],
+    ['そこまで きて', 'call'],
+    ['あそこまで いって', null],
+    ['どこまで いくの', null],
+    ['ここで まて', 'stay'],
+    ['ちょっと まって', 'stay'],
+    ['ここまで きたら まて', 'stay']
+  ])('「%s」の「まで」は「まて」にしない', (text, action) => {
+    expect(act(text)).toBe(action);
+  });
 });
 
 describe('名前', () => {

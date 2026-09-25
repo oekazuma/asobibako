@@ -33,7 +33,9 @@ const ACTIONS: PetAction[] = [
   'flick',
   'arch',
   'sniff',
-  'groom'
+  'groom',
+  'stretch',
+  'sad'
 ];
 const ACCESSORIES: AccessoryId[] = ['collar-red', 'collar-blue', 'ribbon', 'hat', 'bandana'];
 const o = { speed: 0.7, wag: 1, look: 0.5, t: 0 };

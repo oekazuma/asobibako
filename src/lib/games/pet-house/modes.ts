@@ -76,6 +76,8 @@ export class Modes {
     c.world.trophies = c.s.save.contest;
     c.world.room = c.s.save.room;
     this.#stage.enter(scene);
+    // おさんぽは 1 匹で歩くので、ほかの子は公園で先に待っている
+    if (scene === 'park' && c.s.save.pets.length > 1) c.say('みんなも きてるよ！ いっしょに プレゼントを さがそう', 4);
     c.s.setTool(this.#before.tool, this.#before.toy);
     this.#stage.settle();
   }

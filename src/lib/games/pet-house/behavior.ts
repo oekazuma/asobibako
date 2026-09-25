@@ -334,6 +334,9 @@ function act(a: Actor, pose: PetAction, t: number, next: Actor['next'] = 'idle',
   a.show = false;
 }
 
+/** 寝起きののび（前足をのばしてあくび → 後ろ足をのばす）の秒 */
+const STRETCH = 2.6;
+
 function wakeUp(a: Actor) {
   if (!a.asleep) return;
   a.asleep = false;
@@ -411,9 +414,8 @@ function apply(a: Actor, cmd: Command) {
   if (cmd.type === 'wake') {
     const slept = a.asleep;
     wakeUp(a);
-    // のびのかっこうはないので、前足をのばすおじぎで代わりにする
     if (!slept || !cmd.stretch) return;
-    act(a, 'bow', 1.4);
+    act(a, 'stretch', STRETCH);
     a.show = true;
     return;
   }
@@ -472,12 +474,12 @@ function apply(a: Actor, cmd: Command) {
   a.gaze = null;
 }
 
-/** おもちゃの持ち逃げ・苦手な所をさわられて離れる・追いかけっこをやめて、伏せてしゅんとする。咥えたおもちゃは画面が床に落とす */
+/** おもちゃの持ち逃げ・苦手な所をさわられて離れる・追いかけっこをやめて、座ってしゅんとする。咥えたおもちゃは画面が床に落とす */
 function scolded(a: Actor) {
   if (a.asleep) return;
   [a.carrying, a.shy, a.tease, a.wandPlay, a.play] = [null, 0, false, false, -1];
   [a.stay, a.bedtime, a.romp, a.pal] = [false, false, 0, null];
-  act(a, 'down', 2.2);
+  act(a, 'sad', 2.2);
   [a.show, a.gaze] = [true, null];
 }
 
@@ -1266,6 +1268,7 @@ function runMode(a: Actor, c: Ctx, dt: number) {
       if (pet.stats.energy >= RESTED) {
         wakeUp(a);
         a.awake = 0;
+        act(a, 'stretch', STRETCH);
       }
       return;
     case 'chase': {

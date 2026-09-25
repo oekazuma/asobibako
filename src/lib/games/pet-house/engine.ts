@@ -43,6 +43,8 @@ export interface Save {
   seen: number;
   /** おこづかいを最後にもらったローカルの日付 YYYY-MM-DD */
   allowanceDay: string;
+  /** 天気の一言を最後に言ったローカルの日付。開くたびに同じことを言わないよう、1 日 1 回にする */
+  greetedDay: string;
   photos: string[];
   /**
    * コンテストごとに、1 位をとった階級の数（0..CONTEST_RANKS）。次に出られる階級もこれで決まり、
@@ -116,7 +118,7 @@ export const kindOf = (breed: BreedId): Kind => BREEDS[breed].kind;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-function day(ms: number): string {
+export function day(ms: number): string {
   const d = new Date(ms);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
@@ -132,6 +134,7 @@ export function newSave(now: number): Save {
     seen: now,
     // 初日はおこづかいを出さない。最初のお金がそのぶん
     allowanceDay: day(now),
+    greetedDay: '',
     photos: [],
     contest: { frisbee: 0, wand: 0, agility: 0, obedience: 0 },
     decor: [],
@@ -215,6 +218,7 @@ export function loadSave(): Save | null {
       accessories: list(ACCESSORIES, raw.accessories),
       seen: num(raw.seen, now, 0, now),
       allowanceDay: typeof raw.allowanceDay === 'string' ? raw.allowanceDay : base.allowanceDay,
+      greetedDay: typeof raw.greetedDay === 'string' && raw.greetedDay.length <= 10 ? raw.greetedDay : '',
       photos: loadPhotos(),
       contest: Object.fromEntries(
         CONTEST_IDS.map((c) => [c, Math.floor(num(contest[c], 0, 0, CONTEST_RANKS))])

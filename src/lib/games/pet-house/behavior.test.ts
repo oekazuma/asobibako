@@ -522,7 +522,7 @@ describe('声の頼みごと', () => {
     command(a, s.pets[0], { type: 'wake', stretch: true });
     expect(a.asleep).toBe(false);
     run(s, 0.2);
-    expect(a.action).toBe('bow');
+    expect(a.action).toBe('stretch');
   });
 
   it('「まて」のあいだは、なでても転がるおもちゃが来ても座って待ち、よぶと来る', () => {
@@ -552,7 +552,7 @@ describe('声の頼みごと', () => {
     expect(a.stay).toBe(false);
   });
 
-  it('「だめ」で、おもちゃを追うのをやめて伏せ、すぐ元にもどる', () => {
+  it('「だめ」で、おもちゃを追うのをやめてしゅんとし、すぐ元にもどる', () => {
     const s = setup(['shiba']);
     lively(s);
     const a = s.actors[0];
@@ -562,11 +562,11 @@ describe('声の頼みごと', () => {
     a.seen = s.world.toy;
     command(a, s.pets[0], { type: 'scold' });
     run(s, 0.2);
-    expect(a.action).toBe('down');
+    expect(a.action).toBe('sad');
     expect(playing(a)).toBe(false);
     run(s, 4);
     expect(a.mode).not.toBe('chase');
-    expect(a.action).not.toBe('down');
+    expect(a.action).not.toBe('sad');
   });
 
   it('「あそぼ」は、おじぎで誘ってから走りまわる', () => {

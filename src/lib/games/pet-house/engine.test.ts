@@ -86,6 +86,17 @@ describe('pet-house engine', () => {
     expect(loadSave()).toBeNull();
   });
 
+  it('天気の一言を言った日は保存から戻り、無い・壊れた値は まだ言っていない日にする', () => {
+    const { save } = withPet();
+    save.greetedDay = '2026-09-25';
+    writeSave(save);
+    expect(loadSave()?.greetedDay).toBe('2026-09-25');
+    for (const greetedDay of [undefined, 3, null, { a: 1 }, 'x'.repeat(40)]) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...save, greetedDay }));
+      expect(loadSave()?.greetedDay).toBe('');
+    }
+  });
+
   it('リズムあそびのハイスコアは芸ごとに戻り、壊れた値は捨てる', () => {
     const { save, pet } = withPet();
     pet.best = { sit: 3120, roll: 900 };
