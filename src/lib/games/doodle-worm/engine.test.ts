@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hatch, isLoop, parade, poke, random, step, type Point, type Stroke, type World } from './engine';
+import { add, groups, hatch, isLoop, parade, poke, random, step, type Point, type Stroke, type World } from './engine';
 
 const ring = (cx: number, cy: number, r: number, turns = 1): Point[] =>
   Array.from({ length: 20 }, (_, i) => {
@@ -136,5 +136,28 @@ describe('parade', () => {
       for (const c of world.creatures) expect(c.x + c.box[0]).toBeLessThanOrEqual(0.75 + 0.01);
     }
     expect(world.creatures.some((c) => c.x + c.box[2] > 0)).toBe(true);
+  });
+});
+
+describe('groups', () => {
+  it('離れて描いた絵は別の子に、重なったり近かったりする線は同じ子にまとめる', () => {
+    const kirby = [body, s([[0.47, 0.47]]), s(ring(0.45, 0.62, 0.04))];
+    const worm = [s(ring(0.2, 0.1, 0.05)), s(line(0.25, 0.1, 0.4, 0.1))];
+    const [a, b] = groups([worm[0], ...kirby, worm[1]]);
+    expect(a).toEqual(worm);
+    expect(b).toEqual(kirby);
+  });
+});
+
+describe('add', () => {
+  it('あふれたら自由に動く子から下がり、パレードの列の子は残す', () => {
+    const world: World = { aspect: 1, creatures: [] };
+    parade(
+      world,
+      Array.from({ length: 12 }, () => [body])
+    );
+    for (let i = 0; i < 14; i++) add(world, hatch([body])!);
+    expect(world.creatures.filter((c) => c.march)).toHaveLength(12);
+    expect(world.creatures.filter((c) => !c.march)).toHaveLength(12);
   });
 });

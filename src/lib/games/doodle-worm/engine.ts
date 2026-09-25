@@ -246,9 +246,34 @@ export function fit(c: Creature, aspect: number): Creature {
   return c;
 }
 
+/** 自由に動く子は 12 匹まで、あふれたら古い子から下がる。パレードの列の子は数えず、列が欠けないよう下げない */
 export function add(world: World, c: Creature): void {
   world.creatures.push(c);
-  if (world.creatures.length > MAX) world.creatures.shift();
+  const free = world.creatures.filter((m) => !m.march);
+  if (free.length > MAX) world.creatures.splice(world.creatures.indexOf(free[0]), 1);
+}
+
+/** これより離れて描いた線は、別の子にする */
+const APART = 0.04;
+
+/**
+ * 描きためた線を、外枠が重なるか近いものどうしでまとめる。2 人で同時に描いた絵や、
+ * 離れたところに描いた絵が 1 匹にくっつかないようにする。まとまりの順と、まとまりの中の線の順は描いた順
+ */
+export function groups(strokes: Stroke[]): Stroke[][] {
+  const boxes = strokes.map((s) => bounds(s.pts));
+  const root = strokes.map((_, i) => i);
+  const find = (i: number): number => (root[i] === i ? i : (root[i] = find(root[i])));
+  for (let i = 0; i < strokes.length; i++) {
+    for (let j = 0; j < i; j++) {
+      const [a, b] = [boxes[i], boxes[j]];
+      const near = a[0] - APART < b[2] && b[0] - APART < a[2] && a[1] - APART < b[3] && b[1] - APART < a[3];
+      if (near) root[find(i)] = find(j);
+    }
+  }
+  const out = new Map<number, Stroke[]>();
+  strokes.forEach((s, i) => out.set(find(i), [...(out.get(find(i)) ?? []), s]));
+  return [...out.values()];
 }
 
 export interface Pose {

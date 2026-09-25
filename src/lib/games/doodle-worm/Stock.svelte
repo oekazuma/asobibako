@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Icon from '$lib/components/Icon.svelte';
   import Sheet from '$lib/components/Sheet.svelte';
   import { portrait } from './paint';
   import type { Doodle } from './stock';
@@ -7,6 +8,7 @@
     doodles,
     oncall,
     onremove,
+    onstar,
     onclear,
     onparade,
     onclose
@@ -14,6 +16,7 @@
     doodles: Doodle[];
     oncall: (d: Doodle) => void;
     onremove: (d: Doodle) => void;
+    onstar: (d: Doodle) => void;
     onclear: () => void;
     onparade: () => void;
     onclose: () => void;
@@ -47,6 +50,15 @@
           >
             <canvas width="160" height="160" use:draw={d}></canvas>
           </button>
+          <button
+            class="star"
+            class:on={d.star}
+            aria-label="おきにいり"
+            aria-pressed={!!d.star}
+            onclick={() => onstar(d)}
+          >
+            <Icon name="star" size="80%" />
+          </button>
         </li>
       {/each}
     </ul>
@@ -70,6 +82,10 @@
     margin: 0;
     padding: 0;
     list-style: none;
+  }
+
+  li {
+    position: relative;
   }
 
   .card {
@@ -104,6 +120,27 @@
     background: var(--p2);
     color: #fff;
     font-weight: 800;
+  }
+
+  /* ★を付けた絵は、ずかんがあふれても残る。付いていないあいだは薄くしておく */
+  .star {
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 2px solid var(--line);
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+  }
+
+  .star:not(.on) :global(svg) {
+    opacity: 0.25;
+    filter: grayscale(1);
   }
 
   .card:active {

@@ -8,6 +8,8 @@ export interface Doodle {
   id: string;
   /** 絵のまんなかが原点 */
   strokes: Stroke[];
+  /** ★を付けた絵は、あふれても ★のない絵より長く残る */
+  star?: boolean;
 }
 
 const round = (v: number) => Math.round(v * 1000) / 1000;
@@ -52,16 +54,24 @@ export function loadStock(): Doodle[] {
   }
 }
 
-/** 入りきらなければ古い絵から落とす。実際に残せたぶんを返す */
+/** n 枚に減らす。★のない古い絵から落とし、それでも多ければ ★の古い絵を落とす */
+function keep(list: Doodle[], n: number): Doodle[] {
+  const out = [...list];
+  for (let i = out.length - 1; out.length > n && i >= 0; i--) if (!out[i].star) out.splice(i, 1);
+  return out.slice(0, n);
+}
+
+/** 入りきらなければ古い絵から落とす（★の絵はあとまで残す）。実際に残せたぶんを返す */
 export function saveStock(list: Doodle[]): Doodle[] {
   for (let n = Math.min(list.length, MAX); n >= 0; n--) {
+    const kept = keep(list, n);
     try {
       if (n === 0) localStorage.removeItem(STOCK_KEY);
-      else localStorage.setItem(STOCK_KEY, JSON.stringify(list.slice(0, n)));
-      return list.slice(0, n);
+      else localStorage.setItem(STOCK_KEY, JSON.stringify(kept));
+      return kept;
     } catch {
       // 容量が足りない。1 枚減らして試す
     }
   }
-  return list.slice(0, MAX);
+  return keep(list, MAX);
 }
