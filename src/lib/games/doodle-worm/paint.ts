@@ -129,19 +129,29 @@ export function creature(ctx: CanvasRenderingContext2D, c: Creature) {
   ctx.restore();
 }
 
-/** ずかんの絵。ふくらみきって跳ねる前の、止まったかっこうで枠いっぱいに描く */
-export function portrait(canvas: HTMLCanvasElement, strokes: Stroke[]) {
+const portraits = new WeakMap<Stroke[], string>();
+
+/**
+ * ずかんの絵の画像（data URL）。ふくらみきって跳ねる前の、止まったかっこうで枠いっぱいに描く。
+ * canvas を何十枚も並べると iPad でスクロールの合成が重くなるので、画像にして <img> で並べる
+ */
+export function portrait(strokes: Stroke[]): string {
+  const cached = portraits.get(strokes);
+  if (cached) return cached;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 160;
   const c = hatch(strokes);
   const ctx = canvas.getContext('2d');
-  if (!c || !ctx) return;
+  if (!c || !ctx) return '';
   c.age = 1;
   const [l, t, r, b] = c.box;
   const pad = Math.max(PEN * 3, c.r * 0.5);
   const s = Math.min(canvas.width / (r - l + pad * 2), canvas.height / (b - t + pad * 2));
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.setTransform(s, 0, 0, s, canvas.width / 2 - s * (c.x + (l + r) / 2), canvas.height / 2 - s * (c.y + (t + b) / 2));
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   creature(ctx, c);
+  const url = canvas.toDataURL();
+  portraits.set(strokes, url);
+  return url;
 }

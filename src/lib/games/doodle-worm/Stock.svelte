@@ -24,10 +24,6 @@
 
   /** 押し間違えて消さないよう、「けす」を押したあいだだけ絵を押すと消える */
   let erasing = $state(false);
-
-  function draw(canvas: HTMLCanvasElement, d: Doodle) {
-    portrait(canvas, d.strokes);
-  }
 </script>
 
 <Sheet title="ずかん" {onclose}>
@@ -48,7 +44,7 @@
             aria-label={erasing ? 'この えを けす' : 'この えを よぶ'}
             onclick={() => (erasing ? onremove(d) : oncall(d))}
           >
-            <canvas width="160" height="160" use:draw={d}></canvas>
+            <img src={portrait(d.strokes)} width="160" height="160" alt="" />
           </button>
           <button
             class="star"
@@ -100,7 +96,8 @@
     cursor: pointer;
   }
 
-  canvas {
+  img {
+    display: block;
     width: 100%;
     height: 100%;
   }
