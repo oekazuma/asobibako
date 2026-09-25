@@ -46,7 +46,7 @@
     const kids = groups(lines);
     if (!kids.length) return;
     for (const strokes of kids) add(world, hatch(strokes)!);
-    stock = saveStock([...kids.map((strokes) => pack(strokes)).reverse(), ...stock]);
+    stock = saveStock([...kids.map((strokes) => pack(strokes)).reverse(), ...stock], kids.length);
     lines = [];
     sounds.hatch();
   }
