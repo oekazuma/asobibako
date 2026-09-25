@@ -68,7 +68,11 @@ function keep(list: Doodle[], n: number, fresh = 0): Doodle[] {
 /** 入りきらなければ古い絵から落とす（★の絵はあとまで残す）。容量が足りず 1 枚も書けなければ保存済みのまま知らせる */
 export function saveStock(list: Doodle[], fresh = 0): Doodle[] {
   if (list.length === 0) {
-    localStorage.removeItem(STOCK_KEY);
+    try {
+      localStorage.removeItem(STOCK_KEY);
+    } catch {
+      // 使えない環境では覚えない
+    }
     return [];
   }
   for (let n = Math.min(list.length, MAX); n >= 1; n--) {

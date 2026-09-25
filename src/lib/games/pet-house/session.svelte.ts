@@ -736,10 +736,13 @@ export class Session {
   photo(): void {
     addPhoto(this.save, this.#world.snapshot());
     this.#count('photo');
-    if (!writePhotos(this.save) && !this.#full) {
-      this.#full = true;
+    if (!writePhotos(this.save)) {
+      // 保存できず save.photos は元に戻っているので、撮れた体で見せる成功のトーストは出さない
+      if (!this.#full) {
+        this.#full = true;
+        remember('わんにゃんハウスの記録を保存できませんでした（容量）');
+      }
       this.#say('しゃしんが いっぱいで のこせないよ');
-      remember('わんにゃんハウスの記録を保存できませんでした（容量）');
       return;
     }
     this.#fx.flash();

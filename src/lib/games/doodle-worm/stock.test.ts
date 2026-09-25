@@ -93,4 +93,9 @@ describe('stock', () => {
     saveStock([]);
     expect(localStorage.getItem(STOCK_KEY)).toBeNull();
   });
+
+  it('localStorage が使えない環境でも、空にするときに投げない', () => {
+    vi.stubGlobal('localStorage', undefined);
+    expect(saveStock([])).toEqual([]);
+  });
 });
