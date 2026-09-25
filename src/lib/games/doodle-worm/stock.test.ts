@@ -50,4 +50,12 @@ describe('stock', () => {
     expect(kept[0].id).toBe('new');
     expect(loadStock().map((d) => d.id)).toEqual(kept.map((d) => d.id));
   });
+
+  it('あふれたときは ★のない古い絵から落とし、★の絵は残す', () => {
+    const list = Array.from({ length: 50 }, (_, i) => ({ ...pack([stroke], String(i)), star: i >= 47 }));
+    const kept = saveStock(list);
+    expect(kept).toHaveLength(48);
+    expect(kept.map((d) => d.id).slice(-3)).toEqual(['47', '48', '49']);
+    expect(kept.some((d) => d.id === '46')).toBe(false);
+  });
 });

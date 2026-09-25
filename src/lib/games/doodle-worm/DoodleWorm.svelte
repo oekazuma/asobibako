@@ -3,7 +3,7 @@
   import { BoardInput } from '$lib/board-input';
   import type { SoloProps } from '$lib/games';
   import { animate } from '$lib/loop';
-  import { add, COLORS, fit, hatch, parade, poke, random, step, type Stroke, type World } from './engine';
+  import { add, COLORS, fit, groups, hatch, parade, poke, random, step, type Stroke, type World } from './engine';
   import { creature, pen, sketch } from './paint';
   import Palette from './Palette.svelte';
   import { sounds } from './sounds';
@@ -19,19 +19,19 @@
   const world: World = { aspect: 1, creatures: [] };
   /** 描き終えて、「うごけ！」を待っている線 */
   let lines = $state.raw<Stroke[]>([]);
-  let drawing: { id: number; stroke: Stroke } | null = null;
+  /** 描いている途中の線。2 人で同時に描けるよう、指ごとに持つ */
+  let drawing: { id: number; stroke: Stroke }[] = [];
   let stock = $state.raw<Doodle[]>([]);
   let stockOpen = $state(false);
 
   const input = new BoardInput({
     down: (event, x, y) => {
-      if (drawing) return;
-      drawing = { id: event.pointerId, stroke: { color, pts: [[x * world.aspect, y]] } };
+      drawing.push({ id: event.pointerId, stroke: { color, pts: [[x * world.aspect, y]] } });
     },
     up: (event) => {
-      if (drawing?.id !== event.pointerId) return;
-      const { stroke } = drawing;
-      drawing = null;
+      const stroke = drawing.find((d) => d.id === event.pointerId)?.stroke;
+      if (!stroke) return;
+      drawing = drawing.filter((d) => d.stroke !== stroke);
       if (poke(world, lines, stroke)) {
         sounds.boing();
         return;
@@ -41,11 +41,12 @@
     }
   });
 
+  /** 離れて描いた絵はそれぞれ別の子になる */
   function go() {
-    const c = hatch(lines);
-    if (!c) return;
-    add(world, c);
-    stock = saveStock([pack(lines), ...stock]);
+    const kids = groups(lines);
+    if (!kids.length) return;
+    for (const strokes of kids) add(world, hatch(strokes)!);
+    stock = saveStock([...kids.map((strokes) => pack(strokes)).reverse(), ...stock]);
     lines = [];
     sounds.hatch();
   }
@@ -60,6 +61,10 @@
     const x = world.aspect * (0.2 + Math.random() * 0.6);
     add(world, fit(hatch(place(d, x, 0.2 + Math.random() * 0.5))!, world.aspect));
     sounds.hatch();
+  }
+
+  function star(d: Doodle) {
+    stock = saveStock(stock.map((other) => (other === d ? { ...d, star: !d.star } : other)));
   }
 
   function remove(d: Doodle) {
@@ -96,9 +101,12 @@
   }
 
   function frame(dt: number) {
-    const finger = drawing && input.fingers.all.get(drawing.id);
-    if (drawing && finger) {
-      const pts = drawing.stroke.pts;
+    for (const {
+      id,
+      stroke: { pts }
+    } of drawing) {
+      const finger = input.fingers.all.get(id);
+      if (!finger) continue;
       const [lx, ly] = pts[pts.length - 1];
       const x = finger.x * world.aspect;
       if (Math.hypot(x - lx, finger.y - ly) > 0.004) pts.push([x, finger.y]);
@@ -113,7 +121,7 @@
     ctx.lineJoin = 'round';
     for (const c of world.creatures) creature(ctx, c);
     sketch(ctx, lines);
-    if (drawing) pen(ctx, drawing.stroke.pts, drawing.stroke.color);
+    for (const { stroke } of drawing) pen(ctx, stroke.pts, stroke.color);
   }
 
   onMount(() => {
@@ -138,6 +146,7 @@
     doodles={stock}
     oncall={call}
     onremove={remove}
+    onstar={star}
     onclear={tidy}
     onparade={march}
     onclose={() => (stockOpen = false)}
