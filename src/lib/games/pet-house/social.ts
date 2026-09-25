@@ -151,7 +151,6 @@ const TOLD = 8;
 /** ほかの子にかかわれる（誘える・誘われる）ひまな子 */
 export const free = (a: Actor) =>
   !a.asleep &&
-  !a.stay &&
   !a.hop &&
   !a.pal &&
   !a.carrying &&
