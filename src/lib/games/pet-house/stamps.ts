@@ -147,6 +147,24 @@ export const STAMPS: Stamp[] = [
     have: counter('nap')
   },
   {
+    id: 'voice1',
+    name: 'はじめての こえ',
+    note: 'マイクを おして こえで おねがい しよう',
+    icon: 'speaker',
+    color: BLUE,
+    need: 1,
+    have: counter('voice')
+  },
+  {
+    id: 'voiceSleep',
+    name: 'こえで ねんね',
+    note: '「ねんね」って いって ねかせて あげよう',
+    icon: 'moon',
+    color: PURPLE,
+    need: 1,
+    have: counter('voiceSleep')
+  },
+  {
     id: 'fetch20',
     name: 'もってこい！',
     note: 'なげた おもちゃを 20かい もってくる',

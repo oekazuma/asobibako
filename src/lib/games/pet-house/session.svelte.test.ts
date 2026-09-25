@@ -403,3 +403,82 @@ describe('Session', () => {
     localStorage.clear();
   });
 });
+
+describe('声の頼みごと', () => {
+  const heard = (s: S, action: Parameters<S['voice']>[0]['action'], petId: string | null = null) =>
+    s.voice({ petId, action });
+  const actor = () => seen.actors!.find((a) => a.petId === seen.view!.current)!;
+
+  it('名前で呼ばれたら、その子に切り替えてから頼む', () => {
+    const s = make();
+    const pochi = s.adopt('shiba', 'ポチ') === 'ok' ? s.save.pets[0] : null;
+    s.adopt('mike', 'ミケ');
+    frames(s, 0.5);
+    heard(s, 'sleep', pochi!.id);
+    expect(s.save.current).toBe(pochi!.id);
+    expect(s.save.counters.voice).toBe(1);
+  });
+
+  it('げんきな子は「ねんね」でも まだ ねむくない。つかれた子は寝に行き、スタンプの回数が進む', () => {
+    const s = make();
+    s.adopt('shiba', 'ポチ');
+    frames(s, 0.5);
+    s.current!.stats.energy = 95;
+    heard(s, 'sleep');
+    expect(s.toast).toContain('まだ ねむくないみたい');
+    s.current!.stats.energy = 50;
+    heard(s, 'sleep');
+    expect(s.save.counters.voiceSleep).toBe(1);
+    expect(frames(s, 20, () => s.asleep)).toBe(true);
+    heard(s, 'wake');
+    expect(s.asleep).toBe(false);
+  });
+
+  it('ごはんが無ければおみせへ、ソファは部屋だけ', () => {
+    const s = make();
+    s.adopt('shiba', 'ポチ');
+    frames(s, 0.5);
+    s.save.food.dogfood = 0;
+    heard(s, 'feed');
+    expect(s.toast).toBe('ごはんが ないよ。おみせで かってね');
+    s.save.food.dogfood = 2;
+    heard(s, 'feed');
+    expect(s.save.food.dogfood).toBe(1);
+    heard(s, 'sofa');
+    expect(actor().seat?.id).toBe('sofa');
+    s.goPark();
+    frames(s, 0.5);
+    heard(s, 'sofa');
+    expect(s.toast).toBe('ソファは おうちに あるよ');
+  });
+
+  it('「まて」から少し待って「よし」で来て、ほめると なかよしが進む', () => {
+    const s = make();
+    s.adopt('shiba', 'ポチ');
+    frames(s, 0.5);
+    heard(s, 'stay');
+    expect(actor().stay).toBe(true);
+    frames(s, 4);
+    heard(s, 'release');
+    expect(s.toast).toContain('まてたね');
+    expect(actor().stay).toBe(false);
+    const love = s.current!.love;
+    heard(s, 'praise');
+    expect(s.current!.love).toBeGreaterThan(love);
+  });
+
+  it('「とってこい」で投げ、戻るまでは次を投げない。はい チーズは向いてから撮る', () => {
+    const s = make();
+    s.adopt('shiba', 'ポチ');
+    frames(s, 0.5);
+    heard(s, 'fetch');
+    expect(seen.view!.toy?.kind).toBe('ball');
+    frames(s, 0.3);
+    heard(s, 'fetch');
+    expect(s.toast).toContain('いま なげてるよ');
+    heard(s, 'photo');
+    expect(s.save.photos.length).toBe(0);
+    frames(s, 1.2);
+    expect(s.save.photos.length).toBe(1);
+  });
+});

@@ -8,7 +8,7 @@
   import { BREEDS } from './breeds';
   import { ContestPlay } from './contest-play.svelte';
   import ContestHud from './ContestHud.svelte';
-  import { kindOf, SHOP, SLEEPY } from './engine';
+  import { kindOf, SHOP } from './engine';
   import Loading from './Loading.svelte';
   import Menu, { type Panel } from './Menu.svelte';
   import Panels from './Panels.svelte';
@@ -44,14 +44,6 @@
       return !k || k === kind;
     }) ?? []
   );
-
-  /** 犬はリードで道をおさんぽして公園へ、猫はそのまま公園へ。つかれているときは goPark がことわる */
-  function walk(s: Session) {
-    if (s.scene !== 'room') return s.goHome();
-    if (kind === 'dog' && pet && pet.stats.energy >= SLEEPY && !s.asleep)
-      return s.start(new WalkPlay(), 'おさんぽに いくよ');
-    s.goPark();
-  }
 
   function resize() {
     const [w, h] = input.px(1, 1);
@@ -135,7 +127,7 @@
         {kind}
         onopen={(p) => (panel = p)}
         oncall={() => session?.call()}
-        onwalk={() => session && walk(session)}
+        onwalk={() => session?.walk()}
       />
     {/if}
     <Panels {session} {kind} bind:panel />

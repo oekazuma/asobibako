@@ -9,9 +9,9 @@ const NOW = Date.now() - 1000 * HOUR;
 describe('pet-house stamps', () => {
   beforeEach(() => localStorage.clear());
 
-  it('30〜40 こで、id は重ならず、条件は 1 以上', () => {
+  it('30〜45 こで、id は重ならず、条件は 1 以上', () => {
     expect(STAMPS.length).toBeGreaterThanOrEqual(30);
-    expect(STAMPS.length).toBeLessThanOrEqual(40);
+    expect(STAMPS.length).toBeLessThanOrEqual(45);
     expect(new Set(STAMPS.map((s) => s.id)).size).toBe(STAMPS.length);
     for (const s of STAMPS) expect(s.need).toBeGreaterThanOrEqual(1);
   });
