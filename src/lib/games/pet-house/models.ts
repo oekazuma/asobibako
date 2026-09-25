@@ -112,7 +112,7 @@ const STORE = 'shapes';
 let opened: Promise<IDBDatabase | null> | undefined;
 
 function shapeDb() {
-  return (opened ??= new Promise((ok) => {
+  opened ??= new Promise((ok) => {
     try {
       const req = indexedDB.open('asobibako-pet-house', 1);
       req.onupgradeneeded = () => req.result.createObjectStore(STORE);
@@ -122,7 +122,12 @@ function shapeDb() {
       // 使えない所（プライベートブラウズ・テスト）では毎回作る
       ok(null);
     }
-  }));
+  });
+  // 開けなかったときは覚え続けず、次に開いたとき試しなおす
+  void opened.then((db) => {
+    if (!db) opened = undefined;
+  });
+  return opened;
 }
 
 /** 控えてある形を読みこむ。前の版の控えはここで捨てる */

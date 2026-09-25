@@ -20,5 +20,6 @@ async function warmShapes() {
     import('./breeds'),
     import('$lib/graphics.svelte')
   ]);
-  await loadShapes(BREED_IDS, graphics.quality);
+  // iOS の IndexedDB は開くところで止まることがある。控えは速くするためだけのものなので、待ちきれなければ遊ぶときに作る
+  await Promise.race([loadShapes(BREED_IDS, graphics.quality), new Promise((ok) => setTimeout(ok, 1500))]);
 }
