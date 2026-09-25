@@ -479,14 +479,17 @@ export function trickChance(pet: Pet, trick: TrickId): number {
   return clamp(0.3 + 0.5 * p + 0.02 * hearts(pet) - sleepy, 0.1, 0.9);
 }
 
-/** 成功した直後にほめたとき。覚えきった瞬間だけ learned。お金は画面が TRICK_REWARD を足す */
-export function praise(pet: Pet, trick: TrickId): { learned: boolean } {
+/**
+ * 成功した直後にほめたとき。覚えきった瞬間だけ learned。お金は画面が TRICK_REWARD を足す。
+ * amount は進む回数で、体で教えたあとは 2（ボタンで出させるより手間がかかるぶん早く覚える）
+ */
+export function praise(pet: Pet, trick: TrickId, amount = 1): { learned: boolean } {
   grow(pet, 0.05);
   const steps = trickSteps(trickOf(trick), kindOf(pet.breed));
   const count = pet.tricks[trick] ?? 0;
   if (count >= steps) return { learned: false };
-  pet.tricks[trick] = count + 1;
-  return { learned: count + 1 >= steps };
+  pet.tricks[trick] = Math.min(steps, count + amount);
+  return { learned: pet.tricks[trick] >= steps };
 }
 
 export type Present = { money: number } | { food: FoodId; count: number } | { item: ShopItem };
