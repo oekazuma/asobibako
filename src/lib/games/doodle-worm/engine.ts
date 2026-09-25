@@ -90,10 +90,16 @@ function length(pts: Point[]): number {
 const radius = (pts: Point[], [cx, cy]: Point) =>
   pts.reduce((sum, [x, y]) => sum + Math.hypot(x - cx, y - cy), 0) / pts.length;
 
+// 長く描きためると点が数万になり、Math.min(...xs) は引数の数の上限で落ちるので 1 つずつ見る
 function bounds(pts: Point[]): [number, number, number, number] {
-  const xs = pts.map((p) => p[0]);
-  const ys = pts.map((p) => p[1]);
-  return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+  const box: [number, number, number, number] = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const [x, y] of pts) {
+    box[0] = Math.min(box[0], x);
+    box[1] = Math.min(box[1], y);
+    box[2] = Math.max(box[2], x);
+    box[3] = Math.max(box[3], y);
+  }
+  return box;
 }
 
 export function area(pts: Point[]): number {
@@ -141,7 +147,7 @@ const RANK: Record<Role, number> = { still: 0, leg: 0, arm: 0, top: 0, tail: 0, 
 /** 体の外へ出た線を、体の中心から見た向きと長さで手足に分ける */
 function limb(pts: Point[], anchor: Point, r: number): Role {
   const [mx, my] = center(pts);
-  const reach = Math.max(...pts.map(([x, y]) => Math.hypot(x - anchor[0], y - anchor[1])));
+  const reach = pts.reduce((m, [x, y]) => Math.max(m, Math.hypot(x - anchor[0], y - anchor[1])), 0);
   if (my > 0 && Math.abs(mx) < my * 1.2) return reach > r * 1.8 ? 'still' : 'leg';
   if (my < 0 && Math.abs(mx) < -my) return 'top';
   return length(pts) > r * TAIL ? 'tail' : 'arm';
