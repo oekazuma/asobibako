@@ -255,7 +255,8 @@ describe('pet-house models', () => {
     pet.setDirt(1);
     const heights = new Set<number>();
     const m = new THREE.Matrix4();
-    for (let f = 0; f < 90; f++) {
+    // とまる時間は最大 1.5 秒なので、跳ぶところまで必ず見られる長さにする
+    for (let f = 0; f < 180; f++) {
       pet.update('stand', 1 / 60, o);
       fleas().getMatrixAt(0, m);
       heights.add(Math.round(m.elements[13] * 100));
