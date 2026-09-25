@@ -88,7 +88,8 @@ function check(name: string, play: (o: { ctx: BaseAudioContext; out: AudioNode; 
   }
 }
 
-describe('効果音', () => {
+// 波形を JS で計算するので、CI の遅いマシンでは 1 つの音に 5 秒を超えることがある
+describe('効果音', { timeout: 30_000 }, () => {
   it.each(Object.keys(SFX))('%s はノードを作りすぎず、無音でも NaN でもなく、割れない', (name) =>
     check(name, SFX[name as keyof typeof SFX] as never)
   );
@@ -97,7 +98,7 @@ describe('効果音', () => {
   );
 });
 
-describe('楽器', () => {
+describe('楽器', { timeout: 30_000 }, () => {
   it.each(INSTRUMENTS)('%s は低い音から高い音まで、鳴って NaN が出ない', (name) => {
     for (const f of [82, 262, 784, 2093]) {
       const d = renderNote(name, f);
