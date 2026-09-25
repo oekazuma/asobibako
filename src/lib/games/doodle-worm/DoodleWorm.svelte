@@ -101,6 +101,8 @@
   }
 
   function frame(dt: number) {
+    // ずかんを開いているあいだは止めておく。裏で全画面を描き直し続けると、iPad でずかんのスクロールがかくつく
+    if (stockOpen) return;
     for (const {
       id,
       stroke: { pts }
