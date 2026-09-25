@@ -131,11 +131,17 @@ describe('pet-house なでたときの反応', () => {
     expect(stranger.actor.z).toBeLessThan(0.2);
   });
 
-  it('猫はおなかをなでると前足でパシッとして、なで続けると「もう いいよ」と離れる', () => {
-    const s = setup('mike', 4);
-    expect(rub(s, 'belly', 0.6)).toEqual(['swat']);
-    expect(s.actor.action).toBe('swat');
-    expect(rub(s, 'belly', ENOUGH)).toContain('enough');
+  it('猫のおなかは、なかよしが少ないうちだけ軽くはたいて離れ、なかよしが増えるとがまんし、やがて見せてくれる', () => {
+    const shy = setup('mike', 0);
+    expect(rub(shy, 'belly', 0.4)).toEqual(['swat']);
+    expect(shy.actor.action).toBe('swat');
+    const bear = setup('mike', 1);
+    expect(rub(bear, 'belly', ENOUGH + 0.5)).toEqual(['tickle']);
+    const trust = setup('mike', 4);
+    rub(trust, 'belly', 0.6);
+    expect(trust.actor.action).toBe('belly');
+    const s = setup('mike', 0);
+    expect(rub(s, 'belly', ENOUGH + 0.1)).toContain('enough');
     const at = { x: s.actor.x, z: s.actor.z };
     rub(s, 'belly', 0.2);
     expect(s.actor.mode).toBe('go');
@@ -143,7 +149,7 @@ describe('pet-house なでたときの反応', () => {
     expect(Math.hypot(s.actor.x - at.x, s.actor.z - at.z)).toBeGreaterThan(0.3);
   });
 
-  it('しっぽをなでると、犬は振り返り、猫はしっぽを振っていやがる', () => {
+  it('しっぽをなでると、犬は振り返り、猫はしっぽを振る', () => {
     const dog = setup('beagle', 3);
     expect(rub(dog, 'tail', 0.5)).toEqual(['turn']);
     expect(Math.abs(dog.actor.look)).toBeGreaterThan(0.5);
@@ -169,7 +175,7 @@ describe('pet-house なでたときの反応', () => {
     const feels = rub(s, 'chin', meltAt(1) + 0.2);
     expect(feels).toEqual(['like', 'melt']);
     expect(strokeWeight('cat', 1, 'chin', meltAt(1) + 0.2)).toBeGreaterThan(strokeWeight('cat', 1, 'chin', 1));
-    expect(strokeWeight('cat', 1, 'belly', 1)).toBe(0);
+    expect(strokeWeight('cat', 0, 'belly', 1)).toBe(0);
     const liked = { ...s.pet, love: 0 };
     const disliked = { ...s.pet, love: 0 };
     stroke(liked, 1, strokeWeight('cat', 0, 'chin', 1));

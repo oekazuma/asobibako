@@ -15,13 +15,20 @@ const LIKE: Record<Kind, Record<Part, number>> = {
 const DISLIKE = 0.2;
 /** 犬がおなかを見せてくれる、なかよし（ハート）の数 */
 const TRUST = 2;
-/** 苦手な所をなで続けて、「もう いいよ」と離れていくまでの秒 */
-export const ENOUGH = 1.6;
+/**
+ * 猫のおなかは、ハートが少ないうちだけ苦手、そのあとはがまん、なかよしならおなかを見せる。
+ * 子どもが遊ぶので、猫が怒ってばかりに見えないようにする
+ */
+const CAT_BEAR = 1;
+const CAT_TRUST = 3;
+/** 苦手な所をなで続けて、「また あとでね」と離れていくまでの秒 */
+export const ENOUGH = 3.5;
 /** 好きな所をなで続けて、とろけはじめるまでの秒。なかよしほど早い */
 export const meltAt = (love: number) => 3.2 - 0.3 * Math.floor(love);
 
 export function liking(kind: Kind, love: number, part: Part): number {
   if (kind === 'dog' && part === 'belly' && love < TRUST) return 0;
+  if (kind === 'cat' && part === 'belly') return love >= CAT_TRUST ? 1.2 : love >= CAT_BEAR ? 0.5 : 0;
   return LIKE[kind][part];
 }
 
@@ -37,7 +44,7 @@ export function strokeWeight(kind: Kind, love: number, part: Part, s: number): n
 export function rubPose(kind: Kind, love: number, part: Part, s: number): PetAction {
   const cat = kind === 'cat';
   if (dislikes(kind, love, part)) {
-    if (cat && part === 'belly' && s < 0.9) return 'swat';
+    if (cat && part === 'belly' && s < 0.5) return 'swat';
     return cat && part === 'tail' ? 'flick' : 'stand';
   }
   if (cat && part === 'back') return 'arch';
@@ -45,7 +52,7 @@ export function rubPose(kind: Kind, love: number, part: Part, s: number): PetAct
     case 'paw':
       return 'paw';
     case 'belly':
-      return 'belly';
+      return cat && love < CAT_TRUST ? 'stand' : 'belly';
     case 'head':
     case 'chin':
     case 'cheek':
@@ -65,8 +72,8 @@ export function feelOf(kind: Kind, love: number, part: Part, from: number, to: n
     if (part === 'tail') return kind === 'dog' ? 'turn' : 'flick';
     return kind === 'cat' && part === 'belly' ? 'swat' : 'tickle';
   }
-  if (past(meltAt(love))) return 'melt';
-  if (kind === 'dog' && part === 'belly' && past(0.3)) return 'tickle';
+  if (past(meltAt(love)) && liking(kind, love, part) >= 1) return 'melt';
+  if (part === 'belly' && past(0.3)) return 'tickle';
   if (past(0.8) && liking(kind, love, part) >= 1.2) return 'like';
   return null;
 }
@@ -74,11 +81,11 @@ export function feelOf(kind: Kind, love: number, part: Part, from: number, to: n
 export const FEEL: Record<Feel, { say: string; cry: Record<Kind, Cry> }> = {
   like: { say: 'そこ すき！', cry: { dog: 'happy', cat: 'sweet' } },
   melt: { say: 'きもちいい〜', cry: { dog: 'sweet', cat: 'purr' } },
-  tickle: { say: 'くすぐったい！', cry: { dog: 'happy', cat: 'grumble' } },
-  swat: { say: 'パシッ', cry: { dog: 'grumble', cat: 'grumble' } },
-  flick: { say: 'しっぽは いや〜', cry: { dog: 'grumble', cat: 'grumble' } },
+  tickle: { say: 'くすぐったい！', cry: { dog: 'happy', cat: 'answer' } },
+  swat: { say: 'えいっ', cry: { dog: 'answer', cat: 'answer' } },
+  flick: { say: 'しっぽは ひみつ', cry: { dog: 'answer', cat: 'answer' } },
   turn: { say: 'なあに？', cry: { dog: 'happy', cat: 'sweet' } },
-  enough: { say: 'もう いいよ', cry: { dog: 'grumble', cat: 'grumble' } }
+  enough: { say: 'また あとでね', cry: { dog: 'sweet', cat: 'sweet' } }
 };
 
 /** なで方の発見をうながすヒント。まだなでていない好きな所を 1 つ選んで出す */
