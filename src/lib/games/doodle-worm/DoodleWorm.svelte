@@ -103,7 +103,7 @@
   });
 </script>
 
-<div class="board" use:input.board={resize} role="application" aria-label="らくがきムシの画用紙">
+<div class="board" use:input.board={resize} role="application" aria-label="らくがきパレードの画用紙">
   <canvas bind:this={canvas}></canvas>
 </div>
 <Palette bind:color ready={lines.length > 0} ongo={go} onundo={undo} onsummon={summon} />

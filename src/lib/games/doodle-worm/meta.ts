@@ -2,7 +2,7 @@ import type { GameMeta } from '$lib/games';
 
 export default {
   id: 'doodle-worm',
-  name: 'らくがきムシ',
+  name: 'らくがきパレード',
   description: 'すきな えを かいて「うごけ！」を おすと、かたちに あわせて うごきだす。クリアはないので すきなだけ',
   players: 1,
   levels: 1,

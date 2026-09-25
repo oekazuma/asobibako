@@ -21,7 +21,7 @@ const circle = (cx: number, cy: number, r: number): Point[] =>
 const wave = (x0: number, y0: number, length: number): Point[] =>
   Array.from({ length: 13 }, (_, i) => [x0 + (i / 12) * length, y0 + Math.sin(i / 2) * 18]);
 
-/** 描いて離す（らくがきムシ・線を引いて守る） */
+/** 描いて離す（らくがきパレード・線を引いて守る） */
 async function stroke(s: Stage, path: Point[], ms: number): Promise<void> {
   await s.drag(1, path, ms);
   await s.touch(1, 'up', ...path[path.length - 1]);
