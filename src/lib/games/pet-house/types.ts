@@ -62,6 +62,6 @@ export type AccessoryId = 'collar-red' | 'collar-blue' | 'ribbon' | 'hat' | 'ban
 /** いつもの場面。部屋と公園の置き場所は layout.ts の LAYOUTS に持つ */
 export type BaseScene = 'room' | 'park';
 /** 遊びのモード（activity.ts）が持つ場面も含めた名前。モードの場面の置き場所と組み立てはモードが渡す */
-export type Scene = BaseScene | 'contest' | 'plaza' | 'bath' | 'street';
+export type Scene = BaseScene | 'contest' | 'plaza' | 'bath' | 'street' | 'lesson';
 
 export type ContestId = 'frisbee' | 'wand' | 'agility' | 'obedience';

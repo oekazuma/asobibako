@@ -38,7 +38,6 @@ import { sounds } from './sounds';
 import { StampQueue } from './stamp-queue';
 import { check } from './stamps';
 import { Modes } from './modes';
-import { LESSONS } from './teach';
 import { Toys, WandHand } from './toys';
 import { Training } from './training';
 import type { AccessoryId, BaseScene, BreedId, FoodId, Scene, ToyId, TrickId } from './types';
@@ -67,10 +66,7 @@ export class Session {
   scene: Scene = $state('room');
   tool: Tool = $state('hand');
   toy: ToyId = $state('ball');
-  /** taught は体で教えた直後。ほめると 2 回ぶん進む */
-  trickPending: { petId: string; trick: TrickId; until: number; taught?: boolean } | null = $state(null);
-  /** 体で教えている芸。あいだはペットをその場で待たせ、指の動かし方の案内を描く */
-  teaching: TrickId | null = $state(null);
+  trickPending: { petId: string; trick: TrickId; until: number } | null = $state(null);
   toast = $state('');
   current: Pet | undefined = $derived(this.save.pets.find((p) => p.id === this.save.current));
   /**
@@ -159,6 +155,11 @@ export class Session {
         if (!p) return;
         play(p);
         this.#reactions.found(p, ...this.#above(a));
+      },
+      praise: (trick, amount) => {
+        const pet = this.current;
+        const a = this.#actor();
+        if (pet && a) this.#training.praise(pet, a, trick, amount);
       }
     });
     this.#view = this.#emptyView('room');
@@ -387,7 +388,6 @@ export class Session {
       this.#view.current = this.save.current;
       this.#wand.step(dt);
       this.#rubbing.tick(dt);
-      this.#training.tick();
       for (const e of think(this.#actors, pets, this.#view, dt, Math.random))
         if (!act?.event?.(e)) this.#reactions.event(e);
     }
@@ -401,14 +401,7 @@ export class Session {
     if (this.toast && this.#now > this.#toastUntil) this.toast = '';
     this.#stamps.tick(dt);
     const hint =
-      this.toast ||
-      (this.activity
-        ? ''
-        : this.trying
-          ? `${this.current?.name}に にあうかな？`
-          : this.teaching
-            ? LESSONS[this.teaching].text
-            : this.#moodText());
+      this.toast || (this.activity ? '' : this.trying ? `${this.current?.name}に にあうかな？` : this.#moodText());
     if (hint !== this.#hint) {
       this.#hint = hint;
       this.#onhint?.(hint);
@@ -434,8 +427,9 @@ export class Session {
     const dpr = this.#overlay.width / this.#w;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, this.#w, this.#h);
+    // モードの絵（リズムあそびのレーン）の上に、ハートやはじける光を重ねる
+    this.activity?.draw?.(ctx);
     this.#fx.draw(ctx, this.#w, this.#h);
-    this.#training.draw(ctx);
   }
 
   /**
@@ -443,6 +437,7 @@ export class Session {
    * 指で遊んでいる・おもちゃが飛んでいるあいだだけ 60 にし、のんびりしているときは減らす
    */
   #fps(): number {
+    if (this.activity?.smooth) return 60;
     const toy = this.#view.toy;
     if (this.#touches.length || this.#wand.on || (toy && !toy.still) || this.#now - this.#touched < 2) return 60;
     if (this.covered && !this.trying) return 15;
@@ -494,7 +489,6 @@ export class Session {
       mode: 'floor'
     };
     this.#touches.push(touch);
-    if (this.#training.down(touch)) return;
     if (this.tool === 'toy') {
       touch.mode = this.toy === 'wand' ? 'wand' : 'throw';
       if (touch.mode === 'wand') this.#wand.aim(px, py);
@@ -519,7 +513,6 @@ export class Session {
     touch.y = py;
     if (touch.mode === 'wand') return this.#wand.aim(px, py);
     if (touch.mode === 'throw') return;
-    if (touch.mode === 'teach') return this.#training.move(touch);
     this.#rubbing.move(touch, d);
   }
 
@@ -528,7 +521,6 @@ export class Session {
     const touch = this.#touches.find((t) => t.id === id);
     this.#touches = this.#touches.filter((t) => t !== touch);
     if (!touch) return;
-    this.#training.release(touch);
     if (touch.mode === 'rub') this.#world.setBrush(null);
     if (touch.mode === 'rub' && this.tool === 'hand' && touch.moved > 30) this.#count('stroke');
     if (touch.mode === 'wand') this.#wand.on = this.#touches.some((t) => t.mode === 'wand');
@@ -566,7 +558,6 @@ export class Session {
   select(petId: string): void {
     if (this.activity || !this.#pet(petId) || this.save.current === petId) return;
     this.trying = null;
-    this.teaching = null;
     this.save.current = petId;
     this.#dirty = true;
     this.#fitToy();
@@ -597,11 +588,6 @@ export class Session {
   trick(trick: TrickId): void {
     if (this.activity) return this.activity.trick?.(trick);
     this.#training.trick(trick);
-  }
-
-  /** 芸を体で教えはじめる。null でやめる */
-  teach(trick: TrickId | null): void {
-    this.#training.teach(trick);
   }
 
   /** 声で「いいこ」とほめたとき。芸の直後なら、なでてほめたのと同じに数える */
@@ -752,7 +738,6 @@ export class Session {
     this.#touches = [];
     this.#wand.on = false;
     this.trickPending = null;
-    this.teaching = null;
   }
 
   dispose(): void {

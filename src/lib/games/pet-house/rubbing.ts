@@ -106,7 +106,7 @@ export class Rubbing {
     const c = this.#c;
     this.#timers.tip = 35;
     const pet = c.s.current;
-    if (!pet || !this.stroked || this.#tips >= 3 || c.s.activity || c.s.trying || c.s.teaching || c.s.toast) return;
+    if (!pet || !this.stroked || this.#tips >= 3 || c.s.activity || c.s.trying || c.s.toast) return;
     const kind = kindOf(pet.breed);
     const part = TRY[kind].find((p) => !this.#felt.includes(p) && !dislikes(kind, pet.love, p));
     if (!part) return;

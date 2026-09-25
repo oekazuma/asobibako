@@ -9,7 +9,7 @@
   const kind = $derived(kindOf(pet.breed));
 </script>
 
-<p class="lead">できたら すぐに なでて ほめてあげよう。「おしえる」で からだを さわって おしえられるよ</p>
+<p class="lead">できたら すぐに なでて ほめてあげよう。「おしえる」は おんがくに あわせて おしえるよ</p>
 <div class="list">
   {#each tricksFor(kind) as trick (trick.id)}
     {@const done = pet.tricks[trick.id] ?? 0}
@@ -28,7 +28,7 @@
         {/if}
       </button>
       <button class="teach" onclick={() => onteach(trick.id)}>
-        <Icon name="pat" size="16px" />おしえる
+        <Icon name="paw" size="16px" />おしえる
       </button>
     </div>
   {/each}
