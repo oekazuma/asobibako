@@ -3,7 +3,7 @@
   import { BoardInput } from '$lib/board-input';
   import type { SoloProps } from '$lib/games';
   import { animate } from '$lib/loop';
-  import { add, COLORS, fit, hatch, random, step, type Stroke, type World } from './engine';
+  import { add, COLORS, fit, hatch, poke, random, step, type Stroke, type World } from './engine';
   import { creature, pen, sketch } from './paint';
   import Palette from './Palette.svelte';
   import { sounds } from './sounds';
@@ -30,8 +30,13 @@
     },
     up: (event) => {
       if (drawing?.id !== event.pointerId) return;
-      lines = [...lines, drawing.stroke];
+      const { stroke } = drawing;
       drawing = null;
+      if (poke(world, lines, stroke)) {
+        sounds.boing();
+        return;
+      }
+      lines = [...lines, stroke];
       sounds.line();
     }
   });

@@ -41,6 +41,8 @@ export interface Creature {
   vy: number;
   /** 生まれてからの秒数。ふくらむ演出と動きの位相に使う */
   age: number;
+  /** タップされて跳ねてからの秒数。跳ねていなければ -1 */
+  jump: number;
 }
 
 export interface World {
@@ -199,7 +201,8 @@ export function hatch(strokes: Stroke[], rand = Math.random): Creature | null {
     box: [l - x, t - y, rr - x, b - y],
     dir,
     vy: kind === 'fly' ? (rand() - 0.5) * 0.12 : 0,
-    age: 0
+    age: 0,
+    jump: -1
   };
 }
 
@@ -258,7 +261,18 @@ export interface Pose {
 const HOP = 1;
 const AIR: [number, number] = [0.2, 0.8];
 
+/** タップされて跳ねる長さ（秒） */
+const JUMP = 0.55;
+
+/** ふだんの動きに、タップされたときの跳ねを重ねる */
 export function pose(c: Creature): Pose {
+  const p = move(c);
+  if (c.jump < 0) return p;
+  const k = Math.sin((c.jump / JUMP) * Math.PI);
+  return { ...p, lift: p.lift + k * (0.08 + c.r * 1.2), sx: p.sx * (1 - k * 0.1), sy: p.sy * (1 + k * 0.15) };
+}
+
+function move(c: Creature): Pose {
   const t = c.age;
   switch (c.kind) {
     case 'hop': {
@@ -286,6 +300,7 @@ export function pose(c: Creature): Pose {
 export function step(world: World, dt: number): void {
   for (const c of world.creatures) {
     c.age += dt;
+    if (c.jump >= 0) c.jump = c.jump + dt < JUMP ? c.jump + dt : -1;
     if (c.age < 0.6) continue;
     let v = SPEED[c.kind];
     if (c.kind === 'hop') v *= pose(c).lift > 0 ? 1 : 0;
@@ -298,4 +313,26 @@ export function step(world: World, dt: number): void {
     if (c.y + t < 0) c.vy = Math.abs(c.vy);
     if (c.y + b > 1) c.vy = -Math.abs(c.vy);
   }
+}
+
+const TAP = 0.015;
+
+/**
+ * 指をほとんど動かさずに離した線が、画面の子の上なら跳ねさせる。いちばん手前の子を選ぶ。
+ * 描きかけの絵のそばは点（目など）を打つ場所なので、子が通りかかっても跳ねさせない
+ */
+export function poke(world: World, lines: Stroke[], stroke: Stroke): boolean {
+  const [x, y] = stroke.pts[0];
+  if (stroke.pts.some(([px, py]) => Math.hypot(px - x, py - y) > TAP)) return false;
+  if (lines.length) {
+    const [l, t, r, b] = bounds(lines.flatMap((s) => s.pts));
+    if (x > l - 0.05 && x < r + 0.05 && y > t - 0.05 && y < b + 0.05) return false;
+  }
+  const c = world.creatures.findLast(({ x: cx, y: cy, box: [l, t, r, b] }) => {
+    const pad = 0.02;
+    return x > cx + l - pad && x < cx + r + pad && y > cy + t - pad && y < cy + b + pad;
+  });
+  if (!c) return false;
+  if (c.jump < 0) c.jump = 0;
+  return true;
 }
