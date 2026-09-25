@@ -325,20 +325,32 @@ export const SCENES: Scene[] = [
     }
   },
   {
-    // ムシは頭の側へ歩くので、2 匹とも画面の内側を向くように描く。最後のまるには線を足さない
+    // 足のあるピンクの子、しっぽのムシ、はねのある子を 1 匹ずつ描いて動かす。ムシはしっぽと逆の側へ這うので内側を向ける
     id: 'doodle-worm',
     clip: band(290),
     play: async (s) => {
       await s.startSolo();
-      await stroke(s, circle(260, 400, 55), 400);
-      await stroke(s, wave(200, 410, -170), 400);
+      const hatch = () => s.press('button.hatch');
+      await s.press('button[aria-label="うすピンク"]');
+      await stroke(s, circle(230, 470, 80), 400);
+      await s.press('button[aria-label="あか"]');
+      await stroke(s, circle(190, 560, 28), 200);
+      await stroke(s, circle(270, 560, 28), 200);
+      await s.press('button[aria-label="くろ"]');
+      for (const x of [210, 250]) await s.tap(1, x, 450);
+      await hatch();
       await s.press('button[aria-label="みずいろ"]');
-      await stroke(s, circle(500, 620, 50), 400);
-      await stroke(s, wave(550, 630, 180), 400);
-      await s.press('button[aria-label="ピンク"]');
-      await stroke(s, circle(560, 400, 45), 400);
-      // ムシはときどき目を閉じるので、目が開いているコマで止める
-      await s.wait(350);
+      await stroke(s, circle(470, 620, 45), 300);
+      await stroke(s, wave(520, 630, 180), 400);
+      await hatch();
+      await s.press('button[aria-label="きいろ"]');
+      await stroke(s, circle(570, 400, 50), 300);
+      await s.press('button[aria-label="みどり"]');
+      await stroke(s, wave(510, 390, -90), 200);
+      await stroke(s, wave(630, 390, 90), 200);
+      await hatch();
+      // 生まれたての子がふくらみきり、目が開いているコマで止める
+      await s.wait(500);
     }
   },
   { id: 'border-rush', clip: band(250), play: borderRush },

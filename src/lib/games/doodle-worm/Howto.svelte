@@ -1,1 +1,1 @@
-<span class="howto-rule">まるを かいて、せんを かこう。ムシになって はいだすよ</span>
+<span class="howto-rule">すきな えを かいて「うごけ！」。あしを かけば あるき、はねを かけば とぶよ</span>
