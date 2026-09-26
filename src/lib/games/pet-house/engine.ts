@@ -27,6 +27,8 @@ export interface Pet {
   accessory: AccessoryId | null;
   /** 芸ごとの、リズムあそびのハイスコア */
   best?: Partial<Record<TrickId, number>>;
+  /** うちに来た日（YYYY-MM-DD、端末の日付） */
+  since: string;
 }
 
 export interface Save {
@@ -122,6 +124,11 @@ export function day(ms: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/** うちに来た日を 1 にちめとした、今日までの日数 */
+export function daysTogether(pet: Pet, now: number): number {
+  return Math.round((Date.parse(day(now)) - Date.parse(pet.since)) / 86_400_000) + 1;
+}
+
 export function newSave(now: number): Save {
   return {
     pets: [],
@@ -156,7 +163,7 @@ const num = (v: unknown, fallback: number, lo: number, hi: number) =>
   typeof v === 'number' && Number.isFinite(v) ? clamp(v, lo, hi) : fallback;
 const pick = <T extends string>(list: readonly T[], v: unknown): v is T => list.includes(v as T);
 
-function repairPet(raw: unknown, taken: Set<string>): Pet | null {
+function repairPet(raw: unknown, taken: Set<string>, today: string): Pet | null {
   if (!isObj(raw) || !pick(BREED_IDS, raw.breed)) return null;
   let id = typeof raw.id === 'string' && raw.id ? raw.id : 'pet';
   while (taken.has(id)) id += '+';
@@ -178,6 +185,7 @@ function repairPet(raw: unknown, taken: Set<string>): Pet | null {
       TRICKS.filter((t) => typeof tricks[t.id] === 'number').map((t) => [t.id, Math.floor(num(tricks[t.id], 0, 0, 99))])
     ),
     accessory: pick(ACCESSORIES, raw.accessory) ? raw.accessory : null,
+    since: typeof raw.since === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.since) ? raw.since : today,
     ...(scores.length ? { best: Object.fromEntries(scores) } : {})
   };
 }
@@ -193,7 +201,7 @@ export function loadSave(): Save | null {
     const base = newSave(now);
     const taken = new Set<string>();
     const pets = (Array.isArray(raw.pets) ? raw.pets : [])
-      .map((p) => repairPet(p, taken))
+      .map((p) => repairPet(p, taken, day(now)))
       .filter((p): p is Pet => p !== null)
       .slice(0, MAX_PETS);
     const food = isObj(raw.food) ? raw.food : {};
@@ -328,7 +336,8 @@ export function adopt(save: Save, breed: BreedId, name: string): Pet | 'money' |
     stats: { food: 80, water: 80, clean: 100, energy: 100 },
     love: 0,
     tricks: {},
-    accessory: null
+    accessory: null,
+    since: day(Date.now())
   };
   save.money -= price;
   save.pets.push(pet);

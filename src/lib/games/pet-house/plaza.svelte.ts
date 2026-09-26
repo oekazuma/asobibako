@@ -3,7 +3,7 @@ import type { SceneHost, Visit } from './activity';
 import { command, createActor, think, throwToy, type Actor, type BehaviorEvent } from './behavior';
 import { BREED_IDS, BREEDS } from './breeds';
 import { speakAt, type Cry } from './cries';
-import { kindOf, type Pet } from './engine';
+import { day, kindOf, type Pet } from './engine';
 import type { Layout, Spot } from './layout';
 import { loadShapes } from './models';
 import { buildPlaza, plazaLayout } from './scene-plaza';
@@ -102,7 +102,8 @@ export class Plaza implements Visit {
       stats: { food: 100, water: 100, clean: 100, energy: 100 },
       love: 1,
       tricks: {},
-      accessory: null
+      accessory: null,
+      since: day(Date.now())
     }));
     this.#pets.splice(0, Infinity, ...pets);
     this.#actors.splice(0, Infinity, ...pets.map((p, i) => createActor(p, START[i])));

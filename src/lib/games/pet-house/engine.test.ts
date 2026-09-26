@@ -7,6 +7,8 @@ import {
   brush,
   buy,
   catchUp,
+  day,
+  daysTogether,
   eat,
   findPresent,
   FLOOR,
@@ -354,5 +356,33 @@ describe('げんきの戻り方', () => {
     rest(a, 10);
     rest(b, 10, true);
     expect(b.stats.energy - 30).toBeCloseTo((a.stats.energy - 30) / 2);
+  });
+});
+
+describe('うちに来た日', () => {
+  it('adopt したペットの来た日は今日', () => {
+    const { pet } = withPet();
+    expect(pet.since).toBe(day(Date.now()));
+  });
+
+  it('来た日の無い・壊れた保存は読み込んだ日を来た日にし、正しい日はそのまま残る', () => {
+    const { save } = withPet();
+    save.pets[0].since = '2020-01-01';
+    writeSave(save);
+    expect(loadSave()?.pets[0].since).toBe('2020-01-01');
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ pets: [{ id: 'a', breed: 'shiba' }] }));
+    expect(loadSave()?.pets[0].since).toBe(day(Date.now()));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ pets: [{ id: 'a', breed: 'shiba', since: 'x' }] }));
+    expect(loadSave()?.pets[0].since).toBe(day(Date.now()));
+  });
+
+  it('daysTogether は来た日に 1、3 日後に 4', () => {
+    const { pet } = withPet();
+    const now = Date.now();
+    pet.since = day(now);
+    expect(daysTogether(pet, now)).toBe(1);
+    pet.since = day(now - 3 * 24 * HOUR);
+    expect(daysTogether(pet, now)).toBe(4);
   });
 });
