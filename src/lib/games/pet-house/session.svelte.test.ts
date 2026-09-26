@@ -5,9 +5,17 @@ import { createActor, throwToy, type Actor, type WorldView } from './behavior';
 import type { Pet } from './engine';
 import { STAMPS } from './stamps';
 
-const seen: { view?: WorldView; actors?: Actor[]; pets?: Pet[]; log: string[]; renders: number } = {
+const seen: {
+  view?: WorldView;
+  actors?: Actor[];
+  pets?: Pet[];
+  log: string[];
+  renders: number;
+  precompiles: number;
+} = {
   log: [],
-  renders: 0
+  renders: 0,
+  precompiles: 0
 };
 
 // frame() を同期のループで回すテストが多いので、既定は then() をその場で呼ぶ「即決の thenable」にする
@@ -16,9 +24,14 @@ const settled = {
   then: (onFulfilled?: (v: unknown) => unknown) => onFulfilled?.(undefined)
 } as unknown as PromiseLike<unknown>;
 let compiled: PromiseLike<unknown> = settled;
+// 組み立てが済んでいない子の数。世界3d の pending を差し替えて、Session が覆いを外す・precompile を呼ぶ条件を試す
+let pending = 0;
 
 vi.mock('./world3d', () => ({
   PetWorld: class {
+    get pending() {
+      return pending;
+    }
     setScene() {
       seen.log.push('scene');
     }
@@ -33,6 +46,7 @@ vi.mock('./world3d', () => ({
       seen.renders++;
     }
     precompile() {
+      seen.precompiles++;
       return compiled;
     }
     resize() {}
@@ -84,6 +98,7 @@ function frames(s: S, sec: number, until?: () => boolean): boolean {
 beforeEach(() => {
   localStorage.clear();
   compiled = settled;
+  pending = 0;
 });
 
 describe('Session', () => {
@@ -316,6 +331,34 @@ describe('Session', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('組み立てが済んでいないペットが残っているあいだは覆いを外さず busy のまま、そろうと外れる', () => {
+    const s = make();
+    s.adopt('shiba', 'ポチ');
+    pending = 2;
+    s.goPark();
+    frames(s, 0.5);
+    expect(s.scene).toBe('park');
+    expect(s.moving).not.toBeNull();
+    expect(s.busy).toBe(true);
+    pending = 0;
+    frames(s, 0.3);
+    expect(s.moving).toBeNull();
+    expect(s.busy).toBe(false);
+  });
+
+  it('組み立てが済んでいないあいだは precompile を呼ばず、そろってから呼ぶ', () => {
+    const s = make();
+    s.adopt('shiba', 'ポチ');
+    seen.precompiles = 0;
+    pending = 2;
+    s.goPark();
+    frames(s, 0.5);
+    expect(seen.precompiles).toBe(0);
+    pending = 0;
+    frames(s, 0.2);
+    expect(seen.precompiles).toBeGreaterThan(0);
   });
 
   it('prepare が失敗しても enter し、unhandledrejection にはならない', async () => {
