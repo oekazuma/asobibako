@@ -4,7 +4,8 @@ import { adopt, catchUp, count, loadSave, newSave, STORAGE_KEY, TRICKS, writeSav
 import { check, nearly, STAMPS, suggest } from './stamps';
 
 const HOUR = 3600 * 1000;
-const NOW = Date.now() - 1000 * HOUR;
+// 日付の変わり目をまたぐかどうかが、テストを流す時刻で変わらないよう正午にそろえる
+const NOW = new Date(Date.now() - 1000 * HOUR).setHours(12, 0, 0, 0);
 
 describe('pet-house stamps', () => {
   beforeEach(() => localStorage.clear());
