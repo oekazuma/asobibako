@@ -50,8 +50,8 @@ STOP 条件を守り、終わったら自分の行の Status を更新する。
 | 030  | Renovate が asobibako で動いているか確かめる（利用者が画面で行う）                              | P2       | S      | 025        | TODO                                                                             |
 | 031  | 声の機能の残りを消し、CLAUDE.md のずれを直す                                                    | P3       | S      | 027        | DONE（`worktree-agent-a99dbdd069481a5bd` `cbefef5`、027 を含む、レビュー済み）   |
 | 032  | 小さな直し 3 つ（影の種類・紙吹雪の距離・Backup.svelte の行数）                                 | P3       | S      | —          | DONE（`worktree-agent-a46a79e47f1b910ce` `c77f875`、レビュー済み）               |
-| 033  | 写真とずかんの絵を iPad の「写真」に保存できるようにする                                        | P1       | S      | —          | TODO                                                                             |
-| 034  | アプリについて（/about）から、端末の控えで記録を戻せるようにする                                | P1       | S      | —          | TODO                                                                             |
+| 033  | 写真とずかんの絵を iPad の「写真」に保存できるようにする                                        | P1       | S      | —          | DONE（`a4368ab`、main に merge 済み）                                            |
+| 034  | アプリについて（/about）から、端末の控えで記録を戻せるようにする                                | P1       | S      | —          | DONE（`5df6f74`、main に merge 済み）                                            |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (理由 1 行) | REJECTED (理由 1 行)
 
