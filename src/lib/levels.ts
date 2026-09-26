@@ -64,3 +64,40 @@ export function saveLevel(id: string, level: number): void {
     // プライベートブラウズでは保存できない。その場では進めてよい
   }
 }
+
+/** 解いた面の集合の保存先。ゲームごと */
+export const solvedKey = (id: string) => `asobibako:solved:${id}`;
+
+/** 保存された解いた面の集合（1..levels の整数のみ）。無ければ、到達レベル best から 1..best-1 を解いたことにする */
+export function savedSolved(id: string, levels: number, best: number): Set<number> {
+  try {
+    const stored = localStorage.getItem(solvedKey(id));
+    if (stored === null) {
+      const solved = new Set<number>();
+      for (let n = 1; n < best; n++) solved.add(n);
+      return solved;
+    }
+    const parsed: unknown = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.filter((n): n is number => Number.isInteger(n) && n >= 1 && n <= levels));
+  } catch {
+    return new Set();
+  }
+}
+
+export function saveSolved(id: string, solved: ReadonlySet<number>): void {
+  try {
+    localStorage.setItem(solvedKey(id), JSON.stringify([...solved].sort((a, b) => a - b)));
+  } catch {
+    // プライベートブラウズでは保存できない。その場では進めてよい
+  }
+}
+
+/** from の次から 1..levels を一周して見つけた、最初のまだ解いていない面。全部解いていれば from（0 なら 1） */
+export function nextOpen(from: number, solved: ReadonlySet<number>, levels: number): number {
+  for (let i = 1; i <= levels; i++) {
+    const n = ((from + i - 1) % levels) + 1;
+    if (!solved.has(n)) return n;
+  }
+  return from || 1;
+}
