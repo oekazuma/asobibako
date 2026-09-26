@@ -172,7 +172,7 @@ export class CampWorld {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
     this.renderer.setPixelRatio(Math.min(1.5, devicePixelRatio));
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.scene.background = new THREE.Color('#bfe0fb');
     this.scene.fog = new THREE.Fog('#dcebfa', 3, 6.5);
 

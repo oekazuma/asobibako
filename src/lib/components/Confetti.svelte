@@ -2,7 +2,7 @@
   import { CONFETTI } from '$lib/fx';
 
   /** 落ちる距離。半分の画面では枠の外へ出れば十分なので、使う側が指定する */
-  let { count = 36, fall = '110dvh' }: { count?: number; fall?: string } = $props();
+  let { count = 36, fall = '110cqh' }: { count?: number; fall?: string } = $props();
 
   /** 紙吹雪の位置・色・速さは毎回ばらつかせる。count は初期値だけ使い、以後変わっても降らし直さない */
   // svelte-ignore state_referenced_locally

@@ -113,7 +113,7 @@
   .art {
     display: block;
     /* 背の低い画面ではタイトルとボタンに高さを譲るため、高さ 24cqh ぶんの幅までに抑える */
-    width: min(78vw, 420px, 41cqh);
+    width: min(78cqw, 420px, 41cqh);
     height: auto;
     border: 3px solid var(--line);
     border-radius: 24px;
