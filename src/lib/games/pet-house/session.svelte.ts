@@ -384,7 +384,7 @@ export class Session {
       if (run) {
         run();
         this.#compileNext = true;
-      } else if (!this.#compiling) [this.#move, this.moving] = [null, null];
+      } else if (!this.#compiling && !this.#compileNext) [this.#move, this.moving] = [null, null];
     }
     this.#now += dt;
     if ((this.#dayAt -= dt) <= 0) {
@@ -692,8 +692,9 @@ export class Session {
       // 次の場面へすでに移っていたら、古い場面の準備が片づいても #compiling は戻さない
       if (gen === this.#compileGen) this.#compiling = false;
     };
-    this.#world.precompile().then(done, done);
+    // compileAsync が例外で落ちても打ち切れるよう、タイマーを先に仕掛けてから頼む
     setTimeout(done, 1500);
+    this.#world.precompile().then(done, done);
   }
 
   buy(id: ShopItem['id']): 'ok' | 'money' | 'owned' {
