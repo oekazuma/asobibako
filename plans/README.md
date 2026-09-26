@@ -52,6 +52,8 @@ STOP 条件を守り、終わったら自分の行の Status を更新する。
 | 032  | 小さな直し 3 つ（影の種類・紙吹雪の距離・Backup.svelte の行数）                                 | P3       | S      | —          | DONE（`worktree-agent-a46a79e47f1b910ce` `c77f875`、レビュー済み）               |
 | 033  | 写真とずかんの絵を iPad の「写真」に保存できるようにする                                        | P1       | S      | —          | DONE（`a4368ab`、main に merge 済み）                                            |
 | 034  | アプリについて（/about）から、端末の控えで記録を戻せるようにする                                | P1       | S      | —          | DONE（`5df6f74`、main に merge 済み）                                            |
+| 035  | ペットの外接を先に渡し、ひろばや部屋に入るたびの止まりをなくす                                  | P1       | S      | —          | DONE（`7069835`、main に merge 済み。checkShaderErrors は効かず取り消した）      |
+| 036  | 飼っていない種類の形は、使う場面に入る前に読む                                                  | P2       | S      | 035        | DONE（`21c3a30`、main に merge 済み）                                            |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (理由 1 行) | REJECTED (理由 1 行)
 
@@ -85,6 +87,10 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (理由 1 行) | REJECTED (�
   031 はそのまま入る
 - 計画 029 の Step 2 の「予約を frame のあとへ戻すとテスト 1 が落ちる」は不正確だった。try/catch があると 1 回目の例外は
   通り抜けるので、順番が効くのは例外が続くとき。実行担当はテスト 2 に呼び出し回数の確認を足して、そちらで確かめた
+- 035・036 の効果は headless Chrome で測り直した。形の控えがあるときのひろば入りは約 530ms → 約 110ms（CPU ×4 で
+  2.2 秒 → 約 0.23 秒）、タイトルの ArrayBuffer は 44MB → 6.6MB（ひろばかおさんぽに入るまで）。035 の
+  `renderer.debug.checkShaderErrors = dev` は効かなかった（`getProgramInfoLog` の待ちが `getProgramParameter` へ移っただけで、
+  部屋で約 90ms・ひろばで約 45ms のリンク待ちは残る）ので取り消した。直すなら `compileAsync` か `KHR_parallel_shader_compile`
 - markuplint 5.0.0 の svelte-parser は Svelte 5 の `{@attach}` を属性として拒む（013 で判明）。attachment を使いたくなったら
   `@markuplint/svelte-parser` の更新を待つか、`.markuplintrc.jsonc` に例外を足す
 
@@ -106,8 +112,7 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (理由 1 行) | REJECTED (�
 - ひらめきナゾの進み具合を ORDER の番号で持つ — ナゾを足すときに解いた集合で持つ作りへ変える（方向性の C）
 - 方向性のうち、写真・ずかんを iPad へ保存（033）と、アプリについてから控えを戻す（034）は計画した。ひらめきナゾの解いた記録・
   読み込みのまぜる・ペットのうちに来た日は選択肢のまま。要望があれば `plan <description>` で計画する
-- タイトルで全 15 種類の形を読むのをやめ、飼っている種類だけにする — ひろばの組み立ては場面の移動の中で同期に走るので、
-  飼っていない種類の控えを後から読ませるには移動の仕組みを非同期にする必要がある。メモリへの影響の根拠も弱い
+- タイトルで全 15 種類の形を読む件は、headless Chrome での計測（使わない約 37MB）を受けて 036 で計画した
 
 2026-09-22（`b4b0196`）の監査で見送ったもの
 
@@ -125,3 +130,10 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (理由 1 行) | REJECTED (�
 - `Rng.pick` が空配列で `undefined` — 到達不能
 - `nextId` がモジュール変数で round をまたぐ — id は一意であればよい（012 で state に移す）
 - 方向性（一覧カードに到達レベル / 再戦の勝敗タリー / レベル選択の長押しリピート / ↻ とヒントを SoloShell へ / 対戦側の結果画面の演出） — 改善ではなく選択肢。要望があれば `plan <description>` で個別に計画する
+
+2026-09-26 の実行時の計測（headless Chrome、Apple M4 の GPU、iPad Air 相当の画面）で見送ったもの
+
+- ひろばに初めて入るときの数秒の止まり（形の組み立て） — 端末と版ごとに 1 回だけで、組み立てを分けても合計は変わらない
+- 組み立てた形（`bodies`）を場面を出るときに捨てる — GPU の側の後始末が要り、全種類でも約 74MB で頭打ちになる
+- 部屋を開くときの canvas のテクスチャ生成（約 110ms、推定） — 何を描いているかの切り分けが済んでいない
+- ハイドレート前にタイトルのボタンを押すと無視される（×4 で約 0.2 秒） — iPad Air では気づけない長さ
