@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon.svelte';
+  import { saveImage } from '$lib/share';
   import { MAX_PHOTOS, type Save } from './engine';
   import Stamps from './Stamps.svelte';
 
@@ -22,9 +23,15 @@
 {#if tab === 'stamp'}
   <Stamps {save} />
 {:else if big !== null && shots[big]}
+  {@const n = big}
   <div class="big">
-    <img src={shots[big]} width="480" height="640" alt="{big + 1}まいめの しゃしん" />
-    <button class="pill" onclick={() => (big = null)}>もどる</button>
+    <img src={shots[n]} width="480" height="640" alt="{n + 1}まいめの しゃしん" />
+    <div class="row">
+      <button class="pill" onclick={() => saveImage(shots[n], `asobibako-pet-${n + 1}.jpg`)}>
+        <Icon name="download" size="20px" />ほぞん
+      </button>
+      <button class="pill" onclick={() => (big = null)}>もどる</button>
+    </div>
   </div>
 {:else if shots.length === 0}
   <p class="empty">
@@ -106,6 +113,11 @@
     flex-direction: column;
     align-items: center;
     gap: 12px;
+  }
+
+  .row {
+    display: flex;
+    gap: 10px;
   }
 
   .big img {

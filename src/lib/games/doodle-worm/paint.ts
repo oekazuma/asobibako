@@ -129,29 +129,43 @@ export function creature(ctx: CanvasRenderingContext2D, c: Creature) {
   ctx.restore();
 }
 
-const portraits = new WeakMap<Stroke[], string>();
-
-/**
- * ずかんの絵の画像（data URL）。ふくらみきって跳ねる前の、止まったかっこうで枠いっぱいに描く。
- * canvas を何十枚も並べると iPad でスクロールの合成が重くなるので、画像にして <img> で並べる
- */
-export function portrait(strokes: Stroke[]): string {
-  const cached = portraits.get(strokes);
-  if (cached) return cached;
+/** ふくらみきって跳ねる前の、止まったかっこうで枠いっぱいに描く */
+function frame(strokes: Stroke[], size: number, background?: string): string {
   const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = 160;
+  canvas.width = canvas.height = size;
   const c = hatch(strokes);
   const ctx = canvas.getContext('2d');
   if (!c || !ctx) return '';
   c.age = 1;
+  if (background) {
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, size, size);
+  }
   const [l, t, r, b] = c.box;
   const pad = Math.max(PEN * 3, c.r * 0.5);
-  const s = Math.min(canvas.width / (r - l + pad * 2), canvas.height / (b - t + pad * 2));
-  ctx.setTransform(s, 0, 0, s, canvas.width / 2 - s * (c.x + (l + r) / 2), canvas.height / 2 - s * (c.y + (t + b) / 2));
+  const s = Math.min(size / (r - l + pad * 2), size / (b - t + pad * 2));
+  ctx.setTransform(s, 0, 0, s, size / 2 - s * (c.x + (l + r) / 2), size / 2 - s * (c.y + (t + b) / 2));
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   creature(ctx, c);
-  const url = canvas.toDataURL();
+  return canvas.toDataURL();
+}
+
+const portraits = new WeakMap<Stroke[], string>();
+
+/**
+ * ずかんの絵の画像（data URL）。canvas を何十枚も並べると iPad でスクロールの合成が重くなるので、
+ * 画像にして <img> で並べる
+ */
+export function portrait(strokes: Stroke[]): string {
+  const cached = portraits.get(strokes);
+  if (cached) return cached;
+  const url = frame(strokes, 160);
   portraits.set(strokes, url);
   return url;
 }
+
+/**
+ * 写真アプリに入れる絵。透けていると写真アプリで黒く見えるので白く塗る。保存するときだけ作るので覚えない
+ */
+export const picture = (strokes: Stroke[]) => frame(strokes, 1024, '#fff');
