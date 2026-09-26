@@ -1,4 +1,5 @@
 // 動かした絵のずかん。プライベートブラウズなど localStorage が使えない環境では覚えずに動く
+import { remember } from '$lib/last-error';
 import { bounds, type Point, type Stroke } from './engine';
 
 export const STOCK_KEY = 'asobibako:doodle-worm:stock';
@@ -54,24 +55,35 @@ export function loadStock(): Doodle[] {
   }
 }
 
-/** n 枚に減らす。★のない古い絵から落とし、それでも多ければ ★の古い絵を落とす */
-function keep(list: Doodle[], n: number): Doodle[] {
+/**
+ * n 枚に減らす。★のない古い絵から落とし、それでも多ければ ★の古い絵を落とす。
+ * fresh は先頭に足したばかりの絵の数。★の絵より先に落とさない
+ */
+function keep(list: Doodle[], n: number, fresh = 0): Doodle[] {
   const out = [...list];
-  for (let i = out.length - 1; out.length > n && i >= 0; i--) if (!out[i].star) out.splice(i, 1);
+  for (let i = out.length - 1; out.length > n && i >= fresh; i--) if (!out[i].star) out.splice(i, 1);
   return out.slice(0, n);
 }
 
-/** 入りきらなければ古い絵から落とす（★の絵はあとまで残す）。実際に残せたぶんを返す */
-export function saveStock(list: Doodle[]): Doodle[] {
-  for (let n = Math.min(list.length, MAX); n >= 0; n--) {
-    const kept = keep(list, n);
+/** 入りきらなければ古い絵から落とす（★の絵はあとまで残す）。容量が足りず 1 枚も書けなければ保存済みのまま知らせる */
+export function saveStock(list: Doodle[], fresh = 0): Doodle[] {
+  if (list.length === 0) {
     try {
-      if (n === 0) localStorage.removeItem(STOCK_KEY);
-      else localStorage.setItem(STOCK_KEY, JSON.stringify(kept));
+      localStorage.removeItem(STOCK_KEY);
+    } catch {
+      // 使えない環境では覚えない
+    }
+    return [];
+  }
+  for (let n = Math.min(list.length, MAX); n >= 1; n--) {
+    const kept = keep(list, n, fresh);
+    try {
+      localStorage.setItem(STOCK_KEY, JSON.stringify(kept));
       return kept;
     } catch {
       // 容量が足りない。1 枚減らして試す
     }
   }
-  return keep(list, MAX);
+  remember('らくがきパレードのずかんを保存できませんでした（容量）');
+  return loadStock();
 }

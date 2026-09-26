@@ -240,27 +240,30 @@ function loadPhotos(): string[] {
   }
 }
 
-/** 写真を除いた本体を書く。写真は writePhotos で撮ったときだけ書く */
-export function writeSave(save: Save): void {
+/** 写真を除いた本体を書く。写真は writePhotos で撮ったときだけ書く。知らせるのは呼び出し側 */
+export function writeSave(save: Save): boolean {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...save, photos: undefined }));
+    return true;
   } catch {
-    // プライベートブラウズでは残せない。遊ぶのには困らない
+    // プライベートブラウズや容量不足で残せない。知らせるのは呼び出し側
+    return false;
   }
 }
 
-/** 容量が足りなければ古い写真から減らし、残せたぶんに save.photos もそろえる（読み直して枚数が変わらないように） */
-export function writePhotos(save: Save): void {
-  for (let n = save.photos.length; n >= 0; n--) {
+/** 容量が足りなければ古い写真から減らして書く。1 枚も書けなければ保存済みの写真に戻し、false を返す */
+export function writePhotos(save: Save): boolean {
+  for (let n = save.photos.length; n >= 1; n--) {
     try {
-      if (n === 0) localStorage.removeItem(PHOTOS_KEY);
-      else localStorage.setItem(PHOTOS_KEY, JSON.stringify(save.photos.slice(0, n)));
+      localStorage.setItem(PHOTOS_KEY, JSON.stringify(save.photos.slice(0, n)));
       if (n < save.photos.length) save.photos = save.photos.slice(0, n);
-      return;
+      return true;
     } catch {
       // 1 枚減らしてもう一度
     }
   }
+  save.photos = loadPhotos();
+  return false;
 }
 
 /** 閉じていたあいだの減りとおこづかい。開いたときと画面が前面に戻ったときに呼ぶ */

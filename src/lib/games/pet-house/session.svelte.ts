@@ -1,3 +1,4 @@
+import { remember } from '$lib/last-error';
 import type { Activity, ActivityScene, Visit } from './activity';
 import { command, createActor, RESTED, think, type Actor, type WorldView } from './behavior';
 import { Bgm } from './bgm';
@@ -119,6 +120,8 @@ export class Session {
   #toastUntil = 0;
   #dirty = false;
   #wrote = 0;
+  /** 容量不足の知らせは 1 度の起動で 1 度だけ */
+  #full = false;
   /**
    * 場面の組み立ては数百 ms 画面を止める。wait フレーム待って「いどうちゅう」を 1 度描かせてから run し、
    * シェーダーの準備が落ち着くまでさらに数フレーム出したままにする
@@ -352,7 +355,12 @@ export class Session {
 
   #write(stamp = true) {
     if (stamp) this.#stamps.add(...check(this.save));
-    writeSave($state.snapshot(this.save));
+    if (!writeSave($state.snapshot(this.save)) && !this.#full) {
+      // 閉じると進みが戻ってしまうので、遊んでいるうちに大人が気づけるようにする
+      this.#full = true;
+      this.#say('きろくが いっぱいで のこせないよ。おうちの ひとに みせてね');
+      remember('わんにゃんハウスの記録を保存できませんでした（容量）');
+    }
     this.#dirty = false;
     this.#wrote = this.#now;
   }
@@ -728,7 +736,15 @@ export class Session {
   photo(): void {
     addPhoto(this.save, this.#world.snapshot());
     this.#count('photo');
-    writePhotos(this.save);
+    if (!writePhotos(this.save)) {
+      // 保存できず save.photos は元に戻っているので、撮れた体で見せる成功のトーストは出さない
+      if (!this.#full) {
+        this.#full = true;
+        remember('わんにゃんハウスの記録を保存できませんでした（容量）');
+      }
+      this.#say('しゃしんが いっぱいで のこせないよ');
+      return;
+    }
     this.#fx.flash();
     sounds.shutter();
     this.#say('しゃしんを とったよ');

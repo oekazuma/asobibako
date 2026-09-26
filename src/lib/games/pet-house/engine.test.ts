@@ -13,6 +13,7 @@ import {
   hearts,
   loadSave,
   newSave,
+  PHOTOS_KEY,
   play,
   praise,
   rest,
@@ -154,6 +155,41 @@ describe('pet-house engine', () => {
     // 新しい 2 枚が残る
     expect(back.photos).toEqual(save.photos);
     expect(back.photos[0]).toContain('333');
+    vi.unstubAllGlobals();
+  });
+
+  it('容量が足りず 1 枚も書けなければ、写真は保存済みのまま false を返す', () => {
+    const { save } = withPet();
+    addPhoto(save, 'data:image/jpeg;base64,' + '1'.repeat(100));
+    writePhotos(save);
+    const saved = localStorage.getItem(PHOTOS_KEY);
+    const removeItem = vi.fn(localStorage.removeItem.bind(localStorage));
+    vi.stubGlobal('localStorage', {
+      ...localStorage,
+      getItem: localStorage.getItem.bind(localStorage),
+      removeItem,
+      setItem: () => {
+        throw new DOMException('full', 'QuotaExceededError');
+      }
+    });
+    addPhoto(save, 'data:image/jpeg;base64,' + '2'.repeat(100));
+    expect(writePhotos(save)).toBe(false);
+    expect(removeItem).not.toHaveBeenCalled();
+    expect(localStorage.getItem(PHOTOS_KEY)).toBe(saved);
+    expect(save.photos).toEqual(JSON.parse(saved!));
+    vi.unstubAllGlobals();
+  });
+
+  it('writeSave は書けたら true、容量が足りなければ false を返す', () => {
+    const { save } = withPet();
+    expect(writeSave(save)).toBe(true);
+    vi.stubGlobal('localStorage', {
+      ...localStorage,
+      setItem: () => {
+        throw new DOMException('full', 'QuotaExceededError');
+      }
+    });
+    expect(writeSave(save)).toBe(false);
     vi.unstubAllGlobals();
   });
 
