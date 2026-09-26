@@ -22,7 +22,7 @@ const meta = {
   load: async () => ({ Game: StubGame, Howto: StubHowto })
 };
 
-function show(extra: { levelName?: string; ownResult?: boolean } = {}) {
+function show(extra: { levelName?: string; ownResult?: boolean; anyOrder?: boolean } = {}) {
   const target = document.body.appendChild(document.createElement('div'));
   const app = mount(SoloShell, { target, props: { meta: { ...meta, ...extra }, Game: StubGame, Howto: StubHowto } });
   flushSync();
@@ -189,6 +189,59 @@ describe('SoloShell', () => {
     hooks.solo!(true);
     flushSync();
     expect(target.textContent).toContain('ぜんぶクリア');
+    unmount(app);
+  });
+
+  it('anyOrder があると遊んでいるあいだ「とばす」が出て、押すと次の面へ進む。無いと出ない', () => {
+    const { target, app } = show({ anyOrder: true });
+    start(target);
+    expect(target.querySelector('button.skip')).not.toBeNull();
+    (target.querySelector('button.skip') as HTMLButtonElement).click();
+    flushSync();
+    expect(hooks.level).toBe(2);
+    unmount(app);
+
+    const { target: plain, app: plainApp } = show();
+    start(plain);
+    expect(plain.querySelector('button.skip')).toBeNull();
+    unmount(plainApp);
+  });
+
+  it('anyOrder があるとき、解いた面には ★ が付き、まだ解いていない面も選べる', () => {
+    const { target, app } = show({ anyOrder: true });
+    (target.querySelector('button.level') as HTMLButtonElement).click();
+    flushSync();
+    (target.querySelector('button[aria-label="レベル 2"]') as HTMLButtonElement).click();
+    flushSync();
+    hooks.solo!(true);
+    flushSync();
+    // 結果画面から次の面を始め、やめて一覧を開き直す（結果画面から一覧へは直接戻れない）
+    (target.querySelector('button.go') as HTMLButtonElement).click();
+    flushSync();
+    (target.querySelector('button.quit') as HTMLButtonElement).click();
+    flushSync();
+    (target.querySelector('button.level') as HTMLButtonElement).click();
+    flushSync();
+    const cell = (n: number) => target.querySelector(`button[aria-label="レベル ${n}"]`) as HTMLButtonElement;
+    expect(cell(2).querySelector('.star')).not.toBeNull();
+    expect(cell(10).disabled).toBe(false);
+    unmount(app);
+  });
+
+  it('anyOrder があるとき、reached から引き継いだところまでを解いたことにして開く', () => {
+    localStorage.setItem('asobibako:reached:stub', '4');
+    const { target, app } = show({ anyOrder: true });
+    start(target);
+    expect(hooks.level).toBe(4);
+    unmount(app);
+  });
+
+  it('anyOrder があるとき、勝つと解いた面の番号を覚える', () => {
+    const { target, app } = show({ anyOrder: true });
+    start(target);
+    hooks.solo!(true);
+    flushSync();
+    expect(JSON.parse(localStorage.getItem('asobibako:solved:stub')!)).toEqual([1]);
     unmount(app);
   });
 });

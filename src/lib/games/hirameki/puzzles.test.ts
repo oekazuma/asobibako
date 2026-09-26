@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
   bank,
@@ -247,6 +248,17 @@ describe('hirameki のなぞ', () => {
     expect(new Set(ORDER.map(([t]) => t)).size).toBe(ORDER.length);
     expect(ORDER.length).toBe(ALL_PUZZLES.length);
     ORDER.slice(1).forEach(([title, genre], i) => expect(genre, title).not.toBe(ORDER[i][1]));
+  });
+
+  it('ナゾの並びは末尾に足すだけ（先頭 100 問は動かさない）', () => {
+    const hash = createHash('sha1')
+      .update(
+        ORDER.slice(0, 100)
+          .map(([title]) => title)
+          .join('\n')
+      )
+      .digest('hex');
+    expect(hash).toBe('df8e49a022300233c7ed6a169c661ce114b0441e');
   });
 
   it('題と問題文はかぶらない', () => {

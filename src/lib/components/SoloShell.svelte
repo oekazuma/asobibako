@@ -1,10 +1,11 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon.svelte';
   import { onMount } from 'svelte';
+  import { SvelteSet } from 'svelte/reactivity';
   import { resolve } from '$app/paths';
   import { audio, sfx, toggleMute, wake } from '$lib/audio.svelte';
   import type { SoloMeta, SoloModule } from '$lib/games';
-  import { saveLevel, savedLevel } from '$lib/levels';
+  import { nextOpen, saveLevel, savedLevel, saveSolved, savedSolved } from '$lib/levels';
   import { Settle } from '$lib/settle.svelte';
   import LevelSelect from './LevelSelect.svelte';
   import SoloResult from './SoloResult.svelte';
@@ -20,8 +21,10 @@
   let level = $state(1);
   /** たどり着いたいちばん先のレベル。最後のレベルをクリアすると levels + 1 になり、ここまでは選び直せる */
   let best = $state(1);
+  const solved = new SvelteSet<number>(); // meta.anyOrder のときだけ使う、解いた面の集合。SvelteSet 自体が反応するので $state にしない
   let hint = $state('');
   const settle = new Settle();
+  const titleBest = $derived(meta.anyOrder ? meta.levels : best); // anyOrder はどの面でも選べるので best で縛らない
 
   function start() {
     wake();
@@ -37,15 +40,26 @@
     round += 1;
   }
 
+  /** まだ解いていない次の面へ進む（今の面は解いたことにしない） */
+  function skip() {
+    level = nextOpen(level, solved, meta.levels);
+    retry();
+  }
+
   function finish(won: boolean) {
     // 演出中に ✕ で抜けたあとに届く遅れた onfinish は捨てる
     if (screen !== 'playing') return;
     cleared = won;
-    complete = won && level >= meta.levels;
+    complete = meta.anyOrder ? false : won && level >= meta.levels;
     if (won) {
       best = Math.max(best, level + 1);
       saveLevel(meta.id, best);
-      if (!complete) level += 1;
+      if (meta.anyOrder) {
+        solved.add(level);
+        saveSolved(meta.id, solved);
+        complete = solved.size >= meta.levels;
+        if (!complete) level = nextOpen(level, solved, meta.levels);
+      } else if (!complete) level += 1;
     }
     if (meta.ownResult && !complete) {
       start();
@@ -57,7 +71,8 @@
 
   onMount(() => {
     best = savedLevel(meta.id, meta.levels);
-    level = Math.min(meta.levels, best);
+    if (meta.anyOrder) for (const n of savedSolved(meta.id, meta.levels, best)) solved.add(n);
+    level = meta.anyOrder ? nextOpen(0, solved, meta.levels) : Math.min(meta.levels, best);
     return settle.listen();
   });
 </script>
@@ -75,14 +90,21 @@
     <!-- 遊んでいる途中でもやめられるよう、小さく隅に置く。一覧ではなくタイトルへ戻る -->
     <button class="round corner quit" onclick={() => (screen = 'title')} aria-label="やめる">✕</button>
     <button class="round corner retry" onclick={retry} aria-label="やりなおし">↻</button>
+    {#if meta.anyOrder}
+      <button class="round corner skip" onclick={skip} aria-label="とばす">
+        <Icon name="arrow" size="26px" rotate={90} />
+      </button>
+    {/if}
   {:else}
     {#if screen === 'title'}
-      <SoloTitle {meta} {Howto} {best} bind:level onlevels={() => (screen = 'levels')} onstart={start} />
+      <SoloTitle {meta} {Howto} best={titleBest} bind:level onlevels={() => (screen = 'levels')} onstart={start} />
     {:else if screen === 'levels'}
       <LevelSelect
         levels={meta.levels}
         name={meta.levelName}
         {best}
+        solved={meta.anyOrder ? solved : undefined}
+        current={level}
         onpick={(n) => {
           level = n;
           start();
@@ -119,13 +141,17 @@
   }
 
   .mute,
-  .retry {
+  .retry,
+  .skip {
     right: max(12px, env(safe-area-inset-right));
   }
 
   .retry {
     background: var(--pastel-gold);
     font-size: 24px;
+  }
+  .skip {
+    top: calc(max(12px, env(safe-area-inset-top)) + 60px);
   }
 
   /* いまやることの吹き出し。変わるたびに弾んで出る */

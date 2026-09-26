@@ -1,16 +1,28 @@
 <script lang="ts">
   import Icon from './Icon.svelte';
 
-  /** best はたどり着いたいちばん先のレベル（1..levels + 1）。それより前はクリア済み、先はまだ選べない */
+  /**
+   * best はたどり着いたいちばん先のレベル（1..levels + 1）。それより前はクリア済み、先はまだ選べない。
+   * solved があるときは好きな順に選べるゲームで、best の代わりに解いた面の集合と今の面（current）でマスを決める
+   */
   let {
     levels,
     best,
     name = 'レベル',
+    solved,
+    current,
     onpick
-  }: { levels: number; best: number; name?: string; onpick: (level: number) => void } = $props();
+  }: {
+    levels: number;
+    best: number;
+    name?: string;
+    solved?: ReadonlySet<number>;
+    current?: number;
+    onpick: (level: number) => void;
+  } = $props();
 
-  // 50 面を 5 列にすると 10 行になり、縦に合わせたマスが iPad では小さすぎる
-  const columns = $derived(levels > 30 ? 6 : 5);
+  // 100 面を 6 列にすると 17 行になり、iPad でマスが 35px ほどになる。行を 10 までに抑える
+  const columns = $derived(levels > 60 ? 10 : levels > 30 ? 6 : 5);
 </script>
 
 <div class="panel">
@@ -18,16 +30,17 @@
   <div class="grid" style:--cols={columns} style:--rows={Math.ceil(levels / columns)}>
     {#each { length: levels }, i (i)}
       {@const n = i + 1}
+      {@const cleared = solved ? solved.has(n) : n < best}
       <button
         class="cell"
-        class:cleared={n < best}
-        class:next={n === best}
-        disabled={n > best}
+        class:cleared
+        class:next={solved ? n === current : n === best}
+        disabled={!solved && n > best}
         onclick={() => onpick(n)}
         aria-label="{name} {n}"
       >
         {n}
-        {#if n < best}
+        {#if cleared}
           <span class="star"><Icon name="star" size="100%" /></span>
         {/if}
       </button>
