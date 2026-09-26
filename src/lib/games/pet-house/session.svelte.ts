@@ -384,7 +384,8 @@ export class Session {
       if (run) {
         run();
         this.#compileNext = true;
-      } else if (!this.#compiling && !this.#compileNext) [this.#move, this.moving] = [null, null];
+      } else if (!this.#compiling && !this.#compileNext && !this.#world.pending)
+        [this.#move, this.moving] = [null, null];
     }
     this.#now += dt;
     if ((this.#dayAt -= dt) <= 0) {
@@ -444,8 +445,8 @@ export class Session {
     this.#world.lift = trying ? 0.36 : 0;
     const shown = trying ? pets.map((p) => (p.id === this.save.current ? { ...p, accessory: trying } : p)) : pets;
     this.#world.syncPets(cast ? [...shown, ...cast.pets] : shown);
-    // ペットが場面に入ってから準備すると、毛の材質も一緒に準備できる
-    if (this.#compileNext) {
+    // ペットが場面に入ってから準備すると、毛の材質も一緒に準備できる。全員そろうまでは待つ
+    if (this.#compileNext && !this.#world.pending) {
       this.#compileNext = false;
       this.#precompile();
     }
@@ -634,7 +635,7 @@ export class Session {
 
   /** 場面が動いている・シェーダーの準備が済んでいない。画面はこのあいだ「いどうちゅう」「よみこみちゅう」を出す */
   get busy(): boolean {
-    return !!this.#move || this.#compiling;
+    return !!this.#move || this.#compiling || this.#world.pending > 0;
   }
 
   /** 犬はリードで道をおさんぽして公園へ、猫はそのまま公園へ。公園からはおうちへ。つかれているときは goPark がことわる */

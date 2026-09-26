@@ -156,6 +156,8 @@ export class PetWorld {
   /** 絵を上へずらす割合（画面の高さに対して）。下をシートがふさいでも、試着したペットを上に見せる */
   lift = 0;
   #lifted = 0;
+  /** syncPets でまだ組み立てていない子の数。1 回の呼び出しで作るのは 40ms までで、超えたら次のフレームへ回す */
+  pending = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     const c = now();
@@ -321,14 +323,26 @@ export class PetWorld {
 
   syncPets(pets: Pet[]): void {
     const quality = this.#applyQuality();
+    // 初めて使う種類の組み立ては 1 匹で数百 ms かかる。控えから読めた形なら 1 匹 10〜20ms なので、
+    // 1 回の呼び出しで 40ms までは続けて作り、それを超えたら次のフレームへ回す（少なくとも 1 匹は作る）。
+    // まだ組み立てていない子は #pets に入れないので update() は落ちない
+    const until = performance.now() + 40;
+    let built = 0;
+    let pending = 0;
     for (const pet of pets) {
       let view = this.#pets.get(pet.id);
       if (view && view.breed !== pet.breed) {
         view.model.dispose();
         view.blob.removeFromParent();
+        this.#pets.delete(pet.id);
         view = undefined;
       }
       if (!view) {
+        if (built > 0 && performance.now() >= until) {
+          pending++;
+          continue;
+        }
+        built++;
         const model = createPet(pet.breed, quality);
         const size = new THREE.Box3().setFromObject(model.group).getSize(this.#v);
         const blob = new THREE.Mesh(blobGeometry, this.#blob);
@@ -350,6 +364,7 @@ export class PetWorld {
         view.model.setDirt(dirt);
       }
     }
+    this.pending = pending;
     for (const [id, view] of this.#pets) {
       if (pets.some((p) => p.id === id)) continue;
       view.model.dispose();

@@ -176,7 +176,7 @@ export class Plaza implements Visit {
             Math.random
           )
         );
-      else this.swapping = false;
+      else if (!this.#host.world.pending) this.swapping = false;
     }
     const host = this.#host;
     const view = host.view;
