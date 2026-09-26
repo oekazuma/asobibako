@@ -66,6 +66,8 @@ export interface SoloMeta extends BaseMeta {
    * 最後の面をクリアしたときだけは「ぜんぶクリア」の結果画面を出す
    */
   ownResult?: boolean;
+  /** 面を好きな順に選べ、とばせる。解いた面を 1 つずつ覚える（難しさの順に並ばないナゾ解きなど） */
+  anyOrder?: boolean;
   load: () => Promise<SoloModule>;
 }
 
