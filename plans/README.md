@@ -52,8 +52,8 @@ STOP 条件を守り、終わったら自分の行の Status を更新する。
 | 032  | 小さな直し 3 つ（影の種類・紙吹雪の距離・Backup.svelte の行数）                                 | P3       | S      | —          | DONE（`worktree-agent-a46a79e47f1b910ce` `c77f875`、レビュー済み）               |
 | 033  | 写真とずかんの絵を iPad の「写真」に保存できるようにする                                        | P1       | S      | —          | DONE（`a4368ab`、main に merge 済み）                                            |
 | 034  | アプリについて（/about）から、端末の控えで記録を戻せるようにする                                | P1       | S      | —          | DONE（`5df6f74`、main に merge 済み）                                            |
-| 035  | ペットの外接を先に渡し、ひろばや部屋に入るたびの止まりをなくす                                  | P1       | S      | —          | TODO                                                                             |
-| 036  | 飼っていない種類の形は、使う場面に入る前に読む                                                  | P2       | S      | 035        | TODO                                                                             |
+| 035  | ペットの外接を先に渡し、ひろばや部屋に入るたびの止まりをなくす                                  | P1       | S      | —          | DONE（`7069835`、main に merge 済み。checkShaderErrors は効かず取り消した）      |
+| 036  | 飼っていない種類の形は、使う場面に入る前に読む                                                  | P2       | S      | 035        | DONE（`21c3a30`、main に merge 済み）                                            |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (理由 1 行) | REJECTED (理由 1 行)
 
@@ -87,6 +87,10 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (理由 1 行) | REJECTED (�
   031 はそのまま入る
 - 計画 029 の Step 2 の「予約を frame のあとへ戻すとテスト 1 が落ちる」は不正確だった。try/catch があると 1 回目の例外は
   通り抜けるので、順番が効くのは例外が続くとき。実行担当はテスト 2 に呼び出し回数の確認を足して、そちらで確かめた
+- 035・036 の効果は headless Chrome で測り直した。形の控えがあるときのひろば入りは約 530ms → 約 110ms（CPU ×4 で
+  2.2 秒 → 約 0.23 秒）、タイトルの ArrayBuffer は 44MB → 6.6MB（ひろばかおさんぽに入るまで）。035 の
+  `renderer.debug.checkShaderErrors = dev` は効かなかった（`getProgramInfoLog` の待ちが `getProgramParameter` へ移っただけで、
+  部屋で約 90ms・ひろばで約 45ms のリンク待ちは残る）ので取り消した。直すなら `compileAsync` か `KHR_parallel_shader_compile`
 - markuplint 5.0.0 の svelte-parser は Svelte 5 の `{@attach}` を属性として拒む（013 で判明）。attachment を使いたくなったら
   `@markuplint/svelte-parser` の更新を待つか、`.markuplintrc.jsonc` に例外を足す
 
