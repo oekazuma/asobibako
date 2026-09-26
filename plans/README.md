@@ -63,6 +63,8 @@ STOP 条件を守り、終わったら自分の行の Status を更新する。
 
 | 043 | ペットの毛並み（毛の殻）と、3D の画質の設定をなくす | P1 | M | — | DONE（`837dc44`、レビュー済み。見た目は headless Chrome で前後を比べた） |
 
+| 044 | バックアップの赤い注意書きと「？」の印をなくし、「この端末の控え」を分かる言葉にする | P1 | S | — | TODO |
+
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (理由 1 行) | REJECTED (理由 1 行)
 
 ## Dependency notes
