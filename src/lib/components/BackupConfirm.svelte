@@ -2,8 +2,12 @@
   import { Gate, MAX_FAILS } from '$lib/gate.svelte';
   import { importAll, summarize, type Backup } from '$lib/backup';
 
-  let { pending, oncancel, onfail }: { pending: Backup; oncancel: () => void; onfail: (message: string) => void } =
-    $props();
+  let {
+    pending,
+    from = '書き出し',
+    oncancel,
+    onfail
+  }: { pending: Backup; from?: string; oncancel: () => void; onfail: (message: string) => void } = $props();
 
   // 親が選び直すたびにこの部品ごと作り直すので、計算と入力もそのたびにまっさらになる
   const gate = new Gate();
@@ -20,7 +24,7 @@
 </script>
 
 <form class="confirm" onsubmit={submit}>
-  <p><b>{sum.games} 本</b>のゲームの記録・{sum.keys} 件（{sum.at} に書き出し）</p>
+  <p><b>{sum.games} 本</b>のゲームの記録・{sum.keys} 件（{sum.at} に{from}）</p>
   <p class="warn">いまこの端末にある記録は<b>すべて置き換わります</b>。元に戻せません。</p>
   {#if gate.locked}
     <p class="err">きょうは {MAX_FAILS} 回間違えたため、読み込みは明日まで行えません。</p>

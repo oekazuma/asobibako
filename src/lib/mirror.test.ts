@@ -114,4 +114,22 @@ describe('mirror', () => {
     await m.snapshot('v', store);
     expect(set).not.toHaveBeenCalled();
   });
+
+  it('peek はいまの控えを返す', async () => {
+    const store: Store = { get: async () => file({ 'asobibako:reached:maze': '5' }), set: async () => {} };
+    const found = await m.peek(store);
+    expect(found?.data).toEqual({ 'asobibako:reached:maze': '5' });
+  });
+
+  it('peek は控えが壊れていれば null を返す', async () => {
+    const store: Store = { get: async () => '{', set: async () => {} };
+    expect(await m.peek(store)).toBeNull();
+  });
+
+  it('peek は控えが開けずに止まっても、待ちすぎずに null を返す', async () => {
+    const stuck: Store = { get: () => new Promise(() => {}), set: async () => {} };
+    const started = Date.now();
+    expect(await m.peek(stuck, 50)).toBeNull();
+    expect(Date.now() - started).toBeLessThan(1000);
+  });
 });
