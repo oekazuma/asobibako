@@ -156,6 +156,8 @@ export class PetWorld {
   /** 絵を上へずらす割合（画面の高さに対して）。下をシートがふさいでも、試着したペットを上に見せる */
   lift = 0;
   #lifted = 0;
+  /** syncPets でまだ組み立てていない子の数。初めて使う種類は形の組み立てに数百 ms かかるので 1 匹ずつ作る */
+  pending = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     const c = now();
@@ -321,14 +323,24 @@ export class PetWorld {
 
   syncPets(pets: Pet[]): void {
     const quality = this.#applyQuality();
+    // 初めて使う種類の組み立ては 1 匹ぶんで数百 ms かかるので、1 回の呼び出しで作るのは 1 匹まで。
+    // 残りは pending に数え、まだ組み立てていない子は #pets に入れないので update() は落ちない
+    let budget = 1;
+    let pending = 0;
     for (const pet of pets) {
       let view = this.#pets.get(pet.id);
       if (view && view.breed !== pet.breed) {
         view.model.dispose();
         view.blob.removeFromParent();
+        this.#pets.delete(pet.id);
         view = undefined;
       }
       if (!view) {
+        if (budget <= 0) {
+          pending++;
+          continue;
+        }
+        budget--;
         const model = createPet(pet.breed, quality);
         const size = new THREE.Box3().setFromObject(model.group).getSize(this.#v);
         const blob = new THREE.Mesh(blobGeometry, this.#blob);
@@ -350,6 +362,7 @@ export class PetWorld {
         view.model.setDirt(dirt);
       }
     }
+    this.pending = pending;
     for (const [id, view] of this.#pets) {
       if (pets.some((p) => p.id === id)) continue;
       view.model.dispose();
