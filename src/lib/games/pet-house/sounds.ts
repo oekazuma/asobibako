@@ -1,4 +1,4 @@
-import { sink } from '$lib/audio.svelte';
+import { bus, sink } from '$lib/audio.svelte';
 import { note, type Instrument } from './instruments';
 import { biquad, bubble, click, hann, hiss, logRand, play, rand, ring, sfxOut, shot, thump, white } from './synth';
 
@@ -380,12 +380,15 @@ export const SFX = {
 type Args<K extends keyof typeof SFX> = (typeof SFX)[K] extends (o: At, ...a: infer A) => void ? A : never;
 type Live = { [K in keyof typeof SFX]: (...a: Args<K>) => void };
 
+// 触っていなくてもフレームから鳴る音。止まっているあいだに予約すると、resume したときにまとめて鳴ってしまう
+const AMBIENT = new Set<keyof typeof SFX>(['eat', 'drink', 'land', 'step', 'bounce', 'rattle', 'rustle']);
+
 /** いまの AudioContext に鳴らす版。音がまだ使えない・ミュートのあいだは何もしない */
 export const sounds = Object.fromEntries(
   Object.entries(SFX).map(([k, f]) => [
     k,
     (...a: unknown[]) => {
-      const ctx = sink();
+      const ctx = AMBIENT.has(k as keyof typeof SFX) ? bus() : sink();
       if (ctx) (f as (o: At, ...a: unknown[]) => void)({ ctx, out: sfxOut(ctx), t: ctx.currentTime + 0.005 }, ...a);
       if (k === 'shower') armDrips();
     }
