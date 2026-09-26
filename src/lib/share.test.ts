@@ -14,7 +14,7 @@ describe('share', () => {
   });
 
   it('saveImage は共有シートを使える端末で share を呼ぶ', () => {
-    const share = vi.fn(async () => {});
+    const share = vi.fn(async (_data: { files: File[] }) => {});
     vi.stubGlobal('navigator', { canShare: () => true, share });
     saveImage('data:image/png;base64,iVBORw0KGgo=', 'a.png');
     expect(share).toHaveBeenCalledTimes(1);
