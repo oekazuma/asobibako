@@ -3,7 +3,20 @@
   import { BoardInput } from '$lib/board-input';
   import type { SoloProps } from '$lib/games';
   import { animate } from '$lib/loop';
-  import { add, COLORS, fit, groups, hatch, parade, poke, random, step, type Stroke, type World } from './engine';
+  import {
+    add,
+    COLORS,
+    fit,
+    groups,
+    hatch,
+    parade,
+    poke,
+    random,
+    speck,
+    step,
+    type Stroke,
+    type World
+  } from './engine';
   import { creature, pen, sketch } from './paint';
   import Palette from './Palette.svelte';
   import { sounds } from './sounds';
@@ -46,7 +59,8 @@
     const kids = groups(lines);
     if (!kids.length) return;
     for (const strokes of kids) add(world, hatch(strokes)!);
-    stock = saveStock([...kids.map((strokes) => pack(strokes)).reverse(), ...stock], kids.length);
+    const kept = kids.filter((strokes) => !speck(strokes));
+    if (kept.length) stock = saveStock([...kept.map((strokes) => pack(strokes)).reverse(), ...stock], kept.length);
     lines = [];
     sounds.hatch();
   }

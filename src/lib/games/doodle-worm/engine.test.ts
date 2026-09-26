@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { add, groups, hatch, isLoop, parade, poke, random, step, type Point, type Stroke, type World } from './engine';
+import {
+  add,
+  groups,
+  hatch,
+  isLoop,
+  parade,
+  poke,
+  random,
+  speck,
+  step,
+  type Point,
+  type Stroke,
+  type World
+} from './engine';
 
 const ring = (cx: number, cy: number, r: number, turns = 1): Point[] =>
   Array.from({ length: 20 }, (_, i) => {
@@ -119,6 +132,22 @@ describe('poke', () => {
     expect(poke(world, [], s(line(0.45, 0.5, 0.55, 0.5)))).toBe(false);
     expect(poke(world, [s(ring(0.52, 0.52, 0.05))], tap(0.5, 0.5))).toBe(false);
     expect(world.creatures[0].jump).toBe(-1);
+  });
+});
+
+describe('speck', () => {
+  const tap = (x: number, y: number): Stroke => ({ color: 'c', pts: [[x, y]] });
+
+  it('タップ 1 つは点だけの子', () => {
+    expect(speck([tap(0.5, 0.5)])).toBe(true);
+  });
+
+  it('近くに打った 2 つのタップも点だけの子', () => {
+    expect(speck([tap(0.5, 0.5), tap(0.51, 0.5)])).toBe(true);
+  });
+
+  it('小さくても輪は点だけの子ではない', () => {
+    expect(speck([s(ring(0.5, 0.5, 0.05))])).toBe(false);
   });
 });
 
