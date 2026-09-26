@@ -16,7 +16,6 @@ describe('アプリについて', () => {
     expect([...target.querySelectorAll('h2')].map((h) => h.textContent)).toEqual([
       '更新',
       'アプリの状態',
-      'がしつ',
       'データについて',
       'この端末の控え',
       'バックアップ'

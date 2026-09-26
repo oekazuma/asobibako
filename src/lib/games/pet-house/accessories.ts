@@ -5,18 +5,18 @@ import { field, type Field } from './sculpt';
 import type { AccessoryId } from './types';
 
 /**
- * 首輪・リボン・バンダナ・ぼうし。首に巻く物は体の面を測って首の太さと毛の長さに合わせ、
- * 体と同じ骨で曲げる（SkinnedMesh）。首を曲げても、巻いた所の毛と一緒に動いてずれない。
+ * 首輪・リボン・バンダナ・ぼうし。首に巻く物は体の面を測って首の太さに合わせ、
+ * 体と同じ骨で曲げる（SkinnedMesh）。首を曲げても、巻いた所の地肌と一緒に動いてずれない。
  * ぼうしは頭の骨に付け、耳のあいだに収まる大きさにする。形は肩の高さを 1 とした体の座標で作る
  */
 
 export interface Fit {
   look: Look;
-  /** breed と画質。測った首まわりと作った形の使い回しに使う */
+  /** 体の種類。測った首まわりと作った形の使い回しに使う */
   key: string;
   /** 削る形を除いた体の形 */
   field: Field;
-  /** 体の面（殻用の粗い面）。頂点ごとの骨の重さと毛の長さを借りる */
+  /** 体の面。頂点ごとの骨の重さを借りる */
   body: THREE.BufferGeometry;
   skeleton: THREE.Skeleton;
 }
@@ -27,7 +27,6 @@ interface Sample {
   /** 地肌の点と、首の中心から外への向き */
   at: THREE.Vector3;
   out: THREE.Vector3;
-  fur: number;
   skin: Skin;
 }
 
@@ -95,11 +94,11 @@ function bucketsOf(body: THREE.BufferGeometry, skeleton?: THREE.Skeleton) {
 }
 
 /**
- * p にいちばん近い体の面の頂点の毛の長さと骨の重さ。skeleton を渡すと首と胸の頂点から探し、頭の骨の重さを除く
+ * p にいちばん近い体の面の頂点の骨の重さ。skeleton を渡すと首と胸の頂点から探し、頭の骨の重さを除く
  * （うなじ側が後頭部の重さを借りると、頭を下げたときに後頭部と一緒に持ち上がって首から浮く。
  * 前足の重さを借りると、前足を上げたときに布が一緒に持ち上がる）
  */
-function nearest(body: THREE.BufferGeometry, p: THREE.Vector3, skeleton?: THREE.Skeleton): { fur: number; skin: Skin } {
+function nearest(body: THREE.BufferGeometry, p: THREE.Vector3, skeleton?: THREE.Skeleton): { skin: Skin } {
   const pos = body.attributes.position;
   const m = bucketsOf(body, skeleton);
   const [ci, cj, ck] = [p.x, p.y, p.z].map((v) => Math.floor(v / CELL));
@@ -125,7 +124,7 @@ function nearest(body: THREE.BufferGeometry, p: THREE.Vector3, skeleton?: THREE.
     const sum = weight.reduce((a, w) => a + w, 0) || 1;
     weight = weight.map((w) => w / sum);
   }
-  return { fur: body.attributes.furLen.getX(best), skin: { index, weight } };
+  return { skin: { index, weight } };
 }
 
 /** 首輪を巻く高さで首を 1 周測る。前（θ = 0）がのど */
@@ -150,12 +149,10 @@ function neckOf(fit: Fit): Neck {
   }
   // 顔の毛・耳のふちに当たって飛び出た点をならす
   const rad = ring.map((s) => s.at.distanceTo(c));
-  const fur = ring.map((s) => s.fur);
   ring.forEach((s, i) => {
     const k = [-4, -3, -2, -1, 0, 1, 2, 3, 4].map((d) => (i + d + N) % N);
     const r = k.reduce((a, j) => a + rad[j], 0) / k.length;
     s.at.copy(c).addScaledVector(s.out, Math.min(rad[i], r * 1.02));
-    s.fur = k.reduce((a, j) => a + fur[j], 0) / k.length;
   });
   const g = new THREE.Vector3(0, -1, 0);
   const down = g.addScaledVector(front, -g.dot(front)).normalize();
@@ -238,10 +235,10 @@ function grid(pts: THREE.Vector3[][], uvs?: [number, number][][]) {
 }
 
 /**
- * 首に巻く帯。断面は幅 w・厚み t の角の丸い平たい楕円で、内側が地肌から毛の sink 倍の所に来る。
+ * 首に巻く帯。断面は幅 w・厚み t の角の丸い平たい楕円で、内側が地肌の面に来る。
  * 骨の重さは首の測った点ごとに借りるので、首の曲がりに沿って曲がる
  */
-function band(neck: Neck, o: { w: number; t: number; sink: number; lift?: number; repeat?: number; color?: string }) {
+function band(neck: Neck, o: { w: number; t: number; lift?: number; repeat?: number; color?: string }) {
   const M = 12;
   const pts: THREE.Vector3[][] = [];
   const uvs: [number, number][][] = [];
@@ -256,7 +253,7 @@ function band(neck: Neck, o: { w: number; t: number; sink: number; lift?: number
       const s = neck.ring[i % N];
       const mid = s.at
         .clone()
-        .addScaledVector(s.out, s.fur * o.sink + o.t)
+        .addScaledVector(s.out, o.t)
         .addScaledVector(neck.axis, o.lift ?? 0);
       row.push(mid.addScaledVector(neck.axis, (ca * o.w) / 2).addScaledVector(s.out, (sa * o.t) / 1));
       uvRow.push([(i / N) * (o.repeat ?? 1), j / M]);
@@ -293,11 +290,8 @@ function throat(neck: Neck, lift: number, out: number) {
     .normalize();
   const x = new THREE.Vector3(1, 0, 0);
   const y = new THREE.Vector3().crossVectors(z, x).normalize();
-  const at = s.at
-    .clone()
-    .addScaledVector(z, s.fur * 0.5 + out)
-    .addScaledVector(neck.axis, lift);
-  return { m: new THREE.Matrix4().makeBasis(x, y, z).setPosition(at), skin: s.skin, fur: s.fur };
+  const at = s.at.clone().addScaledVector(z, out).addScaledVector(neck.axis, lift);
+  return { m: new THREE.Matrix4().makeBasis(x, y, z).setPosition(at), skin: s.skin };
 }
 
 function mesh(key: string, fit: Fit, make: () => THREE.BufferGeometry[], materials: THREE.Material[]) {
@@ -420,7 +414,7 @@ function collar(fit: Fit, id: 'collar-red' | 'collar-blue') {
     id,
     fit,
     () => {
-      const b = band(neck, { w, t, sink: 0.3, repeat: Math.round((Math.PI * 2 * R) / (w * 2.4)) });
+      const b = band(neck, { w, t, repeat: Math.round((Math.PI * 2 * R) / (w * 2.4)) });
       const { m, skin } = throat(neck, -w * 0.15, t * 2);
       const parts: THREE.BufferGeometry[] = [];
       // 帯から名札を下げる輪
@@ -548,7 +542,7 @@ function ribbon(fit: Fit) {
     'ribbon',
     fit,
     () => {
-      const b = band(neck, { w: R * 0.13, t: R * 0.03, sink: 0.3, color: PINK });
+      const b = band(neck, { w: R * 0.13, t: R * 0.03, color: PINK });
       const { m, skin } = throat(neck, -R * 0.06, R * 0.16);
       const L = R * 1.1;
       const parts = [
@@ -589,10 +583,9 @@ function bandana(fit: Fit) {
     fit,
     () => {
       const w = R * 0.26;
-      const sink = 0.35;
       // 前足の付け根のでこぼこを拾わないよう、首と胸の形だけに沿わせる
       const chest = field(fit.look.shapes.filter((s) => CHEST.has(s.tag)));
-      const roll = band(neck, { w, t: R * 0.07, sink, repeat: 6 });
+      const roll = band(neck, { w, t: R * 0.07, repeat: 6 });
       // 胸に垂れる三角の布。上の辺は巻いた布の下のふちに沿い、先はのどの前から下へ
       const I = 16;
       const J = 10;
@@ -605,14 +598,13 @@ function bandana(fit: Fit) {
         return {
           p: s.at
             .clone()
-            .addScaledVector(s.out, s.fur * sink + R * 0.05)
+            .addScaledVector(s.out, R * 0.05)
             .addScaledVector(neck.axis, -w * 0.3),
           s
         };
       };
       const tip = front.at
         .clone()
-        .addScaledVector(front.out, front.fur * sink)
         .addScaledVector(neck.axis, -w * 0.3)
         .add(new THREE.Vector3(0, -R * 1.3, R * 0.1));
       const x = new THREE.Vector3(1, 0, 0);
@@ -632,9 +624,9 @@ function bandana(fit: Fit) {
           const p = top(u).p.lerp(tip, v);
           // 三角のふちを少しふくらませ、ネクタイのように細く見えないようにする
           if (v < 1) p.x *= (1 - v) ** -0.45;
-          // 平らな三角を垂らし、胸にめりこむ所だけ前へ押し出して毛の上に乗せる。胸から離れる所は宙に垂れる
+          // 平らな三角を垂らし、胸にめりこむ所だけ前へ押し出して地肌の上に乗せる。胸から離れる所は宙に垂れる
           const near = nearest(fit.body, p, fit.skeleton);
-          const lift = near.fur * 0.85 + R * (0.03 + 0.04 * Math.sin(Math.PI * v) * (1 - Math.abs(u)));
+          const lift = R * (0.03 + 0.04 * Math.sin(Math.PI * v) * (1 - Math.abs(u)));
           for (let k = 0; k < 60 && chest(p.x, p.y, p.z) < lift; k++) p.addScaledVector(forward, R * 0.015);
           const q = p;
           row.push(q);

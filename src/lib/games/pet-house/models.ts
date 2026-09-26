@@ -5,13 +5,12 @@ import { accessory, hit } from './accessories';
 import { furMaterial } from './fur';
 import { LOOKS, type Look, type Part } from './looks';
 import { KEYS, jumpArc, pounceArc, reopen, target, type Pose } from './pose';
-import { bounds, field, mesh as surface, type Field, type Shape, type Surface, type V3 } from './sculpt';
-import type { Quality } from '$lib/graphics.svelte';
+import { bounds, field, mesh as surface, type Field, type Shape, type V3 } from './sculpt';
 import type { AccessoryId, BreedId, PetAction } from './types';
 
 /**
  * 犬と猫の 3D。胴・首・頭・耳・足・しっぽをなめらかにつないだ 1 枚の面を骨で曲げ（SkinnedMesh）、
- * 同じ面を少しずつふくらませた殻を重ねて毛にする（fur.ts）。目・鼻・下あごは頭の骨に付けた別の形。
+ * 体そのものの面に色と短い毛並みを描く（fur.ts）。目・鼻・下あごは頭の骨に付けた別の形。
  * 形は肩の高さを 1 とした単位で作り、root を肩の高さ（m）倍する。group の原点が足元の中心で、+z を向く
  */
 
@@ -28,21 +27,11 @@ export interface PetModel {
   setFoam(levels: ArrayLike<number>): void;
   /** i 番目の泡のかたまりの、世界の座標での位置（最後に描いたときのかっこう） */
   foamAt(i: number, out: THREE.Vector3): THREE.Vector3;
-  /** 画質を変える。形を作り直して group の中身を入れ替え、かっこう・アクセサリー・汚れ・ぬれ・泡は引き継ぐ */
-  setQuality(q: Quality): void;
   dispose(): void;
 }
 
-/**
- * 画質ごとの毛と面。layers は種類ごとの殻の枚数に掛ける倍率（low は 2 枚に固定）、len は毛の長さ、
- * cell は毛 1 本の間隔、h は面の格子の細かさ、shell は殻に使う粗い面の格子（体の格子に対する倍率）
- */
-const QUALITY: Record<Quality, { layers: number; len: number; cell: number; h: number; shell: number }> = {
-  high: { layers: 1.6, len: 1.12, cell: 0.85, h: 1, shell: 1.25 },
-  normal: { layers: 1, len: 1, cell: 1, h: 1, shell: 1.5 },
-  low: { layers: 0, len: 0.55, cell: 1.3, h: 1.3, shell: 2 }
-};
-const layersOf = (look: Look, q: Quality) => (q === 'low' ? 2 : Math.round(look.fur.layers * QUALITY[q].layers));
+/** 面の格子の細かさ（h）と、面に描く短い毛並みの長さ（len）・間隔（cell）。遊ぶ端末（iPad Air）で使っていた値に固定 */
+const Q = { len: 1.12, cell: 0.85, h: 1 };
 
 // geometry と material は全部のペットで共有し、dispose では消さない。
 // 3 匹を入れ替えても種類ごとの形は同じなので、作り直すより持ち続けるほうが軽い
@@ -77,8 +66,6 @@ const smooth = (e0: number, e1: number, x: number) => {
 
 interface Body {
   geo: THREE.BufferGeometry;
-  /** 殻に使う粗い面 */
-  shell: THREE.BufferGeometry;
   bones: string[];
   /** 左目・右目の中心と見る向き */
   eyes: { at: THREE.Vector3; surf: THREE.Vector3; gaze: THREE.Vector3 }[];
@@ -95,8 +82,6 @@ interface FoamSpot {
   bubbles: { at: THREE.Vector3; r: number }[];
 }
 const bodies = new Map<string, Body>();
-/** 形を面にしたもの。画質で毛の長さだけが違うときは同じ面を使い回す（面にするのがいちばん重い） */
-const surfaces = new Map<string, Surface>();
 
 // ---- 形の控え ----
 
@@ -106,7 +91,7 @@ const surfaces = new Map<string, Surface>();
  */
 const ATTRS = { position: 3, normal: 3, color: 3, furLen: 1, furComb: 3, skinIndex: 4, skinWeight: 4 } as const;
 type Saved = Record<keyof typeof ATTRS | 'index', Float32Array | Uint16Array | Uint32Array>;
-const saved = new Map<string, { geo: Saved; shell: Saved }>();
+const saved = new Map<string, { geo: Saved }>();
 const STORE = 'shapes';
 const shapesVersion = __PET_SHAPES__;
 let opened: Promise<IDBDatabase | null> | undefined;
@@ -131,7 +116,7 @@ function shapeDb() {
 }
 
 /** 控えてある形を読みこむ。前の版の控えはここで捨てる */
-export async function loadShapes(ids: readonly BreedId[], q: Quality): Promise<void> {
+export async function loadShapes(ids: readonly BreedId[]): Promise<void> {
   const db = await shapeDb();
   if (!db) return;
   await new Promise<void>((ok) => {
@@ -143,10 +128,9 @@ export async function loadShapes(ids: readonly BreedId[], q: Quality): Promise<v
         for (const k of keys.result) if (!String(k).startsWith(`${shapesVersion}:`)) st.delete(k);
       };
       for (const id of ids) {
-        const key = `${id}:${q}`;
-        if (bodies.has(key)) continue;
-        const r = st.get(`${shapesVersion}:${key}`);
-        r.onsuccess = () => r.result && saved.set(key, r.result);
+        if (bodies.has(id)) continue;
+        const r = st.get(`${shapesVersion}:${id}`);
+        r.onsuccess = () => r.result && saved.set(id, r.result);
       }
       tx.oncomplete = tx.onerror = tx.onabort = () => ok();
     } catch {
@@ -170,12 +154,12 @@ function fromSaved(a: Saved) {
   return g;
 }
 
-function keepShapes(key: string, geo: THREE.BufferGeometry, shell: THREE.BufferGeometry) {
+function keepShapes(key: string, geo: THREE.BufferGeometry) {
   void shapeDb().then((db) => {
     try {
       db?.transaction(STORE, 'readwrite')
         .objectStore(STORE)
-        .put({ geo: toSaved(geo), shell: toSaved(shell) }, `${shapesVersion}:${key}`);
+        .put({ geo: toSaved(geo) }, `${shapesVersion}:${key}`);
     } catch {
       // 容量が足りないときは控えないだけ
     }
@@ -315,10 +299,9 @@ function weighEye(g: THREE.BufferGeometry, at: THREE.Vector3, r: number, bone: n
   }
 }
 
-function bodyOf(id: BreedId, look: Look, q: Quality): Body {
-  const cached = bodies.get(`${id}:${q}`);
+function bodyOf(id: BreedId, look: Look): Body {
+  const cached = bodies.get(id);
   if (cached) return cached;
-  const Q = QUALITY[q];
   // 猫は目のまわりの毛を目の骨に付け、たてにつぶして目を閉じる（まぶたの円盤より毛並みになじむ）
   const bones = [...Object.keys(look.joints), ...(look.kind === 'cat' ? ['eye.l', 'eye.r'] : [])];
   const plain = field(look.shapes.filter((s) => !s.cut));
@@ -351,28 +334,20 @@ function bodyOf(id: BreedId, look: Look, q: Quality): Body {
   const f = field(shapes, look.detail);
   const box = bounds(shapes, look.h * 3 + 0.04);
   const avoid = [...eyes.map((e) => ({ v: e.surf, w: r })), { v: nose, w: look.nose.r[0] * 1.1 }];
-  const surf = (h: number) => {
-    const key = `${id}:${h}`;
-    let m = surfaces.get(key);
-    if (!m) surfaces.set(key, (m = surface(f, box, look.h * h, look.detail?.amp)));
-    return m;
-  };
-  const key = `${id}:${q}`;
-  const stored = saved.get(key);
-  saved.delete(key);
-  const g = stored ? fromSaved(stored.geo) : dress(look, shapes, surf(Q.h), f, bones, avoid, Q.len);
-  // 殻は毛先がぼやけるので、粗い面で足りる。三角形の数が殻の枚数倍になるのを抑える
-  const coarse = stored ? fromSaved(stored.shell) : dress(look, shapes, surf(Q.h * Q.shell), f, bones, avoid, Q.len);
+  const stored = saved.get(id);
+  saved.delete(id);
+  const g = stored
+    ? fromSaved(stored.geo)
+    : dress(look, shapes, surface(f, box, look.h * Q.h, look.detail?.amp), f, bones, avoid, Q.len);
   // 口の線は頂点の色では細く描けないので、顔の面に沿わせた細い管にする
   const omega = look.omega?.map((line) =>
     line.map((p) => hit(plain, v3(p).add(new THREE.Vector3(0, 0, -0.08)), new THREE.Vector3(0, 0.15, 1).normalize()))
   );
   if (look.kind === 'cat' && !stored)
-    for (const geom of [g, coarse])
-      eyes.forEach((e, i) => weighEye(geom, e.surf, r, bones.indexOf(i ? 'eye.r' : 'eye.l')));
-  if (!stored) keepShapes(key, g, coarse);
-  const body = { geo: g, shell: coarse, bones, eyes, nose, foam: foamSpots(look, plain), omega, plain };
-  bodies.set(`${id}:${q}`, body);
+    eyes.forEach((e, i) => weighEye(g, e.surf, r, bones.indexOf(i ? 'eye.r' : 'eye.l')));
+  if (!stored) keepShapes(id, g);
+  const body = { geo: g, bones, eyes, nose, foam: foamSpots(look, plain), omega, plain };
+  bodies.set(id, body);
   return body;
 }
 
@@ -585,9 +560,8 @@ interface Rig {
   headAnchor: THREE.Object3D;
   skeleton: THREE.Skeleton;
   body: Body;
-  /** 毛の material を持つ形と、その殻の番号。ぬれたら material を差し替える */
-  fur: { mesh: THREE.Mesh; layer: number }[];
-  layers: number;
+  /** 毛の material を持つ形（体とあご）。ぬれたら material を差し替える */
+  fur: THREE.Mesh[];
   cell: number;
   /** 骨ごとの泡の形と、泡のかたまりがどの形の何番目からかを数えた表 */
   foam: { mesh: THREE.InstancedMesh; spots: number[] }[];
@@ -609,9 +583,8 @@ export function restBounds(m: THREE.SkinnedMesh): void {
   m.boundingSphere = g.boundingSphere!.clone();
 }
 
-function build(look: Look, id: BreedId, q: Quality): Rig {
-  const body = bodyOf(id, look, q);
-  const Q = QUALITY[q];
+function build(look: Look, id: BreedId): Rig {
+  const body = bodyOf(id, look);
   const cell = look.fur.cell * Q.cell;
   const root = new THREE.Group();
   const bone = new Map<string, THREE.Bone>();
@@ -636,19 +609,16 @@ function build(look: Look, id: BreedId, q: Quality): Rig {
   }
   root.updateMatrixWorld(true);
   const skeleton = new THREE.Skeleton(body.bones.map((n) => bone.get(n)!));
-  const L = layersOf(look, q);
-  const fur: Rig['fur'] = [];
-  for (let i = 0; i <= L; i++) {
-    const m = new THREE.SkinnedMesh(i ? body.shell : body.geo, furMaterial(i, L, cell));
-    fur.push({ mesh: m, layer: i });
-    m.bind(skeleton, new THREE.Matrix4());
-    restBounds(m);
-    // 骨で曲げた形は元の外接球からはみ出すので、画面の端で消えないよう切り捨てない
-    m.frustumCulled = false;
-    m.castShadow = i === 0;
-    m.receiveShadow = true;
-    root.add(m);
-  }
+  // furMaterial の h = layer / layers が NaN にならないよう、殻を使わない今は layers に 1 を渡す
+  const bodyMesh = new THREE.SkinnedMesh(body.geo, furMaterial(0, 1, cell));
+  const fur: Rig['fur'] = [bodyMesh];
+  bodyMesh.bind(skeleton, new THREE.Matrix4());
+  restBounds(bodyMesh);
+  // 骨で曲げた形は元の外接球からはみ出すので、画面の端で消えないよう切り捨てない
+  bodyMesh.frustumCulled = false;
+  bodyMesh.castShadow = true;
+  bodyMesh.receiveShadow = true;
+  root.add(bodyMesh);
 
   // 頭と下あごに付ける形は、形を作った座標のまま置けるよう骨の位置だけ戻した入れ物に入れる
   const space = (name: string) => {
@@ -755,9 +725,8 @@ function build(look: Look, id: BreedId, q: Quality): Rig {
     );
     add(headSpace, g, mat(look.eye.rim, { roughness: 0.8 }), false);
   }
-  // 下あごも顔なので殻は重ねない
-  const chin = add(jawSpace, small(look, `chin:${id}:${q}`, look.chin, look.h * 0.6, Q.len), furMaterial(0, L, cell));
-  fur.push({ mesh: chin, layer: 0 });
+  const chin = add(jawSpace, small(look, `chin:${id}`, look.chin, look.h * 0.6, Q.len), furMaterial(0, 1, cell));
+  fur.push(chin);
 
   const innerMesh = add(
     headSpace,
@@ -878,7 +847,6 @@ function build(look: Look, id: BreedId, q: Quality): Rig {
     skeleton,
     body,
     fur,
-    layers: L,
     cell,
     foam,
     foamSpots: body.foam,
@@ -1012,7 +980,7 @@ function shorten(p: Pose, low: number, sh: THREE.Vector3, chest: THREE.Vector3, 
 const WALK_PHASE = [0.25, 0.75, 0, 0.5];
 const RUN_PHASE = [0.5, 0.6, 0, 0.1];
 
-export function createPet(breed: BreedId, quality: Quality = 'normal'): PetModel {
+export function createPet(breed: BreedId): PetModel {
   const look = LOOKS[breed];
   const kind = BREEDS[breed].kind;
   const group = new THREE.Group();
@@ -1022,11 +990,9 @@ export function createPet(breed: BreedId, quality: Quality = 'normal'): PetModel
   const chestAt = J('chest').sub(hipsRest).setX(0);
   const pivot = new THREE.Vector3(0, 0.34, -0.1);
 
-  // 画質を変えるときは形を作り直して入れ替える。update が使う骨はここで差し替える
   let rig!: Rig;
-  let acc = new Map<AccessoryId, THREE.Group>();
+  const acc = new Map<AccessoryId, THREE.Group>();
   let worn: AccessoryId | null = null;
-  let fitKey = '';
   let dirty = 0;
   let wet = 0;
   const foam = new Float32Array(FOAM_SPOTS);
@@ -1038,26 +1004,10 @@ export function createPet(breed: BreedId, quality: Quality = 'normal'): PetModel
   let ears: THREE.Bone[] = [];
   let tail: THREE.Bone[] = [];
   let eyeBones: THREE.Bone[] = [];
-  function mount(q: Quality) {
-    const prev = rig;
-    rig = build(look, breed, q);
+  function mount() {
+    rig = build(look, breed);
     rig.root.scale.setScalar(look.S);
-    if (prev) {
-      // 骨のかっこうを写してから入れ替え、1 フレームもとの姿勢に戻らないようにする
-      rig.root.position.copy(prev.root.position);
-      rig.root.quaternion.copy(prev.root.quaternion);
-      for (const [name, b] of prev.bone) {
-        const nb = rig.bone.get(name);
-        if (!nb) continue;
-        nb.position.copy(b.position);
-        nb.quaternion.copy(b.quaternion);
-        nb.scale.copy(b.scale);
-      }
-      prev.root.removeFromParent();
-    }
     group.add(rig.root);
-    fitKey = `${breed}:${q}`;
-    acc = new Map();
     wear();
     coat();
     showFoam();
@@ -1067,14 +1017,14 @@ export function createPet(breed: BreedId, quality: Quality = 'normal'): PetModel
     tail = Array.from({ length: look.tail }, (_, i) => bone(`tail.${i}`));
     eyeBones = ['eye.l', 'eye.r'].flatMap((n) => rig.bone.get(n) ?? []);
   }
-  // 着けたことのあるものだけ作る。首まわりを測るのは種類と画質ごとに 1 度
+  // 着けたことのあるものだけ作る。首まわりを測るのは種類ごとに 1 度
   function wear() {
     if (worn && !acc.has(worn)) {
       const { group: a, on } = accessory(worn, {
         look,
-        key: fitKey,
+        key: breed,
         field: rig.body.plain,
-        body: rig.body.shell,
+        body: rig.body.geo,
         skeleton: rig.skeleton
       });
       (on === 'head' ? rig.headAnchor : rig.root).add(a);
@@ -1083,7 +1033,7 @@ export function createPet(breed: BreedId, quality: Quality = 'normal'): PetModel
     for (const [k, a] of acc) a.visible = k === worn;
   }
   function coat() {
-    for (const f of rig.fur) f.mesh.material = furMaterial(f.layer, rig.layers, rig.cell, wet, dirty);
+    for (const m of rig.fur) m.material = furMaterial(0, 1, rig.cell, wet, dirty);
   }
   const bubble = new THREE.Matrix4();
   const noTurn = new THREE.Quaternion();
@@ -1105,7 +1055,7 @@ export function createPet(breed: BreedId, quality: Quality = 'normal'): PetModel
       mesh.instanceMatrix.needsUpdate = true;
     }
   }
-  mount(quality);
+  mount();
 
   // ノミは泡のかたまりの場所（体の面の上）にとまり、しばらくすると近くのかたまりか同じ所へ弧を描いて跳ぶ。
   // 泡が付いたかたまりのノミは消える
@@ -1425,7 +1375,6 @@ export function createPet(breed: BreedId, quality: Quality = 'normal'): PetModel
 
   return {
     group,
-    // 画質を変えると口も作り直すので、いつも今の口を返す（world3d はおもちゃを付け直す）
     get mouth() {
       return rig.mouth;
     },
@@ -1455,11 +1404,6 @@ export function createPet(breed: BreedId, quality: Quality = 'normal'): PetModel
     },
     foamAt(i, out) {
       return out.copy(rig.foamSpots[i].bubbles[0].at).applyMatrix4(rig.foamBase[i].matrixWorld);
-    },
-    setQuality(q) {
-      const toy = rig.mouth.children.slice();
-      mount(q);
-      for (const o of toy) rig.mouth.add(o);
     },
     dispose() {
       group.removeFromParent();

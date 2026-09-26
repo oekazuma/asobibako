@@ -1,4 +1,3 @@
-import { graphics } from '$lib/graphics.svelte';
 import type { SceneHost, Visit } from './activity';
 import { command, createActor, think, throwToy, type Actor, type BehaviorEvent } from './behavior';
 import { BREED_IDS, BREEDS } from './breeds';
@@ -71,7 +70,7 @@ export class Plaza implements Visit {
 
   // 「ほかの子たち」でどの種類が出るか分からないので、全種類ぶんの形を読んでおく
   prepare(): Promise<unknown> {
-    return loadShapes(BREED_IDS, graphics.quality);
+    return loadShapes(BREED_IDS);
   }
 
   enter(host: SceneHost): void {
