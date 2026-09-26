@@ -7,7 +7,8 @@ import { build, files, prerendered, version } from '$service-worker';
 
 const sw = globalThis.self as unknown as ServiceWorkerGlobalScope;
 
-const CACHE = `asobibako-${version}`;
+const PREFIX = 'asobibako-';
+const CACHE = `${PREFIX}${version}`;
 const ASSETS = [...build, ...files, ...prerendered];
 const ASSET_PATHS = new Set(ASSETS);
 
@@ -28,7 +29,8 @@ sw.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      // caches はオリジンで共有され、同じ github.io に別のアプリのキャッシュもある。自分の古い版だけを消す
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith(PREFIX) && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => sw.clients.claim())
   );
 });
