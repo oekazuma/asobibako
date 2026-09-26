@@ -2,7 +2,7 @@
   import Icon from '$lib/components/Icon.svelte';
   import type { IconName } from '$lib/icons';
   import { BREEDS } from './breeds';
-  import { hearts, LOW, type Pet } from './engine';
+  import { daysTogether, hearts, LOW, type Pet } from './engine';
   import type { Stat } from './types';
 
   let { pet, money }: { pet: Pet; money: number } = $props();
@@ -22,7 +22,7 @@
   <div class="top">
     <span class="face" style:background={breed.color}><Icon name={breed.kind} size="80%" /></span>
     <span class="name">{pet.name}</span>
-    <span class="breed">{breed.name}</span>
+    <span class="breed">{breed.name}・うちに きて {daysTogether(pet, Date.now())} にちめ</span>
     <span class="hearts" role="img" aria-label="なかよし {love}">
       {#each { length: 5 }, i (i)}
         <span class:dim={i >= love}><Icon name="heart" /></span>
@@ -94,8 +94,12 @@
   }
 
   .breed {
+    overflow: hidden;
+    min-width: 0;
     color: var(--line-soft);
     font-size: 0.75em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .hearts {
