@@ -376,6 +376,12 @@ export function parade(world: World, drawings: Stroke[][]): void {
 
 const TAP = 0.015;
 
+/** まとまり全体がタップ程度の大きさしかない（押しそこねた指の跡）。動かしはするが、ずかんには残さない */
+export function speck(strokes: Stroke[]): boolean {
+  const [l, t, r, b] = bounds(strokes.flatMap((s) => s.pts));
+  return Math.max(r - l, b - t) <= TAP * 2;
+}
+
 /**
  * 指をほとんど動かさずに離した線が、画面の子の上なら跳ねさせる。いちばん手前の子を選ぶ。
  * 描きかけの絵のそばは点（目など）を打つ場所なので、子が通りかかっても跳ねさせない
