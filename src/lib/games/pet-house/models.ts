@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { version } from '$app/environment';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { BREEDS } from './breeds';
 import { accessory, hit } from './accessories';
@@ -109,10 +108,11 @@ const ATTRS = { position: 3, normal: 3, color: 3, furLen: 1, furComb: 3, skinInd
 type Saved = Record<keyof typeof ATTRS | 'index', Float32Array | Uint16Array | Uint32Array>;
 const saved = new Map<string, { geo: Saved; shell: Saved }>();
 const STORE = 'shapes';
+const shapesVersion = __PET_SHAPES__;
 let opened: Promise<IDBDatabase | null> | undefined;
 
 function shapeDb() {
-  return (opened ??= new Promise((ok) => {
+  opened ??= new Promise((ok) => {
     try {
       const req = indexedDB.open('asobibako-pet-house', 1);
       req.onupgradeneeded = () => req.result.createObjectStore(STORE);
@@ -122,7 +122,12 @@ function shapeDb() {
       // 使えない所（プライベートブラウズ・テスト）では毎回作る
       ok(null);
     }
-  }));
+  });
+  // 開けなかったときは覚え続けず、次に開いたとき試しなおす
+  void opened.then((db) => {
+    if (!db) opened = undefined;
+  });
+  return opened;
 }
 
 /** 控えてある形を読みこむ。前の版の控えはここで捨てる */
@@ -135,12 +140,12 @@ export async function loadShapes(ids: readonly BreedId[], q: Quality): Promise<v
       const st = tx.objectStore(STORE);
       const keys = st.getAllKeys();
       keys.onsuccess = () => {
-        for (const k of keys.result) if (!String(k).startsWith(`${version}:`)) st.delete(k);
+        for (const k of keys.result) if (!String(k).startsWith(`${shapesVersion}:`)) st.delete(k);
       };
       for (const id of ids) {
         const key = `${id}:${q}`;
         if (bodies.has(key)) continue;
-        const r = st.get(`${version}:${key}`);
+        const r = st.get(`${shapesVersion}:${key}`);
         r.onsuccess = () => r.result && saved.set(key, r.result);
       }
       tx.oncomplete = tx.onerror = tx.onabort = () => ok();
@@ -170,7 +175,7 @@ function keepShapes(key: string, geo: THREE.BufferGeometry, shell: THREE.BufferG
     try {
       db?.transaction(STORE, 'readwrite')
         .objectStore(STORE)
-        .put({ geo: toSaved(geo), shell: toSaved(shell) }, `${version}:${key}`);
+        .put({ geo: toSaved(geo), shell: toSaved(shell) }, `${shapesVersion}:${key}`);
     } catch {
       // 容量が足りないときは控えないだけ
     }

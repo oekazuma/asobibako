@@ -8,6 +8,8 @@ declare global {
     // interface PageState {}
     // interface Platform {}
   }
+  /** ペットの形の控えの版（vite.config.ts が形のコードの中身から作る） */
+  const __PET_SHAPES__: string;
 }
 
 export {};

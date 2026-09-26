@@ -63,6 +63,10 @@ const hips = (id: BreedId) => {
 };
 
 describe('pet-house models', () => {
+  it('__PET_SHAPES__ はビルド時刻や git ではなく形のコードから作られる', () => {
+    expect(__PET_SHAPES__).toMatch(/^[0-9a-f]{12}$/);
+  });
+
   it.each(BREED_IDS)('%s は立った姿の背の高さ（耳の先まで、しっぽは除く）が実物に近く、足が床に着く', (id) => {
     const pet = createPet(id);
     pet.update('stand', 1 / 60, o);

@@ -2,6 +2,8 @@
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { execSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { readFileSync, readdirSync } from 'node:fs';
 import { defineConfig } from 'vite';
 
 import { svelteVitals } from '@svelte-vitals/vite';
@@ -19,7 +21,20 @@ const gitHash = (() => {
   }
 })();
 
+// ペットの形の控え（IndexedDB）の版。形を作るコードと three が変わったときだけ変え、ほかのゲームのデプロイで組み直させない
+const petShapes = (() => {
+  const dir = 'src/lib/games/pet-house';
+  const hash = createHash('sha1');
+  for (const f of readdirSync(dir)
+    .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'))
+    .sort())
+    hash.update(f).update(readFileSync(`${dir}/${f}`));
+  hash.update(readFileSync('node_modules/three/package.json'));
+  return hash.digest('hex').slice(0, 12);
+})();
+
 export default defineConfig({
+  define: { __PET_SHAPES__: JSON.stringify(petShapes) },
   plugins: [
     svelteVitals(),
     sveltekit({
