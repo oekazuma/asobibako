@@ -10,8 +10,11 @@ import type { BaseScene, ToyId, TrickId } from './types';
 /** 場面の出入りのうち、Session が持っているもの */
 export interface Stage {
   enter(target: BaseScene | ActivityScene): void;
-  /** 「いどうちゅう」を 1 度描かせてから run する。重ねて呼んだら、あとのほうは捨てる */
-  go(label: string, run: () => void): void;
+  /**
+   * 「いどうちゅう」を 1 度描かせてから run する。重ねて呼んだら、あとのほうは捨てる。
+   * `ready` を渡すと、それが片づくまで「いどうちゅう」を出したまま待つ（最長 1.5 秒）
+   */
+  go(label: string, run: () => void, ready?: Promise<unknown>): void;
   /** 置いている指・ねこじゃらし・芸の途中をやめる */
   pause(): void;
   /** 部屋へ戻ったあと、いまのペットに合うおもちゃに持ち替えて保存する */
