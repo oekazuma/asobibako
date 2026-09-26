@@ -5,6 +5,7 @@
   import Backup from '$lib/components/Backup.svelte';
   import GraphicsSetting from '$lib/components/GraphicsSetting.svelte';
   import Icon from '$lib/components/Icon.svelte';
+  import MirrorRestore from '$lib/components/MirrorRestore.svelte';
   import { pwaStatus, type PwaStatus } from '$lib/pwa';
 
   let status = $state<PwaStatus>({ standalone: false, swActive: false, cached: false });
@@ -63,6 +64,11 @@
         到達したレベル・さいきん
         あそんだゲーム・えらんだタブ・ミュートは、この端末の中にだけ保存します。サーバーには送りません。下の「バックアップ」で、記録をファイルに書き出して別の端末へ移せます。
       </p>
+    </section>
+
+    <section class="card">
+      <h2>この端末の控え</h2>
+      <MirrorRestore />
     </section>
 
     <section class="card">

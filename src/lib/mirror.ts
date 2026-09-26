@@ -1,7 +1,7 @@
 // 記録の控え。localStorage の記録（バックアップと同じ JSON）を、別のファイルに置かれる IndexedDB へ写しておく。
 // iOS のホーム画面アプリは、固まって終わらされたあとに localStorage がまるごと空になることがある。
 // 起動したときに記録が 1 つもなく控えがあれば、控えから全部戻す
-import { exportAll, hasRecords, importAll, parseBackup, RESTORE_PENDING_KEY } from './backup';
+import { exportAll, hasRecords, importAll, parseBackup, RESTORE_PENDING_KEY, type Backup } from './backup';
 
 export interface Store {
   get(): Promise<string | undefined>;
@@ -112,6 +112,16 @@ function restore(text: string | undefined): boolean {
     return !!text && importAll(parseBackup(text));
   } catch {
     return false;
+  }
+}
+
+/** いまの控え。無い・壊れている・待ちきれないときは null。アプリについてで見せて、保護者が手で戻すのに使う */
+export async function peek(store = idb, wait = RESTORE_WAIT): Promise<Backup | null> {
+  try {
+    const text = await Promise.race([store.get(), new Promise<typeof LATE>((r) => setTimeout(() => r(LATE), wait))]);
+    return typeof text === 'string' ? parseBackup(text) : null;
+  } catch {
+    return null;
   }
 }
 
