@@ -4,7 +4,6 @@ import { BREED_IDS, BREEDS } from './breeds';
 import { LOOKS } from './looks';
 import { FOAM_SPOTS, createPet } from './models';
 import { field } from './sculpt';
-import type { Quality } from '$lib/graphics.svelte';
 import type { AccessoryId, BreedId, PetAction } from './types';
 
 const ACTIONS: PetAction[] = [
@@ -39,7 +38,8 @@ const ACTIONS: PetAction[] = [
 ];
 const ACCESSORIES: AccessoryId[] = ['collar-red', 'collar-blue', 'ribbon', 'hat', 'bandana'];
 const o = { speed: 0.7, wag: 1, look: 0.5, t: 0 };
-const QUALITIES: Quality[] = ['high', 'normal', 'low'];
+/** 殻をやめて体は 1 枚になったので、汚れ・バンダナを着けても描く物は少ない（犬で 15） */
+const DRAW_LIMIT = 18;
 
 /** 骨で曲げたあとの体の面の箱。tail が false ならしっぽの頂点を除く */
 function bodyBox(group: THREE.Group, tail = true) {
@@ -169,48 +169,21 @@ describe('pet-house models', () => {
     expect(at().y).toBeLessThan(0.12);
   });
 
-  it.each(BREED_IDS.flatMap((id) => QUALITIES.map((q) => [id, q] as const)))(
-    '%s（%s）は汚れてバンダナを着けても、1 匹の描く物（mesh と線）が画質ごとの上限以下（normal で 30）',
-    (id, q) => {
-      const pet = createPet(id, q);
-      pet.setAccessory('bandana');
-      pet.setDirt(1);
-      pet.update('happy', 1 / 60, o);
-      let n = 0;
-      pet.group.traverseVisible((obj) => {
-        if ((obj as THREE.Mesh).isMesh || (obj as THREE.LineSegments).isLineSegments) n++;
-      });
-      expect(n).toBeLessThanOrEqual({ high: 40, normal: 30, low: 24 }[q]);
-    }
-  );
-
-  it('画質が上がるほど殻が多く、low は殻を 2 枚まで減らす', () => {
-    const shells = (q: Quality) => createPet('shiba', q).group.getObjectsByProperty('isSkinnedMesh', true).length - 1;
-    expect(shells('high')).toBeGreaterThan(shells('normal'));
-    expect(shells('normal')).toBeGreaterThan(shells('low'));
-    expect(shells('low')).toBe(2);
+  it.each(BREED_IDS)('%s は汚れてバンダナを着けても、1 匹の描く物（mesh と線）が上限以下', (id) => {
+    const pet = createPet(id);
+    pet.setAccessory('bandana');
+    pet.setDirt(1);
+    pet.update('happy', 1 / 60, o);
+    let n = 0;
+    pet.group.traverseVisible((obj) => {
+      if ((obj as THREE.Mesh).isMesh || (obj as THREE.LineSegments).isLineSegments) n++;
+    });
+    expect(n).toBeLessThanOrEqual(DRAW_LIMIT);
   });
 
-  it('setQuality は形を入れ替えても、かっこう・アクセサリー・汚れ・咥えたおもちゃを引き継ぐ', () => {
-    const pet = createPet('mike');
-    pet.setAccessory('ribbon');
-    pet.setDirt(1);
-    for (let f = 0; f < 90; f++) pet.update('sit', 1 / 60, o);
-    const toy = new THREE.Object3D();
-    pet.mouth.add(toy);
-    const hipsY = pet.group.getObjectByName('hips')!.position.y;
-    const before = pet.group.getObjectsByProperty('isSkinnedMesh', true).length;
-    pet.setQuality('low');
-    expect(pet.group.children).toHaveLength(1);
-    expect(pet.group.getObjectsByProperty('isSkinnedMesh', true).length).toBeLessThan(before);
-    expect(pet.group.getObjectByName('hips')!.position.y).toBeCloseTo(hipsY, 5);
-    const shown = pet.group.getObjectsByProperty('name', 'accessory').filter((a) => a.visible);
-    expect(shown.map((a) => a.userData.id)).toEqual(['ribbon']);
-    const skin = (g: THREE.Object3D) =>
-      (g.getObjectsByProperty('isSkinnedMesh', true)[0] as THREE.SkinnedMesh).material;
-    expect(skin(pet.group)).not.toBe(skin(createPet('mike', 'low').group));
-    expect(toy.parent).toBe(pet.mouth);
-    pet.update('sit', 1 / 60, o);
+  it('毛の殻は使わず、体の SkinnedMesh は 1 枚だけ', () => {
+    const pet = createPet('shiba');
+    expect(pet.group.getObjectsByProperty('isSkinnedMesh', true)).toHaveLength(1);
   });
 
   it('ぬれた子だけ毛の material がつやのある別のものになり、乾くと元の共有の material に戻る', () => {
@@ -275,8 +248,8 @@ describe('pet-house models', () => {
     expect(run()).toBe(true);
   });
 
-  it.each(QUALITIES)('%s でも泡は量に合わせて見え、体の上にあり、ぬれと泡は画質を変えても残る', (q) => {
-    const pet = createPet('mike', q);
+  it('泡は量に合わせて見え、体の上にあり、ぬれると毛の material もつやが出る', () => {
+    const pet = createPet('mike');
     const shown = () => pet.group.getObjectsByProperty('name', 'foam').filter((m) => m.visible).length;
     expect(shown()).toBe(0);
     const levels = new Array(FOAM_SPOTS).fill(0);
@@ -290,7 +263,6 @@ describe('pet-house models', () => {
     const back = pet.foamAt(0, new THREE.Vector3());
     expect(back.y).toBeGreaterThan(0.15);
     expect(back.y).toBeLessThan(0.35);
-    pet.setQuality(q === 'low' ? 'high' : 'low');
     expect(shown()).toBeGreaterThanOrEqual(4);
     const skin = pet.group.getObjectsByProperty('isSkinnedMesh', true)[0] as THREE.SkinnedMesh;
     expect((skin.material as THREE.MeshStandardMaterial).roughness).toBeLessThan(0.6);

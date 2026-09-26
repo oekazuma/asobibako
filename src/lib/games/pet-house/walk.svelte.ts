@@ -1,5 +1,4 @@
 import { Vector3 } from 'three';
-import { graphics } from '$lib/graphics.svelte';
 import type { Activity, ActivityHost, Follow } from './activity';
 import type { Actor } from './behavior';
 import { BREED_IDS, BREEDS } from './breeds';
@@ -79,7 +78,7 @@ export class WalkPlay implements Activity {
 
   // 途中で出会うほかの犬がどの種類か分からないので、犬ぶんの形を読んでおく
   prepare(): Promise<unknown> {
-    return loadShapes(DOGS, graphics.quality);
+    return loadShapes(DOGS);
   }
 
   enter(host: ActivityHost): void {
@@ -294,7 +293,7 @@ export class WalkPlay implements Activity {
       this.#done.push(stop);
       const others = DOGS.filter((b) => b !== host.pet.breed);
       const breed = others[Math.floor(Math.random() * others.length)];
-      const model = createPet(breed, graphics.quality);
+      const model = createPet(breed);
       // 道の group に入れると、場面の片付け（release）が全ペット共有の毛の材質と形まで捨ててしまう
       host.world.scene.add(model.group);
       this.#npc = { model, breed, x: 0.4, z: stop.z - 5, heading: 0, state: 'come' };

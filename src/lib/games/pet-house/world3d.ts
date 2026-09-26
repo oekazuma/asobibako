@@ -4,7 +4,6 @@ import type { ActivityScene, Built, Follow, HeldCamera } from './activity';
 import type { Actor, Toy, WorldView } from './behavior';
 import type { Pet } from './engine';
 import { LAYOUTS, ROOM, type Layout, type Perch } from './layout';
-import { graphics, type Quality } from '$lib/graphics.svelte';
 import { NATURAL_ROOM, type RoomLook } from './decor';
 import { daylight, now, type Daylight } from './daytime';
 import { createPet, type PetModel } from './models';
@@ -152,7 +151,6 @@ export class PetWorld {
   #actors: Actor[] = [];
   #w = 1;
   #h = 1;
-  #quality: Quality | null = null;
   /** 絵を上へずらす割合（画面の高さに対して）。下をシートがふさいでも、試着したペットを上に見せる */
   lift = 0;
   #lifted = 0;
@@ -164,6 +162,8 @@ export class PetWorld {
     this.#day = daylight(c.hour, c.weather);
     this.#sunDir.set(...this.#day.sun.dir);
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    // 遊ぶ端末（iPad Air 2025）の力に合わせた固定値。それより低い devicePixelRatio の端末はそのまま使う
+    this.renderer.setPixelRatio(Math.min(1.5, devicePixelRatio));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 0.95;
     this.renderer.shadowMap.enabled = true;
@@ -304,25 +304,7 @@ export class PetWorld {
     this.#sun.position.copy(this.#sun.target.position).addScaledVector(this.#sunDir, 6);
   }
 
-  /** 設定の画質を、画面の細かさ・影・毛並みに映す。設定の画面で変えたらすぐ効くよう毎フレーム見る */
-  #applyQuality(): Quality {
-    const q = graphics.quality;
-    if (q === this.#quality) return q;
-    this.#quality = q;
-    this.renderer.setPixelRatio(Math.min({ high: 1.5, normal: 1.25, low: 1 }[q], devicePixelRatio));
-    this.renderer.setSize(this.#w, this.#h, false);
-    const size = q === 'low' ? 1024 : 2048;
-    if (this.#sun.shadow.mapSize.x !== size) {
-      this.#sun.shadow.mapSize.set(size, size);
-      this.#sun.shadow.map?.dispose();
-      this.#sun.shadow.map = null;
-    }
-    for (const view of this.#pets.values()) view.model.setQuality(q);
-    return q;
-  }
-
   syncPets(pets: Pet[]): void {
-    const quality = this.#applyQuality();
     // 初めて使う種類の組み立ては 1 匹で数百 ms かかる。控えから読めた形なら 1 匹 10〜20ms なので、
     // 1 回の呼び出しで 40ms までは続けて作り、それを超えたら次のフレームへ回す（少なくとも 1 匹は作る）。
     // まだ組み立てていない子は #pets に入れないので update() は落ちない
@@ -343,7 +325,7 @@ export class PetWorld {
           continue;
         }
         built++;
-        const model = createPet(pet.breed, quality);
+        const model = createPet(pet.breed);
         const size = new THREE.Box3().setFromObject(model.group).getSize(this.#v);
         const blob = new THREE.Mesh(blobGeometry, this.#blob);
         blob.scale.set(size.x * 1.5, 1, size.z * 1.25);

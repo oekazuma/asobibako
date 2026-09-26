@@ -1,6 +1,5 @@
 import { MUTED_KEY } from './audio.svelte';
 import { GATE_KEY } from './gate.svelte';
-import { GRAPHICS_KEY } from './graphics.svelte';
 import { LAST_ERROR_KEY } from './last-error';
 import { MENU_TAB_KEY, RECENT_KEY } from './recent';
 import { today } from './today';
@@ -11,8 +10,9 @@ export type Backup = { app: 'asobibako'; version: string; at: string; data: Reco
 const PREFIX = 'asobibako:';
 /** 前の起動で控えを読み切れなかった印。端末ごとの状態なので書き出さない */
 export const RESTORE_PENDING_KEY = 'asobibako:restore-pending';
-// 端末ごとの控え。持ち運ぶと別の端末のエラーやゲートの回数、端末の力に合わせた画質が混ざる
-const EXCLUDED = new Set([LAST_ERROR_KEY, GATE_KEY, GRAPHICS_KEY, RESTORE_PENDING_KEY]);
+// 端末ごとの控え。持ち運ぶと別の端末のエラーやゲートの回数が混ざる。
+// 'asobibako:graphics' は前の版の画質の設定。端末ごとの値なので持ち込まない
+const EXCLUDED = new Set([LAST_ERROR_KEY, GATE_KEY, 'asobibako:graphics', RESTORE_PENDING_KEY]);
 
 // 常識外のファイルを弾く上限。わんにゃんハウスの写真やらくがきパレードのずかんで 1MB を超えるが、
 // localStorage そのものが数 MB までなので、それより大きな正規の書き出しはない。キーはゲーム数 + 数個
