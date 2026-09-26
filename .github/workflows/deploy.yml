@@ -29,6 +29,9 @@ jobs:
       - name: Setup Node.js and dependencies
         uses: ./.github/workflows/setup-node
 
+      - name: Run Vitest
+        run: pnpm test:run
+
       - name: Run Build
         run: pnpm build
         env:

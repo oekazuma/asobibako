@@ -69,6 +69,6 @@ bomb-relay と hockey は物理があるのでループで動かす。ルール�
 
 svelte-vitals は `svelte-vitals.config.ts` の方針（個人用・noindex なので共有向け SEO 規則はオフ、`src/lib/*` は kebab-case、全ページに `<main>`、`failOn: 'warning'`）で動く。markuplint は `pnpm lint` の中で `src/**/*.svelte` と `src/app.html` を検査する（警告も失敗扱い）。外している規則とその理由は `.markuplintrc.jsonc` のコメントにある。
 
-依存は `pnpm-workspace.yaml` の catalog で一元管理し（`minimumReleaseAge` あり）、Renovate が minor/patch を自動マージする。CI（`.github/workflows/ci.yml`）は PR では lint（+ svelte-vitals 全体スキャン）/ check / test / build を並列に、`main` への push では build を除く 3 つを回す（ビルドと配信は `deploy.yml`）。
+依存は `pnpm-workspace.yaml` の catalog で一元管理し（`minimumReleaseAge` あり）、Renovate が minor/patch を自動マージする。CI（`.github/workflows/ci.yml`）は PR では lint（+ svelte-vitals 全体スキャン）/ check / test / build を並列に、`main` への push では build を除く 3 つを回す（ビルドと配信は `deploy.yml` で、ビルドの前に `pnpm test:run` を通す）。
 
 GitHub Pages のサブパス配下で動かすため、アセットは `$app/paths` 経由か `%sveltekit.assets%` で参照する。CSP はヘッダを出せないぶん `vite.config.ts` の `csp`（`mode: 'hash'`）が `<meta http-equiv>` で配る。Service Worker は `build` / `files` / `prerendered` をまとめてキャッシュする（GitHub Pages が配信しないファイルを `files` に入れると `addAll` ごと失敗してインストールされない）。
