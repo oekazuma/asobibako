@@ -22,7 +22,7 @@
     toys: ToyId[];
     onpick: (tool: Tool, toy?: ToyId) => void;
     onphoto: () => void;
-    /** 声で呼ぶボタンが芸や呼ぶを頼む先 */
+    /** おふろへ行く・投げたおもちゃを待つのに使う */
     session: Session;
   } = $props();
 

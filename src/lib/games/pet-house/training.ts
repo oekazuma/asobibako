@@ -4,7 +4,7 @@ import type { Core } from './core';
 import { sounds } from './sounds';
 import type { TrickId } from './types';
 
-/** 芸。ボタンでさせて、なでるか声でほめる。リズムあそび（rhythm-play.svelte.ts）の成績もここでほめる */
+/** 芸。ボタンでさせて、なでてほめる。リズムあそび（rhythm-play.svelte.ts）の成績もここでほめる */
 export class Training {
   readonly #c: Core;
 

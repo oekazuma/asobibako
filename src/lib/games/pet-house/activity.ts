@@ -29,7 +29,7 @@ import type { PetWorld } from './world3d';
  *   down / move / up が true を返した指は、ふつうの処理へ渡さない
  * - ペットの出来事（caught・fetched など）は Session の演出より先に event へ渡る。true を返すと
  *   Session の演出とげんきの減りを飛ばす
- * - しつけのボタンと声の芸（session.trick）は、モードのあいだ trick へ渡る（無ければ何もしない）
+ * - しつけのボタン（session.trick）は、モードのあいだ trick へ渡る（無ければ何もしない）
  * - 終わるときは `host.end()`。部屋へ戻り、持ち替えた道具も戻して、session.activity は null になる。
  *   戻るのは 2 フレームあとで、それまでは frame が呼ばれつづけ、重ねて呼んだ end() は捨てる
  * - Session は描く回数を減らして発熱を抑えるので、動きの細かさが遊びそのもののモード（リズムあそび）は smooth を true にする。

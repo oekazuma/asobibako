@@ -10,7 +10,7 @@ iPad 1 台をテーブルに置き、画面の上下から 2 人が同時に操�
 
 ```bash
 pnpm dev                      # http://localhost:5173/asobibako/
-pnpm test:run                 # vitest 一括実行（unit プロジェクト、happy-dom）。pnpm test で watch
+pnpm test:run                 # vitest 一括実行（node の unit と happy-dom の dom の 2 project）。pnpm test で watch
 pnpm lint                     # prettier --check と eslint と markuplint（CI と同じ）
 pnpm check                    # svelte-check と tsconfig.scripts.json の型チェック
 pnpm vitals                   # svelte-vitals の全体スキャン。編集後は `pnpm vitals --diff`
@@ -35,7 +35,7 @@ border-rush の盤面は、境界線の移動を `transform` だけで表現し�
 
 粒・群れ・動物など多数の動くものは DOM ではなく canvas 1 枚に描く（影付きの DOM を大量に動かすと iPad で 10 倍以上遅くなった）。絵文字は使わない（端末で見た目が変わり、チープに見えるため）。アイコンは `src/lib/icons.ts` に SVG パスで定義し、DOM では `src/lib/components/Icon.svelte`、canvas では `src/lib/fx.ts` の `icon()` で描く（パーティクル・浮かぶ文字・画面の揺れ・絵のキャッシュも `fx.ts` にある）。雪原サバイバルは three で描き、人や動物は球・円柱などの組み合わせで作る（`snow-camp/models.ts`）。線分との当たり判定は `src/lib/segments.ts`。
 
-bomb-relay と hockey は物理があるのでループで動かす。ルールと物理はそれぞれの `engine.ts` に閉じ、はじく速さは `fingers.ts` の `velocity()` で出す。hockey は速いパックと速く振ったマレットがすり抜けないよう、動く量に応じて 1 フレームを細かく分けて当たり判定し、そのあいだのマレット位置は前のフレームから補間する。爆弾の位置・脈・熱はループが DOM に直接書き、Svelte の状態にはメーター・持ち主・爆発のように変化が少ないものだけを載せる。座標は盤面の幅・高さに対する 0..1 で、距離と速さは高さを 1 とした単位に揃えている（縦向き・横向きで手触りを変えないため）。
+bomb-relay と hockey は物理があるのでループで動かす。ルールと物理はそれぞれの `engine.ts` に閉じ、bomb-relay のはじく速さは `fingers.ts` の `velocity()`、hockey のマレットの速さは `engine.ts` の `updateMallets` が前のフレームの位置から出す。hockey は速いパックと速く振ったマレットがすり抜けないよう、動く量に応じて 1 フレームを細かく分けて当たり判定し、そのあいだのマレット位置は前のフレームから補間する。爆弾の位置・脈・熱はループが DOM に直接書き、Svelte の状態にはメーター・持ち主・爆発のように変化が少ないものだけを載せる。座標は盤面の幅・高さに対する 0..1 で、距離と速さは高さを 1 とした単位に揃えている（縦向き・横向きで手触りを変えないため）。
 
 わんにゃんハウス（`pet-house`）は子犬 8 種・子猫 7 種と触れ合う自由あそび（`levels: 1`）で、three で描く。ステータス・コイン・おみせ・芸・保存は `engine.ts`、ペットの行動とおもちゃの物理は `behavior.ts` が DOM も three も使わずに持ち、`session.svelte.ts` が両者と 3D（`world3d.ts`）・画面をつなぐ。Session 本体は画面から見える状態・ボタンと指の口・場面の出入りだけを持ち、投げるおもちゃとねこじゃらし（`toys.ts`）・なでるとブラシ（`rubbing.ts`）・芸のボタンとほめる（`training.ts`）・ペットの出来事の演出と公園のプレゼント（`reactions.ts`）・お皿（`bowls.ts`）・スタンプを押す列（`stamp-queue.ts`）・遊びのモードの出入り（`modes.ts`）は部品に分けてある。部品は Session の中身を `core.ts` の `Core`（actors・view・world・fx・say など、場面が変わっても今のものを返す口）で受け取る。部屋と公園の範囲・お皿・ベッド・カメラは `layout.ts` の 1 か所で、行動と 3D が同じ数字を使う。コンテスト・おふろ・リードのおさんぽ・ふれあいひろば（ペットを選ぶ 3D の広場）・しつけのリズムあそびは「遊びのモード」として `activity.ts` の口に挿し、それぞれ自分の場面（`scene-*.ts`）と HUD を持つ（挿し方は `activity.ts` の先頭のコメント）。ふれあいひろばは全種類を一度に組み立てると重いので、飼っていない種類から犬と猫を 4 匹ずつ出し、「ほかの子たち」で入れ替える（`plaza.svelte.ts` の `roster`）。場面の組み立ては数百 ms 止まるので、Session は「いどうちゅう…」を 1 度描かせてから組み立てる（`moving`）。部屋の模様替えは `decor.ts`（テーマと部位・値段・持ちもの）と `scene-room.ts` / `room-furniture.ts` / `room-textures.ts` で、部位ごとに作り直す。アクセサリーは `accessories.ts` がペットごとに首や頭の形を測って合わせ、体と同じ骨で曲げる。ねこじゃらしのひもと羽根の揺れは `wand.ts` の質点ばね。BGM は `bgm.ts`（曲は `songs.ts`）が場面ごとのループを AudioContext の時計で先読みして鳴らし、鳴き声は `cries.ts` がフォルマントで種類ごとに合成する。どちらも `$lib/audio.svelte` の `bus()`（wake 前・ミュート中は無い）から出す。ソファとベッドは `layout.ts` の `roomPerches()` が返す「乗る場所」で、ペットは高さ（`Actor.y`）を持って飛び乗る。なでた場所（頭・あご・おなか・しっぽなど）は `world3d.ts` の `pickPart` が骨を覆う丸で決め、場所ごとの好き嫌いと反応は `petting.ts` の表にある。しつけの「おしえる」はリズムあそび（`rhythm-play.svelte.ts`）で、曲に合わせて流れてくるノーツを芸ごとの指の動き（タップ・スワイプ・ぐるっと・長押し）で叩き、1 曲の成績で覚えた回数が進む。譜面・判定・成績・曲の時計は `rhythm.ts`、レーンの絵は `rhythm-draw.ts` で、曲は `bgm.ts` の `Tune` が同じ時計に合わせて鳴らす。時計は音が鳴っていれば AudioContext の時刻から出力の遅れを引いたもの、ミュート中は performance の時刻で進め、切り替わっても飛ばない。このモードは `smooth` で描く回数を 60 に保つ。スタンプ帳の条件とごほうびは `stamps.ts`（数える値は Save の `counters`）。組み立てたペットの形は重いので、版ごとに IndexedDB（`asobibako-pet-house`）へ控え、タイトルのあいだに読む。ペットのモデル（`models.ts`）は種類ごとの寸法の表（`looks.ts`）と action ごとの目標のかっこう（`pose.ts`）から、なめらかな 1 枚の体（`sculpt.ts`）を骨で曲げ、体・胸・しっぽに毛の殻（`fur.ts`）を重ねて組む。顔は殻を使わず短い毛並みを面に描く。足の短い種類（コーギー・ダックス・マンチカン）は `looks.ts` の `lower()` が胴の下の足だけを縦に縮め、`models.ts` の `shorten()` がかっこうの腰の下げ方を浅くし、おすわりでは胸から上を起こして床に沈まないようにする。3D の画質は `src/lib/graphics.svelte.ts`（`asobibako:graphics`、端末ごとの設定なのでバックアップに入れない）で、アプリについての「がしつ」から選ぶ。保存は `asobibako:pet-house`（写真は `asobibako:pet-house:photos`）で、閉じていたあいだの減りは開いたときと前面に戻ったときだけ `catchUp()` でまとめて入れ、下限より下げない。`save` は深い `$state` なので、ゆっくり変わるステータスはループの中で 0.25 秒ごとにまとめて進める。時間帯と天気は `daytime.ts`（端末の時計と日付から決まる）が光・空・窓の外を決め、雨・雪・星は `sky3d.ts` が描く。ペット同士の交流（あいさつ・じゃれ合い・毛づくろい・くっつき寝）と体の押しのけは `social.ts` が種類ごとの体の形で決める。
 
@@ -55,7 +55,7 @@ bomb-relay と hockey は物理があるのでループで動かす。ルール�
 
 ## 更新
 
-新版の検知は SvelteKit の `version.pollInterval`（5 分）と、画面が前面に戻ったときの `updated.check()`（`+layout.svelte`、1 分に 1 回まで）で行う。ホーム画面のアプリはページ遷移が少なくポーリングも止まりがちなため。一覧の右上の「？」（`.round`）は `/about`（アプリについて）へのリンクで、新版があるとき（`updated.current`）は赤い点を付ける。`/about` は更新（`AppUpdate.svelte`）・アプリの状態・3D の画質（`GraphicsSetting.svelte`）・データの扱いのカードを縦に並べる。`AppUpdate.svelte` は新版があるときだけ「最新版に更新」を出し、`src/lib/pwa.ts` の `updateApp()` が新しい Service Worker の取り込みを待ってから読み直す（30 秒で見切る）。アプリの状態（ホーム画面からの起動・Service Worker・`asobibako-` のキャッシュ）は同じファイルの `pwaStatus()` が mount 後に読む。
+新版の検知は SvelteKit の `version.pollInterval`（5 分）と、画面が前面に戻ったときの `updated.check()`（`+layout.svelte`、1 分に 1 回まで）で行う。ホーム画面のアプリはページ遷移が少なくポーリングも止まりがちなため。一覧の右上の「？」（`.round`）は `/about`（アプリについて）へのリンクで、新版があるとき（`updated.current`）は赤い点を付ける。`/about` は更新（`AppUpdate.svelte`）・アプリの状態・3D の画質（`GraphicsSetting.svelte`）・データの扱い・バックアップ（`Backup.svelte`）のカードを縦に並べる。`AppUpdate.svelte` は新版があるときだけ「最新版に更新」を出し、`src/lib/pwa.ts` の `updateApp()` が新しい Service Worker の取り込みを待ってから読み直す（30 秒で見切る）。アプリの状態（ホーム画面からの起動・Service Worker・`asobibako-` のキャッシュ）は同じファイルの `pwaStatus()` が mount 後に読む。
 
 ## 入力
 

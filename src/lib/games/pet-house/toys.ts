@@ -127,30 +127,6 @@ export class Toys {
     sounds.throw(kind);
   }
 
-  /**
-   * 声の「とってこい」。いまの子のおもちゃ（犬はボール、猫はねずみ）を、カメラの手前から奥へ投げる。
-   * 投げたものが戻るまで次を投げられないのは、指で投げるのと同じ
-   */
-  toss() {
-    const c = this.#c;
-    const pet = c.s.current;
-    if (!pet) return;
-    if (c.s.away) return c.say('いま なげてるよ。もってくるまで まってね');
-    const dog = kindOf(pet.breed) === 'dog';
-    const kind = (dog ? (['ball', 'frisbee'] as const) : (['mouse', 'ball'] as const)).find((t) =>
-      c.s.save.toys.includes(t)
-    );
-    if (!kind) return c.say(`${dog ? 'ボール' : 'ねずみの おもちゃ'}が ないよ。おみせで かってね`);
-    c.s.setTool('toy', kind);
-    const layout = c.layout;
-    const park = c.s.scene !== 'room';
-    const [h, v] = kind === 'frisbee' ? [park ? 5 : 3, 0.6] : kind === 'ball' ? [park ? 4 : 2.4, 1.6] : [2, 0];
-    const dx = (Math.random() - 0.5) * 0.4;
-    const from = { x: layout.front.x, y: kind === 'mouse' ? 0.03 : 0.55, z: layout.bounds.z1 };
-    c.view.toy = throwToy(kind, from, { x: dx * h, y: v, z: -h });
-    sounds.throw(kind);
-  }
-
   /** 床で弾んだ音（落ちる速さが上向きに変わった瞬間）と、転がるねずみの中の粒の音 */
   #sound(dt: number) {
     const c = this.#c;
