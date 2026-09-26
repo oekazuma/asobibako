@@ -20,8 +20,6 @@ const MAX_KEYS = 400;
 const MAX_CHARS = 16 * 1024 * 1024;
 /** 最後に書き出した日（YYYY-MM-DD）。書き出しにも入るので、別の端末へ移しても「いつの控えか」が残る */
 export const BACKUP_AT_KEY = 'asobibako:backup-at';
-/** これより前に書き出したきりなら、一覧の「？」に印を付けて書き出しを勧める */
-const DUE_DAYS = 7;
 // 書き出しには入れるが「記録がある」とは数えない。ゲームを開くだけで書かれるので、これで記録ありとみなすと、
 // 消えたあとの起動で控えから戻さず、空に近い中身で控えを上書きしてしまう
 const NOT_RECORDS = new Set([BACKUP_AT_KEY, RECENT_KEY, MENU_TAB_KEY, MUTED_KEY]);
@@ -48,17 +46,6 @@ export function backedUpAt(): string | null {
   } catch {
     return null;
   }
-}
-
-/** 記録があるのに、まだ書き出していないか最後の書き出しが DUE_DAYS 日より前 */
-export function backupDue(now = today()): boolean {
-  try {
-    if (!hasRecords()) return false;
-  } catch {
-    return false;
-  }
-  const at = backedUpAt();
-  return !at || (Date.parse(now) - Date.parse(at)) / 86_400_000 > DUE_DAYS;
 }
 
 export function exportAll(version: string): string {

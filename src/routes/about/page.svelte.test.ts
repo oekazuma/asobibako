@@ -17,7 +17,7 @@ describe('アプリについて', () => {
       '更新',
       'アプリの状態',
       'データについて',
-      'この端末の控え',
+      '自動バックアップ',
       'バックアップ'
     ]);
     expect(target.querySelector('.update')).not.toBeNull();

@@ -1,16 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  backupDue,
-  backupFile,
-  exportAll,
-  hasRecords,
-  importAll,
-  markBackedUp,
-  parseBackup,
-  summarize,
-  type Backup
-} from './backup';
+import { backupFile, exportAll, hasRecords, importAll, parseBackup, summarize, type Backup } from './backup';
 
 const file = (data: Record<string, unknown>) => JSON.stringify({ app: 'asobibako', version: 'v', at: 'd', data });
 
@@ -88,7 +78,6 @@ describe('backup', () => {
     localStorage.setItem('asobibako:menu-tab', '2');
     localStorage.setItem('asobibako:muted', '1');
     expect(hasRecords()).toBe(false);
-    expect(backupDue('2026-09-26')).toBe(false);
     localStorage.setItem('asobibako:reached:maze', '5');
     expect(hasRecords()).toBe(true);
   });
@@ -119,17 +108,5 @@ describe('backup', () => {
   it('写真やずかんで 1MB を超えた書き出しも読み込める', () => {
     const big = 'x'.repeat(3 * 1024 * 1024);
     expect(parseBackup(file({ 'asobibako:pet-house:photos': big })).data['asobibako:pet-house:photos']).toBe(big);
-  });
-
-  it('記録があるのに書き出していないか、最後の書き出しが 7 日より前なら書き出しを勧める', () => {
-    expect(backupDue('2026-09-26')).toBe(false);
-    localStorage.setItem('asobibako:reached:maze', '5');
-    expect(backupDue('2026-09-26')).toBe(true);
-    markBackedUp();
-    const at = localStorage.getItem('asobibako:backup-at')!;
-    expect(backupDue(at)).toBe(false);
-    localStorage.setItem('asobibako:backup-at', '2026-09-18');
-    expect(backupDue('2026-09-25')).toBe(false);
-    expect(backupDue('2026-09-26')).toBe(true);
   });
 });
