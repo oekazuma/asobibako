@@ -10,6 +10,13 @@ const seen: { view?: WorldView; actors?: Actor[]; pets?: Pet[]; log: string[]; r
   renders: 0
 };
 
+// frame() を同期のループで回すテストが多いので、既定は then() をその場で呼ぶ「即決の thenable」にする
+// （本物の Promise だとマイクロタスクが挟まり、同期ループの中では解決しない）
+const settled = {
+  then: (onFulfilled?: (v: unknown) => unknown) => onFulfilled?.(undefined)
+} as unknown as PromiseLike<unknown>;
+let compiled: PromiseLike<unknown> = settled;
+
 vi.mock('./world3d', () => ({
   PetWorld: class {
     setScene() {
@@ -24,6 +31,9 @@ vi.mock('./world3d', () => ({
     }
     render() {
       seen.renders++;
+    }
+    precompile() {
+      return compiled;
     }
     resize() {}
     pick() {
@@ -71,7 +81,10 @@ function frames(s: S, sec: number, until?: () => boolean): boolean {
   return false;
 }
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => {
+  localStorage.clear();
+  compiled = settled;
+});
 
 describe('Session', () => {
   it('のんびりしているときは描く回数を減らし、指で触っているあいだは毎秒 60 回描く', () => {
@@ -269,6 +282,37 @@ describe('Session', () => {
       vi.advanceTimersByTime(1500);
       frames(s, 0.2);
       expect(entered).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('シェーダーの準備が片づくまでは描かず、片づくと描いて busy が false になる', async () => {
+    let resolveCompile: () => void = () => {};
+    compiled = new Promise<void>((r) => (resolveCompile = r));
+    const s = make();
+    seen.renders = 0;
+    frames(s, 0.1);
+    expect(seen.renders).toBe(0);
+    expect(s.busy).toBe(true);
+    resolveCompile();
+    await compiled;
+    frames(s, 0.1);
+    expect(seen.renders).toBeGreaterThan(0);
+    expect(s.busy).toBe(false);
+  });
+
+  it('シェーダーの準備がいつまでも片づかなくても、1.5 秒待てば描く', () => {
+    vi.useFakeTimers();
+    try {
+      compiled = new Promise(() => {});
+      const s = make();
+      seen.renders = 0;
+      frames(s, 0.1);
+      expect(seen.renders).toBe(0);
+      vi.advanceTimersByTime(1500);
+      frames(s, 0.1);
+      expect(seen.renders).toBeGreaterThan(0);
     } finally {
       vi.useRealTimers();
     }

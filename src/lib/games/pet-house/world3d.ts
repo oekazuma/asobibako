@@ -523,6 +523,11 @@ export class PetWorld {
     this.renderer.render(this.scene, this.camera);
   }
 
+  /** 描く前にシェーダーを準備する。KHR_parallel_shader_compile があれば止まらずに待てる（無ければその場で準備して返る） */
+  precompile(): Promise<unknown> {
+    return this.renderer.compileAsync(this.scene, this.camera);
+  }
+
   #screenHit(px: number, py: number) {
     let best: { id: string; d: number } | null = null;
     for (const a of this.#actors) {
