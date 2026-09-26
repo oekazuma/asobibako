@@ -58,10 +58,7 @@
 
 <div class="backup">
   <p>到達したレベルなどの記録を 1 つのファイルに書き出せます。端末を替えるときや、データを消す前に。</p>
-  <p class:warn={!lastAt}>
-    {lastAt ? `最後に書き出した日: ${lastAt}` : 'まだ書き出していません。'}
-    iPad の不具合で記録が消えることがあるので、週に 1 回ほど書き出して「ファイル」などに残しておくと戻せます。
-  </p>
+  <p>{lastAt ? `最後に書き出した日: ${lastAt}` : 'まだ書き出していません。'}</p>
   <div class="row">
     <button class="pill" onclick={save}><Icon name="download" size="20px" />記録を書き出す</button>
     {#if canShare}
@@ -117,7 +114,6 @@
     display: none;
   }
 
-  .warn,
   .err {
     color: var(--p2-deep);
   }

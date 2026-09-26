@@ -16,7 +16,7 @@ async function open(): Promise<HTMLElement> {
   return target;
 }
 
-describe('この端末の控え', () => {
+describe('自動バックアップ', () => {
   let target: HTMLElement;
 
   beforeEach(() => {
@@ -33,22 +33,22 @@ describe('この端末の控え', () => {
     reload.mockClear();
   });
 
-  it('控えが無ければ、まだ無いと伝え「控えから戻す」は出さない', async () => {
+  it('自動バックアップが無ければ、まだ無いと伝え「この記録に戻す」は出さない', async () => {
     target = await open();
-    await vi.waitFor(() => expect(target.textContent).toContain('まだ控えがありません'));
+    await vi.waitFor(() => expect(target.textContent).toContain('まだ自動バックアップはありません'));
     expect(target.querySelector('button')).toBeNull();
   });
 
-  it('控えがあれば日付と本数を見せ、戻すと置き換えて読み直す', async () => {
+  it('自動バックアップがあれば日付と本数を見せ、戻すと置き換えて読み直す', async () => {
     found = { app: 'asobibako', version: 'v', at: '2026-09-01', data: { 'asobibako:reached:maze': '5' } };
     localStorage.setItem('asobibako:reached:maze', '9');
     target = await open();
     await vi.waitFor(() => expect(target.textContent).toContain('2026-09-01'));
-    expect(target.textContent).toContain('1 本のゲームの記録・1 件');
+    expect(target.textContent).toContain('1 本のゲーム');
 
     target.querySelector<HTMLButtonElement>('button')!.click();
     flushSync();
-    expect(target.querySelector('.confirm')?.textContent).toContain('に控え）');
+    expect(target.querySelector('.confirm')?.textContent).toContain('に自動で保存）');
 
     const [, a, b] = target.querySelector('.gate b')!.textContent!.match(/(\d+) × (\d+)/)!;
     const answer = target.querySelector<HTMLInputElement>('.gate input')!;

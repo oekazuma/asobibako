@@ -5,7 +5,6 @@
   import GameCard from '$lib/components/GameCard.svelte';
   import Icon from '$lib/components/Icon.svelte';
   import Logo from '$lib/components/Logo.svelte';
-  import { backupDue } from '$lib/backup';
   import { games, type GameMeta } from '$lib/games';
   import { menuTab, recentGames, setMenuTab } from '$lib/recent';
 
@@ -18,21 +17,13 @@
   /** 登場の動きは開いたときの 1 回だけ。タブを替えるたびに流すと、タイルが消えて下から出直し、下にずれた分だけ一覧の高さが伸び縮みしてスクロールが揺れる */
   let intro = $state(true);
   let recent = $state<GameMeta[]>([]);
-  let due = $state(false);
-  const help = $derived(
-    updated.current
-      ? 'アプリについて（あたらしいバージョンがあります）'
-      : due
-        ? 'アプリについて（記録の書き出しをおすすめします）'
-        : 'アプリについて'
-  );
+  const help = $derived(updated.current ? 'アプリについて（あたらしいバージョンがあります）' : 'アプリについて');
   const shown = $derived(games.filter((game) => game.players === tab));
 
   // プリレンダーでは覚えごとが読めないので mount 後に読む。消えたゲームの id は飛ばす
   onMount(() => {
     tab = menuTab();
     recent = recentGames().flatMap((id) => games.find((game) => game.id === id) ?? []);
-    due = backupDue();
   });
 
   function choose(players: 1 | 2) {
@@ -52,7 +43,7 @@
     <p class="lead">すきな あそびを えらんでね</p>
     <a class="round help" href={resolve('/about')} aria-label={help}>
       <Icon name="help" size="26px" />
-      {#if updated.current || due}<span class="dot"></span>{/if}
+      {#if updated.current}<span class="dot"></span>{/if}
     </a>
   </header>
 

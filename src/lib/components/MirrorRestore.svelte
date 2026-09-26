@@ -22,15 +22,15 @@
 
 <div class="mirror">
   {#if loading}
-    <p>控えを読んでいます…</p>
+    <p>自動バックアップを確かめています…</p>
   {:else if !sum}
-    <p>この端末にはまだ控えがありません。遊んだ記録は、画面を閉じるときなどに自動で控えます。</p>
+    <p>まだ自動バックアップはありません。遊んだ記録は、アプリを閉じるときなどに、この端末の中へ自動で保存されます。</p>
   {:else}
     <p>
-      <b>{sum.at}</b> 時点の控えがあります（{sum.games} 本のゲームの記録・{sum.keys} 件）。記録が消えて自動で戻らなかったときは、ここから戻せます。
+      <b>{sum.at}</b> に自動で保存した記録があります（{sum.games} 本のゲーム）。記録が消えてしまったときは、ここから元に戻せます。
     </p>
     <div class="row">
-      <button class="pill" onclick={() => (pending = found)}><Icon name="upload" size="20px" />控えから戻す</button>
+      <button class="pill" onclick={() => (pending = found)}><Icon name="upload" size="20px" />この記録に戻す</button>
     </div>
   {/if}
   {#if error}<p class="err" role="alert">{error}</p>{/if}
@@ -38,7 +38,7 @@
     {#key pending}
       <BackupConfirm
         {pending}
-        from="控え"
+        from="自動で保存"
         oncancel={() => (pending = null)}
         onfail={(message) => {
           pending = null;

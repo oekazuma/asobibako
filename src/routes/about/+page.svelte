@@ -61,7 +61,7 @@
     </section>
 
     <section class="card">
-      <h2>この端末の控え</h2>
+      <h2>自動バックアップ</h2>
       <MirrorRestore />
     </section>
 
