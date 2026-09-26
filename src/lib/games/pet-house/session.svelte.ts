@@ -127,6 +127,12 @@ export class Session {
    * シェーダーの準備が落ち着くまでさらに数フレーム出したままにする
    */
   #move: { run: (() => void) | null; wait: number; ready: boolean } | null = null;
+  /** 場面を組み立てた直後に立てる。ペットが入ったあと（syncPets のあと）にシェーダーの準備を始めるための合図 */
+  #compileNext = false;
+  /** シェーダーの準備の待ち。true のあいだは render() を呼ばず、直前の場面のコマを画面に残す */
+  #compiling = false;
+  /** 準備の終わりが古い場面のものなら #compiling を戻さない（次の場面へ移ってから前の場面の準備が片づいた場合） */
+  #compileGen = 0;
   /** むかえたばかりの子。次に部屋へ入ったとき、奥から歩いてこさせる */
   #arrival: string | null = null;
   #dayKey = '';
@@ -173,6 +179,7 @@ export class Session {
     const { allowance } = catchUp(this.save, Date.now());
     this.#checkDay();
     this.#enter('room');
+    this.#compileNext = true;
     this.#fitToy();
     const back = check(this.save);
     if (back.length) this.#stamps.add(back.length > 1 ? back : back[0]);
@@ -374,8 +381,10 @@ export class Session {
     if (m && m.ready && --m.wait <= 0) {
       const run = m.run;
       [m.run, m.wait] = [null, 3];
-      if (run) run();
-      else [this.#move, this.moving] = [null, null];
+      if (run) {
+        run();
+        this.#compileNext = true;
+      } else if (!this.#compiling && !this.#compileNext) [this.#move, this.moving] = [null, null];
     }
     this.#now += dt;
     if ((this.#dayAt -= dt) <= 0) {
@@ -435,7 +444,14 @@ export class Session {
     this.#world.lift = trying ? 0.36 : 0;
     const shown = trying ? pets.map((p) => (p.id === this.save.current ? { ...p, accessory: trying } : p)) : pets;
     this.#world.syncPets(cast ? [...shown, ...cast.pets] : shown);
+    // ペットが場面に入ってから準備すると、毛の材質も一緒に準備できる
+    if (this.#compileNext) {
+      this.#compileNext = false;
+      this.#precompile();
+    }
     this.#world.update(cast?.actors ?? this.#actors, this.#view, step, this.#now, this.save.current, this.tool);
+    // 準備が済むまでは描かない。画面は「いどうちゅう」か「よみこみちゅう」で覆われている
+    if (this.#compiling) return;
     this.#world.render();
     const ctx = this.#ctx;
     if (!ctx) return;
@@ -616,6 +632,11 @@ export class Session {
     return !!this.#actor()?.asleep;
   }
 
+  /** 場面が動いている・シェーダーの準備が済んでいない。画面はこのあいだ「いどうちゅう」「よみこみちゅう」を出す */
+  get busy(): boolean {
+    return !!this.#move || this.#compiling;
+  }
+
   /** 犬はリードで道をおさんぽして公園へ、猫はそのまま公園へ。公園からはおうちへ。つかれているときは goPark がことわる */
   walk(): void {
     const pet = this.current;
@@ -658,6 +679,22 @@ export class Session {
       setTimeout(done, 1500);
     }
     sounds.door();
+  }
+
+  /**
+   * シェーダーの準備が片づくか 1.5 秒たつまで render() を止める。KHR_parallel_shader_compile が無い端末では
+   * その場で準備してすぐ片づくので、待ちは実質 0
+   */
+  #precompile() {
+    this.#compiling = true;
+    const gen = ++this.#compileGen;
+    const done = () => {
+      // 次の場面へすでに移っていたら、古い場面の準備が片づいても #compiling は戻さない
+      if (gen === this.#compileGen) this.#compiling = false;
+    };
+    // compileAsync が例外で落ちても打ち切れるよう、タイマーを先に仕掛けてから頼む
+    setTimeout(done, 1500);
+    this.#world.precompile().then(done, done);
   }
 
   buy(id: ShopItem['id']): 'ok' | 'money' | 'owned' {

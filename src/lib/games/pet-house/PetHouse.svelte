@@ -65,7 +65,7 @@
         stop = animate((dt) => {
           s!.frame(dt);
           // 最初の数フレームはシェーダーの準備で止まりがちなので、落ち着いてから外す
-          if (loading && !s!.moving && ++frames > 3) loading = false;
+          if (loading && !s!.busy && ++frames > 3) loading = false;
         });
       });
     });
