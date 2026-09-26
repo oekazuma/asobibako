@@ -10,8 +10,11 @@ import type { BaseScene, ToyId, TrickId } from './types';
 /** 場面の出入りのうち、Session が持っているもの */
 export interface Stage {
   enter(target: BaseScene | ActivityScene): void;
-  /** 「いどうちゅう」を 1 度描かせてから run する。重ねて呼んだら、あとのほうは捨てる */
-  go(label: string, run: () => void): void;
+  /**
+   * 「いどうちゅう」を 1 度描かせてから run する。重ねて呼んだら、あとのほうは捨てる。
+   * `ready` を渡すと、それが片づくまで「いどうちゅう」を出したまま待つ（最長 1.5 秒）
+   */
+  go(label: string, run: () => void, ready?: Promise<unknown>): void;
   /** 置いている指・ねこじゃらし・芸の途中をやめる */
   pause(): void;
   /** 部屋へ戻ったあと、いまのペットに合うおもちゃに持ち替えて保存する */
@@ -40,25 +43,33 @@ export class Modes {
     const pet = c.s.current;
     if (c.s.activity || !pet) return;
     if (activity.awakeOnly && c.actor()?.asleep) return c.say(`${pet.name}は ねているよ。おきるまで まってね`);
-    this.#stage.go(going, () => {
-      if (c.s.activity) return;
-      this.#pause();
-      const a = c.actor();
-      if (a) command(a, pet, { type: 'wake' });
-      c.s.activity = activity;
-      activity.enter(this.#host(pet));
-    });
+    this.#stage.go(
+      going,
+      () => {
+        if (c.s.activity) return;
+        this.#pause();
+        const a = c.actor();
+        if (a) command(a, pet, { type: 'wake' });
+        c.s.activity = activity;
+        activity.enter(this.#host(pet));
+      },
+      activity.prepare?.()
+    );
   }
 
   visit(mode: Visit, going: string) {
     const c = this.#c;
     if (c.s.activity) return;
-    this.#stage.go(going, () => {
-      if (c.s.activity) return;
-      this.#pause();
-      c.s.activity = mode;
-      mode.enter(this.#host(null));
-    });
+    this.#stage.go(
+      going,
+      () => {
+        if (c.s.activity) return;
+        this.#pause();
+        c.s.activity = mode;
+        mode.enter(this.#host(null));
+      },
+      mode.prepare?.()
+    );
   }
 
   #pause() {

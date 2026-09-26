@@ -1,9 +1,11 @@
+import { graphics } from '$lib/graphics.svelte';
 import type { SceneHost, Visit } from './activity';
 import { command, createActor, think, throwToy, type Actor, type BehaviorEvent } from './behavior';
 import { BREED_IDS, BREEDS } from './breeds';
 import { speakAt, type Cry } from './cries';
 import { kindOf, type Pet } from './engine';
 import type { Layout, Spot } from './layout';
+import { loadShapes } from './models';
 import { buildPlaza, plazaLayout } from './scene-plaza';
 import { sounds } from './sounds';
 import type { BreedId, Kind, PetAction } from './types';
@@ -66,6 +68,11 @@ export class Plaza implements Visit {
   #timers = { heart: 0, purr: 0, bark: 2, visit: 5, frolic: 3 };
   #pair: { a: Actor; b: Actor; t: number; on: boolean } | null = null;
   #vy = 0;
+
+  // 「ほかの子たち」でどの種類が出るか分からないので、全種類ぶんの形を読んでおく
+  prepare(): Promise<unknown> {
+    return loadShapes(BREED_IDS, graphics.quality);
+  }
 
   enter(host: SceneHost): void {
     this.#host = host;

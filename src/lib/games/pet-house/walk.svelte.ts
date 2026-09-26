@@ -7,7 +7,7 @@ import { speakAt } from './cries';
 import { now } from './daytime';
 import { play, stroke } from './engine';
 import type { Layout, Spot } from './layout';
-import { createPet, type PetModel } from './models';
+import { createPet, loadShapes, type PetModel } from './models';
 import { buildStreet, type Street } from './scene-street';
 import { sounds } from './sounds';
 import type { BreedId, PetAction } from './types';
@@ -76,6 +76,11 @@ export class WalkPlay implements Activity {
   /** 雨と雪の日は、歩きだす前に体をぶるっと振る（残りの秒） */
   #shiver = 0;
   readonly #v = new Vector3();
+
+  // 途中で出会うほかの犬がどの種類か分からないので、犬ぶんの形を読んでおく
+  prepare(): Promise<unknown> {
+    return loadShapes(DOGS, graphics.quality);
+  }
 
   enter(host: ActivityHost): void {
     this.#host = host;

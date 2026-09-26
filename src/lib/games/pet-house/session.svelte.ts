@@ -126,7 +126,7 @@ export class Session {
    * 場面の組み立ては数百 ms 画面を止める。wait フレーム待って「いどうちゅう」を 1 度描かせてから run し、
    * シェーダーの準備が落ち着くまでさらに数フレーム出したままにする
    */
-  #move: { run: (() => void) | null; wait: number } | null = null;
+  #move: { run: (() => void) | null; wait: number; ready: boolean } | null = null;
   /** むかえたばかりの子。次に部屋へ入ったとき、奥から歩いてこさせる */
   #arrival: string | null = null;
   #dayKey = '';
@@ -148,7 +148,7 @@ export class Session {
     this.#bowls = new Bowls(core);
     this.#modes = new Modes(core, {
       enter: (target) => this.#enter(target),
-      go: (label, run) => this.#go(label, run),
+      go: (label, run, ready) => this.#go(label, run, ready),
       pause: () => this.#pause(),
       settle: () => {
         this.#fitToy();
@@ -371,7 +371,7 @@ export class Session {
 
   frame(dt: number): void {
     const m = this.#move;
-    if (m && --m.wait <= 0) {
+    if (m && m.ready && --m.wait <= 0) {
       const run = m.run;
       [m.run, m.wait] = [null, 3];
       if (run) run();
@@ -645,10 +645,18 @@ export class Session {
   }
 
   /** 重ねて押されたら、あとのほうは捨てる */
-  #go(label: string, run: () => void) {
+  #go(label: string, run: () => void, ready?: Promise<unknown>) {
     if (this.#move) return;
     this.moving = label;
-    this.#move = { run, wait: 2 };
+    const move = { run, wait: 2, ready: !ready };
+    this.#move = move;
+    // iOS の IndexedDB は開くところで止まることがある。控えは速くするためだけのものなので、待ちきれなければ組み立てに進む
+    if (ready) {
+      const done = () => (move.ready = true);
+      // .finally は失敗すると reject したまま返る（誰も拾わないと unhandledrejection になる）。ready の失敗そのものは無視してよい
+      ready.then(done, done);
+      setTimeout(done, 1500);
+    }
     sounds.door();
   }
 

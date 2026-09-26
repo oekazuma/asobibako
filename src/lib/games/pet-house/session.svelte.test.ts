@@ -229,6 +229,75 @@ describe('Session', () => {
     expect(seen.actors?.map((a) => a.petId)).toEqual([s.save.current]);
   });
 
+  it('prepare が片づくまで「いどうちゅう」を出したまま待ち、片づくと enter する', async () => {
+    const s = make();
+    let resolvePrepare: () => void = () => {};
+    const ready = new Promise<void>((r) => (resolvePrepare = r));
+    let entered = false;
+    const visit: Visit = {
+      drives: true,
+      prepare: () => ready,
+      enter: () => void (entered = true),
+      frame() {}
+    };
+    s.visit(visit, 'じゅんびちゅう');
+    frames(s, 0.5);
+    expect(entered).toBe(false);
+    expect(s.moving).toBe('じゅんびちゅう');
+    resolvePrepare();
+    await ready;
+    frames(s, 0.2);
+    expect(entered).toBe(true);
+    frames(s, 0.2);
+    expect(s.moving).toBeNull();
+  });
+
+  it('prepare がいつまでも片づかなくても、1.5 秒待てば enter する', () => {
+    vi.useFakeTimers();
+    try {
+      const s = make();
+      let entered = false;
+      const visit: Visit = {
+        drives: true,
+        prepare: () => new Promise(() => {}),
+        enter: () => void (entered = true),
+        frame() {}
+      };
+      s.visit(visit, 'じゅんびちゅう');
+      frames(s, 0.5);
+      expect(entered).toBe(false);
+      vi.advanceTimersByTime(1500);
+      frames(s, 0.2);
+      expect(entered).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('prepare が失敗しても enter し、unhandledrejection にはならない', async () => {
+    const onUnhandled = vi.fn();
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      const s = make();
+      let entered = false;
+      const visit: Visit = {
+        drives: true,
+        prepare: () => Promise.reject(new Error('x')),
+        enter: () => void (entered = true),
+        frame() {}
+      };
+      s.visit(visit, 'じゅんびちゅう');
+      frames(s, 0.5);
+      // reject が誰にも拾われないままだと unhandledrejection が次のタスクで上がるので、そこまで進める
+      await new Promise((r) => setTimeout(r, 0));
+      frames(s, 0.2);
+      expect(entered).toBe(true);
+      expect(onUnhandled).not.toHaveBeenCalled();
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+    }
+  });
+
   it('場面を変えるときは「いどうちゅう」を 1 度描かせてから組み立て、落ち着いたら外す。重ねた操作は捨てる', () => {
     const s = make();
     s.adopt('shiba', 'ポチ');

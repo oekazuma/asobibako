@@ -37,6 +37,7 @@ import type { PetWorld } from './world3d';
  * - 飼っているペットを連れないモード（ふれあいひろば）は Visit を実装して `session.visit(...)` で始める。
  *   0 匹でも始められ、host に pet・actor・voice が無い。動物は `host.cast(pets, actors)` で自分の子を出し、
  *   drives を true にして think もモードが呼ぶ（例 plaza.svelte.ts）
+ * - 飼っていない種類の形を出すモードは `prepare()` でその形を読んでおく（例 plaza.svelte.ts、walk.svelte.ts）
  */
 export interface Activity {
   readonly drives: boolean;
@@ -44,6 +45,8 @@ export interface Activity {
   readonly smooth?: boolean;
   /** 寝ている子とは始めない（おさんぽ）。無ければ start が起こしてから始める */
   readonly awakeOnly?: boolean;
+  /** 場面に入る前に済ませたいこと。いどうちゅうのあいだに待つ（最長 1.5 秒） */
+  prepare?(): Promise<unknown>;
   enter(host: ActivityHost): void;
   frame(dt: number): void;
   down?(id: number, px: number, py: number): boolean;
