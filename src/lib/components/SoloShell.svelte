@@ -1,6 +1,7 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon.svelte';
   import { onMount } from 'svelte';
+  import { SvelteSet } from 'svelte/reactivity';
   import { resolve } from '$app/paths';
   import { audio, sfx, toggleMute, wake } from '$lib/audio.svelte';
   import type { SoloMeta, SoloModule } from '$lib/games';
@@ -20,7 +21,7 @@
   let level = $state(1);
   /** たどり着いたいちばん先のレベル。最後のレベルをクリアすると levels + 1 になり、ここまでは選び直せる */
   let best = $state(1);
-  let solved = $state<ReadonlySet<number>>(new Set()); // meta.anyOrder のときだけ使う、解いた面の集合
+  const solved = new SvelteSet<number>(); // meta.anyOrder のときだけ使う、解いた面の集合。SvelteSet 自体が反応するので $state にしない
   let hint = $state('');
   const settle = new Settle();
   const titleBest = $derived(meta.anyOrder ? meta.levels : best); // anyOrder はどの面でも選べるので best で縛らない
@@ -54,7 +55,7 @@
       best = Math.max(best, level + 1);
       saveLevel(meta.id, best);
       if (meta.anyOrder) {
-        solved = new Set(solved).add(level);
+        solved.add(level);
         saveSolved(meta.id, solved);
         complete = solved.size >= meta.levels;
         if (!complete) level = nextOpen(level, solved, meta.levels);
@@ -70,10 +71,8 @@
 
   onMount(() => {
     best = savedLevel(meta.id, meta.levels);
-    if (meta.anyOrder) {
-      solved = savedSolved(meta.id, meta.levels, best);
-      level = nextOpen(0, solved, meta.levels);
-    } else level = Math.min(meta.levels, best);
+    if (meta.anyOrder) for (const n of savedSolved(meta.id, meta.levels, best)) solved.add(n);
+    level = meta.anyOrder ? nextOpen(0, solved, meta.levels) : Math.min(meta.levels, best);
     return settle.listen();
   });
 </script>
