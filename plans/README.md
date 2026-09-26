@@ -1,12 +1,12 @@
 # Implementation Plans
 
-improve skill（deep）が 2026-09-22 に commit `b4b0196` を監査して書いた実装計画。
-下の順に実行する（依存関係の節に従う）。実行者は計画を最後まで読んでから始め、
+improve skill（deep）が 2026-09-22 に commit `b4b0196` を、2026-09-26 に commit `4c06cf0` を監査して書いた実装計画。
+001〜022 は 1 回目、023〜032 は 2 回目の監査のもの。下の順に実行する（依存関係の節に従う）。実行者は計画を最後まで読んでから始め、
 STOP 条件を守り、終わったら自分の行の Status を更新する。
 
 各計画に共通する前提を、索引にもまとめておく。
 
-- リポジトリのルートは `/Users/oekazuma/localRepo/table-duel`。コマンドはすべてそこで実行する
+- リポジトリのルートは `/Users/oekazuma/localRepo/asobibako`（001〜022 の本文にある `table-duel` は改名前のパス）。コマンドはすべてそこで実行する
 - 検証ゲートは `pnpm lint` / `pnpm check` / `pnpm test:run` / `pnpm vitals --diff` / 最後に `pnpm verify`
 - **push はしない**。`main` への push は `deploy.yml` で本番（GitHub Pages）へ自動デプロイされる
 - 散文・コメントは日本語。コメントは「コードから復元できない WHY」だけ（WHAT・変更履歴・チケット番号は書かない）
@@ -40,6 +40,16 @@ STOP 条件を守り、終わったら自分の行の Status を更新する。
 | 020  | 再戦の勝敗タリーを結果画面に出す                                                                | P2       | S      | —          | DONE（`worktree-agent-ac5e52f4f4be1820d` `5729694`、レビュー済み）               |
 | 021  | ↻ と「いまやること」の吹き出しを SoloShell に移す                                               | P2       | M      | 019        | DONE（`worktree-agent-a28e41283be911963` `496a165`、レビュー済み）               |
 | 022  | 対戦の結果画面に紙吹雪と光線を出し、紙吹雪を 1 人用と共有する                                   | P3       | S      | 020        | DONE（`worktree-agent-a81a6c98aa8588412` `1c2ebc5`、レビュー済み）               |
+| 023  | 記録の控え（IndexedDB）を、読み切れていない起動で上書きしない                                   | P1       | M      | —          | DONE（`worktree-agent-af6a7d726d3ba7dad` `fc6e9ab`、レビュー済み）               |
+| 024  | ノミのテストを乱数で落ちないようにする                                                          | P1       | S      | —          | DONE（`worktree-agent-a93c2bdcca2abbef1` `03aa0e6`、レビュー済み）               |
+| 025  | 本番へのデプロイの前にテストを通す                                                              | P1       | S      | 024        | DONE（`worktree-agent-a932ed89e792d729c` `88e7612`、レビュー済み）               |
+| 026  | ペットの形の控えを、止まらず・デプロイのたびに捨てないようにする                                | P1       | S      | —          | DONE（`worktree-agent-a8bb40e8a11f65725` `f1fb493`、レビュー済み）               |
+| 027  | ずかんと写真を容量不足で消さず、保存できないときは知らせる                                      | P1       | S      | —          | DONE（`worktree-agent-a6dcda3cf73e60c8b` `be5678d`、レビュー済み）               |
+| 028  | Service Worker が消すキャッシュを自分のものだけにする                                           | P2       | S      | —          | DONE（`worktree-agent-a0c8726840b1d2c7d` `b5a5f60`、レビュー済み）               |
+| 029  | 描画ループが 1 度の例外で止まらないようにする                                                   | P2       | S      | —          | DONE（`worktree-agent-a2ecc26a3b8549d8a` `7de394b`、レビュー済み）               |
+| 030  | Renovate が asobibako で動いているか確かめる（利用者が画面で行う）                              | P2       | S      | 025        | TODO                                                                             |
+| 031  | 声の機能の残りを消し、CLAUDE.md のずれを直す                                                    | P3       | S      | 027        | DONE（`worktree-agent-a99dbdd069481a5bd` `cbefef5`、027 を含む、レビュー済み）   |
+| 032  | 小さな直し 3 つ（影の種類・紙吹雪の距離・Backup.svelte の行数）                                 | P3       | S      | —          | DONE（`worktree-agent-a46a79e47f1b910ce` `c77f875`、レビュー済み）               |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (理由 1 行) | REJECTED (理由 1 行)
 
@@ -52,6 +62,12 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (理由 1 行) | REJECTED (�
 - 017 は 001 のあと。001 が pin-rescue の `restart()` を触るので、同じファイルの CSS を先に動かさない
 - 021 は 019 のあと。両方が `SoloShell.svelte` を触るので、019 の保存の形の上に ↻ と吹き出しを載せる
 - 022 は 020 のあと。両方が `ResultScreen.svelte` を触る
+- 023〜032 はそれぞれ `4c06cf0` から別の worktree で実行し、番号順に `main` へ merge する。CLAUDE.md は 023・025・031 が
+  別々の行を触る
+- 025 は 024 のあと。揺らぐテストが残ったままデプロイをテストで止めると、本番へのデプロイがときどき止まる
+- 030 は 025 のあと。Renovate の自動マージが動き出す前に、デプロイの門を入れておく
+- 031 は 027 のあと。`session.svelte.ts` の `flush()`（031 が消す）と `#write`（027 が変える）が隣り合うので、031 の
+  実行担当は 027 のブランチを取り込んでから始める
 
 ## 実行中に見つかった追加の課題
 
@@ -62,12 +78,33 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (理由 1 行) | REJECTED (�
   見た目は今と同じ（既にフォールバックされている）
 - 統合確認（008 を除く 16 本を `b4b0196` に番号順に merge → `pnpm verify`）は衝突なしで緑（24 ファイル / 441 tests、
   svelte-check の warning 0）。`main` に取り込むときも索引の番号順に `git merge` すればよい
+- 023〜032 の統合確認（030 を除く 9 本のブランチを `4c06cf0` に番号順に merge → `pnpm verify`）は衝突なしで緑
+  （61 ファイル / 968 tests、svelte-check の warning 0）。031 のブランチは 027 を含むので、027 を先に merge しておけば
+  031 はそのまま入る
+- 計画 029 の Step 2 の「予約を frame のあとへ戻すとテスト 1 が落ちる」は不正確だった。try/catch があると 1 回目の例外は
+  通り抜けるので、順番が効くのは例外が続くとき。実行担当はテスト 2 に呼び出し回数の確認を足して、そちらで確かめた
 - markuplint 5.0.0 の svelte-parser は Svelte 5 の `{@attach}` を属性として拒む（013 で判明）。attachment を使いたくなったら
   `@markuplint/svelte-parser` の更新を待つか、`.markuplintrc.jsonc` に例外を足す
 
 ## Findings considered and rejected
 
 監査で挙がったが計画にしなかったものを、次回の監査で蒸し返さないために記録しておく。
+
+2026-09-26（`4c06cf0`）の監査で見送ったもの
+
+- 控えを 30 秒ごとに約 1MB 書く負担 — 計測で JSON 化 0.4ms・比較 0.06ms。差分で書くと復元の形式を変えることになり、壊しやすい
+- 控えを何世代も持つ — 戻すときに「どの世代が正しいか」を決める問題がまた出る。023 の「読み終えるまで書かない」で足りる
+- Settle の指の数え方のずれ — シェルを mount し直すたびに数え直すので、残るのはそのゲームを出るまで
+- 環境音が AudioContext の停止中に溜まって一度に鳴る — iOS で起きる頻度が不明。実機で聞こえたら直す
+- わんにゃんハウスの小さな片付け漏れ（おふろのしずくの Points、Skeleton）と、ひろばでむかえたときの 8 匹の組み直し — 1 回数 KB で溜まらない
+- タイトルで全 15 種類の形（約 45MB）を読む — ひろばの組み立ても控えを読む作りへ変える必要があり、落ちやすくなる根拠がない
+- canvas の resize・枠合わせの重複（7 か所）と、ペットの向きを変える計算の重複 — 直す価値に対して触る範囲が広い
+- 書き出しで保存できたか分からないまま「書き出した日」を付ける — ホーム画面アプリでの `a.download` の挙動を実機で確かめてから
+- 写真の文字列を `<img src>` に入れる前の形の確認 — CSP の `img-src 'self' data:` が外部 URL を止めている
+- ひらめきナゾの進み具合を ORDER の番号で持つ — ナゾを足すときに解いた集合で持つ作りへ変える（方向性の C）
+- 方向性（写真・ずかんを iPad へ保存、アプリについてから控えを戻す、ひらめきナゾの解いた記録、読み込みのまぜる、ペットのうちに来た日） — 選択肢。要望があれば `plan <description>` で計画する
+
+2026-09-22（`b4b0196`）の監査で見送ったもの
 
 - `pwa.ts` の `updateApp()` が 30 秒ハングする — `installing ?? waiting` の読み取りと `statechange` の登録のあいだに `await` がなく、競合は起きない
 - svelte-vitals の `minimumReleaseAge` 除外 — 自作ツールで意図的。`@svelte-vitals/vite` はビルド時に走るが、公開者本人が最速で気づける
