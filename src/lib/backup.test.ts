@@ -4,6 +4,7 @@ import {
   backupDue,
   backupFile,
   exportAll,
+  hasRecords,
   importAll,
   markBackedUp,
   parseBackup,
@@ -59,17 +60,37 @@ describe('backup', () => {
     expect(() => parseBackup(JSON.stringify({ app: 'asobibako', data: {} }))).toThrow();
     expect(() => parseBackup(file({ evil: 'x' }))).toThrow();
     expect(() => parseBackup(file({ 'asobibako:muted': 1 }))).toThrow();
-    expect(() => parseBackup(file({ 'asobibako:gate': '{}' }))).toThrow();
-    expect(() => parseBackup(file({ 'asobibako:last-error': '{}' }))).toThrow();
-    expect(() => parseBackup(file({ 'asobibako:graphics': 'high' }))).toThrow();
     expect(parseBackup(file({})).data).toEqual({});
+  });
+
+  it('端末ごとの控えのキーは読み飛ばす', () => {
+    const data = parseBackup(
+      file({
+        'asobibako:reached:maze': '5',
+        'asobibako:gate': '{}',
+        'asobibako:last-error': '{}',
+        'asobibako:graphics': 'high',
+        'asobibako:restore-pending': '1'
+      })
+    ).data;
+    expect(data).toEqual({ 'asobibako:reached:maze': '5' });
   });
 
   it('キー数・大きさが常識外のファイルは受け付けない', () => {
     const data: Record<string, string> = {};
     for (let i = 0; i < 401; i++) data[`asobibako:x${i}`] = 'v';
     expect(() => parseBackup(file(data))).toThrow();
-    expect(() => parseBackup('a'.repeat(1024 * 1024 + 1))).toThrow();
+    expect(() => parseBackup(file({ 'asobibako:x': 'x'.repeat(16 * 1024 * 1024) }))).toThrow();
+  });
+
+  it('最近のゲーム・タブ・ミュートだけなら記録なしとみなす', () => {
+    localStorage.setItem('asobibako:recent', '["maze"]');
+    localStorage.setItem('asobibako:menu-tab', '2');
+    localStorage.setItem('asobibako:muted', '1');
+    expect(hasRecords()).toBe(false);
+    expect(backupDue('2026-09-26')).toBe(false);
+    localStorage.setItem('asobibako:reached:maze', '5');
+    expect(hasRecords()).toBe(true);
   });
 
   it('途中で容量超過しても元の記録に戻り false を返す', () => {
