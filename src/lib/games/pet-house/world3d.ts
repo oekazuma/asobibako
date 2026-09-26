@@ -4,6 +4,7 @@ import type { ActivityScene, Built, Follow, HeldCamera } from './activity';
 import type { Actor, Toy, WorldView } from './behavior';
 import type { Pet } from './engine';
 import { LAYOUTS, ROOM, type Layout, type Perch } from './layout';
+import { dev } from '$app/environment';
 import { graphics, type Quality } from '$lib/graphics.svelte';
 import { NATURAL_ROOM, type RoomLook } from './decor';
 import { daylight, now, type Daylight } from './daytime';
@@ -162,6 +163,8 @@ export class PetWorld {
     this.#day = daylight(c.hour, c.weather);
     this.#sunDir.set(...this.#day.sun.dir);
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    // コンパイルのたびに結果を同期で待つので、部屋を開くときに 90ms ほど止まる。直すべきシェーダーの誤りは開発中に出る
+    this.renderer.debug.checkShaderErrors = dev;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 0.95;
     this.renderer.shadowMap.enabled = true;

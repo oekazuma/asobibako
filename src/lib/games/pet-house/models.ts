@@ -597,6 +597,18 @@ interface Rig {
   fleas: THREE.InstancedMesh;
 }
 
+/**
+ * 骨で曲げたメッシュは、外接を聞かれるたびに全頂点を骨で動かして測り直す（ひろばの 8 匹で 0.5 秒止まった）。
+ * 影の大きさと描く順番の目安にしか使わないので、立ち姿の形の外接で足りる
+ */
+export function restBounds(m: THREE.SkinnedMesh): void {
+  const g = m.geometry;
+  if (!g.boundingBox) g.computeBoundingBox();
+  if (!g.boundingSphere) g.computeBoundingSphere();
+  m.boundingBox = g.boundingBox!.clone();
+  m.boundingSphere = g.boundingSphere!.clone();
+}
+
 function build(look: Look, id: BreedId, q: Quality): Rig {
   const body = bodyOf(id, look, q);
   const Q = QUALITY[q];
@@ -630,6 +642,7 @@ function build(look: Look, id: BreedId, q: Quality): Rig {
     const m = new THREE.SkinnedMesh(i ? body.shell : body.geo, furMaterial(i, L, cell));
     fur.push({ mesh: m, layer: i });
     m.bind(skeleton, new THREE.Matrix4());
+    restBounds(m);
     // 骨で曲げた形は元の外接球からはみ出すので、画面の端で消えないよう切り捨てない
     m.frustumCulled = false;
     m.castShadow = i === 0;

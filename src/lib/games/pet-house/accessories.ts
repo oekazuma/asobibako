@@ -307,6 +307,10 @@ function mesh(key: string, fit: Fit, make: () => THREE.BufferGeometry[], materia
   return list.map((g, i) => {
     const m = new THREE.SkinnedMesh(g, materials[i]);
     m.bind(fit.skeleton, new THREE.Matrix4());
+    if (!g.boundingBox) g.computeBoundingBox();
+    if (!g.boundingSphere) g.computeBoundingSphere();
+    m.boundingBox = g.boundingBox!.clone();
+    m.boundingSphere = g.boundingSphere!.clone();
     // 骨で曲げた形は元の外接球からはみ出すので切り捨てない
     m.frustumCulled = false;
     m.castShadow = true;

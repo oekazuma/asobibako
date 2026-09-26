@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { BREED_IDS, BREEDS } from './breeds';
 import { LOOKS } from './looks';
 import { FOAM_SPOTS, createPet } from './models';
@@ -307,6 +307,25 @@ describe('pet-house models', () => {
     }
     expect(Math.max(...twist.slice(30))).toBeGreaterThan(0.2);
     expect(Math.min(...twist.slice(30))).toBeLessThan(-0.2);
+  });
+
+  it('骨で曲げたメッシュはあらかじめ外接を持ち、外接を聞いても測り直さない', () => {
+    const pet = createPet('shiba');
+    pet.setAccessory(ACCESSORIES[0]);
+    const skinned = pet.group.getObjectsByProperty('isSkinnedMesh', true) as THREE.SkinnedMesh[];
+    expect(skinned.length).toBeGreaterThan(0);
+    for (const m of skinned) {
+      expect(m.boundingBox).not.toBeNull();
+      expect(m.boundingSphere).not.toBeNull();
+    }
+    const box = vi.spyOn(THREE.SkinnedMesh.prototype, 'computeBoundingBox');
+    const sphere = vi.spyOn(THREE.SkinnedMesh.prototype, 'computeBoundingSphere');
+    const size = new THREE.Box3().setFromObject(pet.group).getSize(new THREE.Vector3());
+    expect(box).not.toHaveBeenCalled();
+    expect(sphere).not.toHaveBeenCalled();
+    expect(size.y).toBeGreaterThan(0.1);
+    box.mockRestore();
+    sphere.mockRestore();
   });
 
   it('同じ種類の 2 匹目は geometry と material を使い回す', () => {
