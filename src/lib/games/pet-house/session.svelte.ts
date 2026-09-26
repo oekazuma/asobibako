@@ -653,7 +653,8 @@ export class Session {
     // iOS の IndexedDB は開くところで止まることがある。控えは速くするためだけのものなので、待ちきれなければ組み立てに進む
     if (ready) {
       const done = () => (move.ready = true);
-      ready.finally(done);
+      // .finally は失敗すると reject したまま返る（誰も拾わないと unhandledrejection になる）。ready の失敗そのものは無視してよい
+      ready.then(done, done);
       setTimeout(done, 1500);
     }
     sounds.door();

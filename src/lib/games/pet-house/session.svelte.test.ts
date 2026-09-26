@@ -274,6 +274,30 @@ describe('Session', () => {
     }
   });
 
+  it('prepare が失敗しても enter し、unhandledrejection にはならない', async () => {
+    const onUnhandled = vi.fn();
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      const s = make();
+      let entered = false;
+      const visit: Visit = {
+        drives: true,
+        prepare: () => Promise.reject(new Error('x')),
+        enter: () => void (entered = true),
+        frame() {}
+      };
+      s.visit(visit, 'じゅんびちゅう');
+      frames(s, 0.5);
+      // reject が誰にも拾われないままだと unhandledrejection が次のタスクで上がるので、そこまで進める
+      await new Promise((r) => setTimeout(r, 0));
+      frames(s, 0.2);
+      expect(entered).toBe(true);
+      expect(onUnhandled).not.toHaveBeenCalled();
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+    }
+  });
+
   it('場面を変えるときは「いどうちゅう」を 1 度描かせてから組み立て、落ち着いたら外す。重ねた操作は捨てる', () => {
     const s = make();
     s.adopt('shiba', 'ポチ');
