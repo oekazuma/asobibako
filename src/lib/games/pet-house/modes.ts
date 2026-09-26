@@ -43,25 +43,33 @@ export class Modes {
     const pet = c.s.current;
     if (c.s.activity || !pet) return;
     if (activity.awakeOnly && c.actor()?.asleep) return c.say(`${pet.name}は ねているよ。おきるまで まってね`);
-    this.#stage.go(going, () => {
-      if (c.s.activity) return;
-      this.#pause();
-      const a = c.actor();
-      if (a) command(a, pet, { type: 'wake' });
-      c.s.activity = activity;
-      activity.enter(this.#host(pet));
-    });
+    this.#stage.go(
+      going,
+      () => {
+        if (c.s.activity) return;
+        this.#pause();
+        const a = c.actor();
+        if (a) command(a, pet, { type: 'wake' });
+        c.s.activity = activity;
+        activity.enter(this.#host(pet));
+      },
+      activity.prepare?.()
+    );
   }
 
   visit(mode: Visit, going: string) {
     const c = this.#c;
     if (c.s.activity) return;
-    this.#stage.go(going, () => {
-      if (c.s.activity) return;
-      this.#pause();
-      c.s.activity = mode;
-      mode.enter(this.#host(null));
-    });
+    this.#stage.go(
+      going,
+      () => {
+        if (c.s.activity) return;
+        this.#pause();
+        c.s.activity = mode;
+        mode.enter(this.#host(null));
+      },
+      mode.prepare?.()
+    );
   }
 
   #pause() {
