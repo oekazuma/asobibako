@@ -160,10 +160,9 @@ const crayon: Look = {
     trace();
     const rough = grain();
     if (filled) {
-      ctx.globalAlpha = 0.55;
-      ctx.fillStyle = color;
+      // 薄く塗ったように紙の色へ寄せる。透かすと下の足や体が透けて見える
+      ctx.fillStyle = mix(color, CRAYON_PAPER, 0.45);
       ctx.fill();
-      ctx.globalAlpha = 1;
       if (rough) {
         ctx.fillStyle = rough;
         ctx.fill();
