@@ -188,12 +188,12 @@ const neon: Look = {
   eye: '#fff',
   ink(ctx, trace, color, filled, width) {
     trace();
-    // くろのペンは光らせず、暗めの灰色に黒いふちを付ける（ネオン管の消えたところのように見せる）
+    // くろのペンは光らせず、黒い線に暗い灰色のふちを付けて夜の地から浮かせる（ネオン管の消えたところのように見せる）
     if (color === '#2b2d42') {
-      ctx.strokeStyle = '#000';
+      ctx.strokeStyle = '#4a4d60';
       ctx.lineWidth = width + PEN * 0.8;
       ctx.stroke();
-      ctx.fillStyle = ctx.strokeStyle = '#5b5e72';
+      ctx.fillStyle = ctx.strokeStyle = '#000';
       if (filled) ctx.fill();
       else {
         ctx.lineWidth = width;
