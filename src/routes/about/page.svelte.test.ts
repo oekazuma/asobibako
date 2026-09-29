@@ -7,7 +7,7 @@ describe('アプリについて', () => {
     document.body.innerHTML = '';
   });
 
-  it('一覧へ戻るリンクと、更新・状態・データ・音楽の欄を出す', () => {
+  it('一覧へ戻るリンクと、更新・状態・データの欄を出す', () => {
     const target = document.body.appendChild(document.createElement('div'));
     const app = mount(Page, { target });
     flushSync();
@@ -18,8 +18,7 @@ describe('アプリについて', () => {
       'アプリの状態',
       'データについて',
       '自動バックアップ',
-      'バックアップ',
-      '音楽'
+      'バックアップ'
     ]);
     expect(target.querySelector('.update')).not.toBeNull();
     expect(target.querySelectorAll('.status li')).toHaveLength(3);

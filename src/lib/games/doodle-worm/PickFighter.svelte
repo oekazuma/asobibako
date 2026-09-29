@@ -9,33 +9,28 @@
     title,
     doodles,
     look,
-    battle,
     onpick
   }: {
     title: string;
     doodles: Doodle[];
     look: Look;
-    /** バトルの子を選ぶ。持ち味と強さの目盛りを出す */
-    battle: boolean;
     onpick: (d: Doodle) => void;
   } = $props();
 
   // svelte-ignore state_referenced_locally
   let chosen = $state.raw<Doodle>(doodles[0]);
-  const s = $derived(battle ? stats(hatch(chosen.strokes)!) : null);
+  const s = $derived(stats(hatch(chosen.strokes)!));
 </script>
 
 <h2 class="banner yuru">{title}</h2>
-<div class="show" class:dance={!battle}>
+<div class="show">
   <img class="big" src={portrait(chosen.strokes, look)} style:background={look.bg} width="160" height="160" alt="" />
-  {#if s}
-    <div class="stats">
-      <span class="trait">{s.trait}</span>
-      {#each ratings(s) as [name, v] (name)}
-        <span class="row">{name}<i><b style:width="{v * 100}%"></b></i></span>
-      {/each}
-    </div>
-  {/if}
+  <div class="stats">
+    <span class="trait">{s.trait}</span>
+    {#each ratings(s) as [name, v] (name)}
+      <span class="row">{name}<i><b style:width="{v * 100}%"></b></i></span>
+    {/each}
+  </div>
 </div>
 <button class="pill p2 go" onclick={() => onpick(chosen)}>この こに する！</button>
 <ul class="grid">
@@ -66,13 +61,6 @@
     border-radius: 28px;
     background: #fff;
     box-shadow: var(--soft-shadow);
-  }
-
-  /* ダンスの子は、舞台と同じ色の上に立たせて見せる */
-  .show.dance {
-    background:
-      radial-gradient(ellipse 70% 60% at 50% 30%, rgb(255 126 182 / 0.5), transparent 70%),
-      linear-gradient(#2a1650, #4b2a7a);
   }
 
   .big {

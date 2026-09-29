@@ -1,4 +1,4 @@
-import { biquad, click, hiss, pluck, RATE, ring, thump, toBuffer, wave, white } from './synth';
+import { biquad, click, hiss, pluck, RATE, ring, toBuffer, wave, white } from './synth';
 
 /**
  * 本物の楽器に近い音色。打つ楽器は板や棒の倍音の比（整数倍ではない）で減衰の違うサイン波を重ね、
@@ -143,35 +143,6 @@ const DEFS = {
       hiss(d, sr, 0, 0.06, 1800, 8000, 0.5, (u) => Math.exp(-u * 4), 0.3);
       ring(d, sr, 0, 200, 0.25, 0.012);
     }
-  },
-  /** ゲーム機のピコピコした笛。幅 1/4 の矩形波（倍音を数えて足すので折り返しが出ない）に、のばすと揺れがかかる */
-  chip: {
-    sec: 0.8,
-    sr: 24000,
-    make: (d, sr, f) => {
-      const hs = Array.from({ length: 24 }, (_, i) => i + 1).filter((h) => f * h < sr * 0.45);
-      let ph = 0;
-      for (let i = 0; i < d.length; i++) {
-        const t = i / sr;
-        ph += (f * (1 + Math.max(0, t - 0.15) * 0.012 * Math.sin(2 * Math.PI * 6 * t))) / sr;
-        let v = 0;
-        for (const h of hs) v += (Math.sin(h * Math.PI * 0.25) / h) * Math.cos(2 * Math.PI * h * ph);
-        d[i] = v * 0.5 * Math.min(1, t / 0.005) * Math.exp(-t * 1.2);
-      }
-    }
-  },
-  /** 大太鼓。高さが下がりながら消える胴の音に、ばちの当たる短いノイズ。高さはないので f は使わない */
-  kick: {
-    sec: 0.3,
-    make: (d, sr) => {
-      thump(d, sr, 0, 110, 0.9, 0.09, 0.55);
-      hiss(d, sr, 0, 0.012, 1000, 5000, 0.25);
-    }
-  },
-  /** 閉じたハイハットのチッ */
-  hat: {
-    sec: 0.05,
-    make: (d, sr) => hiss(d, sr, 0, 0.04, 7000, 14000, 0.4, (u) => Math.exp(-u * 6))
   },
   /** ホルン風のやわらかいラッパ。吹きはじめは暗く、息が通ると上の倍音が開く */
   horn: {

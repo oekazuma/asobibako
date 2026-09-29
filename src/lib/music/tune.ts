@@ -10,8 +10,8 @@ import { bgmOut, play } from './synth';
  * 楽譜。melody は 8 分音符 1 つを 1 語にして小節を | で区切る（音名とオクターブ、`-` は前の音をのばす、`.` は休み）。
  * chords は 1 小節に 1 つのコード。伴奏の刻み方は style が決める
  */
-export type Lead = 'box' | 'mallet' | 'bubble' | 'brass' | 'flute' | 'glock' | 'chip';
-export type Style = 'waltz' | 'bounce' | 'march' | 'gentle' | 'pop';
+export type Lead = 'box' | 'mallet' | 'bubble' | 'brass' | 'flute';
+export type Style = 'waltz' | 'bounce' | 'march' | 'gentle';
 
 export interface Song {
   beats: 3 | 4;
@@ -90,8 +90,6 @@ const LEADS: Record<Lead | 'pluck' | 'bass' | 'pad', Play> = {
   bubble: hit('drop', 0.7),
   brass: hold('horn', 0.8, 0.08, 0.85),
   flute: hold('flute', 0.6, 0.2),
-  glock: hit('glock', 0.7),
-  chip: hold('chip', 1.4, 0.03, 0.9),
   pluck: hit('harp', 1.1),
   pad: hold('pad', 1.6, 0.4),
   bass: hold('bass', 1.3, 0.12)
@@ -138,16 +136,6 @@ export function playStep(ctx: BaseAudioContext, out: AudioNode, sc: Score, step:
       else if (p === 2 || p === 6) strum(LEADS.pluck, 0.5, CHORD * 1.2);
       tick(ctx, out, t, p % 2 ? 0.025 : 0.05);
       return;
-    // 4 つ打ちの大太鼓、2・4 拍の小太鼓、裏のハイハット、8 分でオクターブを跳ねるベース、裏拍のコード
-    case 'pop':
-      // 大太鼓は波形のピークが旋律の約 6 倍あるので、旋律より少し大きく聞こえる程度に絞る
-      if (p % 2 === 0) play(ctx, out, t, note(ctx, 'kick', 0), 0.2);
-      else play(ctx, out, t, note(ctx, 'hat', 0), 0.12);
-      if (p === 2 || p === 6) tick(ctx, out, t, 0.07);
-      LEADS.bass(ctx, out, t, hz(low(c[0]) + (p % 2) * 12), sd * 0.8, BASS * 0.9);
-      if (p === 3 || p === 7) strum(LEADS.pluck, 1, CHORD * 0.9);
-      if (p === 0) strum(LEADS.pad, sc.perBar, CHORD * 0.3);
-      return;
     case 'gentle':
       if (p === 0) strum(LEADS.pad, sc.perBar, CHORD * 0.45);
       if (p === 0 || p === 4) bass(p ? c[2] : c[0], 4);
@@ -156,7 +144,7 @@ export function playStep(ctx: BaseAudioContext, out: AudioNode, sc: Score, step:
 }
 
 /**
- * 譜面の時計に合わせて 1 度だけ流す曲（リズムあそび・ダンス）。時計は呼ぶ側が持ち、t はいま聞こえている曲の秒、
+ * 譜面の時計に合わせて 1 度だけ流す曲（しつけのリズムあそび）。時計は呼ぶ側が持ち、t はいま聞こえている曲の秒、
  * latency は予約してから耳に届くまでの秒。ミュートなどで鳴らせなかったあいだの音は飛ばし、戻ったらいまの位置から続ける
  */
 export class Tune {
