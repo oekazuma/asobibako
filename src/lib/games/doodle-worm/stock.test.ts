@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Stroke } from './engine';
-import { loadStock, pack, place, saveStock, STOCK_KEY } from './stock';
+import { addWin, loadStock, pack, place, saveStock, STOCK_KEY } from './stock';
 
 const stroke: Stroke = {
   color: '#fff',
@@ -97,5 +97,15 @@ describe('stock', () => {
   it('localStorage が使えない環境でも、空にするときに投げない', () => {
     vi.stubGlobal('localStorage', undefined);
     expect(saveStock([])).toEqual([]);
+  });
+
+  it('勝った絵の勝ち数を数え、優勝は一度付いたら消えない', () => {
+    const list = [pack([stroke], 'a'), pack([stroke], 'b')];
+    const once = addWin(list, 'a', true);
+    const twice = addWin(once, 'a', false);
+    expect(twice[0]).toMatchObject({ wins: 2, crown: true });
+    expect(twice[1].wins).toBeUndefined();
+    saveStock(twice);
+    expect(loadStock()[0]).toMatchObject({ wins: 2, crown: true });
   });
 });

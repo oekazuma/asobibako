@@ -70,6 +70,24 @@ const AFTER_SPECIAL = 0.3;
 export const WINDUP = 0.35;
 /** 攻撃を出して戻るまでの秒 */
 export const ACT = 0.7;
+/** ひっさつわざの「ため」の秒。技の名前を大きく見せ、そのあいだ相手は攻撃しない */
+export const CHARGE = 1.1;
+/** 構えから当たるまでの秒 */
+export const windup = (special: boolean) => (special ? CHARGE : WINDUP);
+/** ガードが効いている秒と、次にガードできるまでの秒。押しっぱなしで守り続けられないよう間を空ける */
+export const GUARD = 0.45;
+export const GUARD_COOL = 1.5;
+/** ガードしたときに通るダメージの割合 */
+const GUARDED = 0.3;
+const GUARDED_SPECIAL = 0.5;
+
+/** 動き方ごとのひっさつわざの名前 */
+export const MOVES: Record<Kind, string> = {
+  hop: 'ぴょんぴょんプレス',
+  walk: 'ダッシュキック',
+  fly: 'スターダイブ',
+  crawl: 'ぐるぐるテール'
+};
 /** これを過ぎたら残りの体力の割合で決める */
 export const TIME_LIMIT = 45;
 /** 「ファイト！」までの秒 */
@@ -85,11 +103,17 @@ export interface Side {
   act: { t: number; special: boolean; hit: boolean } | null;
   /** 攻撃を受けてからの秒。受けていなければ -1 */
   hurt: number;
+  /** ガードが効いている残りの秒 */
+  guard: number;
+  /** 次にガードできるまでの秒 */
+  cool: number;
 }
 
 export type FightEvent =
   | { type: 'go' }
-  | { type: 'hit'; side: 0 | 1; damage: number; special: boolean; crit: boolean }
+  | { type: 'hit'; side: 0 | 1; damage: number; special: boolean; crit: boolean; guarded: boolean }
+  | { type: 'charge'; side: 0 | 1 }
+  | { type: 'guard'; side: 0 | 1 }
   | { type: 'dodge'; side: 0 | 1 }
   | { type: 'ready'; side: 0 | 1 }
   | { type: 'end'; winner: 0 | 1 };
@@ -100,9 +124,12 @@ export class Fight {
   t = -READY;
   winner: 0 | 1 | null = null;
   readonly #rand: () => number;
+  /** コンピュータが守る側の、攻撃を受けるたびにガードする確率 */
+  readonly #cpuGuard: [number, number];
 
-  constructor(a: Stats, b: Stats, rand = Math.random) {
+  constructor(a: Stats, b: Stats, rand = Math.random, cpuGuard: [number, number] = [0, 0]) {
     this.#rand = rand;
+    this.#cpuGuard = cpuGuard;
     // 同時に殴り合わないよう、最初の攻撃をずらす
     this.sides = [a, b].map((stats, i): Side => ({
       stats,
@@ -110,7 +137,9 @@ export class Fight {
       gauge: 0,
       timer: 0.4 + i * 0.5 + rand() * 0.3,
       act: null,
-      hurt: -1
+      hurt: -1,
+      guard: 0,
+      cool: 0
     })) as [Side, Side];
   }
 
@@ -127,31 +156,45 @@ export class Fight {
     return was < 1 && s.gauge >= 1 ? [{ type: 'ready', side }] : [];
   }
 
+  /** ガードを構える。構えてから GUARD 秒のあいだに当たった攻撃は弱まる */
+  guard(side: 0 | 1): FightEvent[] {
+    const s = this.sides[side];
+    if (!this.started || this.winner !== null || s.cool > 0) return [];
+    s.guard = GUARD;
+    s.cool = GUARD_COOL;
+    return [{ type: 'guard', side }];
+  }
+
   step(dt: number): FightEvent[] {
     const out: FightEvent[] = [];
     const was = this.t;
     this.t += dt;
     if (was < 0 && this.t >= 0) out.push({ type: 'go' });
     if (!this.started || this.winner !== null) return out;
+    const charging = this.sides.map((s) => !!s.act?.special && s.act.t < CHARGE);
     for (const i of [0, 1] as const) {
       const s = this.sides[i];
       if (s.hurt >= 0) s.hurt = s.hurt + dt < 0.4 ? s.hurt + dt : -1;
+      s.guard = Math.max(0, s.guard - dt);
+      s.cool = Math.max(0, s.cool - dt);
       if (s.gauge < 1) s.gauge = Math.max(0, s.gauge - DRAIN * dt);
       if (s.act) {
         s.act.t += dt;
-        if (!s.act.hit && s.act.t >= WINDUP) {
+        if (!s.act.hit && s.act.t >= windup(s.act.special)) {
           s.act.hit = true;
           this.#land(i, s.act.special, out);
           if (this.winner !== null) return out;
         }
-        if (s.act.t >= ACT) s.act = null;
+        if (s.act.t >= windup(s.act.special) + ACT - WINDUP) s.act = null;
         continue;
       }
+      if (charging[1 - i]) continue;
       s.timer -= dt;
       if (s.timer > 0) continue;
       const special = s.gauge >= 1;
       if (special) s.gauge = AFTER_SPECIAL;
       s.act = { t: 0, special, hit: false };
+      if (special) out.push({ type: 'charge', side: i });
       s.timer = s.stats.interval * (0.9 + this.#rand() * 0.2);
     }
     if (this.t >= TIME_LIMIT)
@@ -159,19 +202,22 @@ export class Fight {
     return out;
   }
 
-  /** 当たる強さは応援のゲージで 0.6〜1.8 倍 */
+  /** 当たる強さは応援のゲージで 0.6〜1.8 倍。ガードされると弱まる（ひっさつわざは半分まで） */
   #land(i: 0 | 1, special: boolean, out: FightEvent[]) {
     const s = this.sides[i];
-    const foe = this.sides[(1 - i) as 0 | 1];
+    const f = (1 - i) as 0 | 1;
+    const foe = this.sides[f];
     if (!special && this.#rand() < foe.stats.dodge) {
-      out.push({ type: 'dodge', side: (1 - i) as 0 | 1 });
+      out.push({ type: 'dodge', side: f });
       return;
     }
-    const crit = !special && this.#rand() < s.stats.crit;
-    const damage = Math.round(s.stats.power * (0.6 + 1.2 * s.gauge) * (special ? SPECIAL : crit ? 2 : 1));
+    const guarded = foe.guard > 0 || this.#rand() < this.#cpuGuard[f];
+    const crit = !special && !guarded && this.#rand() < s.stats.crit;
+    const cut = guarded ? (special ? GUARDED_SPECIAL : GUARDED) : 1;
+    const damage = Math.round(s.stats.power * (0.6 + 1.2 * s.gauge) * (special ? SPECIAL : crit ? 2 : 1) * cut);
     foe.hp = Math.max(0, foe.hp - damage);
     foe.hurt = 0;
-    out.push({ type: 'hit', side: i, damage, special, crit });
+    out.push({ type: 'hit', side: i, damage, special, crit, guarded });
     if (foe.hp === 0) this.#end(i, out);
   }
 

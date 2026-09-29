@@ -3,6 +3,7 @@
   import Sheet from '$lib/components/Sheet.svelte';
   import { saveImage } from '$lib/share';
   import type { Look } from './looks';
+  import Medal from './Medal.svelte';
   import { picture, portrait } from './paint';
   import type { Doodle } from './stock';
 
@@ -79,6 +80,7 @@
           >
             <Icon name="star" size="80%" />
           </button>
+          <Medal doodle={d} />
         </li>
       {/each}
     </ul>
