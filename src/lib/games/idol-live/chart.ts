@@ -72,7 +72,7 @@ const GROOVE: Record<Scene, number> = { intro: 0.6, verse: 0.8, bridge: 0.9, cho
 function keysOf(moves: Move[]): Key[] {
   const keys: Key[] = [];
   moves.forEach(([beat, id, mark, len = 0, to], i) => {
-    keys.push({ beat, pose: POSES[id] });
+    keys.push({ beat, pose: POSES[id], turn: id === 'twirl' });
     const next = moves[i + 1]?.[0] ?? Infinity;
     if (mark?.startsWith('hold')) keys.push({ beat: beat + len, pose: POSES[id], glide: true });
     else if (mark?.startsWith('slide') && to) keys.push({ beat: beat + len, pose: POSES[to], glide: true });

@@ -189,6 +189,8 @@ export const POSES = {
     footR: foot(0.1),
     face: 'happy'
   }),
+  /** くるりと 1 回転（key の turn で回す）。腕を広げてスカートとツインテールをひるがえす */
+  twirl: pose({ armL: arm(1.25, 0.2), armR: arm(1.25, 0.2), tilt: 0.1, footL: foot(0.02, 0, 0.05), face: 'happy' }),
   spread: pose({
     armL: arm(2.3, 0.3),
     armR: arm(2.3, 0.3),
@@ -220,6 +222,8 @@ export interface Key {
   pose: Pose;
   /** 前のかっこうから、あいだの拍をまるごと使ってなめらかに移る（スライドとホールドの動き） */
   glide?: boolean;
+  /** その key へ移るあいだに、体ごと 1 回転する */
+  turn?: boolean;
 }
 
 const lerp = (a: number, b: number, u: number) => a + (b - a) * u;
@@ -277,9 +281,11 @@ export function poseAt(keys: Key[], beat: number): Pose {
     const span = b.beat - a.beat;
     if (b.glide)
       return step(blend(a.pose, b.pose, smooth(clamp((beat - a.beat) / span))), a.pose, b.pose, beat - a.beat, span);
-    const d = Math.min(span, 0.5);
+    const d = Math.min(span, b.turn ? 1 : 0.5);
     const u = clamp((beat - (b.beat - d)) / d);
-    return step(blend(a.pose, b.pose, smooth(u)), a.pose, b.pose, u * d, d);
+    const p = step(blend(a.pose, b.pose, smooth(u)), a.pose, b.pose, u * d, d);
+    // 回り終わりは 2π なので、次のかっこう（向き 0）へそのままつながる
+    return b.turn ? { ...p, spin: p.spin + 2 * Math.PI * smooth(u) } : p;
   }
   return keys[keys.length - 1].pose;
 }

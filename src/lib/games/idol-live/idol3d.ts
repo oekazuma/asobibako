@@ -30,7 +30,17 @@ export class Idol3D {
     this.body.paint(bodyPaint(c));
   }
 
+  #last: Pose | null = null;
+  #flare = 0;
+
   pose(p: Pose, face: FaceState, dt: number): void {
+    // 回る速さと上下の速さで、スカートをひるがえす
+    if (this.#last && dt > 0) {
+      const w = Math.abs(p.spin - this.#last.spin) / dt + (Math.abs(p.air - this.#last.air) * 12) / dt;
+      this.#flare += (Math.min(1, w / 9) - this.#flare) * Math.min(1, dt * 8);
+    }
+    this.#last = p;
+    this.outfit.flare(this.#flare);
     this.rig.apply(p);
     this.body.grip('L', p.gripL);
     this.body.grip('R', p.gripR);

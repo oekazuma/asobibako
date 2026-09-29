@@ -20,7 +20,7 @@ const chorus = (m: 1 | -1, at: number): Move[] => {
     [at + 7, 'heart', 'chest'],
     [at + 8, side('low'), `slide${R}`, 2, side('up')],
     [at + 12, other('up'), `hold${L}`, 2],
-    [at + 14, 'idle'],
+    [at + 14, 'twirl'],
     [at + 16, 'crouch'],
     [at + 17, 'jump'],
     [at + 18, 'land', 'feet'],
@@ -77,7 +77,7 @@ const KIRAMEKI_MOVES: Move[] = [
   [98, 'waveR', 'R'],
   [100, 'stepR', 'R'],
   [101, 'stepL', 'L'],
-  [102, 'crouch'],
+  [102.5, 'twirl'],
   ...chorus(-1, 104),
   // 後奏。最後のスペシャルで両手を広げる
   [136, 'reachR', 'R'],

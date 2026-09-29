@@ -248,6 +248,7 @@ function gem(color: string, size: number): Group {
 export class Outfit {
   readonly #rig: Rig;
   #parts: Object3D[] = [];
+  #skirt: Object3D[] = [];
 
   constructor(rig: Rig) {
     this.#rig = rig;
@@ -257,6 +258,7 @@ export class Outfit {
   wear(c: Coord): void {
     for (const p of this.#parts) p.removeFromParent();
     this.#parts = [];
+    this.#skirt = [];
     const b = this.#rig.bones;
     const attach = (bone: Object3D, o: Object3D) => {
       bone.add(o);
@@ -296,11 +298,16 @@ export class Outfit {
       this.#shoe(c.shoes, s, attach);
       this.#tie(c.acc, s, attach);
     }
-    this.#skirt(c.bottom, attach);
+    this.#skirtLayers(c.bottom, attach);
     this.#head(c.acc, attach);
   }
 
-  #skirt(t: Theme, attach: (b: Object3D, o: Object3D) => Object3D) {
+  /** スカートのひるがえり 0..1（回ったり跳んだりしたとき） */
+  flare(k: number): void {
+    for (const o of this.#skirt) o.scale.set(1 + 0.35 * k, 1 - 0.15 * k, 1 + 0.35 * k);
+  }
+
+  #skirtLayers(t: Theme, attach: (b: Object3D, o: Object3D) => Object3D) {
     const st = STYLES[t];
     const hips = this.#rig.bones.hips;
     // 腰の骨から見た腰まわりの高さ（ウエストが 0.1、すそが -0.2 ほど）

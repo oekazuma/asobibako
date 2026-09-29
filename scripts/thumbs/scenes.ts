@@ -230,13 +230,13 @@ async function idolLive(s: Stage): Promise<void> {
       show.judge.notes.forEach((n, i) => {
         if (done.has(i) || t < n.t) return;
         done.add(i);
-        const p = n.kind === 'special' ? ([384, 512] as P) : show.at([n.x, n.y]);
+        const p = n.kind === 'special' ? ([384, 512] as P) : ([n.x, n.y] as P);
         fire('pointerdown', 10 + i, p);
         if (n.kind === 'tap' || n.kind === 'special') fire('pointerup', 10 + i, p);
         else held.set(10 + i, n);
       });
       for (const [id, n] of held) {
-        const p = show.at(n.kind === 'slide' ? along(n, t) : [n.x, n.y]);
+        const p = n.kind === 'slide' ? along(n, t) : ([n.x, n.y] as P);
         fire(t >= n.end ? 'pointerup' : 'pointermove', id, p);
         if (t >= n.end) held.delete(id);
       }
