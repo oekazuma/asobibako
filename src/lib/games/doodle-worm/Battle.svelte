@@ -108,7 +108,7 @@
       <BattleMenu onpick={begin} />
     {:else if phase === 'pick'}
       {#key picked.length}
-        <PickFighter title={`${NAMES[mode][picked.length]}を えらんでね`} {doodles} {look} battle onpick={pick} />
+        <PickFighter title={`${NAMES[mode][picked.length]}を えらんでね`} {doodles} {look} onpick={pick} />
       {/key}
     {:else if phase === 'ladder'}
       <Ladder me={picked[0]} {rivals} {round} {look} onfight={fight} />

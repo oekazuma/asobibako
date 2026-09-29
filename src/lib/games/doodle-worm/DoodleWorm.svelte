@@ -4,7 +4,6 @@
   import type { SoloProps } from '$lib/games';
   import { animate } from '$lib/loop';
   import Battle from './Battle.svelte';
-  import Dance from './Dance.svelte';
   import {
     add,
     COLORS,
@@ -40,7 +39,7 @@
   let drawing: { id: number; stroke: Stroke }[] = [];
   let stock = $state.raw<Doodle[]>([]);
   /** 開いているシートや、バトルの画面 */
-  let sheet = $state<'stock' | 'looks' | 'battle' | 'dance' | null>(null);
+  let sheet = $state<'stock' | 'looks' | 'battle' | null>(null);
   let look = $state.raw<Look>(loadLook());
 
   const input = new BoardInput({
@@ -175,8 +174,6 @@
   <Looks {look} sample={stock[0]?.strokes ?? SAMPLE} onpick={pick} onclose={() => (sheet = null)} />
 {:else if sheet === 'battle'}
   <Battle doodles={stock} {look} onclose={() => (sheet = null)} />
-{:else if sheet === 'dance'}
-  <Dance doodles={stock} {look} onclose={() => (sheet = null)} />
 {/if}
 
 <style>

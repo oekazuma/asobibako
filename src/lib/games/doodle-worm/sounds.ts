@@ -11,7 +11,6 @@ export const sounds = {
     for (const [i, f] of [523, 659, 784, 1047].entries()) tone(f, i === 3 ? 260 : 120, 'triangle', 0.08, i * 130);
   },
   undo: () => tone(220, 90, 'sine', 0.06),
-  tap: () => tone(1320, 40, 'sine', 0.05),
   cheer: () => tone(880 + Math.random() * 220, 50, 'triangle', 0.05),
   go: () => {
     tone(523, 120, 'square', 0.06);

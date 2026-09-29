@@ -69,15 +69,6 @@
       <h2>バックアップ</h2>
       <Backup />
     </section>
-
-    <section class="card">
-      <h2>音楽</h2>
-      <p>
-        らくがきパレードのダンスの曲「シャイニングスター」（作詞・作曲 森田交一、うた 詩歩）と「もんたの
-        クッキーやさん」（8bit29）は、<a href="https://maou.audio/" target="_blank" rel="noopener">魔王魂</a
-        >の曲です。ほかの曲と効果音は、このアプリの中で音を合成して鳴らしています。
-      </p>
-    </section>
   </div>
 </main>
 

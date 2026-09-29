@@ -324,7 +324,7 @@ function move(c: Creature): Pose {
   }
 }
 
-/** その場での動き（手足の振り・跳ね）だけを進める。バトルやダンスは位置を自分で決める */
+/** その場での動き（手足の振り・跳ね）だけを進める。バトルは位置を自分で決める */
 export function age(c: Creature, dt: number): void {
   c.age += dt;
   if (c.jump >= 0) c.jump = c.jump + dt < JUMP ? c.jump + dt : -1;
