@@ -1,19 +1,19 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import Icon from '$lib/components/Icon.svelte';
   import { Settle } from '$lib/settle.svelte';
   import Arena from './Arena.svelte';
   import type { Entry } from './arena-draw';
+  import BattleMenu, { type Mode } from './BattleMenu.svelte';
+  import BattleResult from './BattleResult.svelte';
   import Ladder from './Ladder.svelte';
   import type { Look } from './looks';
-  import { portrait } from './paint';
-  import Pick from './Pick.svelte';
+  import PickFighter from './PickFighter.svelte';
   import { lineup, RIVAL_CHEER, ROUND_NAMES } from './rivals';
   import type { Doodle } from './stock';
+  import Versus from './Versus.svelte';
 
   let { doodles, look, onclose }: { doodles: Doodle[]; look: Look; onclose: () => void } = $props();
 
-  type Mode = 'duo' | 'solo' | 'cup';
   const NAMES: Record<Mode, string[]> = {
     duo: ['1P の こ', '2P の こ'],
     solo: ['きみの こ', 'あいての こ'],
@@ -23,7 +23,7 @@
   const SOLO_CHEER = 3.2;
 
   let mode = $state<Mode>('duo');
-  let phase = $state<'menu' | 'pick' | 'ladder' | 'fight' | 'result'>('menu');
+  let phase = $state<'menu' | 'pick' | 'ladder' | 'versus' | 'fight' | 'result'>('menu');
   let picked = $state.raw<Entry[]>([]);
   let rivals = $state.raw<Entry[]>([]);
   let round = $state(0);
@@ -62,9 +62,10 @@
     } else fight();
   }
 
+  /** 顔ぶれを見せてから戦う */
   function fight() {
     bout += 1;
-    phase = 'fight';
+    phase = 'versus';
   }
 
   function end(w: 0 | 1) {
@@ -84,31 +85,35 @@
   onMount(settle.listen);
 </script>
 
-{#if phase === 'fight'}
+{#if phase === 'versus'}
+  <Versus
+    {entries}
+    {look}
+    note={mode === 'cup' ? ROUND_NAMES[round] : ''}
+    flip={mode === 'duo'}
+    ondone={() => (phase = 'fight')}
+  />
+{:else if phase === 'fight'}
   {#key bout}
     <Arena {entries} {look} duo={mode === 'duo'} cpu={mode === 'cup' ? RIVAL_CHEER[round] : SOLO_CHEER} onend={end} />
   {/key}
 {:else}
-  <div class="screen" class:settling={settle.active}>
+  <!-- 2P の子は向かいの人が選ぶので、画面ごと向かいへ向ける -->
+  <div
+    class="screen"
+    class:settling={settle.active}
+    class:flip={phase === 'pick' && mode === 'duo' && picked.length === 1}
+  >
     {#if phase === 'menu'}
-      <h2 class="yuru">バトル</h2>
-      <p>ずかんの こが じどうで たたかうよ。ボタンを れんだして おうえんしよう！</p>
-      <div class="modes">
-        <button class="pill p1" onclick={() => begin('duo')}>ふたりで たいせん</button>
-        <button class="pill p2" onclick={() => begin('solo')}>ひとりで たいせん</button>
-        <button class="pill gold" onclick={() => begin('cup')}>トーナメント</button>
-      </div>
+      <BattleMenu onpick={begin} />
     {:else if phase === 'pick'}
-      <Pick title={`${NAMES[mode][picked.length]}を えらんでね`} {doodles} {look} onpick={pick} />
+      {#key picked.length}
+        <PickFighter title={`${NAMES[mode][picked.length]}を えらんでね`} {doodles} {look} battle onpick={pick} />
+      {/key}
     {:else if phase === 'ladder'}
       <Ladder me={picked[0]} {rivals} {round} {look} onfight={fight} />
     {:else}
-      {#if cleared}
-        <Icon name="trophy" size="72px" />
-      {/if}
-      <h2 class="yuru">{headline}</h2>
-      <img src={portrait(entries[winner].strokes, look)} style:background={look.bg} width="160" height="160" alt="" />
-      <div class="modes">
+      <BattleResult {headline} winner={entries[winner].strokes} {look} trophy={cleared} duo={mode === 'duo'}>
         {#if mode !== 'cup'}
           <button class="pill p2" onclick={fight}>もういちど</button>
           <button class="pill" onclick={() => begin(mode)}>えらびなおす</button>
@@ -117,7 +122,7 @@
         {:else}
           <button class="pill p2" onclick={fight}>もういちど</button>
         {/if}
-      </div>
+      </BattleResult>
     {/if}
     <button class="pill back" onclick={phase === 'menu' ? onclose : () => (phase = 'menu')}>もどる</button>
   </div>
@@ -140,28 +145,8 @@
     pointer-events: none;
   }
 
-  h2 {
-    margin: 0 0 12px;
-  }
-
-  p {
-    margin: 0 auto 20px;
-    max-width: 30em;
-  }
-
-  .modes {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 20px;
-  }
-
-  img {
-    width: min(50cqw, 240px);
-    height: auto;
-    margin: 8px auto 20px;
-    border-radius: 24px;
+  .flip {
+    rotate: 180deg;
   }
 
   .back {

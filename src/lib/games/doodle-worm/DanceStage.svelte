@@ -5,17 +5,32 @@
   import { CONFETTI, Floaters, label, Particles } from '$lib/fx';
   import { animate } from '$lib/loop';
   import { SongClock } from '$lib/music/clock';
-  import { score, Tune } from '$lib/music/tune';
+  import { Clip } from '$lib/music/clip';
+  import { Tune } from '$lib/music/tune';
   import { fighter } from './arena-draw';
-  import { chart, Judge, type DanceEvent, type Grade, type Level, type Result } from './dance';
+  import {
+    chart,
+    DIFFICULTIES,
+    Judge,
+    type DanceEvent,
+    type Difficulty,
+    type Grade,
+    type Level,
+    type Result
+  } from './dance';
   import { lights, noteRadius, notes, placer } from './dance-draw';
   import { age, type Stroke } from './engine';
   import type { Look } from './looks';
   import { creature, fitCanvas, wipe } from './paint';
   import { sounds } from './sounds';
 
-  let { dancer, level, look, onend }: { dancer: Stroke[]; level: Level; look: Look; onend: (r: Result) => void } =
-    $props();
+  let {
+    dancer,
+    level,
+    difficulty,
+    look,
+    onend
+  }: { dancer: Stroke[]; level: Level; difficulty: Difficulty; look: Look; onend: (r: Result) => void } = $props();
 
   /**
    * 端末が教える遅れ（outputLatency・baseLatency）に足す秒。実機で音と輪がずれて聞こえたら、
@@ -33,9 +48,10 @@
 
   // 曲と踊る子は、この画面を開いたときに決まる
   // svelte-ignore state_referenced_locally
-  const c = chart(level, score(level.song).notes.length / score(level.song).perBar);
+  const c = chart(level, difficulty);
   // svelte-ignore state_referenced_locally
-  const tune = new Tune(level.song, level.bpm);
+  const { source: src, bpm } = level;
+  const tune = src.kind === 'synth' ? new Tune(src.song, bpm) : new Clip(src.url, src.offset);
   // svelte-ignore state_referenced_locally
   const star = fighter(dancer);
   const clock = new SongClock(-(c.lead + 1));
@@ -124,10 +140,11 @@
     fx.draw(ctx);
     floaters.draw(ctx);
     if (judge.combo >= 3) label(ctx, `${judge.combo} コンボ`, aspect / 2, 0.52, 0.04, '#ffc233');
-    if (now < 0) label(ctx, level.name, aspect / 2, 0.52, 0.05, '#ff4d8d');
+    if (now < 0) label(ctx, `${level.name}（${DIFFICULTIES[difficulty]}）`, aspect / 2, 0.52, 0.045, '#ff4d8d');
   }
 
   onMount(() => {
+    if (tune instanceof Clip) tune.load(bus());
     const stop = animate(frame);
     return () => {
       stop();

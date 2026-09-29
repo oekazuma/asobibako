@@ -1,4 +1,5 @@
-import type { Song } from '$lib/music/tune';
+import type { IconName } from '$lib/icons';
+import { score, type Song } from '$lib/music/tune';
 
 /**
  * ダンスの決まりごと（譜面・判定・成績）。DOM も canvas も音も使わない。
@@ -26,17 +27,54 @@ export interface Note {
   last: boolean;
 }
 
+/** 曲の音のもと。自前の楽譜は合成して鳴らし、音源ファイルは読みこんで流す */
+export type Source =
+  | { kind: 'synth'; song: Song }
+  | {
+      kind: 'file';
+      url: string;
+      /** 最初の小節の 1 拍目が、音源の何秒目か */
+      offset: number;
+      /** 最初の小節から 8 分音符ごとの音の立ち上がりの強さ（0〜9 の数字）。音源から前もって測っておく */
+      strengths: string;
+    };
+
 export interface Level {
   id: string;
   name: string;
-  /** 難しさの星の数 */
-  stars: number;
-  song: Song;
   bpm: number;
-  /** 1 小節ぶんの叩き方（8 分音符 8 つ）。x はタップ、H から続く - は長押し、. は休み。小節ごとに順にくり返す */
-  bars: string[];
-  /** 輪が縮みはじめてから押すまでの秒 */
-  lead: number;
+  source: Source;
+  /** ジャケットの色（上・下）と絵 */
+  jacket: { colors: [string, string]; icon: IconName };
+  /** 作った人の表記。自前の曲は無し */
+  credit?: string;
+}
+
+export const DIFFICULTIES = ['かんたん', 'ふつう', 'むずかしい'] as const;
+export type Difficulty = 0 | 1 | 2;
+
+/**
+ * 難しさごとの拾い方。strength 以上の 8 分音符をノーツにし、前のノーツから gap（8 分音符の数）は空ける。
+ * offbeat は裏拍を拾う強さ（かんたんは拾わない）。hold 以上のばす音は長押しにする。lead は輪が縮みはじめてから押すまでの秒
+ */
+const PICK = [
+  { strength: 6, gap: 4, offbeat: 10, hold: 4, lead: 1.5 },
+  { strength: 5, gap: 2, offbeat: 8, hold: 4, lead: 1.2 },
+  { strength: 4, gap: 1, offbeat: 5, hold: 3, lead: 1.0 }
+];
+
+/** 8 分音符ごとの、音の立ち上がりの強さ（0〜9）と、そこから続く長さ（8 分音符の数） */
+function beats(source: Source): { strength: number[]; hold: number[] } {
+  if (source.kind === 'file') {
+    const strength = [...source.strengths].map(Number);
+    return { strength, hold: strength.map(() => 0) };
+  }
+  // 自前の曲は旋律の音の出だしを強く、旋律の休みは伴奏の拍として弱く数える。表拍と、2・4 拍目の裏（はねるリズム）ほど強い
+  const notes = score(source.song).notes;
+  return {
+    strength: notes.map((n, i) => (n ? 9 : 5) - (i % 2 && i % 4 !== 3 ? 2 : 0)),
+    hold: notes.map((n) => n?.steps ?? 0)
+  };
 }
 
 export interface Chart {
@@ -51,33 +89,29 @@ export interface Chart {
 export const SPOTS = 7;
 
 /**
- * 最初と最後の小節は空けて、あいだの小節に叩き方を並べる。
+ * 最初と最後の小節は空けて、あいだの 8 分音符から難しさに合わせてノーツを拾う。
  * ノーツは弧のとなりの場所へ順に移り、端で折り返す（次に押す場所を目で追いやすい）
  */
-export function chart(level: Level, songBars: number): Chart {
+export function chart(level: Level, difficulty: Difficulty): Chart {
+  const pick = PICK[difficulty];
   const step = 30 / level.bpm;
+  const { strength, hold } = beats(level.source);
+  const bars = Math.floor(strength.length / 8);
   const notes: Note[] = [];
   let spot = 0;
   let dir = 1;
-  for (let bar = 1; bar < songBars - 1; bar++) {
-    const slots = level.bars[(bar - 1) % level.bars.length];
-    for (let i = 0; i < slots.length; i++) {
-      if (slots[i] !== 'x' && slots[i] !== 'H') continue;
-      let len = 0;
-      if (slots[i] === 'H') while (slots[i + len + 1] === '-') len++;
-      notes.push({
-        t: (bar * 8 + i) * step,
-        len: len ? (len + 1) * step : 0,
-        spot,
-        section: Math.floor((bar - 1) / SECTION),
-        last: false
-      });
-      if (spot + dir < 0 || spot + dir >= SPOTS) dir = -dir;
-      spot += dir;
-    }
+  let free = 8;
+  for (let i = 8; i < (bars - 1) * 8; i++) {
+    const s = strength[i];
+    if (i < free || s < (i % 2 ? pick.offbeat : pick.strength)) continue;
+    const steps = hold[i] >= pick.hold ? Math.min(hold[i], 6) : 0;
+    notes.push({ t: i * step, len: steps * step, spot, section: Math.floor((i / 8 - 1) / SECTION), last: false });
+    free = i + (steps ? Math.max(pick.gap, steps + 2) : pick.gap);
+    if (spot + dir < 0 || spot + dir >= SPOTS) dir = -dir;
+    spot += dir;
   }
-  notes.forEach((n, i) => (n.last = notes[i + 1]?.section !== n.section));
-  return { notes, length: songBars * 8 * step, lead: level.lead, beat: step * 2 };
+  notes.forEach((n, k) => (n.last = notes[k + 1]?.section !== n.section));
+  return { notes, length: bars * 8 * step, lead: pick.lead, beat: step * 2 };
 }
 
 /** 弧の場所。u は盤面の幅に対する 0..1、v は高さに対する 0..1。舞台で踊る子の下に、下向きの弧で並ぶ */
