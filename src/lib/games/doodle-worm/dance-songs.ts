@@ -1,4 +1,4 @@
-import { base } from '$app/paths';
+import { assets } from '$app/paths';
 import type { Level } from './dance';
 
 /** ダンスの曲。自前の曲の楽譜の書き方は $lib/music/tune の Song */
@@ -85,7 +85,7 @@ export const LEVELS: Level[] = [
     bpm: 158,
     source: {
       kind: 'file',
-      url: `${base}/music/maou_short_14_shining_star.mp3`,
+      url: `${assets}/music/maou_short_14_shining_star.mp3`,
       offset: 0.7537,
       // ♩=158 の拍に合わせて、音源の波形の立ち上がりを 8 分音符ごとに測った値
       strengths:
