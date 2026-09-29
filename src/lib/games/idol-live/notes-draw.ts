@@ -1,10 +1,6 @@
 import { label } from '$lib/fx';
-import { toScreen, unit, type Camera } from './camera';
-import { APPROACH, RADIUS, SPECIAL_APPROACH, SPECIAL_RADIUS, type Note } from './chart';
-import { along, WINDOW, type Judge } from './judge';
-import type { P } from './pose';
-import { heart, star } from './wear-draw';
-import { hexA } from './stage-draw';
+import { APPROACH, SPECIAL_APPROACH } from './chart';
+import { along, WINDOW, type Judge, type Placed } from './judge';
 
 /**
  * ノーツの絵（画面のピクセル）。ステージの上に浮かぶ光の輪で、外の輪が縮んで重なった瞬間に押す。
@@ -17,10 +13,9 @@ const PINK = '#ff6fa5';
 const GOLD = '#ffc233';
 const CYAN = '#5fd0ff';
 
+type P = [number, number];
+
 export interface NoteView {
-  w: number;
-  h: number;
-  cam: Camera;
   t: number;
   /** 1 拍の秒 */
   beat: number;
@@ -31,8 +26,7 @@ export interface NoteView {
 const ease = (u: number) => 1 - (1 - Math.min(1, u)) ** 3;
 
 export function drawNotes(ctx: Ctx, v: NoteView, judge: Judge) {
-  const k = unit(v.w, v.h) * v.cam.zoom;
-  const scr = (p: P) => toScreen(v.cam, v.w, v.h, p);
+  const r = judge.radius;
   // 後に叩くノーツほど奥に描き、次に叩くノーツを上に重ねる
   for (let i = judge.notes.length - 1; i >= 0; i--) {
     const n = judge.notes[i];
@@ -41,14 +35,14 @@ export function drawNotes(ctx: Ctx, v: NoteView, judge: Judge) {
     const lead = (n.kind === 'special' ? SPECIAL_APPROACH : APPROACH) * v.beat;
     if (v.t < n.t - lead || v.t > n.end + WINDOW.good) continue;
     const u = (v.t - (n.t - lead)) / lead;
-    const [x, y] = scr([n.x, n.y]);
+    const [x, y] = [n.x, n.y];
     ctx.save();
     ctx.globalAlpha = Math.min(1, u * 4);
-    if (n.kind === 'special') special(ctx, x, y, SPECIAL_RADIUS * k, u, v.t);
+    if (n.kind === 'special') special(ctx, x, y, r * 4, u, v.t);
     else {
       if (n.hand !== null && !held) link(ctx, v.hands[n.hand], [x, y], u);
-      if (n.kind === 'slide') slide(ctx, n, scr, RADIUS * k, v.t, held);
-      if (!held || n.kind === 'hold') target(ctx, n, x, y, RADIUS * k, u, v.t, held);
+      if (n.kind === 'slide') slide(ctx, n, r, v.t, held);
+      if (!held || n.kind === 'hold') target(ctx, n, x, y, r, u, v.t, held);
     }
     ctx.restore();
   }
@@ -79,7 +73,7 @@ function glow(ctx: Ctx, x: number, y: number, r: number, color: string, a: numbe
   ctx.globalCompositeOperation = 'source-over';
 }
 
-function target(ctx: Ctx, n: Note, x: number, y: number, r: number, u: number, t: number, held: boolean) {
+function target(ctx: Ctx, n: Placed, x: number, y: number, r: number, u: number, t: number, held: boolean) {
   const color = n.kind === 'hold' ? GOLD : n.kind === 'slide' ? CYAN : PINK;
   const pop = u < 0.15 ? 0.5 + 0.5 * ease(u / 0.15) : 1;
   const rr = r * pop;
@@ -129,8 +123,8 @@ function target(ctx: Ctx, n: Note, x: number, y: number, r: number, u: number, t
 }
 
 /** スライドの光の道。押さえているあいだは光の玉が道を進み、指で追いかける */
-function slide(ctx: Ctx, n: Note, scr: (p: P) => P, r: number, t: number, held: boolean) {
-  const pts = n.path.map(scr);
+function slide(ctx: Ctx, n: Placed, r: number, t: number, held: boolean) {
+  const pts = n.path;
   const done = held ? Math.min(1, (t - n.t) / (n.end - n.t)) : 0;
   const from = Math.floor(done * (pts.length - 1));
   ctx.lineCap = 'round';
@@ -151,7 +145,7 @@ function slide(ctx: Ctx, n: Note, scr: (p: P) => P, r: number, t: number, held: 
   // 進む向きに流れる光の粒
   for (let i = from; i < pts.length - 1; i += 2) {
     const s = (i + ((t * 8) % 2)) / (pts.length - 1);
-    const [x, y] = scr(along({ ...n, t: 0, end: 1 }, s));
+    const [x, y] = along({ ...n, t: 0, end: 1 }, s);
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
     ctx.arc(x, y, r * 0.12, 0, Math.PI * 2);
@@ -163,7 +157,7 @@ function slide(ctx: Ctx, n: Note, scr: (p: P) => P, r: number, t: number, held: 
   star(ctx, ...end, r * 0.45, 0.45, 4);
   ctx.fill();
   if (!held) return;
-  const [x, y] = scr(along(n, t));
+  const [x, y] = along(n, t);
   glow(ctx, x, y, r * 2.6, CYAN, 0.7);
   ctx.fillStyle = '#ffffff';
   ctx.beginPath();
@@ -207,4 +201,27 @@ function special(ctx: Ctx, x: number, y: number, r: number, u: number, t: number
   ctx.stroke();
   ctx.restore();
   label(ctx, 'SPECIAL', x, y - r * 1.15, r * 0.3 * pop, PINK);
+}
+
+function star(ctx: Ctx, x: number, y: number, r: number, inner = 0.45, n = 5) {
+  ctx.moveTo(x, y - r);
+  for (let i = 1; i < n * 2; i++) {
+    const a = (i * Math.PI) / n;
+    const k = i % 2 ? r * inner : r;
+    ctx.lineTo(x + Math.sin(a) * k, y - Math.cos(a) * k);
+  }
+  ctx.closePath();
+}
+
+function heart(ctx: Ctx, x: number, y: number, r: number) {
+  ctx.moveTo(x, y + r * 0.9);
+  ctx.bezierCurveTo(x - r * 1.3, y + r * 0.1, x - r * 0.9, y - r * 1, x, y - r * 0.35);
+  ctx.bezierCurveTo(x + r * 0.9, y - r * 1, x + r * 1.3, y + r * 0.1, x, y + r * 0.9);
+  ctx.closePath();
+}
+
+/** '#rrggbb' に透明度をつける */
+function hexA(hex: string, a: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${Math.max(0, Math.min(1, a))})`;
 }

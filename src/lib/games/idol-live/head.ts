@@ -20,7 +20,7 @@ export function headPoint(d: Vector3): Vector3 {
   const { x, y, z } = d;
   const front = Math.max(0, z);
   let px = x * 0.09;
-  let py = y * (y > 0 ? 0.102 : 0.088);
+  const py = y * (y > 0 ? 0.102 : 0.088);
   let pz = z * (z > 0 ? 0.09 : 0.1);
   // ほおは口の高さまでふっくら保ち、そこから丸くあごへすぼめる
   const jaw = smooth((-y - 0.38) / 0.62);

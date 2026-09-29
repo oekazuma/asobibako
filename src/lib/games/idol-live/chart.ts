@@ -1,6 +1,10 @@
 import { scoreOf, type Song } from '$lib/music/tune';
 import type { Theme } from './outfits';
-import { joints, poseAt, POSES, groove, tip, type Key, type P, type PoseId } from './pose';
+import { groove, poseAt, POSES, type Key, type PoseId } from './dance';
+import { Vector3 } from 'three';
+import { Rig } from './rig';
+
+export type V3 = [number, number, number];
 
 /**
  * ふりつけと譜面。ふりつけの 1 手ごとに、そのかっこうに着く拍と、手の先に出すノーツを書く。
@@ -16,11 +20,10 @@ export interface Note {
   t: number;
   /** ホールドとスライドの終わり（秒）。ほかは t */
   end: number;
-  /** 世界の座標 */
-  x: number;
-  y: number;
+  /** 世界の座標（メートル） */
+  at: V3;
   /** スライドの道。t から end まで等しい時間おきに手の先をたどった点 */
-  path: P[];
+  path: V3[];
   shape: Shape;
   /** ノーツを出した手（0 が左、1 が右）。胸・足もと・スペシャルは null */
   hand: 0 | 1 | null;
@@ -55,16 +58,13 @@ export interface SongDef {
 
 export type Level = 'easy' | 'normal';
 
-/** ノーツの半径（世界）。スペシャルは体ごと囲む */
-export const RADIUS = 0.075;
-export const SPECIAL_RADIUS = 0.3;
 /** ノーツが出てから叩くまで（拍）。スペシャルは早めに見せる */
 export const APPROACH = 2.2;
 export const SPECIAL_APPROACH = 3;
 const SLIDE_STEPS = 16;
 /** 手の先からノーツまで。指さしは指した先の少し遠くに置く */
-const REACH = 0.07;
-const POINT_REACH = 0.13;
+const REACH = 0.06;
+const POINT_REACH = 0.12;
 
 /** 区間ごとのノリ（拍ごとにひざを沈める深さ） */
 const GROOVE: Record<Scene, number> = { intro: 0.6, verse: 0.8, bridge: 0.9, chorus: 1, break: 1, finale: 0.8 };
@@ -103,6 +103,7 @@ export class Track {
   /** スペシャルの拍 */
   readonly specials: number[];
   readonly #sounding: Sounding[] = [];
+  readonly #rig = new Rig();
 
   constructor(def: SongDef) {
     this.def = def;
@@ -146,21 +147,39 @@ export class Track {
     return vowel * Math.min(1, u * 6) * (n.steps > 2 ? 0.85 + 0.15 * Math.sin(u * 9) : 1);
   }
 
-  #place(mark: Mark, beat: number): { at: P; shape: Shape } {
-    const b = joints(this.figure(beat));
-    const side = mark.endsWith('L') ? 0 : 1;
+  /** その拍のかっこうを骨組みに当てる（ノーツの位置を出すための、描かない骨組み） */
+  #posed(beat: number): Rig {
+    this.#rig.apply(this.figure(beat));
+    return this.#rig;
+  }
+
+  #place(mark: Mark, beat: number): { at: V3; shape: Shape } {
+    const rig = this.#posed(beat);
+    const v = (p: { x: number; y: number; z: number }): V3 => [p.x, p.y, p.z];
     switch (mark) {
       case 'chest':
-        return { at: [(b.hand[0][0] + b.hand[1][0]) / 2, (b.hand[0][1] + b.hand[1][1]) / 2 - 0.02], shape: 'heart' };
-      case 'feet':
-        return { at: [b.hip[0], -0.04], shape: 'star' };
-      case 'special':
-        return { at: [b.hip[0], b.hip[1] - 0.2], shape: 'star' };
-      default:
         return {
-          at: tip(b, side, b.pose[side ? 'gripR' : 'gripL'] === 'point' ? POINT_REACH : REACH),
+          at: v(
+            rig
+              .at('handL')
+              .add(rig.at('handR'))
+              .multiplyScalar(0.5)
+              .add(new Vector3(0, 0.02, 0.05))
+          ),
+          shape: 'heart'
+        };
+      case 'feet':
+        return { at: v(rig.at('root').add(new Vector3(0, 0.04, 0.18))), shape: 'star' };
+      case 'special':
+        return { at: v(rig.at('chest').add(new Vector3(0, 0.05, 0.12))), shape: 'star' };
+      default: {
+        const s = mark.endsWith('L') ? 'L' : 'R';
+        const p = this.figure(beat);
+        return {
+          at: v(rig.tip(s, (s === 'L' ? p.gripL : p.gripR) === 'point' ? POINT_REACH : REACH)),
           shape: 'circle'
         };
+      }
     }
   }
 
@@ -170,15 +189,16 @@ export class Track {
       const { at, shape } = this.#place(mark, beat);
       const kind: Kind =
         mark === 'special' ? 'special' : mark.startsWith('hold') ? 'hold' : mark.startsWith('slide') ? 'slide' : 'tap';
-      const side = mark.endsWith('L') ? 0 : 1;
+      const s = mark.endsWith('L') ? 'L' : 'R';
       const path =
         kind === 'slide'
-          ? Array.from({ length: SLIDE_STEPS + 1 }, (_, i) =>
-              tip(joints(this.figure(beat + (len * i) / SLIDE_STEPS)), side, REACH)
-            )
+          ? Array.from({ length: SLIDE_STEPS + 1 }, (_, i): V3 => {
+              const p = this.#posed(beat + (len * i) / SLIDE_STEPS).tip(s, REACH);
+              return [p.x, p.y, p.z];
+            })
           : [];
-      const hand = mark === 'chest' || mark === 'feet' || kind === 'special' ? null : side;
-      return [{ kind, t: beat * this.beat, end: (beat + len) * this.beat, x: at[0], y: at[1], path, shape, hand }];
+      const hand = mark === 'chest' || mark === 'feet' || kind === 'special' ? null : s === 'L' ? 0 : 1;
+      return [{ kind, t: beat * this.beat, end: (beat + len) * this.beat, at, path, shape, hand }];
     });
   }
 }

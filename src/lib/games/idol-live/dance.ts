@@ -104,18 +104,53 @@ const HIP_HAND = arm(0.55, -0.35, 0.5);
 const HEART = arm(-0.95, 0.95, 0.52);
 
 const RIGHT = {
-  reach: pose({ x: 0.03, lean: 0.1, tilt: 0.12, turn: 0.35, armR: arm(2.3, 0.35), armL: arm(0.45, 0.15, 0.85), footR: foot(0.1, 0.05), face: 'happy' }),
+  reach: pose({
+    x: 0.03,
+    lean: 0.1,
+    tilt: 0.12,
+    turn: 0.35,
+    armR: arm(2.3, 0.35),
+    armL: arm(0.45, 0.15, 0.85),
+    footR: foot(0.1, 0.05),
+    face: 'happy'
+  }),
   point: pose({ lean: 0.04, tilt: 0.06, turn: 0.55, twist: 0.2, armR: arm(1.5, 0.6), gripR: 'point', armL: HIP_HAND }),
-  up: pose({ lean: 0.06, tilt: 0.14, turn: 0.15, nod: -0.12, armR: arm(2.85, 0.25), armL: arm(0.35, 0.25, 0.8), face: 'sing' }),
+  up: pose({
+    lean: 0.06,
+    tilt: 0.14,
+    turn: 0.15,
+    nod: -0.12,
+    armR: arm(2.85, 0.25),
+    armL: arm(0.35, 0.25, 0.8),
+    face: 'sing'
+  }),
   low: pose({ lean: 0.03, turn: 0.3, twist: 0.1, armR: arm(0.95, 0.35), armL: arm(0.3, 0.1, 0.9), footR: foot(0.06) }),
-  step: pose({ x: 0.18, lean: 0.05, turn: 0.45, twist: -0.15, armR: arm(1.85, 0.3), armL: arm(0.5, 0.2, 0.8), footR: foot(0.12, 0.04), footL: foot(-0.02, -0.06) }),
-  wave: pose({ lean: 0.04, tilt: 0.1, turn: 0.25, armR: arm(2.4, 0.4, 0.85), armL: arm(0.3, 0.15, 0.9), swayR: 1, face: 'happy' }),
+  step: pose({
+    x: 0.18,
+    lean: 0.05,
+    turn: 0.45,
+    twist: -0.15,
+    armR: arm(1.85, 0.3),
+    armL: arm(0.5, 0.2, 0.8),
+    footR: foot(0.12, 0.04),
+    footL: foot(-0.02, -0.06)
+  }),
+  wave: pose({
+    lean: 0.04,
+    tilt: 0.1,
+    turn: 0.25,
+    armR: arm(2.4, 0.4, 0.85),
+    armL: arm(0.3, 0.15, 0.9),
+    swayR: 1,
+    face: 'happy'
+  }),
   appeal: pose({
     lean: -0.07,
     tilt: -0.16,
     turn: 0.25,
     twist: 0.15,
-    armR: arm(0.6, 1.1, 0.5),
+    // ピースを右のほおの横へ
+    armR: arm(-2.87, 0.68, 0.42),
     gripR: 'v',
     armL: HIP_HAND,
     footL: foot(0.02, -0.12, 0.22),
@@ -126,10 +161,42 @@ const RIGHT = {
 export const POSES = {
   idle: BASE,
   heart: pose({ armL: HEART, armR: HEART, gripL: 'heart', gripR: 'heart', tilt: 0.1, bow: 0.05, face: 'happy' }),
-  crouch: pose({ crouch: 0.1, bow: 0.12, armL: arm(0.5, 0.8, 0.5), armR: arm(0.5, 0.8, 0.5), gripL: 'fist', gripR: 'fist', footL: foot(0.05), footR: foot(0.05), face: 'focus' }),
-  jump: pose({ air: 0.16, armL: arm(2.6, 0.2), armR: arm(2.6, 0.2), footL: foot(0.03, -0.1, 0.14), footR: foot(0.03, -0.1, 0.14), nod: -0.1, face: 'happy' }),
-  land: pose({ crouch: 0.08, armL: arm(1.35, 0.3), armR: arm(1.35, 0.3), footL: foot(0.1), footR: foot(0.1), face: 'happy' }),
-  spread: pose({ armL: arm(2.3, 0.3), armR: arm(2.3, 0.3), footL: foot(0.07), footR: foot(0.07), nod: -0.12, face: 'star' }),
+  crouch: pose({
+    crouch: 0.1,
+    bow: 0.12,
+    armL: arm(0.5, 0.8, 0.5),
+    armR: arm(0.5, 0.8, 0.5),
+    gripL: 'fist',
+    gripR: 'fist',
+    footL: foot(0.05),
+    footR: foot(0.05),
+    face: 'focus'
+  }),
+  jump: pose({
+    air: 0.16,
+    armL: arm(2.6, 0.2),
+    armR: arm(2.6, 0.2),
+    footL: foot(0.03, -0.1, 0.14),
+    footR: foot(0.03, -0.1, 0.14),
+    nod: -0.1,
+    face: 'happy'
+  }),
+  land: pose({
+    crouch: 0.08,
+    armL: arm(1.35, 0.3),
+    armR: arm(1.35, 0.3),
+    footL: foot(0.1),
+    footR: foot(0.1),
+    face: 'happy'
+  }),
+  spread: pose({
+    armL: arm(2.3, 0.3),
+    armR: arm(2.3, 0.3),
+    footL: foot(0.07),
+    footR: foot(0.07),
+    nod: -0.12,
+    face: 'star'
+  }),
   reachR: RIGHT.reach,
   reachL: mirror(RIGHT.reach),
   pointR: RIGHT.point,
@@ -158,7 +225,11 @@ export interface Key {
 const lerp = (a: number, b: number, u: number) => a + (b - a) * u;
 const clamp = (v: number) => Math.max(0, Math.min(1, v));
 const smooth = (u: number) => 0.5 - 0.5 * Math.cos(Math.PI * u);
-const mixArm = (a: Arm, b: Arm, u: number): Arm => ({ a: lerp(a.a, b.a, u), f: lerp(a.f, b.f, u), r: lerp(a.r, b.r, u) });
+const mixArm = (a: Arm, b: Arm, u: number): Arm => ({
+  a: lerp(a.a, b.a, u),
+  f: lerp(a.f, b.f, u),
+  r: lerp(a.r, b.r, u)
+});
 const mixFoot = (a: Foot, b: Foot, u: number): Foot => ({
   x: lerp(a.x, b.x, u),
   z: lerp(a.z, b.z, u),
@@ -166,8 +237,9 @@ const mixFoot = (a: Foot, b: Foot, u: number): Foot => ({
 });
 
 export function blend(a: Pose, b: Pose, u: number): Pose {
-  const n = (k: 'x' | 'z' | 'spin' | 'air' | 'crouch' | 'lean' | 'twist' | 'bow' | 'tilt' | 'turn' | 'nod' | 'swayL' | 'swayR') =>
-    lerp(a[k], b[k], u);
+  const n = (
+    k: 'x' | 'z' | 'spin' | 'air' | 'crouch' | 'lean' | 'twist' | 'bow' | 'tilt' | 'turn' | 'nod' | 'swayL' | 'swayR'
+  ) => lerp(a[k], b[k], u);
   const near = u < 0.5 ? a : b;
   return {
     x: n('x'),
@@ -203,7 +275,8 @@ export function poseAt(keys: Key[], beat: number): Pose {
     const [a, b] = [keys[i], keys[i + 1]];
     if (beat >= b.beat) continue;
     const span = b.beat - a.beat;
-    if (b.glide) return step(blend(a.pose, b.pose, smooth(clamp((beat - a.beat) / span))), a.pose, b.pose, beat - a.beat, span);
+    if (b.glide)
+      return step(blend(a.pose, b.pose, smooth(clamp((beat - a.beat) / span))), a.pose, b.pose, beat - a.beat, span);
     const d = Math.min(span, 0.5);
     const u = clamp((beat - (b.beat - d)) / d);
     return step(blend(a.pose, b.pose, smooth(u)), a.pose, b.pose, u * d, d);
@@ -219,7 +292,9 @@ function step(p: Pose, a: Pose, b: Pose, t: number, span: number): Pose {
   const phase = (t / span) * steps;
   const lift = 0.1 * Math.sin(Math.PI * (phase % 1));
   const left = (Math.floor(phase) % 2 === 0) === dx > 0;
-  return left ? { ...p, footL: { ...p.footL, lift: p.footL.lift + lift } } : { ...p, footR: { ...p.footR, lift: p.footR.lift + lift } };
+  return left
+    ? { ...p, footL: { ...p.footL, lift: p.footL.lift + lift } }
+    : { ...p, footR: { ...p.footR, lift: p.footR.lift + lift } };
 }
 
 /** 拍ごとにひざを沈め、2 拍で首と上体を左右に揺らす。手を振るのは 1 拍に 1 往復で、拍の上ではもとの位置。amount は 0..1 */

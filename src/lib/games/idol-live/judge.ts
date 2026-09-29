@@ -1,8 +1,21 @@
-import { RADIUS, type Note } from './chart';
+import type { Kind, Shape } from './chart';
 
 /**
- * ライブの判定・スコア・もりあがり。DOM も音も使わない。時刻は曲の頭からの秒、指の位置は世界の座標
+ * ライブの判定・スコア・もりあがり。DOM も音も使わない。時刻は曲の頭からの秒、位置は画面のピクセル
  */
+
+/** 画面に置いたノーツ（shots.ts の place が作る） */
+export interface Placed {
+  kind: Kind;
+  t: number;
+  end: number;
+  x: number;
+  y: number;
+  path: [number, number][];
+  shape: Shape;
+  /** ノーツを出した手（0 が左、1 が右）。胸・足もと・スペシャルは null */
+  hand: 0 | 1 | null;
+}
 
 export type Grade = 'perfect' | 'great' | 'good' | 'miss';
 export type Rank = 'S' | 'A' | 'B' | 'C';
@@ -43,7 +56,7 @@ interface Hold {
 const down = (g: Grade): Grade => (g === 'perfect' ? 'great' : 'good');
 
 /** スライドの道の、時刻 t での光の玉の位置 */
-export function along(n: Note, t: number): [number, number] {
+export function along(n: Placed, t: number): [number, number] {
   const u = Math.max(0, Math.min(1, (t - n.t) / (n.end - n.t || 1))) * (n.path.length - 1);
   const i = Math.min(n.path.length - 2, Math.floor(u));
   const [a, b] = [n.path[i], n.path[i + 1]];
@@ -51,8 +64,10 @@ export function along(n: Note, t: number): [number, number] {
 }
 
 export class Judge {
-  readonly notes: Note[];
+  notes: Placed[];
   readonly grades: (Grade | null)[];
+  /** ノーツの半径（ピクセル） */
+  radius: number;
   combo = 0;
   maxCombo = 0;
   score = 0;
@@ -61,8 +76,9 @@ export class Judge {
   readonly offsets: number[] = [];
   readonly #holds = new Map<number, Hold>();
 
-  constructor(notes: Note[]) {
+  constructor(notes: Placed[], radius: number) {
     this.notes = notes;
+    this.radius = radius;
     this.grades = notes.map(() => null);
   }
 
@@ -75,6 +91,12 @@ export class Judge {
 
   get done(): boolean {
     return this.grades.every((g) => g !== null);
+  }
+
+  /** 画面の大きさが変わったら、置きなおしたノーツに替える（判定はそのまま） */
+  relayout(notes: Placed[], radius: number): void {
+    this.notes = notes;
+    this.radius = radius;
   }
 
   /** 押さえているホールド・スライド */
@@ -92,7 +114,7 @@ export class Judge {
       if (this.grades[i] !== null || taken.has(i)) return;
       const d = Math.abs(t - n.t);
       if (d > WINDOW.good) return;
-      if (n.kind !== 'special' && Math.hypot(x - n.x, y - n.y) > RADIUS * REACH) return;
+      if (n.kind !== 'special' && Math.hypot(x - n.x, y - n.y) > this.radius * REACH) return;
       if (d < bestD) [best, bestD] = [i, d];
     });
     if (best < 0) return out;
@@ -157,19 +179,19 @@ export class Judge {
     };
   }
 
-  #track(n: Note, h: Hold, t: number) {
+  #track(n: Placed, h: Hold, t: number) {
     if (t <= h.last) return;
     const from = Math.max(h.last, n.t);
     const to = Math.min(t, n.end);
     if (to > from) {
       const [cx, cy] = n.kind === 'slide' ? along(n, to) : [h.x, h.y];
-      if (Math.hypot(h.x - cx, h.y - cy) <= RADIUS * TRACK) h.on += to - from;
+      if (Math.hypot(h.x - cx, h.y - cy) <= this.radius * TRACK) h.on += to - from;
     }
     h.last = t;
   }
 
   /** ホールドは終わりまで押さえきれば、スライドは 8 割なぞれば押した時の判定のまま。足りなければ下げる */
-  #finish(n: Note, h: Hold, t: number): Grade {
+  #finish(n: Placed, h: Hold, t: number): Grade {
     this.#track(n, h, t);
     const len = n.end - n.t;
     const kept = n.kind === 'hold' ? Math.min(t, n.end) - n.t : h.on;
@@ -177,7 +199,7 @@ export class Judge {
     return u >= (n.kind === 'hold' ? 1 : 0.8) ? h.grade : u >= 0.5 ? down(h.grade) : 'miss';
   }
 
-  #points(n: Note, g: Grade, combo: number): number {
+  #points(n: Placed, g: Grade, combo: number): number {
     // コンボが続くほど少しずつ増える（100 コンボで 1.5 倍）
     return POINTS[g] * (n.kind === 'special' ? SPECIAL : 1) * (1 + Math.min(combo, 100) / 200);
   }

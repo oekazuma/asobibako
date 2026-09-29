@@ -4,6 +4,7 @@
   import { animate } from '$lib/loop';
   import type { Result } from './judge';
   import { Show, type Setup } from './show.svelte';
+  import { mount } from './view3d';
 
   let { setup, onend, onhint }: { setup: Setup; onend: (r: Result) => void; onhint?: (text: string) => void } =
     $props();
@@ -12,6 +13,7 @@
   const fresh = () => new Show({ ...setup, onend, onhint });
   const show = fresh();
   let canvas: HTMLCanvasElement;
+  let board: HTMLDivElement;
   let ctx: CanvasRenderingContext2D | null = null;
 
   const input = new BoardInput({
@@ -28,6 +30,7 @@
   }
 
   onMount(() => {
+    const unmount = mount(board);
     const stop = animate((dt) => {
       const [w, h] = input.px(1, 1);
       for (const [id, f] of input.fingers.all) show.move(id, ...input.px(f.x, f.y));
@@ -40,11 +43,12 @@
     return () => {
       stop();
       show.stop();
+      unmount();
     };
   });
 </script>
 
-<div class="board" use:input.board={resize} role="application" aria-label="ライブのステージ">
+<div class="board" bind:this={board} use:input.board={resize} role="application" aria-label="ライブのステージ">
   <canvas bind:this={canvas}></canvas>
   {#if !show.over}
     <p class="score">

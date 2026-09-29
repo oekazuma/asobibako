@@ -1,7 +1,7 @@
 <script lang="ts">
   import { wake } from '$lib/audio.svelte';
   import Closet from './Closet.svelte';
-  import IdolCanvas from './IdolCanvas.svelte';
+  import IdolPreview from './IdolPreview.svelte';
   import type { Level } from './chart';
   import type { Save, Slot, Theme } from './outfits';
   import SongCard from './SongCard.svelte';
@@ -30,7 +30,7 @@
   </header>
   <section class="idol">
     <div class="spot" aria-hidden="true"></div>
-    <IdolCanvas coord={save.coord} />
+    <IdolPreview coord={save.coord} />
     <div class="profile">
       <p class="name">ひなた ミオ</p>
       <p class="about">げんき いっぱいの しんじん アイドル。すきな ものは いちごミルク と ジャンプ！</p>
@@ -101,8 +101,7 @@
     background: radial-gradient(ellipse at 25% 90%, rgb(255 255 255 / 0.5), transparent 60%);
   }
 
-  .idol :global(canvas) {
-    position: relative;
+  .idol :global(.preview) {
     height: 100%;
   }
 

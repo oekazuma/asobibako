@@ -81,14 +81,21 @@ export class Body {
     const idx = (n: BoneName) => rig.skeleton.bones.indexOf(rig.bones[n]);
     /** list は下から順に [関節の高さ, 下の骨, 上の骨, なじませる幅]。fallback はいちばん下の骨 */
     const joint = (y: number, list: [number, BoneName, BoneName, number][], fallback: BoneName) => {
-      for (const [at, a, b, width] of list) if (Math.abs(y - at) < width) return blendBones(idx(a), idx(b), y - at, width * 2);
+      for (const [at, a, b, width] of list)
+        if (Math.abs(y - at) < width) return blendBones(idx(a), idx(b), y - at, width * 2);
       let best: BoneName = fallback;
       for (const [at, , b] of list) if (y > at) best = b;
       return [[idx(best), 1]] as [number, number][];
     };
     const mat = toon({ vertexColors: true, shade: SKIN_SHADE, rim: 0.35 });
     const line = outline(SKIN_LINE, 0.0016);
-    const add = (part: keyof BodyPaint, ring: Ring[], x: number, z: number, weights: (y: number) => [number, number][]) => {
+    const add = (
+      part: keyof BodyPaint,
+      ring: Ring[],
+      x: number,
+      z: number,
+      weights: (y: number) => [number, number][]
+    ) => {
       const g = column(ring, { x, z, skin: weights, paint: bare[part], caps: true });
       this.#geos.push({ g, part, x, z });
       for (const m of [mat, line]) {
@@ -118,15 +125,20 @@ export class Body {
       const sh = rig.at(`upper${s}`);
       const elbow = sh.y - SIZE.upper;
       const wrist = elbow - SIZE.fore;
-      add('arm', ARM.map(([y, ...r]) => [y + sh.y, ...r] as Ring), sh.x, sh.z, (y) =>
-        joint(
-          y,
-          [
-            [wrist, `hand${s}`, `fore${s}`, 0.01],
-            [elbow, `fore${s}`, `upper${s}`, 0.025]
-          ],
-          `hand${s}`
-        )
+      add(
+        'arm',
+        ARM.map(([y, ...r]) => [y + sh.y, ...r] as Ring),
+        sh.x,
+        sh.z,
+        (y) =>
+          joint(
+            y,
+            [
+              [wrist, `hand${s}`, `fore${s}`, 0.01],
+              [elbow, `fore${s}`, `upper${s}`, 0.025]
+            ],
+            `hand${s}`
+          )
       );
       const hip = rig.at(`thigh${s}`);
       const knee = hip.y - SIZE.thigh;

@@ -97,8 +97,21 @@ function frame(side: -1 | 1) {
 function lidPath(ctx: Ctx, side: -1 | 1, squint = 0) {
   const { cx, cy, w, h, inner, outer } = frame(side);
   ctx.moveTo(...inner);
-  ctx.bezierCurveTo(cx - side * w * 0.35, cy - h * (0.62 - squint), cx + side * w * 0.3, cy - h * (0.66 - squint), ...outer);
-  ctx.bezierCurveTo(cx + side * w * 0.52, cy + h * 0.4, cx + side * w * 0.15, cy + h * 0.56, cx - side * w * 0.12, cy + h * 0.5);
+  ctx.bezierCurveTo(
+    cx - side * w * 0.35,
+    cy - h * (0.62 - squint),
+    cx + side * w * 0.3,
+    cy - h * (0.66 - squint),
+    ...outer
+  );
+  ctx.bezierCurveTo(
+    cx + side * w * 0.52,
+    cy + h * 0.4,
+    cx + side * w * 0.15,
+    cy + h * 0.56,
+    cx - side * w * 0.12,
+    cy + h * 0.5
+  );
   ctx.quadraticCurveTo(cx - side * w * 0.42, cy + h * 0.4, ...inner);
   ctx.closePath();
 }
@@ -173,9 +186,23 @@ function eye(ctx: Ctx, side: -1 | 1, kind: Face) {
   ctx.fillStyle = LINE;
   ctx.beginPath();
   ctx.moveTo(inner[0], inner[1] + 4);
-  ctx.bezierCurveTo(cx - side * w * 0.35, cy - h * (0.66 - squint), cx + side * w * 0.3, cy - h * (0.72 - squint), outer[0] + side * w * 0.14, outer[1] - h * 0.14);
+  ctx.bezierCurveTo(
+    cx - side * w * 0.35,
+    cy - h * (0.66 - squint),
+    cx + side * w * 0.3,
+    cy - h * (0.72 - squint),
+    outer[0] + side * w * 0.14,
+    outer[1] - h * 0.14
+  );
   ctx.lineTo(outer[0] + side * w * 0.06, outer[1] + h * 0.04);
-  ctx.bezierCurveTo(cx + side * w * 0.3, cy - h * (0.58 - squint), cx - side * w * 0.35, cy - h * (0.55 - squint), inner[0], inner[1] + 10);
+  ctx.bezierCurveTo(
+    cx + side * w * 0.3,
+    cy - h * (0.58 - squint),
+    cx - side * w * 0.35,
+    cy - h * (0.55 - squint),
+    inner[0],
+    inner[1] + 10
+  );
   ctx.closePath();
   ctx.fill();
   ctx.beginPath();

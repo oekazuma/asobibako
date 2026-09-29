@@ -1,6 +1,6 @@
 import type { Song } from '$lib/music/tune';
 import { Track, type Move, type SongDef } from './chart';
-import type { PoseId } from './pose';
+import type { PoseId } from './dance';
 
 /**
  * 遊べる曲。1 曲ごとに、楽譜（書き方は $lib/music/tune の Song）・区間・ふりつけとノーツを持つ。

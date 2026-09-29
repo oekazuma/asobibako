@@ -131,7 +131,10 @@ function mat(color: string, o: { gloss?: number; opacity?: number } = {}): Mat {
   const key = `${color}:${o.gloss ?? 0}:${o.opacity ?? 1}`;
   let m = mats.get(key);
   if (!m) {
-    m = { fill: toon({ color, shade: '#c6a4cf', gloss: o.gloss, opacity: o.opacity }), line: outline(darker(color, 0.6), 0.0015) };
+    m = {
+      fill: toon({ color, shade: '#c6a4cf', gloss: o.gloss, opacity: o.opacity }),
+      line: outline(darker(color, 0.6), 0.0015)
+    };
     mats.set(key, m);
   }
   return m;
@@ -149,7 +152,17 @@ function solid(g: BufferGeometry, color: string, o: { gloss?: number; opacity?: 
  * 裾の広がった筒（スカート・袖口のフリル）。y0 から下へ len、半径 r0 → r1。裾は lobes 個の波で、sharp なら山がとがる（プリーツ）。
  * bulge は途中のふくらみ（バルーン）
  */
-function flare(o: { y0: number; len: number; r0: number; r1: number; lobes: number; amp: number; sharp?: boolean; bulge?: number; depth?: number }): BufferGeometry {
+function flare(o: {
+  y0: number;
+  len: number;
+  r0: number;
+  r1: number;
+  lobes: number;
+  amp: number;
+  sharp?: boolean;
+  bulge?: number;
+  depth?: number;
+}): BufferGeometry {
   const sides = Math.max(48, o.lobes * 6);
   const rows = 12;
   const pos: number[] = [];
@@ -158,8 +171,11 @@ function flare(o: { y0: number; len: number; r0: number; r1: number; lobes: numb
     const u = j / rows;
     for (let i = 0; i <= sides; i++) {
       const a = (i / sides) * Math.PI * 2;
-      const w = o.sharp ? 1 - 2 * Math.abs(((a * o.lobes) / (Math.PI * 2)) % 1 - 0.5) : 0.5 + 0.5 * Math.cos(a * o.lobes);
-      const r = o.r0 + (o.r1 - o.r0) * u ** 0.8 + (o.bulge ?? 0) * Math.sin(Math.PI * u) + (o.sharp ? w * 0.012 * u : 0);
+      const w = o.sharp
+        ? 1 - 2 * Math.abs((((a * o.lobes) / (Math.PI * 2)) % 1) - 0.5)
+        : 0.5 + 0.5 * Math.cos(a * o.lobes);
+      const r =
+        o.r0 + (o.r1 - o.r0) * u ** 0.8 + (o.bulge ?? 0) * Math.sin(Math.PI * u) + (o.sharp ? w * 0.012 * u : 0);
       const y = o.y0 - o.len * u + (u === 1 ? -o.amp * w : u > 0.85 ? -o.amp * w * ((u - 0.85) / 0.15) : 0);
       pos.push(Math.sin(a) * r, y, Math.cos(a) * r * (o.depth ?? 0.85));
     }
@@ -198,8 +214,18 @@ function bow(color: string, size: number, tails = 1): Group {
     if (tails > 0) {
       const t = solid(
         strand(
-          [new Vector3(0, 0, 0.004), new Vector3(s * size * 0.3, -size * 0.6 * tails, 0.01), new Vector3(s * size * 0.45, -size * 1.3 * tails, 0)],
-          { width: (u) => size * 0.22 * (1 - u * 0.2), thick: () => size * 0.05, out: () => new Vector3(0, 0, 1), segments: 6, sides: 4 }
+          [
+            new Vector3(0, 0, 0.004),
+            new Vector3(s * size * 0.3, -size * 0.6 * tails, 0.01),
+            new Vector3(s * size * 0.45, -size * 1.3 * tails, 0)
+          ],
+          {
+            width: (u) => size * 0.22 * (1 - u * 0.2),
+            thick: () => size * 0.05,
+            out: () => new Vector3(0, 0, 1),
+            segments: 6,
+            sides: 4
+          }
         ),
         color
       );
@@ -251,11 +277,20 @@ export class Outfit {
       const puff = attach(b[`upper${s}`], solid(new SphereGeometry(1, 16, 12), top.sleeve));
       puff.scale.set(0.052, 0.058, 0.05);
       puff.position.set(0, -0.035, 0);
-      const band = attach(b[`upper${s}`], solid(flare({ y0: 0, len: 0.02, r0: 0.036, r1: 0.05, lobes: 10, amp: 0.006 }), '#ffffff'));
+      const band = attach(
+        b[`upper${s}`],
+        solid(flare({ y0: 0, len: 0.02, r0: 0.036, r1: 0.05, lobes: 10, amp: 0.006 }), '#ffffff')
+      );
       band.position.set(0, -0.07, 0);
       if (c.top !== 'pop') {
         // 手袋はひじの少し上まで。口のフリルは上へ開く
-        const cuff = attach(b[`upper${s}`], solid(flare({ y0: 0, len: 0.028, r0: 0.038, r1: 0.025, lobes: 9, amp: -0.006 }), top.glove === '#ffffff' ? top.trim : '#ffffff'));
+        const cuff = attach(
+          b[`upper${s}`],
+          solid(
+            flare({ y0: 0, len: 0.028, r0: 0.038, r1: 0.025, lobes: 9, amp: -0.006 }),
+            top.glove === '#ffffff' ? top.trim : '#ffffff'
+          )
+        );
         cuff.position.set(0, -0.186, 0);
       }
       this.#shoe(c.shoes, s, attach);
@@ -279,12 +314,13 @@ export class Outfit {
       layers.push([flare({ y0: 0.1, len: 0.28, r0: 0.115, r1: 0.25, lobes: 20, amp: 0.012, sharp: true }), st.skirt]);
     } else if (t === 'pop') {
       layers.push([flare({ y0: 0.07, len: 0.3, r0: 0.118, r1: 0.24, lobes: 14, amp: 0.02 }), st.petticoat]);
-      layers.push([flare({ y0: 0.1, len: 0.28, r0: 0.115, r1: 0.19, lobes: 12, amp: 0.012, bulge: 0.07 }), st.skirt]);
+      layers.push([flare({ y0: 0.1, len: 0.28, r0: 0.115, r1: 0.19, lobes: 12, amp: 0.012, bulge: 0.035 }), st.skirt]);
     } else {
       layers.push([flare({ y0: 0.1, len: 0.62, r0: 0.118, r1: 0.36, lobes: 14, amp: 0.03 }), st.petticoat]);
       layers.push([flare({ y0: 0.1, len: 0.52, r0: 0.115, r1: 0.31, lobes: 9, amp: 0.05 }), st.skirt]);
     }
-    for (const [g, color] of layers) attach(hips, solid(g, color, { opacity: t === 'elegant' && color === st.petticoat ? 0.85 : 1 }));
+    for (const [g, color] of layers)
+      attach(hips, solid(g, color, { opacity: t === 'elegant' && color === st.petticoat ? 0.85 : 1 }));
     // うしろの大きなリボン
     const back = attach(hips, bow(st.trim, t === 'elegant' ? 0.08 : 0.07, 2.2));
     back.position.set(0, 0.1, -0.1);
@@ -311,7 +347,10 @@ export class Outfit {
       // ブーツの口はひざより上なので、太ももの骨に付ける（股の付け根からの高さで置く）
       const thigh = this.#rig.bones[`thigh${s}`];
       const y = (t === 'cool' ? 0.58 : 0.45) - (SIZE.hips + SIZE.hip.y);
-      const cuff = attach(thigh, solid(flare({ y0: 0, len: 0.025, r0: 0.05, r1: 0.058, lobes: 10, amp: 0.006 }), st.cuff));
+      const cuff = attach(
+        thigh,
+        solid(flare({ y0: 0, len: 0.025, r0: 0.05, r1: 0.058, lobes: 10, amp: 0.006 }), st.cuff)
+      );
       cuff.position.set(0, y + 0.005, 0);
       attach(thigh, bow(st.trim, 0.022, 0.5)).position.set(0, y - 0.01, 0.05);
     }
@@ -330,7 +369,10 @@ export class Outfit {
       const ring = attach(head, solid(new TorusGeometry(0.03, 0.012, 8, 20), t === 'pop' ? st.skirt : st.trim));
       ring.position.copy(at);
       ring.rotation.set(Math.PI / 2, 0, k * 0.5);
-      if (t === 'elegant') attach(head, gem(st.gem, 0.01)).position.copy(at).add(new Vector3(0, 0.005, 0.03));
+      if (t === 'elegant')
+        attach(head, gem(st.gem, 0.01))
+          .position.copy(at)
+          .add(new Vector3(0, 0.005, 0.03));
     }
   }
 
@@ -346,13 +388,20 @@ export class Outfit {
       const mic = attach(
         head,
         solid(
-          strand([new Vector3(-0.1, c.y - 0.02, 0.01), new Vector3(-0.085, c.y - 0.06, 0.06), new Vector3(-0.04, c.y - 0.07, 0.09)], {
-            width: () => 0.003,
-            thick: () => 0.003,
-            out: () => new Vector3(1, 0, 0),
-            segments: 8,
-            sides: 5
-          }),
+          strand(
+            [
+              new Vector3(-0.1, c.y - 0.02, 0.01),
+              new Vector3(-0.085, c.y - 0.06, 0.06),
+              new Vector3(-0.04, c.y - 0.07, 0.09)
+            ],
+            {
+              width: () => 0.003,
+              thick: () => 0.003,
+              out: () => new Vector3(1, 0, 0),
+              segments: 8,
+              sides: 5
+            }
+          ),
           '#3a3f55',
           { line: false }
         )

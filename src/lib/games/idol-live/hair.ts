@@ -1,4 +1,13 @@
-import { BufferGeometry, Color, Float32BufferAttribute, Group, Mesh, SkinnedMesh, SphereGeometry, Vector3 } from 'three';
+import {
+  BufferGeometry,
+  Color,
+  Float32BufferAttribute,
+  Group,
+  Mesh,
+  SkinnedMesh,
+  SphereGeometry,
+  Vector3
+} from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { CENTER, headPoint } from './head';
 import { aim, Rig, SIZE, sign, type Side } from './rig';
@@ -82,7 +91,17 @@ function headHair(): BufferGeometry {
   ];
   for (const [az, el, w] of bangs)
     parts.push(
-      lock([surf(az * 0.35, 1.3, 1.03), surf(az * 0.72, 0.95, 1.1), surf(az * 0.92, 0.55, 1.12), surf(az * 0.98, (0.55 + el) / 2, 1.1), surf(az, el, 1.06)], w, 0.008)
+      lock(
+        [
+          surf(az * 0.35, 1.3, 1.03),
+          surf(az * 0.72, 0.95, 1.1),
+          surf(az * 0.92, 0.55, 1.12),
+          surf(az * 0.98, (0.55 + el) / 2, 1.1),
+          surf(az, el, 1.06)
+        ],
+        w,
+        0.008
+      )
     );
   for (const az of [-0.7, -0.25, 0.25, 0.7])
     parts.push(lock([surf(az * 0.3, 1.3, 1.02), surf(az * 0.8, 0.85, 1.08), surf(az, 0.45, 1.1)], 0.034, 0.008));
@@ -101,7 +120,11 @@ function headHair(): BufferGeometry {
   // うしろ髪。つむじから首のうしろへ、少し外へ広げて
   for (let i = 0; i < 11; i++) {
     const az = Math.PI * (0.55 + (0.9 * i) / 10);
-    const flare = new Vector3(Math.sin(az) * 0.105, CENTER.y - 0.2 - 0.025 * Math.sin(i * 1.7) ** 2, Math.cos(az) * 0.095 - 0.02);
+    const flare = new Vector3(
+      Math.sin(az) * 0.105,
+      CENTER.y - 0.2 - 0.025 * Math.sin(i * 1.7) ** 2,
+      Math.cos(az) * 0.095 - 0.02
+    );
     parts.push(lock([surf(az, 1.2, 1.03), surf(az, 0.45, 1.1), surf(az, -0.35, 1.13), flare], 0.05, 0.012));
   }
   // アホ毛
@@ -123,7 +146,6 @@ function headHair(): BufferGeometry {
 
 /** ツインテール（世界の座標）。骨の鎖に沿って、ふくらんで細くなる毛束の束 */
 function tail(rig: Rig, s: Side): BufferGeometry {
-  const k = sign(s);
   const R = rig.at(`tail${s}0`);
   const n = SIZE.tail.n;
   const len = n * SIZE.tail.len;
@@ -185,7 +207,9 @@ class Chain {
     const dir = (i: number) => {
       // 根元は外うしろへ跳ね上げ、先へ行くほど下へ垂れる
       const u = i / n;
-      const d = new Vector3(k * (0.8 - u * 0.75), -0.55 - u * 1.4, -0.4 + u * 0.25).normalize().transformDirection(head.matrixWorld);
+      const d = new Vector3(k * (0.8 - u * 0.75), -0.55 - u * 1.4, -0.4 + u * 0.25)
+        .normalize()
+        .transformDirection(head.matrixWorld);
       d.y = Math.min(d.y, -0.3 - u);
       return d.normalize();
     };
@@ -210,7 +234,9 @@ class Chain {
       // 根元ほど形を保つ力が強い
       const want = this.#p[i - 1].clone().addScaledVector(dir(i - 1), L);
       const stiff = 0.3 * (1 - i / (n + 1)) ** 1.5;
-      p.add(v).addScaledVector(want.sub(p), stiff).add(new Vector3(0, -9.8 * h * h, 0));
+      p.add(v)
+        .addScaledVector(want.sub(p), stiff)
+        .add(new Vector3(0, -9.8 * h * h, 0));
     }
     for (let it = 0; it < 3; it++)
       for (let i = 1; i <= n; i++) {

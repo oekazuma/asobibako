@@ -24,7 +24,7 @@ export const SIZE = {
   /** 足首の高さ */
   ankle: 0.055,
   /** ツインテールの節の数と長さ */
-  tail: { n: 6, len: 0.085 },
+  tail: { n: 7, len: 0.09 },
   /** 頭の骨から見たツインテールの根元 */
   tailRoot: new Vector3(0.082, 0.185, -0.035)
 };
@@ -111,7 +111,10 @@ export class Rig {
   /** 手の先を reach だけ伸ばした点（ノーツを置く所） */
   tip(s: Side, reach: number, out = new Vector3()): Vector3 {
     const hand = this.at(`hand${s}`, out);
-    const dir = w.copy(hand).sub(this.at(`fore${s}`, v)).normalize();
+    const dir = w
+      .copy(hand)
+      .sub(this.at(`fore${s}`, v))
+      .normalize();
     return hand.addScaledVector(dir, reach);
   }
 
