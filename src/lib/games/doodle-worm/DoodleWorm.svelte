@@ -17,6 +17,8 @@
     type Stroke,
     type World
   } from './engine';
+  import { loadLook, saveLook, SAMPLE, type Look } from './looks';
+  import Looks from './Looks.svelte';
   import { creature, pen, sketch } from './paint';
   import Palette from './Palette.svelte';
   import { sounds } from './sounds';
@@ -35,7 +37,9 @@
   /** 描いている途中の線。2 人で同時に描けるよう、指ごとに持つ */
   let drawing: { id: number; stroke: Stroke }[] = [];
   let stock = $state.raw<Doodle[]>([]);
-  let stockOpen = $state(false);
+  /** 開いているシート */
+  let sheet = $state<'stock' | 'looks' | null>(null);
+  let look = $state.raw<Look>(loadLook());
 
   const input = new BoardInput({
     down: (event, x, y) => {
@@ -71,7 +75,7 @@
   }
 
   function call(d: Doodle) {
-    stockOpen = false;
+    sheet = null;
     const x = world.aspect * (0.2 + Math.random() * 0.6);
     add(world, fit(hatch(place(d, x, 0.2 + Math.random() * 0.5))!, world.aspect));
     sounds.hatch();
@@ -88,7 +92,7 @@
 
   function tidy() {
     world.creatures = [];
-    stockOpen = false;
+    sheet = null;
   }
 
   function march() {
@@ -96,8 +100,14 @@
       world,
       stock.map((d) => d.strokes)
     );
-    stockOpen = false;
+    sheet = null;
     sounds.parade();
+  }
+
+  function pick(next: Look) {
+    look = next;
+    saveLook(next);
+    sheet = null;
   }
 
   function summon() {
@@ -115,8 +125,8 @@
   }
 
   function frame(dt: number) {
-    // ずかんを開いているあいだは止めておく。裏で全画面を描き直し続けると、iPad でずかんのスクロールがかくつく
-    if (stockOpen) return;
+    // シートを開いているあいだは止めておく。裏で全画面を描き直し続けると、iPad でずかんのスクロールがかくつく
+    if (sheet) return;
     for (const {
       id,
       stroke: { pts }
@@ -135,9 +145,9 @@
     ctx.setTransform(s, 0, 0, s, 0, 0);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    for (const c of world.creatures) creature(ctx, c);
-    sketch(ctx, lines);
-    for (const { stroke } of drawing) pen(ctx, stroke.pts, stroke.color);
+    for (const c of world.creatures) creature(ctx, look, c);
+    sketch(ctx, look, lines);
+    for (const { stroke } of drawing) pen(ctx, look, stroke.pts, stroke.color);
   }
 
   onMount(() => {
@@ -147,7 +157,7 @@
 </script>
 
 <div class="board" use:input.board={resize} role="application" aria-label="らくがきパレードの画用紙">
-  <canvas bind:this={canvas}></canvas>
+  <canvas bind:this={canvas} style:background={look.bg}></canvas>
 </div>
 <Palette
   bind:color
@@ -155,18 +165,21 @@
   ongo={go}
   onundo={undo}
   onsummon={summon}
-  onstock={() => (stockOpen = true)}
+  onsheet={(next) => (sheet = next)}
 />
-{#if stockOpen}
+{#if sheet === 'stock'}
   <Stock
     doodles={stock}
+    {look}
     oncall={call}
     onremove={remove}
     onstar={star}
     onclear={tidy}
     onparade={march}
-    onclose={() => (stockOpen = false)}
+    onclose={() => (sheet = null)}
   />
+{:else if sheet === 'looks'}
+  <Looks {look} sample={stock[0]?.strokes ?? SAMPLE} onpick={pick} onclose={() => (sheet = null)} />
 {/if}
 
 <style>
@@ -175,7 +188,6 @@
     inset: 0;
     overflow: hidden;
     touch-action: none;
-    background: #fff4f6;
   }
 
   canvas {

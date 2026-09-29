@@ -8,14 +8,14 @@
     ongo,
     onundo,
     onsummon,
-    onstock
+    onsheet
   }: {
     color: string;
     ready: boolean;
     ongo: () => void;
     onundo: () => void;
     onsummon: () => void;
-    onstock: () => void;
+    onsheet: (sheet: 'stock' | 'looks') => void;
   } = $props();
 </script>
 
@@ -38,7 +38,10 @@
   <button class="summon" aria-label="なかまを よぶ" onclick={onsummon}>
     <span class="eyes"></span>
   </button>
-  <button class="tool" aria-label="ずかん" onclick={onstock}>
+  <button class="tool" aria-label="えがら" onclick={() => onsheet('looks')}>
+    <Icon name="brush" size="70%" />
+  </button>
+  <button class="tool" aria-label="ずかん" onclick={() => onsheet('stock')}>
     <Icon name="book" size="75%" />
   </button>
 </div>

@@ -73,10 +73,11 @@ describe('backup', () => {
     expect(() => parseBackup(file({ 'asobibako:x': 'x'.repeat(16 * 1024 * 1024) }))).toThrow();
   });
 
-  it('最近のゲーム・タブ・ミュートだけなら記録なしとみなす', () => {
+  it('最近のゲーム・タブ・ミュート・絵柄だけなら記録なしとみなす', () => {
     localStorage.setItem('asobibako:recent', '["maze"]');
     localStorage.setItem('asobibako:menu-tab', '2');
     localStorage.setItem('asobibako:muted', '1');
+    localStorage.setItem('asobibako:doodle-worm:look', 'yarn');
     expect(hasRecords()).toBe(false);
     localStorage.setItem('asobibako:reached:maze', '5');
     expect(hasRecords()).toBe(true);
