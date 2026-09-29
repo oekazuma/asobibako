@@ -3,18 +3,22 @@
   import Closet from './Closet.svelte';
   import IdolPreview from './IdolPreview.svelte';
   import type { Level } from './chart';
+  import type { Idol3D } from './idol3d';
   import type { Save, Slot, Theme } from './outfits';
   import SongCard from './SongCard.svelte';
   import { trackOf } from './songs';
 
   /** ステージのじゅんび。アイドルのプロフィールと着がえ、きょうの曲とむずかしさを選んで、ライブを始める */
   let {
+    idol,
     save,
     onwear,
     onsong,
     onlevel,
     onstart
   }: {
+    /** 読みこんだアイドル。読みおわるまでは null */
+    idol: Idol3D | null;
     save: Save;
     onwear: (slot: Slot, theme: Theme) => void;
     onsong: (id: string) => void;
@@ -30,7 +34,11 @@
   </header>
   <section class="idol">
     <div class="spot" aria-hidden="true"></div>
-    <IdolPreview coord={save.coord} />
+    {#if idol}
+      <IdolPreview {idol} coord={save.coord} />
+    {:else}
+      <p class="loading" role="status">よみこみちゅう…</p>
+    {/if}
     <div class="profile">
       <p class="name">ひなた ミオ</p>
       <p class="about">げんき いっぱいの しんじん アイドル。すきな ものは いちごミルク と ジャンプ！</p>
@@ -41,6 +49,7 @@
   <SongCard {save} {onsong} {onlevel} />
   <button
     class="pill gold go"
+    disabled={!idol}
     onclick={() => {
       wake();
       onstart();
@@ -128,6 +137,18 @@
 
   .about + .about {
     margin-top: 0.4em;
+  }
+
+  .loading {
+    align-self: center;
+    margin: 0;
+    color: #fff;
+    font-weight: 800;
+  }
+
+  .go:disabled {
+    opacity: 0.5;
+    animation: none;
   }
 
   .go {

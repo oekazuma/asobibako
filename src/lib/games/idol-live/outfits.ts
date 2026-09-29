@@ -26,14 +26,29 @@ export const THEME_ORDER: Theme[] = ['cute', 'cool', 'pop', 'elegant'];
 
 export const NAMES: Record<Theme, Record<Slot, string>> = {
   cute: {
-    top: 'ハートリボンの ブラウス',
-    bottom: 'フリルの スカート',
-    shoes: 'いちごの おくつ',
+    top: 'さくらいろの ベスト',
+    bottom: 'さくらいろの スカート',
+    shoes: 'さくらいろの ローファー',
     acc: 'おおきな リボン'
   },
-  cool: { top: 'ミッドナイト ジャケット', bottom: 'プリーツ スカート', shoes: 'ロングブーツ', acc: 'ヘッドセット' },
-  pop: { top: 'スターの Tシャツ', bottom: 'バルーン スカート', shoes: 'ハイカット スニーカー', acc: 'ほしの ヘアピン' },
-  elegant: { top: 'パールの ドレス', bottom: 'ロング スカート', shoes: 'ガラスの パンプス', acc: 'ティアラ' }
+  cool: {
+    top: 'ミッドナイトの ベスト',
+    bottom: 'ミッドナイトの スカート',
+    shoes: 'ミッドナイトの ローファー',
+    acc: 'ヘッドセット'
+  },
+  pop: {
+    top: 'ソーダいろの ベスト',
+    bottom: 'ソーダいろの スカート',
+    shoes: 'ソーダいろの ローファー',
+    acc: 'ほしの ヘアピン'
+  },
+  elegant: {
+    top: 'すみれいろの ベスト',
+    bottom: 'すみれいろの スカート',
+    shoes: 'すみれいろの ローファー',
+    acc: 'ティアラ'
+  }
 };
 
 /** 着られるようになるファンの数。エレガントは、ライブでファンを増やすと 1 つずつ手に入る */

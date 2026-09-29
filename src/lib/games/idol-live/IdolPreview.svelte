@@ -3,22 +3,23 @@
   import { PerspectiveCamera, Scene } from 'three';
   import { animate } from '$lib/loop';
   import { blend, groove, POSES } from './dance';
-  import { Idol3D } from './idol3d';
+  import type { Idol3D } from './idol3d';
   import type { Coord } from './outfits';
-  import { Blink, draw, free, mount } from './view3d';
+  import { Blink, draw, free, lights, mount } from './view3d';
 
   /** じゅんびの画面で、着せた服のままリズムに乗って待つアイドル。着がえるたびにポーズをきめる */
-  let { coord }: { coord: Coord } = $props();
+  let { idol, coord }: { idol: Idol3D; coord: Coord } = $props();
 
   let box: HTMLDivElement;
 
   onMount(() => {
     const unmount = mount(box);
     const scene = new Scene();
-    const idol = new Idol3D();
     const camera = new PerspectiveCamera(26, 1, 0.05, 30);
     const blink = new Blink();
     scene.add(idol.group);
+    lights(scene);
+    idol.look(camera);
     let t = 0;
     let show = 0;
     let last = '';
@@ -44,6 +45,8 @@
     });
     return () => {
       stop();
+      // アイドルはライブでも使うので、場面を片づける前に外す。ライブが先に連れていっていたら触らない
+      if (idol.group.parent === scene) scene.remove(idol.group);
       free(scene);
       unmount();
     };

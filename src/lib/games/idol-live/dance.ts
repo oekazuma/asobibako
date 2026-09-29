@@ -101,7 +101,7 @@ export function mirror(p: Pose): Pose {
 /** 手を腰に当てる */
 const HIP_HAND = arm(0.55, -0.35, 0.5);
 /** 両手で胸の前にハート */
-const HEART = arm(-0.95, 0.95, 0.52);
+const HEART = arm(-0.8, 1.14, 0.56);
 
 const RIGHT = {
   reach: pose({
@@ -149,8 +149,8 @@ const RIGHT = {
     tilt: -0.16,
     turn: 0.25,
     twist: 0.15,
-    // ピースを右のほおの横へ
-    armR: arm(-2.87, 0.68, 0.42),
+    // ピースを右の目の横へ
+    armR: arm(2.95, 0.58, 0.42),
     gripR: 'v',
     armL: HIP_HAND,
     footL: foot(0.02, -0.12, 0.22),

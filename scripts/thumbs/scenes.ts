@@ -205,6 +205,8 @@ async function catMouse(s: Stage): Promise<void> {
 async function idolLive(s: Stage): Promise<void> {
   await s.page.evaluate(() => localStorage.setItem('asobibako:muted', '1'));
   await s.startSolo();
+  // 3D のモデルを読みおえると、ライブを始めるボタンが押せるようになる
+  for (let i = 0; i < 300 && !(await s.page.$('.dress button.go:not([disabled])')); i++) await s.wait(100);
   await s.press('.dress button.go');
   await s.wait(100);
   await s.page.evaluate(() => {
@@ -250,7 +252,7 @@ async function idolLive(s: Stage): Promise<void> {
 }
 
 export const SCENES: Scene[] = [
-  { id: 'idol-live', clip: band(232), play: idolLive },
+  { id: 'idol-live', clip: band(190), play: idolLive },
   {
     // 姫との間に怪物がいる面。マグマを落として怪物をたおしている途中の、勇者・怪物・姫を撮る
     id: 'pin-rescue',

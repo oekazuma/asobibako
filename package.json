@@ -55,6 +55,7 @@
     "vitest": "catalog:"
   },
   "dependencies": {
+    "@pixiv/three-vrm": "catalog:",
     "three": "catalog:"
   }
 }
