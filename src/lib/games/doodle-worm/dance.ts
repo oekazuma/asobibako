@@ -35,6 +35,8 @@ export type Source =
       url: string;
       /** 最初の小節の 1 拍目が、音源の何秒目か */
       offset: number;
+      /** 1 小節の拍の数 */
+      beats: 3 | 4;
       /** 最初の小節から 8 分音符ごとの音の立ち上がりの強さ（0〜9 の数字）。音源から前もって測っておく */
       strengths: string;
     };
@@ -63,17 +65,18 @@ const PICK = [
   { strength: 4, gap: 1, offbeat: 5, hold: 3, lead: 1.0 }
 ];
 
-/** 8 分音符ごとの、音の立ち上がりの強さ（0〜9）と、そこから続く長さ（8 分音符の数） */
-function beats(source: Source): { strength: number[]; hold: number[] } {
+/** 8 分音符ごとの、音の立ち上がりの強さ（0〜9）と、そこから続く長さ（8 分音符の数）。perBar は 1 小節の 8 分音符の数 */
+function beats(source: Source): { strength: number[]; hold: number[]; perBar: number } {
   if (source.kind === 'file') {
     const strength = [...source.strengths].map(Number);
-    return { strength, hold: strength.map(() => 0) };
+    return { strength, hold: strength.map(() => 0), perBar: source.beats * 2 };
   }
   // 自前の曲は旋律の音の出だしを強く、旋律の休みは伴奏の拍として弱く数える。表拍と、2・4 拍目の裏（はねるリズム）ほど強い
   const notes = score(source.song).notes;
   return {
     strength: notes.map((n, i) => (n ? 9 : 5) - (i % 2 && i % 4 !== 3 ? 2 : 0)),
-    hold: notes.map((n) => n?.steps ?? 0)
+    hold: notes.map((n) => n?.steps ?? 0),
+    perBar: source.song.beats * 2
   };
 }
 
@@ -95,23 +98,23 @@ export const SPOTS = 7;
 export function chart(level: Level, difficulty: Difficulty): Chart {
   const pick = PICK[difficulty];
   const step = 30 / level.bpm;
-  const { strength, hold } = beats(level.source);
-  const bars = Math.floor(strength.length / 8);
+  const { strength, hold, perBar } = beats(level.source);
+  const bars = Math.floor(strength.length / perBar);
   const notes: Note[] = [];
   let spot = 0;
   let dir = 1;
-  let free = 8;
-  for (let i = 8; i < (bars - 1) * 8; i++) {
+  let free = perBar;
+  for (let i = perBar; i < (bars - 1) * perBar; i++) {
     const s = strength[i];
     if (i < free || s < (i % 2 ? pick.offbeat : pick.strength)) continue;
     const steps = hold[i] >= pick.hold ? Math.min(hold[i], 6) : 0;
-    notes.push({ t: i * step, len: steps * step, spot, section: Math.floor((i / 8 - 1) / SECTION), last: false });
+    notes.push({ t: i * step, len: steps * step, spot, section: Math.floor((i / perBar - 1) / SECTION), last: false });
     free = i + (steps ? Math.max(pick.gap, steps + 2) : pick.gap);
     if (spot + dir < 0 || spot + dir >= SPOTS) dir = -dir;
     spot += dir;
   }
   notes.forEach((n, k) => (n.last = notes[k + 1]?.section !== n.section));
-  return { notes, length: bars * 8 * step, lead: pick.lead, beat: step * 2 };
+  return { notes, length: bars * perBar * step, lead: pick.lead, beat: step * 2 };
 }
 
 /** 弧の場所。u は盤面の幅に対する 0..1、v は高さに対する 0..1。舞台で踊る子の下に、下向きの弧で並ぶ */
