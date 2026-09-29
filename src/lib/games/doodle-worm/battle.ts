@@ -46,6 +46,18 @@ export function stats(c: Creature): Stats {
   return { ...s, trait: score > 0.5 ? trait : 'げんき' };
 }
 
+/** 選ぶ画面に出す、持ち味ごとの 0..1 の目盛り。stats の取りうる幅を 0..1 に広げる */
+export function ratings(s: Stats): [string, number][] {
+  const k = (v: number, lo: number, hi: number) => clamp01(0.15 + (0.85 * (v - lo)) / (hi - lo));
+  return [
+    ['たいりょく', k(s.hp, 100, 140)],
+    ['パワー', k(s.power, 9, 13)],
+    ['すばやさ', k(1.5 - s.interval, 0, 0.3)],
+    ['よける', k(s.dodge, 0.05, 0.17)],
+    ['かいしん', k(s.crit, 0.05, 0.19)]
+  ];
+}
+
 /** 1 回の連打でたまるゲージ。17 回ほどで満タン */
 export const CHEER = 0.06;
 /** ゲージは連打をやめると減る（1 秒あたり） */

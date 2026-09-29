@@ -10,7 +10,7 @@ import { bgmOut, play } from './synth';
  * 楽譜。melody は 8 分音符 1 つを 1 語にして小節を | で区切る（音名とオクターブ、`-` は前の音をのばす、`.` は休み）。
  * chords は 1 小節に 1 つのコード。伴奏の刻み方は style が決める
  */
-export type Lead = 'box' | 'mallet' | 'bubble' | 'brass' | 'flute' | 'glock';
+export type Lead = 'box' | 'mallet' | 'bubble' | 'brass' | 'flute' | 'glock' | 'chip';
 export type Style = 'waltz' | 'bounce' | 'march' | 'gentle' | 'pop';
 
 export interface Song {
@@ -91,6 +91,7 @@ const LEADS: Record<Lead | 'pluck' | 'bass' | 'pad', Play> = {
   brass: hold('horn', 0.8, 0.08, 0.85),
   flute: hold('flute', 0.6, 0.2),
   glock: hit('glock', 0.7),
+  chip: hold('chip', 1.4, 0.03, 0.9),
   pluck: hit('harp', 1.1),
   pad: hold('pad', 1.6, 0.4),
   bass: hold('bass', 1.3, 0.12)
