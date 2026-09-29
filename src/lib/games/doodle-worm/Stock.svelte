@@ -13,7 +13,7 @@
     onremove,
     onstar,
     onclear,
-    onparade,
+    onplay,
     onclose
   }: {
     doodles: Doodle[];
@@ -22,7 +22,8 @@
     onremove: (d: Doodle) => void;
     onstar: (d: Doodle) => void;
     onclear: () => void;
-    onparade: () => void;
+    /** ずかんの絵で遊ぶ。パレードは画面の子を入れ替え、バトルとダンスはそれぞれの画面を開く */
+    onplay: (kind: 'parade' | 'battle' | 'dance') => void;
     onclose: () => void;
   } = $props();
 
@@ -32,7 +33,9 @@
 
 <Sheet title="ずかん" {onclose}>
   <div class="tools">
-    <button class="pill gold" disabled={!doodles.length} onclick={onparade}>パレード！</button>
+    <button class="pill gold" disabled={!doodles.length} onclick={() => onplay('parade')}>パレード！</button>
+    <button class="pill p2" disabled={!doodles.length} onclick={() => onplay('battle')}>バトル</button>
+    <button class="pill p1" disabled={!doodles.length} onclick={() => onplay('dance')}>ダンス</button>
     <button
       class="pill"
       class:p2={mode === 'erase'}

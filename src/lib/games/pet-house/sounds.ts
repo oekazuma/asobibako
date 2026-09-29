@@ -1,6 +1,20 @@
 import { bus, sink } from '$lib/audio.svelte';
-import { note, type Instrument } from './instruments';
-import { biquad, bubble, click, hann, hiss, logRand, play, rand, ring, sfxOut, shot, thump, white } from './synth';
+import { note, type Instrument } from '$lib/music/instruments';
+import {
+  biquad,
+  bubble,
+  click,
+  hann,
+  hiss,
+  logRand,
+  play,
+  rand,
+  ring,
+  sfxOut,
+  shot,
+  thump,
+  white
+} from '$lib/music/synth';
 
 /**
  * 効果音。水は小さな泡の共鳴（高さが上がりながら消える短いサイン波）をたくさん重ね、

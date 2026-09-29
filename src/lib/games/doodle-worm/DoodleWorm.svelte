@@ -3,6 +3,8 @@
   import { BoardInput } from '$lib/board-input';
   import type { SoloProps } from '$lib/games';
   import { animate } from '$lib/loop';
+  import Battle from './Battle.svelte';
+  import Dance from './Dance.svelte';
   import {
     add,
     COLORS,
@@ -19,7 +21,7 @@
   } from './engine';
   import { loadLook, saveLook, SAMPLE, type Look } from './looks';
   import Looks from './Looks.svelte';
-  import { creature, pen, sketch } from './paint';
+  import { creature, fitCanvas, pen, sketch, wipe } from './paint';
   import Palette from './Palette.svelte';
   import { sounds } from './sounds';
   import Stock from './Stock.svelte';
@@ -37,8 +39,8 @@
   /** 描いている途中の線。2 人で同時に描けるよう、指ごとに持つ */
   let drawing: { id: number; stroke: Stroke }[] = [];
   let stock = $state.raw<Doodle[]>([]);
-  /** 開いているシート */
-  let sheet = $state<'stock' | 'looks' | null>(null);
+  /** 開いているシートや、バトルの画面 */
+  let sheet = $state<'stock' | 'looks' | 'battle' | 'dance' | null>(null);
   let look = $state.raw<Look>(loadLook());
 
   const input = new BoardInput({
@@ -117,11 +119,7 @@
 
   function resize(aspect: number) {
     world.aspect = aspect;
-    const [w, h] = input.px(1, 1);
-    const dpr = devicePixelRatio || 1;
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(h * dpr);
-    ctx = canvas.getContext('2d');
+    ctx = fitCanvas(canvas, input.px(1, 1));
   }
 
   function frame(dt: number) {
@@ -139,12 +137,7 @@
     }
     step(world, dt);
     if (!ctx) return;
-    const s = input.px(1, 1)[1] * (devicePixelRatio || 1);
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.setTransform(s, 0, 0, s, 0, 0);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    wipe(ctx, input.px(1, 1)[1]);
     for (const c of world.creatures) creature(ctx, look, c);
     sketch(ctx, look, lines);
     for (const { stroke } of drawing) pen(ctx, look, stroke.pts, stroke.color);
@@ -175,11 +168,15 @@
     onremove={remove}
     onstar={star}
     onclear={tidy}
-    onparade={march}
+    onplay={(kind) => (kind === 'parade' ? march() : (sheet = kind))}
     onclose={() => (sheet = null)}
   />
 {:else if sheet === 'looks'}
   <Looks {look} sample={stock[0]?.strokes ?? SAMPLE} onpick={pick} onclose={() => (sheet = null)} />
+{:else if sheet === 'battle'}
+  <Battle doodles={stock} {look} onclose={() => (sheet = null)} />
+{:else if sheet === 'dance'}
+  <Dance doodles={stock} {look} onclose={() => (sheet = null)} />
 {/if}
 
 <style>

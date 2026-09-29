@@ -4,8 +4,8 @@ vi.mock('$lib/audio.svelte', () => ({ sink: () => undefined }));
 
 const { SFX } = await import('./sounds');
 const { CONTEST_SFX } = await import('./contest-sounds');
-const { INSTRUMENTS, renderNote } = await import('./instruments');
-const { RATE } = await import('./synth');
+const { INSTRUMENTS, renderNote } = await import('$lib/music/instruments');
+const { RATE } = await import('$lib/music/synth');
 
 /** 作ったノードの数と、書いた波形と、鳴らした大きさだけを覚える AudioContext の代わり */
 function fakeContext() {

@@ -30,7 +30,7 @@ describe('ずかんのシート', () => {
         onremove: vi.fn(),
         onstar: vi.fn(),
         onclear: vi.fn(),
-        onparade: vi.fn(),
+        onplay: vi.fn(),
         onclose: vi.fn()
       }
     });
