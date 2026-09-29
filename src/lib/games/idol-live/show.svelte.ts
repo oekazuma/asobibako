@@ -2,26 +2,13 @@ import { bus } from '$lib/audio.svelte';
 import { CONFETTI, Floaters, label, Particles, Shake } from '$lib/fx';
 import { SongClock } from '$lib/music/clock';
 import { Tune } from '$lib/music/tune';
-import {
-  APPEAL,
-  appeal,
-  baseCamera,
-  CLOSE,
-  figure,
-  mix,
-  NOTES,
-  SPECIALS,
-  toScreen,
-  toWorld,
-  unit,
-  type Camera
-} from './chart';
+import { APPEAL, appeal, baseCamera, CLOSE, CURTAIN, ease, mix, toScreen, toWorld, unit, type Camera } from './camera';
+import { APPROACH, SPECIAL_APPROACH, type Kind, type Note, type Track } from './chart';
 import { Idol } from './idol-draw';
 import { Judge, type Grade, type Judged, type Result } from './judge';
 import { drawNotes } from './notes-draw';
 import type { Coord } from './outfits';
 import { joints, type Body, type Face, type P } from './pose';
-import { BEAT, BPM, LENGTH, SONG, sectionAt, voice } from './song';
 import { sounds } from './sounds';
 import { backdrop, crowd, type View } from './stage-draw';
 
@@ -51,19 +38,41 @@ const BURST: Record<Grade, string[]> = {
   good: ['#bfe3ff', '#ffffff'],
   miss: []
 };
+const HINT: Record<Kind, string> = {
+  tap: 'わっかが かさなったら タッチ！',
+  hold: 'ながい うたの あいだ おしたまま！',
+  slide: 'ひかりの たまを ゆびで おいかけて！',
+  special: 'スペシャル！ どこでも タッチ！'
+};
 /** この数ごとのコンボで、大きな文字と紙吹雪 */
 const MILESTONE = 20;
+
+/** 1 曲ぶんの支度 */
+export interface Setup {
+  track: Track;
+  coord: Coord;
+  bonus: number;
+  /** むずかしさで選んだ譜面 */
+  notes: Note[];
+  /** 知らせを出す（慣れるまで） */
+  coach: boolean;
+}
 
 export class Show {
   score = $state(0);
   hype = $state(0.35);
   over = $state(false);
-  readonly judge = new Judge(NOTES);
+  readonly judge: Judge;
   readonly #coord: Coord;
   readonly #bonus: number;
   readonly #onend: (r: Result) => void;
+  readonly #onhint: ((text: string) => void) | undefined;
+  /** まだ知らせていないノーツの種類。慣れるまでのライブだけ、初めて出たときに画面の上で知らせる */
+  #unhinted: Kind[];
+  #hintUntil = Infinity;
   readonly #clock = new SongClock(-LEAD);
-  readonly #tune = new Tune(SONG, BPM);
+  readonly #track: Track;
+  readonly #tune: Tune;
   readonly #idol = new Idol();
   readonly #particles = new Particles();
   readonly #floaters = new Floaters();
@@ -72,7 +81,7 @@ export class Show {
   #latency = 0;
   #cam: Camera = baseCamera(0);
   #size: [number, number] = [1, 1];
-  #body: Body = joints(figure(0));
+  #body: Body;
   /** きめたスペシャルの拍（描くたびに読むだけなので、画面の状態にはしない） */
   readonly #specials: number[] = [];
   #face: { face: Face; left: number } | null = null;
@@ -81,10 +90,16 @@ export class Show {
   #sparkle = 0;
   #timer: ReturnType<typeof setTimeout> | undefined;
 
-  constructor(coord: Coord, bonus: number, onend: (r: Result) => void) {
-    this.#coord = coord;
-    this.#bonus = bonus;
-    this.#onend = onend;
+  constructor(o: Setup & { onend: (r: Result) => void; onhint?: (text: string) => void }) {
+    this.judge = new Judge(o.notes);
+    this.#track = o.track;
+    this.#tune = new Tune(o.track.def.music, o.track.def.bpm);
+    this.#body = joints(o.track.figure(0));
+    this.#coord = o.coord;
+    this.#bonus = o.bonus;
+    this.#onend = o.onend;
+    this.#onhint = o.onhint;
+    this.#unhinted = o.coach ? (Object.keys(HINT) as Kind[]) : [];
     // 確かめる台本（headless Chrome のボット）が譜面と時計を読む口。本番のビルドには入らない
     if (import.meta.env.DEV) Object.assign(globalThis, { __live: this });
   }
@@ -104,13 +119,14 @@ export class Show {
     this.#size = [w, h];
     const t = this.time();
     if (!this.over) {
+      this.#coach(t);
       this.#react(this.judge.advance(t));
       this.#tune.tick(bus(), t, this.#latency);
-      if (t > LENGTH * BEAT + 0.6) this.#end();
+      if (t > this.#track.length * this.#track.beat + 0.6) this.#end();
     }
-    const beat = t / BEAT;
+    const beat = t / this.#track.beat;
     this.#cam = this.#camera(beat);
-    this.#body = joints(figure(beat));
+    this.#body = joints(this.#track.figure(beat));
     this.#idol.update(this.#body, dt);
     this.#particles.step(dt);
     this.#floaters.step(dt);
@@ -144,12 +160,13 @@ export class Show {
   stop(): void {
     this.#tune.stop();
     clearTimeout(this.#timer);
+    this.#onhint?.('');
     if (import.meta.env.DEV) Object.assign(globalThis, { __live: undefined });
   }
 
   draw(ctx: CanvasRenderingContext2D, w: number, h: number): void {
-    const beat = this.#t / BEAT;
-    const sec = sectionAt(Math.max(0, beat));
+    const beat = this.#t / this.#track.beat;
+    const sec = this.#track.sectionAt(Math.max(0, beat));
     const cam = this.#cam;
     const view: View = {
       w,
@@ -176,20 +193,40 @@ export class Show {
     ctx.rotate(cam.roll);
     ctx.scale(k, k);
     ctx.translate(-cam.fx, -cam.fy);
-    this.#idol.draw(ctx, this.#body, this.#coord, { mouth: voice(beat), face: this.#mood(beat) });
+    this.#idol.draw(ctx, this.#body, this.#coord, { mouth: this.#track.voice(beat), face: this.#mood(beat) });
     ctx.restore();
     crowd(ctx, view);
     const scr = (p: P) => toScreen(cam, w, h, p);
-    drawNotes(ctx, { w, h, cam, t: this.#t, hands: [scr(this.#body.hand[0]), scr(this.#body.hand[1])] }, this.judge);
+    drawNotes(
+      ctx,
+      { w, h, cam, t: this.#t, beat: this.#track.beat, hands: [scr(this.#body.hand[0]), scr(this.#body.hand[1])] },
+      this.judge
+    );
     this.#particles.draw(ctx);
     this.#floaters.draw(ctx);
     ctx.restore();
     this.#overlay(ctx, w, h, k);
   }
 
+  /** その種類のノーツが初めて見えたら知らせ、そのノーツが終わったら消す */
+  #coach(t: number) {
+    if (t > this.#hintUntil) {
+      this.#hintUntil = Infinity;
+      this.#onhint?.('');
+    }
+    for (const kind of this.#unhinted) {
+      const n = this.judge.notes.find((m) => m.kind === kind);
+      if (!n || t < n.t - (kind === 'special' ? SPECIAL_APPROACH : APPROACH) * this.#track.beat) continue;
+      this.#unhinted = this.#unhinted.filter((k) => k !== kind);
+      this.#onhint?.(HINT[kind]);
+      this.#hintUntil = n.end + 0.4;
+    }
+  }
+
   #camera(beat: number): Camera {
     let c = baseCamera(beat);
-    for (const s of this.#specials) c = mix(c, CLOSE, appeal(beat - s, s === SPECIALS.at(-1)));
+    for (const s of this.#specials) c = mix(c, CLOSE, appeal(beat - s, s === this.#track.specials.at(-1)));
+    c = mix(c, CURTAIN, ease((beat - this.#track.length - 1) / 3));
     return { ...c, roll: c.roll + this.hype * 0.012 * Math.sin((beat * Math.PI) / 2) };
   }
 
@@ -209,7 +246,7 @@ export class Show {
       const [x, y] = toScreen(this.#cam, w, h, [e.x, e.y]);
       this.score = Math.round(this.judge.score);
       this.hype = this.judge.hype;
-      if (n.kind === 'special') this.#special(Math.round(n.t / BEAT), e.grade !== 'miss', x, y, k);
+      if (n.kind === 'special') this.#special(Math.round(n.t / this.#track.beat), e.grade !== 'miss', x, y, k);
       const [text, color] = LABEL[e.grade];
       // 胸のノーツの判定は顔にかぶるので頭の上に出す。スペシャルはカットインが知らせる
       const top =

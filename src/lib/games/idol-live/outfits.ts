@@ -1,3 +1,4 @@
+import type { Level } from './chart';
 import type { Rank } from './judge';
 
 /** 衣装と、ライブの記録（ファンの数・ハイスコア）の保存 */
@@ -60,27 +61,41 @@ export function unlockedBetween(before: number, after: number): { theme: Theme; 
   );
 }
 
+/** 曲とむずかしさごとのいちばんよい記録 */
+export interface Best {
+  score: number;
+  rank: Rank;
+}
+
 export interface Save {
   coord: Coord;
   fans: number;
-  best: number;
-  bestRank: Rank | null;
   lives: number;
+  level: Level;
+  song: string;
+  /** キーは「曲:むずかしさ」 */
+  records: Record<string, Best>;
 }
 
 const KEY = 'asobibako:idol-live';
+const FIRST_SONG = 'kirameki';
 const FRESH: Save = {
   coord: { top: 'cute', bottom: 'cute', shoes: 'cute', acc: 'cute' },
   fans: 0,
-  best: 0,
-  bestRank: null,
-  lives: 0
+  lives: 0,
+  level: 'normal',
+  song: FIRST_SONG,
+  records: {}
 };
 
+export const recordKey = (song: string, level: Level) => `${song}:${level}`;
+
 const isTheme = (v: unknown): v is Theme => typeof v === 'string' && v in THEMES;
+const isRank = (v: unknown): v is Rank => typeof v === 'string' && ['S', 'A', 'B', 'C'].includes(v);
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0);
 
-export function load(): Save {
+/** songs は遊べる曲の id。知らない曲を選んでいた保存は、はじめの曲に戻す */
+export function load(songs: string[] = [FIRST_SONG]): Save {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? 'null');
     if (!raw || typeof raw !== 'object') return structuredClone(FRESH);
@@ -90,8 +105,22 @@ export function load(): Save {
       const v = raw.coord?.[s.id];
       if (isTheme(v) && owned(v, s.id, fans)) coord[s.id] = v;
     }
-    const bestRank = ['S', 'A', 'B', 'C'].includes(raw.bestRank) ? (raw.bestRank as Rank) : null;
-    return { coord, fans, best: num(raw.best), bestRank, lives: num(raw.lives) };
+    const records: Record<string, Best> = {};
+    for (const [k, v] of Object.entries(raw.records ?? {})) {
+      const b = v as Partial<Best>;
+      if (isRank(b?.rank) && num(b.score)) records[k] = { score: num(b.score), rank: b.rank };
+    }
+    // むずかしさを選べるようになる前の保存は、1 曲目の「ふつう」の記録
+    if (num(raw.best) && isRank(raw.bestRank))
+      records[recordKey(FIRST_SONG, 'normal')] ??= { score: num(raw.best), rank: raw.bestRank };
+    return {
+      coord,
+      fans,
+      lives: num(raw.lives),
+      level: raw.level === 'easy' ? 'easy' : 'normal',
+      song: songs.includes(raw.song) ? raw.song : FIRST_SONG,
+      records
+    };
   } catch {
     return structuredClone(FRESH);
   }
@@ -105,5 +134,13 @@ export function store(s: Save): void {
   }
 }
 
-/** よいほうのランク */
-export const better = (a: Rank | null, b: Rank): Rank => (a && 'SABC'.indexOf(a) < 'SABC'.indexOf(b) ? a : b);
+/** 記録を更新する。スコアとランクはそれぞれよいほうを残す。スコアを更新したら true */
+export function record(s: Save, score: number, rank: Rank): boolean {
+  const k = recordKey(s.song, s.level);
+  const old = s.records[k];
+  s.records[k] = {
+    score: Math.max(old?.score ?? 0, score),
+    rank: old && 'SABC'.indexOf(old.rank) < 'SABC'.indexOf(rank) ? old.rank : rank
+  };
+  return score > (old?.score ?? 0);
+}

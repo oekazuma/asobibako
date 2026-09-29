@@ -4,7 +4,6 @@
   import { Idol } from './idol-draw';
   import type { Coord } from './outfits';
   import { blend, groove, joints, POSES } from './pose';
-  import { BEAT } from './song';
 
   /** じゅんびの画面で、着せた服のままリズムに乗って待つアイドル。着がえるたびにポーズをきめる */
   let { coord }: { coord: Coord } = $props();
@@ -28,7 +27,7 @@
       if (canvas.width !== Math.round(w * dpr)) canvas.width = Math.round(w * dpr);
       if (canvas.height !== Math.round(h * dpr)) canvas.height = Math.round(h * dpr);
       if (!ctx || !w || !h) return;
-      const beat = t / BEAT;
+      const beat = t * 2; // 120 BPM でリズムに乗る
       const u = Math.min(1, show * 3, (1.2 - show) * 5);
       const body = joints(groove(blend(POSES.idle, POSES.appealR, show > 0 ? u : 0), beat, 0.5));
       idol.update(body, dt);

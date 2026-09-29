@@ -250,7 +250,7 @@ async function idolLive(s: Stage): Promise<void> {
 }
 
 export const SCENES: Scene[] = [
-  { id: 'idol-live', clip: band(300), play: idolLive },
+  { id: 'idol-live', clip: band(232), play: idolLive },
   {
     // 姫との間に怪物がいる面。マグマを落として怪物をたおしている途中の、勇者・怪物・姫を撮る
     id: 'pin-rescue',

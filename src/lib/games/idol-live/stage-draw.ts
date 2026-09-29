@@ -1,5 +1,6 @@
-import { toScreen, unit, type Camera } from './chart';
-import type { Scene } from './song';
+import { sprite, stamp } from '$lib/fx';
+import { toScreen, unit, type Camera } from './camera';
+import type { Scene } from './chart';
 
 /**
  * ステージの絵（画面のピクセルで描く）。奥の LED の壁・照明・床・手前の客席。
@@ -44,12 +45,7 @@ const pulseOf = (beat: number) => (beat >= 0 ? Math.exp(-(beat - Math.floor(beat
 
 export function backdrop(ctx: Ctx, v: View) {
   const { w, h, beat, hype } = v;
-  const [a, b] = SKY[v.scene];
-  const sky = ctx.createLinearGradient(0, 0, 0, h);
-  sky.addColorStop(0, a);
-  sky.addColorStop(1, b);
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(strip(...SKY[v.scene]), 0, 0, w, h);
   // 奥ほどカメラに振られない（半分だけ寄る）
   const far = { ...v.cam, zoom: 1 + (v.cam.zoom - 1) * 0.35, fy: v.cam.fy * 0.35, roll: v.cam.roll * 0.5 };
   wall(ctx, v, far);
@@ -63,21 +59,22 @@ export function backdrop(ctx: Ctx, v: View) {
   glow.addColorStop(1, 'rgba(255, 240, 250, 0)');
   ctx.globalCompositeOperation = 'lighter';
   ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, w, h);
+  ctx.fillRect(cx - k, cy - k, k * 2, k * 2);
   ctx.globalCompositeOperation = 'source-over';
 }
 
 /** LED の壁。点の並びに、区間ごとの模様を拍に合わせて流す */
 function wall(ctx: Ctx, v: View, cam: Camera) {
   const { w, h, beat, hype } = v;
-  const [x0, y0] = toScreen(cam, w, h, [-1.25, -1.4]);
+  // 上のふちが画面に入らないよう、壁は頭の上へ高くのばす
+  const [x0, y0] = toScreen(cam, w, h, [-1.25, -2.4]);
   const [x1, y1] = toScreen(cam, w, h, [1.25, -0.3]);
   ctx.fillStyle = 'rgba(8, 4, 24, 0.75)';
   ctx.beginPath();
   ctx.roundRect(x0, y0, x1 - x0, y1 - y0, (x1 - x0) * 0.02);
   ctx.fill();
   const cols = 26;
-  const rows = 12;
+  const rows = 22;
   const cw = (x1 - x0) / cols;
   const ch = (y1 - y0) / rows;
   const colors = LED[v.scene];
@@ -174,11 +171,7 @@ function floor(ctx: Ctx, v: View) {
   const [, fy] = toScreen(v.cam, w, h, [0, 0]);
   const k = unit(w, h) * v.cam.zoom;
   const top = fy - k * 0.12;
-  const g = ctx.createLinearGradient(0, top, 0, h);
-  g.addColorStop(0, '#2b1b4f');
-  g.addColorStop(1, '#0d0820');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, top, w, h - top);
+  ctx.drawImage(strip('#2b1b4f', '#0d0820'), 0, top, w, h - top);
   // 床に映る照明の筋
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
   ctx.lineWidth = 2;
@@ -233,11 +226,7 @@ export function crowd(ctx: Ctx, v: View) {
         const ty = hy - Math.cos(sway) * len;
         const c = hype > 0.75 ? PENLIGHT[seed % PENLIGHT.length] : v.color;
         ctx.globalCompositeOperation = 'lighter';
-        const g = ctx.createRadialGradient(tx, ty, 0, tx, ty, size * 0.8);
-        g.addColorStop(0, hexA(c, 0.55));
-        g.addColorStop(1, hexA(c, 0));
-        ctx.fillStyle = g;
-        ctx.fillRect(tx - size, ty - size, size * 2, size * 2);
+        stamp(ctx, halo(c), tx, ty, size * 1.6);
         ctx.globalCompositeOperation = 'source-over';
         ctx.strokeStyle = c;
         ctx.lineWidth = size * 0.16;
@@ -255,6 +244,38 @@ export function crowd(ctx: Ctx, v: View) {
     }
   }
 }
+
+/**
+ * 上から下への 2 色のグラデーションを細い帯に 1 度だけ描き、引きのばして使う
+ * （画面いっぱいのグラデーションを毎フレーム塗ると、CPU で描く端末では重い）
+ */
+const strips = new Map<string, HTMLCanvasElement>();
+function strip(top: string, bottom: string): HTMLCanvasElement {
+  const key = top + bottom;
+  let c = strips.get(key);
+  if (!c) {
+    c = document.createElement('canvas');
+    [c.width, c.height] = [1, 256];
+    const x = c.getContext('2d')!;
+    const g = x.createLinearGradient(0, 0, 0, 256);
+    g.addColorStop(0, top);
+    g.addColorStop(1, bottom);
+    x.fillStyle = g;
+    x.fillRect(0, 0, 1, 256);
+    strips.set(key, c);
+  }
+  return c;
+}
+
+/** ペンライトの光。色ごとに 1 度だけ描いて使い回す */
+const halo = (c: string) =>
+  sprite(`idol-halo-${c}`, 64, (ctx) => {
+    const g = ctx.createRadialGradient(0.5, 0.5, 0, 0.5, 0.5, 0.5);
+    g.addColorStop(0, hexA(c, 0.55));
+    g.addColorStop(1, hexA(c, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 1, 1);
+  });
 
 /** '#rrggbb' に透明度をつける */
 export function hexA(hex: string, a: number): string {

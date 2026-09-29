@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { Rank, Result } from './judge';
-  import { NAMES, type Slot, type Theme } from './outfits';
   import ScoreCard from './ScoreCard.svelte';
 
   /** ライブのけっか。ステージの上にかぶせ、見出し・ランク・数字・ごほうびを順に出す */
@@ -8,14 +7,15 @@
     result,
     fans,
     record,
-    unlocked,
+    news,
     onagain,
     ondress
   }: {
     result: Result;
     fans: number;
     record: boolean;
-    unlocked: { theme: Theme; slot: Slot }[];
+    /** 新しく手に入った服や曲の知らせ */
+    news: string[];
     onagain: () => void;
     ondress: () => void;
   } = $props();
@@ -34,8 +34,8 @@
   <div class="card">
     <ScoreCard {result} {record} />
     <p class="fans">ファンが <b>{fans.toLocaleString()}</b> にん ふえた！</p>
-    {#each unlocked as u (u.theme + u.slot)}
-      <p class="new">あたらしい いしょう「{NAMES[u.theme][u.slot]}」を てにいれた！</p>
+    {#each news as line (line)}
+      <p class="new">{line}</p>
     {/each}
   </div>
   <div class="buttons">
@@ -94,6 +94,7 @@
     margin: 6px 0 0;
     font-weight: 800;
     text-align: center;
+    word-break: keep-all;
   }
 
   .fans b {

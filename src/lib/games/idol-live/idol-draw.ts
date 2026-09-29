@@ -322,4 +322,11 @@ function hand(ctx: Ctx, b: Body, i: 0 | 1) {
     finger(0.3, 0.042);
   }
   shape(ctx, SKIN, () => ctx.arc(x, y, g === 'fist' ? 0.02 : 0.023, 0, Math.PI * 2));
+  // 親指。手のひらの、体の内がわ寄りに小さく出す
+  if (g === 'open' || g === 'heart') {
+    const t = a + (i ? -1 : 1) * 1.3;
+    shape(ctx, SKIN, () =>
+      ctx.ellipse(x + Math.cos(t) * 0.02, y + Math.sin(t) * 0.02, 0.011, 0.008, t, 0, Math.PI * 2)
+    );
+  }
 }

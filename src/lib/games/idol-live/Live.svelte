@@ -3,13 +3,13 @@
   import { BoardInput } from '$lib/board-input';
   import { animate } from '$lib/loop';
   import type { Result } from './judge';
-  import type { Coord } from './outfits';
-  import { Show } from './show.svelte';
+  import { Show, type Setup } from './show.svelte';
 
-  let { coord, bonus, onend }: { coord: Coord; bonus: number; onend: (r: Result) => void } = $props();
+  let { setup, onend, onhint }: { setup: Setup; onend: (r: Result) => void; onhint?: (text: string) => void } =
+    $props();
 
-  // ライブは 1 曲ごとに作り直されるので、最初の衣装だけ使えばよい
-  const fresh = () => new Show(coord, bonus, onend);
+  // ライブは 1 曲ごとに作り直されるので、最初の値だけ使えばよい
+  const fresh = () => new Show({ ...setup, onend, onhint });
   const show = fresh();
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D | null = null;

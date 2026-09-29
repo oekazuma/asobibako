@@ -1,8 +1,8 @@
 import { label } from '$lib/fx';
-import { APPROACH, RADIUS, SPECIAL_APPROACH, SPECIAL_RADIUS, toScreen, unit, type Camera, type Note } from './chart';
+import { toScreen, unit, type Camera } from './camera';
+import { APPROACH, RADIUS, SPECIAL_APPROACH, SPECIAL_RADIUS, type Note } from './chart';
 import { along, WINDOW, type Judge } from './judge';
 import type { P } from './pose';
-import { BEAT } from './song';
 import { heart, star } from './wear-draw';
 import { hexA } from './stage-draw';
 
@@ -22,6 +22,8 @@ export interface NoteView {
   h: number;
   cam: Camera;
   t: number;
+  /** 1 拍の秒 */
+  beat: number;
   /** アイドルの両手の画面の位置 */
   hands: [P, P];
 }
@@ -36,7 +38,7 @@ export function drawNotes(ctx: Ctx, v: NoteView, judge: Judge) {
     const n = judge.notes[i];
     const held = judge.holding(i);
     if (judge.grades[i] !== null && !held) continue;
-    const lead = (n.kind === 'special' ? SPECIAL_APPROACH : APPROACH) * BEAT;
+    const lead = (n.kind === 'special' ? SPECIAL_APPROACH : APPROACH) * v.beat;
     if (v.t < n.t - lead || v.t > n.end + WINDOW.good) continue;
     const u = (v.t - (n.t - lead)) / lead;
     const [x, y] = scr([n.x, n.y]);

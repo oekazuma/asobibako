@@ -142,12 +142,12 @@ export function playStep(ctx: BaseAudioContext, out: AudioNode, sc: Score, step:
       return;
     case 'pop':
       // 4 つ打ちのキックと 2・4 拍の小太鼓、裏のハイハット、8 分でオクターブを跳ねるベース（アイドルの曲の刻み）
-      if (p % 2 === 0) play(ctx, out, t, note(ctx, 'kick', 0), 0.5);
-      else play(ctx, out, t, note(ctx, 'hat', 0), 0.12);
-      if (p === 2 || p === 6) tick(ctx, out, t, 0.09);
-      LEADS.bass(ctx, out, t, hz(low(c[0]) + (p % 2 ? 12 : 0)), sd * 0.9, BASS * 0.9);
-      if (p === 0) strum(LEADS.pad, sc.perBar, CHORD * 0.4);
-      if (p === 3 || p === 7) strum(LEADS.pluck, 1, CHORD * 0.9);
+      if (p % 2 === 0) play(ctx, out, t, note(ctx, 'kick', 0), 0.1);
+      else play(ctx, out, t, note(ctx, 'hat', 0), 0.035);
+      if (p === 2 || p === 6) tick(ctx, out, t, 0.045);
+      LEADS.bass(ctx, out, t, hz(low(c[0]) + (p % 2 ? 12 : 0)), sd * 0.9, BASS * 0.4);
+      if (p === 0) strum(LEADS.pad, sc.perBar, CHORD * 0.3);
+      if (p === 3 || p === 7) strum(LEADS.pluck, 1, CHORD * 0.6);
       return;
   }
 }
