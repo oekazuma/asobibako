@@ -324,11 +324,16 @@ function move(c: Creature): Pose {
   }
 }
 
+/** その場での動き（手足の振り・跳ね）だけを進める。バトルやダンスは位置を自分で決める */
+export function age(c: Creature, dt: number): void {
+  c.age += dt;
+  if (c.jump >= 0) c.jump = c.jump + dt < JUMP ? c.jump + dt : -1;
+}
+
 /** 生まれて少しふくらんでから動きだし、画面の端で折り返す */
 export function step(world: World, dt: number): void {
   for (const c of world.creatures) {
-    c.age += dt;
-    if (c.jump >= 0) c.jump = c.jump + dt < JUMP ? c.jump + dt : -1;
+    age(c, dt);
     if (c.age < 0.6) continue;
     if (c.march) {
       c.x += MARCH * dt;

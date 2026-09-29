@@ -152,3 +152,21 @@ export function portrait(strokes: Stroke[], look: Look): string {
  * 写真アプリに入れる絵。透けていると写真アプリで黒く見えるので絵柄の地で塗る。保存するときだけ作るので覚えない
  */
 export const picture = (strokes: Stroke[], look: Look) => frame(strokes, 1024, look, look.paper);
+
+/** 盤面の大きさ（CSS の px）に合わせて canvas の画素を取り直す */
+export function fitCanvas(canvas: HTMLCanvasElement, [w, h]: [number, number]): CanvasRenderingContext2D | null {
+  const dpr = devicePixelRatio || 1;
+  canvas.width = Math.round(w * dpr);
+  canvas.height = Math.round(h * dpr);
+  return canvas.getContext('2d');
+}
+
+/** 画面を消し、盤面の高さを 1 とした単位で描けるようにする。height は盤面の高さ（CSS の px）、dx・dy は揺れ */
+export function wipe(ctx: CanvasRenderingContext2D, height: number, dx = 0, dy = 0) {
+  const s = height * (devicePixelRatio || 1);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.setTransform(s, 0, 0, s, dx * s, dy * s);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+}
