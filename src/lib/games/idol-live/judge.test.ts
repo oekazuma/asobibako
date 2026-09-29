@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { NOTES, RADIUS, type Note } from './chart';
+import { RADIUS, type Note } from './chart';
 import { along, Judge, WINDOW, type Judged } from './judge';
+import { trackOf } from './songs';
+
+const NOTES = trackOf('kirameki').charts.normal;
 
 /** そのノーツを指 i で off 秒ずらしてする。スライドは光の玉を dx だけずれて追う */
 function perform(j: Judge, i: number, off = 0, dx = 0, early = 0): Judged[] {

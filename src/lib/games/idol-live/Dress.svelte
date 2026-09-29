@@ -2,14 +2,25 @@
   import { wake } from '$lib/audio.svelte';
   import Closet from './Closet.svelte';
   import IdolCanvas from './IdolCanvas.svelte';
-  import { bonusOf, THEMES, type Save, type Slot, type Theme } from './outfits';
-  import { THEME, TITLE } from './song';
+  import type { Level } from './chart';
+  import type { Save, Slot, Theme } from './outfits';
+  import SongCard from './SongCard.svelte';
+  import { trackOf } from './songs';
 
-  /** ステージのじゅんび。アイドルのプロフィールと着がえ、きょうの曲を見て、ライブを始める */
-  let { save, onwear, onstart }: { save: Save; onwear: (slot: Slot, theme: Theme) => void; onstart: () => void } =
-    $props();
-
-  const bonus = $derived(Math.round(bonusOf(save.coord, THEME) * 100));
+  /** ステージのじゅんび。アイドルのプロフィールと着がえ、きょうの曲とむずかしさを選んで、ライブを始める */
+  let {
+    save,
+    onwear,
+    onsong,
+    onlevel,
+    onstart
+  }: {
+    save: Save;
+    onwear: (slot: Slot, theme: Theme) => void;
+    onsong: (id: string) => void;
+    onlevel: (level: Level) => void;
+    onstart: () => void;
+  } = $props();
 </script>
 
 <div class="dress">
@@ -26,13 +37,8 @@
       <p class="about">ゆめは みんなを えがおに する ステージ</p>
     </div>
   </section>
-  <Closet coord={save.coord} fans={save.fans} match={THEME} {onwear} />
-  <section class="song">
-    <p class="label">きょうの きょく</p>
-    <p class="title">{TITLE}</p>
-    <p class="theme" style:--c={THEMES[THEME].color}>テーマ {THEMES[THEME].name}</p>
-    <p class="bonus">コーデ ボーナス <b>+{bonus}%</b></p>
-  </section>
+  <Closet coord={save.coord} fans={save.fans} match={trackOf(save.song).def.theme} {onwear} />
+  <SongCard {save} {onsong} {onlevel} />
   <button
     class="pill gold go"
     onclick={() => {
@@ -123,44 +129,6 @@
 
   .about + .about {
     margin-top: 0.4em;
-  }
-
-  .song {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 4px 14px;
-    padding: 10px 16px;
-    border: 3px solid var(--line);
-    border-radius: 18px;
-    background: #fff;
-    font-size: clamp(13px, min(1.9cqh, 3.6cqw), 20px);
-  }
-
-  .song p {
-    margin: 0;
-  }
-
-  .label {
-    width: 100%;
-    font-size: 0.8em;
-  }
-
-  .title {
-    font-weight: 800;
-    font-size: 1.4em;
-  }
-
-  .theme {
-    padding: 2px 10px;
-    border-radius: 999px;
-    background: var(--c);
-    color: #fff;
-    font-weight: 800;
-  }
-
-  .bonus b {
-    color: #ff5c9a;
   }
 
   .go {

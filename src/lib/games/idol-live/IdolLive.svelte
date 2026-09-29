@@ -4,20 +4,24 @@
   import type { Result } from './judge';
   import Live from './Live.svelte';
   import LiveResult from './LiveResult.svelte';
-  import { better, bonusOf, fansOf, load, store, unlockedBetween, type Slot, type Theme } from './outfits';
-  import { THEME } from './song';
+  import { bonusOf, fansOf, load, NAMES, record, store, unlockedBetween } from './outfits';
+  import { SONGS, trackOf } from './songs';
 
   // クリアのない自由あそび（じゅんび → ライブ → けっか をくり返す）なので、シェルの onfinish は呼ばない
-  const _props: SoloProps = $props();
+  let { onhint }: SoloProps = $props();
 
-  const save = $state(load());
+  /** 知らせは、はじめの 3 回のライブだけ出す */
+  const COACHED = 3;
+
+  const save = $state(load(SONGS.map((s) => s.id)));
+  const track = $derived(trackOf(save.song));
   let screen = $state<'dress' | 'live'>('dress');
   let round = $state(0);
   let reward = $state<{
     result: Result;
     fans: number;
     record: boolean;
-    unlocked: { theme: Theme; slot: Slot }[];
+    news: string[];
   } | null>(null);
 
   function start() {
@@ -29,22 +33,43 @@
 
   function finish(result: Result) {
     const fans = fansOf(result.score);
-    const unlocked = unlockedBetween(save.fans, save.fans + fans);
-    const record = result.score > save.best;
+    const news = [
+      ...unlockedBetween(save.fans, save.fans + fans).map(
+        (u) => `あたらしい いしょう「${NAMES[u.theme][u.slot]}」を てにいれた！`
+      ),
+      ...SONGS.filter((s) => s.fans > save.fans && s.fans <= save.fans + fans).map(
+        (s) => `あたらしい きょく「${s.title}」が あそべるように なった！`
+      )
+    ];
     save.fans += fans;
-    save.best = Math.max(save.best, result.score);
-    save.bestRank = better(save.bestRank, result.rank);
     save.lives += 1;
+    const best = record(save, result.score, result.rank);
     store(save);
-    reward = { result, fans, record, unlocked };
+    reward = { result, fans, record: best, news };
   }
 </script>
 
 {#if screen === 'dress'}
-  <Dress {save} onwear={(slot, theme) => (save.coord[slot] = theme)} onstart={start} />
+  <Dress
+    {save}
+    onwear={(slot, theme) => (save.coord[slot] = theme)}
+    onsong={(id) => (save.song = id)}
+    onlevel={(level) => (save.level = level)}
+    onstart={start}
+  />
 {:else}
   {#key round}
-    <Live coord={{ ...save.coord }} bonus={bonusOf(save.coord, THEME)} onend={finish} />
+    <Live
+      setup={{
+        track,
+        coord: { ...save.coord },
+        bonus: bonusOf(save.coord, track.def.theme),
+        notes: track.charts[save.level],
+        coach: save.lives < COACHED
+      }}
+      onend={finish}
+      {onhint}
+    />
   {/key}
   {#if reward}
     <LiveResult

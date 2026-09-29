@@ -28,6 +28,9 @@ export interface Pose {
   kL: number;
   hR: number;
   kR: number;
+  /** 手を振る大きさ 0..1。拍の上でもとの位置に戻るので、振っている手にもノーツを置ける */
+  swayL: number;
+  swayR: number;
   gripL: Grip;
   gripR: Grip;
   face: Face;
@@ -58,6 +61,8 @@ const BASE: Pose = {
   kL: 0.06,
   hR: 0.06,
   kR: 0.06,
+  swayL: 0,
+  swayR: 0,
   gripL: 'open',
   gripR: 'open',
   face: 'smile'
@@ -81,6 +86,8 @@ export function mirror(p: Pose): Pose {
     kL: p.kR,
     hR: p.hL,
     kR: p.kL,
+    swayL: p.swayR,
+    swayR: p.swayL,
     gripL: p.gripR,
     gripR: p.gripL,
     face: p.face === 'wink' ? 'wink' : p.face
@@ -121,7 +128,7 @@ const RIGHT = {
     hL: 0.02,
     kL: 0.02
   }),
-  wave: pose({ lean: 0.04, head: 0.1, turn: 0.3, aR: 2.3, eR: 0.5, aL: 0.3, face: 'happy' }),
+  wave: pose({ lean: 0.04, head: 0.1, turn: 0.3, aR: 2.3, eR: 0.5, aL: 0.3, swayR: 1, face: 'happy' }),
   appeal: pose({
     lean: -0.08,
     head: -0.15,
@@ -204,20 +211,41 @@ export function poseAt(keys: Key[], beat: number): Pose {
     const [a, b] = [keys[i], keys[i + 1]];
     if (beat >= b.beat) continue;
     const span = b.beat - a.beat;
-    if (b.glide) return blend(a.pose, b.pose, smooth(clamp((beat - a.beat) / span)));
+    if (b.glide)
+      return step(blend(a.pose, b.pose, smooth(clamp((beat - a.beat) / span))), a.pose, b.pose, beat - a.beat, span);
     const d = Math.min(span, 0.5);
-    return blend(a.pose, b.pose, smooth(clamp((beat - (b.beat - d)) / d)));
+    const u = clamp((beat - (b.beat - d)) / d);
+    return step(blend(a.pose, b.pose, smooth(u)), a.pose, b.pose, u * d, d);
   }
   return keys[keys.length - 1].pose;
 }
 
+/**
+ * 横へ動くあいだは、1 拍に 1 歩ずつ足を上げる（すべって見えないように）。
+ * 上げるのは進む向きと逆の足から。腰の高さは床に着いているほうの足で決まるので、上げても体は沈まない
+ */
+function step(p: Pose, a: Pose, b: Pose, t: number, span: number): Pose {
+  const dx = b.x - a.x;
+  if (Math.abs(dx) < 0.05 || t <= 0 || t >= span) return p;
+  const steps = Math.max(1, Math.round(span));
+  const phase = (t / span) * steps;
+  const lift = Math.sin(Math.PI * (phase % 1));
+  const left = (Math.floor(phase) % 2 === 0) === dx > 0;
+  return left
+    ? { ...p, hL: p.hL + 0.2 * lift, kL: p.kL + 0.8 * lift }
+    : { ...p, hR: p.hR + 0.2 * lift, kR: p.kR + 0.8 * lift };
+}
+
 /** 拍ごとにひざを沈め、2 拍で首と上体を左右に揺らす。amount は 0..1 */
 export function groove(p: Pose, beat: number, amount: number): Pose {
-  if (!amount || p.air > 0.01) return p;
+  // 手を振るのは 1 拍に 1 往復。拍の上ではもとの位置
+  const wave = 0.5 * Math.sin(2 * Math.PI * beat);
+  const waved = { ...p, eL: p.eL + p.swayL * wave, eR: p.eR + p.swayR * wave };
+  if (!amount || p.air > 0.01) return waved;
   const pulse = 0.5 + 0.5 * Math.cos(2 * Math.PI * beat);
   const sway = Math.sin(Math.PI * beat);
   return {
-    ...p,
+    ...waved,
     hL: p.hL + 0.1 * amount * pulse,
     kL: p.kL + 0.22 * amount * pulse,
     hR: p.hR + 0.1 * amount * pulse,
