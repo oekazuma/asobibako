@@ -187,9 +187,22 @@ const neon: Look = {
   paper: NIGHT,
   eye: '#fff',
   ink(ctx, trace, color, filled, width) {
-    // 暗い地に溶けないよう、くろやちゃいろは明るくして光らせる
-    const c = dark(color) ? mix(color, '#ffffff', 0.6) : color;
     trace();
+    // くろのペンは光らせず、暗めの灰色に黒いふちを付ける（ネオン管の消えたところのように見せる）
+    if (color === '#2b2d42') {
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = width + PEN * 0.8;
+      ctx.stroke();
+      ctx.fillStyle = ctx.strokeStyle = '#5b5e72';
+      if (filled) ctx.fill();
+      else {
+        ctx.lineWidth = width;
+        ctx.stroke();
+      }
+      return;
+    }
+    // 暗い地に溶けないよう、ちゃいろは明るくして光らせる
+    const c = dark(color) ? mix(color, '#ffffff', 0.6) : color;
     ctx.fillStyle = ctx.strokeStyle = c;
     if (filled) {
       ctx.globalAlpha = 0.3;
