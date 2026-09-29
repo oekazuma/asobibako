@@ -24,7 +24,7 @@
   import Palette from './Palette.svelte';
   import { sounds } from './sounds';
   import Stock from './Stock.svelte';
-  import { loadStock, pack, place, saveStock, type Doodle } from './stock';
+  import { addWin, loadStock, pack, place, saveStock, type Doodle } from './stock';
 
   // 自由あそびで指示文も出さないので、シェルから受ける level と onhint は使わない
   const _props: SoloProps = $props();
@@ -173,7 +173,12 @@
 {:else if sheet === 'looks'}
   <Looks {look} sample={stock[0]?.strokes ?? SAMPLE} onpick={pick} onclose={() => (sheet = null)} />
 {:else if sheet === 'battle'}
-  <Battle doodles={stock} {look} onclose={() => (sheet = null)} />
+  <Battle
+    doodles={stock}
+    {look}
+    onwin={(id, champion) => (stock = saveStock(addWin(stock, id, champion)))}
+    onclose={() => (sheet = null)}
+  />
 {/if}
 
 <style>

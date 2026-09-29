@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { Cheerer, Fight, stats, TIME_LIMIT, type FightEvent } from './battle';
+import { CHARGE, Cheerer, Fight, GUARD_COOL, stats, TIME_LIMIT, type FightEvent } from './battle';
 import { hatch } from './engine';
-import { lineup } from './rivals';
+import { lineup, POOLS } from './rivals';
 
 /** 決まった種の乱数 */
 function seeded(seed: number) {
@@ -58,5 +58,49 @@ describe('バトル', () => {
     const fight = new Fight(plain, plain, seeded(1));
     fight.cheer(0);
     expect(fight.sides[0].gauge).toBe(0);
+  });
+
+  it('用意した相手はどれも体のある子になり、名前が重ならない', () => {
+    const all = POOLS.flat();
+    expect(new Set(all.map((r) => r.name)).size).toBe(all.length);
+    for (const r of all) expect(hatch(r.strokes)!.parts.some((p) => p.role === 'body')).toBe(true);
+  });
+
+  it('ガードした攻撃は弱まり、続けてはガードできない', () => {
+    const hitOn = (guard: boolean) => {
+      const fight = new Fight(plain, plain, () => 0.99);
+      fight.step(2);
+      if (guard) fight.guard(1);
+      for (let i = 0; i < 120; i++) {
+        const hit = fight.step(1 / 60).find((e) => e.type === 'hit' && e.side === 0);
+        if (hit) return hit;
+      }
+    };
+    const open = hitOn(false)!;
+    const blocked = hitOn(true)!;
+    expect(blocked.type === 'hit' && blocked.guarded).toBe(true);
+    expect(blocked.type === 'hit' && open.type === 'hit' && blocked.damage).toBeLessThan(
+      open.type === 'hit' ? open.damage : 0
+    );
+    const fight = new Fight(plain, plain);
+    fight.step(2);
+    expect(fight.guard(0)).toHaveLength(1);
+    expect(fight.guard(0)).toEqual([]);
+    fight.step(GUARD_COOL + 0.01);
+    expect(fight.guard(0)).toHaveLength(1);
+  });
+
+  it('ひっさつわざは「ため」を知らせ、ためているあいだ相手は攻撃しない', () => {
+    const fight = new Fight(plain, plain, seeded(2));
+    fight.step(2);
+    for (let i = 0; i < 20; i++) fight.cheer(0);
+    const events: FightEvent[] = [];
+    while (!events.some((e) => e.type === 'charge')) events.push(...fight.step(1 / 60));
+    const foe = fight.sides[1];
+    const busy = foe.act !== null;
+    const timer = foe.timer;
+    for (let t = 0; t < CHARGE * 0.9; t += 1 / 60) fight.step(1 / 60);
+    if (!busy) expect(foe.timer).toBe(timer);
+    expect(foe.act === null || busy).toBe(true);
   });
 });

@@ -11,7 +11,15 @@ export interface Doodle {
   strokes: Stroke[];
   /** ★を付けた絵は、あふれても ★のない絵より長く残る */
   star?: boolean;
+  /** バトルで勝った回数 */
+  wins?: number;
+  /** トーナメントで優勝したことがある */
+  crown?: boolean;
 }
+
+/** id の絵の勝ちを 1 つ足す。champion ならトーナメントの優勝も覚える */
+export const addWin = (list: Doodle[], id: string, champion: boolean): Doodle[] =>
+  list.map((d) => (d.id === id ? { ...d, wins: (d.wins ?? 0) + 1, crown: d.crown || champion } : d));
 
 const round = (v: number) => Math.round(v * 1000) / 1000;
 

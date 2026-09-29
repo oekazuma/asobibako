@@ -8,19 +8,30 @@
   import Ladder from './Ladder.svelte';
   import type { Look } from './looks';
   import PickFighter from './PickFighter.svelte';
-  import { lineup, RIVAL_CHEER, ROUND_NAMES } from './rivals';
+  import { lineup, RIVAL_CHEER, RIVAL_GUARD, ROUND_NAMES } from './rivals';
   import type { Doodle } from './stock';
   import Versus from './Versus.svelte';
 
-  let { doodles, look, onclose }: { doodles: Doodle[]; look: Look; onclose: () => void } = $props();
+  let {
+    doodles,
+    look,
+    onwin,
+    onclose
+  }: {
+    doodles: Doodle[];
+    look: Look;
+    /** ずかんの絵が勝った。champion はトーナメントで優勝した */
+    onwin: (id: string, champion: boolean) => void;
+    onclose: () => void;
+  } = $props();
 
   const NAMES: Record<Mode, string[]> = {
     duo: ['1P の こ', '2P の こ'],
     solo: ['きみの こ', 'あいての こ'],
     cup: ['きみの こ']
   };
-  /** ひとりで 2 体を戦わせるときの、あいての応援の速さ */
-  const SOLO_CHEER = 3.2;
+  /** ひとりで 2 体を戦わせるときの、あいての応援の速さとガードの確率 */
+  const SOLO = { cheer: 3.2, guard: 0.2 };
 
   let mode = $state<Mode>('duo');
   let phase = $state<'menu' | 'pick' | 'ladder' | 'versus' | 'fight' | 'result'>('menu');
@@ -53,7 +64,7 @@
   }
 
   function pick(d: Doodle) {
-    picked = [...picked, { name: NAMES[mode][picked.length], strokes: d.strokes }];
+    picked = [...picked, { name: NAMES[mode][picked.length], strokes: d.strokes, id: d.id }];
     if (picked.length < NAMES[mode].length) return;
     if (mode === 'cup') {
       rivals = lineup();
@@ -70,6 +81,8 @@
 
   function end(w: 0 | 1) {
     winner = w;
+    const id = entries[w].id;
+    if (id) onwin(id, cleared);
     phase = 'result';
     settle.begin();
   }
@@ -95,7 +108,12 @@
   />
 {:else if phase === 'fight'}
   {#key bout}
-    <Arena {entries} {look} duo={mode === 'duo'} cpu={mode === 'cup' ? RIVAL_CHEER[round] : SOLO_CHEER} onend={end} />
+    <Arena
+      {entries}
+      {look}
+      rival={mode === 'duo' ? null : mode === 'cup' ? { cheer: RIVAL_CHEER[round], guard: RIVAL_GUARD[round] } : SOLO}
+      onend={end}
+    />
   {/key}
 {:else}
   <!-- 2P の子は向かいの人が選ぶので、画面ごと向かいへ向ける -->

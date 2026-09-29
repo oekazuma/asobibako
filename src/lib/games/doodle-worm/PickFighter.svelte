@@ -2,6 +2,7 @@
   import { ratings, stats } from './battle';
   import { hatch } from './engine';
   import type { Look } from './looks';
+  import Medal from './Medal.svelte';
   import { portrait } from './paint';
   import type { Doodle } from './stock';
 
@@ -39,6 +40,7 @@
       <button class="card" aria-label="この こを みる" aria-pressed={d === chosen} onclick={() => (chosen = d)}>
         <img src={portrait(d.strokes, look)} style:background={look.bg} width="160" height="160" alt="" />
       </button>
+      <Medal doodle={d} />
     </li>
   {/each}
 </ul>
@@ -122,6 +124,10 @@
     margin: 0;
     padding: 0;
     list-style: none;
+  }
+
+  li {
+    position: relative;
   }
 
   .card {

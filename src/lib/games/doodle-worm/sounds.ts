@@ -26,6 +26,8 @@ export const sounds = {
   },
   dodge: () => sweep(900, 1800, 120, 0.06),
   ready: () => tone(1568, 140, 'triangle', 0.08),
+  guard: () => tone(520, 90, 'square', 0.05),
+  charge: () => sweep(300, 1200, 700, 0.08),
   win: () => {
     for (const [i, f] of [784, 988, 1175, 1568].entries()) tone(f, i === 3 ? 360 : 130, 'triangle', 0.1, i * 120);
   }
