@@ -2,11 +2,13 @@
   import Icon from '$lib/components/Icon.svelte';
   import Sheet from '$lib/components/Sheet.svelte';
   import { saveImage } from '$lib/share';
+  import type { Look } from './looks';
   import { picture, portrait } from './paint';
   import type { Doodle } from './stock';
 
   let {
     doodles,
+    look,
     oncall,
     onremove,
     onstar,
@@ -15,6 +17,7 @@
     onclose
   }: {
     doodles: Doodle[];
+    look: Look;
     oncall: (d: Doodle) => void;
     onremove: (d: Doodle) => void;
     onstar: (d: Doodle) => void;
@@ -59,11 +62,11 @@
             aria-label={mode === 'erase' ? 'この えを けす' : mode === 'save' ? 'この えを ほぞん' : 'この えを よぶ'}
             onclick={() => {
               if (mode === 'erase') onremove(d);
-              else if (mode === 'save') saveImage(picture(d.strokes), `asobibako-doodle-${i + 1}.png`);
+              else if (mode === 'save') saveImage(picture(d.strokes, look), `asobibako-doodle-${i + 1}.png`);
               else oncall(d);
             }}
           >
-            <img src={portrait(d.strokes)} width="160" height="160" alt="" />
+            <img src={portrait(d.strokes, look)} style:background={look.bg} width="160" height="160" alt="" />
           </button>
           <button
             class="star"
@@ -110,7 +113,7 @@
     padding: 6px;
     border: 2px solid var(--line);
     border-radius: 18px;
-    background: #fff4f6;
+    background: #fff;
     box-shadow: var(--soft-shadow);
     cursor: pointer;
   }
@@ -119,6 +122,7 @@
     display: block;
     width: 100%;
     height: 100%;
+    border-radius: 12px;
   }
 
   /* 消せる絵には赤い ✕ を重ねる */

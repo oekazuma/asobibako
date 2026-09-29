@@ -1,10 +1,7 @@
 import { area, closed, hatch, pose, type Creature, type Part, type Point, type Stroke } from './engine';
+import { dark, PEN, type Look } from './looks';
 
-/** 描いている途中の線の太さ */
-export const PEN = 0.012;
 const INK = '#2b2d42';
-/** 塗った形のふち。しろで塗っても地から浮くように */
-const RIM = 'rgb(43 45 66 / 0.25)';
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 /** 少し行き過ぎて戻る、ぷくっとした立ち上がり */
@@ -17,36 +14,29 @@ function path(ctx: CanvasRenderingContext2D, pts: Point[], close = false) {
   if (close) ctx.closePath();
 }
 
-function draw(ctx: CanvasRenderingContext2D, pts: Point[], color: string, filled: boolean, width = PEN) {
+function draw(ctx: CanvasRenderingContext2D, look: Look, pts: Point[], color: string, filled: boolean, width = PEN) {
   if (!pts.length) return;
-  ctx.fillStyle = color;
-  // 点を打っただけの線（目など）は、長さ 0 の線だと何も描かれないので丸を置く
+  // 点を打っただけの線（目など）は、長さ 0 の線だと何も描かれないので塗った丸にする
   if (pts.length === 1) {
-    ctx.beginPath();
-    ctx.arc(pts[0][0], pts[0][1], width * 1.2, 0, Math.PI * 2);
-    ctx.fill();
+    const dot = () => {
+      ctx.beginPath();
+      ctx.arc(pts[0][0], pts[0][1], width * 1.2, 0, Math.PI * 2);
+    };
+    look.ink(ctx, dot, color, true, width * 0.4);
     return;
   }
-  path(ctx, pts, filled);
-  if (filled) ctx.fill();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = width;
-  ctx.stroke();
-  if (!filled) return;
-  ctx.strokeStyle = RIM;
-  ctx.lineWidth = PEN * 0.4;
-  ctx.stroke();
+  look.ink(ctx, () => path(ctx, pts, filled), color, filled, width);
 }
 
-export function pen(ctx: CanvasRenderingContext2D, pts: Point[], color: string) {
-  draw(ctx, pts, color, false);
+export function pen(ctx: CanvasRenderingContext2D, look: Look, pts: Point[], color: string) {
+  draw(ctx, look, pts, color, false);
 }
 
 /** まだ動きだしていない絵。塗る輪を大きい順に下へ敷き、線はその上に描く */
-export function sketch(ctx: CanvasRenderingContext2D, strokes: Stroke[]) {
+export function sketch(ctx: CanvasRenderingContext2D, look: Look, strokes: Stroke[]) {
   const layers = strokes.map((s) => ({ ...s, filled: closed(s.pts) }));
   layers.sort((a, b) => Number(b.filled) - Number(a.filled) || area(b.pts) - area(a.pts));
-  for (const s of layers) draw(ctx, s.pts, s.color, s.filled);
+  for (const s of layers) draw(ctx, look, s.pts, s.color, s.filled);
 }
 
 /** 手足を付け根のまわりに振る角度 */
@@ -83,17 +73,12 @@ function width(c: Creature, p: Part, grow: number): number {
   return PEN + (fat - PEN) * grow;
 }
 
-/** 黒やちゃいろの体には白い目を付ける */
-function dark(hex: string): boolean {
-  const n = parseInt(hex.slice(1), 16);
-  return (n >> 16) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114 < 110;
-}
-
-function eyes(ctx: CanvasRenderingContext2D, c: Creature) {
+function eyes(ctx: CanvasRenderingContext2D, look: Look, c: Creature) {
   const ex = c.dir * c.r * 0.2;
   const ey = -c.r * 0.15;
   const blink = (c.age + c.r * 40) % 3.5 < 0.12 ? 0.15 : 1;
-  ctx.fillStyle = dark(c.parts.find((p) => p.role === 'body')!.color) ? '#fff' : INK;
+  // 黒やちゃいろの体には白い目を付ける
+  ctx.fillStyle = look.eye ?? (dark(c.parts.find((p) => p.role === 'body')!.color) ? '#fff' : INK);
   for (const side of [-1, 1]) {
     ctx.beginPath();
     ctx.ellipse(ex + side * c.r * 0.3, ey, c.r * 0.1, c.r * 0.2 * blink, 0, 0, Math.PI * 2);
@@ -101,7 +86,7 @@ function eyes(ctx: CanvasRenderingContext2D, c: Creature) {
   }
 }
 
-export function creature(ctx: CanvasRenderingContext2D, c: Creature) {
+export function creature(ctx: CanvasRenderingContext2D, look: Look, c: Creature) {
   const grow = spring(clamp01(c.age / 0.45));
   const { lift, sx, sy, tilt } = pose(c);
   const g = 0.6 + 0.4 * grow;
@@ -114,7 +99,7 @@ export function creature(ctx: CanvasRenderingContext2D, c: Creature) {
   for (const p of c.parts) {
     const w = width(c, p, grow);
     if (p.role === 'tail') {
-      draw(ctx, wave(c, p, grow), p.color, p.filled, w);
+      draw(ctx, look, wave(c, p, grow), p.color, p.filled, w);
       continue;
     }
     const a = swing(c, p) * grow;
@@ -122,15 +107,15 @@ export function creature(ctx: CanvasRenderingContext2D, c: Creature) {
     ctx.translate(p.anchor[0], p.anchor[1]);
     ctx.rotate(a);
     ctx.translate(-p.anchor[0], -p.anchor[1]);
-    draw(ctx, p.pts, p.color, p.filled, w);
+    draw(ctx, look, p.pts, p.color, p.filled, w);
     ctx.restore();
   }
-  if (c.eyes) eyes(ctx, c);
+  if (c.eyes) eyes(ctx, look, c);
   ctx.restore();
 }
 
 /** ふくらみきって跳ねる前の、止まったかっこうで枠いっぱいに描く */
-function frame(strokes: Stroke[], size: number, background?: string): string {
+function frame(strokes: Stroke[], size: number, look: Look, background?: string): string {
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
   const c = hatch(strokes);
@@ -147,25 +132,23 @@ function frame(strokes: Stroke[], size: number, background?: string): string {
   ctx.setTransform(s, 0, 0, s, size / 2 - s * (c.x + (l + r) / 2), size / 2 - s * (c.y + (t + b) / 2));
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  creature(ctx, c);
+  creature(ctx, look, c);
   return canvas.toDataURL();
 }
 
-const portraits = new WeakMap<Stroke[], string>();
+const portraits = new WeakMap<Stroke[], Record<string, string>>();
 
 /**
  * ずかんの絵の画像（data URL）。canvas を何十枚も並べると iPad でスクロールの合成が重くなるので、
- * 画像にして <img> で並べる
+ * 画像にして <img> で並べる。地は透かし、カードの地（絵柄の bg）を見せる
  */
-export function portrait(strokes: Stroke[]): string {
-  const cached = portraits.get(strokes);
-  if (cached) return cached;
-  const url = frame(strokes, 160);
-  portraits.set(strokes, url);
-  return url;
+export function portrait(strokes: Stroke[], look: Look): string {
+  const urls = portraits.get(strokes) ?? {};
+  portraits.set(strokes, urls);
+  return (urls[look.id] ??= frame(strokes, 160, look));
 }
 
 /**
- * 写真アプリに入れる絵。透けていると写真アプリで黒く見えるので白く塗る。保存するときだけ作るので覚えない
+ * 写真アプリに入れる絵。透けていると写真アプリで黒く見えるので絵柄の地で塗る。保存するときだけ作るので覚えない
  */
-export const picture = (strokes: Stroke[]) => frame(strokes, 1024, '#fff');
+export const picture = (strokes: Stroke[], look: Look) => frame(strokes, 1024, look, look.paper);

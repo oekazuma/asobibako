@@ -1,5 +1,6 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { LOOKS } from './looks';
 import Stock from './Stock.svelte';
 import type { Doodle } from './stock';
 
@@ -24,6 +25,7 @@ describe('ずかんのシート', () => {
       target,
       props: {
         doodles,
+        look: LOOKS[0],
         oncall,
         onremove: vi.fn(),
         onstar: vi.fn(),
