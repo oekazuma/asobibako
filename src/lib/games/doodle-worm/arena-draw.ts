@@ -125,15 +125,17 @@ export function drawFighter(
   lost: number
 ) {
   const m = motion(s.act, s.stats.kind);
-  let x = me.x + (foe.x - me.x) * m.along;
-  let y = me.y + (foe.y - me.y) * m.along;
+  const [dx, dy] = [foe.x - me.x, foe.y - me.y];
   const quake =
     (s.hurt >= 0 ? Math.sin(s.hurt * 70) * 0.012 * (1 - s.hurt / 0.4) : 0) +
     m.shake * Math.sin(performance.now() / 20) * 0.006;
-  x += quake;
-  y += quake * 0.3;
+  const gx = me.x + dx * m.along + quake;
+  const gy = me.y + dy * m.along + quake * 0.3;
+  // 跳ぶ・舞い上がる向きは、相手へ向かう線に直角な向き。横に並ぶと上へ、上下に向かい合うと横へ弧を描く
+  const len = Math.hypot(dx, dy) || 1;
+  const [px, py] = dy / len > 0 || (dy === 0 && -dx / len > 0) ? [-dy / len, dx / len] : [dy / len, -dx / len];
   ctx.save();
-  ctx.translate(x, y);
+  ctx.translate(gx, gy);
   ctx.rotate(me.rot);
   // 足もとの影。浮いているあいだは小さくする
   const k = 1 - Math.min(0.5, m.lift * 2);
@@ -141,7 +143,9 @@ export function drawFighter(
   ctx.beginPath();
   ctx.ellipse(0, size * 0.55, size * 0.45 * k, size * 0.08 * k, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.translate(0, -m.lift);
+  ctx.rotate(-me.rot);
+  ctx.translate(px * m.lift, py * m.lift);
+  ctx.rotate(me.rot);
   if (s.gauge >= 1 || s.act?.special) {
     const pulse = 0.8 + Math.sin(performance.now() / 90) * 0.2;
     ctx.fillStyle = `rgb(255 200 40 / ${s.act?.special ? 0.55 : 0.3})`;

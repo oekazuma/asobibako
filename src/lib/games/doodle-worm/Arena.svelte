@@ -34,15 +34,11 @@
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D | null = null;
   let aspect = 1;
-  // 戦う子と相手の応援は、この画面を開いたときの entries と cpu で決まる
+  // 戦う子と相手の応援・ガードは、この画面を開いたときの entries と rival で決まる
   // svelte-ignore state_referenced_locally
-  const fighters = entries.map((e) => fighter(e.strokes));
-  // svelte-ignore state_referenced_locally
-  const duo = !rival;
+  const [fighters, duo, cpu] = [entries.map((e) => fighter(e.strokes)), !rival, rival && new Cheerer(rival.cheer)];
   // svelte-ignore state_referenced_locally
   const fight = new Fight(stats(fighters[0].c), stats(fighters[1].c), Math.random, [0, rival?.guard ?? 0]);
-  // svelte-ignore state_referenced_locally
-  const cpu = rival && new Cheerer(rival.cheer);
   const effects = new Effects();
   /** ひっさつわざの帯。key は同じ子が続けて出したときに帯を出し直すため */
   let cut = $state<{ side: 0 | 1; key: number } | null>(null);
