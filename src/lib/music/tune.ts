@@ -139,9 +139,10 @@ export function playStep(ctx: BaseAudioContext, out: AudioNode, sc: Score, step:
       return;
     // 4 つ打ちの大太鼓、2・4 拍の小太鼓、裏のハイハット、8 分でオクターブを跳ねるベース、裏拍のコード
     case 'pop':
-      if (p % 2 === 0) play(ctx, out, t, note(ctx, 'kick', 0), 0.5);
+      // 大太鼓は波形のピークが旋律の約 6 倍あるので、旋律より少し大きく聞こえる程度に絞る
+      if (p % 2 === 0) play(ctx, out, t, note(ctx, 'kick', 0), 0.2);
       else play(ctx, out, t, note(ctx, 'hat', 0), 0.12);
-      if (p === 2 || p === 6) tick(ctx, out, t, 0.09);
+      if (p === 2 || p === 6) tick(ctx, out, t, 0.07);
       LEADS.bass(ctx, out, t, hz(low(c[0]) + (p % 2) * 12), sd * 0.8, BASS * 0.9);
       if (p === 3 || p === 7) strum(LEADS.pluck, 1, CHORD * 0.9);
       if (p === 0) strum(LEADS.pad, sc.perBar, CHORD * 0.3);

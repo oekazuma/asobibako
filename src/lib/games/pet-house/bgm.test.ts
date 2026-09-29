@@ -122,6 +122,16 @@ describe('BGM', () => {
     }
   });
 
+  it('ポップの伴奏（大太鼓・ハイハット・鉄琴の旋律）も音を予約する', () => {
+    const fake = fakeContext();
+    const tune = new Tune({ ...SONGS.lesson, lead: 'glock', style: 'pop' }, 120);
+    for (let t = 0; t < 2; t += 1 / 60) {
+      fake.ctx.currentTime += 1 / 60;
+      tune.tick(fake.ctx, t, 0);
+    }
+    expect(fake.starts.length).toBeGreaterThan(20);
+  });
+
   it('Tune は譜面の時計の位置から鳴らし、耳に届く遅れのぶん早めに予約する。ミュートのあいだの拍は飛ばす', () => {
     const fake = fakeContext();
     const tune = new Tune(SONGS.lesson, 100);
