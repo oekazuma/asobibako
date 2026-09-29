@@ -1,14 +1,15 @@
 import { bus, wake } from '$lib/audio.svelte';
 import type { Activity, ActivityHost } from './activity';
 import { SPIN_RATE, type Actor } from './behavior';
-import { Tune } from './bgm';
+import { SongClock } from '$lib/music/clock';
+import { Tune } from '$lib/music/tune';
 import { kindOf, trickName, TRICKS, type Pet } from './engine';
 import { ROOM } from './layout';
-import { chart, lessons, Play, SongClock, type Chart, type Grade, type Result, type RhythmEvent } from './rhythm';
+import { chart, lessons, Play, type Chart, type Grade, type Result, type RhythmEvent } from './rhythm';
 import { drawLane, lane } from './rhythm-draw';
 import { buildRoom } from './scene-room';
 import { sounds } from './sounds';
-import type { SongId } from './songs';
+import { SONGS as SCORES, type SongId } from './songs';
 import type { PetAction, TrickId } from './types';
 
 /** ペットは部屋のまん中に座り、カメラは寄って見下ろす。足もとの床の下を見るので、ペットは画面の上半分に入る */
@@ -112,7 +113,7 @@ export class RhythmPlay implements Activity {
     wake();
     this.#play = new Play(this.#chart);
     this.#clock = new SongClock(-0.6);
-    this.#tune = new Tune(...this.#song);
+    this.#tune = new Tune(SCORES[this.#song[0]], this.#song[1]);
     this.#t = -0.6;
     [this.combo, this.result, this.record, this.gained, this.banner] = [0, null, false, 0, ''];
     this.phase = 'play';

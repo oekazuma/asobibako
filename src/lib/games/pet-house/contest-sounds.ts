@@ -1,7 +1,7 @@
 import { sink } from '$lib/audio.svelte';
-import { note } from './instruments';
+import { note } from '$lib/music/instruments';
 import { decay, type At } from './sounds';
-import { biquad, hiss, logRand, play, rand, RATE, ring, sfxOut, shot, thump, wave, white } from './synth';
+import { biquad, hiss, logRand, play, rand, RATE, ring, sfxOut, shot, thump, wave, white } from '$lib/music/synth';
 
 /**
  * コンテストの合図と観客の声。はく手は手拍子の粒を人数ぶん散らし、歓声はのこぎり波の声を母音の帯域に通す。

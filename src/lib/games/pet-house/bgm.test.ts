@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { Bgm, loopSeconds, midi, score, Tune } from './bgm';
+import { midi, score, Tune } from '$lib/music/tune';
+import { Bgm, loopSeconds } from './bgm';
 import { SONGS } from './songs';
 
 /** 鳴らした音の時刻と、高さ（楽器の音は高さごとに作る AudioBuffer の番号）だけを覚える AudioContext の代わり */
@@ -123,7 +124,7 @@ describe('BGM', () => {
 
   it('Tune は譜面の時計の位置から鳴らし、耳に届く遅れのぶん早めに予約する。ミュートのあいだの拍は飛ばす', () => {
     const fake = fakeContext();
-    const tune = new Tune('lesson', 100);
+    const tune = new Tune(SONGS.lesson, 100);
     const sd = 0.3;
     let t = 0;
     const tick = (on: boolean, sec: number) => {

@@ -1,18 +1,6 @@
-/**
- * BGM の楽譜。melody は 8 分音符 1 つを 1 語にして小節を | で区切る（音名とオクターブ、`-` は前の音をのばす、`.` は休み）。
- * chords は 1 小節に 1 つのコード。伴奏の刻み方は style が決める
- */
-export type Lead = 'box' | 'mallet' | 'bubble' | 'brass' | 'flute';
-export type Style = 'waltz' | 'bounce' | 'march' | 'gentle';
+import type { Song } from '$lib/music/tune';
 
-export interface Song {
-  beats: 3 | 4;
-  lead: Lead;
-  style: Style;
-  melody: string;
-  chords: string;
-}
-
+/** 場面ごとの BGM の楽譜。書き方は $lib/music/tune の Song */
 export const SONGS = {
   /** 部屋。オルゴールのワルツ */
   room: {

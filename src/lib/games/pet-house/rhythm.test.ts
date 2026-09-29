@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { TRICKS } from './engine';
-import { chart, lessons, MOTION, Play, rankOf, SongClock, type Note, type RhythmEvent } from './rhythm';
+import { SongClock } from '$lib/music/clock';
+import { chart, lessons, MOTION, Play, rankOf, type Note, type RhythmEvent } from './rhythm';
 import type { TrickId } from './types';
 
 const BPM = 100;

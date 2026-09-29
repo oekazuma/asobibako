@@ -1,7 +1,7 @@
 import { bus } from '$lib/audio.svelte';
 import { BREEDS } from './breeds';
 import type { PetFx } from './effects';
-import { master } from './synth';
+import { master } from '$lib/music/synth';
 import type { BreedId } from './types';
 
 /**
