@@ -1,4 +1,4 @@
-import { biquad, click, hiss, pluck, RATE, ring, toBuffer, wave, white } from './synth';
+import { biquad, click, hiss, pluck, RATE, ring, thump, toBuffer, wave, white } from './synth';
 
 /**
  * 本物の楽器に近い音色。打つ楽器は板や棒の倍音の比（整数倍ではない）で減衰の違うサイン波を重ね、
@@ -143,6 +143,19 @@ const DEFS = {
       hiss(d, sr, 0, 0.06, 1800, 8000, 0.5, (u) => Math.exp(-u * 4), 0.3);
       ring(d, sr, 0, 200, 0.25, 0.012);
     }
+  },
+  /** バスドラム。高さが下がりながら消える低いドンに、ばちの当たるコッを重ねる。f は使わない */
+  kick: {
+    sec: 0.4,
+    make: (d, sr) => {
+      thump(d, sr, 0, 120, 1, 0.1, 0.6);
+      click(d, sr, 0, 0.12, 1200, 3500, 0.002);
+    }
+  },
+  /** ハイハット。細くて高いチッ。f は使わない */
+  hat: {
+    sec: 0.07,
+    make: (d, sr) => hiss(d, sr, 0, 0.06, 7000, 13000, 0.5, (u) => Math.exp(-u * 5))
   },
   /** ホルン風のやわらかいラッパ。吹きはじめは暗く、息が通ると上の倍音が開く */
   horn: {
