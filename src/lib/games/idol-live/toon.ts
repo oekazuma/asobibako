@@ -1,8 +1,9 @@
-import { AdditiveBlending, BackSide, Color, ShaderMaterial, Vector3, type Texture } from 'three';
+import { BackSide, Color, ShaderMaterial, Vector3, type Texture } from 'three';
 
 /**
  * アニメ塗り（セルルック）の材質。光の当たり方を 3 段の色に分け、影は暗くするのでなく色みを変えた「影色」で塗る。
- * ふちには客席側の照明の色のリムライトを差し、髪には光の筋を入れる。輪郭線は黒でなく、その部位の濃い色で細く引く
+ * ふちには客席側の照明の色のリムライトを差す。輪郭線は黒でなく、その部位の濃い色で細く引く。
+ * アイドル本体はモデルの材質（MToon）で描き、これは髪飾りなどの付け足しの形に使う
  */
 
 /** 場面の光。ステージの照明に合わせて、描くたびに書きかえてよい */
@@ -142,33 +143,5 @@ export function outline(color: string, width = 0.0022): ShaderMaterial {
     fragmentShader: LINE_FRAG,
     side: BackSide,
     uniforms: { uColor: { value: new Color(color) }, uWidth: { value: width } }
-  });
-}
-
-const GLINT_FRAG = /* glsl */ `
-uniform vec3 uLight;
-varying vec3 vN;
-varying vec3 vW;
-varying vec2 vUv;
-varying vec3 vC;
-void main() {
-  vec3 N = normalize(vN);
-  vec3 V = normalize(cameraPosition - vW);
-  // 主な光と、客席側（カメラのそば）の光の 2 つが、ひとみの丸いおおいに映りこむ
-  float a = pow(max(dot(N, normalize(normalize(uLight) + V)), 0.0), 180.0);
-  float b = pow(max(dot(N, V), 0.0), 24.0) * 0.12;
-  gl_FragColor = vec4(vec3(1.0) * (smoothstep(0.35, 0.6, a) * 0.9 + b), 1.0);
-  #include <colorspace_fragment>
-}`;
-
-/** ひとみの上にかぶせる透明な丸いおおい。光の向きとカメラで動く映りこみだけを足す */
-export function glint(): ShaderMaterial {
-  return new ShaderMaterial({
-    vertexShader: VERT,
-    fragmentShader: GLINT_FRAG,
-    transparent: true,
-    depthWrite: false,
-    blending: AdditiveBlending,
-    uniforms: { uLight: LIGHT.dir }
   });
 }

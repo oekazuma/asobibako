@@ -10,6 +10,7 @@ import { drawNotes } from './notes-draw';
 import type { Coord } from './outfits';
 import { APPEAL, cameraAt, place, project, radiusOf, timeline } from './shots';
 import { sounds } from './sounds';
+import type { Idol3D } from './idol3d';
 import { LiveView } from './view3d';
 
 /**
@@ -50,6 +51,8 @@ const MILESTONE = 20;
 /** 1 曲ぶんの支度 */
 export interface Setup {
   track: Track;
+  /** 読みこんだアイドル（じゅんびの画面とライブで同じ 1 人） */
+  idol: Idol3D;
   coord: Coord;
   bonus: number;
   /** むずかしさで選んだ譜面 */
@@ -95,7 +98,7 @@ export class Show {
     this.judge = new Judge(place(o.track, o.notes, ...this.#size), radiusOf(...this.#size));
     this.#tune = new Tune(o.track.def.music, o.track.def.bpm);
     this.#pose = o.track.figure(0);
-    this.#view = new LiveView(o.coord);
+    this.#view = new LiveView(o.idol, o.coord);
     this.#keys = timeline(o.track);
     this.#bonus = o.bonus;
     this.#onend = o.onend;

@@ -1,4 +1,6 @@
 import {
+  AmbientLight,
+  DirectionalLight,
   Mesh,
   NoToneMapping,
   PerspectiveCamera,
@@ -11,8 +13,7 @@ import {
   type Texture
 } from 'three';
 import type { Face, Pose } from './dance';
-import type { FaceState } from './face-draw';
-import { Idol3D } from './idol3d';
+import type { FaceState, Idol3D } from './idol3d';
 import type { Coord } from './outfits';
 import { Stage3D, type StageState } from './stage3d';
 
@@ -57,22 +58,32 @@ export class Blink {
   }
 }
 
-/** ライブの場面。ステージとアイドルとカメラ */
+/** アイドルを照らす光。モデルの材質（MToon）はこの光でアニメ塗りの明暗を決める */
+export function lights(scene: Scene): void {
+  const key = new DirectionalLight('#ffffff', 2.2);
+  key.position.set(0.6, 2.2, 2.4);
+  scene.add(key, new AmbientLight('#ffffff', 0.9));
+}
+
+/** ライブの場面。ステージとアイドルとカメラ。アイドルは読みこんだ 1 人を使い回す */
 export class LiveView {
   readonly scene = new Scene();
   readonly camera = new PerspectiveCamera(34, 1, 0.05, 60);
-  readonly idol = new Idol3D();
+  readonly idol: Idol3D;
   readonly stage = new Stage3D();
   readonly #blink = new Blink();
 
-  constructor(coord: Coord) {
-    this.idol.dress(coord);
-    this.scene.add(this.stage.group, this.idol.group);
+  constructor(idol: Idol3D, coord: Coord) {
+    this.idol = idol;
+    idol.dress(coord);
+    idol.look(this.camera);
+    this.scene.add(this.stage.group, idol.group);
+    lights(this.scene);
   }
 
   /** かっこう・表情・ステージを進める。カメラは呼ぶ側が this.camera に当ててから render する */
   update(p: Pose, face: Face, mouth: number, s: StageState, dt: number): void {
-    const f: FaceState = { face, mouth: Math.round(mouth * 3) / 3, blink: this.#blink.step(dt) };
+    const f: FaceState = { face, mouth, blink: this.#blink.step(dt) };
     this.idol.pose(p, f, dt);
     this.stage.update(s);
   }
@@ -81,7 +92,9 @@ export class LiveView {
     draw(this.scene, this.camera, w, h);
   }
 
+  /** ステージを GPU から外す。アイドルは次のライブでも使うので、先に外しておく */
   dispose(): void {
+    if (this.idol.group.parent === this.scene) this.scene.remove(this.idol.group);
     free(this.scene);
   }
 }

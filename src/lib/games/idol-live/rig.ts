@@ -1,32 +1,31 @@
-import { Bone, Matrix4, Quaternion, Skeleton, Vector3 } from 'three';
+import { Bone, Matrix4, Quaternion, Vector3 } from 'three';
 import type { Arm, Foot, Pose } from './dance';
 
 /**
- * アイドルの骨組み（7.5 頭身、背 1.6m）。かっこうを骨の向きに解く。腕と脚は、手と足を置く位置から
- * ひじ・ひざを逆運動学で決める。描かなくても使えるので、譜面のノーツの位置出しとテストでも使う
+ * アイドルの骨組み。かっこうを骨の向きに解く。腕と脚は、手と足を置く位置からひじ・ひざを逆運動学で決める。
+ * 骨の位置と長さは、描く 3D モデル（vrm.ts の千駄ヶ谷 篠）の骨に合わせてある（モデルを替えたら測りなおす）。
+ * 描かなくても使えるので、譜面のノーツの位置出しとテストでも使う。y が上、z が客席の向き
  */
 
 export const SIZE = {
-  hips: 0.86,
-  spine: 0.1,
-  chest: 0.16,
-  neck: 0.15,
-  head: 0.06,
-  /** 胸の骨から見た肩の付け根 */
-  shoulder: new Vector3(0.14, 0.135, -0.01),
-  upper: 0.25,
-  fore: 0.22,
-  hand: 0.075,
+  hips: 0.935,
+  hipsZ: 0.0068,
+  /** 親の骨から見た、背骨・胸・胸の上・首・頭の位置 */
+  spine: new Vector3(0, 0.0529, 0.0098),
+  chest: new Vector3(0, 0.114, 0.0142),
+  upperChest: new Vector3(0, 0.1262, -0.0139),
+  neck: new Vector3(0, 0.1147, -0.0334),
+  head: new Vector3(0, 0.0737, 0.0094),
+  /** 胸の上の骨から見た肩の付け根 */
+  shoulder: new Vector3(0.1084, 0.0724, -0.022),
+  upper: 0.2192,
+  fore: 0.2136,
   /** 腰の骨から見た股の付け根 */
-  hip: new Vector3(0.08, -0.05, 0),
-  thigh: 0.4,
-  shin: 0.37,
+  hip: new Vector3(0.0768, -0.0397, -0.0049),
+  thigh: 0.366,
+  shin: 0.4251,
   /** 足首の高さ */
-  ankle: 0.055,
-  /** ツインテールの節の数と長さ */
-  tail: { n: 7, len: 0.09 },
-  /** 頭の骨から見たツインテールの根元 */
-  tailRoot: new Vector3(0.082, 0.185, -0.035)
+  ankle: 0.1049
 };
 
 const SIDES = ['L', 'R'] as const;
@@ -39,10 +38,10 @@ export type BoneName =
   | 'hips'
   | 'spine'
   | 'chest'
+  | 'upperChest'
   | 'neck'
   | 'head'
-  | `${'upper' | 'fore' | 'hand' | 'thigh' | 'shin' | 'foot'}${Side}`
-  | `tail${Side}${number}`;
+  | `${'upper' | 'fore' | 'hand' | 'thigh' | 'shin' | 'foot'}${Side}`;
 
 const v = new Vector3();
 const w = new Vector3();
@@ -52,48 +51,47 @@ const m = new Matrix4();
 export class Rig {
   readonly root = new Bone();
   readonly bones = {} as Record<BoneName, Bone>;
-  readonly skeleton: Skeleton;
 
   constructor() {
-    const add = (name: BoneName, parent: Bone, x: number, y: number, z: number) => {
+    const add = (name: BoneName, parent: Bone, x: number | Vector3, y = 0, z = 0) => {
       const b = new Bone();
       b.name = name;
-      b.position.set(x, y, z);
+      if (typeof x === 'number') b.position.set(x, y, z);
+      else b.position.copy(x);
       parent.add(b);
       this.bones[name] = b;
       return b;
     };
     this.root.name = 'root';
     this.bones.root = this.root;
-    const hips = add('hips', this.root, 0, SIZE.hips, 0);
-    const spine = add('spine', hips, 0, SIZE.spine, 0);
-    const chest = add('chest', spine, 0, SIZE.chest, 0);
-    const neck = add('neck', chest, 0, SIZE.neck, 0);
-    const head = add('head', neck, 0, SIZE.head, 0);
+    const hips = add('hips', this.root, 0, SIZE.hips, SIZE.hipsZ);
+    const spine = add('spine', hips, SIZE.spine);
+    const chest = add('chest', spine, SIZE.chest);
+    const upperChest = add('upperChest', chest, SIZE.upperChest);
+    const neck = add('neck', upperChest, SIZE.neck);
+    add('head', neck, SIZE.head);
     for (const s of SIDES) {
       const k = sign(s);
-      const upper = add(`upper${s}`, chest, k * SIZE.shoulder.x, SIZE.shoulder.y, SIZE.shoulder.z);
+      const upper = add(`upper${s}`, upperChest, k * SIZE.shoulder.x, SIZE.shoulder.y, SIZE.shoulder.z);
       const fore = add(`fore${s}`, upper, 0, -SIZE.upper, 0);
       add(`hand${s}`, fore, 0, -SIZE.fore, 0);
       const thigh = add(`thigh${s}`, hips, k * SIZE.hip.x, SIZE.hip.y, SIZE.hip.z);
       const shin = add(`shin${s}`, thigh, 0, -SIZE.thigh, 0);
       add(`foot${s}`, shin, 0, -SIZE.shin, 0);
-      let t = add(`tail${s}0`, head, k * SIZE.tailRoot.x, SIZE.tailRoot.y, SIZE.tailRoot.z);
-      for (let i = 1; i < SIZE.tail.n; i++) t = add(`tail${s}${i}`, t, 0, -SIZE.tail.len, 0);
     }
     this.root.updateMatrixWorld(true);
-    this.skeleton = new Skeleton(Object.values(this.bones));
   }
 
-  /** かっこうを骨に当てる。ツインテールの骨は触らない（揺れは hair.ts が付ける） */
+  /** かっこうを骨に当てる */
   apply(p: Pose): void {
     const b = this.bones;
     this.root.position.set(p.x, 0, p.z);
     this.root.quaternion.setFromAxisAngle(w.set(0, 1, 0), p.spin);
-    b.hips.position.set(0, SIZE.hips - p.crouch + p.air, 0);
+    b.hips.position.set(0, SIZE.hips - p.crouch + p.air - this.#reach(p), SIZE.hipsZ);
     euler(b.hips, 0, p.twist * 0.25, -p.lean * 0.3);
-    euler(b.spine, p.bow * 0.5, p.twist * 0.35, -p.lean * 0.35);
-    euler(b.chest, p.bow * 0.5, p.twist * 0.4, -p.lean * 0.35);
+    euler(b.spine, p.bow * 0.35, p.twist * 0.25, -p.lean * 0.25);
+    euler(b.chest, p.bow * 0.35, p.twist * 0.25, -p.lean * 0.25);
+    euler(b.upperChest, p.bow * 0.3, p.twist * 0.25, -p.lean * 0.2);
     euler(b.neck, p.nod * 0.3, p.turn * 0.35, -p.tilt * 0.3);
     euler(b.head, p.nod * 0.7, p.turn * 0.65, -p.tilt * 0.7);
     this.root.updateMatrixWorld(true);
@@ -101,6 +99,19 @@ export class Rig {
       this.#arm(s, s === 'L' ? p.armL : p.armR);
       this.#leg(s, s === 'L' ? p.footL : p.footR, p.air);
     }
+  }
+
+  /** 床に着けた足が届かないとき（大きく開いた足）に、腰を下ろす深さ */
+  #reach(p: Pose): number {
+    const L = (SIZE.thigh + SIZE.shin) * 0.995;
+    let drop = 0;
+    for (const f of [p.footL, p.footR]) {
+      if (f.lift > 0 || p.air > 0) continue;
+      const side = f.x * f.x + (f.z - SIZE.hip.z) ** 2;
+      const tall = SIZE.hips - p.crouch + SIZE.hip.y - SIZE.ankle;
+      drop = Math.max(drop, tall - Math.sqrt(Math.max(0, L * L - side)));
+    }
+    return drop;
   }
 
   /** 骨の世界の位置 */
@@ -120,7 +131,7 @@ export class Rig {
 
   #arm(s: Side, a: Arm) {
     const k = sign(s);
-    const chest = this.bones.chest;
+    const chest = this.bones.upperChest;
     const upper = this.bones[`upper${s}`];
     const S = upper.getWorldPosition(new Vector3());
     const L = SIZE.upper + SIZE.fore;

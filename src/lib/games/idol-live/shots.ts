@@ -30,10 +30,10 @@ const shot = (yaw: number, height: number, dist: number, look: number, fov: numb
 
 /** ノーツを出すあいだの撮り方は、手の届くところを必ず写す（frame > 0） */
 export const SHOTS = {
-  face: shot(0.18, 1.4, 0.85, 1.4, 30, 0),
+  face: shot(0.18, 1.47, 0.9, 1.46, 30, 0),
   /** スペシャルをきめたときの寄り。顔とキメのポーズが入る */
-  appeal: shot(0.25, 1.36, 1.35, 1.3, 32, 0),
-  bust: shot(0.3, 1.32, 1.5, 1.28, 32, 0),
+  appeal: shot(0.25, 1.45, 1.5, 1.38, 32, 0),
+  bust: shot(0.3, 1.38, 1.55, 1.34, 32, 0),
   full: shot(0, 1.0, 4.0, 0.88, 34, 0.95),
   diagR: shot(0.5, 1.15, 4.0, 0.9, 34, 0.95),
   diagL: shot(-0.5, 1.15, 4.0, 0.9, 34, 0.95),

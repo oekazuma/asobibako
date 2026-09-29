@@ -1,11 +1,15 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+  import { base } from '$app/paths';
   import type { SoloProps } from '$lib/games';
   import Dress from './Dress.svelte';
   import type { Result } from './judge';
   import Live from './Live.svelte';
   import LiveResult from './LiveResult.svelte';
   import { bonusOf, fansOf, load, NAMES, record, store, unlockedBetween } from './outfits';
+  import { idolFor, type Idol3D } from './idol3d';
   import { SONGS, trackOf } from './songs';
+  import { loadVRM } from './vrm';
 
   // クリアのない自由あそび（じゅんび → ライブ → けっか をくり返す）なので、シェルの onfinish は呼ばない
   let { onhint }: SoloProps = $props();
@@ -16,6 +20,23 @@
   const save = $state(load(SONGS.map((s) => s.id)));
   const track = $derived(trackOf(save.song));
   let screen = $state<'dress' | 'live'>('dress');
+  /** 3D のアイドル。読みこみに 1 秒ほどかかるので、開いたらすぐ読みはじめる */
+  let idol = $state.raw<Idol3D | null>(null);
+
+  onMount(() => {
+    let alive = true;
+    loadVRM(base)
+      .then((vrm) => {
+        if (alive) idol = idolFor(vrm);
+      })
+      .catch((e: unknown) => {
+        console.error(e);
+        if (alive) onhint?.('アイドルを よみこめなかったよ。↻ で もういちど');
+      });
+    return () => {
+      alive = false;
+    };
+  });
   let round = $state(0);
   let reward = $state<{
     result: Result;
@@ -51,6 +72,7 @@
 
 {#if screen === 'dress'}
   <Dress
+    {idol}
     {save}
     onwear={(slot, theme) => (save.coord[slot] = theme)}
     onsong={(id) => (save.song = id)}
@@ -62,6 +84,7 @@
     <Live
       setup={{
         track,
+        idol: idol!,
         coord: { ...save.coord },
         bonus: bonusOf(save.coord, track.def.theme),
         notes: track.charts[save.level],
