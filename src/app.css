@@ -11,6 +11,8 @@
   --p2: #ff4d5e;
   --p2-deep: #d02c3e;
   --p2-soft: #ffe0e3;
+  --p3: #2fb24a;
+  --p3-soft: #dcf5df;
   --zone-1: var(--p1-soft);
   --zone-2: var(--p2-soft);
 
@@ -34,6 +36,7 @@
   --paper-dots: radial-gradient(circle, #ffe8ee 3px, transparent 3.5px) 0 0 / 26px 26px;
   --pastel-p1: #8ec9ff;
   --pastel-p2: #ff9fb3;
+  --pastel-p3: #9fe0a6;
   --pastel-gold: #ffd45c;
   --soft-shadow: 0 4px 0 rgb(91 74 66 / 0.22);
   --soft-press: 0 1px 0 rgb(91 74 66 / 0.22);
@@ -133,6 +136,10 @@ button {
 
 .pill.p2 {
   --face: var(--pastel-p2);
+}
+
+.pill.p3 {
+  --face: var(--pastel-p3);
 }
 
 .pill.gold {

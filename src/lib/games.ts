@@ -11,14 +11,18 @@ import hirameki from './games/hirameki/meta';
 import hockey from './games/hockey/meta';
 import lightning from './games/lightning/meta';
 import megaphoneDash from './games/megaphone-dash/meta';
+import oekakiMori from './games/oekaki-mori/meta';
 import petHouse from './games/pet-house/meta';
 import pinRescue from './games/pin-rescue/meta';
 import snowCamp from './games/snow-camp/meta';
+import type { Net } from './net/link';
 import type { Player } from './player';
 
 export interface GameProps {
   /** 勝者が決まったら 1 回だけ呼ぶ。1 が手前、2 が向かい */
   onfinish: (winner: Player) => void;
+  /** 2 台の端末で遊ぶときだけ渡る。親が 1P を持ち、ルールを進めて子へ盤面を送る */
+  net?: Net;
 }
 
 export interface GameModule {
@@ -52,6 +56,8 @@ interface BaseMeta {
 /** 本体は、一覧画面に全ゲームを載せないよう load() で遊ぶときに読み込む */
 export interface DuelMeta extends BaseMeta {
   players: 2;
+  /** 2 台の端末をつないで遊べる。本体は GameProps の net を扱う */
+  net?: true;
   load: () => Promise<GameModule>;
 }
 
@@ -72,7 +78,14 @@ export interface SoloMeta extends BaseMeta {
   load: () => Promise<SoloModule>;
 }
 
-export type GameMeta = DuelMeta | SoloMeta;
+/** 1 人 1 台の端末で遊ぶ。共通のシェルを通さず、ロビーから結果までの画面をゲームが持つ */
+export interface PartyMeta extends BaseMeta {
+  players: 2;
+  party: true;
+  load: () => Promise<{ Game: Component }>;
+}
+
+export type GameMeta = DuelMeta | SoloMeta | PartyMeta;
 
 export const games: GameMeta[] = [
   megaphoneDash,
@@ -84,6 +97,7 @@ export const games: GameMeta[] = [
   snowCamp,
   dentist,
   doodleWorm,
+  oekakiMori,
   borderRush,
   bombRelay,
   hockey,

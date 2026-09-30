@@ -10,11 +10,11 @@ describe('games', () => {
   });
 
   // 全ゲームの本体（three を含む）を初めて変換しながら読むので、並列実行で混むと既定の 5 秒を超える
-  it('どのゲームも本体と遊び方を読み込める', async () => {
+  it('どのゲームも本体を読み込め、タイトル画面のあるゲームは遊び方も読み込める', async () => {
     for (const game of games) {
-      const { Game, Howto } = await game.load();
-      expect(Game, game.id).toBeTypeOf('function');
-      expect(Howto, game.id).toBeTypeOf('function');
+      const loaded = await game.load();
+      expect(loaded.Game, game.id).toBeTypeOf('function');
+      if (!('party' in game)) expect('Howto' in loaded && loaded.Howto, game.id).toBeTypeOf('function');
     }
   }, 20_000);
 

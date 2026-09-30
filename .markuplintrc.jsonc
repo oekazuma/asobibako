@@ -21,6 +21,10 @@
     }
   },
   "overrides": {
+    // 2 台をつなぐ画面は、相手の QR を読むためにカメラの映像をそのまま映すだけで、字幕にする音や言葉がない
+    "src/lib/net/Handshake.svelte": {
+      "nodeRules": [{ "selector": "video", "rules": { "a11y/media-track": false } }]
+    },
     // SvelteKit の殻 HTML
     "src/app.html": {
       "rules": {

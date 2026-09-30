@@ -324,6 +324,22 @@ export const ICONS = {
     },
     { d: 'M12 14.5V3M8.5 6.5L12 3l3.5 3.5', stroke: LINE, width: 2.2 }
   ],
+  /** 2 台の端末（タブレットとスマホ）をつなぐ */
+  devices: [
+    {
+      d: 'M3.5 4h8A1.5 1.5 0 0 1 13 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 2 18.5v-13A1.5 1.5 0 0 1 3.5 4z',
+      fill: '#bfe1ff',
+      stroke: LINE,
+      width: 1.4
+    },
+    {
+      d: 'M17 10h4a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1z',
+      fill: '#ffc9d2',
+      stroke: LINE,
+      width: 1.4
+    },
+    { d: 'M15.2 6.2a3.2 3.2 0 0 1 4.6 0M13.8 3.8a5.6 5.6 0 0 1 7.4 0', stroke: LINE, width: 1.4 }
+  ],
   wolf: [
     { d: 'M4.5 10.5L5.5 2.5l6.5 4.5zM19.5 10.5l-1-8-6.5 4.5z', fill: '#8e8a9c', stroke: LINE, width: 1.2 },
     { d: 'M6.4 8.6l.5-3.9 3 2.1zM17.6 8.6l-.5-3.9-3 2.1z', fill: '#ffb3c1' },

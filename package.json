@@ -55,6 +55,8 @@
     "vitest": "catalog:"
   },
   "dependencies": {
-    "three": "catalog:"
+    "jsqr": "catalog:",
+    "three": "catalog:",
+    "uqr": "catalog:"
   }
 }
