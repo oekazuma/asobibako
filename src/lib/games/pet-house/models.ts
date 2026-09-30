@@ -5,7 +5,7 @@ import { accessory, hit } from './accessories';
 import { furMaterial } from './fur';
 import { LOOKS, type Look, type Part } from './looks';
 import { KEYS, jumpArc, pounceArc, reopen, target, type Pose } from './pose';
-import { bounds, field, mesh as surface, type Field, type Shape, type V3 } from './sculpt';
+import { bounds, field, mesh as surface, type Field, type Shape, type V3 } from '$lib/sculpt';
 import type { AccessoryId, BreedId, PetAction } from './types';
 
 /**

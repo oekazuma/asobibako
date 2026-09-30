@@ -38,7 +38,6 @@ export function geo(key: string, make: () => THREE.BufferGeometry) {
 export const sphere = (r: number) => geo(`s:${r}`, () => new THREE.SphereGeometry(r, 20, 14));
 export const cyl = (r1: number, r2: number, h: number, seg = 16) =>
   geo(`c:${r1}:${r2}:${h}:${seg}`, () => new THREE.CylinderGeometry(r1, r2, h, seg));
-const capsule = (r: number, l: number) => geo(`p:${r}:${l}`, () => new THREE.CapsuleGeometry(r, l, 6, 14));
 export const box = (w: number, h: number, d: number) => geo(`b:${w}:${h}:${d}`, () => new THREE.BoxGeometry(w, h, d));
 export const torus = (r: number, t: number) => geo(`t:${r}:${t}`, () => new THREE.TorusGeometry(r, t, 8, 20));
 
@@ -49,104 +48,16 @@ export function mesh(g: THREE.BufferGeometry, color: string | THREE.Material, x 
   return m;
 }
 
-/** 腕と脚は付け根の Group を回して振る */
-function joint(parent: THREE.Object3D, x: number, y: number, z = 0) {
-  const j = new THREE.Group();
-  j.position.set(x, y, z);
-  parent.add(j);
-  return j;
-}
-
-export interface Figure {
-  group: THREE.Group;
-  legs: THREE.Object3D[];
-  arms: THREE.Object3D[];
-  body: THREE.Mesh;
-}
-
-const SKIN = '#ffd9bd';
-
-/** 頭の大きい 2 頭身の人。前は -z */
-function chibi(o: { shirt: string; bottom: string; hair: string; skirt: boolean }): Figure {
-  const group = new THREE.Group();
-  const legs: THREE.Object3D[] = [];
-  const arms: THREE.Object3D[] = [];
-  for (const dx of [-0.1, 0.1]) {
-    const hip = joint(group, dx, 0.46);
-    hip.add(mesh(capsule(0.065, 0.24), SKIN, 0, -0.2));
-    hip.add(mesh(cyl(0.07, 0.07, 0.12), '#ffffff', 0, -0.33));
-    hip.add(mesh(box(0.13, 0.08, 0.2), '#5b3a29', 0, -0.42, -0.03));
-    legs.push(hip);
-  }
-  group.add(mesh(o.skirt ? cyl(0.15, 0.3, 0.22) : cyl(0.17, 0.2, 0.2), o.bottom, 0, 0.52));
-  const body = mesh(cyl(0.19, 0.21, 0.32), o.shirt, 0, 0.74);
-  group.add(body);
-  group.add(mesh(box(0.14, 0.07, 0.04), '#e0304a', 0, 0.86, -0.19));
-  for (const side of [-1, 1]) {
-    const shoulder = joint(group, side * 0.25, 0.86);
-    shoulder.add(mesh(capsule(0.055, 0.2), o.shirt, 0, -0.14));
-    shoulder.add(mesh(sphere(0.06), SKIN, 0, -0.3));
-    arms.push(shoulder);
-  }
-  group.add(mesh(sphere(0.3), SKIN, 0, 1.18));
-  const hair = mesh(sphere(0.32), o.hair, 0, 1.23, 0.05);
-  hair.scale.set(1.02, 0.95, 1);
-  group.add(hair);
-  for (const dx of [-0.11, 0.11]) group.add(mesh(sphere(0.045), '#3a2230', dx, 1.15, -0.27));
-  return { group, legs, arms, body };
-}
-
-/** 主人公。緑の髪のツインテール、緑のめがね、右手にメガホン */
-export function runner(): Figure {
-  const fig = chibi({ shirt: '#ffb6c9', bottom: '#34426b', hair: '#23433b', skirt: true });
-  const g = fig.group;
-  for (const side of [-1, 1]) {
-    const tail = mesh(capsule(0.1, 0.5), '#23433b', side * 0.33, 0.95, 0.16);
-    tail.rotation.z = side * 0.25;
-    g.add(tail);
-    g.add(mesh(sphere(0.06), '#ff4d5e', side * 0.3, 1.24, 0.1));
-  }
-  const tuft = mesh(torus(0.07, 0.02), '#23433b', 0, 1.58, 0);
-  tuft.rotation.y = Math.PI / 2;
-  g.add(tuft);
-  for (const dx of [-0.11, 0.11]) {
-    const lens = mesh(torus(0.075, 0.014), '#39c28a', dx, 1.15, -0.29);
-    g.add(lens);
-  }
-  const hand = fig.arms[1];
+/** メガホン。右手の骨に付けて、口を前（-z）へ向ける */
+export function megaphone(): THREE.Group {
   const horn = new THREE.Group();
-  horn.position.set(0, -0.32, -0.08);
-  horn.rotation.x = -Math.PI / 2;
-  horn.add(mesh(cyl(0.15, 0.05, 0.3), '#f4f4f7', 0, 0.15));
-  horn.add(mesh(torus(0.15, 0.025), '#ff3d8b', 0, 0.3).rotateX(Math.PI / 2));
-  horn.add(mesh(box(0.06, 0.14, 0.08), '#ffc233', 0, -0.02, 0.05));
-  hand.add(horn);
-  return fig;
-}
-
-const SHIRTS = ['#ffffff', '#7fb8ff', '#ffd166', '#9be3a8', '#c7a6ff', '#ff9f80'];
-const HAIRS = ['#3b2a20', '#1d1d24', '#8a5a2b', '#d9a441'];
-const BOTTOMS = ['#34426b', '#3e3e46', '#6b5a48'];
-
-/** 通行人。こちらへ歩いてくるので +z を向ける */
-export function walker(seed: number): Figure {
-  const fig = chibi({
-    shirt: SHIRTS[seed % SHIRTS.length],
-    bottom: BOTTOMS[seed % BOTTOMS.length],
-    hair: HAIRS[(seed * 7) % HAIRS.length],
-    skirt: seed % 3 === 0
-  });
-  fig.group.rotation.y = Math.PI;
-  return fig;
-}
-
-/** ファンになった通行人は、光るピンクの服になって後ろを走る */
-export function cheer(fig: Figure): void {
-  const fan = mat('#ff7eb6', { emissive: '#ff3d8b', emissiveIntensity: 0.35 });
-  fig.body.material = fan;
-  // 袖は各腕の付け根の最初の子（chibi の組み立て順）
-  for (const arm of fig.arms) (arm.children[0] as THREE.Mesh).material = fan;
-  fig.group.rotation.y = 0;
+  const body = new THREE.Group();
+  body.rotation.x = -Math.PI / 2;
+  body.add(mesh(cyl(0.12, 0.04, 0.26), '#f4f4f7', 0, 0.13));
+  body.add(mesh(torus(0.12, 0.02), '#ff3d8b', 0, 0.26).rotateX(Math.PI / 2));
+  body.add(mesh(box(0.05, 0.12, 0.07), '#ffc233', 0, -0.02, 0.04));
+  horn.add(body);
+  return horn;
 }
 
 /** ゴール。廊下の奥の、教室の入り口の柱と看板 */

@@ -1,14 +1,15 @@
 import * as THREE from 'three';
 import { zoneAt, type Zone } from './course';
 import { boost, FAR_W, REACH, speed, type Obstacle, type RunEvent, type RunState, type Walker } from './engine';
-import { CAMERA, cheer, gate, heartTexture, obstacle, runner, SEG, soundCone, walker, type Figure } from './models';
+import { chara, HERO, passer, recolor, run, type Chara } from './chara';
+import { CAMERA, gate, heartTexture, megaphone, obstacle, SEG, soundCone } from './models';
 import { Post } from './post';
 import { MOOD, segment } from './scenery';
 
 const AHEAD = 90;
 const BEHIND = 2;
 /** 後ろをついて走るファンの見える数。それより多い分は数字だけ増える */
-const FANS = 18;
+const FANS = 14;
 /** ファンになった人が跳ねてから列へ走り出すまでの秒 */
 const POP = 0.45;
 const HEARTS = 60;
@@ -16,16 +17,14 @@ const HEARTS = 60;
 const near = new THREE.Vector3();
 const far = new THREE.Vector3();
 
-function swing(fig: Figure, phase: number, amount: number) {
-  const a = Math.sin(phase) * amount;
-  fig.legs[0].rotation.x = a;
-  fig.legs[1].rotation.x = -a;
-  fig.arms[0].rotation.x = -a * 0.8;
-  fig.arms[1].rotation.x = a * 0.8;
-}
+/** 通行人の形はこの細かさ（m）で作る。人数が多いので、走る子より粗くして組み立ての時間を抑える */
+const CROWD_DETAIL = 0.02;
+const FAN_SHIRT = '#ff7eb6';
+/** 通行人の見た目の組み合わせの数（chara.ts の passer と同じ） */
+const LOOKS = 8;
 
 interface Pop {
-  fig: Figure;
+  fig: Chara;
   t: number;
   x: number;
   z: number;
@@ -53,7 +52,7 @@ export class RunWorld {
   readonly #hemi = new THREE.HemisphereLight('#e6f4ff', '#b7ae9f', 1.6);
   readonly #fog = new THREE.Fog('#cfe9ff', 40, 88);
   readonly #sky = new THREE.Color('#8fd0ff');
-  readonly #hero = runner();
+  readonly #hero = chara(HERO, 0.012);
   #heroX = 0;
   #lean = 0;
   #phase = 0;
@@ -63,9 +62,9 @@ export class RunWorld {
   #flash = 0;
   #fov: number = CAMERA.fov;
   readonly #segments = new Map<number, { zone: Zone; group: THREE.Group }>();
-  readonly #walkers = new Map<Walker, Figure>();
+  readonly #walkers = new Map<Walker, Chara>();
   readonly #pops: Pop[] = [];
-  readonly #fans: Figure[] = [];
+  readonly #fans: Chara[] = [];
   readonly #blocks = new Map<Obstacle, THREE.Group>();
   readonly #flying: Flying[] = [];
   readonly #cones: { mesh: THREE.Mesh; t: number }[] = [];
@@ -94,7 +93,12 @@ export class RunWorld {
     c.far = 40;
     this.scene.add(this.#sun, this.#sun.target);
     this.#goal.group.position.z = -s.rule.length;
+    const horn = megaphone();
+    horn.position.set(-0.02, -0.15, -0.06);
+    this.#hero.bones.handR.add(horn);
     this.scene.add(this.#hero.group, this.#goal.group);
+    // 通行人の形は最初にまとめて作っておく。走っている途中で作ると、その瞬間に画面が止まる
+    for (let i = 0; i < LOOKS; i++) recolor(chara(passer(i), CROWD_DETAIL), FAN_SHIRT);
     for (let i = 0; i < HEARTS; i++) {
       const sprite = new THREE.Sprite(
         new THREE.SpriteMaterial({ map: heartTexture(), transparent: true, depthWrite: false })
@@ -163,7 +167,7 @@ export class RunWorld {
     const fig = this.#walkers.get(w);
     if (!fig) return;
     this.#walkers.delete(w);
-    cheer(fig);
+    recolor(fig, FAN_SHIRT);
     this.#pops.push({ fig, t: 0, x: w.x, z: w.z });
     for (let i = 0; i < 3; i++) this.#heart(w.x, 1.2, -w.z);
   }
@@ -214,7 +218,7 @@ export class RunWorld {
     hero.group.position.set(this.#heroX, Math.abs(Math.sin(this.#phase)) * 0.06, z);
     hero.group.rotation.z = this.#lean + (s.stumble > 0 ? Math.sin(this.#t * 30) * 0.25 : 0);
     hero.group.rotation.x = -0.1 - b * 0.15;
-    swing(hero, this.#phase, s.result ? 0 : 0.95);
+    run(hero, this.#phase, s.result ? 0 : 0.95);
 
     this.#fov += (CAMERA.fov + b * 14 - this.#fov) * Math.min(1, dt * 3);
     this.camera.fov = this.#fov;
@@ -268,7 +272,8 @@ export class RunWorld {
         continue;
       }
       if (!fig) {
-        fig = walker(this.#made++);
+        fig = chara(passer(this.#made++), CROWD_DETAIL);
+        fig.group.rotation.y = Math.PI;
         this.#walkers.set(w, fig);
         this.scene.add(fig.group);
       }
@@ -276,7 +281,7 @@ export class RunWorld {
       // メガホンの扇に近づくと、こちらを見てそわそわする
       const excited = ahead < REACH * 1.6 ? 1 : 0;
       fig.group.position.y = excited * Math.abs(Math.sin(this.#t * 9 + w.phase)) * 0.12;
-      swing(fig, this.#t * 4 + w.phase, 0.35 + excited * 0.4);
+      run(fig, this.#t * 4 + w.phase, 0.35 + excited * 0.4);
     }
   }
 
@@ -331,14 +336,15 @@ export class RunWorld {
       // 走る子の左右の脇から少し前へ並んで走る。後ろに並べるとカメラの手前に来て、画面の下を大きくふさぐ
       const side = i % 2 ? 1 : -1;
       const n = Math.floor(i / 2);
-      const tx = this.#heroX + side * (0.85 + (n % 3) * 0.55);
-      const tz = z + 0.3 - Math.floor(n / 3) * 0.9;
+      // 走る子の横と後ろは空けて、主人公が群れに埋もれないようにする
+      const tx = this.#heroX + side * (1.05 + (n % 3) * 0.6);
+      const tz = z - 0.7 - Math.floor(n / 3) * 1.0;
       const p = fig.group.position;
       // 前後はなめらかに追わせると、速く走るほど後ろへ遅れてカメラの手前に溜まる。横と、列へ入るときだけ寄せる
       const k = Math.min(1, dt * 7);
       const kz = Math.abs(tz - p.z) > 3 ? k : 1;
       p.set(p.x + (tx - p.x) * k, Math.abs(Math.sin(this.#phase + i * 0.7)) * 0.15, p.z + (tz - p.z) * kz);
-      swing(fig, this.#phase + i * 0.7, 0.9);
+      run(fig, this.#phase + i * 0.7, 0.9, true);
     });
   }
 

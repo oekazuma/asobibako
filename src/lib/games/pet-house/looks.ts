@@ -1,4 +1,4 @@
-import type { Shape, V3 } from './sculpt';
+import type { Shape, V3 } from '$lib/sculpt';
 import type { BreedId, Kind } from './types';
 
 /**
