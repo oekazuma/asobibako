@@ -13,11 +13,12 @@
   import Practice from './Practice.svelte';
   import { Referee } from './referee';
   import Result, { type Drawing } from './Result.svelte';
+  import Together from './Together.svelte';
   import { sounds } from './sounds';
   import { apply, type Ink, type Stroke } from './strokes';
 
   let party = $state.raw<Party | null>(null);
-  let screen = $state<'lobby' | 'mode' | 'play' | 'result' | 'practice'>('lobby');
+  let screen = $state<'lobby' | 'mode' | 'play' | 'result' | 'practice' | 'together'>('lobby');
   let view = $state.raw<View | null>(null);
   let strokes = $state.raw<Stroke[]>([]);
   let bubbles = $state.raw<Bubble[]>([]);
@@ -35,7 +36,7 @@
 
   function receive(m: Message) {
     if (m.t === 'screen') {
-      screen = m.screen as 'lobby' | 'mode';
+      screen = m.screen as 'lobby' | 'mode' | 'together';
       view = null;
       strokes = [];
       gallery = [];
@@ -72,8 +73,10 @@
     party?.act({ t: 'ink', ink: i });
   }
 
-  function begin(mode: Mode) {
+  function begin(mode: Mode | 'together') {
     referee?.stop();
+    referee = null;
+    if (mode === 'together') return party?.tell('all', { t: 'screen', screen: 'together' });
     referee = new Referee(party!);
     referee.start(mode);
   }
@@ -108,6 +111,8 @@
     <Lobby {party} {note} onparty={joined} onstart={toMode} onpractice={() => (screen = 'practice')} />
   {:else if screen === 'mode'}
     <ModeSelect {party} onpick={begin} onlobby={() => party?.tell('all', { t: 'screen', screen: 'lobby' })} />
+  {:else if screen === 'together'}
+    <Together {party} onagain={toMode} />
   {:else if screen === 'play' && view}
     <Play {view} me={party.me} {strokes} {bubbles} {close} onink={ink} act={(m) => party?.act(m)} />
   {:else if screen === 'result' && view}

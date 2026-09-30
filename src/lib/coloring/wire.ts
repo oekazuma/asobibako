@@ -2,7 +2,7 @@ import { pack, unpack } from './book';
 
 /** DataChannel の 1 通に収めるため、1 ビットに詰めた線画をさらに縮めて base64 にする */
 export async function encodeLines(mask: Uint8Array): Promise<string> {
-  const stream = new Blob([pack(mask)]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+  const stream = new Blob([new Uint8Array(pack(mask))]).stream().pipeThrough(new CompressionStream('deflate-raw'));
   const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
   let text = '';
   // 大きな配列を String.fromCharCode(...) に広げると引数の上限を超えるので、少しずつつなぐ

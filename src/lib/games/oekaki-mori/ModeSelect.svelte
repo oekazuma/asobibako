@@ -2,7 +2,8 @@
   import type { Party } from '$lib/net/party.svelte';
   import type { Mode } from './engine';
 
-  let { party, onpick, onlobby }: { party: Party; onpick: (mode: Mode) => void; onlobby: () => void } = $props();
+  let { party, onpick, onlobby }: { party: Party; onpick: (mode: Mode | 'together') => void; onlobby: () => void } =
+    $props();
 </script>
 
 <div class="mode">
@@ -15,6 +16,10 @@
     <button class="pill gold choice" disabled={party.members.length < 2} onclick={() => onpick('hayaoshi')}>
       はやおし検定
       <small>かいている とちゅうで わかったら はやおし！</small>
+    </button>
+    <button class="pill gold choice" disabled={party.members.length < 2} onclick={() => onpick('together')}>
+      みんなでぬりえ
+      <small>おなじ えを みんなで いっしょに ぬる</small>
     </button>
     {#if party.members.length < 2}<p role="alert">なかまが いなくなりました</p>{/if}
     <button class="pill" onclick={onlobby}>なかまを よびなおす</button>
