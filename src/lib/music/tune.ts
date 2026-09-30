@@ -11,7 +11,7 @@ import { bgmOut, play } from './synth';
  * chords は 1 小節に 1 つのコード。伴奏の刻み方は style が決める
  */
 export type Lead = 'box' | 'mallet' | 'bubble' | 'brass' | 'flute';
-export type Style = 'waltz' | 'bounce' | 'march' | 'gentle' | 'pop';
+export type Style = 'waltz' | 'bounce' | 'march' | 'gentle';
 
 export interface Song {
   beats: 3 | 4;
@@ -139,15 +139,6 @@ export function playStep(ctx: BaseAudioContext, out: AudioNode, sc: Score, step:
     case 'gentle':
       if (p === 0) strum(LEADS.pad, sc.perBar, CHORD * 0.45);
       if (p === 0 || p === 4) bass(p ? c[2] : c[0], 4);
-      return;
-    case 'pop':
-      // 4 つ打ちのキックと 2・4 拍の小太鼓、裏のハイハット、8 分でオクターブを跳ねるベース（アイドルの曲の刻み）
-      if (p % 2 === 0) play(ctx, out, t, note(ctx, 'kick', 0), 0.1);
-      else play(ctx, out, t, note(ctx, 'hat', 0), 0.035);
-      if (p === 2 || p === 6) tick(ctx, out, t, 0.045);
-      LEADS.bass(ctx, out, t, hz(low(c[0]) + (p % 2 ? 12 : 0)), sd * 0.9, BASS * 0.4);
-      if (p === 0) strum(LEADS.pad, sc.perBar, CHORD * 0.3);
-      if (p === 3 || p === 7) strum(LEADS.pluck, 1, CHORD * 0.6);
       return;
   }
 }

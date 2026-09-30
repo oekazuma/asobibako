@@ -11,11 +11,6 @@ const PREFIX = 'asobibako-';
 const CACHE = `${PREFIX}${version}`;
 const ASSETS = [...build, ...files, ...prerendered];
 const ASSET_PATHS = new Set(ASSETS);
-/**
- * 3D のモデル（.vrm、1 つ十数 MB）は版ごとの先読みに入れず、遊ぶときに 1 度だけ取ってここに残す。
- * 版が変わっても消さないので、デプロイのたびに取り直さない（中身を変えるときはファイル名を変える）
- */
-const MODELS = `${PREFIX}models`;
 
 sw.addEventListener('install', (event) => {
   event.waitUntil(
@@ -35,11 +30,7 @@ sw.addEventListener('activate', (event) => {
     caches
       .keys()
       // caches はオリジンで共有され、同じ github.io に別のアプリのキャッシュもある。自分の古い版だけを消す
-      .then((keys) =>
-        Promise.all(
-          keys.filter((k) => k.startsWith(PREFIX) && k !== CACHE && k !== MODELS).map((k) => caches.delete(k))
-        )
-      )
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith(PREFIX) && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => sw.clients.claim())
   );
 });
@@ -49,20 +40,6 @@ sw.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   // 扱うのは自分の配信物だけ。ほかのオリジンは素通しにして、キャッシュにも入れない
   if (url.origin !== sw.location.origin) return;
-
-  if (url.pathname.endsWith('.vrm')) {
-    event.respondWith(
-      (async () => {
-        const models = await caches.open(MODELS);
-        const hit = await models.match(url.pathname);
-        if (hit) return hit;
-        const response = await fetch(event.request);
-        if (response.status === 200) models.put(url.pathname, response.clone()).catch(() => {});
-        return response;
-      })()
-    );
-    return;
-  }
 
   event.respondWith(
     (async () => {
