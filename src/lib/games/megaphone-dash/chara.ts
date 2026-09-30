@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { bounds, field, mesh as surface, type Shape, type V3 } from '$lib/sculpt';
+import { faceMaterial, shell, type Look } from './face';
 
 /**
  * 頭の大きい 2 頭身の子を、なめらかな 1 枚の体（体・髪は別の 1 枚）で作り、骨で曲げる。
@@ -21,6 +22,10 @@ export interface Style {
   /** 髪留め（ツインテールの根もと）の色 */
   ribbon?: string;
   glasses?: string;
+  /** 前髪の上のギザギザの模様の色 */
+  streak?: string;
+  /** 目と口の描き方 */
+  look: Look;
   /** シャツの上のベスト。あれば胴をこの色、袖と襟をシャツの色にする */
   vest?: string;
   /** 胸のリボンの色 */
@@ -63,9 +68,8 @@ function bodyShapes(st: Style): Shape[] {
   const s: Shape[] = [
     ell([0, 0.69, 0], [0.155, 0.16, 0.12], 'chest', st.vest ? 'vest' : 'shirt', 0.05),
     cone([0, 0.8, 0], [0, 0.9, 0], 0.05, 0.05, 'head', 'skin', 0.03),
-    ell([0, 1.08, 0], [0.26, 0.235, 0.235], 'head', 'skin', 0.05),
-    ell([0.13, 1.0, -0.14], [0.07, 0.06, 0.05], 'head', 'skin', 0.06),
-    ell([-0.13, 1.0, -0.14], [0.07, 0.06, 0.05], 'head', 'skin', 0.06)
+    // 頭は face.ts の HEAD と同じ半径。顔の絵の殻をこの形に沿わせるので、頬をふくらませる形は足さない
+    ell([0, 1.08, 0], [0.26, 0.235, 0.235], 'head', 'skin', 0.05)
   ];
   // 襟。ベストの首まわりから白いシャツの襟をのぞかせる
   if (st.vest) s.push(ell([0, 0.795, 0.01], [0.11, 0.03, 0.095], 'chest', 'shirt', 0.015));
@@ -94,35 +98,38 @@ function hairShapes(st: Style): Shape[] {
   const s: Shape[] = [
     // 頭を後ろ上から包む帽子のような形。顔の前は開けておく
     ell([0, 1.12, 0.035], [0.275, 0.25, 0.25], 'head', 'hair', 0.02),
-    // 前髪。おでこに沿って、毛先のとがった束を 5 本たらす
-    ...[-0.17, -0.085, 0, 0.085, 0.17].map((x, i) =>
+    // 前髪の根もとの厚み。おでこの上半分を髪で埋め、束のあいだから肌が広くのぞかないようにする
+    ell([0, 1.21, -0.115], [0.245, 0.085, 0.13], 'head', 'hair', 0.03),
+    // 前髪の束。毛先は眉の近く（目のすぐ上）まで届かせ、長さを少しずつ変える
+    ...[-0.2, -0.135, -0.068, 0, 0.068, 0.135, 0.2].map((x, i) =>
       cone(
-        [x, 1.26, -0.16 + Math.abs(x) * 0.2],
-        [x * 1.12, 1.12 - (i % 2) * 0.025, -0.228 + Math.abs(x) * 0.28],
-        0.062,
-        0.012,
+        [x * 0.95, 1.22, -0.2 + Math.abs(x) * 0.28],
+        [x * 1.08, 1.085 - [0.01, 0.025, 0, 0.02, 0.005, 0.03, 0.01][i], -0.236 + Math.abs(x) * 0.36],
+        0.05,
+        0.011,
         'head',
         'hair',
-        0.02
+        0.018
       )
     ),
-    // 顔の横にたれる毛
-    cone([0.2, 1.12, -0.1], [0.225, 0.93, -0.12], 0.05, 0.014, 'head', 'hair', 0.02),
-    cone([-0.2, 1.12, -0.1], [-0.225, 0.93, -0.12], 0.05, 0.014, 'head', 'hair', 0.02)
+    // 顔の横にたれる毛。あごの近くまで伸ばして顔を包む
+    cone([0.21, 1.15, -0.12], [0.235, 0.9, -0.13], 0.06, 0.016, 'head', 'hair', 0.02),
+    cone([-0.21, 1.15, -0.12], [-0.235, 0.9, -0.13], 0.06, 0.016, 'head', 'hair', 0.02)
   ];
   if (st.cut === 'twin') {
-    // アホ毛。頭のてっぺんから前へはねる細い束（主人公の目印なので、ツインテールの子だけ）
+    // アホ毛。頭のてっぺんから葉っぱのように 2 枚立てる（主人公の目印なので、ツインテールの子だけ）
     s.push(
-      cone([0, 1.33, -0.02], [0.03, 1.46, 0.02], 0.022, 0.008, 'head', 'hair', 0.012),
-      cone([0.03, 1.46, 0.02], [-0.01, 1.49, 0.07], 0.008, 0.004, 'head', 'hair', 0.006)
+      ell([0.035, 1.4, 0.0], [0.028, 0.085, 0.012], 'head', 'hair', 0.015, { turn: [0, 0.3, -0.45] }),
+      ell([-0.045, 1.39, 0.02], [0.026, 0.075, 0.012], 'head', 'hair', 0.015, { turn: [0, -0.3, 0.6] })
     );
     for (const side of [1, -1]) {
       const L = side > 0 ? 'L' : 'R';
       s.push(
         ell([side * 0.25, 1.13, 0.07], [0.07, 0.07, 0.07], `tail${L}`, 'hair', 0.03),
-        // ツインテールは 2 本の円すいをつないで、外へふくらんでから内へ巻きこむ
-        cone([side * 0.27, 1.1, 0.08], [side * 0.37, 0.9, 0.14], 0.09, 0.075, `tail${L}`, 'hair', 0.04),
-        cone([side * 0.37, 0.9, 0.14], [side * 0.3, 0.64, 0.1], 0.075, 0.022, `tail${L}`, 'hair', 0.04)
+        // ツインテールは円すいを 3 本つないで、外へふくらんでから内へ寄り、足もとの近くで外へはねる
+        cone([side * 0.27, 1.1, 0.08], [side * 0.36, 0.82, 0.14], 0.07, 0.058, `tail${L}`, 'hair', 0.035),
+        cone([side * 0.36, 0.82, 0.14], [side * 0.3, 0.5, 0.18], 0.058, 0.045, `tail${L}`, 'hair', 0.035),
+        cone([side * 0.3, 0.5, 0.18], [side * 0.38, 0.24, 0.12], 0.045, 0.015, `tail${L}`, 'hair', 0.03)
       );
     }
   } else if (st.cut === 'bob') s.push(ell([0, 1.0, 0.06], [0.285, 0.17, 0.22], 'head', 'hair', 0.05));
@@ -225,16 +232,18 @@ const toonMat = soft();
 const lineMat = outline(0.008);
 
 /**
- * 顔。大きな黒目に白い光を 2 つ、ほお紅、口、めがね、リボン。
- * 部品ごとに描くと人数ぶん描く回数が増えるので、色を頂点に塗った 1 つの形にまとめ、頭の骨に付ける
+ * 顔まわりの 3D の小物。めがねのふち・こめかみの髪留め・ツインテールの髪留め・前髪の上のギザギザの模様。
+ * 部品ごとに描くと人数ぶん描く回数が増えるので、色を頂点に塗った 1 つの形にまとめ、頭の骨に付ける。
+ * 目や口は face.ts の絵で描く
  */
-function faceGeo(st: Style): THREE.BufferGeometry {
-  const key = `${st.glasses ?? ''}|${st.ribbon ?? ''}`;
+function faceGeo(st: Style): THREE.BufferGeometry | null {
+  const key = `${st.glasses ?? ''}|${st.ribbon ?? ''}|${st.streak ?? ''}`;
+  if (!st.glasses && !st.ribbon && !st.streak) return null;
   const hit = faceCache.get(key);
   if (hit) return hit;
   const hy = 1.08 - 0.86;
   const ball = new THREE.SphereGeometry(1, 16, 12);
-  const ring = new THREE.TorusGeometry(0.058, 0.009, 8, 28);
+  const ring = new THREE.TorusGeometry(0.07, 0.011, 10, 32);
   const parts: THREE.BufferGeometry[] = [];
   const put = (base: THREE.BufferGeometry, color: string, pos: V3, scale: V3, turn = 0) => {
     const g = base.clone();
@@ -257,15 +266,36 @@ function faceGeo(st: Style): THREE.BufferGeometry {
     parts.push(g);
   };
   for (const side of [1, -1]) {
-    put(ball, '#2b1d2e', [side * 0.088, hy - 0.035, -0.222], [0.042, 0.058, 0.02], side * 0.35);
-    put(ball, st.glasses ? '#3b8f6a' : '#6b3fa0', [side * 0.09, hy - 0.048, -0.232], [0.03, 0.036, 0.012], side * 0.35);
-    put(ball, '#ffffff', [side * 0.1, hy - 0.017, -0.238], [0.014, 0.014, 0.014]);
-    put(ball, '#ffffff', [side * 0.076, hy - 0.057, -0.238], [0.007, 0.007, 0.007]);
-    put(ball, '#ffb3c1', [side * 0.14, hy - 0.1, -0.205], [0.035, 0.018, 0.01], side * 0.55);
-    if (st.glasses) put(ring, st.glasses, [side * 0.09, hy - 0.04, -0.245], [1, 1, 1], side * 0.3);
-    if (st.ribbon) put(ball, st.ribbon, [side * 0.24, 1.2 - 0.86, 0.05], [0.045, 0.035, 0.03]);
+    if (st.glasses) {
+      // 顔の丸みより手前に浮かせて、ふちが頬にめり込んで欠けないようにする
+      put(ring, st.glasses, [side * 0.09, hy - 0.035, -0.258], [1, 1, 1], side * 0.22);
+      // こめかみの黄色い丸い髪留め
+      put(ball, '#ffd23a', [side * 0.17, hy - 0.015, -0.215], [0.026, 0.026, 0.026]);
+      put(ball, '#e0a800', [side * 0.172, hy - 0.035, -0.225], [0.015, 0.015, 0.015]);
+    }
+    if (st.ribbon) put(ball, st.ribbon, [side * 0.25, 1.15 - 0.86, 0.07], [0.04, 0.04, 0.035]);
   }
-  put(ball, '#b8404f', [0, hy - 0.115, -0.228], [0.022, 0.012, 0.01]);
+  if (st.glasses)
+    put(
+      new THREE.CylinderGeometry(0.006, 0.006, 0.05, 8).rotateZ(Math.PI / 2),
+      st.glasses,
+      [0, hy - 0.035, -0.264],
+      [1, 1, 1]
+    );
+  if (st.streak) {
+    // 前髪の上のギザギザの模様。頭の丸みに沿って左右へ波打たせる
+    const pts: THREE.Vector3[] = [];
+    for (let i = 0; i <= 12; i++) {
+      const t = i / 12;
+      const x = -0.12 + t * 0.24;
+      const y = hy + 0.125 + Math.sin(t * Math.PI * 3) * 0.014;
+      // 前髪の根もとの厚み（楕円体）の前面に沿わせる
+      const z =
+        -0.115 - Math.sqrt(Math.max(0, 1 - (x / 0.245) ** 2 - ((y - (1.21 - 0.86)) / 0.085) ** 2)) * 0.13 - 0.01;
+      pts.push(new THREE.Vector3(x, y, z));
+    }
+    put(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 40, 0.009, 6, false), st.streak, [0, 0, 0], [1, 1, 1]);
+  }
   const merged = mergeGeometries(parts)!;
   faceCache.set(key, merged);
   return merged;
@@ -353,7 +383,11 @@ export function chara(st: Style, detail = 0.014): Chara {
   make(geo.hair, toonMat, true);
   const bodyLine = make(geo.body, lineMat, false);
   make(geo.hair, lineMat, false);
-  bones.head.add(new THREE.Mesh(faceGeo(st), faceMat));
+  const face = new THREE.Mesh(shell(), faceMaterial(st.look));
+  face.position.y = 1.08 - 0.86;
+  bones.head.add(face);
+  const deco = faceGeo(st);
+  if (deco) bones.head.add(new THREE.Mesh(deco, faceMat));
   if (st.bow) bones.chest.add(new THREE.Mesh(bowGeo(st.bow), faceMat));
   return { group, bones, style: st, detail, bodies: [body, bodyLine] };
 }
@@ -391,7 +425,7 @@ export function run(c: Chara, phase: number, amount: number, cheer = false) {
 }
 
 export const HERO: Style = {
-  skin: '#ffe1cc',
+  skin: '#ffd6b8',
   shirt: '#ffffff',
   vest: '#ffb3c8',
   bow: '#e8344e',
@@ -399,11 +433,15 @@ export const HERO: Style = {
   skirt: true,
   sock: '#ffffff',
   shoe: '#6b4230',
-  hair: '#2a5a4c',
+  hair: '#1f3739',
   cut: 'twin',
-  ribbon: '#ff4d6d',
-  glasses: '#39c28a'
+  ribbon: '#e8344e',
+  glasses: '#5fd6a8',
+  streak: '#46e0b4',
+  look: { iris: '#e0503f', star: true, mouth: 'o' }
 };
+
+const IRISES = ['#6b3fa0', '#3f6fb0', '#8a5a2b', '#3b8f6a'];
 
 const SHIRTS = ['#ffffff', '#8fc3ff', '#ffd166', '#9be3a8', '#c7a6ff', '#ffa98a'];
 const HAIRS = ['#3b2a20', '#1f1d2a', '#8a5a2b', '#d9a441', '#5a3a5a'];
@@ -420,6 +458,7 @@ export function passer(seed: number): Style {
     sock: '#ffffff',
     shoe: '#4a3a3a',
     hair: HAIRS[i % HAIRS.length],
-    cut: CUTS[i % CUTS.length]
+    cut: CUTS[i % CUTS.length],
+    look: { iris: IRISES[i % IRISES.length], mouth: i % 2 ? 'smile' : 'o' }
   };
 }
