@@ -30,6 +30,7 @@
         >{done ? 'ぜんぶクリア' : `${game.players === 1 && game.levelName ? game.levelName : 'Lv'} ${reached}`}</span
       >
     {/if}
+    {#if 'party' in game}<span class="people">2〜3にん</span>{/if}
   </div>
   <h3>{game.name}</h3>
 </a>
@@ -68,6 +69,19 @@
     aspect-ratio: 680 / 400;
     border-bottom: 3px solid var(--line);
     object-fit: cover;
+  }
+
+  .people {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    padding: 0.15em 0.8em;
+    border: 2px solid var(--line);
+    border-radius: 999px;
+    background: var(--pastel-p3);
+    color: var(--line);
+    font-size: 13px;
+    font-weight: 800;
   }
 
   .reached {

@@ -39,8 +39,10 @@
 
 <!-- 別のゲームへ移ったとき、前のゲームの画面状態を持ち越さない -->
 {#key data.play.meta.id}
-  {#if data.play.solo}
+  {#if data.play.kind === 'solo'}
     <SoloShell meta={data.play.meta} Game={data.play.Game} Howto={data.play.Howto} />
+  {:else if data.play.kind === 'party'}
+    <data.play.Game />
   {:else if pairing}
     <Pairing name={data.play.meta.name} onlink={linked} onback={() => (pairing = false)} />
   {:else}

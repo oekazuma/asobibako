@@ -11,6 +11,7 @@ import hirameki from './games/hirameki/meta';
 import hockey from './games/hockey/meta';
 import lightning from './games/lightning/meta';
 import megaphoneDash from './games/megaphone-dash/meta';
+import oekakiMori from './games/oekaki-mori/meta';
 import petHouse from './games/pet-house/meta';
 import pinRescue from './games/pin-rescue/meta';
 import snowCamp from './games/snow-camp/meta';
@@ -77,7 +78,14 @@ export interface SoloMeta extends BaseMeta {
   load: () => Promise<SoloModule>;
 }
 
-export type GameMeta = DuelMeta | SoloMeta;
+/** 1 人 1 台の端末で遊ぶ。共通のシェルを通さず、ロビーから結果までの画面をゲームが持つ */
+export interface PartyMeta extends BaseMeta {
+  players: 2;
+  party: true;
+  load: () => Promise<{ Game: Component }>;
+}
+
+export type GameMeta = DuelMeta | SoloMeta | PartyMeta;
 
 export const games: GameMeta[] = [
   megaphoneDash,
@@ -89,6 +97,7 @@ export const games: GameMeta[] = [
   snowCamp,
   dentist,
   doodleWorm,
+  oekakiMori,
   borderRush,
   bombRelay,
   hockey,

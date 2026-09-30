@@ -61,4 +61,19 @@ describe('GameCard', () => {
     expect(target.querySelector('.reached')).toBeNull();
     unmount(app);
   });
+  it('1 人 1 台で遊ぶゲームには「2〜3にん」を出す', () => {
+    const party = {
+      id: 'stub',
+      name: 'スタブ',
+      description: '',
+      minutes: '10分',
+      players: 2 as const,
+      party: true as const,
+      // 1 人 1 台のゲームは props を受けないので、props の無いスタブを本体に使う
+      load: async () => ({ Game: StubHowto })
+    };
+    const { target, app } = show(party);
+    expect(target.querySelector('.people')?.textContent).toBe('2〜3にん');
+    unmount(app);
+  });
 });
