@@ -23,6 +23,8 @@ export class Link {
   readonly #pc: RTCPeerConnection;
   readonly #channel: RTCDataChannel;
   readonly #listeners = new Set<(message: Message) => void>();
+  /** つながった直後に届いた知らせ。受け取る側の部品ができる前に来ても落とさないよう、最初の聞き手が付くまでためる */
+  readonly #queue: Message[] = [];
   readonly closed: Promise<void>;
 
   constructor(pc: RTCPeerConnection, channel: RTCDataChannel) {
@@ -30,6 +32,7 @@ export class Link {
     this.#channel = channel;
     channel.onmessage = (event) => {
       const message = JSON.parse(event.data) as Message;
+      if (!this.#listeners.size) this.#queue.push(message);
       for (const listener of this.#listeners) listener(message);
     };
     this.closed = new Promise((resolve) => {
@@ -48,6 +51,7 @@ export class Link {
   /** 戻り値で聞くのをやめる */
   on(listener: (message: Message) => void): () => void {
     this.#listeners.add(listener);
+    for (const message of this.#queue.splice(0)) listener(message);
     return () => this.#listeners.delete(listener);
   }
 
