@@ -37,13 +37,19 @@
   let bubbleId = 0;
 
   function joined(next: Party) {
+    // 前のつながりの見え方が残ると、番が変わったとみなして送り直された絵を消してしまう
+    view = null;
+    strokes = [];
+    gallery = [];
+    typing = {};
+    bubbles = [];
     note = '';
     lost = false;
     party = next;
     next.onTell(receive);
     if (next.host)
       next.onAct((m, from) => {
-        if (m.t === 'join') next.tell(from, catchUp(screen, strokes, gallery));
+        if (m.t === 'join') for (const message of catchUp(screen, strokes, gallery)) next.tell(from, message);
       });
   }
 
@@ -57,8 +63,9 @@
     else if (m.t === 'ink') strokes = apply(strokes, m.ink as Ink);
     else if (m.t === 'sync') {
       strokes = m.strokes as Stroke[];
-      gallery = m.gallery as Drawing[];
-    } else if (m.t === 'typing') typing = typed(typing, Number(m.seat), String(m.text));
+      gallery = [];
+    } else if (m.t === 'drawing') gallery = [...gallery, m.drawing as Drawing];
+    else if (m.t === 'typing') typing = typed(typing, Number(m.seat), String(m.text));
     else if (m.t === 'bubble') {
       const b: Bubble = { id: ++bubbleId, seat: m.seat as Seat, text: String(m.text), note: m.note === true };
       bubbles = [...bubbles.slice(-4), b];

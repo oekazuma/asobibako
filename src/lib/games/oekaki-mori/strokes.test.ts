@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { apply, render, renderTail, type Stroke } from './strokes';
+import { apply, render, renderTail, snap, type Stroke } from './strokes';
 
 const start = (x: number, y: number) => ({ k: 'start' as const, color: '#000', size: 0.01, x, y });
 
@@ -71,5 +71,12 @@ describe('renderTail', () => {
     const { ctx, calls } = recorder();
     renderTail(ctx, line, 3);
     expect(calls).toEqual([['begin'], ['move', 0.2, 0.1], ['curve', 0.2, 0.2, 0.1, 0.2], ['line', 0, 0.2], ['stroke']]);
+  });
+});
+
+describe('snap', () => {
+  // 送る数を小数 4 けた（盤面の 1 万分の 1、画素より細かい）に丸め、知らせを小さくする
+  it('小数 4 けたに丸める', () => {
+    expect(snap(0.123456789)).toBe(0.1235);
   });
 });

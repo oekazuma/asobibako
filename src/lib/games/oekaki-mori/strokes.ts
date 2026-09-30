@@ -15,6 +15,9 @@ export const SIZES = [0.008, 0.018, 0.04] as const;
 /** 盤面の地は白なので、消しゴムは白い太い線で塗る */
 export const ERASER = { color: '#ffffff', size: 0.06 };
 
+/** 送る座標を小数 4 けた（盤面の 1 万分の 1。画素より細かい）に丸め、知らせを小さくする */
+export const snap = (v: number): number => Math.round(v * 1e4) / 1e4;
+
 export interface Stroke {
   color: string;
   size: number;

@@ -2,12 +2,18 @@ import { describe, expect, it } from 'vitest';
 import { catchUp } from './sync';
 
 describe('catchUp', () => {
-  it('遊んでいるあいだは、いまの絵とこれまでの絵を送る', () => {
+  // DataChannel の 1 通には上限があり、絵をまとめて送ると越えることがある
+  it('遊んでいるあいだは、いまの絵とこれまでの絵を 1 枚ずつ別の知らせで送る', () => {
     const strokes = [{ color: '#000', size: 0.01, pts: [0, 0] }];
-    expect(catchUp('play', strokes, [])).toEqual({ t: 'sync', strokes, gallery: [] });
+    const drawing = { word: 'いぬ', by: 1 as const, strokes };
+    expect(catchUp('play', strokes, [drawing, drawing])).toEqual([
+      { t: 'sync', strokes },
+      { t: 'drawing', drawing },
+      { t: 'drawing', drawing }
+    ]);
   });
 
   it('ほかの画面では、その画面を知らせる', () => {
-    expect(catchUp('mode', [], [])).toEqual({ t: 'screen', screen: 'mode' });
+    expect(catchUp('mode', [], [])).toEqual([{ t: 'screen', screen: 'mode' }]);
   });
 });

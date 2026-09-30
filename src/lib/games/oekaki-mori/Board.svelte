@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { BoardInput } from '$lib/board-input';
   import { animate } from '$lib/loop';
-  import { render, renderTail, type Ink, type Stroke } from './strokes';
+  import { render, renderTail, snap, type Ink, type Stroke } from './strokes';
 
   let {
     strokes,
@@ -28,7 +28,7 @@
     if (!pen) return;
     if (Math.hypot(x - last[0], y - last[1]) < 0.003) return;
     last = [x, y];
-    pending.push(x, y);
+    pending.push(snap(x), snap(y));
   }
 
   function flush() {
@@ -51,7 +51,7 @@
       kind = event.pointerType;
       last = [x, y];
       pending = [];
-      onink?.({ k: 'start', color: pen.color, size: pen.size, x, y });
+      onink?.({ k: 'start', color: pen.color, size: pen.size, x: snap(x), y: snap(y) });
     },
     move: (event) => {
       if (event.pointerId !== pointer) return;
