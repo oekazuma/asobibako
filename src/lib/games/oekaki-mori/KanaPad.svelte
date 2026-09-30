@@ -86,6 +86,10 @@
     box-shadow: none;
   }
 
+  .row > .key {
+    min-width: 2.6em;
+  }
+
   .key.wide {
     flex: 1;
     font-size: clamp(14px, 2.2cqh, 20px);
