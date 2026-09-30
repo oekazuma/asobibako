@@ -2,7 +2,15 @@ import { SIZE, type Regions } from './regions';
 import { LINE, type Template } from './templates';
 
 export type Art =
-  { kind: 'template'; template: Template; path: Path2D; mask: Uint8Array } | { kind: 'photo'; mask: Uint8Array };
+  | {
+      kind: 'template';
+      template: Template;
+      path: Path2D;
+      mask: Uint8Array;
+      /** 見える太さの線。この下にすっかり隠れた場所は、押しても塗らない */
+      cover: Uint8Array;
+    }
+  | { kind: 'photo'; mask: Uint8Array };
 
 const UNIT = SIZE / 100;
 const INK = '#3b2f2a';
@@ -14,22 +22,29 @@ function canvas(size: number): HTMLCanvasElement {
   return c;
 }
 
-export function templateArt(template: Template): Art {
-  const path = new Path2D(template.d);
+/** パスを SIZE の canvas に width の太さで描き、線のある画素を 1 にする */
+function stroked(path: Path2D, width: number): Uint8Array {
   const c = canvas(SIZE);
   const ctx = c.getContext('2d', { willReadFrequently: true })!;
   ctx.setTransform(UNIT, 0, 0, UNIT, 0, 0);
-  ctx.lineWidth = LINE * 0.6;
+  ctx.lineWidth = width;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.stroke(path);
   const data = ctx.getImageData(0, 0, SIZE, SIZE).data;
   const mask = new Uint8Array(SIZE * SIZE);
   for (let i = 0; i < mask.length; i++) mask[i] = data[i * 4 + 3] > 96 ? 1 : 0;
-  return { kind: 'template', template, path, mask };
+  return mask;
+}
+
+export function templateArt(template: Template): Art {
+  const path = new Path2D(template.d);
+  return { kind: 'template', template, path, mask: stroked(path, LINE * 0.6), cover: stroked(path, LINE) };
 }
 
 export const photoArt = (mask: Uint8Array): Art => ({ kind: 'photo', mask });
+
+const buffers = new WeakMap<CanvasRenderingContext2D, ImageData>();
 
 const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 
@@ -38,7 +53,9 @@ const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 
  * （テンプレートは上から太い線を描いて隠すので、塗りが線の下まで届き、線と塗りのあいだに白いすき間が出ない）
  */
 export function fillImage(ctx: CanvasRenderingContext2D, regions: Regions, colors: Record<number, string>, art: Art) {
-  const img = ctx.createImageData(SIZE, SIZE);
+  // 塗るたびに 2.4MB の画素を取り直さないよう、canvas ごとに 1 枚を使い回す
+  let img = buffers.get(ctx);
+  if (!img) buffers.set(ctx, (img = ctx.createImageData(SIZE, SIZE)));
   const d = img.data;
   const table = new Map(Object.entries(colors).map(([k, hex]) => [Number(k), rgb(hex)]));
   const line = art.kind === 'photo' ? INK_RGB : [255, 255, 255];

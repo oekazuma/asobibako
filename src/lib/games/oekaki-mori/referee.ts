@@ -24,7 +24,8 @@ export class Referee {
       this.#party.onAct((message, from) => this.#act(message, from)),
       animate((dt) => {
         if (!this.#state) return;
-        tick(this.#state, dt);
+        const late = tick(this.#state, dt);
+        if (late !== null) this.#party.tell('all', { t: 'bubble', seat: late, text: 'じかんぎれ', note: true });
         this.#push();
       })
     );

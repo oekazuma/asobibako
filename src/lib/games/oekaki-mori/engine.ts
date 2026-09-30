@@ -179,26 +179,32 @@ export function answer(s: Quiz, by: Seat, index: number): 'right' | 'wrong' | nu
   return 'right';
 }
 
-export function tick(s: Quiz, dt: number, rand = Math.random, words: readonly string[] = WORDS): void {
-  if (s.phase === 'done') return;
+/** 答える時間が切れて、おてつきになった人がいればその人を返す（全員への知らせに使う） */
+export function tick(s: Quiz, dt: number, rand = Math.random, words: readonly string[] = WORDS): Seat | null {
+  if (s.phase === 'done') return null;
   s.left -= dt;
   if (s.phase === 'ready') {
     if (s.left <= 0) start(s, drawer(s));
-    return;
+    return null;
   }
   if (s.phase === 'reveal') {
     if (s.left <= 0) begin(s, s.turn + 1, rand, words);
-    return;
+    return null;
   }
+  let late: Seat | null = null;
   if (s.mode === 'egokoro') {
     const n = [...s.word].length;
     if (s.hints.length === 0 && s.left <= HINTS[0]) s.hints.push(0);
     if (s.hints.length === 1 && s.left <= HINTS[1] && n > 2) s.hints.push(1 + Math.floor(rand() * (n - 1)));
   } else if (s.buzzer !== null) {
     s.answerLeft -= dt;
-    if (s.answerLeft <= 0) miss(s);
+    if (s.answerLeft <= 0) {
+      late = s.buzzer;
+      miss(s);
+    }
   }
   if (s.phase === 'draw' && s.left <= 0) reveal(s);
+  return late;
 }
 
 export function leave(s: Quiz, seat: Seat, rand = Math.random, words: readonly string[] = WORDS): void {

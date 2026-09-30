@@ -1,5 +1,6 @@
 <script lang="ts">
   import { lineArt } from './lineart';
+  import { readPhoto } from './photo';
   import { SIZE } from './regions';
 
   let { onmake, onback }: { onmake: (mask: Uint8Array) => void; onback: () => void } = $props();
@@ -23,33 +24,34 @@
   }
 
   async function pick(event: Event) {
-    const file = (event.currentTarget as HTMLInputElement).files?.[0];
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    // 同じ写真を選び直しても change が起きるよう、読み終える前に空にしておく
+    input.value = '';
     if (!file) return;
     note = '';
     try {
-      const bmp = await createImageBitmap(file);
-      const c = document.createElement('canvas');
-      c.width = c.height = SIZE;
-      const g = c.getContext('2d', { willReadFrequently: true })!;
-      g.fillStyle = '#fff';
-      g.fillRect(0, 0, SIZE, SIZE);
-      // 切り取らずに収め、余白は白にする
-      const s = Math.min(SIZE / bmp.width, SIZE / bmp.height);
-      g.drawImage(bmp, (SIZE - bmp.width * s) / 2, (SIZE - bmp.height * s) / 2, bmp.width * s, bmp.height * s);
-      rgba = g.getImageData(0, 0, SIZE, SIZE).data;
+      rgba = await readPhoto(file);
       build();
     } catch {
+      // 前の写真の線画を残すと、読めなかった写真で塗り始めたように見える
+      rgba = null;
+      mask = null;
       note = 'この しゃしんは つかえませんでした';
     }
   }
 
   $effect(() => {
-    if (!preview || !mask) return;
-    const g = preview.getContext('2d')!;
+    const g = preview?.getContext('2d');
+    if (!g || !mask) return;
     const img = g.createImageData(SIZE, SIZE);
+    const d = img.data;
     for (let i = 0; i < mask.length; i++) {
-      const v = mask[i] ? 59 : 255;
-      img.data.set([v, mask[i] ? 47 : 255, mask[i] ? 42 : 255, 255], i * 4);
+      const line = mask[i] === 1;
+      d[i * 4] = line ? 59 : 255;
+      d[i * 4 + 1] = line ? 47 : 255;
+      d[i * 4 + 2] = line ? 42 : 255;
+      d[i * 4 + 3] = 255;
     }
     g.putImageData(img, 0, 0);
   });

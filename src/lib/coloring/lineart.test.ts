@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dropSpecks, lineArt } from './lineart';
+import { bridge, dropSpecks, lineArt } from './lineart';
 import { label } from './regions';
 
 const W = 48;
@@ -54,5 +54,21 @@ describe('dropSpecks', () => {
     const out = dropSpecks(m, W, W, 10);
     expect(count(out)).toBe(25);
     expect(out[40 * W + 40]).toBe(0);
+  });
+});
+
+describe('bridge', () => {
+  it('線の 3 画素のすき間をふさぐ', () => {
+    const m = new Uint8Array(W * W);
+    for (let x = 5; x < 40; x++) if (x < 20 || x > 22) m[24 * W + x] = 1;
+    const out = bridge(m, W, W);
+    for (let x = 20; x <= 22; x++) expect(out[24 * W + x], `x ${x}`).toBe(1);
+  });
+
+  it('離れた線どうしはつながない', () => {
+    const m = new Uint8Array(W * W);
+    for (let x = 5; x < 40; x++) m[10 * W + x] = m[20 * W + x] = 1;
+    const out = bridge(m, W, W);
+    expect(out[15 * W + 20]).toBe(0);
   });
 });

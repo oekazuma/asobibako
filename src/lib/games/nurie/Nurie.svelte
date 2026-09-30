@@ -3,13 +3,13 @@
   import type { SoloProps } from '$lib/games';
   import { saveImage } from '$lib/share';
   import { photoArt, snapshot, templateArt, type Art } from '$lib/coloring/art';
-  import { listWorks, pack, removeWork, saveWork, unpack, type Work } from '$lib/coloring/book';
+  import { listWorks, newId, pack, removeWork, saveWork, unpack, type Work } from '$lib/coloring/book';
   import Canvas from '$lib/coloring/Canvas.svelte';
   import { empty, fill, undo, type Coloring } from '$lib/coloring/paint';
   import Palette, { COLORS } from '$lib/coloring/Palette.svelte';
   import PhotoMaker from '$lib/coloring/PhotoMaker.svelte';
   import Picker from '$lib/coloring/Picker.svelte';
-  import { label, type Regions } from '$lib/coloring/regions';
+  import { hideCovered, label, type Regions } from '$lib/coloring/regions';
   import { sounds } from '$lib/coloring/sounds';
   import { TEMPLATES, type Template } from '$lib/coloring/templates';
 
@@ -37,17 +37,17 @@
   onMount(refresh);
 
   function open(next: Omit<Current, 'regions'>, start: Coloring, mask = next.art.mask) {
-    current = { ...next, regions: label(mask) };
+    const regions = label(mask);
+    current = { ...next, regions: next.art.kind === 'template' ? hideCovered(regions, next.art.cover) : regions };
     coloring = start;
     screen = 'paint';
   }
 
   function fromTemplate(t: Template) {
     const art = templateArt(t);
-    open({ id: crypto.randomUUID(), art, template: t.id, lines: pack(art.mask) }, empty());
+    open({ id: newId(), art, template: t.id, lines: pack(art.mask) }, empty());
   }
-  const fromPhoto = (mask: Uint8Array) =>
-    open({ id: crypto.randomUUID(), art: photoArt(mask), photo: pack(mask) }, empty());
+  const fromPhoto = (mask: Uint8Array) => open({ id: newId(), art: photoArt(mask), photo: pack(mask) }, empty());
 
   function fromWork(w: Work) {
     const template = TEMPLATES.find((t) => t.id === w.template);

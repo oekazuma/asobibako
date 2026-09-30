@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pack, slim, unpack } from './link';
+import { Link, pack, slim, unpack, type Message } from './link';
 
 describe('pack', () => {
   it('SDP を縮めて URL に使える文字だけにし、元に戻せる', async () => {
@@ -25,5 +25,26 @@ describe('slim', () => {
     expect(slim(sdp)).toBe(
       ['v=0', 'a=candidate:403344202 1 udp 2122194687 192.168.0.80 49291 typ host', 'a=ice-ufrag:txoL', ''].join('\r\n')
     );
+  });
+});
+
+describe('Link', () => {
+  it('聞き手が付く前に届いた知らせをためておき、最初の聞き手に渡す', () => {
+    const channel = {
+      readyState: 'open',
+      onmessage: null as ((e: { data: string }) => void) | null,
+      addEventListener() {},
+      send() {}
+    };
+    const pc = { addEventListener() {}, close() {} };
+    const link = new Link(pc as unknown as RTCPeerConnection, channel as unknown as RTCDataChannel);
+    channel.onmessage!({ data: JSON.stringify({ t: 'seat', seat: 2 }) });
+    const got: Message[] = [];
+    link.on((m) => got.push(m));
+    channel.onmessage!({ data: JSON.stringify({ t: 'members', members: [1, 2] }) });
+    expect(got).toEqual([
+      { t: 'seat', seat: 2 },
+      { t: 'members', members: [1, 2] }
+    ]);
   });
 });

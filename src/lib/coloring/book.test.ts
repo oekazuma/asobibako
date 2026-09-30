@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { overflow, pack, unpack } from './book';
+import { newId, overflow, pack, unpack } from './book';
 
 describe('pack と unpack', () => {
   it('線画を 1 画素 1 ビットに詰めて、元に戻せる', () => {
@@ -18,5 +18,18 @@ describe('overflow', () => {
 
   it('上限以内なら何も消さない', () => {
     expect(overflow([{ id: 'a', updated: 1 }], 30)).toEqual([]);
+  });
+});
+
+describe('newId', () => {
+  it('randomUUID の無い環境（http の開発の画面）でも、重ならない id を作る', () => {
+    const original = crypto.randomUUID;
+    Object.defineProperty(crypto, 'randomUUID', { value: undefined, configurable: true });
+    try {
+      const ids = new Set(Array.from({ length: 50 }, () => newId()));
+      expect(ids.size).toBe(50);
+    } finally {
+      Object.defineProperty(crypto, 'randomUUID', { value: original, configurable: true });
+    }
   });
 });

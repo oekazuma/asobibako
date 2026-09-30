@@ -3,6 +3,9 @@ import { SIZE } from './regions';
 
 export const LIMIT = 30;
 
+/** randomUUID は安全な接続（https）でしか使えないので、http で開いた開発の画面のために代わりを用意する */
+export const newId = () => crypto.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+
 export interface Work {
   id: string;
   template?: string;

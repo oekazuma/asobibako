@@ -17,6 +17,8 @@
   let last: [number, number] = [0, 0];
 
   function add(x: number, y: number) {
+    // 描く時間が終わっても指を置いたままだと、自分の絵にだけ線が足されてほかの人の絵と食い違う
+    if (!pen) return;
     if (Math.hypot(x - last[0], y - last[1]) < 0.003) return;
     last = [x, y];
     onink?.({ k: 'add', pts: [x, y] });

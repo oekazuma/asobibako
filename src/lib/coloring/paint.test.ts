@@ -37,3 +37,13 @@ describe('fill と undo', () => {
     expect(a.colors).toEqual({ 1: '#f00' });
   });
 });
+
+describe('戻す手順の上限', () => {
+  it('戻す手順は新しい 200 回分までにする', () => {
+    let c = empty();
+    for (let i = 0; i < 250; i++) c = fill(c, i, '#f00');
+    expect(c.history).toHaveLength(200);
+    expect(c.history[0].region).toBe(50);
+    expect(undo(c).colors[249]).toBeUndefined();
+  });
+});

@@ -38,14 +38,27 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    /* 真ん中に寄せるのは最初と最後の子の auto の余白で行う。justify-content: center だと、横向きのスマホで
+       はみ出した上側がスクロールでも見えなくなる */
     gap: 14px;
-    min-height: 100dvh;
+    /* Handshake の QR とカメラは cqw / cqh で大きさを決めるので、この画面を大きさの基準にする */
+    height: 100dvh;
+    container-type: size;
+    overflow-y: auto;
+    touch-action: pan-y;
     padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
     background: var(--paper-dots), var(--paper);
     color: var(--line);
     font-weight: 700;
     text-align: center;
+  }
+
+  .pair > :global(:first-child) {
+    margin-top: auto;
+  }
+
+  .pair > :global(:last-child) {
+    margin-bottom: auto;
   }
 
   h1 {
