@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { course, LEVELS, ROW_GAP, rule, RUNUP } from './course';
+import { BASE_SPEED, course, LEVELS, ROW_GAP, rule, RUNUP } from './course';
 
 const levels = Array.from({ length: LEVELS }, (_, i) => i + 1);
 
@@ -68,6 +68,13 @@ describe('course', () => {
       expect(rule(level).best).toBeGreaterThan(0);
     }
     expect(rule(5).time).toBeGreaterThan(rule(4).time);
+  });
+
+  it('どの面も、よけるだけの速さ（×1.0）で着ける時間がある', () => {
+    for (const level of levels) {
+      const r = rule(level);
+      expect(r.time).toBeGreaterThanOrEqual((r.length / BASE_SPEED) * 1.05);
+    }
   });
 
   it('範囲外の面の番号は端に丸める', () => {
