@@ -11,12 +11,12 @@ export const SIDE_SPEED = 11;
 export const PULSE = 0.16;
 /** 扇形の奥行きと、手前・奥での半分の幅（m） */
 export const REACH = 9;
-export const NEAR_W = 0.7;
-export const FAR_W = 2.4;
+export const NEAR_W = 0.45;
+export const FAR_W = 1.1;
 /** 最後に当ててからこの秒数たつとコンボが切れる */
 export const COMBO_TIME = 2.2;
 /** 大声のゲージの満タン */
-export const GAUGE = 40;
+export const GAUGE = 60;
 /** 大声が届く奥行き（m）と、そのあと障害物をすり抜ける秒数 */
 export const SHOUT_REACH = 32;
 export const SHOUT_GUARD = 1.5;
@@ -224,10 +224,11 @@ export type Rank = 'S' | 'A' | 'B' | 'C';
 /** 点はフォロワーと残り秒。ファンを集めながら速く着くほど高い */
 export const score = (s: RunState): number => s.followers + Math.floor(s.time) * 30 + s.maxCombo * 10;
 
-/** ランクは、その面の人数を全員ファンにしたときの点に対する割合で決める */
+/**
+ * ランクは、その面の通行人の何割をファンにできたかで決める。
+ * 点はコンボの長さで大きく揺れるので、ランクには使わない。ボットで、群れを追えば 9 割を超え、まっすぐ走るだけだと 3 割ほど
+ */
 export function rank(s: RunState): Rank {
-  const n = s.walkers.length;
-  const ideal = n * 10 + (n * (n + 1)) / 2 + n * 10;
-  const r = score(s) / ideal;
-  return r >= 0.85 ? 'S' : r >= 0.6 ? 'A' : r >= 0.35 ? 'B' : 'C';
+  const r = s.fans / Math.max(1, s.walkers.length);
+  return r >= 0.97 ? 'S' : r >= 0.88 ? 'A' : r >= 0.65 ? 'B' : 'C';
 }

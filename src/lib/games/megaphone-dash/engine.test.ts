@@ -31,8 +31,9 @@ describe('メガホン', () => {
   it('前の扇形の中の人をまとめてファンにし、横や遠くの人は残す', () => {
     const s = empty();
     const near = walker(0.2, 3);
-    const wide = walker(1.8, 8);
-    const side = walker(2.5, 2);
+    // 扇は奥ほど広い。手前では届かない横の位置でも、奥なら届く
+    const wide = walker(0.9, 8);
+    const side = walker(0.9, 2);
     const far = walker(0, REACH + 2);
     s.walkers = [near, wide, side, far];
     const events = step(s, 0.01);
@@ -177,17 +178,24 @@ describe('場所とゴール', () => {
 });
 
 describe('点とランク', () => {
-  it('全員をつないでファンにすると S、誰もいないと C', () => {
+  it('ファンにできた人の割合でランクが決まる', () => {
     const s = createState(1);
-    for (const w of s.walkers) w.fan = true;
     const n = s.walkers.length;
-    s.followers = n * 10 + (n * (n + 1)) / 2;
-    s.maxCombo = n;
-    s.time = 0;
+    s.fans = n;
     expect(rank(s)).toBe('S');
-    s.followers = 0;
-    s.maxCombo = 0;
-    expect(score(s)).toBe(0);
+    s.fans = Math.floor(n * 0.9);
+    expect(rank(s)).toBe('A');
+    s.fans = Math.floor(n * 0.7);
+    expect(rank(s)).toBe('B');
+    s.fans = Math.floor(n * 0.3);
     expect(rank(s)).toBe('C');
+  });
+
+  it('点はフォロワー・残り秒・最大コンボから出す', () => {
+    const s = createState(1);
+    s.followers = 500;
+    s.time = 12.7;
+    s.maxCombo = 8;
+    expect(score(s)).toBe(500 + 12 * 30 + 80);
   });
 });
