@@ -3,10 +3,10 @@
   import { BoardInput } from '$lib/board-input';
   import type { SoloProps } from '$lib/games';
   import { animate } from '$lib/loop';
-  import { HALF } from './course';
+  import { HALF, halfAt } from './course';
   import { direct } from './director';
   import { RunFx } from './effects';
-  import { COMBO_TIME, createState, GAUGE, rank, score, step } from './engine';
+  import { BODY, COMBO_TIME, createState, GAUGE, rank, score, step } from './engine';
   import Hud from './Hud.svelte';
   import { RunWorld } from './world3d';
 
@@ -31,12 +31,31 @@
   let gauge = $state(0);
   let endTimer: ReturnType<typeof setTimeout> | undefined;
 
-  const input = new BoardInput();
+  /** 走る向きをつかんでいる指と、つかんだときの指の位置・走る子の位置 */
+  let grab: { id: number; from: number; x: number } | null = null;
+  const input = new BoardInput({
+    down: (event, x) => {
+      if (!grab) grab = { id: event.pointerId, from: x, x: game.target };
+    },
+    up: (event) => {
+      if (grab?.id === event.pointerId) grab = null;
+    }
+  });
 
-  /** 盤面の横の位置（0..1）を道の上の位置へ。端まで届くよう、道より少し広く写す */
+  /**
+   * 指を置いた位置ではなく、置いてからずらした量で動かす（数のゲートと同じ）。
+   * 置いた位置へ飛ぶと、指を置いただけで思わぬほうへ走ってしまう。画面の幅の 3/4 ほどで道の端から端まで
+   */
   function steer(): number | null {
-    for (const f of input.fingers.all.values()) return (f.x - 0.5) * 2 * (HALF + 0.4);
-    return null;
+    const finger = grab && input.fingers.all.get(grab.id);
+    if (!grab || !finger) return null;
+    const gain = (HALF * 2) / 0.75;
+    const want = grab.x + (finger.x - grab.from) * gain;
+    const edge = halfAt(game.z) - BODY;
+    const x = Math.max(-edge, Math.min(edge, want));
+    // 端より先へずらした分はつかみ直す。そうしないと、戻すときにしばらく動かない幅ができる
+    grab.from += (want - x) / gain;
+    return x;
   }
 
   function resize() {

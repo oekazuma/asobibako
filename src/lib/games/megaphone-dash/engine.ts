@@ -177,7 +177,9 @@ export function step(s: RunState, dt: number, input: RunInput = {}): RunEvent[] 
   const half = halfAt(s.z);
   const goal = Math.max(-half + BODY, Math.min(half - BODY, s.target));
   const dx = goal - s.x;
-  s.x += Math.sign(dx) * Math.min(Math.abs(dx), SIDE_SPEED * dt);
+  // 目標に近づくほどゆっくり寄せる。一定の速さで寄ると、止まる瞬間に指より行きすぎたように見える
+  const vx = Math.min(SIDE_SPEED, Math.abs(dx) * 12);
+  s.x += Math.sign(dx) * Math.min(Math.abs(dx), vx * dt);
   if (input.shout && s.gauge >= GAUGE) shout(s, events);
   s.time = Math.max(0, s.time - dt);
   s.stumble = Math.max(0, s.stumble - dt);
