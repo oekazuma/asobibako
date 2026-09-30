@@ -34,7 +34,6 @@ const SEGS = 7;
 const AHEAD = 110;
 // すれ違ったものはすぐ消す。カメラと走る子のあいだに残ると画面の下を大きくふさぐ
 const BEHIND = 1.5;
-/** 後ろをついて走るファンの見える数 */
 const FANS = 20;
 /** 音の輪が飛ぶ速さ（m/s）と、消えるまでの秒 */
 const WAVE_SPEED = 40;
@@ -45,7 +44,6 @@ const far = new THREE.Vector3();
 
 const laneX = (lane: number) => (lane - (LANES - 1) / 2) * LANE_W;
 
-/** 走る子の足の振り。振る速さは走る速さに合わせる */
 function swing(fig: Figure, phase: number, amount: number) {
   const a = Math.sin(phase) * amount;
   fig.legs[0].rotation.x = a;
@@ -108,7 +106,6 @@ export class RunWorld {
     this.camera.updateProjectionMatrix();
   }
 
-  /** シェーダーの準備。済むまで走り出さない */
   precompile(): Promise<unknown> {
     // compileAsync は見えているものしか準備しない。隠してある校門とボスもこのときだけ見せる（次の update で戻る）
     this.#gate.group.visible = true;
@@ -116,7 +113,8 @@ export class RunWorld {
     // 音の輪と警告の輪は transparent で別のシェーダーになる。最初の 1 発と最初の落下物で初めて作るとそこで止まるので、先に作らせる
     const probes = [wave(), warnRing()];
     for (const m of probes) {
-      m.position.copy(this.#hero.group.position);
+      // 見切りのタイマーで先に始まっても映らないよう、カメラの後ろへ置く（コンパイルは画面の外でも済む）
+      m.position.copy(this.#hero.group.position).z += 100;
       this.scene.add(m);
     }
     const drop = () => this.scene.remove(...probes);

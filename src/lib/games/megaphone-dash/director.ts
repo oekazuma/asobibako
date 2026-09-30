@@ -4,7 +4,6 @@ import type { RunEvent, RunState } from './engine';
 import { sounds } from './sounds';
 import type { RunWorld } from './world3d';
 
-/** engine の出来事を 3D・重ね描き・音へ配る */
 export function direct(events: RunEvent[], s: RunState, world: RunWorld | undefined, fx: RunFx): void {
   for (const e of events) {
     world?.handle(e);
