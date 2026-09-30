@@ -26,6 +26,7 @@
         class:drawer={seat === view.drawer}
         class:solved={view.solved.includes(seat)}
         class:out={view.out.includes(seat)}
+        class:answering={seat === view.buzzer}
       >
         {seat}P{seat === me ? '（あなた）' : ''}
         {view.scores[seat]}
@@ -91,6 +92,14 @@
 
   .scores .drawer {
     outline: 3px solid var(--line);
+  }
+
+  .scores .answering {
+    outline: 3px solid var(--p2);
+  }
+
+  .scores .answering::after {
+    content: ' こたえ中';
   }
 
   .scores .out::after {

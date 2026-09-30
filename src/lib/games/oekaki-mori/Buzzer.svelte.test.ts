@@ -57,8 +57,16 @@ describe('Buzzer', () => {
     const { app, target, act } = show({ buzzer: 2, answerLeft: 5, options: ['ねこ', 'いぬ', 'ぞう', 'さる'] });
     const buttons = [...target.querySelectorAll<HTMLButtonElement>('button.option')];
     expect(buttons.map((b) => b.textContent?.trim())).toEqual(['ねこ', 'いぬ', 'ぞう', 'さる']);
-    buttons[2].click();
+    buttons[2].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
     expect(act).toHaveBeenCalledWith({ t: 'answer', index: 2 });
+    unmount(app);
+  });
+
+  // iOS は、はやおしを押した指を離した位置に現れた候補へ合成 click を送る。pointerdown を伴わない click では答えない
+  it('click だけでは答えない', () => {
+    const { app, target, act } = show({ buzzer: 2, answerLeft: 5, options: ['ねこ', 'いぬ', 'ぞう', 'さる'] });
+    target.querySelector<HTMLButtonElement>('button.option')!.click();
+    expect(act).not.toHaveBeenCalled();
     unmount(app);
   });
 });

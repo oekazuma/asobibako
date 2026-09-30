@@ -11,9 +11,16 @@
 <div class="buzzer">
   {#if view.options}
     <p class="ask">どれかな？ <b>{view.answerLeft}</b></p>
+    <!-- iOS は、はやおしを押した指を離した位置に現れた候補へ合成 click を送るので、click ではなく触れた瞬間で選ぶ -->
     <div class="options">
       {#each view.options as word, i (word)}
-        <button class="pill gold option" onclick={() => act({ t: 'answer', index: i })}>{word}</button>
+        <button
+          class="pill gold option"
+          onpointerdown={(event) => {
+            event.preventDefault();
+            act({ t: 'answer', index: i });
+          }}>{word}</button
+        >
       {/each}
     </div>
   {:else if view.buzzer !== null}
