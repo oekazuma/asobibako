@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bridge, dropSpecks, lineArt } from './lineart';
+import { bridge, dropSpecks, inkArt, lineArt } from './lineart';
 import { label } from './regions';
 
 const W = 48;
@@ -70,5 +70,40 @@ describe('bridge', () => {
     for (let x = 5; x < 40; x++) m[10 * W + x] = m[20 * W + x] = 1;
     const out = bridge(m, W, W);
     expect(out[15 * W + 20]).toBe(0);
+  });
+});
+
+describe('inkArt', () => {
+  // イラストやマンホールは、もとの黒い線をそのまま使うほうが、変わり目の両側を拾うより細くきれいになる
+  it('白地の細い黒い線を、1 本の線として拾う', () => {
+    const img = image((x, y) => (y >= 23 && y <= 24 && x >= 6 && x < 42 ? 0 : 255));
+    const mask = inkArt(img, W, W, 0.5);
+    expect(mask[24 * W + 24]).toBe(1);
+    expect(mask[10 * W + 24]).toBe(0);
+    expect(mask[40 * W + 24]).toBe(0);
+  });
+
+  it('黒く塗った広いところは、中まで線にしない（ふちだけを線にして、中を塗れるようにする）', () => {
+    const big = 96;
+    const rgba = new Uint8ClampedArray(big * big * 4);
+    for (let y = 0; y < big; y++)
+      for (let x = 0; x < big; x++) {
+        const v = x >= 20 && x < 76 && y >= 20 && y < 76 ? 0 : 255;
+        rgba.set([v, v, v, 255], (y * big + x) * 4);
+      }
+    const mask = inkArt(rgba, big, big, 0.5);
+    expect(mask[48 * big + 48]).toBe(0);
+    const r = label(mask, big, big);
+    expect(r.labels[48 * big + 48]).not.toBe(r.labels[0]);
+  });
+
+  it('真っ白な画像には線を引かない', () => {
+    expect(count(inkArt(image(), W, W, 1))).toBe(0);
+  });
+
+  it('せんの おおさを上げると、薄い線まで拾う', () => {
+    const img = image((x, y) => (y >= 23 && y <= 24 && x >= 6 && x < 42 ? 185 : 255));
+    expect(count(inkArt(img, W, W, 0))).toBe(0);
+    expect(count(inkArt(img, W, W, 1))).toBeGreaterThan(0);
   });
 });
