@@ -2,16 +2,16 @@
   import { onDestroy, onMount } from 'svelte';
   import type { SoloProps } from '$lib/games';
   import { saveImage } from '$lib/share';
-  import { photoArt, snapshot, templateArt, type Art } from './art';
-  import { listWorks, pack, removeWork, saveWork, unpack, type Work } from './book';
-  import Canvas from './Canvas.svelte';
-  import { empty, fill, undo, type Coloring } from './paint';
-  import Palette, { COLORS } from './Palette.svelte';
-  import PhotoMaker from './PhotoMaker.svelte';
-  import Picker from './Picker.svelte';
-  import { label, type Regions } from './regions';
-  import { sounds } from './sounds';
-  import { TEMPLATES, type Template } from './templates';
+  import { photoArt, snapshot, templateArt, type Art } from '$lib/coloring/art';
+  import { listWorks, pack, removeWork, saveWork, unpack, type Work } from '$lib/coloring/book';
+  import Canvas from '$lib/coloring/Canvas.svelte';
+  import { empty, fill, undo, type Coloring } from '$lib/coloring/paint';
+  import Palette, { COLORS } from '$lib/coloring/Palette.svelte';
+  import PhotoMaker from '$lib/coloring/PhotoMaker.svelte';
+  import Picker from '$lib/coloring/Picker.svelte';
+  import { label, type Regions } from '$lib/coloring/regions';
+  import { sounds } from '$lib/coloring/sounds';
+  import { TEMPLATES, type Template } from '$lib/coloring/templates';
 
   // 自由あそびなので、シェルから受ける level と onfinish は使わない
   const _props: SoloProps = $props();

@@ -1,7 +1,7 @@
 import { flushSync, mount, tick, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Work } from './book';
-import { SIZE } from './regions';
+import type { Work } from '$lib/coloring/book';
+import { SIZE } from '$lib/coloring/regions';
 import Nurie from './Nurie.svelte';
 
 const book = vi.hoisted(() => ({
@@ -10,19 +10,19 @@ const book = vi.hoisted(() => ({
   removeWork: vi.fn(async () => {})
 }));
 
-vi.mock('./book', async (original) => ({
-  ...(await original<typeof import('./book')>()),
+vi.mock('$lib/coloring/book', async (original) => ({
+  ...(await original<typeof import('$lib/coloring/book')>()),
   listWorks: async () => book.works,
   saveWork: book.saveWork,
   removeWork: book.removeWork
 }));
-vi.mock('./art', () => ({
+vi.mock('$lib/coloring/art', () => ({
   templateArt: (template: unknown) => ({ kind: 'template', template, mask: new Uint8Array(SIZE * SIZE) }),
   photoArt: (mask: Uint8Array) => ({ kind: 'photo', mask }),
   snapshot: () => 'data:image/jpeg;base64,'
 }));
-vi.mock('./Canvas.svelte', async () => ({ default: (await import('./test/CanvasStub.svelte')).default }));
-vi.mock('./sounds', () => ({ sounds: { fill: () => {}, undo: () => {}, done: () => {} } }));
+vi.mock('$lib/coloring/Canvas.svelte', async () => ({ default: (await import('./test/CanvasStub.svelte')).default }));
+vi.mock('$lib/coloring/sounds', () => ({ sounds: { fill: () => {}, undo: () => {}, done: () => {} } }));
 vi.mock('$lib/share', () => ({ saveImage: () => {} }));
 
 const settle = async () => {
@@ -84,7 +84,7 @@ describe('Nurie', () => {
 
   // テンプレートのパスを直しても、保存した作品の場所の番号がずれないよう、作品に保存した線画で場所を分ける
   it('テンプレートの作品は、保存した線画で場所を分ける', async () => {
-    const { pack } = await vi.importActual<typeof import('./book')>('./book');
+    const { pack } = await vi.importActual<typeof import('$lib/coloring/book')>('$lib/coloring/book');
     const mask = new Uint8Array(SIZE * SIZE);
     for (let y = 0; y < SIZE; y++) mask[y * SIZE + SIZE / 2] = 1;
     book.works = [{ id: 'w', template: 'apple', lines: pack(mask), colors: {}, history: [], thumb: '', updated: 1 }];
