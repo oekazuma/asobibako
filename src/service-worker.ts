@@ -3,7 +3,7 @@
 /// <reference lib="webworker" />
 
 // この worker は <meta> の CSP の外で走る（GitHub Pages はヘッダを出せない）。import は $service-worker だけに保つ
-import { build, files, prerendered, version } from '$service-worker';
+import { base, build, files, prerendered, version } from '$service-worker';
 
 const sw = globalThis.self as unknown as ServiceWorkerGlobalScope;
 
@@ -16,10 +16,11 @@ const CACHE = `${PREFIX}${version}`;
  */
 const AI_CACHE = `${PREFIX}ai`;
 const WORKERS = '/immutable/workers/';
-const heavy = (path: string) => path.includes('/ai/') || path.includes(WORKERS);
+const heavy = (path: string) => path.startsWith(`${base}/ai/`) || path.includes(WORKERS);
 /** worker のファイルは中身が変わると名前の末尾のハッシュだけが変わる。同じ名前の前の版を消すのに使う */
 const stem = (path: string) => path.replace(/-[\w-]{8}(\.\w+)$/, '$1');
 const ASSETS = [...build, ...files, ...prerendered].filter((path) => !heavy(path));
+const PAGES = [...files, ...prerendered].filter((path) => !heavy(path));
 const ASSET_PATHS = new Set(ASSETS);
 const HEAVY_PATHS = new Set([...build, ...files].filter(heavy));
 
@@ -30,7 +31,10 @@ sw.addEventListener('install', (event) => {
       // 版の付かない HTML などは HTTP キャッシュ（Pages は max-age=600）に前の版が残っていると、それを拾って
       // 前の版のチャンクを指す HTML を抱えこむ。デプロイ後にそのチャンクが消えると壊れたままになるので、取り直させる
       .then((cache) =>
-        cache.addAll([...build, ...[...files, ...prerendered].map((path) => new Request(path, { cache: 'no-cache' }))])
+        cache.addAll([
+          ...build.filter((path) => !heavy(path)),
+          ...PAGES.map((path) => new Request(path, { cache: 'no-cache' }))
+        ])
       )
       .then(() => sw.skipWaiting())
   );

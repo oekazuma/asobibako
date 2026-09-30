@@ -19,8 +19,6 @@ self.onmessage = async (event: MessageEvent<{ id: number; model: string; tensor:
     const out = result[s.outputNames[0]].data as Float32Array;
     self.postMessage({ id, out }, { transfer: [out.buffer] });
   } catch (error) {
-    // 読みこみに失敗したら、次に押したときに読み直す
-    session = undefined;
     self.postMessage({ id, error: String(error) });
   }
 };

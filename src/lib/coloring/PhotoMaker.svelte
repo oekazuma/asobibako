@@ -54,7 +54,10 @@
   onDestroy(() => {
     alive = false;
     release();
+    lines.dispose();
   });
+
+  const drawing = $derived(lines.busy && lines.mode === 'ai');
 
   $effect(() => {
     const g = preview?.getContext('2d');
@@ -75,10 +78,10 @@
 
 <div class="maker">
   <h2 class="yuru">しゃしんから つくる</h2>
-  {#if bmp && (lines.mask || lines.busy)}
+  {#if bmp && (lines.mask || drawing)}
     <div class="sheet">
       <canvas class="preview" width={SIZE} height={SIZE} bind:this={preview}></canvas>
-      {#if lines.busy}
+      {#if drawing}
         <p class="busy" role="status">
           AI が かいています…<br /><small>はじめての ときは よみこみに すこし じかんが かかるよ</small>
         </p>
@@ -95,9 +98,7 @@
     </label>
     <div class="row">
       <button class="pill" onclick={() => lines.recrop()}>きりとりなおす</button>
-      <button class="pill gold" disabled={lines.busy} onclick={() => lines.mask && onmake(lines.mask)}
-        >これで ぬる</button
-      >
+      <button class="pill gold" disabled={drawing} onclick={() => lines.mask && onmake(lines.mask)}>これで ぬる</button>
     </div>
   {:else if bmp}
     <p>ぬりたい ところを わくに いれてね</p>

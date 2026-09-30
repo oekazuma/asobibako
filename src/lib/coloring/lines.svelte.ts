@@ -1,5 +1,5 @@
 import { aiMask, toTensor } from './ai';
-import { drawWithAi } from './ai-run';
+import { drawWithAi, stopAi } from './ai-run';
 import { inkArt, lineArt } from './lineart';
 import { SIZE } from './regions';
 import { colorWalls } from './walls';
@@ -23,6 +23,8 @@ export class Lines {
   #walls: Uint8Array | null = null;
   #ai: Float32Array | null = null;
   #timer: ReturnType<typeof setTimeout> | undefined;
+  /** AI で描けなかったときに戻す拾い方 */
+  #before: Exclude<Mode, 'ai'> = 'ink';
   /** 描いているあいだに切り取りなおしたときに、古い写真の線画を受け取らないための番号 */
   #round = 0;
 
@@ -33,6 +35,7 @@ export class Lines {
   }
 
   setMode(mode: Mode) {
+    if (this.mode !== 'ai') this.#before = this.mode;
     this.mode = mode;
     this.build();
   }
@@ -48,6 +51,7 @@ export class Lines {
     clearTimeout(this.#timer);
     this.#round++;
     this.mask = null;
+    if (this.busy) stopAi();
     this.busy = false;
   }
 
@@ -57,6 +61,11 @@ export class Lines {
     this.#walls = null;
     this.#ai = null;
     this.note = '';
+  }
+
+  dispose() {
+    this.clear();
+    stopAi();
   }
 
   build() {
@@ -84,7 +93,10 @@ export class Lines {
       this.#ai = out;
       if (this.mode === 'ai') this.mask = aiMask(out, this.amount);
     } catch {
-      if (round === this.#round) this.note = 'AI で かけませんでした。べつの せんの ひろいかたを えらんでね';
+      if (round !== this.#round) return;
+      this.busy = false;
+      this.note = 'AI で かけませんでした。もういちど おすか、べつの せんの ひろいかたを えらんでね';
+      if (this.mode === 'ai') this.setMode(this.#before);
     } finally {
       if (round === this.#round) this.busy = false;
     }
