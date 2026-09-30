@@ -153,6 +153,45 @@ export class RunWorld {
     this.camera.updateProjectionMatrix();
   }
 
+  /**
+   * 配信カードに出す主人公の顔を、同じ 3D の形で撮って画像にする。
+   * 別の WebGL を作らず、いまの描画先を小さな的に向けて 1 回だけ描く
+   */
+  portrait(size = 256): string {
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#ffd23a');
+    scene.add(new THREE.HemisphereLight('#ffffff', '#ffe2a8', 2.2));
+    const key = new THREE.DirectionalLight('#ffffff', 1.6);
+    key.position.set(1, 2, -2);
+    scene.add(key);
+    const kid = chara(HERO, 0.012);
+    kid.bones.head.rotation.set(0.05, 0.25, 0.05);
+    kid.bones.armR.rotation.z = -2.2;
+    const horn = megaphone();
+    horn.position.set(-0.02, -0.15, -0.06);
+    kid.bones.handR.add(horn);
+    scene.add(kid.group);
+    const cam = new THREE.PerspectiveCamera(30, 1, 0.05, 10);
+    cam.position.set(0.35, 1.05, -1.75);
+    cam.lookAt(-0.05, 0.95, 0);
+    const target = new THREE.WebGLRenderTarget(size, size);
+    target.texture.colorSpace = THREE.SRGBColorSpace;
+    this.renderer.setRenderTarget(target);
+    this.renderer.render(scene, cam);
+    const px = new Uint8Array(size * size * 4);
+    this.renderer.readRenderTargetPixels(target, 0, 0, size, size, px);
+    this.renderer.setRenderTarget(null);
+    target.dispose();
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const img = c.getContext('2d')!.createImageData(size, size);
+    // 読み出した画素は下から上の順なので、上下を返して並べる
+    for (let y = 0; y < size; y++)
+      img.data.set(px.subarray((size - 1 - y) * size * 4, (size - y) * size * 4), y * size * 4);
+    c.getContext('2d')!.putImageData(img, 0, 0);
+    return c.toDataURL('image/png');
+  }
+
   precompile(): Promise<unknown> {
     return this.renderer.compileAsync(this.scene, this.camera);
   }

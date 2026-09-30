@@ -6,8 +6,10 @@
   import { HALF, halfAt } from './course';
   import { direct } from './director';
   import { RunFx } from './effects';
-  import { BODY, COMBO_TIME, createState, GAUGE, rank, score, step } from './engine';
+  import { BODY, boost, COMBO_TIME, createState, GAUGE, rank, score, step } from './engine';
+  import ComboBadge from './ComboBadge.svelte';
   import Hud from './Hud.svelte';
+  import LiveCard from './LiveCard.svelte';
   import { RunWorld } from './world3d';
 
   let { level, onfinish }: SoloProps = $props();
@@ -28,6 +30,9 @@
   let combo = $state(0);
   let keep = $state(0);
   let followers = $state(0);
+  let fans = $state(0);
+  let speedUp = $state(1);
+  let face = $state<string | null>(null);
   let gauge = $state(0);
   let endTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -78,8 +83,11 @@
   }
 
   function syncHud() {
-    const t = Math.ceil(game.time);
+    const t = Math.ceil(game.time * 10) / 10;
     if (time !== t) time = t;
+    if (fans !== game.fans) fans = game.fans;
+    const sp = Math.round((1 + boost(game.combo)) * 10) / 10;
+    if (speedUp !== sp) speedUp = sp;
     if (combo !== game.combo) combo = game.combo;
     if (followers !== game.followers) followers = game.followers;
     const k = Math.round(Math.max(0, 1 - game.since / COMBO_TIME) * 20) / 20;
@@ -115,6 +123,7 @@
   onMount(() => {
     world = new RunWorld(gl, game);
     resize();
+    face = world.portrait();
     let alive = true;
     const go = () => {
       if (alive) ready = true;
@@ -136,7 +145,9 @@
 <div class="board" use:input.board={resize} role="application" aria-label="メガホンダッシュの通学路">
   <canvas bind:this={gl}></canvas>
   <canvas bind:this={canvas}></canvas>
-  <Hud {level} {time} {followers} {combo} {keep} {gauge} onshout={() => (shoutNext = true)} />
+  <Hud {time} {followers} {gauge} onshout={() => (shoutNext = true)} />
+  <LiveCard {face} {fans} />
+  <ComboBadge {combo} speed={speedUp} {keep} />
   {#if !ready}
     <p class="wait sticker">じゅんびちゅう…</p>
   {/if}
