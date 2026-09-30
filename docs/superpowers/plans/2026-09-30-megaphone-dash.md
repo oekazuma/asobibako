@@ -55,8 +55,8 @@
 | `src/lib/games/megaphone-dash/MegaphoneDash.svelte` | 配線                                                                      | 7         |
 | `src/lib/games/megaphone-dash/meta.ts`              | 一覧の情報と `load()`                                                     | 7         |
 | `src/lib/games.ts`                                  | 一覧に 1 行足す                                                           | 7         |
-| `scripts/thumbs/scenes.ts`                          | 一覧の絵の台本                                                            | 9         |
-| `static/thumbs/megaphone-dash.webp`                 | 一覧の絵                                                                  | 9         |
+| `scripts/thumbs/scenes.ts`                          | 一覧の絵の台本                                                            | 7         |
+| `static/thumbs/megaphone-dash.webp`                 | 一覧の絵                                                                  | 7         |
 
 scratchpad（`$SCRATCH` と書く。セッションの scratchpad のディレクトリ）に置くもの（commit しない）は、`sheet/megaphone-sheet.mjs`（Task 1）・`sim/vitest.config.mjs` と `sim/megaphone.sim.ts`（Task 8）・`play/megaphone-play.mjs`（Task 9）。
 
@@ -87,6 +87,7 @@ scratchpad（`$SCRATCH` と書く。セッションの scratchpad のディレ�
   - `street(index: number): THREE.Group`（原点から -z へ `SEG` m の車道・歩道・家・木・電柱）
   - `gate(): { group: THREE.Group; dispose: () => void }`（校門）
   - `warnRing(): THREE.Mesh`（落ちる場所の印）
+  - `wave(): THREE.Mesh`（メガホンから前へ飛ぶ音の輪）
 
 - [ ] **Step 1: `models.ts` を書く**
 
@@ -385,6 +386,14 @@ export function gate(): { group: THREE.Group; dispose: () => void } {
       signMat.dispose();
     }
   };
+}
+
+/** メガホンから前へ飛ぶ音の輪。当たりは撃った瞬間に決まり、これは見た目だけ */
+export function wave(): THREE.Mesh {
+  return new THREE.Mesh(
+    torus(0.35, 0.05),
+    mat('#ff7eb6', { emissive: '#ff3d8b', emissiveIntensity: 0.9, transparent: true, opacity: 0.8 })
+  );
 }
 
 /** ボスの投げたものが落ちる場所の赤い輪 */
@@ -861,6 +870,20 @@ describe('Gestures', () => {
     expect(h.move(1, 132, 50)).toEqual(['jump']);
   });
 
+  it('跳んだあとは、上へずれたままでも横でレーンを移れる', () => {
+    const g = new Gestures();
+    g.down(1, 100, 100);
+    expect(g.move(1, 100, 50)).toEqual(['jump']);
+    expect(g.move(1, 140, 50)).toEqual(['right']);
+  });
+
+  it('横が大きいスワイプは、少し上へ流れても跳ばない', () => {
+    const g = new Gestures();
+    g.down(1, 100, 100);
+    expect(g.move(1, 160, 68)).toEqual(['right', 'right']);
+    expect(g.move(1, 165, 66)).toEqual([]);
+  });
+
   it('下へのずれは何もしない', () => {
     const g = new Gestures();
     g.down(1, 100, 100);
@@ -907,7 +930,8 @@ export type Gesture = 'shoot' | 'left' | 'right' | 'jump';
 interface Track {
   /** 横の起点。1 レーン移るたびにその向きへ SWIPE ずらす */
   x: number;
-  /** 縦は最初に触れた位置から測る */
+  /** 最初に触れた位置。縦のずれと、斜めの向きの見分けはここから測る */
+  x0: number;
   y: number;
   jumped: boolean;
 }
@@ -917,7 +941,7 @@ export class Gestures {
   readonly #tracks = new Map<number, Track>();
 
   down(id: number, x: number, y: number): Gesture[] {
-    this.#tracks.set(id, { x, y, jumped: false });
+    this.#tracks.set(id, { x, x0: x, y, jumped: false });
     return ['shoot'];
   }
 
@@ -926,12 +950,14 @@ export class Gestures {
     if (!t) return [];
     const out: Gesture[] = [];
     const up = t.y - y;
-    while (Math.abs(x - t.x) >= SWIPE && Math.abs(x - t.x) >= up) {
+    const side = Math.abs(x - t.x0);
+    // 跳んだあとの指は上へずれたままなので、横だけで見る
+    while (Math.abs(x - t.x) >= SWIPE && (t.jumped || side >= up)) {
       const dir = Math.sign(x - t.x);
       t.x += dir * SWIPE;
       out.push(dir > 0 ? 'right' : 'left');
     }
-    if (!out.length && !t.jumped && up >= SWIPE && up > Math.abs(x - t.x)) {
+    if (!t.jumped && up >= SWIPE && up > side) {
       t.jumped = true;
       out.push('jump');
     }
@@ -949,7 +975,7 @@ export class Gestures {
 - [ ] **Step 4: 通ることを確かめる**
 
 Run: `pnpm exec vitest run --project unit src/lib/games/megaphone-dash/gesture.test.ts`
-Expected: PASS（10 件）
+Expected: PASS（12 件）
 
 - [ ] **Step 5: commit する**
 
@@ -1253,7 +1279,7 @@ describe('ランク', () => {
 Run: `pnpm exec vitest run --project unit src/lib/games/megaphone-dash/engine.test.ts`
 Expected: FAIL（`./engine` が見つからない）
 
-- [ ] **Step 3: `engine.ts` を書く（ボスは Task 5 で入れる。ここでは `boss()` を空にしておかず、`Boss` の型と `createState` の組み立てまでを書く）**
+- [ ] **Step 3: `engine.ts` を書く（ボスの動き `boss()` は Task 5 で足す。ここでは `Boss` の型、`createState` の組み立て、ボスに当てる `hitBoss()` までを書く）**
 
 ```ts
 import { Rng } from '$lib/levels';
@@ -1454,8 +1480,6 @@ function bump(s: RunState, from: number, events: RunEvent[]) {
   }
 }
 
-function boss(_s: RunState, _dt: number, _events: RunEvent[]) {}
-
 export function step(s: RunState, dt: number, input: RunInput = {}): RunEvent[] {
   const events: RunEvent[] = [];
   if (s.result) return events;
@@ -1480,7 +1504,6 @@ export function step(s: RunState, dt: number, input: RunInput = {}): RunEvent[] 
   pass(s, events);
   bump(s, from, events);
   s.air = Math.max(0, s.air - dt);
-  boss(s, dt, events);
   if (s.z >= s.goal) {
     s.result = 'clear';
     events.push({ type: 'goal' });
@@ -1520,7 +1543,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 **Files:**
 
-- Modify: `src/lib/games/megaphone-dash/engine.ts`（空の `boss()` を置き換える）
+- Modify: `src/lib/games/megaphone-dash/engine.ts`（`boss()` を足し、`step()` から呼ぶ）
 - Test: `src/lib/games/megaphone-dash/engine.test.ts`（末尾に足す）
 
 **Interfaces:**
@@ -1625,7 +1648,7 @@ Expected: FAIL（`boss-in` が出ない）
 
 - [ ] **Step 3: `boss()` を書く**
 
-`engine.ts` の `function boss(_s: RunState, _dt: number, _events: RunEvent[]) {}` を次で置き換える。
+`engine.ts` の `bump()` のあとに次の関数を足し、`step()` の `s.air = Math.max(0, s.air - dt);` の次の行に `boss(s, dt, events);` を足す（校門の判定より前）。
 
 ```ts
 function boss(s: RunState, dt: number, events: RunEvent[]) {
@@ -1727,6 +1750,7 @@ import {
   street,
   walker,
   warnRing,
+  wave,
   type Figure
 } from './models';
 
@@ -1737,6 +1761,9 @@ const AHEAD = 110;
 const BEHIND = 8;
 /** 後ろをついて走るファンの見える数 */
 const FANS = 20;
+/** 音の輪が飛ぶ速さ（m/s）と、消えるまでの秒 */
+const WAVE_SPEED = 40;
+const WAVE_LIFE = 0.35;
 
 const laneX = (lane: number) => (lane - (LANES - 1) / 2) * LANE_W;
 
@@ -1764,6 +1791,7 @@ export class RunWorld {
   readonly #blocks = new Map<Obstacle, THREE.Group>();
   readonly #fans: Figure[] = [];
   readonly #rings = new Map<Drop, THREE.Mesh>();
+  readonly #waves: { mesh: THREE.Mesh; age: number }[] = [];
   readonly #boss = boss();
   #bossX = laneX(1);
   readonly #gate = gate();
@@ -1804,10 +1832,20 @@ export class RunWorld {
 
   /** シェーダーの準備。済むまで走り出さない */
   precompile(): Promise<unknown> {
+    // compileAsync は見えているものしか準備しない。隠してある校門とボスもこのときだけ見せる（次の update で戻る）
+    this.#gate.group.visible = true;
+    this.#boss.group.visible = true;
     return this.renderer.compileAsync(this.scene, this.camera);
   }
 
   handle(e: RunEvent): void {
+    if (e.type === 'shot') {
+      const mesh = wave();
+      mesh.position.set(this.#heroX, 0.9, this.#hero.group.position.z - 0.6);
+      this.scene.add(mesh);
+      this.#waves.push({ mesh, age: 0 });
+      return;
+    }
     if (e.type !== 'hit') return;
     const fig = this.#walkers.get(e.walker);
     if (!fig) return;
@@ -1817,6 +1855,7 @@ export class RunWorld {
       return;
     }
     cheer(fig);
+    fig.group.scale.setScalar(0.75);
     this.#fans.push(fig);
   }
 
@@ -1847,8 +1886,11 @@ export class RunWorld {
     this.#syncWalkers(s);
     this.#syncBlocks(s);
     this.#fans.forEach((fig, i) => {
-      const tx = this.#heroX + ((i % 3) - 1) * 0.7;
-      const tz = z + 1.4 + Math.floor(i / 3) * 0.9;
+      // 走る子とカメラのあいだに入ると画面の下をふさぐので、左右の脇に寄せて並べる
+      const side = i % 2 ? 1 : -1;
+      const col = Math.floor(i / 2);
+      const tx = this.#heroX + side * (0.9 + (col % 3) * 0.45);
+      const tz = z + 0.2 + Math.floor(col / 3) * 0.7;
       const p = fig.group.position;
       const k = Math.min(1, dt * 6);
       p.set(p.x + (tx - p.x) * k, Math.abs(Math.sin(this.#phase + i)) * 0.12, p.z + (tz - p.z) * k);
@@ -1862,6 +1904,13 @@ export class RunWorld {
       this.#boss.group.position.set(this.#bossX, 2.2 + Math.sin(this.#t * 2) * 0.25, z - BOSS_AHEAD);
     }
     this.#syncRings(b?.drops ?? []);
+    for (const w of this.#waves) {
+      w.age += dt;
+      w.mesh.position.z -= WAVE_SPEED * dt;
+      w.mesh.scale.setScalar(1 + w.age * 4);
+      if (w.age > WAVE_LIFE) this.scene.remove(w.mesh);
+    }
+    this.#waves.splice(0, this.#waves.length, ...this.#waves.filter((w) => w.age <= WAVE_LIFE));
 
     this.#gate.group.visible = Number.isFinite(s.goal);
     if (Number.isFinite(s.goal)) this.#gate.group.position.z = -s.goal;
@@ -2138,11 +2187,14 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/lib/games/megaphone-dash/MegaphoneDash.svelte`
 - Create: `src/lib/games/megaphone-dash/meta.ts`
 - Modify: `src/lib/games.ts`（import 1 行と `games` 配列の先頭に 1 行）
+- Modify: `scripts/thumbs/scenes.ts`（`snow-camp` の場面のあとに 1 つ足す）
+- Create: `static/thumbs/megaphone-dash.webp`（`pnpm thumbs megaphone-dash` が作る）
 
 **Interfaces:**
 
 - Consumes: Task 2〜6 のすべて、`$lib/board-input` の `BoardInput`、`$lib/loop` の `animate`、`$lib/games` の `SoloProps`・`GameMeta`、`$lib/components/Icon.svelte`
-- Produces: 一覧から遊べるゲーム `megaphone-dash`
+- Consumes（一覧の絵）: `scripts/thumbs/stage.ts` の `Stage`（`startSolo()`・`touch(id, 'down' | 'move' | 'up', x, y)`・`drag(id, path, ms)`・`wait(ms)`）
+- Produces: 一覧から遊べるゲーム `megaphone-dash` と、一覧のカード・タイトルの額の絵
 
 - [ ] **Step 1: `Hud.svelte` を書く**
 
@@ -2474,19 +2526,53 @@ export default {
 
 `src/lib/games.ts` の import の並び（アルファベット順）の `import lightning from './games/lightning/meta';` のあとに `import megaphoneDash from './games/megaphone-dash/meta';` を足し、`export const games: GameMeta[] = [` の直後の行に `megaphoneDash,` を足す。
 
-- [ ] **Step 5: 型・lint・テストを通す**
+- [ ] **Step 5: 一覧の絵の台本を足す**
+
+`scripts/thumbs/scenes.ts` の `snow-camp` の場面の `},` のあとに足す。
+
+```ts
+  {
+    id: 'megaphone-dash',
+    level: 3,
+    clip: band(440),
+    play: async (s) => {
+      await s.startSolo();
+      // 3D の準備（最長 1.5 秒）が済んで走り出すのを待つ
+      await s.wait(2500);
+      // 通行人のいるレーンは面ごとに違うので、レーンを行き来しながら撃ってファンと「+N」を写す
+      for (let i = 0; i < 16; i++) {
+        if (i % 4 === 3) {
+          const to: [number, number] = [i % 8 === 3 ? 320 : 448, 760];
+          await s.drag(1, [[384, 760], to], 120);
+          await s.touch(1, 'up', ...to);
+        } else {
+          await s.touch(1, 'down', 384, 760);
+          await s.touch(1, 'up', 384, 760);
+        }
+        await s.wait(220);
+      }
+    }
+  },
+```
+
+- [ ] **Step 6: 一覧の絵を撮って見る**
+
+Run: `pnpm thumbs megaphone-dash`
+Expected: `static/thumbs/megaphone-dash.webp` ができる。Read で開き、走る子・ファン・「+N」・町並みが枠に収まっているかを見る。ファンが写っていなければ、ループの回数を増やして撮り直す。走る子が切れていれば `band(440)` の数を変えて撮り直す。
+
+- [ ] **Step 7: 型・lint・テストを通す**
 
 Run: `pnpm check && pnpm lint && pnpm test:run`
-Expected: すべて通る。`MegaphoneDash.svelte` が 200 行未満であること（`wc -l`）。`architecture/component-size` や markuplint で落ちたら、指摘どおりに直す。
+Expected: すべて通る（`src/lib/games.test.ts` は一覧の絵があることを確かめるので、Step 6 のあとに走らせる）。`MegaphoneDash.svelte` が 200 行未満であること（`wc -l`）。`architecture/component-size` や markuplint で落ちたら、指摘どおりに直す。
 
-- [ ] **Step 6: dev で遊べることを確かめる**
+- [ ] **Step 8: dev で遊べることを確かめる**
 
-`preview_start` の `dev` を起こし、Task 9 の Step 3 と同じ形の node スクリプト（headless Chrome、`viewport: { width: 820, height: 1180 }`、`hasTouch: true`）で `http://localhost:5173/asobibako/games/megaphone-dash` を開く。`button.go` を押して 3 秒待ち、画面の真ん中を 5 回タップしてから `page.screenshot` を撮る。Read で見て、町並み・走る子・HUD が出て、「じゅんびちゅう」が消え、走り出していることを確かめる。コンソールにエラーがないことも見る。
+`preview_start` の `dev` を起こし、Task 9 の Step 1 と同じ形の node スクリプト（headless Chrome、`viewport: { width: 820, height: 1180 }`、`hasTouch: true`）で `http://localhost:5173/asobibako/games/megaphone-dash` を開く。ページは `reducedMotion: 'reduce'` で開き（タイトルの `button.go` は揺れ続けるので、そのままでは Playwright の click が待ち続ける）、`goto` は `waitUntil: 'networkidle'` で待つ。`button.go` を押したら `.board canvas` が出るのを待ち、3 秒待って画面の真ん中を 5 回タップしてから `page.screenshot` を撮る。Read で見て、町並み・走る子・HUD が出て、「じゅんびちゅう」が消え、走り出していることを確かめる。コンソールにエラーがないことも見る。
 
-- [ ] **Step 7: commit する**
+- [ ] **Step 9: commit する**
 
 ```bash
-git add src/lib/games/megaphone-dash src/lib/games.ts
+git add src/lib/games/megaphone-dash src/lib/games.ts scripts/thumbs/scenes.ts static/thumbs/megaphone-dash.webp
 git commit -m "Wire up メガホンダッシュ and add it to the game list
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
@@ -2509,18 +2595,15 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 - [ ] **Step 1: scratchpad の vitest 設定を書く**
 
-`$SCRATCH/sim/vitest.config.mjs`
+`$SCRATCH/sim/vitest.config.mjs`。scratchpad からは `vitest/config` を import できない（`node_modules` がない）ので、素のオブジェクトを書き出す。
 
 ```js
-import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'vitest/config';
-
 const REPO = '$REPO';
-export default defineConfig({
+export default {
   resolve: { alias: { $lib: `${REPO}/src/lib` } },
   server: { fs: { strict: false } },
-  test: { include: ['**/*.sim.ts'], root: fileURLToPath(new URL('.', import.meta.url)) }
-});
+  test: { include: ['**/*.sim.ts'] }
+};
 ```
 
 - [ ] **Step 2: ボットと集計を書く**
@@ -2555,7 +2638,8 @@ interface Skill {
 const SKILLS: Skill[] = [
   { name: 'うまい', every: 0, shoot: 1, slip: 0 },
   { name: 'ふつう', every: 0.3, shoot: 0.8, slip: 0.1 },
-  { name: 'ゆっくり', every: 0.6, shoot: 0.5, slip: 0.2 }
+  { name: 'ゆっくり', every: 0.6, shoot: 0.5, slip: 0.2 },
+  { name: 'はしるだけ', every: 0.6, shoot: 0, slip: 0.2 }
 ];
 
 /** 決まった乱数。ボットの失敗も毎回同じにする */
@@ -2635,8 +2719,8 @@ it('メガホンダッシュの制限時間とランクの基準', () => {
   const best: number[] = [];
   for (let level = 1; level <= LEVELS; level++) {
     const used = Object.fromEntries(SKILLS.map((k) => [k.name, run(level, k).used]));
-    // ふつうがぎりぎり着ける時間。1 面だけはゆっくりでも着けるようにする
-    const need = level === 1 ? Math.max(used['ふつう'], used['ゆっくり']) : used['ふつう'];
+    // ふつうがぎりぎり着ける時間。1 面だけは、撃たずに走るだけの子どもでも着けるようにする
+    const need = level === 1 ? Math.max(used['ふつう'], used['ゆっくり'], used['はしるだけ']) : used['ふつう'];
     const limit = Math.ceil(need * 1.08);
     const results = Object.fromEntries(SKILLS.map((k) => [k.name, run(level, k, limit)]));
     time.push(limit);
@@ -2656,12 +2740,13 @@ Expected: PASS。`$SCRATCH/sim/megaphone-result.json` ができる。`--root /` 
 
 `megaphone-result.json` を読み、次を確かめる。
 
-| 見ること         | 満たすべきこと                                                 |
-| ---------------- | -------------------------------------------------------------- |
-| うまいボット     | 全 15 面で `cleared: true`                                     |
-| ふつうのボット   | 全 15 面で `cleared: true`（ぎりぎり）                         |
-| ゆっくりのボット | 1 面で `cleared: true`                                         |
-| 制限時間         | 面が進むほど大きく外れて逆転していない（ボスの面は長くてよい） |
+| 見ること           | 満たすべきこと                                                 |
+| ------------------ | -------------------------------------------------------------- |
+| うまいボット       | 全 15 面で `cleared: true`                                     |
+| ふつうのボット     | 全 15 面で `cleared: true`（ぎりぎり）                         |
+| ゆっくりのボット   | 1 面で `cleared: true`                                         |
+| はしるだけのボット | 1 面で `cleared: true`                                         |
+| 制限時間           | 面が進むほど大きく外れて逆転していない（ボスの面は長くてよい） |
 
 うまいボットが着けない面があれば、`course.ts` の並べ方（`double` や `high` の割合）を下げる。好みで決まる調整（全体の難しさ）は数字を添えてユーザーに聞く。
 
@@ -2713,48 +2798,18 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ---
 
-### Task 9: 一覧の絵・遊ばせて撮る確かめ・verify
+### Task 9: 遊ばせて撮る確かめ・verify
 
 **Files:**
 
-- Modify: `scripts/thumbs/scenes.ts`（`snow-camp` の場面のあとに 1 つ足す）
-- Create: `static/thumbs/megaphone-dash.webp`（`pnpm thumbs megaphone-dash` が作る）
 - Create（commit しない）: `$SCRATCH/play/megaphone-play.mjs`
 
 **Interfaces:**
 
-- Consumes: Task 7 までの遊べるゲーム、`scripts/thumbs/stage.ts` の `Stage`（`startSolo()`・`touch(id, 'down' | 'move' | 'up', x, y)`・`wait(ms)`）
-- Produces: 一覧のカードとタイトル画面の額の絵
+- Consumes: Task 8 までの遊べるゲーム
+- Produces: 確かめた画面の画像（commit しない）
 
-- [ ] **Step 1: 一覧の絵の台本を足す**
-
-`scripts/thumbs/scenes.ts` の `snow-camp` の場面の `},` のあとに足す。
-
-```ts
-  {
-    id: 'megaphone-dash',
-    level: 3,
-    clip: band(440),
-    play: async (s) => {
-      await s.startSolo();
-      // 3D の準備（最長 1.5 秒）が済んで走り出すのを待つ
-      await s.wait(2500);
-      for (let i = 0; i < 6; i++) {
-        await s.touch(1, 'down', 384, 760);
-        await s.touch(1, 'up', 384, 760);
-        await s.wait(300);
-      }
-      await s.wait(200);
-    }
-  },
-```
-
-- [ ] **Step 2: 撮って見る**
-
-Run: `pnpm thumbs megaphone-dash`
-Expected: `static/thumbs/megaphone-dash.webp` ができる。Read で開き、走る子・ファン・「+N」・町並みが枠に収まっているかを見る。走る子が切れていれば `band(440)` の数を変えて撮り直す。
-
-- [ ] **Step 3: 遊ばせて撮る台本を書く**
+- [ ] **Step 1: 遊ばせて撮る台本を書く**
 
 `$SCRATCH/play/megaphone-play.mjs`（`$REPO` と `$SCRATCH` は絶対パスに置き換える）
 
@@ -2771,14 +2826,16 @@ const browser = await chromium.launch({ channel: 'chrome' });
 const errors = [];
 
 async function open(viewport, level) {
-  const page = await browser.newPage({ viewport, hasTouch: true, isMobile: true });
+  // タイトルの button.go は揺れ続けるので、動きを止めないと Playwright の click が待ち続ける
+  const page = await browser.newPage({ viewport, hasTouch: true, isMobile: true, reducedMotion: 'reduce' });
   page.on('console', (m) => {
     if (m.type() === 'error' || m.type() === 'warning') errors.push(m.text());
   });
-  await page.goto(URL);
+  await page.goto(URL, { waitUntil: 'networkidle' });
   await page.evaluate((n) => localStorage.setItem('asobibako:reached:megaphone-dash', String(n)), level);
-  await page.reload();
+  await page.reload({ waitUntil: 'networkidle' });
   await page.click('button.go');
+  await page.waitForSelector('.board canvas');
   await page.waitForFunction(() => !document.querySelector('.wait'), null, { timeout: 5000 });
   return page;
 }
@@ -2881,6 +2938,7 @@ async function swipe(page, id, from, to) {
     await page.click('button.retry');
     await page.waitForTimeout(400);
   }
+  await page.waitForSelector('.board canvas');
   await page.waitForFunction(() => !document.querySelector('.wait'), null, { timeout: 5000 });
   await page.screenshot({ path: `${OUT}/retry.png` });
   await page.close();
@@ -2892,7 +2950,7 @@ await browser.close();
 
 ボスの場面は、クリアしないと出ない。1 面ずつ進めなくてよいよう、`asobibako:reached:megaphone-dash`（`src/lib/levels.ts` の `levelKey`）にたどり着いた面を書いてから読み直す。タイトルはたどり着いた面から始まる。タップだけではボスに当たらないこともあるので、ボスの場面が撮れなければ、ボスの体力が出た時点でもよい。
 
-- [ ] **Step 4: 走らせて見る**
+- [ ] **Step 2: 走らせて見る**
 
 Run: `node $SCRATCH/play/megaphone-play.mjs`
 Expected: `frame p95 ms` が 20 前後以下。`errors` に `WebGL` や `Too many active WebGL contexts` がない。`run.png`・`swipe-left.png`・`boss.png`・`end.png`・`landscape.png`・`landscape-swipe.png`・`retry.png` を Read で見て、次を確かめる。
@@ -2907,22 +2965,13 @@ Expected: `frame p95 ms` が 20 前後以下。`errors` に `WebGL` や `Too man
 | `landscape-swipe.png` | 画面の下へのスワイプ（回した盤面の右）で、走る子が右へ移っている |
 | `retry.png`           | 作り直したあとも町並みが描けている                               |
 
-崩れていれば、原因のファイルを直して Task 7 の Step 5 から繰り返す。
+崩れていれば、原因のファイルを直して Task 7 の Step 7 から繰り返し、直したファイルを commit する。
 
-- [ ] **Step 5: まとめて確かめる**
+- [ ] **Step 3: まとめて確かめる**
 
 Run: `pnpm verify`
 Expected: lint / check / test:run / vitals / build がすべて通る。
 
-- [ ] **Step 6: commit する**
-
-```bash
-git add scripts/thumbs/scenes.ts static/thumbs/megaphone-dash.webp
-git commit -m "Add the メガホンダッシュ list thumbnail
-
-Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
-```
-
-- [ ] **Step 7: ユーザーに見せる**
+- [ ] **Step 4: ユーザーに見せる**
 
 `SendUserFile` で `run.png`・`boss.png`・`end.png` を送り、遊べるようになったことを伝える。
