@@ -173,7 +173,8 @@ export function inkArt(rgba: Uint8ClampedArray, w: number, h: number, amount: nu
   }
   const radius = 12;
   const offset = 45 - 35 * a;
-  const darkest = 110 + 90 * a;
+  // いちばん多くしたときは明るさの上限を外し、晴れた日の写真や鉛筆の薄い線も拾えるようにする
+  const darkest = 110 + 146 * a;
   const mask = new Uint8Array(w * h);
   for (let y = 0; y < h; y++) {
     const y0 = Math.max(0, y - radius);

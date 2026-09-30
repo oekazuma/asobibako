@@ -27,7 +27,7 @@ describe('colorWalls', () => {
     expect(walls.reduce((a, b) => a + b, 0)).toBe(0);
   });
 
-  it('同じ画像からは、いつも同じ境目を作る（みんなでぬりえでも端末ごとに同じになるよう、乱数を使わない）', () => {
+  it('同じ画像からは、いつも同じ境目を作る（乱数を使わない）', () => {
     const img = image((x, y) => (x < 32 ? [240, 180, 190] : y < 32 ? [250, 235, 200] : [120, 170, 230]));
     expect(colorWalls(img, W, W, 5)).toEqual(colorWalls(img, W, W, 5));
   });

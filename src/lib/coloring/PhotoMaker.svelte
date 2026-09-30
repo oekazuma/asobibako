@@ -19,6 +19,11 @@
   let mode = $state<'ink' | 'color' | 'edge'>('ink');
   let amount = $state(0.5);
   let rgba: Uint8ClampedArray | null = null;
+  /** 色の境目は線の量によらず 1 回 0.4 秒ほどかかるので、切り取りごとに 1 回だけ作る */
+  let walls: Uint8Array | null = null;
+  /** 写真を読み終える前に選び直す・閉じたときに、古い写真を受け取らないための番号 */
+  let picks = 0;
+  let alive = true;
   let mask = $state.raw<Uint8Array | null>(null);
   let note = $state('');
   let preview = $state<HTMLCanvasElement>();
@@ -29,8 +34,9 @@
     if (mode === 'edge') return (mask = lineArt(rgba, SIZE, SIZE, amount));
     const ink = inkArt(rgba, SIZE, SIZE, amount);
     if (mode === 'ink') return (mask = ink);
-    const walls = colorWalls(rgba, SIZE, SIZE, 5);
-    mask = ink.map((v, i) => v | walls[i]);
+    walls ??= colorWalls(rgba, SIZE, SIZE, 5);
+    const w = walls;
+    mask = ink.map((v, i) => v | w[i]);
   }
 
   // 線の量を動かすたびに作りなおすと iPad でも 100ms ほどかかるので、動かし終わりを待つ
@@ -39,11 +45,17 @@
     timer = setTimeout(build, 150);
   }
 
+  function recrop() {
+    clearTimeout(timer);
+    mask = null;
+  }
+
   function release() {
+    recrop();
     bmp?.close();
     bmp = null;
     rgba = null;
-    mask = null;
+    walls = null;
   }
 
   async function pick(event: Event) {
@@ -54,9 +66,12 @@
     if (!file) return;
     note = '';
     release();
+    const me = ++picks;
     try {
-      bmp = await openPhoto(file);
-      crop = initialCrop(bmp.width, bmp.height);
+      const opened = await openPhoto(file);
+      if (!alive || me !== picks) return opened.close();
+      bmp = opened;
+      crop = initialCrop(opened.width, opened.height);
       zoom = 1;
     } catch {
       note = 'この しゃしんは つかえませんでした';
@@ -66,6 +81,7 @@
   function makeLines() {
     if (!bmp) return;
     rgba = cropPixels(bmp, crop);
+    walls = null;
     build();
   }
 
@@ -74,7 +90,10 @@
     build();
   }
 
-  onDestroy(release);
+  onDestroy(() => {
+    alive = false;
+    release();
+  });
 
   $effect(() => {
     const g = preview?.getContext('2d');
@@ -106,7 +125,7 @@
       <input type="range" min="0" max="1" step="0.05" bind:value={amount} oninput={later} />
     </label>
     <div class="row">
-      <button class="pill" onclick={() => (mask = null)}>きりとりなおす</button>
+      <button class="pill" onclick={recrop}>きりとりなおす</button>
       <button class="pill gold" onclick={() => mask && onmake(mask)}>これで ぬる</button>
     </div>
   {:else if bmp}

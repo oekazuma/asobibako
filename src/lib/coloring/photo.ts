@@ -1,4 +1,4 @@
-import type { Crop } from './crop';
+import { visible, type Crop } from './crop';
 import { SIZE } from './regions';
 
 /** 縦に撮った写真が横倒しにならないよう、向きは写真の情報に従うと明示する（既定が端末の版で違ったため） */
@@ -13,6 +13,7 @@ export function cropPixels(bmp: ImageBitmap, crop: Crop): Uint8ClampedArray {
   const g = c.getContext('2d', { willReadFrequently: true })!;
   g.fillStyle = '#fff';
   g.fillRect(0, 0, SIZE, SIZE);
-  g.drawImage(bmp, crop.x, crop.y, crop.size, crop.size, 0, 0, SIZE, SIZE);
+  const d = visible(crop, bmp.width, bmp.height, SIZE);
+  g.drawImage(bmp, d.sx, d.sy, d.sw, d.sh, d.dx, d.dy, d.dw, d.dh);
   return g.getImageData(0, 0, SIZE, SIZE).data;
 }

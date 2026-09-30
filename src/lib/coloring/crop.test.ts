@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampCrop, initialCrop, panCrop, zoomCrop } from './crop';
+import { clampCrop, initialCrop, panCrop, visible, zoomCrop } from './crop';
 
 describe('initialCrop', () => {
   it('はじめは写真の全体が入る正方形（長い辺に合わせ、はみ出す側は白になる）', () => {
@@ -31,5 +31,34 @@ describe('panCrop', () => {
 describe('clampCrop', () => {
   it('写真より大きい向きは、真ん中にそろえる', () => {
     expect(clampCrop({ x: 30, y: 50, size: 400 }, 400, 200)).toEqual({ x: 0, y: -100, size: 400 });
+  });
+});
+
+describe('visible', () => {
+  // iOS の Safari は、ImageBitmap の元の範囲が写真からはみ出すと何も描かない。写真の中だけを描き、はみ出た分は描き先をずらす
+  it('写真からはみ出た正方形は、写真の中だけを元にし、描き先をその割合でずらす', () => {
+    expect(visible({ x: 0, y: -100, size: 400 }, 400, 200, 800)).toEqual({
+      sx: 0,
+      sy: 0,
+      sw: 400,
+      sh: 200,
+      dx: 0,
+      dy: 200,
+      dw: 800,
+      dh: 400
+    });
+  });
+
+  it('写真の中に収まった正方形は、そのまま描く', () => {
+    expect(visible({ x: 100, y: 0, size: 200 }, 400, 200, 100)).toEqual({
+      sx: 100,
+      sy: 0,
+      sw: 200,
+      sh: 200,
+      dx: 0,
+      dy: 0,
+      dw: 100,
+      dh: 100
+    });
   });
 });

@@ -127,4 +127,58 @@ describe('PhotoMaker', () => {
     expect(art.ink).toHaveBeenCalledTimes(2);
     unmount(app);
   });
+  it('「いろで わける」で線の量を動かしても、色の境目は作り直さない（1 回 0.4 秒ほどかかる）', async () => {
+    vi.useFakeTimers();
+    try {
+      const { app, target, press } = show();
+      photo.open.mockResolvedValueOnce(bitmap());
+      await choose(target);
+      await press('これで せんを つくる');
+      await press('いろで わける');
+      const slider = target.querySelector<HTMLInputElement>('.slider input[type=range]')!;
+      slider.value = '0.8';
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+      vi.advanceTimersByTime(200);
+      await settle();
+      expect(art.walls).toHaveBeenCalledTimes(1);
+      expect(art.ink).toHaveBeenCalledTimes(3);
+      unmount(app);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('線の量を動かした直後に「きりとりなおす」を押しても、前の線画に戻らない', async () => {
+    vi.useFakeTimers();
+    try {
+      const { app, target, press } = show();
+      photo.open.mockResolvedValueOnce(bitmap());
+      await choose(target);
+      await press('これで せんを つくる');
+      const slider = target.querySelector<HTMLInputElement>('.slider input[type=range]')!;
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+      await press('きりとりなおす');
+      vi.advanceTimersByTime(200);
+      await settle();
+      expect(target.querySelector('.crop-stub')).not.toBeNull();
+      expect(target.textContent).not.toContain('これで ぬる');
+      unmount(app);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('写真を読んでいるあいだに閉じたら、読み終えた写真をすぐ放す', async () => {
+    const { app, target } = show();
+    const bmp = bitmap();
+    let resolve!: (b: unknown) => void;
+    photo.open.mockReturnValueOnce(new Promise((r) => (resolve = r)));
+    const input = target.querySelector<HTMLInputElement>('input[type=file]')!;
+    Object.defineProperty(input, 'files', { value: [new File(['x'], 'a.jpg')], configurable: true });
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    unmount(app);
+    resolve(bmp);
+    await settle();
+    expect(bmp.close).toHaveBeenCalled();
+  });
 });

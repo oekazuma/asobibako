@@ -106,4 +106,8 @@ describe('inkArt', () => {
     expect(count(inkArt(img, W, W, 0))).toBe(0);
     expect(count(inkArt(img, W, W, 1))).toBeGreaterThan(0);
   });
+  it('せんの おおさがいちばん多いときは、明るい写真の薄い線も拾う', () => {
+    const img = image((x, y) => (y >= 23 && y <= 24 && x >= 6 && x < 42 ? 215 : 255));
+    expect(count(inkArt(img, W, W, 1))).toBeGreaterThan(0);
+  });
 });

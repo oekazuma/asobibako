@@ -1,6 +1,6 @@
 <script lang="ts">
   import { BoardInput } from '$lib/board-input';
-  import { panCrop, type Crop } from './crop';
+  import { panCrop, visible, type Crop } from './crop';
 
   let { bmp, crop = $bindable() }: { bmp: ImageBitmap; crop: Crop } = $props();
 
@@ -15,7 +15,10 @@
       if (!held) held = { id: event.pointerId, x, y };
     },
     up: (event) => {
-      if (held?.id === event.pointerId) held = null;
+      if (held?.id !== event.pointerId) return;
+      // 動かしていた指を離しても、ほかの指が残っていればその指で続けて動かせるようにする
+      const [id, rest] = [...input.fingers.all].find(([other]) => other !== event.pointerId) ?? [];
+      held = id !== undefined && rest ? { id, x: rest.x, y: rest.y } : null;
     }
   });
 
@@ -37,7 +40,8 @@
     if (!g || !canvas) return;
     g.fillStyle = '#fff';
     g.fillRect(0, 0, canvas.width, canvas.height);
-    g.drawImage(bmp, crop.x, crop.y, crop.size, crop.size, 0, 0, canvas.width, canvas.height);
+    const d = visible(crop, bmp.width, bmp.height, canvas.width);
+    g.drawImage(bmp, d.sx, d.sy, d.sw, d.sh, d.dx, d.dy, d.dw, d.dh);
   });
 </script>
 
