@@ -1758,7 +1758,8 @@ import {
 const SEGS = 7;
 /** 通行人と障害物は、この距離より先と、後ろのこの距離より手前だけ組み立てておく */
 const AHEAD = 110;
-const BEHIND = 8;
+// すれ違ったものはすぐ消す。カメラと走る子のあいだに残ると画面の下を大きくふさぐ
+const BEHIND = 1.5;
 /** 後ろをついて走るファンの見える数 */
 const FANS = 20;
 /** 音の輪が飛ぶ速さ（m/s）と、消えるまでの秒 */
@@ -2033,9 +2034,9 @@ export class RunFx {
         size: 0.12,
         life: 0.5
       });
-    } else if (e.type === 'miss') this.floaters.add('にげられた', e.walker.lane, s.z + 3, 0.45, '#7a7f8c');
+    } else if (e.type === 'miss') this.floaters.add('にげられた', e.walker.lane, s.z + 7, 0.35, '#7a7f8c');
     else if (e.type === 'bump') {
-      this.floaters.add('ドン！', s.lane, s.z + 2, 0.7, '#ff4d5e');
+      this.floaters.add('ドン！', s.lane, s.z + 6, 0.5, '#ff4d5e');
       this.shake.add(0.6);
     } else if (e.type === 'boss-in') this.#banner = { text: 'ボスが あらわれた！', age: 0 };
     else if (e.type === 'boss-hit' && s.boss) {
@@ -2542,7 +2543,7 @@ export default {
       // 通行人のいるレーンは面ごとに違うので、レーンを行き来しながら撃ってファンと「+N」を写す
       for (let i = 0; i < 16; i++) {
         if (i % 4 === 3) {
-          const to: [number, number] = [i % 8 === 3 ? 320 : 448, 760];
+          const to: [number, number] = [i % 8 === 3 ? 350 : 418, 760];
           await s.drag(1, [[384, 760], to], 120);
           await s.touch(1, 'up', ...to);
         } else {
