@@ -249,3 +249,145 @@ export function sized(t: THREE.CanvasTexture, key: string, w: number, h: number,
   }
   return c;
 }
+
+/** 廊下の床。淡い緑灰色の大きなタイル。1 枚で 2 m 四方（50cm 角） */
+export const hallFloor = () =>
+  paint('hallFloor', 512, 512, (g, r) => {
+    const n = 4;
+    const s = 512 / n;
+    for (let i = 0; i < n; i++)
+      for (let j = 0; j < n; j++) {
+        const v = r() * 10;
+        g.fillStyle = (i + j) % 2 ? `rgb(${150 + v} ${178 + v} ${170 + v})` : `rgb(${163 + v} ${190 + v} ${181 + v})`;
+        g.fillRect(i * s, j * s, s, s);
+      }
+    grain(g, r, 512, 512, 4000, 0.12, 0.15);
+    // 天井の明かりが床に映ったつや
+    const shine = g.createLinearGradient(0, 0, 512, 0);
+    shine.addColorStop(0.35, 'rgb(255 255 255 / 0)');
+    shine.addColorStop(0.5, 'rgb(255 255 255 / 0.12)');
+    shine.addColorStop(0.65, 'rgb(255 255 255 / 0)');
+    g.fillStyle = shine;
+    g.fillRect(0, 0, 512, 512);
+    g.strokeStyle = 'rgb(90 110 104 / 0.6)';
+    g.lineWidth = 3;
+    for (let i = 0; i <= n; i++) {
+      g.beginPath();
+      g.moveTo(i * s, 0);
+      g.lineTo(i * s, 512);
+      g.moveTo(0, i * s);
+      g.lineTo(512, i * s);
+      g.stroke();
+    }
+  });
+
+/** 廊下の教室側の壁。1 枚で幅 5 m・高さ 3.4 m。腰の板・緑の枠の窓・掲示物・消火栓の箱 */
+export function classroomWall(seed: number) {
+  const k = ((seed % 3) + 3) % 3;
+  return paint(`classroom:${k}`, 512, 352, (g, r) => {
+    g.fillStyle = '#eef0ea';
+    g.fillRect(0, 0, 512, 352);
+    grain(g, r, 512, 352, 2000, 0.08, 0.08);
+    // 腰の高さの板（床から 1 m）
+    g.fillStyle = '#7fa79a';
+    g.fillRect(0, 248, 512, 104);
+    g.fillStyle = 'rgb(0 0 0 / 0.12)';
+    g.fillRect(0, 248, 512, 5);
+    for (let x = 0; x < 512; x += 64) g.fillRect(x, 253, 2, 99);
+    // 教室の窓。緑の枠で 3 枚に分け、中は教室の明るさで白っぽく
+    const wx = 60;
+    const ww = 360;
+    g.fillStyle = '#4f8a76';
+    g.fillRect(wx - 8, 70, ww + 16, 170);
+    const glass = g.createLinearGradient(0, 78, 0, 232);
+    glass.addColorStop(0, '#f4fbff');
+    glass.addColorStop(1, '#bfd6de');
+    g.fillStyle = glass;
+    g.fillRect(wx, 78, ww, 154);
+    g.fillStyle = '#4f8a76';
+    for (let i = 1; i < 3; i++) g.fillRect(wx + (ww / 3) * i - 4, 78, 8, 154);
+    g.fillRect(wx, 150, ww, 6);
+    // 掲示物と消火栓の箱
+    const posters = ['#ff8a8a', '#8ec5ff', '#ffd66b', '#b8e28a'];
+    if (k !== 1) {
+      g.fillStyle = posters[k];
+      g.fillRect(440, 110, 50, 70);
+      g.fillStyle = 'rgb(0 0 0 / 0.25)';
+      for (let i = 0; i < 4; i++) g.fillRect(446, 122 + i * 12, 38, 4);
+    } else {
+      g.fillStyle = '#d93a3a';
+      g.fillRect(440, 150, 50, 90);
+      g.fillStyle = '#ffffff';
+      g.font = "800 16px 'Hiragino Maru Gothic ProN', system-ui";
+      g.textAlign = 'center';
+      g.fillText('消火栓', 465, 200);
+    }
+  });
+}
+
+/** 廊下の外側の壁。1 枚で幅 5 m・高さ 3.4 m。大きな窓から外の光が差しこむ */
+export const outsideWall = () =>
+  paint('outsideWall', 512, 352, (g, r) => {
+    g.fillStyle = '#f6f5f0';
+    g.fillRect(0, 0, 512, 352);
+    grain(g, r, 512, 352, 1500, 0.06, 0.06);
+    g.fillStyle = '#c9cfc9';
+    g.fillRect(0, 262, 512, 90);
+    const glass = g.createLinearGradient(0, 40, 0, 250);
+    glass.addColorStop(0, '#ffffff');
+    glass.addColorStop(0.6, '#e6f5ff');
+    glass.addColorStop(1, '#c8e6d8');
+    g.fillStyle = '#b8c2bc';
+    g.fillRect(24, 36, 464, 222);
+    g.fillStyle = glass;
+    g.fillRect(32, 44, 448, 206);
+    g.fillStyle = '#b8c2bc';
+    g.fillRect(252, 44, 8, 206);
+  });
+
+const SHOP_COLORS = ['#e8573f', '#2f8fdc', '#f2a93b', '#3fa66b', '#8e5ad8', '#e94f8a'];
+const SHOP_NAMES = ['やおや', 'たいやき', 'ほんや', 'くすり', 'おもちゃ', 'パンや'];
+
+/** 商店街の店先。1 枚で幅 8 m・高さ 4.6 m。看板・のれん・店先の品物の棚、ときどき閉まったシャッター */
+export function shopFront(seed: number) {
+  const k = ((seed % 6) + 6) % 6;
+  return paint(`shop:${k}`, 512, 294, (g, r) => {
+    const color = SHOP_COLORS[k];
+    g.fillStyle = '#e9dfcf';
+    g.fillRect(0, 0, 512, 294);
+    grain(g, r, 512, 294, 2000, 0.1, 0.08);
+    // 看板
+    g.fillStyle = color;
+    g.fillRect(20, 20, 472, 56);
+    g.fillStyle = '#ffffff';
+    g.font = "900 38px 'Hiragino Maru Gothic ProN', system-ui";
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(SHOP_NAMES[k], 256, 49);
+    if (k === 3) {
+      // 閉まったシャッター
+      g.fillStyle = '#b9bcc2';
+      g.fillRect(30, 90, 452, 204);
+      g.fillStyle = 'rgb(0 0 0 / 0.12)';
+      for (let y = 94; y < 294; y += 8) g.fillRect(30, y, 452, 2);
+      return;
+    }
+    // 店の中（少し暗い）と、のれん
+    g.fillStyle = '#5a4a45';
+    g.fillRect(30, 90, 452, 204);
+    g.fillStyle = color;
+    for (let i = 0; i < 6; i++) g.fillRect(40 + i * 75, 90, 66, 60);
+    // 店先の品物の棚。色とりどりの箱を並べる
+    g.fillStyle = '#8a6a4a';
+    g.fillRect(40, 230, 432, 12);
+    const goods = ['#ff6b5b', '#ffd23a', '#7fd36b', '#ff9f43', '#e9e6df', '#b06bd6'];
+    for (let i = 0; i < 14; i++) {
+      g.fillStyle = goods[(i + k) % goods.length];
+      g.beginPath();
+      g.arc(56 + i * 30, 218, 12 + r() * 3, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.fillStyle = '#a07a52';
+    g.fillRect(40, 242, 432, 52);
+  });
+}

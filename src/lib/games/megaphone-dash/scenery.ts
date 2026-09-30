@@ -1,7 +1,18 @@
 import * as THREE from 'three';
 import type { Zone } from './course';
 import { box, cyl, geo, mat, mesh, ROAD_W, SEG, sphere } from './models';
-import { asphalt, concrete, facade, sized, tactile, tiles } from './textures';
+import {
+  asphalt,
+  classroomWall,
+  concrete,
+  facade,
+  hallFloor,
+  outsideWall,
+  shopFront,
+  sized,
+  tactile,
+  tiles
+} from './textures';
 
 /** 場所ごとの空（空の絵に掛ける色）・霧・光の色。景色が変わるたびに、ここへ向かって少しずつ寄せる */
 export const MOOD: Record<Zone, { sky: string; fog: string; sun: string; sunI: number; hemi: string; ground: string }> =
@@ -37,10 +48,6 @@ function ground(x: number, w: number, y: number, m: THREE.Material, h = 0.1) {
   g.position.set(x, y - h / 2, -SEG / 2);
   g.receiveShadow = true;
   return g;
-}
-
-function floor(width: number, color: string) {
-  return ground(0, width, 0, mat(color));
 }
 
 /** 歩道の左の建物。正面（+x の面）に窓と看板の絵を貼る */
@@ -173,91 +180,137 @@ function street(index: number): THREE.Group {
 
 const SHOPS = ['#ff8f70', '#ffd166', '#7fd1ae', '#8fb8ff', '#d7a6ff', '#ff9ec8'];
 
-/** 商店街。アーケードの屋根・店先ののれんと看板・ちょうちん（光ってにじむ） */
+/** 箱の 1 つの面にだけ絵を貼る材質の並び。face は +x, -x, +y, -y, +z, -z の順の番号 */
+function faced(front: THREE.Material, plain: THREE.Material, face: number) {
+  return [0, 1, 2, 3, 4, 5].map((i) => (i === face ? front : plain));
+}
+
+/** 商店街。店先の絵を貼った店・2 階の窓と看板・アーケードの屋根と梁・ちょうちん・吊り下がった旗 */
 function arcade(index: number): THREE.Group {
   const g = new THREE.Group();
-  g.add(floor(ROAD_W + 5, '#c9b9a3'));
-  for (let z = 0; z < SEG; z += 2) {
-    const tile = new THREE.Mesh(box(ROAD_W + 5, 0.02, 0.06), mat('#b19f88'));
-    tile.position.set(0, 0.01, -z);
-    g.add(tile);
-  }
+  const walkW = ROAD_W + 3;
+  g.add(ground(0, walkW, 0, tex(tiles(), 'arcadeFloor', walkW, SEG, 2.4)));
+  const tint = texMats.get('arcadeFloor:' + walkW + ':' + SEG)!;
+  tint.color.set('#f1e2c8');
   for (const side of [-1, 1]) {
     for (const [k, z] of [5, 15].entries()) {
-      const seed = index * 4 + k * 2 + (side > 0 ? 1 : 0);
-      const shop = new THREE.Group();
-      shop.add(mesh(box(3, 4.6, 9.4), '#efe4d2', 0, 2.3));
-      const color = pick(SHOPS, seed);
-      const front = mesh(box(0.1, 1.9, 7.6), '#3b3144', -side * 1.52, 1.1, 0);
-      front.castShadow = false;
-      shop.add(front);
-      shop.add(mesh(box(0.14, 0.7, 7.8), color, -side * 1.56, 3.4, 0));
-      const cloth = mesh(box(0.06, 0.6, 7.2), color, -side * 1.62, 2.55, 0);
-      cloth.castShadow = false;
-      shop.add(cloth);
-      shop.position.set(side * (ROAD_W / 2 + 2.5 + 1.5), 0, -z);
+      const seed = index * 2 + k + (side > 0 ? 3 : 0);
+      const key = `shopFront:${((seed % 6) + 6) % 6}`;
+      let front = texMats.get(key);
+      if (!front) {
+        front = new THREE.MeshStandardMaterial({ map: shopFront(seed), roughness: 0.85 });
+        texMats.set(key, front);
+      }
+      const shop = new THREE.Mesh(box(4, 4.6, 9.6), faced(front, mat('#e3d6c2'), side < 0 ? 0 : 1));
+      shop.position.set(side * (walkW / 2 + 2), 2.3, -z);
+      shop.castShadow = shop.receiveShadow = true;
       g.add(shop);
+      // 2 階。窓の並びと、張り出した看板
+      const upper = new THREE.Mesh(
+        box(4, 2.6, 9.6),
+        faced(tex(facade(seed + 1), 'upper' + (seed % 6), 9.6, 2.6, 8, 12), mat('#d9cdb8'), side < 0 ? 0 : 1)
+      );
+      upper.position.set(side * (walkW / 2 + 2), 5.9, -z);
+      g.add(upper);
+      const sign = mesh(box(0.12, 1.4, 0.5), glow(pick(SHOPS, seed), 0.5), side * (walkW / 2 - 0.2), 3.9, -z + 3);
+      sign.castShadow = false;
+      g.add(sign);
     }
     for (let z = 2; z < SEG; z += 4) {
-      const lantern = mesh(sphere(0.28), glow(z % 8 === 2 ? '#ff5a4f' : '#ffb347'), side * (ROAD_W / 2 + 1.2), 3.2, -z);
-      lantern.scale.set(1, 1.25, 1);
+      const lantern = mesh(sphere(0.26), glow(z % 8 === 2 ? '#ff5a4f' : '#ffb347'), side * (walkW / 2 - 0.6), 3.3, -z);
+      lantern.scale.set(1, 1.3, 1);
       lantern.castShadow = false;
       g.add(lantern);
     }
   }
-  // アーケードの屋根。光を通す半透明の板を、梁の上に並べる
+  // アーケードの屋根。梁の上に、光を通す半透明の板を並べる
   for (let z = 0; z < SEG; z += 4) {
-    const beam = mesh(box(ROAD_W + 9, 0.18, 0.18), '#6c6f7d', 0, 5.4, -z);
+    const beam = mesh(box(walkW + 1, 0.2, 0.2), '#7b7f8c', 0, 6.4, -z);
     beam.castShadow = false;
     g.add(beam);
+    for (const side of [-1, 1]) {
+      const post = mesh(box(0.2, 1.4, 0.2), '#7b7f8c', side * (walkW / 2), 5.8, -z);
+      post.castShadow = false;
+      g.add(post);
+    }
   }
   const roof = new THREE.Mesh(
-    box(ROAD_W + 9, 0.05, SEG),
-    mat('#fff4e0', { transparent: true, opacity: 0.35, emissive: '#fff1d0', emissiveIntensity: 0.3 })
+    box(walkW + 1, 0.05, SEG),
+    mat('#fff4e0', { transparent: true, opacity: 0.3, emissive: '#fff1d0', emissiveIntensity: 0.4 })
   );
-  roof.position.set(0, 5.6, -SEG / 2);
+  roof.position.set(0, 6.6, -SEG / 2);
   g.add(roof);
-  const banner = mesh(box(3.2, 0.7, 0.08), glow(pick(SHOPS, index), 0.6), 0, 4.4, -10);
-  banner.castShadow = false;
-  g.add(banner);
+  // 通りの上に吊った三角の旗の列
+  for (let i = 0; i < 12; i++) {
+    const flag = new THREE.Mesh(
+      geo('flag', () => new THREE.ConeGeometry(0.18, 0.4, 3).rotateX(Math.PI)),
+      mat(pick(SHOPS, i + index), { side: THREE.DoubleSide })
+    );
+    flag.position.set(-walkW / 2 + 0.5 + (i / 11) * (walkW - 1), 5.2 - Math.sin((i / 11) * Math.PI) * 0.5, -10);
+    flag.castShadow = false;
+    g.add(flag);
+  }
   return g;
 }
 
-/** 校舎の廊下。床の板・腰壁・窓・ロッカー・天井の明かり（光ってにじむ） */
+/** 校舎の廊下。緑灰色のタイルの床・教室の窓と腰板の壁・外の光が差す大きな窓の壁・天井の蛍光灯・柱 */
 function hall(index: number): THREE.Group {
   const g = new THREE.Group();
   const half = 2.4;
-  g.add(floor(half * 2, '#b9d3c9'));
-  for (let z = 0; z < SEG; z += 1.2) {
-    const seam = new THREE.Mesh(box(half * 2, 0.02, 0.04), mat('#a3c1b6'));
-    seam.position.set(0, 0.01, -z);
-    g.add(seam);
-  }
-  for (const side of [-1, 1]) {
-    const wall = mesh(box(0.2, 3.4, SEG), '#f5f1e8', side * (half + 0.1), 1.7, -SEG / 2);
-    wall.receiveShadow = true;
-    g.add(wall);
-    const skirting = mesh(box(0.22, 1.0, SEG), '#7fb7a4', side * (half + 0.09), 0.5, -SEG / 2);
-    skirting.castShadow = false;
-    g.add(skirting);
-    for (let z = 2.5; z < SEG; z += 5) {
-      if (side < 0) {
-        const win = mesh(box(0.05, 1.4, 3.4), glow('#e6f6ff', 0.9), -half + 0.01, 2.05, -z);
-        win.castShadow = false;
-        g.add(win);
-      } else {
-        const locker = mesh(box(0.4, 1.6, 2.4), (index + z) % 2 ? '#8fa6c9' : '#9bb6a8', half - 0.2, 0.8, -z);
-        g.add(locker);
-      }
+  g.add(ground(0, half * 2, 0, tex(hallFloor(), 'hallFloor', half * 2, SEG, 2)));
+  const plain = mat('#eceee8');
+  const wall = (key: string, make: () => THREE.MeshStandardMaterial) => {
+    let m = texMats.get(key);
+    if (!m) {
+      m = make();
+      texMats.set(key, m);
     }
-  }
-  const ceiling = mesh(box(half * 2 + 0.4, 0.15, SEG), '#fbfaf6', 0, 3.45, -SEG / 2);
+    return m;
+  };
+  const k = ((index % 3) + 3) % 3;
+  const left = wall(
+    `hallLeft:${k}`,
+    () =>
+      new THREE.MeshStandardMaterial({
+        map: sized(classroomWall(k), `classroom${k}`, SEG, 3.4, 5, 3.4),
+        roughness: 0.9
+      })
+  );
+  // 外の光が差しこむ窓は、自分でも少し光らせて白くにじませる
+  const right = wall('hallRight', () => {
+    const t = sized(outsideWall(), 'outsideWall', SEG, 3.4, 5, 3.4);
+    return new THREE.MeshStandardMaterial({
+      map: t,
+      emissive: '#ffffff',
+      emissiveMap: t,
+      emissiveIntensity: 0.35,
+      roughness: 0.9
+    });
+  });
+  const lw = new THREE.Mesh(box(0.2, 3.4, SEG), faced(left, plain, 0));
+  lw.position.set(-half - 0.1, 1.7, -SEG / 2);
+  lw.receiveShadow = true;
+  g.add(lw);
+  const rw = new THREE.Mesh(box(0.2, 3.4, SEG), faced(right, plain, 1));
+  rw.position.set(half + 0.1, 1.7, -SEG / 2);
+  rw.receiveShadow = true;
+  g.add(rw);
+  for (const side of [-1, 1])
+    for (let z = 0; z < SEG; z += 5) {
+      const pillar = mesh(box(0.3, 3.4, 0.4), '#f2f1ec', side * (half - 0.05), 1.7, -z);
+      pillar.castShadow = false;
+      g.add(pillar);
+    }
+  const ceiling = mesh(box(half * 2 + 0.4, 0.15, SEG), '#f4f4ef', 0, 3.45, -SEG / 2);
   ceiling.castShadow = false;
   g.add(ceiling);
-  for (let z = 3; z < SEG; z += 5) {
-    const light = mesh(box(0.25, 0.06, 1.8), glow('#ffffff', 2.4), 0, 3.35, -z);
+  for (let z = 2.5; z < SEG; z += 5) {
+    const light = mesh(box(0.35, 0.05, 1.6), glow('#ffffff', 2.6), 0, 3.37, -z);
     light.castShadow = false;
     g.add(light);
+    const frame = mesh(box(0.45, 0.04, 1.7), '#d8d9d4', 0, 3.39, -z);
+    frame.castShadow = false;
+    g.add(frame);
   }
   return g;
 }
