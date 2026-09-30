@@ -105,7 +105,9 @@
         <Icon name={audio.muted ? 'mute' : 'speaker'} size="26px" />
       </button>
       {#if onpair && !net && screen === 'title'}
-        <button class="round edge pair" onclick={onpair} aria-label="2だいで あそぶ">2だい</button>
+        <button class="pill gold edge pair" onclick={onpair}>
+          <Icon name="devices" size="28px" />2だいで あそぶ
+        </button>
       {/if}
     {/if}
   </div>
@@ -126,12 +128,12 @@
     right: max(10px, env(safe-area-inset-right));
   }
 
+  /* 1 台で遊ぶ人の邪魔をしないよう境界線の上に置き、見落とさないよう金色にする */
   .pair {
     left: 50%;
-    width: auto;
-    padding: 0 14px;
-    border-radius: 999px;
+    padding: 8px 18px;
     font-size: 16px;
+    white-space: nowrap;
     translate: -50% -50%;
   }
 
