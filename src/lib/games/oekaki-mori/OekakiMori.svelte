@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
   import { resolve } from '$app/paths';
+  import { audio, toggleMute, wake } from '$lib/audio.svelte';
+  import Icon from '$lib/components/Icon.svelte';
   import type { Message } from '$lib/net/link';
   import type { Party, Seat } from '$lib/net/party.svelte';
   import type { Bubble } from './Bubbles.svelte';
@@ -97,7 +99,8 @@
 
 <svelte:window onpagehide={() => party?.close()} />
 
-<main class="stage mori">
+<!-- 当てる人は盤面に触れずに 50 音盤だけを押すので、どこに触れても音を起こす（iOS は操作の中でしか鳴らし始められない） -->
+<main class="stage mori" onpointerdown={wake}>
   {#if screen === 'practice'}
     <Practice onback={() => (screen = 'lobby')} />
   {:else if screen === 'lobby' || !party}
@@ -120,6 +123,9 @@
   {/if}
   {#if screen !== 'play' && screen !== 'practice'}
     <a class="round back" href={resolve('/')} aria-label="ゲーム選択へ戻る">✕</a>
+    <button class="round mute" onclick={toggleMute} aria-label="ミュート" aria-pressed={audio.muted}>
+      <Icon name={audio.muted ? 'mute' : 'speaker'} size="26px" />
+    </button>
   {/if}
 </main>
 
@@ -128,9 +134,17 @@
     background: var(--paper);
   }
 
-  .back {
+  .back,
+  .mute {
     position: absolute;
     top: max(10px, env(safe-area-inset-top));
+  }
+
+  .back {
     left: max(10px, env(safe-area-inset-left));
+  }
+
+  .mute {
+    right: max(10px, env(safe-area-inset-right));
   }
 </style>

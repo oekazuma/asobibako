@@ -24,6 +24,8 @@
   let stream = $state<MediaStream>();
   let video = $state<HTMLVideoElement>();
   let wanted = $state.raw<Wanted>();
+  /** やめたあとにカメラが開いたり、つながったりしても、拾わずに閉じる */
+  let alive = true;
 
   const step = $derived(role === 'host' ? (looking ? 2 : 1) : looking ? 1 : 2);
 
@@ -44,13 +46,16 @@
 
   function done(link: Link) {
     closeCamera(stream);
-    onlink(link);
+    if (alive) onlink(link);
+    else link.close();
   }
 
   onMount(async () => {
     try {
       // 接続情報を作る前にカメラを開く。許可がないと自分のアドレスが伏せられ、つながらないことがある
-      stream = await openCamera(facing);
+      const opened = await openCamera(facing);
+      if (!alive) return closeCamera(opened);
+      stream = opened;
     } catch {
       onfail('カメラを つかえませんでした');
       return;
@@ -78,7 +83,10 @@
     stream = await openCamera(facing);
   }
 
-  onDestroy(() => closeCamera(stream));
+  onDestroy(() => {
+    alive = false;
+    closeCamera(stream);
+  });
 </script>
 
 {#if looking}
