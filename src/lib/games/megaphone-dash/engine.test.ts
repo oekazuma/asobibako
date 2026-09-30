@@ -191,7 +191,7 @@ describe('障害物', () => {
     const s = empty();
     s.combo = 20;
     s.blocks = [block(1, 1, 'high')];
-    step(s, 0.05);
+    step(s, 0.2);
     expect(s.blocks[0].hit).toBe(true);
   });
 });
