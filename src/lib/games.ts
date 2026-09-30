@@ -11,6 +11,7 @@ import hirameki from './games/hirameki/meta';
 import hockey from './games/hockey/meta';
 import lightning from './games/lightning/meta';
 import megaphoneDash from './games/megaphone-dash/meta';
+import nurie from './games/nurie/meta';
 import oekakiMori from './games/oekaki-mori/meta';
 import petHouse from './games/pet-house/meta';
 import pinRescue from './games/pin-rescue/meta';
@@ -96,6 +97,7 @@ export const games: GameMeta[] = [
   dogGuard,
   snowCamp,
   dentist,
+  nurie,
   doodleWorm,
   oekakiMori,
   borderRush,

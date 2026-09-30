@@ -341,6 +341,39 @@ export const SCENES: Scene[] = [
     }
   },
   {
+    id: 'nurie',
+    clip: band(170),
+    // おうちのテンプレートを、屋根・かべ・まど・ドア・地面・空の順に塗る
+    play: async (s) => {
+      await s.startSolo();
+      await s.press('button[aria-label="おうち"]');
+      await s.wait(300);
+      const box = (await s.page.locator('.sheet').boundingBox())!;
+      const at = (x: number, y: number) => s.tap(1, box.x + box.width * x, box.y + box.height * y);
+      for (const [name, x, y] of [
+        ['あか', 0.3, 0.44],
+        ['クリーム', 0.3, 0.8],
+        ['みずいろ', 0.285, 0.61],
+        ['みずいろ', 0.285, 0.67],
+        ['みずいろ', 0.335, 0.61],
+        ['みずいろ', 0.335, 0.67],
+        ['みずいろ', 0.665, 0.61],
+        ['みずいろ', 0.665, 0.67],
+        ['みずいろ', 0.715, 0.61],
+        ['みずいろ', 0.715, 0.67],
+        ['はいいろ', 0.7, 0.26],
+        ['ちゃいろ', 0.5, 0.8],
+        ['みどり', 0.5, 0.95],
+        ['あお', 0.1, 0.1],
+        ['きいろ', 0.5, 0.36]
+      ] as const) {
+        await s.press(`button[aria-label="${name}"]`);
+        await at(x, y);
+        await s.wait(100);
+      }
+    }
+  },
+  {
     // 足のあるピンクの子、しっぽのある子、はねのある子を 1 匹ずつ描いて動かす。しっぽのある子はしっぽと逆の側へ這うので内側を向ける
     id: 'doodle-worm',
     clip: band(290),
