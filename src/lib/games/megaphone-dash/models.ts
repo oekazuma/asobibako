@@ -142,7 +142,10 @@ export function walker(seed: number): Figure {
 
 /** ファンになった通行人は、光るピンクの服になって後ろを走る */
 export function cheer(fig: Figure): void {
-  fig.body.material = mat('#ff7eb6', { emissive: '#ff3d8b', emissiveIntensity: 0.35 });
+  const fan = mat('#ff7eb6', { emissive: '#ff3d8b', emissiveIntensity: 0.35 });
+  fig.body.material = fan;
+  // 袖は各腕の付け根の最初の子（chibi の組み立て順）
+  for (const arm of fig.arms) (arm.children[0] as THREE.Mesh).material = fan;
   fig.group.rotation.y = 0;
 }
 
@@ -269,21 +272,22 @@ export function gate(): { group: THREE.Group; dispose: () => void } {
   const group = new THREE.Group();
   for (const side of [-1, 1]) group.add(mesh(box(0.6, 2.6, 0.6), '#b8bcc4', side * (ROAD_W / 2 + 0.3), 1.3));
   const c = document.createElement('canvas');
-  c.width = 512;
-  c.height = 128;
+  c.width = 1024;
+  c.height = 160;
   const x = c.getContext('2d')!;
   x.fillStyle = '#ffc233';
-  x.fillRect(0, 0, 512, 128);
+  x.fillRect(0, 0, 1024, 160);
   x.fillStyle = '#2b2d42';
-  x.font = "800 84px 'Hiragino Maru Gothic ProN', system-ui";
+  x.font = "800 110px 'Hiragino Maru Gothic ProN', system-ui";
   x.textAlign = 'center';
   x.textBaseline = 'middle';
-  x.fillText('がっこう', 256, 68);
+  x.fillText('がっこう', 512, 84);
   const texture = new THREE.CanvasTexture(c);
   texture.colorSpace = THREE.SRGBColorSpace;
   const signMat = new THREE.MeshStandardMaterial({ map: texture });
-  const sign = new THREE.Mesh(box(ROAD_W * 0.6, ROAD_W * 0.15, 0.15), signMat);
-  sign.position.set(0, 2.9, 0);
+  const sign = new THREE.Mesh(box(ROAD_W + 0.6, 1, 0.6), signMat);
+  // 柱の上に載せる。看板が柱の中心から中心まで渡り、下の 5cm は柱にめり込ませる
+  sign.position.set(0, 3.05, 0);
   group.add(sign);
   return {
     group,
