@@ -6,7 +6,7 @@
   import type { Message } from '$lib/net/link';
   import type { Party, Seat } from '$lib/net/party.svelte';
   import type { Bubble } from './Bubbles.svelte';
-  import type { View } from './engine';
+  import type { Mode, View } from './engine';
   import Lobby from './Lobby.svelte';
   import ModeSelect from './ModeSelect.svelte';
   import Play from './Play.svelte';
@@ -62,6 +62,7 @@
     if (prev?.phase === 'draw' && next.phase === 'reveal')
       gallery = [...gallery, { word: next.word ?? '', by: next.drawer, strokes }];
     if (prev && next.solved.length > prev.solved.length) sounds.right();
+    if (prev && next.buzzer !== null && next.buzzer !== prev.buzzer) sounds.buzz();
     view = next;
     screen = next.phase === 'done' ? 'result' : 'play';
   }
@@ -71,10 +72,10 @@
     party?.act({ t: 'ink', ink: i });
   }
 
-  function begin() {
+  function begin(mode: Mode) {
     referee?.stop();
     referee = new Referee(party!);
-    referee.start();
+    referee.start(mode);
   }
 
   function toMode() {
@@ -108,16 +109,7 @@
   {:else if screen === 'mode'}
     <ModeSelect {party} onpick={begin} onlobby={() => party?.tell('all', { t: 'screen', screen: 'lobby' })} />
   {:else if screen === 'play' && view}
-    <Play
-      {view}
-      me={party.me}
-      {strokes}
-      {bubbles}
-      {close}
-      onink={ink}
-      onguess={(text) => party?.act({ t: 'guess', text })}
-      onpick={(index) => party?.act({ t: 'pick', index })}
-    />
+    <Play {view} me={party.me} {strokes} {bubbles} {close} onink={ink} act={(m) => party?.act(m)} />
   {:else if screen === 'result' && view}
     <Result {view} me={party.me} {gallery} host={party.host} onagain={toMode} />
   {/if}

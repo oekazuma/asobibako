@@ -1,5 +1,7 @@
 <script lang="ts">
+  import type { Message } from '$lib/net/link';
   import type { Seat } from '$lib/net/party.svelte';
+  import Buzzer from './Buzzer.svelte';
   import Board from './Board.svelte';
   import Bubbles, { type Bubble } from './Bubbles.svelte';
   import type { View } from './engine';
@@ -15,8 +17,7 @@
     bubbles,
     close,
     onink,
-    onguess,
-    onpick
+    act
   }: {
     view: View;
     me: Seat;
@@ -24,8 +25,7 @@
     bubbles: Bubble[];
     close: boolean;
     onink: (ink: Ink) => void;
-    onguess: (text: string) => void;
-    onpick: (index: number) => void;
+    act: (message: Message) => void;
   } = $props();
 
   let color = $state<string>(PENS[0].hex);
@@ -40,27 +40,28 @@
 <div class="middle">
   <Board {strokes} {pen} {onink} />
   <Bubbles {bubbles} />
-  {#if view.phase === 'pick'}
+  {#if view.phase === 'ready'}
     <div class="cover">
-      {#if view.choices}
-        <p>どっちを かく？</p>
-        {#each view.choices as word, i (word)}
-          <button class="pill gold" onclick={() => onpick(i)}>{word}</button>
-        {/each}
+      {#if drawing}
+        <p>おだいは「{view.word}」</p>
+        <button class="pill gold" onclick={() => act({ t: 'start' })}>かきはじめる</button>
       {:else}
-        <p>{view.drawer}P が かくものを えらんでいます</p>
+        <p>{view.drawer}P が じゅんびしています</p>
       {/if}
     </div>
   {:else if view.phase === 'reveal'}
-    <div class="cover"><p>こたえは「{view.word}」</p></div>
+    <!-- 描いた絵もいっしょに見せるので、覆わずに答えだけを上に出す -->
+    <p class="answer">こたえは「{view.word}」</p>
   {/if}
   {#if close}<p class="flash">おしい！</p>{/if}
   {#if solved && view.phase === 'draw'}<p class="flash right">せいかい！</p>{/if}
 </div>
 {#if drawing}
   <Tools bind:color bind:size bind:erasing onundo={() => onink({ k: 'undo' })} onclear={() => onink({ k: 'clear' })} />
+{:else if view.mode === 'hayaoshi'}
+  <Buzzer {view} {me} {act} />
 {:else}
-  <KanaPad disabled={view.phase !== 'draw' || solved} onsubmit={onguess} />
+  <KanaPad disabled={view.phase !== 'draw' || solved} onsubmit={(text) => act({ t: 'guess', text })} />
 {/if}
 
 <style>
@@ -86,6 +87,19 @@
     color: var(--line);
     font-size: clamp(20px, 4cqh, 32px);
     font-weight: 800;
+  }
+
+  .answer {
+    position: absolute;
+    top: 12px;
+    padding: 6px 20px;
+    border: 3px solid var(--line);
+    border-radius: 999px;
+    background: var(--pastel-gold);
+    color: var(--line);
+    font-size: clamp(20px, 4cqh, 32px);
+    font-weight: 800;
+    pointer-events: none;
   }
 
   .cover .pill {

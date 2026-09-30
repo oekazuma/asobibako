@@ -8,10 +8,12 @@
 
 <header class="bar">
   <p class="word" aria-live="polite">
-    {#if view.phase === 'pick'}
-      {drawing ? 'かく ものを えらんでね' : `${view.drawer}P が えらんでいます`}
+    {#if view.phase === 'ready'}
+      {drawing ? 'おだいを みてね' : `${view.drawer}P が じゅんびしています`}
     {:else if view.word}
       {drawing ? 'おだい' : 'こたえ'} <b>{view.word}</b>
+    {:else if view.mode === 'hayaoshi'}
+      なにを かいているかな？
     {:else}
       <b class="mask">{view.mask}</b> {[...view.mask].length}もじ
     {/if}
@@ -19,7 +21,13 @@
   <p class="left" class:hurry={view.phase === 'draw' && view.left <= 10}>{view.left}</p>
   <ul class="scores">
     {#each view.players as seat (seat)}
-      <li class="p{seat}" class:drawer={seat === view.drawer} class:solved={view.solved.includes(seat)}>
+      <li
+        class="p{seat}"
+        class:drawer={seat === view.drawer}
+        class:solved={view.solved.includes(seat)}
+        class:out={view.out.includes(seat)}
+        class:answering={seat === view.buzzer}
+      >
         {seat}P{seat === me ? '（あなた）' : ''}
         {view.scores[seat]}
       </li>
@@ -84,6 +92,18 @@
 
   .scores .drawer {
     outline: 3px solid var(--line);
+  }
+
+  .scores .answering {
+    outline: 3px solid var(--p2);
+  }
+
+  .scores .answering::after {
+    content: ' こたえ中';
+  }
+
+  .scores .out::after {
+    content: ' ×';
   }
 
   .scores .solved::after {

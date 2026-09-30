@@ -1,7 +1,8 @@
 import { animate } from '$lib/loop';
 import type { Message } from '$lib/net/link';
 import type { Party, Seat } from '$lib/net/party.svelte';
-import { create, drawer, guess, leave, pick, tick, view, type Egokoro } from './engine';
+import { answer, buzz, create, drawer, guess, leave, start, tick, view, type Mode, type Quiz } from './engine';
+import { WORDS } from './words';
 
 /**
  * 親の端末だけで動く。遊ぶ人の操作を受けてルールを進め、人ごとの見え方を配る。
@@ -9,7 +10,7 @@ import { create, drawer, guess, leave, pick, tick, view, type Egokoro } from './
  */
 export class Referee {
   readonly #party: Party;
-  #state: Egokoro | null = null;
+  #state: Quiz | null = null;
   #sent = new Map<Seat, string>();
   #stop: (() => void)[] = [];
 
@@ -17,8 +18,8 @@ export class Referee {
     this.#party = party;
   }
 
-  start(): void {
-    this.#state = create(this.#party.members);
+  start(mode: Mode): void {
+    this.#state = create(this.#party.members, Math.random, WORDS, mode);
     this.#stop.push(
       this.#party.onAct((message, from) => this.#act(message, from)),
       animate((dt) => {
@@ -38,7 +39,7 @@ export class Referee {
   #act(message: Message, from: Seat) {
     const s = this.#state;
     if (!s) return;
-    if (message.t === 'pick') pick(s, from, Number(message.index));
+    if (message.t === 'start') start(s, from);
     else if (message.t === 'ink') {
       // 描く人の端末は自分で描いているので、ほかの人にだけ配る
       if (s.phase !== 'draw' || from !== drawer(s)) return;
@@ -48,6 +49,11 @@ export class Referee {
       const verdict = guess(s, from, text);
       if (verdict === 'wrong') this.#party.tell('all', { t: 'bubble', seat: from, text });
       else if (verdict === 'close') this.#party.tell(from, { t: 'close' });
+    } else if (message.t === 'buzz') buzz(s, from);
+    else if (message.t === 'answer') {
+      const index = Number(message.index);
+      const text = s.options[index];
+      if (answer(s, from, index) === 'wrong') this.#party.tell('all', { t: 'bubble', seat: from, text });
     } else if (message.t === 'leave') leave(s, from);
     this.#push();
   }
