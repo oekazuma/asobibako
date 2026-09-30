@@ -40,6 +40,9 @@ const FANS = 20;
 const WAVE_SPEED = 40;
 const WAVE_LIFE = 0.35;
 
+const near = new THREE.Vector3();
+const far = new THREE.Vector3();
+
 const laneX = (lane: number) => (lane - (LANES - 1) / 2) * LANE_W;
 
 /** 走る子の足の振り。振る速さは走る速さに合わせる */
@@ -110,7 +113,16 @@ export class RunWorld {
     // compileAsync は見えているものしか準備しない。隠してある校門とボスもこのときだけ見せる（次の update で戻る）
     this.#gate.group.visible = true;
     this.#boss.group.visible = true;
-    return this.renderer.compileAsync(this.scene, this.camera);
+    // 音の輪と警告の輪は transparent で別のシェーダーになる。最初の 1 発と最初の落下物で初めて作るとそこで止まるので、先に作らせる
+    const probes = [wave(), warnRing()];
+    for (const m of probes) {
+      m.position.copy(this.#hero.group.position);
+      this.scene.add(m);
+    }
+    const drop = () => this.scene.remove(...probes);
+    const done = this.renderer.compileAsync(this.scene, this.camera);
+    done.then(drop, drop);
+    return done;
   }
 
   handle(e: RunEvent): void {
@@ -261,8 +273,8 @@ export class RunWorld {
 
   /** レーン・距離・高さ（m）を、画面のピクセルと、そこでの 1 m あたりのピクセル数へ */
   project(lane: number, dist: number, height: number, w: number, h: number): [number, number, number] {
-    const p = new THREE.Vector3(laneX(lane), height, -dist).project(this.camera);
-    const q = new THREE.Vector3(laneX(lane) + 1, height, -dist).project(this.camera);
+    const p = near.set(laneX(lane), height, -dist).project(this.camera);
+    const q = far.set(laneX(lane) + 1, height, -dist).project(this.camera);
     return [((p.x + 1) / 2) * w, ((1 - p.y) / 2) * h, (Math.abs(q.x - p.x) / 2) * w];
   }
 
