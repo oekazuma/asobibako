@@ -222,7 +222,12 @@ function house(seed: number, side: number): THREE.Group {
   g.add(mesh(box(4, h, 8), WALLS[seed % WALLS.length], 0, h / 2));
   g.add(mesh(box(4.2, 0.25, 8.2), '#6d6f7a', 0, h + 0.1));
   for (let row = 0; row < Math.floor(h / 1.6); row++)
-    for (const z of [-2.2, 0, 2.2]) g.add(mesh(box(0.05, 0.8, 1.2), '#9fd3ff', -side * 2.01, 1.2 + row * 1.6, z));
+    for (const z of [-2.2, 0, 2.2]) {
+      const win = mesh(box(0.05, 0.8, 1.2), '#9fd3ff', -side * 2.01, 1.2 + row * 1.6, z);
+      // 壁にはりつく薄い板で影は見えない。窓の数だけ影の描画が増える
+      win.castShadow = false;
+      g.add(win);
+    }
   return g;
 }
 
