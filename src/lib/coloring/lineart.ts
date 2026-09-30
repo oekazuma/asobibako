@@ -154,15 +154,9 @@ export function lineArt(rgba: Uint8ClampedArray, w: number, h: number, amount: n
   return bridge(dropSpecks(mask, w, h, MIN_SPECK), w, h);
 }
 
-/**
- * 周りより暗い線（イラストやマンホールのもとの黒い輪郭）を拾う。amount は 0..1 で、大きいほど薄い線まで拾う。
- * 変わり目を拾う lineArt は黒い線の両側を拾って太い塊にしてしまうので、線のある絵にはこちらを使う。
- * 黒く塗った広いところは周りも暗いので中まで線にならず、ふちだけが線になる
- */
-export function inkArt(rgba: Uint8ClampedArray, w: number, h: number, amount: number): Uint8Array {
-  const a = Math.min(1, Math.max(0, amount));
-  const g = gray(rgba, w * h);
-  // 周りの平均を 1 画素あたり定数の手間で出すため、積分画像を作る
+/** 1 画素ごとに、上下左右 radius 画素の四角の平均を出す。端は内側の画素だけで平均する */
+export function localMean(g: Float32Array, w: number, h: number, radius: number): Float32Array {
+  // 1 画素あたり定数の手間で出すため、積分画像を作る
   const sum = new Float64Array((w + 1) * (h + 1));
   for (let y = 0; y < h; y++) {
     let row = 0;
@@ -171,24 +165,35 @@ export function inkArt(rgba: Uint8ClampedArray, w: number, h: number, amount: nu
       sum[(y + 1) * (w + 1) + x + 1] = sum[y * (w + 1) + x + 1] + row;
     }
   }
-  const radius = 12;
-  const offset = 45 - 35 * a;
-  // いちばん多くしたときは明るさの上限を外し、晴れた日の写真や鉛筆の薄い線も拾えるようにする
-  const darkest = 110 + 146 * a;
-  const mask = new Uint8Array(w * h);
+  const mean = new Float32Array(w * h);
   for (let y = 0; y < h; y++) {
     const y0 = Math.max(0, y - radius);
     const y1 = Math.min(h, y + radius + 1);
     for (let x = 0; x < w; x++) {
       const x0 = Math.max(0, x - radius);
       const x1 = Math.min(w, x + radius + 1);
-      const mean =
+      mean[y * w + x] =
         (sum[y1 * (w + 1) + x1] - sum[y0 * (w + 1) + x1] - sum[y1 * (w + 1) + x0] + sum[y0 * (w + 1) + x0]) /
         ((x1 - x0) * (y1 - y0));
-      const v = g[y * w + x];
-      if (v < mean - offset && v < darkest) mask[y * w + x] = 1;
     }
   }
+  return mean;
+}
+
+/**
+ * 周りより暗い線（イラストやマンホールのもとの黒い輪郭）を拾う。amount は 0..1 で、大きいほど薄い線まで拾う。
+ * 変わり目を拾う lineArt は黒い線の両側を拾って太い塊にしてしまうので、線のある絵にはこちらを使う。
+ * 黒く塗った広いところは周りも暗いので中まで線にならず、ふちだけが線になる
+ */
+export function inkArt(rgba: Uint8ClampedArray, w: number, h: number, amount: number): Uint8Array {
+  const a = Math.min(1, Math.max(0, amount));
+  const g = gray(rgba, w * h);
+  const mean = localMean(g, w, h, 12);
+  const offset = 45 - 35 * a;
+  // いちばん多くしたときは明るさの上限を外し、晴れた日の写真や鉛筆の薄い線も拾えるようにする
+  const darkest = 110 + 146 * a;
+  const mask = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) if (g[i] < mean[i] - offset && g[i] < darkest) mask[i] = 1;
   // 石畳のざらつきのような細かな点は、写真が大きいほど多いので、消す大きさを画素の数に合わせる
   return bridge(dropSpecks(mask, w, h, Math.max(MIN_SPECK, Math.round(w * h * 0.0002))), w, h);
 }

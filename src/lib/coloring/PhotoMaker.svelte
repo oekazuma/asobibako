@@ -2,60 +2,33 @@
   import { onDestroy } from 'svelte';
   import { initialCrop, zoomCrop, type Crop } from './crop';
   import CropView from './CropView.svelte';
-  import { inkArt, lineArt } from './lineart';
+  import { Lines, type Mode } from './lines.svelte';
   import { cropPixels, openPhoto } from './photo';
   import { SIZE } from './regions';
-  import { colorWalls } from './walls';
 
   let { onmake, onback }: { onmake: (mask: Uint8Array) => void; onback: () => void } = $props();
 
+  const MODES: [Mode, string][] = [
+    ['ink', 'えの せん'],
+    ['color', 'いろで わける'],
+    ['edge', 'しゃしんの りんかく'],
+    ['ai', 'AI で せんを かく']
+  ];
+
+  const lines = new Lines();
   let bmp = $state.raw<ImageBitmap | null>(null);
   let crop = $state<Crop>({ x: 0, y: 0, size: 1 });
   let zoom = $state(1);
-  /**
-   * ink は線のある絵（マンホールなど）のもとの黒い線、color はそれに色の境目を足したもの（線が重なって途切れる絵でも
-   * 色が違えば塗りがもれない）、edge はふつうの写真の明るさの変わり目を拾う
-   */
-  let mode = $state<'ink' | 'color' | 'edge'>('ink');
-  let amount = $state(0.5);
-  let rgba: Uint8ClampedArray | null = null;
-  /** 色の境目は線の量によらず 1 回 0.4 秒ほどかかるので、切り取りごとに 1 回だけ作る */
-  let walls: Uint8Array | null = null;
   /** 写真を読み終える前に選び直す・閉じたときに、古い写真を受け取らないための番号 */
   let picks = 0;
   let alive = true;
-  let mask = $state.raw<Uint8Array | null>(null);
   let note = $state('');
   let preview = $state<HTMLCanvasElement>();
-  let timer: ReturnType<typeof setTimeout> | undefined;
-
-  function build() {
-    if (!rgba) return;
-    if (mode === 'edge') return (mask = lineArt(rgba, SIZE, SIZE, amount));
-    const ink = inkArt(rgba, SIZE, SIZE, amount);
-    if (mode === 'ink') return (mask = ink);
-    walls ??= colorWalls(rgba, SIZE, SIZE, 5);
-    const w = walls;
-    mask = ink.map((v, i) => v | w[i]);
-  }
-
-  // 線の量を動かすたびに作りなおすと iPad でも 100ms ほどかかるので、動かし終わりを待つ
-  function later() {
-    clearTimeout(timer);
-    timer = setTimeout(build, 150);
-  }
-
-  function recrop() {
-    clearTimeout(timer);
-    mask = null;
-  }
 
   function release() {
-    recrop();
+    lines.clear();
     bmp?.close();
     bmp = null;
-    rgba = null;
-    walls = null;
   }
 
   async function pick(event: Event) {
@@ -78,18 +51,6 @@
     }
   }
 
-  function makeLines() {
-    if (!bmp) return;
-    rgba = cropPixels(bmp, crop);
-    walls = null;
-    build();
-  }
-
-  function setMode(next: 'ink' | 'color' | 'edge') {
-    mode = next;
-    build();
-  }
-
   onDestroy(() => {
     alive = false;
     release();
@@ -97,6 +58,7 @@
 
   $effect(() => {
     const g = preview?.getContext('2d');
+    const mask = lines.mask;
     if (!g || !mask) return;
     const img = g.createImageData(SIZE, SIZE);
     const d = img.data;
@@ -113,20 +75,29 @@
 
 <div class="maker">
   <h2 class="yuru">しゃしんから つくる</h2>
-  {#if bmp && mask}
-    <canvas class="preview" width={SIZE} height={SIZE} bind:this={preview}></canvas>
+  {#if bmp && (lines.mask || lines.busy)}
+    <div class="sheet">
+      <canvas class="preview" width={SIZE} height={SIZE} bind:this={preview}></canvas>
+      {#if lines.busy}
+        <p class="busy" role="status">
+          AI が かいています…<br /><small>はじめての ときは よみこみに すこし じかんが かかるよ</small>
+        </p>
+      {/if}
+    </div>
     <div class="row">
-      <button class="pill" aria-pressed={mode === 'ink'} onclick={() => setMode('ink')}>えの せん</button>
-      <button class="pill" aria-pressed={mode === 'color'} onclick={() => setMode('color')}>いろで わける</button>
-      <button class="pill" aria-pressed={mode === 'edge'} onclick={() => setMode('edge')}>しゃしんの りんかく</button>
+      {#each MODES as [mode, name] (mode)}
+        <button class="pill" aria-pressed={lines.mode === mode} onclick={() => lines.setMode(mode)}>{name}</button>
+      {/each}
     </div>
     <label class="slider">
       せんの おおさ
-      <input type="range" min="0" max="1" step="0.05" bind:value={amount} oninput={later} />
+      <input type="range" min="0" max="1" step="0.05" bind:value={lines.amount} oninput={() => lines.later()} />
     </label>
     <div class="row">
-      <button class="pill" onclick={recrop}>きりとりなおす</button>
-      <button class="pill gold" onclick={() => mask && onmake(mask)}>これで ぬる</button>
+      <button class="pill" onclick={() => lines.recrop()}>きりとりなおす</button>
+      <button class="pill gold" disabled={lines.busy} onclick={() => lines.mask && onmake(lines.mask)}
+        >これで ぬる</button
+      >
     </div>
   {:else if bmp}
     <p>ぬりたい ところを わくに いれてね</p>
@@ -142,13 +113,13 @@
         oninput={() => bmp && (crop = zoomCrop(crop, zoom, bmp.width, bmp.height))}
       />
     </label>
-    <button class="pill gold" onclick={makeLines}>これで せんを つくる</button>
+    <button class="pill gold" onclick={() => bmp && lines.start(cropPixels(bmp, crop))}>これで せんを つくる</button>
   {/if}
   <label class="pill pick" class:gold={!bmp}>
     {bmp ? 'しゃしんを えらびなおす' : 'しゃしんを えらぶ'}
     <input type="file" accept="image/*" onchange={pick} />
   </label>
-  {#if note}<p role="alert">{note}</p>{/if}
+  {#if note || lines.note}<p role="alert">{note || lines.note}</p>{/if}
   <button class="pill" onclick={onback}>もどる</button>
 </div>
 
@@ -172,7 +143,23 @@
     display: none;
   }
 
+  .sheet {
+    position: relative;
+  }
+
+  .busy {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    gap: 6px;
+    border-radius: 12px;
+    background: rgb(255 250 244 / 0.85);
+    text-align: center;
+  }
+
   .preview {
+    display: block;
     width: min(86cqw, 52cqh);
     aspect-ratio: 1;
     border: 3px solid var(--line);
