@@ -1,5 +1,5 @@
 import { Rng } from '$lib/levels';
-import { course, halfAt, rule, zoneAt, type Block, type LevelRule, type Zone } from './course';
+import { course, halfAt, rule, zoneAt, type LevelRule, type Zone } from './course';
 
 /** コンボなしの速さ（m/s）。コンボで最大 2 倍まで上がる */
 export const BASE_SPEED = 6;
@@ -49,7 +49,12 @@ export interface Walker {
   phase: number;
 }
 
-export interface Obstacle extends Block {
+/** ボスの投げたふまん玉が落ちて、道に残ったもの */
+export interface Obstacle {
+  x: number;
+  z: number;
+  /** 横の幅（m） */
+  w: number;
   hit: boolean;
 }
 
@@ -163,7 +168,7 @@ export function createState(level: number): RunState {
     time: r.time,
     zone: zoneAt(0),
     walkers: c.people.map((p, i) => ({ ...p, fan: false, order: 0, phase: i * 1.7 })),
-    blocks: c.blocks.map((b) => ({ ...b, hit: false })),
+    blocks: [],
     result: null
   };
 }
@@ -269,7 +274,7 @@ function boss(s: RunState, dt: number, events: RunEvent[]) {
   for (const d of b.drops) {
     d.t -= dt;
     if (d.t > 0) continue;
-    const obstacle: Obstacle = { x: d.x, z: d.z, w: 0.9, kind: 'bubble', hit: false };
+    const obstacle: Obstacle = { x: d.x, z: d.z, w: 0.9, hit: false };
     s.blocks.push(obstacle);
     events.push({ type: 'land', obstacle });
   }

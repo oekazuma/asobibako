@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { course, halfAt, LEVELS, RUNUP, zoneAt, ZONE_LEN } from './course';
+import { course, halfAt, LEVELS, rule, RUNUP, zoneAt, ZONE_LEN } from './course';
 
 const levels = Array.from({ length: LEVELS }, (_, i) => i + 1);
 
 describe('course', () => {
-  it('人と障害物は道の中に置く', () => {
+  it('人は道の中に置く', () => {
     for (const level of levels) {
       const c = course(level);
-      for (const p of [...c.people, ...c.blocks]) {
+      for (const p of c.people) {
         expect(Math.abs(p.x)).toBeLessThanOrEqual(halfAt(p.z));
         expect(p.z).toBeGreaterThanOrEqual(RUNUP - 3);
         expect(p.z).toBeLessThanOrEqual(c.length);
@@ -15,20 +15,13 @@ describe('course', () => {
     }
   });
 
-  it('障害物の横には必ず抜け道がある', () => {
-    for (const level of levels)
-      for (const b of course(level).blocks) {
-        const half = halfAt(b.z);
-        const room = Math.max(half - (b.x + b.w / 2), b.x - b.w / 2 + half);
-        expect(room).toBeGreaterThan(1);
-      }
+  it('あとの面ほど人が多い', () => {
+    expect(course(LEVELS).people.length).toBeGreaterThan(course(1).people.length);
   });
 
-  it('あとの面ほど人も障害物も多い', () => {
-    const a = course(1);
-    const b = course(LEVELS);
-    expect(b.people.length).toBeGreaterThan(a.people.length);
-    expect(b.blocks.length).toBeGreaterThan(a.blocks.length);
+  it('ボスの面では、ボスより先に人を置かない', () => {
+    const c = course(5);
+    expect(c.people.every((p) => p.z < rule(5).bossAt)).toBe(true);
   });
 
   it('同じ面は毎回同じ道', () => {

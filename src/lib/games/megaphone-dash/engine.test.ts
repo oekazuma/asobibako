@@ -27,7 +27,7 @@ function empty(level = 1): RunState {
   return s;
 }
 const walker = (x: number, z: number): Walker => ({ x, z, look: 0, fan: false, order: 0, phase: 0 });
-const block = (x: number, z: number, w = 1.2): Obstacle => ({ x, z, w, kind: 'cone', hit: false });
+const block = (x: number, z: number, w = 1.2): Obstacle => ({ x, z, w, hit: false });
 
 describe('メガホン', () => {
   it('前の扇形の中の人をまとめてファンにし、横や遠くの人は残す', () => {
@@ -97,7 +97,7 @@ describe('走る', () => {
   });
 });
 
-describe('障害物', () => {
+describe('ふまん玉にぶつかる', () => {
   it('体が重なるとぶつかり、よろけてコンボが切れる', () => {
     const s = empty();
     s.combo = 9;
@@ -262,7 +262,6 @@ describe('ボス', () => {
     expect(thrown.some((e) => e.type === 'throw')).toBe(true);
     let landed: Obstacle | null = null;
     for (let i = 0; i < 20 && !landed; i++) for (const e of step(s, 0.1)) if (e.type === 'land') landed = e.obstacle;
-    expect(landed?.kind).toBe('bubble');
     expect(s.blocks).toContain(landed);
     expect(landed!.z - s.z).toBeGreaterThan(8);
   });

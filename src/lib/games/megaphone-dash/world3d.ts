@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { zoneAt, type Zone } from './course';
 import { boost, FAR_W, REACH, speed, type Obstacle, type RunEvent, type RunState, type Walker } from './engine';
 import { chara, HERO, passer, recolor, run, type Chara } from './chara';
-import { CAMERA, car, gate, heartTexture, megaphone, obstacle, ROAD_W, SEG, soundCone } from './models';
+import { bubble, CAMERA, car, gate, heartTexture, megaphone, ROAD_W, SEG, soundCone } from './models';
 import { BossStage } from './boss-stage';
 import { Post } from './post';
 import { MOOD, segment } from './scenery';
@@ -395,7 +395,7 @@ export class RunWorld {
         continue;
       }
       if (!g) {
-        g = obstacle(o.kind, o.w);
+        g = bubble();
         this.#blocks.set(o, g);
         this.scene.add(g);
       }
