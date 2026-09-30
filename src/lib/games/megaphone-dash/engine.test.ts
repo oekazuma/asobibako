@@ -238,6 +238,16 @@ describe('時間とゴール', () => {
     expect(s.result).toBe('clear');
     expect(events).toContainEqual({ type: 'goal' });
   });
+
+  it('時間が 0 になるフレームで校門に着いたらクリア', () => {
+    const s = empty(1);
+    s.time = 0.05;
+    s.z = s.goal - 0.01;
+    const events = step(s, 0.1);
+    expect(s.result).toBe('clear');
+    expect(events).toContainEqual({ type: 'goal' });
+    expect(events.some((e) => e.type === 'timeout')).toBe(false);
+  });
 });
 
 describe('ランク', () => {
@@ -320,12 +330,10 @@ describe('ボス', () => {
     expect(t && t.type === 'throw' && t.drop.lane).toBe(2);
     expect(s.boss!.drops).toHaveLength(1);
     let landed: Obstacle | null = null;
-    // Step 14 × 0.1 s (1.4 s total, less than WARN_TIME of 1.5 s) — no land event yet
     for (let i = 0; i < 14; i++) {
       const events = step(s, 0.1);
       expect(events.some((e) => e.type === 'land')).toBe(false);
     }
-    // Continue stepping and assert it lands by step 16
     for (let i = 14; i < 16 && !landed; i++) for (const e of step(s, 0.1)) if (e.type === 'land') landed = e.obstacle;
     expect(landed).not.toBeNull();
     expect(landed!.kind).toBe('low');

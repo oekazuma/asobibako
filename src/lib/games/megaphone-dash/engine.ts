@@ -241,13 +241,7 @@ export function step(s: RunState, dt: number, input: RunInput = {}): RunEvent[] 
   if (input.shoot && s.cooldown <= 0) shoot(s, events);
   s.cooldown = Math.max(0, s.cooldown - dt);
   s.stumble = Math.max(0, s.stumble - dt);
-  s.time -= dt;
-  if (s.time <= 0) {
-    s.time = 0;
-    s.result = 'fail';
-    events.push({ type: 'timeout' });
-    return events;
-  }
+  s.time = Math.max(0, s.time - dt);
   const from = s.z;
   s.z += speed(s) * dt;
   for (const w of s.walkers) if (!w.fan) w.z -= WALK_SPEED * dt;
@@ -258,6 +252,10 @@ export function step(s: RunState, dt: number, input: RunInput = {}): RunEvent[] 
   if (s.z >= s.goal) {
     s.result = 'clear';
     events.push({ type: 'goal' });
+  } else if (s.time <= 0) {
+    // 時間が尽きるフレームで校門に着いたときはクリアにするため、走らせたあとで決める
+    s.result = 'fail';
+    events.push({ type: 'timeout' });
   }
   return events;
 }
