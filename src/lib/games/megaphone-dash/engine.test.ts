@@ -10,6 +10,7 @@ import {
   step,
   STUMBLE_TIME,
   tier,
+  WARN_TIME,
   type Obstacle,
   type RunState,
   type Walker
@@ -315,10 +316,17 @@ describe('ボス', () => {
     s.boss!.throwIn = 0.005;
     const thrown = step(s, 0.01);
     const t = thrown.find((e) => e.type === 'throw');
+    expect(t && t.type === 'throw' && t.drop.t).toBeCloseTo(WARN_TIME, 1);
     expect(t && t.type === 'throw' && t.drop.lane).toBe(2);
     expect(s.boss!.drops).toHaveLength(1);
     let landed: Obstacle | null = null;
-    for (let i = 0; i < 16 && !landed; i++) for (const e of step(s, 0.1)) if (e.type === 'land') landed = e.obstacle;
+    // Step 14 × 0.1 s (1.4 s total, less than WARN_TIME of 1.5 s) — no land event yet
+    for (let i = 0; i < 14; i++) {
+      const events = step(s, 0.1);
+      expect(events.some((e) => e.type === 'land')).toBe(false);
+    }
+    // Continue stepping and assert it lands by step 16
+    for (let i = 14; i < 16 && !landed; i++) for (const e of step(s, 0.1)) if (e.type === 'land') landed = e.obstacle;
     expect(landed).not.toBeNull();
     expect(landed!.kind).toBe('low');
     expect(landed!.z - s.z).toBeGreaterThan(10);
