@@ -1,0 +1,126 @@
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import type { SoloProps } from '$lib/games';
+  import { saveImage } from '$lib/share';
+  import { photoArt, snapshot, templateArt, type Art } from './art';
+  import { listWorks, pack, removeWork, saveWork, unpack, type Work } from './book';
+  import Canvas from './Canvas.svelte';
+  import { empty, fill, undo, type Coloring } from './paint';
+  import Palette, { COLORS } from './Palette.svelte';
+  import PhotoMaker from './PhotoMaker.svelte';
+  import Picker from './Picker.svelte';
+  import { label, type Regions } from './regions';
+  import { sounds } from './sounds';
+  import { TEMPLATES, type Template } from './templates';
+
+  // 自由あそびなので、シェルから受ける level と onfinish は使わない
+  const _props: SoloProps = $props();
+
+  interface Current {
+    id: string;
+    art: Art;
+    regions: Regions;
+    template?: string;
+    photo?: Uint8Array;
+  }
+
+  let screen = $state<'pick' | 'paint' | 'photo'>('pick');
+  let works = $state.raw<Work[]>([]);
+  let current = $state.raw<Current | null>(null);
+  let coloring = $state.raw<Coloring>(empty());
+  let color = $state<string>(COLORS[0].hex);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  // IndexedDB が開けない端末でも、塗ること自体はできるようにする
+  const refresh = async () => (works = await listWorks().catch(() => []));
+  onMount(refresh);
+
+  function open(next: Omit<Current, 'regions'>, start: Coloring) {
+    current = { ...next, regions: label(next.art.mask) };
+    coloring = start;
+    screen = 'paint';
+  }
+
+  const fromTemplate = (t: Template) => open({ id: crypto.randomUUID(), art: templateArt(t), template: t.id }, empty());
+  const fromPhoto = (mask: Uint8Array) =>
+    open({ id: crypto.randomUUID(), art: photoArt(mask), photo: pack(mask) }, empty());
+
+  function fromWork(w: Work) {
+    const template = TEMPLATES.find((t) => t.id === w.template);
+    const art = template ? templateArt(template) : photoArt(unpack(w.photo!));
+    open({ id: w.id, art, template: w.template, photo: w.photo }, { colors: w.colors, history: w.history });
+  }
+
+  async function save() {
+    clearTimeout(timer);
+    const c = current;
+    // 何も塗っていない作品は、ぬりえちょうに増やさない
+    if (!c || !coloring.history.length) return;
+    const thumb = snapshot(c.art, c.regions, coloring.colors, 200, 'image/jpeg');
+    const work: Work = { id: c.id, template: c.template, photo: c.photo, ...coloring, thumb, updated: Date.now() };
+    await saveWork(work).catch(() => {});
+  }
+
+  function paint(region: number) {
+    const next = fill(coloring, region, color);
+    if (next === coloring) return;
+    coloring = next;
+    sounds.fill();
+    clearTimeout(timer);
+    timer = setTimeout(save, 800);
+  }
+
+  async function done() {
+    sounds.done();
+    await save();
+    await refresh();
+    screen = 'pick';
+  }
+
+  // 共有シートは押したときの処理の中で同期に呼ばないと通らないので、await をはさまない
+  function exportImage() {
+    if (current) saveImage(snapshot(current.art, current.regions, coloring.colors, 1536), 'nurie.png');
+  }
+</script>
+
+{#if screen === 'paint' && current}
+  <div class="middle">
+    <Canvas art={current.art} regions={current.regions} colors={coloring.colors} onfill={paint} />
+  </div>
+  <Palette
+    bind:color
+    canUndo={coloring.history.length > 0}
+    onundo={() => {
+      coloring = undo(coloring);
+      sounds.undo();
+      clearTimeout(timer);
+      timer = setTimeout(save, 800);
+    }}
+    ondone={done}
+    onsave={exportImage}
+  />
+{:else if screen === 'photo'}
+  <PhotoMaker onmake={fromPhoto} onback={() => (screen = 'pick')} />
+{:else}
+  <Picker
+    {works}
+    ontemplate={fromTemplate}
+    onwork={fromWork}
+    onphoto={() => (screen = 'photo')}
+    onremove={async (w) => {
+      await removeWork(w.id).catch(() => {});
+      await refresh();
+    }}
+  />
+{/if}
+
+<style>
+  .middle {
+    flex: 1;
+    display: grid;
+    place-items: center;
+    min-height: 0;
+    padding: max(12px, env(safe-area-inset-top)) 12px 12px;
+    container-type: size;
+  }
+</style>
