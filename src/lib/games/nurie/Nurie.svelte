@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import type { SoloProps } from '$lib/games';
   import { saveImage } from '$lib/share';
   import { photoArt, snapshot, templateArt, type Art } from './art';
@@ -22,6 +22,7 @@
     regions: Regions;
     template?: string;
     photo?: Uint8Array;
+    lines?: Uint8Array;
   }
 
   let screen = $state<'pick' | 'paint' | 'photo'>('pick');
@@ -35,31 +36,47 @@
   const refresh = async () => (works = await listWorks().catch(() => []));
   onMount(refresh);
 
-  function open(next: Omit<Current, 'regions'>, start: Coloring) {
-    current = { ...next, regions: label(next.art.mask) };
+  function open(next: Omit<Current, 'regions'>, start: Coloring, mask = next.art.mask) {
+    current = { ...next, regions: label(mask) };
     coloring = start;
     screen = 'paint';
   }
 
-  const fromTemplate = (t: Template) => open({ id: crypto.randomUUID(), art: templateArt(t), template: t.id }, empty());
+  function fromTemplate(t: Template) {
+    const art = templateArt(t);
+    open({ id: crypto.randomUUID(), art, template: t.id, lines: pack(art.mask) }, empty());
+  }
   const fromPhoto = (mask: Uint8Array) =>
     open({ id: crypto.randomUUID(), art: photoArt(mask), photo: pack(mask) }, empty());
 
   function fromWork(w: Work) {
     const template = TEMPLATES.find((t) => t.id === w.template);
-    const art = template ? templateArt(template) : photoArt(unpack(w.photo!));
-    open({ id: w.id, art, template: w.template, photo: w.photo }, { colors: w.colors, history: w.history });
+    const bits = w.lines ?? w.photo;
+    // 線の見た目はいまのテンプレートで描き、場所は作品に保存した線画で分ける（番号がずれて色がばらばらにならないように）
+    const mask = bits ? unpack(bits) : undefined;
+    const art = template ? templateArt(template) : photoArt(mask!);
+    open(
+      { id: w.id, art, template: w.template, photo: w.photo, lines: w.lines },
+      { colors: w.colors, history: w.history },
+      mask ?? art.mask
+    );
   }
 
-  async function save() {
+  function save(): Promise<void> {
     clearTimeout(timer);
+    timer = undefined;
     const c = current;
-    // 何も塗っていない作品は、ぬりえちょうに増やさない
-    if (!c || !coloring.history.length) return;
+    if (!c) return Promise.resolve();
+    // 何も塗っていない（ぜんぶ戻した）作品は、ぬりえちょうに置かない
+    if (!Object.keys(coloring.colors).length) return removeWork(c.id).catch(() => {});
     const thumb = snapshot(c.art, c.regions, coloring.colors, 200, 'image/jpeg');
-    const work: Work = { id: c.id, template: c.template, photo: c.photo, ...coloring, thumb, updated: Date.now() };
-    await saveWork(work).catch(() => {});
+    const { id, template, photo, lines } = c;
+    return saveWork({ id, template, photo, lines, ...coloring, thumb, updated: Date.now() }).catch(() => {});
   }
+
+  /** まだ保存していない塗りがあれば、すぐ保存する（閉じる・裏に回るときに最後の塗りを落とさないように） */
+  const flush = () => void (timer !== undefined && save());
+  onDestroy(flush);
 
   function paint(region: number) {
     const next = fill(coloring, region, color);
@@ -70,10 +87,10 @@
     timer = setTimeout(save, 800);
   }
 
-  async function done() {
+  // iOS の IndexedDB は開くところで止まることがあるので、保存を待たずに戻る
+  function done() {
     sounds.done();
-    await save();
-    await refresh();
+    void save().then(refresh);
     screen = 'pick';
   }
 
@@ -82,6 +99,9 @@
     if (current) saveImage(snapshot(current.art, current.regions, coloring.colors, 1536), 'nurie.png');
   }
 </script>
+
+<svelte:window onpagehide={flush} />
+<svelte:document onvisibilitychange={() => document.hidden && flush()} />
 
 {#if screen === 'paint' && current}
   <div class="middle">

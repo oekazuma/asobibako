@@ -6,6 +6,8 @@ export const LIMIT = 30;
 export interface Work {
   id: string;
   template?: string;
+  /** テンプレートの作品の、塗る場所を分けた線画（1 画素 1 ビット）。テンプレートのパスを直しても、保存した作品の場所の番号がずれないようにする */
+  lines?: Uint8Array;
   /** 写真から作った線画。1 画素 1 ビットに詰める（そのままだと 1 作品 590KB になる） */
   photo?: Uint8Array;
   colors: Record<number, string>;
