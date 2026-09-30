@@ -5,6 +5,7 @@ export default {
   name: 'せめぎあい',
   description: '自分の陣地に出る玉を消して、境界線を相手の端まで押し切る',
   players: 2,
+  net: true,
   minutes: '1分',
   load: async () => ({
     Game: (await import('./BorderRush.svelte')).default,

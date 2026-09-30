@@ -14,11 +14,14 @@ import megaphoneDash from './games/megaphone-dash/meta';
 import petHouse from './games/pet-house/meta';
 import pinRescue from './games/pin-rescue/meta';
 import snowCamp from './games/snow-camp/meta';
+import type { Net } from './net/link';
 import type { Player } from './player';
 
 export interface GameProps {
   /** 勝者が決まったら 1 回だけ呼ぶ。1 が手前、2 が向かい */
   onfinish: (winner: Player) => void;
+  /** 2 台の端末で遊ぶときだけ渡る。親が 1P を持ち、ルールを進めて子へ盤面を送る */
+  net?: Net;
 }
 
 export interface GameModule {
@@ -52,6 +55,8 @@ interface BaseMeta {
 /** 本体は、一覧画面に全ゲームを載せないよう load() で遊ぶときに読み込む */
 export interface DuelMeta extends BaseMeta {
   players: 2;
+  /** 2 台の端末をつないで遊べる。本体は GameProps の net を扱う */
+  net?: true;
   load: () => Promise<GameModule>;
 }
 
