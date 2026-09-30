@@ -5,6 +5,7 @@
     combo,
     followers,
     mps,
+    stage,
     boss
   }: {
     level: number;
@@ -12,6 +13,7 @@
     combo: number;
     followers: number;
     mps: number;
+    stage: number;
     boss: { hp: number; max: number } | null;
   } = $props();
 </script>
@@ -35,9 +37,9 @@
     </div>
   {/if}
 </div>
-<div class="combo" aria-live="polite">
+<div class="combo">
   <b>{combo}</b>
-  <small>コンボ {mps.toFixed(1)} m/s</small>
+  <small>コンボ ×{stage} · {mps.toFixed(1)} m/s</small>
 </div>
 
 <style>

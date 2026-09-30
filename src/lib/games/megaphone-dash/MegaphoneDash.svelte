@@ -5,7 +5,7 @@
   import { animate } from '$lib/loop';
   import { direct } from './director';
   import { RunFx } from './effects';
-  import { createState, rank, score, speed, step, type RunInput } from './engine';
+  import { createState, rank, score, speed, step, tier, type RunInput } from './engine';
   import { Gestures, type Gesture } from './gesture';
   import Hud from './Hud.svelte';
   import { RunWorld } from './world3d';
@@ -28,6 +28,7 @@
   let combo = $state(0);
   let followers = $state(0);
   let mps = $state(0);
+  let stage = $state(1);
   let boss = $state<{ hp: number; max: number } | null>(null);
   let endTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -71,6 +72,8 @@
     if (followers !== game.followers) followers = game.followers;
     const v = Math.round(speed(game) * 10) / 10;
     if (mps !== v) mps = v;
+    const st = tier(game.combo);
+    if (stage !== st) stage = st;
     const b = game.boss?.phase === 'fight' ? game.boss : null;
     if (!b) boss = null;
     else if (boss?.hp !== b.hp) boss = { hp: b.hp, max: b.max };
@@ -98,7 +101,7 @@
     const [sx, sy] = fx.shake.offset(dt, 10);
     ctx.setTransform(dpr, 0, 0, dpr, sx * dpr, sy * dpr);
     ctx.clearRect(-20, -20, w + 40, h + 40);
-    fx.draw(ctx, (lane, dist) => world!.project(lane, dist, 1.3, w, h), w, h);
+    fx.draw(ctx, (lane, rel) => world!.project(lane, game.z + rel, 1.3, w, h), w, h);
   }
 
   onMount(() => {
@@ -125,7 +128,7 @@
 <div class="board" use:input.board={resize} role="application" aria-label="メガホンダッシュの通学路">
   <canvas bind:this={gl}></canvas>
   <canvas bind:this={canvas}></canvas>
-  <Hud {level} {time} {combo} {followers} {mps} {boss} />
+  <Hud {level} {time} {combo} {followers} {mps} {stage} {boss} />
   {#if !ready}
     <p class="wait sticker">じゅんびちゅう…</p>
   {/if}
