@@ -50,7 +50,8 @@
       {/if}
     </div>
   {:else if view.phase === 'reveal'}
-    <div class="cover"><p>こたえは「{view.word}」</p></div>
+    <!-- 描いた絵もいっしょに見せるので、覆わずに答えだけを上に出す -->
+    <p class="answer">こたえは「{view.word}」</p>
   {/if}
   {#if close}<p class="flash">おしい！</p>{/if}
   {#if solved && view.phase === 'draw'}<p class="flash right">せいかい！</p>{/if}
@@ -86,6 +87,19 @@
     color: var(--line);
     font-size: clamp(20px, 4cqh, 32px);
     font-weight: 800;
+  }
+
+  .answer {
+    position: absolute;
+    top: 12px;
+    padding: 6px 20px;
+    border: 3px solid var(--line);
+    border-radius: 999px;
+    background: var(--pastel-gold);
+    color: var(--line);
+    font-size: clamp(20px, 4cqh, 32px);
+    font-weight: 800;
+    pointer-events: none;
   }
 
   .cover .pill {
