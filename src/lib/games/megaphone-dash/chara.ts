@@ -4,7 +4,7 @@ import { bounds, field, mesh as surface, type Shape, type V3 } from '$lib/sculpt
 
 /**
  * 頭の大きい 2 頭身の子を、なめらかな 1 枚の体（体・髪は別の 1 枚）で作り、骨で曲げる。
- * 色は頂点に塗り、段のある影（トゥーン）と細いふち取りでアニメ調に描く。前は -z、足もとが y = 0
+ * 色は頂点に塗り、やわらかい陰影にふちの光と細いふち取りを足してアニメ調に描く。前は -z、足もとが y = 0
  */
 
 export interface Style {
@@ -18,8 +18,13 @@ export interface Style {
   hair: string;
   /** 髪の形 */
   cut: 'twin' | 'bob' | 'short' | 'pony';
+  /** 髪留め（ツインテールの根もと）の色 */
   ribbon?: string;
   glasses?: string;
+  /** シャツの上のベスト。あれば胴をこの色、袖と襟をシャツの色にする */
+  vest?: string;
+  /** 胸のリボンの色 */
+  bow?: string;
 }
 
 const BONES: [string, string | null, V3][] = [
@@ -56,12 +61,14 @@ const cone = (a: V3, b: V3, ra: number, rb: number, bone: string, tag: string, k
 
 function bodyShapes(st: Style): Shape[] {
   const s: Shape[] = [
-    ell([0, 0.69, 0], [0.155, 0.16, 0.12], 'chest', 'shirt', 0.05),
+    ell([0, 0.69, 0], [0.155, 0.16, 0.12], 'chest', st.vest ? 'vest' : 'shirt', 0.05),
     cone([0, 0.8, 0], [0, 0.9, 0], 0.05, 0.05, 'head', 'skin', 0.03),
     ell([0, 1.08, 0], [0.26, 0.235, 0.235], 'head', 'skin', 0.05),
     ell([0.13, 1.0, -0.14], [0.07, 0.06, 0.05], 'head', 'skin', 0.06),
     ell([-0.13, 1.0, -0.14], [0.07, 0.06, 0.05], 'head', 'skin', 0.06)
   ];
+  // 襟。ベストの首まわりから白いシャツの襟をのぞかせる
+  if (st.vest) s.push(ell([0, 0.795, 0.01], [0.11, 0.03, 0.095], 'chest', 'shirt', 0.015));
   // スカートは平たい楕円体を 2 段に重ねた、裾へ広がるベルの形。丸い円すいでは裾まで丸くなって玉に見える
   if (st.skirt)
     s.push(
@@ -87,41 +94,55 @@ function hairShapes(st: Style): Shape[] {
   const s: Shape[] = [
     // 頭を後ろ上から包む帽子のような形。顔の前は開けておく
     ell([0, 1.12, 0.035], [0.275, 0.25, 0.25], 'head', 'hair', 0.02),
-    // 前髪。おでこに沿って 5 つ並べ、毛先を少し下げる
-    ...[-0.16, -0.08, 0, 0.08, 0.16].map((x, i) =>
-      ell([x, 1.19 - (i % 2) * 0.015, -0.19 + Math.abs(x) * 0.25], [0.075, 0.085, 0.05], 'head', 'hair', 0.03)
+    // 前髪。おでこに沿って、毛先のとがった束を 5 本たらす
+    ...[-0.17, -0.085, 0, 0.085, 0.17].map((x, i) =>
+      cone(
+        [x, 1.26, -0.16 + Math.abs(x) * 0.2],
+        [x * 1.12, 1.12 - (i % 2) * 0.025, -0.228 + Math.abs(x) * 0.28],
+        0.062,
+        0.012,
+        'head',
+        'hair',
+        0.02
+      )
     ),
-    ell([0.21, 1.02, -0.06], [0.06, 0.13, 0.07], 'head', 'hair', 0.03),
-    ell([-0.21, 1.02, -0.06], [0.06, 0.13, 0.07], 'head', 'hair', 0.03)
+    // 顔の横にたれる毛
+    cone([0.2, 1.12, -0.1], [0.225, 0.93, -0.12], 0.05, 0.014, 'head', 'hair', 0.02),
+    cone([-0.2, 1.12, -0.1], [-0.225, 0.93, -0.12], 0.05, 0.014, 'head', 'hair', 0.02)
   ];
-  if (st.cut === 'twin')
+  if (st.cut === 'twin') {
+    // アホ毛。頭のてっぺんから前へはねる細い束（主人公の目印なので、ツインテールの子だけ）
+    s.push(
+      cone([0, 1.33, -0.02], [0.03, 1.46, 0.02], 0.022, 0.008, 'head', 'hair', 0.012),
+      cone([0.03, 1.46, 0.02], [-0.01, 1.49, 0.07], 0.008, 0.004, 'head', 'hair', 0.006)
+    );
     for (const side of [1, -1]) {
       const L = side > 0 ? 'L' : 'R';
       s.push(
         ell([side * 0.25, 1.13, 0.07], [0.07, 0.07, 0.07], `tail${L}`, 'hair', 0.03),
-        cone([side * 0.27, 1.1, 0.08], [side * 0.34, 0.72, 0.12], 0.085, 0.035, `tail${L}`, 'hair', 0.04)
+        // ツインテールは 2 本の円すいをつないで、外へふくらんでから内へ巻きこむ
+        cone([side * 0.27, 1.1, 0.08], [side * 0.37, 0.9, 0.14], 0.09, 0.075, `tail${L}`, 'hair', 0.04),
+        cone([side * 0.37, 0.9, 0.14], [side * 0.3, 0.64, 0.1], 0.075, 0.022, `tail${L}`, 'hair', 0.04)
       );
     }
-  else if (st.cut === 'bob') s.push(ell([0, 1.0, 0.06], [0.285, 0.17, 0.22], 'head', 'hair', 0.05));
+  } else if (st.cut === 'bob') s.push(ell([0, 1.0, 0.06], [0.285, 0.17, 0.22], 'head', 'hair', 0.05));
   else if (st.cut === 'pony') s.push(cone([0, 1.2, 0.2], [0, 0.88, 0.32], 0.08, 0.035, 'head', 'hair', 0.05));
   return s;
 }
 
-const tone = (() => {
-  let t: THREE.DataTexture | null = null;
-  return () => {
-    if (t) return t;
-    // 3 段の明るさ。暗い段も色を残して、影が汚れて見えないようにする
-    const data = new Uint8Array([150, 150, 150, 255, 215, 215, 215, 255, 255, 255, 255, 255]);
-    t = new THREE.DataTexture(data, 3, 1, THREE.RGBAFormat);
-    t.minFilter = t.magFilter = THREE.NearestFilter;
-    t.needsUpdate = true;
-    return t;
+/** やわらかい陰影に、輪郭の近くだけ明るく光るふちを足す。まわりの色からキャラを浮かせる */
+function soft() {
+  const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.78 });
+  m.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <emissivemap_fragment>',
+      `#include <emissivemap_fragment>
+  float rimK = pow(1.0 - abs(dot(normal, normalize(vViewPosition))), 3.0);
+  totalEmissiveRadiance += rimK * 0.45 * diffuseColor.rgb;`
+    );
   };
-})();
-
-function toon() {
-  return new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: tone() });
+  m.customProgramCacheKey = () => 'soft-rim';
+  return m;
 }
 
 /** 体を法線の向きへ少しふくらませて裏だけを描く、ふち取りの材質 */
@@ -140,6 +161,7 @@ function outline(width: number) {
 function paint(tag: string, st: Style): string {
   if (tag === 'skin') return st.skin;
   if (tag === 'shirt') return st.shirt;
+  if (tag === 'vest') return st.vest ?? st.shirt;
   if (tag === 'bottom') return st.bottom;
   if (tag === 'sock') return st.sock;
   if (tag === 'shoe') return st.shoe;
@@ -199,7 +221,7 @@ const cache = new Map<string, { body: THREE.BufferGeometry; hair: THREE.BufferGe
 
 const faceCache = new Map<string, THREE.BufferGeometry>();
 const faceMat = new THREE.MeshBasicMaterial({ vertexColors: true });
-const toonMat = toon();
+const toonMat = soft();
 const lineMat = outline(0.008);
 
 /**
@@ -246,6 +268,37 @@ function faceGeo(st: Style): THREE.BufferGeometry {
   put(ball, '#b8404f', [0, hy - 0.115, -0.228], [0.022, 0.012, 0.01]);
   const merged = mergeGeometries(parts)!;
   faceCache.set(key, merged);
+  return merged;
+}
+
+const bowCache = new Map<string, THREE.BufferGeometry>();
+
+/** 胸のリボン。2 つの輪と結び目を 1 つの形にまとめ、胸の骨に付ける */
+function bowGeo(color: string): THREE.BufferGeometry {
+  const hit = bowCache.get(color);
+  if (hit) return hit;
+  const ball = new THREE.SphereGeometry(1, 14, 10);
+  const c = new THREE.Color(color);
+  const parts = [
+    [0.035, 0.12, -0.125, 0.04, 0.028, 0.016],
+    [-0.035, 0.12, -0.125, 0.04, 0.028, 0.016],
+    [0, 0.12, -0.132, 0.018, 0.02, 0.016]
+  ].map(([x, y, z, sx, sy, sz]) => {
+    const g = ball.clone();
+    g.scale(sx, sy, sz);
+    g.translate(x, y, z);
+    const n = g.attributes.position.count;
+    g.setAttribute(
+      'color',
+      new THREE.BufferAttribute(
+        new Float32Array(n * 3).map((_, i) => [c.r, c.g, c.b][i % 3]),
+        3
+      )
+    );
+    return g;
+  });
+  const merged = mergeGeometries(parts)!;
+  bowCache.set(color, merged);
   return merged;
 }
 
@@ -301,6 +354,7 @@ export function chara(st: Style, detail = 0.014): Chara {
   const bodyLine = make(geo.body, lineMat, false);
   make(geo.hair, lineMat, false);
   bones.head.add(new THREE.Mesh(faceGeo(st), faceMat));
+  if (st.bow) bones.chest.add(new THREE.Mesh(bowGeo(st.bow), faceMat));
   return { group, bones, style: st, detail, bodies: [body, bodyLine] };
 }
 
@@ -338,11 +392,13 @@ export function run(c: Chara, phase: number, amount: number, cheer = false) {
 
 export const HERO: Style = {
   skin: '#ffe1cc',
-  shirt: '#ffb6c9',
-  bottom: '#34426b',
+  shirt: '#ffffff',
+  vest: '#ffb3c8',
+  bow: '#e8344e',
+  bottom: '#8d93a3',
   skirt: true,
   sock: '#ffffff',
-  shoe: '#5b3a29',
+  shoe: '#6b4230',
   hair: '#2a5a4c',
   cut: 'twin',
   ribbon: '#ff4d6d',
