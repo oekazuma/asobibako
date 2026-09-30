@@ -256,3 +256,89 @@ describe('ランク', () => {
     expect(rank(499, 1000)).toBe('C');
   });
 });
+
+describe('ボス', () => {
+  /** 5 面を、ボスが現れる直前まで進めた状態 */
+  function atBoss(): RunState {
+    const s = empty(5);
+    s.z = s.bossAt - 0.01;
+    return s;
+  }
+
+  it('道のりの終わりで現れ、それまで校門はない', () => {
+    const s = atBoss();
+    expect(s.goal).toBe(Infinity);
+    const events = step(s, 0.01);
+    expect(events).toContainEqual({ type: 'boss-in' });
+    expect(s.boss!.phase).toBe('fight');
+  });
+
+  it('同じレーンのときだけ倍率ぶん減り、当てるとコンボが伸びる', () => {
+    const s = atBoss();
+    step(s, 0.01);
+    s.boss!.lane = 0;
+    step(s, 0.01, { shoot: true });
+    expect(s.boss!.hp).toBe(s.boss!.max);
+    s.lane = 0;
+    s.combo = 9;
+    s.cooldown = 0;
+    const events = step(s, 0.01, { shoot: true });
+    expect(events).toContainEqual({ type: 'boss-hit', damage: 1.5, combo: 10 });
+    expect(s.boss!.hp).toBe(s.boss!.max - 1.5);
+  });
+
+  it('ボスのあいだの撃つは通行人に当たらない', () => {
+    const s = atBoss();
+    step(s, 0.01);
+    s.boss!.lane = 2;
+    s.walkers = [walker(1, s.z + 5)];
+    step(s, 0.01, { shoot: true });
+    expect(s.walkers[0].fan).toBe(false);
+  });
+
+  it('0 にすると去り、30 m 先に校門が出る', () => {
+    const s = atBoss();
+    step(s, 0.01);
+    s.boss!.hp = 1;
+    s.boss!.lane = s.lane;
+    const events = step(s, 0.01, { shoot: true });
+    expect(events).toContainEqual({ type: 'boss-down' });
+    expect(s.boss!.phase).toBe('gone');
+    expect(s.goal).toBeCloseTo(s.z + 30, 0);
+  });
+
+  it('いまのレーンへ投げ、1.5 秒前から印を出して、およそ 12 m 先に落とす', () => {
+    const s = atBoss();
+    step(s, 0.01);
+    s.boss!.lane = 2;
+    s.boss!.moveIn = 99;
+    s.boss!.throwIn = 0.005;
+    const thrown = step(s, 0.01);
+    const t = thrown.find((e) => e.type === 'throw');
+    expect(t && t.type === 'throw' && t.drop.lane).toBe(2);
+    expect(s.boss!.drops).toHaveLength(1);
+    let landed: Obstacle | null = null;
+    for (let i = 0; i < 16 && !landed; i++) for (const e of step(s, 0.1)) if (e.type === 'land') landed = e.obstacle;
+    expect(landed).not.toBeNull();
+    expect(landed!.kind).toBe('low');
+    expect(landed!.z - s.z).toBeGreaterThan(10);
+    expect(landed!.z - s.z).toBeLessThan(14);
+    expect(s.blocks).toContain(landed);
+    expect(s.boss!.drops).toHaveLength(0);
+  });
+
+  it('決まった間隔でほかのレーンへ移る', () => {
+    const s = atBoss();
+    step(s, 0.01);
+    s.boss!.throwIn = 99;
+    const lane = s.boss!.lane;
+    step(s, s.rule.boss!.moveEvery);
+    expect(s.boss!.lane).not.toBe(lane);
+  });
+
+  it('ボスのない面ではボスは出ない', () => {
+    const s = empty(4);
+    s.z = s.bossAt + 1;
+    expect(step(s, 0.01).some((e) => e.type === 'boss-in')).toBe(false);
+  });
+});

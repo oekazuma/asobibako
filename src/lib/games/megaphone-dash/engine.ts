@@ -196,6 +196,40 @@ function bump(s: RunState, from: number, events: RunEvent[]) {
   }
 }
 
+function boss(s: RunState, dt: number, events: RunEvent[]) {
+  const b = s.boss;
+  const r = s.rule.boss;
+  if (!b || !r || b.phase === 'gone') return;
+  if (b.phase === 'wait') {
+    if (s.z < s.bossAt) return;
+    b.phase = 'fight';
+    events.push({ type: 'boss-in' });
+    return;
+  }
+  b.moveIn -= dt;
+  if (b.moveIn <= 0) {
+    b.moveIn += r.moveEvery;
+    b.lane = (b.lane + 1 + Math.floor(s.rng.next() * (LANES - 1))) % LANES;
+  }
+  b.throwIn -= dt;
+  if (b.throwIn <= 0) {
+    b.throwIn += r.throwEvery;
+    const kind = r.kinds[Math.floor(s.rng.next() * r.kinds.length)];
+    // 落ちるときにおよそ DROP_AHEAD 先になるよう、いまの速さで WARN_TIME ぶん先へ置く
+    const drop: Drop = { lane: b.lane, z: s.z + DROP_AHEAD + speed(s) * WARN_TIME, kind, t: WARN_TIME };
+    b.drops.push(drop);
+    events.push({ type: 'throw', drop });
+  }
+  for (const d of b.drops) {
+    d.t -= dt;
+    if (d.t > 0) continue;
+    const obstacle: Obstacle = { lane: d.lane, z: d.z, kind: d.kind, look: 0, hit: false };
+    s.blocks.push(obstacle);
+    events.push({ type: 'land', obstacle });
+  }
+  b.drops = b.drops.filter((d) => d.t > 0);
+}
+
 export function step(s: RunState, dt: number, input: RunInput = {}): RunEvent[] {
   const events: RunEvent[] = [];
   if (s.result) return events;
@@ -220,6 +254,7 @@ export function step(s: RunState, dt: number, input: RunInput = {}): RunEvent[] 
   pass(s, events);
   bump(s, from, events);
   s.air = Math.max(0, s.air - dt);
+  boss(s, dt, events);
   if (s.z >= s.goal) {
     s.result = 'clear';
     events.push({ type: 'goal' });
