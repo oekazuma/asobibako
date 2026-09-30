@@ -69,4 +69,13 @@ describe('Buzzer', () => {
     expect(act).not.toHaveBeenCalled();
     unmount(app);
   });
+  // 押した指の下でボタンが沈まないと、押せたのか分からない（答える番の知らせが届くまで少しかかる）
+  it('はやおし！ は押した瞬間に沈む', () => {
+    const { app, target } = show({});
+    const button = target.querySelector<HTMLButtonElement>('button.buzz')!;
+    button.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    flushSync();
+    expect(button.classList.contains('pressed')).toBe(true);
+    unmount(app);
+  });
 });

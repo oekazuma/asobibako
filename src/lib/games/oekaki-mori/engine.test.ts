@@ -242,6 +242,15 @@ describe('buzz と answer（はやおし検定）', () => {
     expect(s.buzzer).toBeNull();
   });
 
+  it('答える時間が切れた回の tick は、時間切れになった人を返す（ほかの回は null）', () => {
+    const s = hayaoshi();
+    go(s);
+    buzz(s, 2, fixed, WORDS);
+    expect(tick(s, 1, fixed, WORDS)).toBeNull();
+    expect(tick(s, ANSWER_S, fixed, WORDS)).toBe(2);
+    expect(tick(s, 1, fixed, WORDS)).toBeNull();
+  });
+
   it('当てる人が全員おてつきになるとターンが終わる', () => {
     const s = hayaoshi();
     const word = go(s);

@@ -5,6 +5,8 @@
     id: number;
     seat: Seat;
     text: string;
+    /** 答えではないお知らせ（じかんぎれ）。かぎかっこで囲まない */
+    note?: boolean;
   }
 </script>
 
@@ -14,7 +16,7 @@
 
 <ul class="bubbles" aria-live="polite">
   {#each bubbles as b (b.id)}
-    <li class="bubble p{b.seat}">{b.seat}P「{b.text}」</li>
+    <li class="bubble p{b.seat}">{b.note ? `${b.seat}P ${b.text}` : `${b.seat}P「${b.text}」`}</li>
   {/each}
 </ul>
 

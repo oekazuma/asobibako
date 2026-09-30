@@ -6,6 +6,12 @@
   let { view, me, act }: { view: View; me: Seat; act: (message: Message) => void } = $props();
 
   const out = $derived(view.out.includes(me));
+  /**
+   * 押した瞬間に沈める。preventDefault() した pointerdown では :active が付かないことがあり、
+   * 答える番の知らせが親から届くまで押せたかどうか分からないため
+   */
+  let pressed = $state(false);
+  let release: ReturnType<typeof setTimeout> | undefined;
 </script>
 
 <div class="buzzer">
@@ -28,9 +34,13 @@
   {:else}
     <button
       class="buzz"
+      class:pressed
       disabled={view.phase !== 'draw' || out}
       onpointerdown={(event) => {
         event.preventDefault();
+        pressed = true;
+        clearTimeout(release);
+        release = setTimeout(() => (pressed = false), 600);
         act({ t: 'buzz' });
       }}>{out ? 'おてつき' : 'はやおし！'}</button
     >
@@ -63,7 +73,8 @@
     cursor: pointer;
   }
 
-  .buzz:active {
+  .buzz:active,
+  .buzz.pressed {
     translate: 0 6px;
     box-shadow: 0 2px 0 var(--p2-deep);
   }

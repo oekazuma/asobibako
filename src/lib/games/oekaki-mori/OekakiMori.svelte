@@ -43,7 +43,7 @@
     } else if (m.t === 'view') show(m.view as View);
     else if (m.t === 'ink') strokes = apply(strokes, m.ink as Ink);
     else if (m.t === 'bubble') {
-      const b: Bubble = { id: ++bubbleId, seat: m.seat as Seat, text: String(m.text) };
+      const b: Bubble = { id: ++bubbleId, seat: m.seat as Seat, text: String(m.text), note: m.note === true };
       bubbles = [...bubbles.slice(-4), b];
       setTimeout(() => (bubbles = bubbles.filter((x) => x !== b)), 3000);
       sounds.wrong();
