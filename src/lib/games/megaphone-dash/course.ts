@@ -34,6 +34,11 @@ export interface BossRule {
   kinds: Kind[];
 }
 
+/** 面ごとの制限時間（秒）。ふつうのボットがぎりぎり着ける時間で、ボットに走らせて決めた。面の番号 - 1 で引く */
+const TIME = [44, 45, 41, 42, 73, 48, 60, 60, 68, 81, 74, 74, 79, 84, 103];
+/** 面ごとのうまいボットの点。ランクの基準。面の番号 - 1 で引く */
+const BEST = [510, 356, 502, 620, 1256, 840, 1162, 1206, 1590, 1946, 1990, 2282, 2480, 2746, 3280];
+
 export interface LevelRule {
   /** 道のりの長さ（m）。ボスの面はここでボスが現れる */
   length: number;
@@ -65,16 +70,15 @@ export function rule(level: number): LevelRule {
   const easy = n <= 2;
   const length = Math.round(lerp(200, 450, d) / 10) * 10;
   const boss = BOSSES[n] ?? null;
-  const time = Math.round((length / BASE_SPEED) * 1.3) + (boss ? 30 : 0);
   return {
     length,
-    time,
+    time: TIME[n - 1],
     walkers: lerp(5, 9, d),
     rows: lerp(3, 7, d),
     high: easy ? 0 : lerp(0.25, 0.6, d),
     double: easy ? 0 : lerp(0.15, 0.5, d),
     boss,
-    best: Math.round(length * 6 + time * 10)
+    best: BEST[n - 1]
   };
 }
 

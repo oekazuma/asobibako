@@ -62,6 +62,14 @@ describe('course', () => {
     expect(rule(15).boss!.hp).toBeGreaterThan(rule(5).boss!.hp);
   });
 
+  it('制限時間とランクの基準は面ごとに決めてある', () => {
+    for (const level of levels) {
+      expect(rule(level).time).toBeGreaterThan(20);
+      expect(rule(level).best).toBeGreaterThan(0);
+    }
+    expect(rule(5).time).toBeGreaterThan(rule(4).time);
+  });
+
   it('範囲外の面の番号は端に丸める', () => {
     expect(rule(0)).toEqual(rule(1));
     expect(rule(99)).toEqual(rule(LEVELS));
