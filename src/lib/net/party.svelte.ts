@@ -24,6 +24,8 @@ export class Party {
   members = $state<Seat[]>([1]);
   /** 子で、親とのつながりが切れた */
   lost = $state(false);
+  /** 親だけ。つながりが切れた子の番号。呼び直した子にはこの番号を先に渡し、点数と番を引き継がせる */
+  away = $state<Seat[]>([]);
   readonly host: boolean;
   readonly #pipes = new SvelteMap<Seat, Pipe>();
   readonly #acts = new SvelteSet<ActListener>();
@@ -49,18 +51,21 @@ export class Party {
     return party;
   }
 
-  /** 親だけ。空いている番号で子を迎える。満員なら閉じて null */
+  /** 親だけ。切れた子の番号か、空いている番号で子を迎える。満員なら閉じて null */
   add(pipe: Pipe): Seat | null {
-    const seat = ([2, 3] as const).find((s) => !this.#pipes.has(s));
+    const free = (s: Seat) => !this.#pipes.has(s);
+    const seat = this.away.find(free) ?? ([2, 3] as const).find((s) => free(s) && !this.away.includes(s));
     if (!this.host || !seat) {
       pipe.close();
       return null;
     }
+    this.away = this.away.filter((s) => s !== seat);
     this.#pipes.set(seat, pipe);
     pipe.on((message) => this.#act(message, seat));
     pipe.closed.then(() => this.#drop(seat, pipe));
     pipe.send({ t: 'seat', seat });
     this.#setMembers([...this.members, seat]);
+    this.#act({ t: 'join' }, seat);
     return seat;
   }
 
@@ -93,6 +98,7 @@ export class Party {
     this.#pipes.clear();
     // ページを閉じてから戻る（bfcache）と同じ Party が生き返るので、つながっていない人を顔ぶれに残さない
     this.members = [this.me];
+    this.away = [];
     for (const pipe of pipes) pipe.close();
   }
 
@@ -104,6 +110,7 @@ export class Party {
     // 閉じたあとに同じ番号へ別の子が入っていれば、それは消さない
     if (this.#pipes.get(seat) !== pipe) return;
     this.#pipes.delete(seat);
+    this.away = [...this.away, seat].sort((a, b) => a - b);
     this.#setMembers(this.members.filter((s) => s !== seat));
     this.#act({ t: 'leave' }, seat);
   }

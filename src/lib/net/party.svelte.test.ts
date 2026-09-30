@@ -134,4 +134,36 @@ describe('Party', () => {
     host.close();
     expect(host.members).toEqual([1]);
   });
+
+  // 切れた人の番号を空けたままにすると、別の人が入って切れた人が戻れなくなる
+  it('切れた子の番号を覚え、次に迎える子へ先に渡す', async () => {
+    const { host, a } = trio();
+    a.close();
+    await settle();
+    expect(host.away).toEqual([2]);
+    const [c, c2] = pipes();
+    const g = Party.guest(c2);
+    expect(host.add(c)).toBe(2);
+    await settle();
+    expect(g.me).toBe(2);
+    expect(host.away).toEqual([]);
+    expect(host.members).toEqual([1, 2, 3]);
+  });
+
+  it('迎えるたびに、その子の番号で join を親のルールへ流す', () => {
+    const host = Party.host();
+    const joined: Seat[] = [];
+    host.onAct((m, from) => m.t === 'join' && joined.push(from));
+    const [a] = pipes();
+    host.add(a);
+    expect(joined).toEqual([2]);
+  });
+
+  it('閉じたら、切れた子の番号も忘れる', async () => {
+    const { host, a } = trio();
+    a.close();
+    await settle();
+    host.close();
+    expect(host.away).toEqual([]);
+  });
 });
