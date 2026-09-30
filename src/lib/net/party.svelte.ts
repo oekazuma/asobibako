@@ -91,6 +91,8 @@ export class Party {
   close(): void {
     const pipes = [...this.#pipes.values()];
     this.#pipes.clear();
+    // ページを閉じてから戻る（bfcache）と同じ Party が生き返るので、つながっていない人を顔ぶれに残さない
+    this.members = [this.me];
     for (const pipe of pipes) pipe.close();
   }
 

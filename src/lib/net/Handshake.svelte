@@ -110,12 +110,12 @@
 
 <style>
   .step {
-    font-size: clamp(17px, 3vmin, 24px);
+    font-size: clamp(17px, min(3cqh, 5cqw), 24px);
     font-weight: 800;
   }
 
   .code {
-    width: min(86vw, 52dvh);
+    width: min(86cqw, 52cqh);
     aspect-ratio: 1;
     padding: 8px;
     border: 3px solid var(--line);
@@ -124,7 +124,7 @@
   }
 
   video {
-    width: min(80vw, 50dvh);
+    width: min(80cqw, 50cqh);
     aspect-ratio: 4 / 3;
     border: 3px solid var(--line);
     border-radius: 16px;

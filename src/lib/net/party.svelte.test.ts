@@ -128,4 +128,10 @@ describe('Party', () => {
     expect(g.me).toBe(2);
     expect(g.members).toEqual([1, 2]);
   });
+  // ページを閉じたあと戻る（bfcache）と、同じ Party が生き返る。つながっていない子が顔ぶれに残ると「はじめる」が押せてしまう
+  it('閉じたら、顔ぶれは自分だけになる', () => {
+    const { host } = trio();
+    host.close();
+    expect(host.members).toEqual([1]);
+  });
 });

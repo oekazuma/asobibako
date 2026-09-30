@@ -61,7 +61,9 @@
 {:else if view.mode === 'hayaoshi'}
   <Buzzer {view} {me} {act} />
 {:else}
-  <KanaPad disabled={view.phase !== 'draw' || solved} onsubmit={(text) => act({ t: 'guess', text })} />
+  {#key view.turn}
+    <KanaPad disabled={view.phase !== 'draw' || solved} onsubmit={(text) => act({ t: 'guess', text })} />
+  {/key}
 {/if}
 
 <style>

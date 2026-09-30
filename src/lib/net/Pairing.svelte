@@ -40,7 +40,11 @@
     align-items: center;
     justify-content: center;
     gap: 14px;
-    min-height: 100dvh;
+    /* QR とカメラは、この画面の大きさ（cqw / cqh）で決める。おえかきのもりでは回した .stage の中に置くため */
+    height: 100dvh;
+    container-type: size;
+    overflow-y: auto;
+    touch-action: pan-y;
     padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
     background: var(--paper-dots), var(--paper);
     color: var(--line);
