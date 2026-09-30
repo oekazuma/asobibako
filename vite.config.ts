@@ -29,6 +29,8 @@ const petShapes = (() => {
     .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'))
     .sort())
     hash.update(f).update(readFileSync(`${dir}/${f}`));
+  // 形を作る共通の部品は pet-house の外にあるので、別に足す
+  hash.update(readFileSync('src/lib/sculpt.ts'));
   hash.update(readFileSync('node_modules/three/package.json'));
   return hash.digest('hex').slice(0, 12);
 })();

@@ -1,123 +1,96 @@
 import { difficulty, lerp, Rng } from '$lib/levels';
 
-export const LANES = 3;
 export const LEVELS = 15;
-/** コンボの倍率が ×1.0 のときの速さ（m/s） */
-export const BASE_SPEED = 5;
-/** 障害物の列どうしの最小の間（m）。×2.0 でも 1 秒あり、2 レーン先の空きへ移りきれる */
-export const ROW_GAP = 10;
-/** 走り出してから最初の障害物・通行人までの助走（m） */
-export const RUNUP = 25;
+/** 走る子が動ける道の半分の幅（m）。道の中心が 0 */
+export const HALF = 2.6;
+/** 場所 1 つぶんの長さ（m）。走っていると 20〜30 秒ごとに景色が変わる */
+export const ZONE_LEN = 170;
+/** 走り出してから最初の群れまでの助走（m） */
+export const RUNUP = 18;
 
-export type Kind = 'low' | 'high';
+/** 通学路 → 商店街 → 校舎の廊下。廊下は狭く、人が詰まって流れてくる */
+export const ZONES = ['street', 'arcade', 'hall'] as const;
+export type Zone = (typeof ZONES)[number];
 
-export interface Block {
-  lane: number;
+export interface Person {
+  x: number;
   z: number;
-  kind: Kind;
-  /** 高い障害物の見た目。0 が柵、1 が電柱 */
+  /** 見た目の番号 */
   look: number;
-}
-
-/** 通行人の最初の位置 */
-export interface Spot {
-  lane: number;
-  z: number;
 }
 
 export interface BossRule {
   hp: number;
-  /** レーンを移る間隔（秒） */
+  /** 左右へ動き直す間隔と、ふまん玉を投げる間隔（秒） */
   moveEvery: number;
-  /** 障害物を投げる間隔（秒） */
   throwEvery: number;
-  kinds: Kind[];
 }
 
-/**
- * 面ごとの制限時間（秒）。ボットに走らせて決めた。面の番号 - 1 で引く。
- * ふつうのボットに 8% の余裕を足した時間と、×1.0 で道のりを走りきる時間の 1.05 倍の、長いほう。
- * 子どもも遊ぶので、当て続けて速くならなくても、よけるだけで着けるようにしてある（ボスは撃たないと倒せない）。
- * 1 面は、いちばん遅いボット（ゆっくり・はしるだけ）も着ける時間。
- * 値は course() の乱数の種と engine.ts の定数に結びついているので、どちらかを変えたらボットで測り直す
- */
-const TIME = [44, 47, 51, 53, 73, 61, 66, 70, 72, 81, 80, 84, 87, 91, 103];
-/** 面ごとのうまいボットの点。ランクの基準。残り時間も点に入るので、TIME を変えたら測り直す。面の番号 - 1 で引く */
-const BEST = [510, 396, 702, 840, 1256, 1100, 1282, 1406, 1670, 1946, 2110, 2482, 2640, 2886, 3280];
+/** ボスは 5・10・15 面。あとの面ほど体力が多く、よく動いてよく投げる */
+const BOSSES: Partial<Record<number, BossRule>> = {
+  5: { hp: 60, moveEvery: 2.2, throwEvery: 1.6 },
+  10: { hp: 90, moveEvery: 1.8, throwEvery: 1.3 },
+  15: { hp: 120, moveEvery: 1.4, throwEvery: 1.0 }
+};
+
+/** ボスはゴールのこの距離（m）手前で現れる */
+export const BOSS_ZONE = 120;
 
 export interface LevelRule {
-  /** 道のりの長さ（m）。ボスの面はここでボスが現れる */
   length: number;
-  /** 制限時間（秒） */
-  time: number;
-  /** 100 m あたりの通行人 */
-  walkers: number;
-  /** 100 m あたりの障害物の列 */
-  rows: number;
-  /** 障害物が高いものになる割合 */
-  high: number;
-  /** 列が 2 レーンをふさぐ割合 */
-  double: number;
   boss: BossRule | null;
-  /** うまいボットの点。ランクはこれに対する割合で決める */
-  best: number;
+  /** ボスが現れる距離。ボスのいない面では道のりの長さと同じ */
+  bossAt: number;
+  time: number;
+  /** 群れの間隔（m） */
+  gap: number;
+  /** 1 つの群れの人数の上限 */
+  crowd: number;
 }
-
-const BOSSES: Partial<Record<number, BossRule>> = {
-  5: { hp: 20, moveEvery: 2.6, throwEvery: 2.4, kinds: ['low'] },
-  10: { hp: 30, moveEvery: 2.2, throwEvery: 2, kinds: ['low', 'high'] },
-  15: { hp: 40, moveEvery: 1.8, throwEvery: 1.5, kinds: ['low', 'high'] }
-};
 
 export function rule(level: number): LevelRule {
   const n = Math.min(LEVELS, Math.max(1, Math.round(level)));
   const d = difficulty(n, LEVELS);
-  // はじめの 2 面は跳ぶことを覚える面なので、低いバリケードを 1 レーンずつだけ置く
-  const easy = n <= 2;
-  const length = Math.round(lerp(200, 450, d) / 10) * 10;
+  const length = ZONES.length * ZONE_LEN;
   const boss = BOSSES[n] ?? null;
   return {
     length,
-    time: TIME[n - 1],
-    walkers: lerp(5, 9, d),
-    rows: lerp(3, 7, d),
-    high: easy ? 0 : lerp(0.25, 0.6, d),
-    double: easy ? 0 : lerp(0.15, 0.5, d),
     boss,
-    best: BEST[n - 1]
+    bossAt: boss ? length - BOSS_ZONE : length,
+    // コンボなしの速さ（6 m/s）でも着ける時間。当てて速く走るほど残りが増えて点になる。ボスの面は倒すぶんを足す
+    time: Math.round((length / 6) * lerp(1.15, 1.0, d)) + (boss ? 30 : 0),
+    gap: lerp(16, 11, d),
+    crowd: Math.round(lerp(8, 16, d))
   };
 }
 
-export function course(level: number): { length: number; walkers: Spot[]; blocks: Block[] } {
+export const zoneAt = (z: number): Zone => ZONES[Math.min(ZONES.length - 1, Math.max(0, Math.floor(z / ZONE_LEN)))];
+
+/** 場所ごとの道の広さ。廊下は壁が迫るので狭い */
+export const halfAt = (z: number): number => (zoneAt(z) === 'hall' ? 1.9 : HALF);
+
+export function course(level: number): { length: number; people: Person[] } {
   const r = rule(level);
   const rng = new Rng(Math.round(level) * 101 + 13);
-  const pick = (n: number) => Math.floor(rng.next() * n);
-  const end = r.length - 10;
-
-  const blocks: Block[] = [];
-  const count = Math.max(1, Math.round((r.length / 100) * r.rows));
-  const step = Math.max(ROW_GAP, (end - RUNUP) / count);
-  // 各列は自分の枠 [z, z + step - ROW_GAP] の中でずらすので、隣の列とは必ず ROW_GAP 以上あく
-  for (let z = RUNUP; z <= end; z += step) {
-    const at = Math.min(end, Math.round(z + rng.next() * (step - ROW_GAP)));
-    const lanes = [0, 1, 2];
-    const n = rng.next() < r.double ? 2 : 1;
-    for (let i = 0; i < n; i++) {
-      const lane = lanes.splice(pick(lanes.length), 1)[0];
-      blocks.push({ lane, z: at, kind: rng.next() < r.high ? 'high' : 'low', look: pick(2) });
+  const pick = (a: number, b: number) => a + rng.next() * (b - a);
+  const people: Person[] = [];
+  let look = 0;
+  // ボスの面では、ボスより先には人を置かない
+  for (let z = RUNUP; z < r.bossAt - 12; z += pick(r.gap * 0.8, r.gap * 1.2)) {
+    const half = halfAt(z);
+    // 群れは道の片側に寄せて置き、突っこむ先を選ばせる
+    const cx = pick(-half + 0.8, half - 0.8);
+    const big = rng.next() < 0.18;
+    const count = Math.round(big ? r.crowd * 1.6 : pick(3, r.crowd));
+    const spread = big ? 1.4 : 0.9;
+    for (let i = 0; i < count; i++) {
+      const a = rng.next() * Math.PI * 2;
+      const d = Math.sqrt(rng.next()) * spread;
+      const pz = z + Math.sin(a) * d * 1.6;
+      // 群れが場所の境目をまたぐと、廊下側の人は狭い道幅に収める
+      const ph = halfAt(pz);
+      people.push({ x: Math.max(-ph + 0.3, Math.min(ph - 0.3, cx + Math.cos(a) * d)), z: pz, look: look++ });
     }
   }
-
-  const walkers: Spot[] = [];
-  const people = Math.round((r.length / 100) * r.walkers);
-  for (let i = 0; i < people; i++) {
-    for (let tries = 0; tries < 8; tries++) {
-      const spot = { lane: pick(3), z: Math.round(RUNUP + rng.next() * (end - RUNUP)) };
-      if (blocks.some((b) => b.lane === spot.lane && Math.abs(b.z - spot.z) < 4)) continue;
-      walkers.push(spot);
-      break;
-    }
-  }
-  walkers.sort((a, b) => a.z - b.z);
-  return { length: r.length, walkers, blocks };
+  return { length: r.length, people };
 }

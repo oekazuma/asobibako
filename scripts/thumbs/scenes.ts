@@ -300,26 +300,17 @@ export const SCENES: Scene[] = [
   },
   {
     id: 'megaphone-dash',
-    level: 3,
+    level: 1,
     clip: band(460),
     play: async (s) => {
       await s.startSolo();
       // 3D の準備（最長 1.5 秒）が済んで走り出すのを待つ
-      await s.wait(2500);
-      // レベル 3 の通行人は右のレーンに多い。1 度右へずらしてから撃ち、ファンと「+N」を写す
-      await s.drag(
-        1,
-        [
-          [384, 760],
-          [450, 760]
-        ],
-        120
-      );
-      await s.touch(1, 'up', 450, 760);
-      for (let i = 0; i < 30; i++) {
-        await s.touch(1, 'down', 384, 760);
-        await s.touch(1, 'up', 384, 760);
-        await s.wait(220);
+      await s.wait(2000);
+      // 指を置いたまま左右へゆっくり揺らして群れを巻きこみ、並走するファンと「+N」を写す
+      await s.touch(1, 'down', 384, 760);
+      for (let i = 0; i < 40; i++) {
+        await s.touch(1, 'move', 384 + Math.sin(i / 6) * 120, 760);
+        await s.wait(150);
       }
     }
   },

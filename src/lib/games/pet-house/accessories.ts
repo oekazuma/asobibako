@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Look } from './looks';
-import { field, type Field } from './sculpt';
+import { field, type Field } from '$lib/sculpt';
 import type { AccessoryId } from './types';
 
 /**

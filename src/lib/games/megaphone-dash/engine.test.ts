@@ -1,270 +1,204 @@
 import { describe, expect, it } from 'vitest';
+import { ZONE_LEN } from './course';
 import {
+  BASE_SPEED,
+  BOSS_HIT_W,
+  COMBO_TIME,
   createState,
-  DEPTH,
-  JUMP_TIME,
+  FULL_COMBO,
+  GAUGE,
+  PULSE,
   rank,
+  REACH,
   score,
-  SHOT_GAP,
+  SHOUT_DAMAGE,
   speed,
   step,
   STUMBLE_TIME,
-  tier,
-  WARN_TIME,
   type Obstacle,
   type RunState,
   type Walker
 } from './engine';
 
-/** 障害物も通行人もない 1 面。テストごとに置きたいものだけ置く */
 function empty(level = 1): RunState {
   const s = createState(level);
   s.walkers = [];
   s.blocks = [];
   return s;
 }
-const walker = (lane: number, z: number): Walker => ({ lane, z, fan: false, passed: false });
-const block = (lane: number, z: number, kind: 'low' | 'high'): Obstacle => ({ lane, z, kind, look: 0, hit: false });
+const walker = (x: number, z: number): Walker => ({ x, z, look: 0, fan: false, order: 0, phase: 0 });
+const block = (x: number, z: number, w = 1.2): Obstacle => ({ x, z, w, hit: false });
 
-describe('レーン', () => {
-  it('真ん中から始まり、端より外へは出ない', () => {
+describe('メガホン', () => {
+  it('前の扇形の中の人をまとめてファンにし、横や遠くの人は残す', () => {
     const s = empty();
-    expect(s.lane).toBe(1);
-    step(s, 0.01, { move: -5 });
-    expect(s.lane).toBe(0);
-    step(s, 0.01, { move: 9 });
-    expect(s.lane).toBe(2);
-  });
-});
-
-describe('撃つ', () => {
-  it('同じレーンの 15 m 以内でいちばん近い通行人に当たる', () => {
-    const s = empty();
-    const far = walker(1, 14);
-    const near = walker(1, 6);
-    const side = walker(0, 3);
-    s.walkers = [far, near, side];
-    const events = step(s, 0.01, { shoot: true });
+    const near = walker(0.2, 3);
+    // 扇は奥ほど広い。手前では届かない横の位置でも、奥なら届く
+    const wide = walker(0.9, 8);
+    const side = walker(0.9, 2);
+    const far = walker(0, REACH + 2);
+    s.walkers = [near, wide, side, far];
+    const events = step(s, 0.01);
     expect(near.fan).toBe(true);
-    expect(far.fan).toBe(false);
+    expect(wide.fan).toBe(true);
     expect(side.fan).toBe(false);
-    expect(events).toContainEqual({ type: 'hit', walker: near, gain: 12, combo: 1 });
+    expect(far.fan).toBe(false);
+    const hit = events.find((e) => e.type === 'hit');
+    expect(hit && hit.type === 'hit' && hit.walkers).toHaveLength(2);
+    expect(s.combo).toBe(2);
+    expect(s.followers).toBe(11 + 12);
   });
 
-  it('15 m より遠いと外れで、損はない', () => {
+  it('決まった間隔で鳴る', () => {
     const s = empty();
-    s.walkers = [walker(1, 16)];
-    const events = step(s, 0.01, { shoot: true });
-    expect(s.walkers[0].fan).toBe(false);
-    expect(events).toEqual([{ type: 'shot', lane: 1 }]);
+    let pulses = 0;
+    for (let i = 0; i < 100; i++) pulses += step(s, 0.01).filter((e) => e.type === 'pulse').length;
+    expect(pulses).toBe(Math.ceil(1 / PULSE));
+  });
+
+  it('しばらく当てないとコンボが切れる', () => {
+    const s = empty();
+    s.walkers = [walker(0, 2)];
+    step(s, 0.01);
+    expect(s.combo).toBe(1);
+    let dropped = false;
+    for (let t = 0; t < COMBO_TIME + 0.2; t += 0.05) dropped ||= step(s, 0.05).some((e) => e.type === 'drop');
+    expect(dropped).toBe(true);
     expect(s.combo).toBe(0);
   });
 
-  it('撃つ間隔は 0.25 秒以上', () => {
+  it('コンボで速くなり、上限は 2 倍', () => {
     const s = empty();
-    s.walkers = [walker(1, 5), walker(1, 8)];
-    step(s, 0.01, { shoot: true });
-    step(s, 0.1, { shoot: true });
-    expect(s.walkers[1].fan).toBe(false);
-    step(s, SHOT_GAP);
-    step(s, 0.01, { shoot: true });
-    expect(s.walkers[1].fan).toBe(true);
-  });
-
-  it('当てるとコンボとフォロワーが式どおりに増える', () => {
-    const s = empty();
-    s.combo = 17;
-    s.walkers = [walker(1, 5)];
-    step(s, 0.01, { shoot: true });
-    expect(s.combo).toBe(18);
-    expect(s.maxCombo).toBe(18);
-    expect(s.followers).toBe(46);
+    expect(speed(s)).toBe(BASE_SPEED);
+    s.combo = FULL_COMBO / 2;
+    expect(speed(s)).toBeCloseTo(BASE_SPEED * 1.5);
+    s.combo = FULL_COMBO * 3;
+    expect(speed(s)).toBeCloseTo(BASE_SPEED * 2);
   });
 });
 
-describe('速さ', () => {
-  it('コンボの段階で速さの倍率が変わる', () => {
-    expect([0, 4, 5, 9, 10, 19, 20, 50].map(tier)).toEqual([1, 1, 1.2, 1.2, 1.5, 1.5, 2, 2]);
+describe('走る', () => {
+  it('指の位置へ横に寄っていき、道の端で止まる', () => {
+    const s = empty();
+    step(s, 0.05, { target: 1 });
+    expect(s.x).toBeGreaterThan(0);
+    expect(s.x).toBeLessThan(1);
+    for (let i = 0; i < 20; i++) step(s, 0.05, { target: 99 });
+    expect(s.x).toBeLessThan(2.6);
+    expect(s.x).toBeGreaterThan(2);
   });
 
-  it('基本は 5 m/s で、倍率ぶん速く進む', () => {
+  it('指を離すとその場をまっすぐ走る', () => {
     const s = empty();
-    step(s, 1);
-    expect(s.z).toBeCloseTo(5);
-    s.combo = 20;
-    step(s, 1);
-    expect(s.z).toBeCloseTo(15);
-  });
-});
-
-describe('通行人とのすれ違い', () => {
-  it('通行人は 1 m/s でこちらへ歩く', () => {
-    const s = empty();
-    s.walkers = [walker(0, 30)];
-    step(s, 1);
-    expect(s.walkers[0].z).toBeCloseTo(29);
-  });
-
-  it('同じレーンのまますれ違うとコンボが切れる', () => {
-    const s = empty();
-    s.combo = 7;
-    const w = walker(1, 1);
-    s.walkers = [w];
-    const events = step(s, 0.5);
-    expect(s.combo).toBe(0);
-    expect(events).toContainEqual({ type: 'miss', walker: w });
-  });
-
-  it('ほかのレーンの通行人とのすれ違いでは切れない', () => {
-    const s = empty();
-    s.combo = 7;
-    s.walkers = [walker(2, 1)];
-    const events = step(s, 0.5);
-    expect(s.combo).toBe(7);
-    expect(events.some((e) => e.type === 'miss')).toBe(false);
-    expect(s.walkers[0].passed).toBe(true);
+    for (let i = 0; i < 20; i++) step(s, 0.05, { target: 1 });
+    const x = s.x;
+    step(s, 0.05, { target: null });
+    expect(s.x).toBeCloseTo(x);
   });
 });
 
-describe('障害物', () => {
-  it('ぶつかるとコンボが切れ、1 秒 ×0.3 になる', () => {
+describe('ふまん玉にぶつかる', () => {
+  it('体が重なるとぶつかり、よろけてコンボが切れる', () => {
     const s = empty();
-    s.combo = 12;
-    const o = block(1, 0.5, 'low');
+    s.combo = 9;
+    s.since = 0;
+    const o = block(0.6, 0.3);
     s.blocks = [o];
     const events = step(s, 0.01);
-    expect(events).toContainEqual({ type: 'bump', obstacle: o });
+    expect(o.hit).toBe(true);
+    expect(s.stumble).toBe(STUMBLE_TIME);
     expect(s.combo).toBe(0);
-    expect(s.stumble).toBe(STUMBLE_TIME);
-    expect(speed(s)).toBeCloseTo(5 * 0.3);
+    expect(events.some((e) => e.type === 'bump')).toBe(true);
   });
 
-  it('同じ障害物には 1 回しかぶつからない', () => {
+  it('横に外れていればぶつからない', () => {
     const s = empty();
-    s.blocks = [block(1, DEPTH, 'high')];
-    const first = step(s, 0.01);
-    const second = step(s, 0.01);
-    expect(first.filter((e) => e.type === 'bump')).toHaveLength(1);
-    expect(second.filter((e) => e.type === 'bump')).toHaveLength(0);
-  });
-
-  it('よろけているあいだに別の障害物にぶつかると 1 秒を数え直す', () => {
-    const s = empty();
-    s.blocks = [block(1, 0.3, 'low'), block(1, 0.9, 'low')];
-    step(s, 0.01);
-    step(s, 0.5);
-    expect(s.stumble).toBe(STUMBLE_TIME);
-  });
-
-  it('よろけているあいだも撃てて移れる', () => {
-    const s = empty();
-    s.stumble = 0.8;
-    s.walkers = [walker(0, 5)];
-    step(s, 0.01, { move: -1, shoot: true });
-    expect(s.lane).toBe(0);
-    expect(s.walkers[0].fan).toBe(true);
-  });
-
-  it('低いバリケードは跳べばよけられる', () => {
-    const s = empty();
-    s.blocks = [block(1, 1.2, 'low')];
-    step(s, 0.01, { jump: true });
-    for (let i = 0; i < 20; i++) step(s, 0.02);
+    s.blocks = [block(1.5, 0.3)];
+    step(s, 0.05);
     expect(s.blocks[0].hit).toBe(false);
   });
+});
 
-  it('高い柵は跳んでもぶつかる', () => {
+describe('大声', () => {
+  it('ゲージが満タンになると知らせ、叫ぶと前の人をまとめてファンにして障害物を吹き飛ばす', () => {
     const s = empty();
-    s.blocks = [block(1, 1.2, 'high')];
-    step(s, 0.01, { jump: true });
-    for (let i = 0; i < 20; i++) step(s, 0.02);
+    s.gauge = GAUGE - 1;
+    s.walkers = [walker(0, 2)];
+    const filled = step(s, 0.01);
+    expect(filled.some((e) => e.type === 'gauge')).toBe(true);
+    s.walkers.push(walker(-2, 20), walker(2, 28));
+    s.blocks = [block(0, 15)];
+    const events = step(s, 0.01, { shout: true });
+    expect(events.some((e) => e.type === 'shout')).toBe(true);
+    expect(s.walkers.every((w) => w.fan)).toBe(true);
     expect(s.blocks[0].hit).toBe(true);
+    expect(s.gauge).toBe(0);
   });
 
-  it('ほかのレーンの障害物にはぶつからない', () => {
+  it('ゲージが足りなければ叫べない', () => {
     const s = empty();
-    s.blocks = [block(0, 0.5, 'high')];
-    step(s, 0.2);
-    expect(s.blocks[0].hit).toBe(false);
+    s.walkers = [walker(0, 20)];
+    step(s, 0.01, { shout: true });
+    expect(s.walkers[0].fan).toBe(false);
   });
 
-  it('大きな dt でも障害物をすり抜けない', () => {
+  it('叫んだあとしばらくは障害物をすり抜ける', () => {
     const s = empty();
-    s.combo = 20;
-    s.blocks = [block(1, 1, 'high')];
-    step(s, 0.2);
-    expect(s.blocks[0].hit).toBe(true);
+    s.gauge = GAUGE;
+    step(s, 0.01, { shout: true });
+    s.blocks = [block(0, s.z + 0.3)];
+    step(s, 0.05);
+    expect(s.stumble).toBe(0);
   });
 });
 
-describe('跳ぶ', () => {
-  it('0.6 秒空中にいて、空中の跳ぶは無視する', () => {
+describe('場所とゴール', () => {
+  it('道のりが進むと場所が変わる', () => {
     const s = empty();
-    const first = step(s, 0.01, { jump: true });
-    expect(first).toContainEqual({ type: 'jump' });
-    step(s, 0.3);
-    const again = step(s, 0.01, { jump: true });
-    expect(again.some((e) => e.type === 'jump')).toBe(false);
-    expect(s.air).toBeCloseTo(JUMP_TIME - 0.32);
-    step(s, 0.3);
-    expect(s.air).toBe(0);
+    s.z = ZONE_LEN - 0.01;
+    const events = step(s, 0.05);
+    expect(events).toContainEqual({ type: 'zone', zone: 'arcade' });
   });
 
-  it('空中でもレーンを移れて撃てる', () => {
+  it('道のりの終わりでクリア、時間切れでしっぱい', () => {
     const s = empty();
-    s.walkers = [walker(2, 5)];
-    step(s, 0.01, { jump: true });
-    step(s, 0.01, { move: 1, shoot: true });
-    expect(s.lane).toBe(2);
-    expect(s.walkers[0].fan).toBe(true);
-  });
-});
-
-describe('時間とゴール', () => {
-  it('時間切れでしっぱい', () => {
-    const s = empty();
-    s.time = 0.05;
-    const events = step(s, 0.1);
-    expect(s.result).toBe('fail');
-    expect(s.time).toBe(0);
-    expect(events).toContainEqual({ type: 'timeout' });
-    expect(step(s, 0.1)).toEqual([]);
-  });
-
-  it('ボスのない面は道のりの終わりでクリア', () => {
-    const s = empty(1);
-    s.z = s.goal - 0.01;
-    const events = step(s, 0.1);
+    s.z = s.rule.length - 0.01;
+    expect(step(s, 0.05)).toContainEqual({ type: 'goal' });
     expect(s.result).toBe('clear');
-    expect(events).toContainEqual({ type: 'goal' });
+    const t = empty();
+    t.time = 0.01;
+    expect(step(t, 0.05)).toContainEqual({ type: 'timeout' });
+    expect(t.result).toBe('fail');
   });
 
-  it('時間が 0 になるフレームで校門に着いたらクリア', () => {
-    const s = empty(1);
-    s.time = 0.05;
-    s.z = s.goal - 0.01;
-    const events = step(s, 0.1);
-    expect(s.result).toBe('clear');
-    expect(events).toContainEqual({ type: 'goal' });
-    expect(events.some((e) => e.type === 'timeout')).toBe(false);
+  it('コンボなしでも時間内に着ける', () => {
+    for (const level of [1, 8, 15]) {
+      const s = empty(level);
+      expect(s.rule.length / BASE_SPEED).toBeLessThanOrEqual(s.rule.time);
+    }
   });
 });
 
-describe('ランク', () => {
-  it('点はフォロワー ＋ 残り秒（切り捨て）× 20 ＋ 最大コンボ × 10', () => {
-    const s = empty();
-    s.followers = 300;
-    s.time = 12.9;
+describe('点とランク', () => {
+  it('ファンにできた人の割合でランクが決まる', () => {
+    const s = createState(1);
+    const n = s.walkers.length;
+    s.fans = n;
+    expect(rank(s)).toBe('S');
+    s.fans = Math.floor(n * 0.9);
+    expect(rank(s)).toBe('A');
+    s.fans = Math.floor(n * 0.7);
+    expect(rank(s)).toBe('B');
+    s.fans = Math.floor(n * 0.3);
+    expect(rank(s)).toBe('C');
+  });
+
+  it('点はフォロワー・残り秒・最大コンボから出す', () => {
+    const s = createState(1);
+    s.followers = 500;
+    s.time = 12.7;
     s.maxCombo = 8;
-    expect(score(s)).toBe(300 + 12 * 20 + 80);
-  });
-
-  it('うまいボットの点に対して S 90%・A 70%・B 50%', () => {
-    expect(rank(900, 1000)).toBe('S');
-    expect(rank(899, 1000)).toBe('A');
-    expect(rank(700, 1000)).toBe('A');
-    expect(rank(500, 1000)).toBe('B');
-    expect(rank(499, 1000)).toBe('C');
+    expect(score(s)).toBe(500 + 12 * 30 + 80);
   });
 });
 
@@ -272,89 +206,81 @@ describe('ボス', () => {
   /** 5 面を、ボスが現れる直前まで進めた状態 */
   function atBoss(): RunState {
     const s = empty(5);
-    s.z = s.bossAt - 0.01;
+    s.z = s.rule.bossAt - 0.01;
     return s;
   }
 
-  it('道のりの終わりで現れ、それまで校門はない', () => {
+  /** 現れたボスを、動かず投げない状態で走る子の正面（dx だけずらして）に置く */
+  function facing(s: RunState, dx = 0) {
+    step(s, 0.01);
+    const b = s.boss!;
+    b.x = b.to = s.x + dx;
+    b.moveIn = b.throwIn = 99;
+    s.pulse = 0;
+    return b;
+  }
+
+  it('決まった距離で現れ、それまでゴールはない', () => {
     const s = atBoss();
     expect(s.goal).toBe(Infinity);
-    const events = step(s, 0.01);
+    const events = step(s, 0.05);
     expect(events).toContainEqual({ type: 'boss-in' });
     expect(s.boss!.phase).toBe('fight');
   });
 
-  it('同じレーンのときだけ倍率ぶん減り、当てるとコンボが伸びる', () => {
+  it('正面にいればメガホンが当たり、コンボも伸びる', () => {
     const s = atBoss();
-    step(s, 0.01);
-    s.boss!.lane = 0;
-    step(s, 0.01, { shoot: true });
-    expect(s.boss!.hp).toBe(s.boss!.max);
-    s.lane = 0;
-    s.combo = 9;
-    s.cooldown = 0;
-    const events = step(s, 0.01, { shoot: true });
-    expect(events).toContainEqual({ type: 'boss-hit', damage: 1.5, combo: 10 });
-    expect(s.boss!.hp).toBe(s.boss!.max - 1.5);
+    const b = facing(s);
+    const events = step(s, 0.01);
+    expect(events.some((e) => e.type === 'boss-hit')).toBe(true);
+    expect(b.hp).toBeLessThan(b.max);
+    expect(s.combo).toBe(1);
   });
 
-  it('ボスのあいだの撃つは通行人に当たらない', () => {
+  it('横にずれていれば当たらない', () => {
     const s = atBoss();
+    const b = facing(s, BOSS_HIT_W + 0.5);
     step(s, 0.01);
-    s.boss!.lane = 2;
-    s.walkers = [walker(1, s.z + 5)];
-    step(s, 0.01, { shoot: true });
-    expect(s.walkers[0].fan).toBe(false);
+    expect(b.hp).toBe(b.max);
   });
 
-  it('0 にすると去り、30 m 先に校門が出る', () => {
+  it('大声で大きく削れる', () => {
     const s = atBoss();
-    step(s, 0.01);
-    s.boss!.hp = 1;
-    s.boss!.lane = s.lane;
-    const events = step(s, 0.01, { shoot: true });
-    expect(events).toContainEqual({ type: 'boss-down' });
-    expect(s.boss!.phase).toBe('gone');
-    expect(s.goal).toBeCloseTo(s.z + 30, 0);
+    const b = facing(s, 2);
+    s.gauge = GAUGE;
+    const events = step(s, 0.01, { shout: true });
+    expect(events).toContainEqual({ type: 'boss-hit', damage: SHOUT_DAMAGE, big: true });
+    expect(b.hp).toBe(b.max - SHOUT_DAMAGE);
   });
 
-  it('いまのレーンへ投げ、1.5 秒前から印を出して、およそ 12 m 先に落とす', () => {
+  it('ふまん玉を投げ、印のあとで道に落とす', () => {
     const s = atBoss();
-    step(s, 0.01);
-    s.boss!.lane = 2;
-    s.boss!.moveIn = 99;
-    s.boss!.throwIn = 0.005;
+    const b = facing(s, 1);
+    b.throwIn = 0.005;
+    s.pulse = 99;
     const thrown = step(s, 0.01);
-    const t = thrown.find((e) => e.type === 'throw');
-    expect(t && t.type === 'throw' && t.drop.t).toBeCloseTo(WARN_TIME, 1);
-    expect(t && t.type === 'throw' && t.drop.lane).toBe(2);
-    expect(s.boss!.drops).toHaveLength(1);
+    expect(thrown.some((e) => e.type === 'throw')).toBe(true);
     let landed: Obstacle | null = null;
-    for (let i = 0; i < 14; i++) {
-      const events = step(s, 0.1);
-      expect(events.some((e) => e.type === 'land')).toBe(false);
-    }
-    for (let i = 14; i < 16 && !landed; i++) for (const e of step(s, 0.1)) if (e.type === 'land') landed = e.obstacle;
-    expect(landed).not.toBeNull();
-    expect(landed!.kind).toBe('low');
-    expect(landed!.z - s.z).toBeGreaterThan(10);
-    expect(landed!.z - s.z).toBeLessThan(14);
+    for (let i = 0; i < 20 && !landed; i++) for (const e of step(s, 0.1)) if (e.type === 'land') landed = e.obstacle;
     expect(s.blocks).toContain(landed);
-    expect(s.boss!.drops).toHaveLength(0);
+    expect(landed!.z - s.z).toBeGreaterThan(8);
   });
 
-  it('決まった間隔でほかのレーンへ移る', () => {
+  it('倒すと 30 m 先にゴールが出る', () => {
     const s = atBoss();
-    step(s, 0.01);
-    s.boss!.throwIn = 99;
-    const lane = s.boss!.lane;
-    step(s, s.rule.boss!.moveEvery);
-    expect(s.boss!.lane).not.toBe(lane);
+    const b = facing(s);
+    b.hp = 0.5;
+    const events = step(s, 0.01);
+    expect(events).toContainEqual({ type: 'boss-down' });
+    expect(b.phase).toBe('gone');
+    expect(s.goal - s.z).toBeGreaterThan(29);
+    expect(s.goal - s.z).toBeLessThan(31);
   });
 
-  it('ボスのない面ではボスは出ない', () => {
+  it('ボスのいない面では現れない', () => {
     const s = empty(4);
-    s.z = s.bossAt + 1;
-    expect(step(s, 0.01).some((e) => e.type === 'boss-in')).toBe(false);
+    s.z = s.rule.length - 5;
+    expect(step(s, 0.05).some((e) => e.type === 'boss-in')).toBe(false);
+    expect(s.boss).toBeNull();
   });
 });

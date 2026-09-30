@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { BREED_IDS, BREEDS } from './breeds';
 import { LOOKS } from './looks';
 import { FOAM_SPOTS, createPet } from './models';
-import { field } from './sculpt';
+import { field } from '$lib/sculpt';
 import type { AccessoryId, BreedId, PetAction } from './types';
 
 const ACTIONS: PetAction[] = [
