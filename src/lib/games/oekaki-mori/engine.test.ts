@@ -10,6 +10,7 @@ import {
   guess,
   leave,
   READY_S,
+  rejoin,
   REVEAL_S,
   start,
   tick,
@@ -351,5 +352,36 @@ describe('view', () => {
     run(s, DRAW_S.egokoro + 0.5);
     expect(view(s, 3).word).toBe(s.word);
     expect(Number.isInteger(view(s, 3).left)).toBe(true);
+  });
+});
+
+describe('rejoin', () => {
+  it('抜けた人が戻ったら当てる人として加え、点数は抜ける前のまま、描く番は戻さない', () => {
+    const s = game();
+    const word = go(s);
+    guess(s, 3, word);
+    leave(s, 3, fixed, WORDS);
+    const order = [...s.order];
+    rejoin(s, 3);
+    expect(s.players).toEqual([1, 2, 3]);
+    expect(s.scores[3]).toBe(3);
+    expect(s.order).toEqual(order);
+  });
+
+  it('終わった遊びや、いる人には何もしない', () => {
+    const s = game([1, 2]);
+    leave(s, 2, fixed, WORDS);
+    rejoin(s, 2);
+    expect(s.players).toEqual([1]);
+    const t = game();
+    rejoin(t, 2);
+    expect(t.players).toEqual([1, 2, 3]);
+  });
+
+  it('遊びの途中から来た人は 0 点で加わる', () => {
+    const s = game([1, 2]);
+    rejoin(s, 3);
+    expect(s.players).toEqual([1, 2, 3]);
+    expect(s.scores[3]).toBe(0);
   });
 });

@@ -1,7 +1,7 @@
 import { animate } from '$lib/loop';
 import type { Message } from '$lib/net/link';
 import type { Party, Seat } from '$lib/net/party.svelte';
-import { answer, buzz, create, drawer, guess, leave, start, tick, view, type Mode, type Quiz } from './engine';
+import { answer, buzz, create, drawer, guess, leave, rejoin, start, tick, view, type Mode, type Quiz } from './engine';
 import { WORDS } from './words';
 
 /**
@@ -55,8 +55,23 @@ export class Referee {
       const index = Number(message.index);
       const text = s.options[index];
       if (answer(s, from, index) === 'wrong') this.#party.tell('all', { t: 'bubble', seat: from, text });
-    } else if (message.t === 'leave') leave(s, from);
+    } else if (message.t === 'join') {
+      rejoin(s, from);
+      // 戻った子の画面は何も持っていないので、前に送った見え方と同じでも送り直す
+      this.#sent.delete(from);
+    } else if (message.t === 'typing') return this.#typing(s, from, String(message.text));
+    else if (message.t === 'leave') leave(s, from);
     this.#push();
+  }
+
+  /** 描く人には打っている字をそのまま、ほかの当てる人には字数だけ見せる（字が見えると答えがばれる） */
+  #typing(s: Quiz, from: Seat, text: string) {
+    if (s.mode !== 'egokoro' || s.phase !== 'draw' || from === drawer(s) || s.solved.includes(from)) return;
+    const hidden = '●'.repeat([...text].length);
+    for (const seat of this.#party.members) {
+      if (seat === from) continue;
+      this.#party.tell(seat, { t: 'typing', seat: from, text: seat === drawer(s) ? text : hidden });
+    }
   }
 
   #push() {

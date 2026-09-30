@@ -227,6 +227,13 @@ export function leave(s: Quiz, seat: Seat, rand = Math.random, words: readonly s
   if (guessers(s).every((p) => settled.includes(p))) reveal(s);
 }
 
+/** 抜けた人（か途中から来た人）を当てる人として加える。抜けたときに消した描く番は、終わる時間が読めなくなるので戻さない */
+export function rejoin(s: Quiz, seat: Seat): void {
+  if (s.phase === 'done' || s.players.includes(seat)) return;
+  s.players = [...s.players, seat].sort((a, b) => a - b);
+  s.scores[seat] ??= 0;
+}
+
 export interface View {
   mode: Mode;
   phase: Phase;
