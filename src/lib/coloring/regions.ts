@@ -5,7 +5,12 @@ export interface Regions {
   /** 画素ごとの場所の番号。線の画素は -1 */
   labels: Int32Array;
   count: number;
+  /** 場所ごとの画素の数 */
+  sizes: Int32Array;
 }
+
+/** これより小さな場所は、太い線の中に閉じこめられて見えないすき間なので、押しても塗らない */
+export const MIN_POCKET = 30;
 
 /** 線でない画素を上下左右のつながりでまとめる。斜めは数えない（線の角のすき間から塗りがもれないように） */
 export function label(mask: Uint8Array, w = SIZE, h = SIZE): Regions {
@@ -40,12 +45,17 @@ export function label(mask: Uint8Array, w = SIZE, h = SIZE): Regions {
     }
     count++;
   }
-  return { labels, count };
+  const sizes = new Int32Array(count);
+  for (const l of labels) if (l >= 0) sizes[l]++;
+  return { labels, count, sizes };
 }
 
 /** タップした画素の場所。線の上なら、近い順に reach 画素まで探す（太い線の上を押しても塗れるように） */
-export function regionAt(r: Regions, x: number, y: number, w = SIZE, h = SIZE, reach = 10): number {
-  const at = (px: number, py: number) => (px >= 0 && py >= 0 && px < w && py < h ? r.labels[py * w + px] : -1);
+export function regionAt(r: Regions, x: number, y: number, w = SIZE, h = SIZE, reach = 10, min = MIN_POCKET): number {
+  const at = (px: number, py: number) => {
+    const l = px >= 0 && py >= 0 && px < w && py < h ? r.labels[py * w + px] : -1;
+    return l >= 0 && r.sizes[l] >= min ? l : -1;
+  };
   if (at(x, y) >= 0) return at(x, y);
   for (let d = 1; d <= reach; d++) {
     for (let dy = -d; dy <= d; dy++) {

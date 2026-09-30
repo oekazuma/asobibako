@@ -31,6 +31,8 @@ export function templateArt(template: Template): Art {
 
 export const photoArt = (mask: Uint8Array): Art => ({ kind: 'photo', mask });
 
+const buffers = new WeakMap<CanvasRenderingContext2D, ImageData>();
+
 const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 
 /**
@@ -38,7 +40,9 @@ const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 
  * （テンプレートは上から太い線を描いて隠すので、塗りが線の下まで届き、線と塗りのあいだに白いすき間が出ない）
  */
 export function fillImage(ctx: CanvasRenderingContext2D, regions: Regions, colors: Record<number, string>, art: Art) {
-  const img = ctx.createImageData(SIZE, SIZE);
+  // 塗るたびに 2.4MB の画素を取り直さないよう、canvas ごとに 1 枚を使い回す
+  let img = buffers.get(ctx);
+  if (!img) buffers.set(ctx, (img = ctx.createImageData(SIZE, SIZE)));
   const d = img.data;
   const table = new Map(Object.entries(colors).map(([k, hex]) => [Number(k), rgb(hex)]));
   const line = art.kind === 'photo' ? INK_RGB : [255, 255, 255];

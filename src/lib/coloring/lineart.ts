@@ -93,8 +93,8 @@ export function dropSpecks(mask: Uint8Array, w: number, h: number, min: number):
   return out;
 }
 
-/** 線を 1 画素太らせて、斜めのすき間から塗りがもれないようにする */
-function thicken(mask: Uint8Array, w: number, h: number): Uint8Array {
+/** 線を 1 画素太らせる */
+function dilate(mask: Uint8Array, w: number, h: number): Uint8Array {
   const out = mask.slice();
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
@@ -111,6 +111,35 @@ function thicken(mask: Uint8Array, w: number, h: number): Uint8Array {
   return out;
 }
 
+/** 線を 1 画素細らせる。周りに線でない画素が 1 つでもあれば消す */
+function erode(mask: Uint8Array, w: number, h: number): Uint8Array {
+  const out = mask.slice();
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (!mask[y * w + x]) continue;
+      for (let dy = -1; dy <= 1 && out[y * w + x]; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const px = x + dx;
+          const py = y + dy;
+          if (px >= 0 && py >= 0 && px < w && py < h && !mask[py * w + px]) {
+            out[y * w + x] = 0;
+            break;
+          }
+        }
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * 2 画素太らせてから 1 画素細らせ、線の 3〜4 画素のすき間をふさぐ（写真の輪郭は途切れやすく、すき間から塗りがもれる）。
+ * 仕上がりの線は元より 1 画素太い
+ */
+export function bridge(mask: Uint8Array, w: number, h: number): Uint8Array {
+  return erode(dilate(dilate(mask, w, h), w, h), w, h);
+}
+
 /**
  * 写真の画素から線画を作る。amount は 0..1 で、大きいほど弱い変わり目まで線にする。
  * 線にする境目は「強いほうから 1% の強さ」に対する割合で決める。強さの割合で決めると、単純な形では輪郭の一部しか線にならず閉じない
@@ -122,5 +151,5 @@ export function lineArt(rgba: Uint8ClampedArray, w: number, h: number, amount: n
   if (strong <= 0) return mask;
   const t = Math.max(4, strong * (0.6 - 0.45 * Math.min(1, Math.max(0, amount))));
   for (let i = 0; i < e.length; i++) mask[i] = e[i] >= t ? 1 : 0;
-  return thicken(dropSpecks(mask, w, h, MIN_SPECK), w, h);
+  return bridge(dropSpecks(mask, w, h, MIN_SPECK), w, h);
 }

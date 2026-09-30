@@ -10,13 +10,16 @@ export interface Coloring {
   history: Step[];
 }
 
+/** 戻せる手順の数。塗るたびにまるごと保存するので、ぬりえちょうの作品が際限なく大きくならないようにする */
+export const MAX_STEPS = 200;
+
 export const empty = (): Coloring => ({ colors: {}, history: [] });
 
 export function fill(c: Coloring, region: number, color: string): Coloring {
   if (region < 0 || c.colors[region] === color) return c;
   return {
     colors: { ...c.colors, [region]: color },
-    history: [...c.history, { region, before: c.colors[region] ?? null }]
+    history: [...c.history, { region, before: c.colors[region] ?? null }].slice(-MAX_STEPS)
   };
 }
 

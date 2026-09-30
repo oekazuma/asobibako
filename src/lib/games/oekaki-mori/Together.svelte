@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { photoArt, snapshot, templateArt, type Art } from '$lib/coloring/art';
-  import { pack, saveWork } from '$lib/coloring/book';
+  import { newId, pack, saveWork } from '$lib/coloring/book';
   import Canvas from '$lib/coloring/Canvas.svelte';
   import Palette, { COLORS } from '$lib/coloring/Palette.svelte';
   import PhotoMaker from '$lib/coloring/PhotoMaker.svelte';
@@ -64,7 +64,7 @@
     const thumb = snapshot(s.art, s.regions, colors, 200, 'image/jpeg');
     const photo = s.template ? undefined : bits;
     const lines = s.template ? bits : undefined;
-    const work = { id: crypto.randomUUID(), template: s.template, photo, lines, colors, history: [], thumb };
+    const work = { id: newId(), template: s.template, photo, lines, colors, history: [], thumb };
     saveWork({ ...work, updated: Date.now() }).catch(() => {});
   }
 

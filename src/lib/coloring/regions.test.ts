@@ -32,8 +32,9 @@ describe('label', () => {
 describe('regionAt', () => {
   it('線でない画素はその場所、線の上は近くの場所を返す', () => {
     const r = label(ring(), 8, 8);
-    expect(regionAt(r, 3, 3, 8, 8)).toBe(r.labels[3 * 8 + 3]);
-    expect(regionAt(r, 2, 3, 8, 8)).toBeGreaterThanOrEqual(0);
+    // 8 × 8 の内側は 4 画素しかないので、小さなすき間とみなさないよう min を 1 にする
+    expect(regionAt(r, 3, 3, 8, 8, 10, 1)).toBe(r.labels[3 * 8 + 3]);
+    expect(regionAt(r, 2, 3, 8, 8, 10, 1)).toBeGreaterThanOrEqual(0);
   });
 
   it('近くに線でない画素が無ければ -1', () => {
@@ -44,5 +45,21 @@ describe('regionAt', () => {
   it('盤面の外は -1', () => {
     const r = label(ring(), 8, 8);
     expect(regionAt(r, -5, 3, 8, 8, 1)).toBe(-1);
+  });
+});
+
+describe('小さなすき間', () => {
+  // 太い線の中に閉じこめられた数画素のすき間は、見えている線の下に隠れている。押しても何も変わらないので、近くの見える場所を塗る
+  it('線の上を押したとき、隠れた小さなすき間ではなく近くの大きな場所を返す', () => {
+    const w = 40;
+    const m = new Uint8Array(w * w);
+    for (let y = 0; y < w; y++) for (let x = 15; x < 25; x++) m[y * w + x] = 1;
+    m[20 * w + 20] = 0;
+    const r = label(m, w, w);
+    const pocket = r.labels[20 * w + 20];
+    expect(pocket).toBeGreaterThanOrEqual(0);
+    const hit = regionAt(r, 20, 20, w, w);
+    expect(hit).not.toBe(pocket);
+    expect(hit).toBeGreaterThanOrEqual(0);
   });
 });
