@@ -120,7 +120,8 @@
     display: grid;
     place-items: center;
     min-height: 0;
-    padding: max(12px, env(safe-area-inset-top)) 12px 12px;
+    /* 上の隅には共通の ✕ と ↻ があるので、線画の角が重ならないよう空けておく */
+    padding: max(68px, env(safe-area-inset-top)) 12px 12px;
     container-type: size;
   }
 </style>
