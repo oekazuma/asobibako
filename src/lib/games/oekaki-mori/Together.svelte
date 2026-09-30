@@ -27,6 +27,8 @@
   let queue = Promise.resolve();
 
   async function send(mask: Uint8Array, template?: Template) {
+    // 配り終えるまでに別の絵を押されると 2 枚配られ、親の塗り手順と画面の色が食い違うので、すぐ待つ画面にする
+    phase = 'wait';
     host = shared();
     party.tell('all', { t: 'art', template: template?.id ?? null, lines: await encodeLines(mask) });
   }
@@ -56,7 +58,8 @@
     phase = 'done';
     sounds.done();
     const s = sheet;
-    if (!s) return;
+    // 何も塗っていない絵は、ぬりえちょうに入れない（ひとりのぬりえと同じ）
+    if (!s || !Object.keys(colors).length) return;
     const bits = pack(s.mask);
     const thumb = snapshot(s.art, s.regions, colors, 200, 'image/jpeg');
     const photo = s.template ? undefined : bits;
