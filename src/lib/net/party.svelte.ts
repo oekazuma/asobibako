@@ -1,3 +1,4 @@
+import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import type { Message } from './link';
 
 export type Seat = 1 | 2 | 3;
@@ -24,9 +25,9 @@ export class Party {
   /** 子で、親とのつながりが切れた */
   lost = $state(false);
   readonly host: boolean;
-  readonly #pipes = new Map<Seat, Pipe>();
-  readonly #acts = new Set<ActListener>();
-  readonly #tells = new Set<TellListener>();
+  readonly #pipes = new SvelteMap<Seat, Pipe>();
+  readonly #acts = new SvelteSet<ActListener>();
+  readonly #tells = new SvelteSet<TellListener>();
 
   private constructor(host: boolean) {
     this.host = host;
