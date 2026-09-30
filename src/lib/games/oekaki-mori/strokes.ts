@@ -44,23 +44,56 @@ export function apply(strokes: Stroke[], ink: Ink): Stroke[] {
   }
 }
 
-/** canvas の画素の幅を 1 として描く。盤面は正方形なので高さも同じ */
-export function render(ctx: CanvasRenderingContext2D, strokes: Stroke[]): void {
+/**
+ * 1 本の線を、from 番目の点（描き終えた点の数）から終わりまで描く。点どうしは中点を通る 2 次曲線でつなぐ。
+ * 描き足すときは 1 つ前の中点から描き直し、前に描いた末端の直線との継ぎ目を曲線で覆う
+ */
+function trace(ctx: CanvasRenderingContext2D, { color, size, pts }: Stroke, from: number): void {
+  const n = pts.length / 2;
+  const mid = (i: number): [number, number] => [
+    (pts[2 * i] + pts[2 * i + 2]) / 2,
+    (pts[2 * i + 1] + pts[2 * i + 3]) / 2
+  ];
+  ctx.strokeStyle = color;
+  ctx.lineWidth = size;
+  ctx.beginPath();
+  // 点 1 つだけの線（タップ）も丸く見せる
+  if (n === 1) {
+    ctx.moveTo(pts[0], pts[1]);
+    ctx.lineTo(pts[0] + 0.0001, pts[1]);
+    ctx.stroke();
+    return;
+  }
+  const first = Math.max(1, from - 1);
+  const [sx, sy] = first === 1 ? [pts[0], pts[1]] : mid(first - 1);
+  ctx.moveTo(sx, sy);
+  for (let i = first; i < n - 1; i++) {
+    const [mx, my] = mid(i);
+    ctx.quadraticCurveTo(pts[2 * i], pts[2 * i + 1], mx, my);
+  }
+  ctx.lineTo(pts[2 * n - 2], pts[2 * n - 1]);
+  ctx.stroke();
+}
+
+/** 盤面の幅を 1 とする座標で描けるようにする。盤面は正方形なので高さも同じ */
+function frame(ctx: CanvasRenderingContext2D): void {
   const w = ctx.canvas.width;
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, w, ctx.canvas.height);
   ctx.setTransform(w, 0, 0, w, 0, 0);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  for (const { color, size, pts } of strokes) {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = size;
-    ctx.beginPath();
-    ctx.moveTo(pts[0], pts[1]);
-    // 点 1 つだけの線（タップ）も丸く見せる
-    if (pts.length === 2) ctx.lineTo(pts[0] + 0.0001, pts[1]);
-    for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]);
-    ctx.stroke();
-  }
+}
+
+/** canvas の画素の幅を 1 として全部描き直す */
+export function render(ctx: CanvasRenderingContext2D, strokes: Stroke[]): void {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  frame(ctx);
+  for (const stroke of strokes) trace(ctx, stroke, 0);
+}
+
+/** 最後の線に足された点だけを描き足す。from は前に描き終えた点の数 */
+export function renderTail(ctx: CanvasRenderingContext2D, stroke: Stroke, from: number): void {
+  frame(ctx);
+  trace(ctx, stroke, from);
 }

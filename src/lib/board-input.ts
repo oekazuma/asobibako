@@ -4,6 +4,7 @@ import { Fingers, type Finger } from './fingers';
 
 interface Hooks {
   down?: (event: PointerEvent, x: number, y: number) => void;
+  move?: (event: PointerEvent, x: number, y: number) => void;
   up?: (event: PointerEvent, finger: Finger, x: number, y: number) => void;
 }
 
@@ -58,7 +59,8 @@ export class BoardInput {
     return [x * this.#size.width, y * this.#size.height];
   }
 
-  #toBoard(event: PointerEvent): [number, number] {
+  /** 画面上の点を盤面の 0..1 に直す。pointermove にまとめられた間のイベントにも使う */
+  at(event: PointerEvent): [number, number] {
     return toBoardPoint(event.clientX, event.clientY, this.#box, this.#turned);
   }
 
@@ -67,18 +69,19 @@ export class BoardInput {
     // iOS は操作イベントの中でしか音を鳴らし始められない
     wake();
     capture(event);
-    const [x, y] = this.#toBoard(event);
+    const [x, y] = this.at(event);
     this.fingers.down(event.pointerId, x, y, event.timeStamp);
     this.#hooks.down?.(event, x, y);
   };
 
   move = (event: PointerEvent) => {
-    const [x, y] = this.#toBoard(event);
+    const [x, y] = this.at(event);
     this.fingers.move(event.pointerId, x, y, event.timeStamp);
+    this.#hooks.move?.(event, x, y);
   };
 
   up = (event: PointerEvent) => {
-    const [x, y] = this.#toBoard(event);
+    const [x, y] = this.at(event);
     const finger = this.fingers.up(event.pointerId, x, y, event.timeStamp);
     if (finger) this.#hooks.up?.(event, finger, x, y);
   };
