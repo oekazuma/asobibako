@@ -27,7 +27,7 @@
     onundo,
     ondone,
     onsave
-  }: { color: string; canUndo: boolean; onundo: () => void; ondone: () => void; onsave: () => void } = $props();
+  }: { color: string; canUndo: boolean; onundo: () => void; ondone?: () => void; onsave: () => void } = $props();
 </script>
 
 <div class="palette">
@@ -45,7 +45,7 @@
   <div class="row">
     <button class="pill" disabled={!canUndo} onclick={onundo}>1つ もどす</button>
     <button class="pill" onclick={onsave}>しゃしんに ほぞん</button>
-    <button class="pill gold" onclick={ondone}>できた！</button>
+    {#if ondone}<button class="pill gold" onclick={ondone}>できた！</button>{/if}
   </div>
 </div>
 
