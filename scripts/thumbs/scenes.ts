@@ -198,61 +198,7 @@ async function catMouse(s: Stage): Promise<void> {
   }
 }
 
-/**
- * ときめきステージ。音を消して（曲の時計がページの時計で進む）ライブを始め、ページに入れたボットが
- * ノーツの時刻にその位置を押す。サビのスペシャルをきめたあと、右手のスライドを追っているコマで撮る
- */
-async function idolLive(s: Stage): Promise<void> {
-  await s.page.evaluate(() => localStorage.setItem('asobibako:muted', '1'));
-  await s.startSolo();
-  // 3D のモデルを読みおえると、ライブを始めるボタンが押せるようになる
-  for (let i = 0; i < 300 && !(await s.page.$('.dress button.go:not([disabled])')); i++) await s.wait(100);
-  await s.press('.dress button.go');
-  await s.wait(100);
-  await s.page.evaluate(() => {
-    type P = [number, number];
-    type Note = { kind: string; t: number; end: number; x: number; y: number; path: P[] };
-    const show = (globalThis as unknown as { __live: { time(): number; at(p: P): P; judge: { notes: Note[] } } })
-      .__live;
-    const board = document.querySelector('.board')!;
-    const fire = (type: string, id: number, [x, y]: P) =>
-      board.dispatchEvent(
-        new PointerEvent(type, { pointerId: id, pointerType: 'touch', clientX: x, clientY: y, bubbles: true })
-      );
-    const along = (n: Note, t: number): P => {
-      const u = Math.max(0, Math.min(1, (t - n.t) / (n.end - n.t))) * (n.path.length - 1);
-      const i = Math.min(n.path.length - 2, Math.floor(u));
-      const [a, b] = [n.path[i], n.path[i + 1]];
-      return [a[0] + (b[0] - a[0]) * (u - i), a[1] + (b[1] - a[1]) * (u - i)];
-    };
-    const done = new Set<number>();
-    const held = new Map<number, Note>();
-    const tick = () => {
-      const t = show.time();
-      show.judge.notes.forEach((n, i) => {
-        if (done.has(i) || t < n.t) return;
-        done.add(i);
-        const p = n.kind === 'special' ? ([384, 512] as P) : ([n.x, n.y] as P);
-        fire('pointerdown', 10 + i, p);
-        if (n.kind === 'tap' || n.kind === 'special') fire('pointerup', 10 + i, p);
-        else held.set(10 + i, n);
-      });
-      for (const [id, n] of held) {
-        const p = n.kind === 'slide' ? along(n, t) : ([n.x, n.y] as P);
-        fire(t >= n.end ? 'pointerup' : 'pointermove', id, p);
-        if (t >= n.end) held.delete(id);
-      }
-      requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  });
-  // サビ 2 小節目の右手のスライドの半ば（73 拍目）まで、曲の時計を見ながら進める
-  const at = () => s.page.evaluate(() => (globalThis as unknown as { __live: { time(): number } }).__live.time());
-  for (let i = 0; i < 2000 && (await at()) < 73 * (60 / 132); i++) await s.wait(50);
-}
-
 export const SCENES: Scene[] = [
-  { id: 'idol-live', clip: band(190), play: idolLive },
   {
     // 姫との間に怪物がいる面。マグマを落として怪物をたおしている途中の、勇者・怪物・姫を撮る
     id: 'pin-rescue',

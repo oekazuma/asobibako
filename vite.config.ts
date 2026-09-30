@@ -44,8 +44,7 @@ export default defineConfig({
       },
       adapter: adapter({ fallback: '404.html' }),
       paths: { base: (process.env.BASE_PATH ?? '/asobibako') as '' | `/${string}` },
-      // 3D のモデル（.vrm）は大きいので、版ごとの先読みには入れない（service-worker.ts が遊ぶときに取って残す）
-      serviceWorker: { register: true, files: (f) => !f.endsWith('.vrm') },
+      serviceWorker: { register: true },
       // pollInterval: 開いている間は 5 分ごとに _app/version.json を見て updated.current を立てる
       version: { name: `${process.env.TD_BUILD}-${gitHash}`, pollInterval: 300_000 },
       // GitHub Pages はヘッダを出せないので <meta http-equiv> で CSP を出す（プリレンダーなので hash）。
@@ -57,9 +56,9 @@ export default defineConfig({
           'default-src': ['self'],
           'script-src': ['self'],
           'style-src': ['self', 'unsafe-inline'],
-          'img-src': ['self', 'data:', 'blob:'],
+          'img-src': ['self', 'data:'],
           'font-src': ['self'],
-          'connect-src': ['self', 'blob:'],
+          'connect-src': ['self'],
           'worker-src': ['self'],
           'manifest-src': ['self'],
           'object-src': ['none'],

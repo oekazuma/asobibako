@@ -34,10 +34,7 @@ export async function pwaStatus(): Promise<PwaStatus> {
     globalThis.matchMedia?.('(display-mode: standalone)').matches === true ||
     (navigator as Navigator & { standalone?: boolean }).standalone === true;
   const swActive = !!(await navigator.serviceWorker?.getRegistration())?.active;
-  // 3D のモデルだけを置く asobibako-models は、アプリのオフライン用の保存に数えない
-  const key = ((await globalThis.caches?.keys()) ?? []).find(
-    (k) => k.startsWith('asobibako-') && k !== 'asobibako-models'
-  );
+  const key = ((await globalThis.caches?.keys()) ?? []).find((k) => k.startsWith('asobibako-'));
   const cached = !!key && (await (await caches.open(key)).keys()).length > 0;
   return { standalone, swActive, cached };
 }
