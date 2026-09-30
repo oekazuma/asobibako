@@ -11,7 +11,7 @@
   import { TEMPLATES, type Template } from '$lib/coloring/templates';
   import { decodeLines, encodeLines } from '$lib/coloring/wire';
   import type { Message } from '$lib/net/link';
-  import type { Party } from '$lib/net/party.svelte';
+  import type { Party, Seat } from '$lib/net/party.svelte';
   import { saveImage } from '$lib/share';
   import Finished from './Finished.svelte';
   import { paintBy, shared, undoBy } from './together';
@@ -75,6 +75,15 @@
     saveWork({ ...work, updated: Date.now() }).catch(() => {});
   }
 
+  /** 戻った子（途中から来た子）に、いまの線画と塗った色を送る。「できた！」のあとならそれも送る */
+  async function catchUpGuest(seat: Seat) {
+    const s = sheet;
+    if (!s) return;
+    party.tell(seat, { t: 'art', template: s.template ?? null, lines: await encodeLines(s.mask) });
+    for (const [region, color] of Object.entries(colors)) party.tell(seat, { t: 'painted', region: +region, color });
+    if (closed) party.tell(seat, { t: 'finished' });
+  }
+
   function exportImage() {
     if (sheet) saveImage(snapshot(sheet.art, sheet.regions, colors, 1536), 'nurie.png');
   }
@@ -95,6 +104,7 @@
     if (party.host)
       off.push(
         party.onAct((m, from) => {
+          if (m.t === 'join') return void catchUpGuest(from);
           if (closed) return;
           const change =
             m.t === 'paint'

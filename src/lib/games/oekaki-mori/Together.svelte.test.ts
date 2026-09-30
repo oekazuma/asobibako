@@ -9,6 +9,8 @@ const book = vi.hoisted(() => ({ saveWork: vi.fn(async () => {}) }));
 const sound = vi.hoisted(() => ({ fill: vi.fn(), undo: vi.fn(), done: vi.fn() }));
 /** 親が全員へ配った知らせ */
 const sent: Message[] = [];
+/** 宛先つきの知らせ */
+const sentTo: [unknown, Message][] = [];
 
 vi.mock('$lib/coloring/book', async (original) => ({
   ...(await original<typeof import('$lib/coloring/book')>()),
@@ -38,11 +40,13 @@ function soloHost(): Party {
     members: [1],
     onTell: (l: (m: Message) => void) => (tells.add(l), () => tells.delete(l)),
     onAct: (l: (m: Message, from: Seat) => void) => (acts.add(l), () => acts.delete(l)),
-    tell: (_to: unknown, m: Message) => {
+    tell: (to: unknown, m: Message) => {
       sent.push(m);
-      tells.forEach((l) => l(JSON.parse(JSON.stringify(m))));
+      sentTo.push([to, m]);
+      if (to === 'all' || to === 1) tells.forEach((l) => l(JSON.parse(JSON.stringify(m))));
     },
-    act: (m: Message) => acts.forEach((l) => l(m, 1))
+    act: (m: Message) => acts.forEach((l) => l(m, 1)),
+    join: (seat: Seat) => acts.forEach((l) => l({ t: 'join' }, seat))
   } as unknown as Party;
 }
 
@@ -72,6 +76,7 @@ describe('Together', () => {
     book.saveWork.mockClear();
     Object.values(sound).forEach((f) => f.mockClear());
     sent.length = 0;
+    sentTo.length = 0;
   });
 
   // 線画を配り終える前に別の絵を押すと 2 枚配られ、親の塗り手順と画面の色が食い違う
@@ -139,6 +144,22 @@ describe('Together', () => {
     const { app, button } = show(onagain);
     button('あそびかたに もどる')!.click();
     expect(onagain).toHaveBeenCalled();
+    unmount(app);
+  });
+
+  // 戻った子の画面は何も持っていないので、親が線画と色を送り直す。できた！のあとなら塗れないようにする
+  it('戻った子に、いまの線画と塗った色を送り、できた！のあとならそれも送る', async () => {
+    const { app, button, party } = show();
+    button('りんご')!.click();
+    await settle();
+    party.act({ t: 'paint', region: 1, color: '#f00' });
+    await settle();
+    button('できた！')!.click();
+    await settle();
+    sentTo.length = 0;
+    (party as unknown as { join: (seat: Seat) => void }).join(2);
+    await settle();
+    expect(sentTo.filter(([to]) => to === 2).map(([, m]) => m.t)).toEqual(['art', 'painted', 'finished']);
     unmount(app);
   });
 });

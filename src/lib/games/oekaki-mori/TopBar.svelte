@@ -42,7 +42,8 @@
     grid-template-columns: 1fr auto;
     gap: 4px 12px;
     align-items: center;
-    padding: max(8px, env(safe-area-inset-top)) 12px 8px;
+    /* 右上の ≡ に重ならないよう空けておく */
+    padding: max(8px, env(safe-area-inset-top)) 72px 8px 12px;
     border-bottom: 3px solid var(--line);
     background: var(--paper);
     color: var(--line);

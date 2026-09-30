@@ -138,6 +138,7 @@ export const ICONS = {
     { d: 'M12 6.5V20', stroke: '#e39a00', width: 1.2 }
   ],
   undo: [{ d: 'M5 10h9.5a5 5 0 0 1 0 10H10M9 5.5L4.5 10 9 14.5', stroke: INK, width: 2.4 }],
+  menu: [{ d: 'M5 7h14M5 12h14M5 17h14', stroke: INK, width: 2.4 }],
   pencil: [
     { d: 'M5 16.5L15.5 6l2.5 2.5L7.5 19H5z', fill: '#ffc233', stroke: '#e39a00', width: 0.8 },
     { d: 'M5 16.5V19h2.5z', fill: INK },

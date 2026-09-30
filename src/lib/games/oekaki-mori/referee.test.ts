@@ -60,9 +60,7 @@ describe('Referee', () => {
     const { party, told, act } = fakeParty([1, 2, 3]);
     new Referee(party).start('egokoro');
     act({ t: 'start' }, 1);
-    const word = String(
-      (told.findLast(([seat, m]) => seat === 1 && m.t === 'view')![1].view as { word: string }).word
-    );
+    const word = String((told.findLast(([seat, m]) => seat === 1 && m.t === 'view')![1].view as { word: string }).word);
     act({ t: 'typing', text: word }, 2);
     told.length = 0;
     act({ t: 'guess', text: word }, 2);

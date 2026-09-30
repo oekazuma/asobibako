@@ -7,7 +7,9 @@
   import type { Party, Seat } from '$lib/net/party.svelte';
   import type { Bubble } from './Bubbles.svelte';
   import type { Mode, View } from './engine';
+  import Invite from './Invite.svelte';
   import Lobby from './Lobby.svelte';
+  import Menu from './Menu.svelte';
   import ModeSelect from './ModeSelect.svelte';
   import Play from './Play.svelte';
   import Practice from './Practice.svelte';
@@ -15,11 +17,12 @@
   import Result, { type Drawing } from './Result.svelte';
   import Together from './Together.svelte';
   import { sounds } from './sounds';
+  import { catchUp, type Screen } from './sync';
   import { apply, type Ink, type Stroke } from './strokes';
   import { typed } from './typing';
 
   let party = $state.raw<Party | null>(null);
-  let screen = $state<'lobby' | 'mode' | 'play' | 'result' | 'practice' | 'together'>('lobby');
+  let screen = $state<Screen | 'practice'>('lobby');
   let view = $state.raw<View | null>(null);
   let strokes = $state.raw<Stroke[]>([]);
   let bubbles = $state.raw<Bubble[]>([]);
@@ -27,6 +30,7 @@
   /** 当てる人ごとの打っている字。描く人にはそのまま、ほかの人には字数だけ届く */
   let typing = $state.raw<Record<number, string>>({});
   let close = $state(false);
+  let inviting = $state(false);
   let note = $state('');
   let referee: Referee | null = null;
   let bubbleId = 0;
@@ -35,6 +39,10 @@
     note = '';
     party = next;
     next.onTell(receive);
+    if (next.host)
+      next.onAct((m, from) => {
+        if (m.t === 'join' && screen !== 'practice') next.tell(from, catchUp(screen, strokes, gallery));
+      });
   }
 
   function receive(m: Message) {
@@ -45,7 +53,10 @@
       gallery = [];
     } else if (m.t === 'view') show(m.view as View);
     else if (m.t === 'ink') strokes = apply(strokes, m.ink as Ink);
-    else if (m.t === 'typing') typing = typed(typing, Number(m.seat), String(m.text));
+    else if (m.t === 'sync') {
+      strokes = m.strokes as Stroke[];
+      gallery = m.gallery as Drawing[];
+    } else if (m.t === 'typing') typing = typed(typing, Number(m.seat), String(m.text));
     else if (m.t === 'bubble') {
       const b: Bubble = { id: ++bubbleId, seat: m.seat as Seat, text: String(m.text), note: m.note === true };
       bubbles = [...bubbles.slice(-4), b];
@@ -133,7 +144,10 @@
   {:else if screen === 'result' && view}
     <Result {view} me={party.me} {gallery} host={party.host} onagain={toMode} />
   {/if}
-  {#if screen !== 'play' && screen !== 'practice'}
+  {#if party}
+    <Menu {party} oninvite={() => (inviting = true)} />
+    {#if party.host}<Invite away={party.away} onlink={(link) => party?.add(link)} bind:open={inviting} />{/if}
+  {:else if screen !== 'practice'}
     <a class="round back" href={resolve('/')} aria-label="ゲーム選択へ戻る">✕</a>
     <button class="round mute" onclick={toggleMute} aria-label="ミュート" aria-pressed={audio.muted}>
       <Icon name={audio.muted ? 'mute' : 'speaker'} size="26px" />
