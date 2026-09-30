@@ -12,7 +12,8 @@ export const RUNUP = 18;
 export const ZONES = ['street', 'arcade', 'hall'] as const;
 export type Zone = (typeof ZONES)[number];
 
-export type Kind = 'cone' | 'bike' | 'board';
+/** bubble はボスの投げる「ふまん玉」 */
+export type Kind = 'cone' | 'bike' | 'board' | 'bubble';
 
 export interface Block {
   x: number;
@@ -29,8 +30,28 @@ export interface Person {
   look: number;
 }
 
+export interface BossRule {
+  hp: number;
+  /** 左右へ動き直す間隔と、ふまん玉を投げる間隔（秒） */
+  moveEvery: number;
+  throwEvery: number;
+}
+
+/** ボスは 5・10・15 面。あとの面ほど体力が多く、よく動いてよく投げる */
+const BOSSES: Partial<Record<number, BossRule>> = {
+  5: { hp: 60, moveEvery: 2.2, throwEvery: 1.6 },
+  10: { hp: 90, moveEvery: 1.8, throwEvery: 1.3 },
+  15: { hp: 120, moveEvery: 1.4, throwEvery: 1.0 }
+};
+
+/** ボスはゴールのこの距離（m）手前で現れる */
+export const BOSS_ZONE = 120;
+
 export interface LevelRule {
   length: number;
+  boss: BossRule | null;
+  /** ボスが現れる距離。ボスのいない面では道のりの長さと同じ */
+  bossAt: number;
   time: number;
   /** 群れの間隔（m） */
   gap: number;
@@ -44,10 +65,13 @@ export function rule(level: number): LevelRule {
   const n = Math.min(LEVELS, Math.max(1, Math.round(level)));
   const d = difficulty(n, LEVELS);
   const length = ZONES.length * ZONE_LEN;
+  const boss = BOSSES[n] ?? null;
   return {
     length,
-    // コンボなしの速さ（6 m/s）でも着ける時間。当てて速く走るほど残りが増えて点になる
-    time: Math.round((length / 6) * lerp(1.15, 1.0, d)),
+    boss,
+    bossAt: boss ? length - BOSS_ZONE : length,
+    // コンボなしの速さ（6 m/s）でも着ける時間。当てて速く走るほど残りが増えて点になる。ボスの面は倒すぶんを足す
+    time: Math.round((length / 6) * lerp(1.15, 1.0, d)) + (boss ? 30 : 0),
     gap: lerp(16, 11, d),
     crowd: Math.round(lerp(8, 16, d)),
     blocks: lerp(0.35, 0.85, d)
@@ -66,7 +90,8 @@ export function course(level: number): { length: number; people: Person[]; block
   const people: Person[] = [];
   const blocks: Block[] = [];
   let look = 0;
-  for (let z = RUNUP; z < r.length - 12; z += pick(r.gap * 0.8, r.gap * 1.2)) {
+  // ボスの面では、ボスより先には人も障害物も置かない
+  for (let z = RUNUP; z < r.bossAt - 12; z += pick(r.gap * 0.8, r.gap * 1.2)) {
     const half = halfAt(z);
     // 群れは道の片側に寄せて置き、突っこむ先を選ばせる
     const cx = pick(-half + 0.8, half - 0.8);

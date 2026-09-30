@@ -1,3 +1,4 @@
+import { Rng } from '$lib/levels';
 import { course, halfAt, rule, zoneAt, type Block, type LevelRule, type Zone } from './course';
 
 /** コンボなしの速さ（m/s）。コンボで最大 2 倍まで上がる */
@@ -25,6 +26,17 @@ export const STUMBLE_SLOW = 0.35;
 /** 障害物の前後の厚みと、走る子の体の半分の幅（m） */
 export const DEPTH = 0.5;
 export const BODY = 0.3;
+/** ボスは走る子のこの距離（m）先に浮かび、一緒に進む */
+export const BOSS_AHEAD = 14;
+/** ボスの正面とみなす横のずれ（m）。この中にいればメガホンが当たる */
+export const BOSS_HIT_W = 0.9;
+/** 大声がボスに与える体力の減り */
+export const SHOUT_DAMAGE = 15;
+/** ふまん玉が落ちる何秒前から印を出すか、落ちたときの走る子からの距離（m） */
+export const WARN_TIME = 1.2;
+export const DROP_AHEAD = 11;
+/** ボスを倒したあと、教室の入り口までの距離（m） */
+export const GATE_AFTER = 30;
 
 export interface Walker {
   x: number;
@@ -41,9 +53,33 @@ export interface Obstacle extends Block {
   hit: boolean;
 }
 
+export interface Drop {
+  x: number;
+  z: number;
+  /** 落ちるまでの秒 */
+  t: number;
+}
+
+export interface Boss {
+  hp: number;
+  max: number;
+  x: number;
+  /** 向かっている横の位置 */
+  to: number;
+  moveIn: number;
+  throwIn: number;
+  drops: Drop[];
+  phase: 'wait' | 'fight' | 'gone';
+}
+
 export interface RunState {
   level: number;
   rule: LevelRule;
+  /** ボスの動き（動く先・投げる場所）に使う、面ごとに決まった乱数 */
+  rng: Rng;
+  boss: Boss | null;
+  /** ゴールの距離。ボスの面は倒すまで Infinity */
+  goal: number;
   z: number;
   x: number;
   /** 指が示している横の位置 */
@@ -80,6 +116,11 @@ export type RunEvent =
   | { type: 'gauge' }
   | { type: 'drop'; combo: number }
   | { type: 'zone'; zone: Zone }
+  | { type: 'boss-in' }
+  | { type: 'boss-hit'; damage: number; big: boolean }
+  | { type: 'boss-down' }
+  | { type: 'throw'; drop: Drop }
+  | { type: 'land'; obstacle: Obstacle }
   | { type: 'goal' }
   | { type: 'timeout' };
 
@@ -93,6 +134,20 @@ export function createState(level: number): RunState {
   return {
     level,
     rule: r,
+    rng: new Rng(Math.round(level) * 7919 + 1),
+    boss: r.boss
+      ? {
+          hp: r.boss.hp,
+          max: r.boss.hp,
+          x: 0,
+          to: 0,
+          moveIn: r.boss.moveEvery,
+          throwIn: r.boss.throwEvery,
+          drops: [],
+          phase: 'wait'
+        }
+      : null,
+    goal: r.boss ? Infinity : r.length,
     z: 0,
     x: 0,
     target: 0,
@@ -136,8 +191,30 @@ function convert(s: RunState, list: Walker[]): number {
   return gain;
 }
 
+function hurt(s: RunState, b: Boss, damage: number, big: boolean, events: RunEvent[]) {
+  b.hp = Math.max(0, b.hp - damage);
+  events.push({ type: 'boss-hit', damage, big });
+  if (b.hp > 0) return;
+  b.phase = 'gone';
+  b.drops = [];
+  s.goal = s.z + GATE_AFTER;
+  events.push({ type: 'boss-down' });
+}
+
 function blast(s: RunState, events: RunEvent[]) {
   events.push({ type: 'pulse', x: s.x });
+  const b = s.boss;
+  if (b?.phase === 'fight' && Math.abs(b.x - s.x) <= BOSS_HIT_W) {
+    // ボスに当てるとコンボとゲージも伸びる。速く走っているほど強く当たる
+    s.combo += 1;
+    s.maxCombo = Math.max(s.maxCombo, s.combo);
+    s.since = 0;
+    s.followers += 5;
+    const before = s.gauge;
+    s.gauge = Math.min(GAUGE, s.gauge + 1);
+    if (before < GAUGE && s.gauge >= GAUGE) events.push({ type: 'gauge' });
+    hurt(s, b, 1 + boost(s.combo), false, events);
+  }
   const caught = s.walkers.filter((w) => !w.fan && inCone(s, w));
   if (!caught.length) return;
   const before = s.gauge;
@@ -155,6 +232,48 @@ function shout(s: RunState, events: RunEvent[]) {
   for (const o of blocks) o.hit = true;
   const gain = convert(s, walkers);
   events.push({ type: 'shout', walkers, blocks, gain });
+  const b = s.boss;
+  if (b?.phase === 'fight') {
+    b.drops = [];
+    hurt(s, b, SHOUT_DAMAGE, true, events);
+  }
+}
+
+function boss(s: RunState, dt: number, events: RunEvent[]) {
+  const b = s.boss;
+  const r = s.rule.boss;
+  if (!b || !r || b.phase === 'gone') return;
+  if (b.phase === 'wait') {
+    if (s.z < s.rule.bossAt) return;
+    b.phase = 'fight';
+    b.x = b.to = s.x;
+    events.push({ type: 'boss-in' });
+    return;
+  }
+  const half = halfAt(s.z) - 0.4;
+  b.moveIn -= dt;
+  if (b.moveIn <= 0) {
+    b.moveIn += r.moveEvery;
+    b.to = -half + s.rng.next() * half * 2;
+  }
+  b.x += Math.sign(b.to - b.x) * Math.min(Math.abs(b.to - b.x), 2.6 * dt);
+  b.throwIn -= dt;
+  if (b.throwIn <= 0) {
+    b.throwIn += r.throwEvery;
+    // ボスの真下か走る子のいる側へ、落ちるころに DROP_AHEAD 先になる場所へ投げる
+    const x = s.rng.next() < 0.5 ? b.x : s.x;
+    const drop: Drop = { x, z: s.z + DROP_AHEAD + speed(s) * WARN_TIME, t: WARN_TIME };
+    b.drops.push(drop);
+    events.push({ type: 'throw', drop });
+  }
+  for (const d of b.drops) {
+    d.t -= dt;
+    if (d.t > 0) continue;
+    const obstacle: Obstacle = { x: d.x, z: d.z, w: 0.9, kind: 'bubble', hit: false };
+    s.blocks.push(obstacle);
+    events.push({ type: 'land', obstacle });
+  }
+  b.drops = b.drops.filter((d) => d.t > 0);
 }
 
 function bump(s: RunState, from: number, events: RunEvent[]) {
@@ -204,12 +323,13 @@ export function step(s: RunState, dt: number, input: RunInput = {}): RunEvent[] 
     blast(s, events);
   }
   bump(s, from, events);
+  boss(s, dt, events);
   const zone = zoneAt(s.z);
   if (zone !== s.zone) {
     s.zone = zone;
     events.push({ type: 'zone', zone });
   }
-  if (s.z >= s.rule.length) {
+  if (s.z >= s.goal) {
     s.result = 'clear';
     events.push({ type: 'goal' });
   } else if (s.time <= 0) {

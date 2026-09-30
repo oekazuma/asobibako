@@ -7,6 +7,7 @@
   import { direct } from './director';
   import { RunFx } from './effects';
   import { BODY, boost, COMBO_TIME, createState, GAUGE, rank, score, step } from './engine';
+  import BossBar from './BossBar.svelte';
   import ComboBadge from './ComboBadge.svelte';
   import Hud from './Hud.svelte';
   import LiveCard from './LiveCard.svelte';
@@ -33,6 +34,7 @@
   let fans = $state(0);
   let speedUp = $state(1);
   let face = $state<string | null>(null);
+  let boss = $state<{ hp: number; max: number } | null>(null);
   let gauge = $state(0);
   let endTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -86,6 +88,9 @@
     const t = Math.ceil(game.time * 10) / 10;
     if (time !== t) time = t;
     if (fans !== game.fans) fans = game.fans;
+    const b = game.boss?.phase === 'fight' ? game.boss : null;
+    if (!b) boss = null;
+    else if (boss?.hp !== Math.ceil(b.hp)) boss = { hp: Math.ceil(b.hp), max: b.max };
     const sp = Math.round((1 + boost(game.combo)) * 10) / 10;
     if (speedUp !== sp) speedUp = sp;
     if (combo !== game.combo) combo = game.combo;
@@ -148,6 +153,9 @@
   <Hud {time} {followers} {gauge} onshout={() => (shoutNext = true)} />
   <LiveCard {face} {fans} />
   <ComboBadge {combo} speed={speedUp} {keep} />
+  {#if boss}
+    <BossBar hp={boss.hp} max={boss.max} />
+  {/if}
   {#if !ready}
     <p class="wait sticker">じゅんびちゅう…</p>
   {/if}

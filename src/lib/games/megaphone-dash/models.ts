@@ -111,8 +111,28 @@ export function gate(): { group: THREE.Group; dispose: () => void } {
 }
 
 /** 障害物。コーン（幅 w にならべる）・止めてある自転車・廊下の「そうじちゅう」の立て看板 */
-export function obstacle(kind: 'cone' | 'bike' | 'board', w: number): THREE.Group {
+export function obstacle(kind: 'cone' | 'bike' | 'board' | 'bubble', w: number): THREE.Group {
   const g = new THREE.Group();
+  if (kind === 'bubble') {
+    // ボスの投げるふまん玉。紫に光る玉に、とげを四方へ生やす
+    const ball = mesh(
+      sphere(0.42),
+      mat('#8a3ad8', { emissive: '#6a1fc0', emissiveIntensity: 0.9, roughness: 0.3 }),
+      0,
+      0.45
+    );
+    g.add(ball);
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2;
+      const up = ((i % 3) - 1) * 0.6;
+      const spike = mesh(cyl(0, 0.09, 0.28, 8), mat('#c77dff', { emissive: '#8a3ad8', emissiveIntensity: 0.6 }));
+      const dir = new THREE.Vector3(Math.cos(a), up, Math.sin(a)).normalize();
+      spike.position.copy(dir.clone().multiplyScalar(0.46)).add(new THREE.Vector3(0, 0.45, 0));
+      spike.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+      g.add(spike);
+    }
+    return g;
+  }
   if (kind === 'cone') {
     const n = Math.max(2, Math.round(w / 0.45));
     for (let i = 0; i < n; i++) {

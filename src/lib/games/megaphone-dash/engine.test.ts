@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ZONE_LEN } from './course';
 import {
   BASE_SPEED,
+  BOSS_HIT_W,
   COMBO_TIME,
   createState,
   FULL_COMBO,
@@ -10,6 +11,7 @@ import {
   rank,
   REACH,
   score,
+  SHOUT_DAMAGE,
   speed,
   step,
   STUMBLE_TIME,
@@ -197,5 +199,89 @@ describe('点とランク', () => {
     s.time = 12.7;
     s.maxCombo = 8;
     expect(score(s)).toBe(500 + 12 * 30 + 80);
+  });
+});
+
+describe('ボス', () => {
+  /** 5 面を、ボスが現れる直前まで進めた状態 */
+  function atBoss(): RunState {
+    const s = empty(5);
+    s.z = s.rule.bossAt - 0.01;
+    return s;
+  }
+
+  /** 現れたボスを、動かず投げない状態で走る子の正面（dx だけずらして）に置く */
+  function facing(s: RunState, dx = 0) {
+    step(s, 0.01);
+    const b = s.boss!;
+    b.x = b.to = s.x + dx;
+    b.moveIn = b.throwIn = 99;
+    s.pulse = 0;
+    return b;
+  }
+
+  it('決まった距離で現れ、それまでゴールはない', () => {
+    const s = atBoss();
+    expect(s.goal).toBe(Infinity);
+    const events = step(s, 0.05);
+    expect(events).toContainEqual({ type: 'boss-in' });
+    expect(s.boss!.phase).toBe('fight');
+  });
+
+  it('正面にいればメガホンが当たり、コンボも伸びる', () => {
+    const s = atBoss();
+    const b = facing(s);
+    const events = step(s, 0.01);
+    expect(events.some((e) => e.type === 'boss-hit')).toBe(true);
+    expect(b.hp).toBeLessThan(b.max);
+    expect(s.combo).toBe(1);
+  });
+
+  it('横にずれていれば当たらない', () => {
+    const s = atBoss();
+    const b = facing(s, BOSS_HIT_W + 0.5);
+    step(s, 0.01);
+    expect(b.hp).toBe(b.max);
+  });
+
+  it('大声で大きく削れる', () => {
+    const s = atBoss();
+    const b = facing(s, 2);
+    s.gauge = GAUGE;
+    const events = step(s, 0.01, { shout: true });
+    expect(events).toContainEqual({ type: 'boss-hit', damage: SHOUT_DAMAGE, big: true });
+    expect(b.hp).toBe(b.max - SHOUT_DAMAGE);
+  });
+
+  it('ふまん玉を投げ、印のあとで道に落とす', () => {
+    const s = atBoss();
+    const b = facing(s, 1);
+    b.throwIn = 0.005;
+    s.pulse = 99;
+    const thrown = step(s, 0.01);
+    expect(thrown.some((e) => e.type === 'throw')).toBe(true);
+    let landed: Obstacle | null = null;
+    for (let i = 0; i < 20 && !landed; i++) for (const e of step(s, 0.1)) if (e.type === 'land') landed = e.obstacle;
+    expect(landed?.kind).toBe('bubble');
+    expect(s.blocks).toContain(landed);
+    expect(landed!.z - s.z).toBeGreaterThan(8);
+  });
+
+  it('倒すと 30 m 先にゴールが出る', () => {
+    const s = atBoss();
+    const b = facing(s);
+    b.hp = 0.5;
+    const events = step(s, 0.01);
+    expect(events).toContainEqual({ type: 'boss-down' });
+    expect(b.phase).toBe('gone');
+    expect(s.goal - s.z).toBeGreaterThan(29);
+    expect(s.goal - s.z).toBeLessThan(31);
+  });
+
+  it('ボスのいない面では現れない', () => {
+    const s = empty(4);
+    s.z = s.rule.length - 5;
+    expect(step(s, 0.05).some((e) => e.type === 'boss-in')).toBe(false);
+    expect(s.boss).toBeNull();
   });
 });

@@ -26,6 +26,29 @@ export const sounds = {
     tone(523, 300, 'square', 0.06, 120);
     tone(784, 400, 'square', 0.06, 200);
   },
+  bossIn: () => {
+    noise(700, 0.3);
+    sweep(140, 60, 900, 0.16);
+    tone(110, 600, 'sawtooth', 0.05, 200);
+  },
+  bossHit: (big: boolean) => {
+    if (big) {
+      noise(260, 0.3);
+      sweep(900, 200, 300, 0.12);
+    } else tone(1400 + Math.random() * 200, 40, 'square', 0.03);
+  },
+  bossDown: () => {
+    noise(600, 0.35);
+    tone(523, 160);
+    tone(659, 160, 'triangle', 0.14, 150);
+    tone(784, 160, 'triangle', 0.14, 300);
+    tone(1047, 420, 'triangle', 0.14, 450);
+  },
+  throw: () => sweep(300, 900, 300, 0.05),
+  land: () => {
+    noise(120, 0.2);
+    sweep(200, 70, 160, 0.08);
+  },
   zone: () => {
     tone(784, 100);
     tone(1047, 180, 'triangle', 0.12, 100);

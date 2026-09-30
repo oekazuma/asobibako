@@ -20,7 +20,18 @@ export function direct(events: RunEvent[], s: RunState, world: RunWorld | undefi
     else if (e.type === 'shout') {
       sounds.shout();
       stop = Math.max(stop, 0.12);
-    } else if (e.type === 'zone') sounds.zone();
+    } else if (e.type === 'boss-in') {
+      sounds.bossIn();
+      stop = Math.max(stop, 0.25);
+    } else if (e.type === 'boss-hit') {
+      sounds.bossHit(e.big);
+      if (e.big) stop = Math.max(stop, 0.1);
+    } else if (e.type === 'boss-down') {
+      sounds.bossDown();
+      stop = Math.max(stop, 0.3);
+    } else if (e.type === 'throw') sounds.throw();
+    else if (e.type === 'land') sounds.land();
+    else if (e.type === 'zone') sounds.zone();
     else if (e.type === 'goal') sounds.goal();
     else if (e.type === 'timeout') sounds.timeout();
   }

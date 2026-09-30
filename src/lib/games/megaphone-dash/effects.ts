@@ -1,6 +1,6 @@
 import { CONFETTI, Floaters, label, Particles, type Projector } from '$lib/fx';
 import type { Zone } from './course';
-import { boost, type Rank, type RunEvent, type RunState } from './engine';
+import { boost, BOSS_AHEAD, type Rank, type RunEvent, type RunState } from './engine';
 
 export type Ending = { kind: 'rank'; rank: Rank; points: number } | { kind: 'timeout' };
 
@@ -61,6 +61,27 @@ export class RunFx {
           speed: 4,
           size: 0.18,
           life: 0.9
+        });
+    } else if (e.type === 'boss-in') this.#banner = { text: '不満爆発！', color: '#ff2a3d', age: 0, big: true };
+    else if (e.type === 'boss-hit' && s.boss) {
+      const bx = s.boss.x;
+      this.floaters.add(`-${Math.round(e.damage)}`, bx, BOSS_AHEAD, e.big ? 2.4 : 1.1, e.big ? '#ffb300' : '#ffffff');
+      this.particles.burst(bx, BOSS_AHEAD, {
+        count: e.big ? 30 : 5,
+        color: ['#ff7eb6', '#ffe066', '#ffffff'],
+        speed: e.big ? 6 : 3,
+        size: 0.3,
+        life: 0.5
+      });
+    } else if (e.type === 'boss-down') {
+      this.#banner = { text: 'やっつけた！', color: '#ffb300', age: 0, big: true };
+      for (let i = 0; i < 6; i++)
+        this.particles.burst((s.boss?.x ?? 0) + (i - 2.5) * 0.6, BOSS_AHEAD, {
+          count: 24,
+          color: CONFETTI,
+          speed: 6,
+          size: 0.35,
+          life: 1.4
         });
     } else if (e.type === 'zone') this.#banner = { text: ZONE_NAME[e.zone], color: '#1f9bff', age: 0, big: false };
     else if (e.type === 'goal')

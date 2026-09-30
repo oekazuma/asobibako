@@ -3,6 +3,7 @@ import { zoneAt, type Zone } from './course';
 import { boost, FAR_W, REACH, speed, type Obstacle, type RunEvent, type RunState, type Walker } from './engine';
 import { chara, HERO, passer, recolor, run, type Chara } from './chara';
 import { CAMERA, car, gate, heartTexture, megaphone, obstacle, ROAD_W, SEG, soundCone } from './models';
+import { BossStage } from './boss-stage';
 import { Post } from './post';
 import { MOOD, segment } from './scenery';
 import { sky } from './textures';
@@ -78,6 +79,7 @@ export class RunWorld {
   readonly #shockwave: THREE.Mesh;
   #shockT = -1;
   readonly #goal = gate();
+  readonly #stage: BossStage | null;
   /** 車道を走る車。向かってくる車と、同じ向きに追い越していく車 */
   readonly #cars: { group: THREE.Group; x: number; v: number; z: number }[] = [];
 
@@ -101,7 +103,9 @@ export class RunWorld {
     c.near = 1;
     c.far = 40;
     this.scene.add(this.#sun, this.#sun.target);
-    this.#goal.group.position.z = -s.rule.length;
+    this.#goal.group.visible = false;
+    // ボスの場面は、廊下の柱の内側に収まるトンネルで包む
+    this.#stage = s.boss ? new BossStage(this.scene, 4.4) : null;
     const horn = megaphone();
     horn.position.set(-0.02, -0.15, -0.06);
     this.#hero.bones.handR.add(horn);
@@ -192,11 +196,34 @@ export class RunWorld {
     return c.toDataURL('image/png');
   }
 
+  /**
+   * シェーダーの準備。compileAsync は見えているものしか準備しないので、隠してある半透明の部品・
+   * ボスとトンネル・ゴールもこのときだけ見せ、済んだら隠し直す
+   */
   precompile(): Promise<unknown> {
-    return this.renderer.compileAsync(this.scene, this.camera);
+    const hidden: THREE.Object3D[] = [
+      ...this.#cones.map((c) => c.mesh),
+      ...this.#hearts.map((h) => h.sprite),
+      this.#shockwave
+    ];
+    for (const o of hidden) o.visible = true;
+    this.#goal.group.visible = true;
+    this.#stage?.reveal();
+    const done = this.renderer.compileAsync(this.scene, this.camera);
+    const restore = () => {
+      for (const o of hidden) o.visible = false;
+      this.#stage?.conceal();
+    };
+    done.then(restore, restore);
+    return done;
   }
 
   handle(e: RunEvent): void {
+    this.#stage?.handle(e);
+    if (e.type === 'boss-in' || e.type === 'boss-down') {
+      this.#shake = 1;
+      this.#flash = e.type === 'boss-down' ? 0.45 : 0.2;
+    }
     if (e.type === 'pulse') this.#pulse();
     else if (e.type === 'hit') {
       for (const w of e.walkers) this.#pop(w);
@@ -250,14 +277,16 @@ export class RunWorld {
     });
   }
 
-  #applyMood(zone: Zone, k: number) {
+  #applyMood(zone: Zone, k: number, boss = 0) {
     const m = MOOD[zone];
-    this.#sky.lerp(new THREE.Color(m.sky), k);
-    this.#fog.color.lerp(new THREE.Color(m.fog), k);
-    this.#sun.color.lerp(new THREE.Color(m.sun), k);
-    this.#sun.intensity += (m.sunI - this.#sun.intensity) * k;
-    this.#hemi.color.lerp(new THREE.Color(m.hemi), k);
-    this.#hemi.groundColor.lerp(new THREE.Color(m.ground), k);
+    // ボスの場面では、赤黒い空気へ寄せる
+    const mix = (a: string, b: string) => new THREE.Color(a).lerp(new THREE.Color(b), boss);
+    this.#sky.lerp(mix(m.sky, '#3a0a14'), k);
+    this.#fog.color.lerp(mix(m.fog, '#1e060b'), k);
+    this.#sun.color.lerp(mix(m.sun, '#ff8a8a'), k);
+    this.#sun.intensity += (m.sunI * (1 - boss * 0.5) - this.#sun.intensity) * k;
+    this.#hemi.color.lerp(mix(m.hemi, '#ff9aa6'), k);
+    this.#hemi.groundColor.lerp(mix(m.ground, '#2a0a10'), k);
   }
 
   update(s: RunState, dt: number): void {
@@ -288,7 +317,10 @@ export class RunWorld {
     this.#dome.position.copy(this.camera.position);
     this.#sun.position.set(this.#heroX + 5, 14, z + 6);
     this.#sun.target.position.set(this.#heroX, 0, z - 6);
-    this.#applyMood(zoneAt(s.z), Math.min(1, dt * 1.5));
+    this.#applyMood(zoneAt(s.z), Math.min(1, dt * 1.5), this.#stage?.mood ?? 0);
+    this.#stage?.update(s, dt);
+    this.#goal.group.visible = Number.isFinite(s.goal);
+    if (Number.isFinite(s.goal)) this.#goal.group.position.z = -s.goal;
 
     this.#syncSegments(s);
     const street = zoneAt(s.z) === 'street';
@@ -473,6 +505,7 @@ export class RunWorld {
 
   dispose(): void {
     this.#goal.dispose();
+    this.#stage?.dispose();
     for (const c of this.#cones) (c.mesh.material as THREE.Material).dispose();
     for (const h of this.#hearts) h.sprite.material.dispose();
     this.#shockwave.geometry.dispose();
