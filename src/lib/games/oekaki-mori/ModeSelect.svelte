@@ -1,28 +1,27 @@
 <script lang="ts">
+  import Icon from '$lib/components/Icon.svelte';
   import type { Party } from '$lib/net/party.svelte';
   import type { Mode } from './engine';
 
-  let { party, onpick, onlobby }: { party: Party; onpick: (mode: Mode | 'together') => void; onlobby: () => void } =
-    $props();
+  let { party, onpick }: { party: Party; onpick: (mode: Mode | 'together') => void } = $props();
+
+  const MODES = [
+    { mode: 'egokoro', icon: 'pencil', name: 'エゴコロクイズ', note: 'ひとりが かいて、みんなで こたえを うつ' },
+    { mode: 'hayaoshi', icon: 'bolt', name: 'はやおし検定', note: 'わかったら はやおし！ 4つから えらぶ' },
+    { mode: 'together', icon: 'brush', name: 'みんなでぬりえ', note: 'おなじ えを みんなで いっしょに ぬる' }
+  ] as const;
 </script>
 
 <div class="mode">
   <h2 class="yuru">あそびかた</h2>
   {#if party.host}
-    <button class="pill gold choice" disabled={party.members.length < 2} onclick={() => onpick('egokoro')}>
-      エゴコロクイズ
-      <small>ひとりが おだいを かいて、みんなで あてる</small>
-    </button>
-    <button class="pill gold choice" disabled={party.members.length < 2} onclick={() => onpick('hayaoshi')}>
-      はやおし検定
-      <small>かいている とちゅうで わかったら はやおし！</small>
-    </button>
-    <button class="pill gold choice" disabled={party.members.length < 2} onclick={() => onpick('together')}>
-      みんなでぬりえ
-      <small>おなじ えを みんなで いっしょに ぬる</small>
-    </button>
-    {#if party.members.length < 2}<p role="alert">なかまが いなくなりました</p>{/if}
-    <button class="pill" onclick={onlobby}>なかまを よびなおす</button>
+    {#each MODES as m (m.mode)}
+      <button class="pill gold choice" disabled={party.members.length < 2} onclick={() => onpick(m.mode)}>
+        <Icon name={m.icon} size="40px" />
+        <span>{m.name}<small>{m.note}</small></span>
+      </button>
+    {/each}
+    {#if party.members.length < 2}<p role="alert">なかまが いなくなりました。メニューから よんでね</p>{/if}
   {:else}
     <p role="status">おやが あそびかたを えらんでいます…</p>
   {/if}
@@ -48,8 +47,16 @@
   }
 
   .choice {
-    flex-direction: column;
+    gap: 14px;
+    justify-content: flex-start;
+    width: min(460px, 88cqw);
+    padding: 14px 18px;
     font-size: clamp(20px, 3.2cqh, 28px);
+    text-align: left;
+  }
+
+  .choice span {
+    display: grid;
   }
 
   .choice small {

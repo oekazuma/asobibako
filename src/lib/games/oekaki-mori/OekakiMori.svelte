@@ -12,7 +12,6 @@
   import Menu from './Menu.svelte';
   import ModeSelect from './ModeSelect.svelte';
   import Play from './Play.svelte';
-  import Practice from './Practice.svelte';
   import { Referee } from './referee';
   import Result, { type Drawing } from './Result.svelte';
   import Together from './Together.svelte';
@@ -22,7 +21,7 @@
   import { typed } from './typing';
 
   let party = $state.raw<Party | null>(null);
-  let screen = $state<Screen | 'practice'>('lobby');
+  let screen = $state<Screen>('lobby');
   let view = $state.raw<View | null>(null);
   let strokes = $state.raw<Stroke[]>([]);
   let bubbles = $state.raw<Bubble[]>([]);
@@ -31,17 +30,20 @@
   let typing = $state.raw<Record<number, string>>({});
   let close = $state(false);
   let inviting = $state(false);
+  /** 親とのつながりが切れた子。ロビーで「もういちど つなぐ」を出す */
+  let lost = $state(false);
   let note = $state('');
   let referee: Referee | null = null;
   let bubbleId = 0;
 
   function joined(next: Party) {
     note = '';
+    lost = false;
     party = next;
     next.onTell(receive);
     if (next.host)
       next.onAct((m, from) => {
-        if (m.t === 'join' && screen !== 'practice') next.tell(from, catchUp(screen, strokes, gallery));
+        if (m.t === 'join') next.tell(from, catchUp(screen, strokes, gallery));
       });
   }
 
@@ -108,6 +110,7 @@
     if (!party?.lost) return;
     party = null;
     screen = 'lobby';
+    lost = true;
     note = 'つながりが きれました';
   });
 
@@ -121,12 +124,10 @@
 
 <!-- 当てる人は盤面に触れずに 50 音盤だけを押すので、どこに触れても音を起こす（iOS は操作の中でしか鳴らし始められない） -->
 <main class="stage mori" onpointerdown={wake}>
-  {#if screen === 'practice'}
-    <Practice onback={() => (screen = 'lobby')} />
-  {:else if screen === 'lobby' || !party}
-    <Lobby {party} {note} onparty={joined} onstart={toMode} onpractice={() => (screen = 'practice')} />
+  {#if screen === 'lobby' || !party}
+    <Lobby {party} {note} retry={lost} onparty={joined} onstart={toMode} />
   {:else if screen === 'mode'}
-    <ModeSelect {party} onpick={begin} onlobby={() => party?.tell('all', { t: 'screen', screen: 'lobby' })} />
+    <ModeSelect {party} onpick={begin} />
   {:else if screen === 'together'}
     <Together {party} onagain={toMode} />
   {:else if screen === 'play' && view}
@@ -147,7 +148,7 @@
   {#if party}
     <Menu {party} oninvite={() => (inviting = true)} />
     {#if party.host}<Invite away={party.away} onlink={(link) => party?.add(link)} bind:open={inviting} />{/if}
-  {:else if screen !== 'practice'}
+  {:else}
     <a class="round back" href={resolve('/')} aria-label="ゲーム選択へ戻る">✕</a>
     <button class="round mute" onclick={toggleMute} aria-label="ミュート" aria-pressed={audio.muted}>
       <Icon name={audio.muted ? 'mute' : 'speaker'} size="26px" />

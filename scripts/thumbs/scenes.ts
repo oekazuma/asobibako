@@ -402,49 +402,6 @@ export const SCENES: Scene[] = [
       await s.wait(500);
     }
   },
-  {
-    id: 'oekaki-mori',
-    clip: band(250),
-    // れんしゅうの盤面（768 × 1024 で x 8〜760、y 107〜860）に、りんごとお日さまと草を描く
-    play: async (s) => {
-      await s.press('button.practice');
-      await s.wait(300);
-      await s.press('button[aria-label="ふとい"]');
-      await s.press('button[aria-label="あか"]');
-      // 太い線の幅（盤面の 4%、約 30px）より狭い間隔で輪を重ね、塗りつぶして見せる
-      for (const r of [115, 90, 65, 40, 15]) await stroke(s, circle(290, 500, r), 400);
-      await s.press('button[aria-label="ちゃいろ"]');
-      await stroke(
-        s,
-        [
-          [290, 380],
-          [298, 340],
-          [312, 312]
-        ],
-        200
-      );
-      await s.press('button[aria-label="みどり"]');
-      await stroke(s, circle(350, 340, 28), 250);
-      await s.press('button[aria-label="きいろ"]');
-      for (const r of [55, 30]) await stroke(s, circle(590, 330, r), 300);
-      await s.press('button[aria-label="オレンジ"]');
-      await s.press('button[aria-label="ふつう"]');
-      for (let i = 0; i < 8; i++) {
-        const a = (i / 8) * Math.PI * 2;
-        await stroke(
-          s,
-          [
-            [590 + Math.cos(a) * 75, 330 + Math.sin(a) * 75],
-            [590 + Math.cos(a) * 105, 330 + Math.sin(a) * 105]
-          ],
-          120
-        );
-      }
-      await s.press('button[aria-label="みどり"]');
-      await s.press('button[aria-label="ふとい"]');
-      await stroke(s, wave(60, 670, 640), 400);
-    }
-  },
   { id: 'border-rush', clip: band(250), play: borderRush },
   { id: 'bomb-relay', clip: band(300), play: bombRelay },
   {
