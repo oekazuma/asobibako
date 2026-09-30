@@ -6,7 +6,7 @@ import * as THREE from 'three';
  */
 
 /** 走る子の後ろ上から見るカメラ。world3d と見本のシートが同じ数字を使う */
-export const CAMERA = { fov: 55, back: 4.2, up: 2.7, look: 8, lookUp: 0.7 };
+export const CAMERA = { fov: 52, back: 3.8, up: 2.2, look: 10, lookUp: 1.0 };
 /** 車道の幅（m）。走る子が動けるのは engine の HALF まで */
 export const ROAD_W = 5.9;
 export const SEG = 20;
@@ -58,6 +58,24 @@ export function megaphone(): THREE.Group {
   body.add(mesh(box(0.05, 0.12, 0.07), '#ffc233', 0, -0.02, 0.04));
   horn.add(body);
   return horn;
+}
+
+/** 車。丸みのある車体・窓・タイヤ。前は -z */
+export function car(color: string): THREE.Group {
+  const g = new THREE.Group();
+  const body = mesh(box(1.7, 0.6, 3.9), mat(color, { roughness: 0.35, metalness: 0.2 }), 0, 0.55, 0);
+  g.add(body);
+  g.add(mesh(box(1.5, 0.55, 2.1), mat('#2c3a4d', { roughness: 0.15, metalness: 0.4 }), 0, 1.1, 0.25));
+  g.add(mesh(box(1.52, 0.08, 2.14), mat(color, { roughness: 0.35 }), 0, 1.4, 0.25));
+  for (const x of [-0.8, 0.8])
+    for (const z of [-1.25, 1.25]) {
+      const w = mesh(cyl(0.33, 0.33, 0.22), '#1f1f24', x, 0.33, z);
+      w.rotation.z = Math.PI / 2;
+      g.add(w);
+    }
+  g.add(mesh(box(1.5, 0.12, 0.06), mat('#fff6d8', { emissive: '#fff6d8', emissiveIntensity: 0.8 }), 0, 0.62, -1.96));
+  g.add(mesh(box(1.5, 0.12, 0.06), mat('#ff4040', { emissive: '#ff3030', emissiveIntensity: 0.6 }), 0, 0.62, 1.96));
+  return g;
 }
 
 /** ゴール。廊下の奥の、教室の入り口の柱と看板 */

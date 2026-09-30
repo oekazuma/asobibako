@@ -2,9 +2,10 @@ import * as THREE from 'three';
 import { zoneAt, type Zone } from './course';
 import { boost, FAR_W, REACH, speed, type Obstacle, type RunEvent, type RunState, type Walker } from './engine';
 import { chara, HERO, passer, recolor, run, type Chara } from './chara';
-import { CAMERA, gate, heartTexture, megaphone, obstacle, SEG, soundCone } from './models';
+import { CAMERA, car, gate, heartTexture, megaphone, obstacle, ROAD_W, SEG, soundCone } from './models';
 import { Post } from './post';
 import { MOOD, segment } from './scenery';
+import { sky } from './textures';
 
 const AHEAD = 90;
 const BEHIND = 2;
@@ -51,7 +52,12 @@ export class RunWorld {
   readonly #sun = new THREE.DirectionalLight('#fff1d6', 2.6);
   readonly #hemi = new THREE.HemisphereLight('#e6f4ff', '#b7ae9f', 1.6);
   readonly #fog = new THREE.Fog('#cfe9ff', 40, 88);
-  readonly #sky = new THREE.Color('#8fd0ff');
+  /** 空の絵を貼った大きな球。カメラについて動かし、場所ごとの色を掛けて夕方や屋内に寄せる */
+  readonly #dome = new THREE.Mesh(
+    new THREE.SphereGeometry(140, 32, 16),
+    new THREE.MeshBasicMaterial({ map: sky(), side: THREE.BackSide, fog: false, depthWrite: false })
+  );
+  readonly #sky = (this.#dome.material as THREE.MeshBasicMaterial).color;
   readonly #hero = chara(HERO, 0.012);
   #heroX = 0;
   #lean = 0;
@@ -72,6 +78,8 @@ export class RunWorld {
   readonly #shockwave: THREE.Mesh;
   #shockT = -1;
   readonly #goal = gate();
+  /** 車道を走る車。向かってくる車と、同じ向きに追い越していく車 */
+  readonly #cars: { group: THREE.Group; x: number; v: number; z: number }[] = [];
 
   constructor(canvas: HTMLCanvasElement, s: RunState) {
     // デフォルメのローポリなので MSAA は使わず、仕上げの SMAA でふちをならす
@@ -80,7 +88,8 @@ export class RunWorld {
     this.renderer.toneMapping = THREE.NeutralToneMapping;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
-    this.scene.background = this.#sky;
+    this.#dome.renderOrder = -1;
+    this.scene.add(this.#dome);
     this.scene.fog = this.#fog;
     this.scene.add(this.#hemi);
     this.#sun.castShadow = true;
@@ -124,6 +133,14 @@ export class RunWorld {
     );
     this.#shockwave.visible = false;
     this.scene.add(this.#shockwave);
+    const colors = ['#e8eef3', '#2f6fd6', '#d23c3c', '#2b2d34', '#f0c24a', '#9aa3ad'];
+    for (let i = 0; i < 6; i++) {
+      const group = car(colors[i]);
+      const oncoming = i % 2 === 0;
+      if (oncoming) group.rotation.y = Math.PI;
+      this.#cars.push({ group, x: ROAD_W / 2 + (oncoming ? 2.3 : 5.8), v: oncoming ? 11 : -4, z: -20 - i * 22 });
+      this.scene.add(group);
+    }
     this.#post = new Post(this.renderer, this.scene, this.camera);
     this.#applyMood(zoneAt(0), 1);
     this.update(s, 0);
@@ -229,11 +246,20 @@ export class RunWorld {
     this.camera.position.set(camX, CAMERA.up - b * 0.3 + (Math.random() - 0.5) * sh, z + CAMERA.back - b * 0.6);
     this.camera.lookAt(this.#heroX * 0.85, CAMERA.lookUp, z - CAMERA.look);
     this.camera.rotation.z += this.#lean * 0.4;
+    this.#dome.position.copy(this.camera.position);
     this.#sun.position.set(this.#heroX + 5, 14, z + 6);
     this.#sun.target.position.set(this.#heroX, 0, z - 6);
     this.#applyMood(zoneAt(s.z), Math.min(1, dt * 1.5));
 
     this.#syncSegments(s);
+    const street = zoneAt(s.z) === 'street';
+    for (const c of this.#cars) {
+      c.z += c.v * dt;
+      // 画面の後ろへ抜けた車と、置いていかれた車は、先のほうへ回し直す
+      if (c.z > -s.z + 6 || c.z < -s.z - 140) c.z = -s.z - 90 - Math.random() * 40;
+      c.group.position.set(c.x, -0.12, c.z);
+      c.group.visible = street && zoneAt(-c.z) === 'street';
+    }
     this.#syncWalkers(s);
     this.#syncBlocks(s);
     this.#animatePops(dt);

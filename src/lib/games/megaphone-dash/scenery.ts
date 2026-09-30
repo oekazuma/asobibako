@@ -1,93 +1,172 @@
 import * as THREE from 'three';
 import type { Zone } from './course';
-import { box, cyl, mat, mesh, ROAD_W, SEG, sphere } from './models';
+import { box, cyl, geo, mat, mesh, ROAD_W, SEG, sphere } from './models';
+import { asphalt, concrete, facade, sized, tactile, tiles } from './textures';
 
-/** 場所ごとの空・霧・光の色。景色が変わるたびに、ここへ向かって少しずつ寄せる */
+/** 場所ごとの空（空の絵に掛ける色）・霧・光の色。景色が変わるたびに、ここへ向かって少しずつ寄せる */
 export const MOOD: Record<Zone, { sky: string; fog: string; sun: string; sunI: number; hemi: string; ground: string }> =
   {
-    street: { sky: '#8fd0ff', fog: '#cfe9ff', sun: '#fff1d6', sunI: 2.6, hemi: '#e6f4ff', ground: '#b7ae9f' },
-    arcade: { sky: '#ffb77a', fog: '#ffd9b0', sun: '#ffd0a0', sunI: 2.0, hemi: '#ffe6c8', ground: '#a88d70' },
-    hall: { sky: '#dff3ff', fog: '#eef6fb', sun: '#ffffff', sunI: 1.4, hemi: '#f3f8ff', ground: '#9fb3b8' }
+    street: { sky: '#ffffff', fog: '#cfe9ff', sun: '#fff1d6', sunI: 2.6, hemi: '#e6f4ff', ground: '#b7ae9f' },
+    arcade: { sky: '#ffc08e', fog: '#ffd9b0', sun: '#ffd0a0', sunI: 2.0, hemi: '#ffe6c8', ground: '#a88d70' },
+    hall: { sky: '#f2f7ff', fog: '#eef6fb', sun: '#ffffff', sunI: 1.4, hemi: '#f3f8ff', ground: '#9fb3b8' }
   };
 
-const WALLS = ['#f3ebdf', '#d8e2e6', '#c3d0d8', '#f6e6c8', '#e3d6cf', '#d3d8f0'];
+/** 区間の番号は走り出す前の手前側で負になるので、表は 0 以上に直した番号で引く */
+const pick = <T>(list: readonly T[], n: number): T => list[((n % list.length) + list.length) % list.length];
 
 function glow(color: string, strength = 2.2) {
   return mat(color, { emissive: color, emissiveIntensity: strength });
 }
 
-/** 道ばたの家。side は道のどちら側か（-1 が左）で、窓とひさしを道の側に付ける */
-function house(seed: number, side: number): THREE.Group {
-  const g = new THREE.Group();
-  const h = 3.8 + (seed % 4) * 1.3;
-  g.add(mesh(box(4, h, 8.6), WALLS[seed % WALLS.length], 0, h / 2));
-  g.add(mesh(box(4.4, 0.3, 9), '#5d6270', 0, h + 0.12));
-  for (let row = 0; row < Math.floor((h - 0.6) / 1.6); row++)
-    for (const z of [-2.4, 0, 2.4]) {
-      const win = mesh(box(0.06, 0.85, 1.25), row % 2 ? '#a9dcff' : '#bfe6ff', -side * 2.01, 1.3 + row * 1.6, z);
-      // 壁にはりつく薄い板で影は見えない。窓の数だけ影の描画が増える
-      win.castShadow = false;
-      g.add(win);
-    }
-  const awning = mesh(box(0.9, 0.08, 3), seed % 2 ? '#ff6f6f' : '#4fb6ff', -side * 2.4, 2.4, (seed % 3) - 1);
-  awning.rotation.z = side * 0.25;
-  g.add(awning);
-  return g;
+const texMats = new Map<string, THREE.MeshStandardMaterial>();
+
+/** 質感の絵を貼った材質。w × h（m）の面に、1 枚が tile（m）の大きさで並ぶ */
+function tex(t: THREE.CanvasTexture, key: string, w: number, h: number, tileW: number, tileH = tileW, rough = 0.9) {
+  const k = `${key}:${w}:${h}`;
+  let m = texMats.get(k);
+  if (!m) {
+    m = new THREE.MeshStandardMaterial({ map: sized(t, key, w, h, tileW, tileH), roughness: rough });
+    texMats.set(k, m);
+  }
+  return m;
 }
 
-function tree(): THREE.Group {
-  const g = new THREE.Group();
-  g.add(mesh(cyl(0.12, 0.16, 1.6), '#8a5a3c', 0, 0.8));
-  g.add(mesh(sphere(0.95), '#5cbf6a', 0, 2.1));
-  g.add(mesh(sphere(0.65), '#7ad487', 0.35, 2.7, 0.2));
-  g.add(mesh(sphere(0.55), '#4fae5d', -0.4, 2.4, -0.3));
-  return g;
-}
-
-function pole(): THREE.Group {
-  const g = new THREE.Group();
-  g.add(mesh(cyl(0.14, 0.18, 6), '#a3a8b0', 0, 3));
-  g.add(mesh(box(1.4, 0.1, 0.1), '#8a8f98', 0, 5.4));
+/** 地面の板。中心 x、幅 w、奥行きは SEG。上面だけに絵を貼る */
+function ground(x: number, w: number, y: number, m: THREE.Material, h = 0.1) {
+  const g = new THREE.Mesh(box(w, h, SEG), m);
+  g.position.set(x, y - h / 2, -SEG / 2);
+  g.receiveShadow = true;
   return g;
 }
 
 function floor(width: number, color: string) {
-  const f = new THREE.Mesh(box(width, 0.1, SEG), mat(color));
-  f.position.set(0, -0.05, -SEG / 2);
-  f.receiveShadow = true;
-  return f;
+  return ground(0, width, 0, mat(color));
 }
 
-/** 車道・白線・歩道・両側の家と木。原点から -z へ SEG m */
+/** 歩道の左の建物。正面（+x の面）に窓と看板の絵を貼る */
+function building(n: number, side: number) {
+  const seed = ((n % 6) + 6) % 6;
+  const h = 12;
+  const plain = mat(['#aeb3ba', '#c2bcb1', '#b8bfb4'][seed % 3]);
+  const k = `facade:${seed % 6}`;
+  let front = texMats.get(k);
+  if (!front) {
+    front = new THREE.MeshStandardMaterial({ map: facade(seed), roughness: 0.85 });
+    texMats.set(k, front);
+  }
+  const faces = side < 0 ? [front, plain, plain, plain, plain, plain] : [plain, front, plain, plain, plain, plain];
+  const b = new THREE.Mesh(box(6, h, 8), faces);
+  b.position.y = h / 2;
+  b.castShadow = b.receiveShadow = true;
+  return b;
+}
+
+/** 葉のかたまりを重ねた街路樹。かたまりは面を平らに塗って、葉の重なりに見せる */
+function tree(seed: number): THREE.Group {
+  const g = new THREE.Group();
+  g.add(mesh(cyl(0.1, 0.14, 2.6), '#6d5140', 0, 1.3));
+  const greens = ['#4f9a45', '#63b152', '#3f8a3c', '#78c060'];
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 7) * Math.PI * 2 + seed;
+    const r = i === 0 ? 0 : 0.7;
+    const leaf = new THREE.Mesh(
+      geo(`leaf:${i % 3}`, () => new THREE.IcosahedronGeometry(0.75 + (i % 3) * 0.15, 1)),
+      mat(pick(greens, i + seed), { flatShading: true })
+    );
+    leaf.position.set(Math.cos(a) * r, 3.1 + (i % 2) * 0.5 + (i === 0 ? 0.6 : 0), Math.sin(a) * r);
+    leaf.castShadow = true;
+    g.add(leaf);
+  }
+  return g;
+}
+
+/** 電柱。根もとに黄と黒のしましまのカバー、上に腕木 */
+function pole(): THREE.Group {
+  const g = new THREE.Group();
+  g.add(mesh(cyl(0.13, 0.17, 8), '#b3b1ab', 0, 4));
+  for (let i = 0; i < 8; i++) {
+    const band = mesh(cyl(0.2, 0.2, 0.22, 20), i % 2 ? '#26262c' : '#f2c21b', 0, 0.12 + i * 0.22);
+    band.rotation.y = 0.4;
+    g.add(band);
+  }
+  g.add(mesh(box(1.6, 0.1, 0.1), '#8a8f98', 0, 7.3));
+  g.add(mesh(cyl(0.12, 0.12, 0.5), '#6f7580', 0.3, 6.6));
+  return g;
+}
+
+/** 白いガードレール。支柱と 2 本の横板 */
+function guardrail(): THREE.Group {
+  const g = new THREE.Group();
+  for (const y of [0.55, 0.85]) {
+    const rail = new THREE.Mesh(box(0.06, 0.12, SEG), mat('#f4f4f2', { roughness: 0.4 }));
+    rail.position.set(0, y, -SEG / 2);
+    rail.castShadow = true;
+    g.add(rail);
+  }
+  for (let z = 1; z < SEG; z += 2) g.add(mesh(cyl(0.04, 0.04, 0.9), '#e8e8e4', 0, 0.45, -z));
+  return g;
+}
+
+/** 通学路。左に建物、真ん中が走る歩道（タイルと点字ブロック）、右にガードレールと車道、その先にまた建物 */
 function street(index: number): THREE.Group {
   const g = new THREE.Group();
-  g.add(floor(ROAD_W, '#8a9098'));
-  for (const x of [-ROAD_W / 2 + 0.25, ROAD_W / 2 - 0.25]) {
-    const line = new THREE.Mesh(box(0.12, 0.02, SEG), mat('#ffffff'));
-    line.position.set(x, 0.01, -SEG / 2);
+  const walkW = ROAD_W + 0.2;
+  // 人は y = 0 に立つので、歩道の上面を 0 にし、車道はその縁石ぶん下げる
+  g.add(ground(0, walkW, 0, tex(tiles(), 'tiles', walkW, SEG, 2)));
+  const strip = new THREE.Mesh(box(0.32, 0.02, SEG), tex(tactile(), 'tactile', 0.32, SEG, 0.32, 0.3));
+  strip.position.set(-1.1, 0.005, -SEG / 2);
+  strip.receiveShadow = true;
+  g.add(strip);
+  const curb = new THREE.Mesh(box(0.25, 0.22, SEG), tex(concrete(), 'curb', 0.25, SEG, 1));
+  curb.position.set(walkW / 2 + 0.12, -0.03, -SEG / 2);
+  g.add(curb);
+  g.add(ground(walkW / 2 + 4, 7.5, -0.12, tex(asphalt(), 'road', 7.5, SEG, 4)));
+  for (const x of [walkW / 2 + 0.55, walkW / 2 + 7.4]) {
+    const line = new THREE.Mesh(box(0.15, 0.02, SEG), mat('#f2f2ee'));
+    line.position.set(x, -0.11, -SEG / 2);
     g.add(line);
   }
-  for (let z = 2; z < SEG; z += 5) {
-    const dash = new THREE.Mesh(box(0.12, 0.02, 2), mat('#f2f2f2'));
-    dash.position.set(0, 0.01, -z);
+  for (let z = 2; z < SEG; z += 6) {
+    const dash = new THREE.Mesh(box(0.15, 0.02, 3), mat('#f2f2ee'));
+    dash.position.set(walkW / 2 + 4, -0.11, -z);
     g.add(dash);
   }
-  for (const side of [-1, 1]) {
-    const walk = new THREE.Mesh(box(2.6, 0.2, SEG), mat('#d8d1c4'));
-    walk.position.set(side * (ROAD_W / 2 + 1.3), 0.05, -SEG / 2);
-    walk.receiveShadow = true;
-    g.add(walk);
-    const bumps = new THREE.Mesh(box(0.35, 0.21, SEG), mat('#f2c230'));
-    bumps.position.set(side * (ROAD_W / 2 + 0.6), 0.05, -SEG / 2);
-    g.add(bumps);
-    for (const [k, z] of [5, 15].entries()) {
-      const h = house(index * 4 + k * 2 + (side > 0 ? 1 : 0), side);
-      h.position.set(side * (ROAD_W / 2 + 2.6 + 2.2), 0, -z);
-      g.add(h);
-    }
-    const t = (index + (side > 0 ? 1 : 0)) % 2 ? tree() : pole();
-    t.position.set(side * (ROAD_W / 2 + 2.2), 0.1, -10);
-    g.add(t);
+  const rail = guardrail();
+  rail.position.x = walkW / 2 + 0.2;
+  g.add(rail);
+  g.add(ground(walkW / 2 + 9.3, 3, 0, tex(tiles(), 'tiles2', 3, SEG, 2)));
+  for (const [k, z] of [4, 12].entries()) {
+    const left = building(index * 2 + k, -1);
+    left.position.set(-walkW / 2 - 3.2, 6, -z);
+    g.add(left);
+    const right = building(index * 2 + k + 3, 1);
+    right.position.set(walkW / 2 + 13.8, 6, -z);
+    g.add(right);
+  }
+  const p = pole();
+  p.position.set(walkW / 2 + 0.35, 0, -6);
+  g.add(p);
+  const t = tree(index);
+  t.position.set(walkW / 2 + 0.4, 0, -15);
+  g.add(t);
+  if (index % 2) {
+    const t2 = tree(index + 3);
+    t2.position.set(-walkW / 2 + 0.25, 0, -10);
+    t2.scale.setScalar(0.85);
+    g.add(t2);
+  }
+  // 電線。電柱の腕木から次の区間の電柱へ、少したるませて渡す
+  const pts: THREE.Vector3[] = [];
+  for (let i = 0; i <= 10; i++) {
+    const z = -6 - (i / 10) * SEG;
+    pts.push(new THREE.Vector3(walkW / 2 + 0.35, 7.2 - Math.sin((i / 10) * Math.PI) * 0.5, z));
+  }
+  for (const dx of [-0.7, 0, 0.7]) {
+    const wire = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(pts.map((v) => v.clone().setX(v.x + dx))),
+      new THREE.LineBasicMaterial({ color: '#2d2f36' })
+    );
+    g.add(wire);
   }
   return g;
 }
@@ -108,7 +187,7 @@ function arcade(index: number): THREE.Group {
       const seed = index * 4 + k * 2 + (side > 0 ? 1 : 0);
       const shop = new THREE.Group();
       shop.add(mesh(box(3, 4.6, 9.4), '#efe4d2', 0, 2.3));
-      const color = SHOPS[seed % SHOPS.length];
+      const color = pick(SHOPS, seed);
       const front = mesh(box(0.1, 1.9, 7.6), '#3b3144', -side * 1.52, 1.1, 0);
       front.castShadow = false;
       shop.add(front);
@@ -138,7 +217,7 @@ function arcade(index: number): THREE.Group {
   );
   roof.position.set(0, 5.6, -SEG / 2);
   g.add(roof);
-  const banner = mesh(box(3.2, 0.7, 0.08), glow(SHOPS[index % SHOPS.length], 0.6), 0, 4.4, -10);
+  const banner = mesh(box(3.2, 0.7, 0.08), glow(pick(SHOPS, index), 0.6), 0, 4.4, -10);
   banner.castShadow = false;
   g.add(banner);
   return g;
