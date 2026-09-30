@@ -38,9 +38,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    /* 真ん中に寄せるのは最初と最後の子の auto の余白で行う。justify-content: center だと、横向きのスマホで
+       はみ出した上側がスクロールでも見えなくなる */
     gap: 14px;
-    /* QR とカメラは、この画面の大きさ（cqw / cqh）で決める。おえかきのもりでは回した .stage の中に置くため */
+    /* Handshake の QR とカメラは cqw / cqh で大きさを決めるので、この画面を大きさの基準にする */
     height: 100dvh;
     container-type: size;
     overflow-y: auto;
@@ -50,6 +51,14 @@
     color: var(--line);
     font-weight: 700;
     text-align: center;
+  }
+
+  .pair > :global(:first-child) {
+    margin-top: auto;
+  }
+
+  .pair > :global(:last-child) {
+    margin-bottom: auto;
   }
 
   h1 {

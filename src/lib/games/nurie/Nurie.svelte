@@ -9,7 +9,7 @@
   import Palette, { COLORS } from '$lib/coloring/Palette.svelte';
   import PhotoMaker from '$lib/coloring/PhotoMaker.svelte';
   import Picker from '$lib/coloring/Picker.svelte';
-  import { label, type Regions } from '$lib/coloring/regions';
+  import { hideCovered, label, type Regions } from '$lib/coloring/regions';
   import { sounds } from '$lib/coloring/sounds';
   import { TEMPLATES, type Template } from '$lib/coloring/templates';
 
@@ -37,7 +37,8 @@
   onMount(refresh);
 
   function open(next: Omit<Current, 'regions'>, start: Coloring, mask = next.art.mask) {
-    current = { ...next, regions: label(mask) };
+    const regions = label(mask);
+    current = { ...next, regions: next.art.kind === 'template' ? hideCovered(regions, next.art.cover) : regions };
     coloring = start;
     screen = 'paint';
   }

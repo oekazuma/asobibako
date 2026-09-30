@@ -15,7 +15,12 @@ vi.mock('$lib/coloring/book', async (original) => ({
   saveWork: book.saveWork
 }));
 vi.mock('$lib/coloring/art', () => ({
-  templateArt: (template: unknown) => ({ kind: 'template', template, mask: new Uint8Array(SIZE * SIZE) }),
+  templateArt: (template: unknown) => ({
+    kind: 'template',
+    template,
+    mask: new Uint8Array(SIZE * SIZE),
+    cover: new Uint8Array(SIZE * SIZE)
+  }),
   photoArt: (mask: Uint8Array) => ({ kind: 'photo', mask }),
   snapshot: () => 'data:image/jpeg;base64,'
 }));

@@ -2,7 +2,15 @@ import { SIZE, type Regions } from './regions';
 import { LINE, type Template } from './templates';
 
 export type Art =
-  { kind: 'template'; template: Template; path: Path2D; mask: Uint8Array } | { kind: 'photo'; mask: Uint8Array };
+  | {
+      kind: 'template';
+      template: Template;
+      path: Path2D;
+      mask: Uint8Array;
+      /** 見える太さの線。この下にすっかり隠れた場所は、押しても塗らない */
+      cover: Uint8Array;
+    }
+  | { kind: 'photo'; mask: Uint8Array };
 
 const UNIT = SIZE / 100;
 const INK = '#3b2f2a';
@@ -14,19 +22,24 @@ function canvas(size: number): HTMLCanvasElement {
   return c;
 }
 
-export function templateArt(template: Template): Art {
-  const path = new Path2D(template.d);
+/** パスを SIZE の canvas に width の太さで描き、線のある画素を 1 にする */
+function stroked(path: Path2D, width: number): Uint8Array {
   const c = canvas(SIZE);
   const ctx = c.getContext('2d', { willReadFrequently: true })!;
   ctx.setTransform(UNIT, 0, 0, UNIT, 0, 0);
-  ctx.lineWidth = LINE * 0.6;
+  ctx.lineWidth = width;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.stroke(path);
   const data = ctx.getImageData(0, 0, SIZE, SIZE).data;
   const mask = new Uint8Array(SIZE * SIZE);
   for (let i = 0; i < mask.length; i++) mask[i] = data[i * 4 + 3] > 96 ? 1 : 0;
-  return { kind: 'template', template, path, mask };
+  return mask;
+}
+
+export function templateArt(template: Template): Art {
+  const path = new Path2D(template.d);
+  return { kind: 'template', template, path, mask: stroked(path, LINE * 0.6), cover: stroked(path, LINE) };
 }
 
 export const photoArt = (mask: Uint8Array): Art => ({ kind: 'photo', mask });

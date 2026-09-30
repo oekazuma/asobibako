@@ -5,12 +5,9 @@ export interface Regions {
   /** 画素ごとの場所の番号。線の画素は -1 */
   labels: Int32Array;
   count: number;
-  /** 場所ごとの画素の数 */
-  sizes: Int32Array;
+  /** 見える線の下に隠れていて、塗っても何も変わらない場所に 1 */
+  hidden?: Uint8Array;
 }
-
-/** これより小さな場所は、太い線の中に閉じこめられて見えないすき間なので、押しても塗らない */
-export const MIN_POCKET = 30;
 
 /** 線でない画素を上下左右のつながりでまとめる。斜めは数えない（線の角のすき間から塗りがもれないように） */
 export function label(mask: Uint8Array, w = SIZE, h = SIZE): Regions {
@@ -45,16 +42,14 @@ export function label(mask: Uint8Array, w = SIZE, h = SIZE): Regions {
     }
     count++;
   }
-  const sizes = new Int32Array(count);
-  for (const l of labels) if (l >= 0) sizes[l]++;
-  return { labels, count, sizes };
+  return { labels, count };
 }
 
 /** タップした画素の場所。線の上なら、近い順に reach 画素まで探す（太い線の上を押しても塗れるように） */
-export function regionAt(r: Regions, x: number, y: number, w = SIZE, h = SIZE, reach = 10, min = MIN_POCKET): number {
+export function regionAt(r: Regions, x: number, y: number, w = SIZE, h = SIZE, reach = 10): number {
   const at = (px: number, py: number) => {
     const l = px >= 0 && py >= 0 && px < w && py < h ? r.labels[py * w + px] : -1;
-    return l >= 0 && r.sizes[l] >= min ? l : -1;
+    return l >= 0 && !r.hidden?.[l] ? l : -1;
   };
   if (at(x, y) >= 0) return at(x, y);
   for (let d = 1; d <= reach; d++) {
@@ -67,4 +62,18 @@ export function regionAt(r: Regions, x: number, y: number, w = SIZE, h = SIZE, r
     }
   }
   return -1;
+}
+
+/**
+ * 見える線（cover）の下にすっかり隠れた場所に印を付ける。テンプレートは塗る場所を細い線で分けて太い線で描くので、
+ * 二重線のあいだや線の交わりに、見えない場所ができる。大きさでは見分けられない（見える場所より大きいものもある）。
+ * 場所の番号は変えないので、保存した作品の色はずれない
+ */
+export function hideCovered(r: Regions, cover: Uint8Array): Regions {
+  const seen = new Uint8Array(r.count);
+  for (let i = 0; i < r.labels.length; i++) {
+    const l = r.labels[i];
+    if (l >= 0 && !cover[i]) seen[l] = 1;
+  }
+  return { ...r, hidden: seen.map((v) => 1 - v) };
 }

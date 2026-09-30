@@ -6,7 +6,7 @@
   import Palette, { COLORS } from '$lib/coloring/Palette.svelte';
   import PhotoMaker from '$lib/coloring/PhotoMaker.svelte';
   import Picker from '$lib/coloring/Picker.svelte';
-  import { label, type Regions } from '$lib/coloring/regions';
+  import { hideCovered, label, type Regions } from '$lib/coloring/regions';
   import { sounds } from '$lib/coloring/sounds';
   import { TEMPLATES, type Template } from '$lib/coloring/templates';
   import { decodeLines, encodeLines } from '$lib/coloring/wire';
@@ -42,9 +42,11 @@
       const mask = await decodeLines(String(m.lines));
       const template = TEMPLATES.find((t) => t.id === m.template);
       // 場所は配られた線画で分ける。端末ごとにテンプレートを描き直すと、番号がずれることがある
+      const art = template ? templateArt(template) : photoArt(mask);
+      const regions = label(mask);
       sheet = {
-        art: template ? templateArt(template) : photoArt(mask),
-        regions: label(mask),
+        art,
+        regions: art.kind === 'template' ? hideCovered(regions, art.cover) : regions,
         mask,
         template: template?.id
       };
