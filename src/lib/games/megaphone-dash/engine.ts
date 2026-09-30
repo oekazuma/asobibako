@@ -1,102 +1,91 @@
-import { Rng } from '$lib/levels';
-import { BASE_SPEED, course, LANES, rule, type Block, type Kind, type LevelRule } from './course';
+import { course, halfAt, rule, zoneAt, type Block, type LevelRule, type Zone } from './course';
 
-/** 撃ったときに当たる、前方の距離（m） */
-export const SHOT_RANGE = 15;
-export const SHOT_GAP = 0.25;
-export const JUMP_TIME = 0.6;
-export const STUMBLE_TIME = 1;
-export const STUMBLE_SLOW = 0.3;
-export const WALK_SPEED = 1;
-/** 障害物の前後の厚み（m）。この範囲に同じレーンでいるとぶつかる */
-export const DEPTH = 0.6;
-export const BOSS_AHEAD = 20;
-export const GATE_AFTER_BOSS = 30;
-/** 投げた障害物が落ちるまでの秒。そのあいだ落ちる場所に印を出す */
-export const WARN_TIME = 1.5;
-/** 投げた障害物が落ちる、そのときの走る子からの距離（m） */
-export const DROP_AHEAD = 12;
+/** コンボなしの速さ（m/s）。コンボで最大 2 倍まで上がる */
+export const BASE_SPEED = 6;
+export const MAX_BOOST = 1;
+/** このコンボで速さが上限に届く */
+export const FULL_COMBO = 40;
+/** 走る子が横へ動く速さの上限（m/s） */
+export const SIDE_SPEED = 11;
+/** メガホンが鳴る間隔（秒）。鳴るたびに前の扇形の中の人をまとめてファンにする */
+export const PULSE = 0.16;
+/** 扇形の奥行きと、手前・奥での半分の幅（m） */
+export const REACH = 9;
+export const NEAR_W = 0.7;
+export const FAR_W = 2.4;
+/** 最後に当ててからこの秒数たつとコンボが切れる */
+export const COMBO_TIME = 2.2;
+/** 大声のゲージの満タン */
+export const GAUGE = 40;
+/** 大声が届く奥行き（m）と、そのあと障害物をすり抜ける秒数 */
+export const SHOUT_REACH = 32;
+export const SHOUT_GUARD = 1.5;
+export const STUMBLE_TIME = 0.7;
+export const STUMBLE_SLOW = 0.35;
+/** 障害物の前後の厚みと、走る子の体の半分の幅（m） */
+export const DEPTH = 0.5;
+export const BODY = 0.3;
 
 export interface Walker {
-  lane: number;
+  x: number;
   z: number;
+  look: number;
   fan: boolean;
-  passed: boolean;
+  /** ファンになった順。後ろを走る列の並びに使う */
+  order: number;
+  /** ふらふら歩く向きの位相 */
+  phase: number;
 }
 
 export interface Obstacle extends Block {
   hit: boolean;
 }
 
-export interface Drop {
-  lane: number;
-  z: number;
-  kind: Kind;
-  /** 落ちるまでの秒 */
-  t: number;
-}
-
-export interface Boss {
-  hp: number;
-  max: number;
-  lane: number;
-  moveIn: number;
-  throwIn: number;
-  drops: Drop[];
-  phase: 'wait' | 'fight' | 'gone';
-}
-
 export interface RunState {
   level: number;
   rule: LevelRule;
-  /** ボスの動きに使う。面ごとに決まった列 */
-  rng: Rng;
-  /** 走った距離（m） */
   z: number;
-  lane: number;
-  /** 空中にいる残りの秒 */
-  air: number;
-  stumble: number;
-  cooldown: number;
+  x: number;
+  /** 指が示している横の位置 */
+  target: number;
   combo: number;
   maxCombo: number;
+  /** 最後に当ててからの秒 */
+  since: number;
   followers: number;
-  /** 残りの秒 */
+  fans: number;
+  gauge: number;
+  /** 大声のあとの、障害物をすり抜ける残りの秒 */
+  guard: number;
+  stumble: number;
+  pulse: number;
   time: number;
-  /** ボスが現れる距離 */
-  bossAt: number;
-  /** 校門の距離。ボスの面は倒すまで Infinity */
-  goal: number;
+  zone: Zone;
   walkers: Walker[];
   blocks: Obstacle[];
-  boss: Boss | null;
   result: 'clear' | 'fail' | null;
 }
 
-/** move は右を正にした、このフレームで移るレーンの数 */
 export interface RunInput {
-  shoot?: boolean;
-  move?: number;
-  jump?: boolean;
+  /** 指の横の位置（m）。指が離れていれば null で、その場をまっすぐ走る */
+  target?: number | null;
+  shout?: boolean;
 }
 
 export type RunEvent =
-  | { type: 'shot'; lane: number }
-  | { type: 'hit'; walker: Walker; gain: number; combo: number }
-  | { type: 'miss'; walker: Walker }
-  | { type: 'jump' }
+  | { type: 'pulse'; x: number }
+  | { type: 'hit'; walkers: Walker[]; gain: number; combo: number }
   | { type: 'bump'; obstacle: Obstacle }
-  | { type: 'boss-in' }
-  | { type: 'boss-hit'; damage: number; combo: number }
-  | { type: 'boss-down' }
-  | { type: 'throw'; drop: Drop }
-  | { type: 'land'; obstacle: Obstacle }
+  | { type: 'shout'; walkers: Walker[]; blocks: Obstacle[]; gain: number }
+  | { type: 'gauge' }
+  | { type: 'drop'; combo: number }
+  | { type: 'zone'; zone: Zone }
   | { type: 'goal' }
   | { type: 'timeout' };
 
-export const tier = (combo: number): number => (combo >= 20 ? 2 : combo >= 10 ? 1.5 : combo >= 5 ? 1.2 : 1);
+export const boost = (combo: number): number => Math.min(1, combo / FULL_COMBO) * MAX_BOOST;
 
-export const speed = (s: RunState): number => BASE_SPEED * tier(s.combo) * (s.stumble > 0 ? STUMBLE_SLOW : 1);
+export const speed = (s: RunState): number => BASE_SPEED * (1 + boost(s.combo)) * (s.stumble > 0 ? STUMBLE_SLOW : 1);
 
 export function createState(level: number): RunState {
   const r = rule(level);
@@ -104,156 +93,124 @@ export function createState(level: number): RunState {
   return {
     level,
     rule: r,
-    rng: new Rng(Math.round(level) * 7919 + 1),
     z: 0,
-    lane: 1,
-    air: 0,
-    stumble: 0,
-    cooldown: 0,
+    x: 0,
+    target: 0,
     combo: 0,
     maxCombo: 0,
+    since: 0,
     followers: 0,
+    fans: 0,
+    gauge: 0,
+    guard: 0,
+    stumble: 0,
+    pulse: 0,
     time: r.time,
-    bossAt: c.length,
-    goal: r.boss ? Infinity : c.length,
-    walkers: c.walkers.map((w) => ({ lane: w.lane, z: w.z, fan: false, passed: false })),
+    zone: zoneAt(0),
+    walkers: c.people.map((p, i) => ({ ...p, fan: false, order: 0, phase: i * 1.7 })),
     blocks: c.blocks.map((b) => ({ ...b, hit: false })),
-    boss: r.boss
-      ? {
-          hp: r.boss.hp,
-          max: r.boss.hp,
-          lane: 1,
-          moveIn: r.boss.moveEvery,
-          throwIn: r.boss.throwEvery,
-          drops: [],
-          phase: 'wait'
-        }
-      : null,
     result: null
   };
 }
 
-function addCombo(s: RunState) {
-  s.combo += 1;
+/** 扇形の中にいるか。奥ほど広い */
+export function inCone(s: RunState, w: Walker): boolean {
+  const d = w.z - s.z;
+  if (d < -0.3 || d > REACH) return false;
+  const half = NEAR_W + (FAR_W - NEAR_W) * Math.max(0, d / REACH);
+  return Math.abs(w.x - s.x) <= half;
+}
+
+function convert(s: RunState, list: Walker[]): number {
+  let gain = 0;
+  for (const w of list) {
+    w.fan = true;
+    w.order = s.fans++;
+    s.combo += 1;
+    // コンボが伸びるほど 1 人の値打ちが上がり、まとめて巻きこむほど大きな数字になる
+    gain += 10 + s.combo;
+  }
   s.maxCombo = Math.max(s.maxCombo, s.combo);
-}
-
-function shoot(s: RunState, events: RunEvent[]) {
-  s.cooldown = SHOT_GAP;
-  events.push({ type: 'shot', lane: s.lane });
-  if (s.boss?.phase === 'fight') {
-    hitBoss(s, s.boss, events);
-    return;
-  }
-  let target: Walker | null = null;
-  for (const w of s.walkers) {
-    if (w.fan || w.lane !== s.lane) continue;
-    const d = w.z - s.z;
-    if (d < 0 || d > SHOT_RANGE) continue;
-    if (!target || w.z < target.z) target = w;
-  }
-  if (!target) return;
-  target.fan = true;
-  addCombo(s);
-  const gain = 10 + 2 * s.combo;
   s.followers += gain;
-  events.push({ type: 'hit', walker: target, gain, combo: s.combo });
+  s.since = 0;
+  return gain;
 }
 
-function hitBoss(s: RunState, b: Boss, events: RunEvent[]) {
-  if (b.lane !== s.lane) return;
-  addCombo(s);
-  const damage = tier(s.combo);
-  b.hp = Math.max(0, b.hp - damage);
-  events.push({ type: 'boss-hit', damage, combo: s.combo });
-  if (b.hp > 0) return;
-  b.phase = 'gone';
-  b.drops = [];
-  s.goal = s.z + GATE_AFTER_BOSS;
-  events.push({ type: 'boss-down' });
+function blast(s: RunState, events: RunEvent[]) {
+  events.push({ type: 'pulse', x: s.x });
+  const caught = s.walkers.filter((w) => !w.fan && inCone(s, w));
+  if (!caught.length) return;
+  const before = s.gauge;
+  const gain = convert(s, caught);
+  s.gauge = Math.min(GAUGE, s.gauge + caught.length);
+  events.push({ type: 'hit', walkers: caught, gain, combo: s.combo });
+  if (before < GAUGE && s.gauge >= GAUGE) events.push({ type: 'gauge' });
 }
 
-function pass(s: RunState, events: RunEvent[]) {
-  for (const w of s.walkers) {
-    if (w.fan || w.passed || w.z > s.z) continue;
-    w.passed = true;
-    if (w.lane !== s.lane) continue;
-    s.combo = 0;
-    events.push({ type: 'miss', walker: w });
-  }
+function shout(s: RunState, events: RunEvent[]) {
+  s.gauge = 0;
+  s.guard = SHOUT_GUARD;
+  const walkers = s.walkers.filter((w) => !w.fan && w.z >= s.z - 0.5 && w.z - s.z <= SHOUT_REACH);
+  const blocks = s.blocks.filter((o) => !o.hit && o.z >= s.z - 0.5 && o.z - s.z <= SHOUT_REACH);
+  for (const o of blocks) o.hit = true;
+  const gain = convert(s, walkers);
+  events.push({ type: 'shout', walkers, blocks, gain });
 }
 
-/** from から今の位置までに通った範囲で見る。速いときの 1 フレームで障害物を飛び越さないため */
 function bump(s: RunState, from: number, events: RunEvent[]) {
+  if (s.guard > 0) return;
   for (const o of s.blocks) {
-    if (o.hit || o.lane !== s.lane) continue;
-    if (o.z < from - DEPTH || o.z > s.z + DEPTH) continue;
-    if (o.kind === 'low' && s.air > 0) continue;
+    if (o.hit || o.z < from - DEPTH || o.z > s.z + DEPTH) continue;
+    if (Math.abs(o.x - s.x) > o.w / 2 + BODY) continue;
     o.hit = true;
-    s.combo = 0;
     s.stumble = STUMBLE_TIME;
+    if (s.combo > 0) events.push({ type: 'drop', combo: s.combo });
+    s.combo = 0;
     events.push({ type: 'bump', obstacle: o });
   }
-}
-
-function boss(s: RunState, dt: number, events: RunEvent[]) {
-  const b = s.boss;
-  const r = s.rule.boss;
-  if (!b || !r || b.phase === 'gone') return;
-  if (b.phase === 'wait') {
-    if (s.z < s.bossAt) return;
-    b.phase = 'fight';
-    events.push({ type: 'boss-in' });
-    return;
-  }
-  b.moveIn -= dt;
-  if (b.moveIn <= 0) {
-    b.moveIn += r.moveEvery;
-    b.lane = (b.lane + 1 + Math.floor(s.rng.next() * (LANES - 1))) % LANES;
-  }
-  b.throwIn -= dt;
-  if (b.throwIn <= 0) {
-    b.throwIn += r.throwEvery;
-    const kind = r.kinds[Math.floor(s.rng.next() * r.kinds.length)];
-    // 落ちるときにおよそ DROP_AHEAD 先になるよう、いまの速さで WARN_TIME ぶん先へ置く
-    const drop: Drop = { lane: b.lane, z: s.z + DROP_AHEAD + speed(s) * WARN_TIME, kind, t: WARN_TIME };
-    b.drops.push(drop);
-    events.push({ type: 'throw', drop });
-  }
-  for (const d of b.drops) {
-    d.t -= dt;
-    if (d.t > 0) continue;
-    const obstacle: Obstacle = { lane: d.lane, z: d.z, kind: d.kind, look: 0, hit: false };
-    s.blocks.push(obstacle);
-    events.push({ type: 'land', obstacle });
-  }
-  b.drops = b.drops.filter((d) => d.t > 0);
 }
 
 export function step(s: RunState, dt: number, input: RunInput = {}): RunEvent[] {
   const events: RunEvent[] = [];
   if (s.result) return events;
-  if (input.move) s.lane = Math.max(0, Math.min(LANES - 1, s.lane + input.move));
-  if (input.jump && s.air <= 0) {
-    s.air = JUMP_TIME;
-    events.push({ type: 'jump' });
-  }
-  if (input.shoot && s.cooldown <= 0) shoot(s, events);
-  s.cooldown = Math.max(0, s.cooldown - dt);
-  s.stumble = Math.max(0, s.stumble - dt);
+  if (input.target != null) s.target = input.target;
+  const half = halfAt(s.z);
+  const goal = Math.max(-half + BODY, Math.min(half - BODY, s.target));
+  const dx = goal - s.x;
+  s.x += Math.sign(dx) * Math.min(Math.abs(dx), SIDE_SPEED * dt);
+  if (input.shout && s.gauge >= GAUGE) shout(s, events);
   s.time = Math.max(0, s.time - dt);
+  s.stumble = Math.max(0, s.stumble - dt);
+  s.guard = Math.max(0, s.guard - dt);
+  s.since += dt;
+  if (s.combo > 0 && s.since > COMBO_TIME) {
+    events.push({ type: 'drop', combo: s.combo });
+    s.combo = 0;
+  }
   const from = s.z;
   s.z += speed(s) * dt;
-  for (const w of s.walkers) if (!w.fan) w.z -= WALK_SPEED * dt;
-  pass(s, events);
+  for (const w of s.walkers) {
+    if (w.fan) continue;
+    // 群れはその場でゆらゆらしながら、少しずつこちらへ歩いてくる
+    w.phase += dt;
+    w.z -= 0.6 * dt;
+    w.x += Math.sin(w.phase * 1.3) * 0.25 * dt;
+  }
+  s.pulse -= dt;
+  if (s.pulse <= 0) {
+    s.pulse += PULSE;
+    blast(s, events);
+  }
   bump(s, from, events);
-  s.air = Math.max(0, s.air - dt);
-  boss(s, dt, events);
-  if (s.z >= s.goal) {
+  const zone = zoneAt(s.z);
+  if (zone !== s.zone) {
+    s.zone = zone;
+    events.push({ type: 'zone', zone });
+  }
+  if (s.z >= s.rule.length) {
     s.result = 'clear';
     events.push({ type: 'goal' });
   } else if (s.time <= 0) {
-    // 時間が尽きるフレームで校門に着いたときはクリアにするため、走らせたあとで決める
     s.result = 'fail';
     events.push({ type: 'timeout' });
   }
@@ -262,9 +219,13 @@ export function step(s: RunState, dt: number, input: RunInput = {}): RunEvent[] 
 
 export type Rank = 'S' | 'A' | 'B' | 'C';
 
-export const score = (s: RunState): number => s.followers + Math.floor(s.time) * 20 + s.maxCombo * 10;
+/** 点はフォロワーと残り秒。ファンを集めながら速く着くほど高い */
+export const score = (s: RunState): number => s.followers + Math.floor(s.time) * 30 + s.maxCombo * 10;
 
-export function rank(points: number, best: number): Rank {
-  const r = points / best;
-  return r >= 0.9 ? 'S' : r >= 0.7 ? 'A' : r >= 0.5 ? 'B' : 'C';
+/** ランクは、その面の人数を全員ファンにしたときの点に対する割合で決める */
+export function rank(s: RunState): Rank {
+  const n = s.walkers.length;
+  const ideal = n * 10 + (n * (n + 1)) / 2 + n * 10;
+  const r = score(s) / ideal;
+  return r >= 0.85 ? 'S' : r >= 0.6 ? 'A' : r >= 0.35 ? 'B' : 'C';
 }

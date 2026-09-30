@@ -1,23 +1,28 @@
-import { sfx } from '$lib/audio.svelte';
 import type { RunFx } from './effects';
 import type { RunEvent, RunState } from './engine';
 import { sounds } from './sounds';
 import type { RunWorld } from './world3d';
 
-export function direct(events: RunEvent[], s: RunState, world: RunWorld | undefined, fx: RunFx): void {
+/** engine の出来事を 3D・重ね描き・音へ配る。戻り値は、手ごたえのために画面を止める秒 */
+export function direct(events: RunEvent[], s: RunState, world: RunWorld | undefined, fx: RunFx): number {
+  let stop = 0;
   for (const e of events) {
     world?.handle(e);
     fx.handle(e, s);
-    if (e.type === 'shot') sounds.shot();
-    else if (e.type === 'hit') sounds.hit(e.combo);
-    else if (e.type === 'miss') sounds.miss();
-    else if (e.type === 'jump') sounds.jump();
-    else if (e.type === 'bump') sounds.bump();
-    else if (e.type === 'boss-in') sounds.bossIn();
-    else if (e.type === 'boss-hit') sounds.bossHit();
-    else if (e.type === 'boss-down') sounds.bossDown();
-    else if (e.type === 'throw') sounds.throw();
-    else if (e.type === 'goal') sfx.finish();
+    if (e.type === 'hit') {
+      sounds.hit(e.combo, e.walkers.length);
+      if (e.walkers.length >= 5) stop = Math.max(stop, 0.05);
+    } else if (e.type === 'drop') sounds.drop();
+    else if (e.type === 'bump') {
+      sounds.bump();
+      stop = Math.max(stop, 0.08);
+    } else if (e.type === 'gauge') sounds.gauge();
+    else if (e.type === 'shout') {
+      sounds.shout();
+      stop = Math.max(stop, 0.12);
+    } else if (e.type === 'zone') sounds.zone();
+    else if (e.type === 'goal') sounds.goal();
     else if (e.type === 'timeout') sounds.timeout();
   }
+  return stop;
 }
