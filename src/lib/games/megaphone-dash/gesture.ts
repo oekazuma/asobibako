@@ -26,15 +26,17 @@ export class Gestures {
     if (!t) return [];
     const out: Gesture[] = [];
     const up = t.y - y;
-    const side = Math.abs(x - t.x0);
-    // 跳んだあとの指は上へずれたままなので、横だけで見る
-    while (Math.abs(x - t.x) >= SWIPE && (t.jumped || side >= up)) {
+    // 横か縦かは、いまのレーンの起点からのずれで、ループの前に一度だけ決める
+    const lateral = t.jumped || Math.abs(x - t.x) >= up;
+    while (lateral && Math.abs(x - t.x) >= SWIPE) {
       const dir = Math.sign(x - t.x);
       t.x += dir * SWIPE;
       out.push(dir > 0 ? 'right' : 'left');
     }
-    if (!t.jumped && up >= SWIPE && up > side) {
+    if (!t.jumped && up >= SWIPE && up > Math.abs(x - t.x0)) {
       t.jumped = true;
+      // 跳ぶまでの横のずれは、跳んだあとのレーン移動に数えない
+      t.x = x;
       out.push('jump');
     }
     return out;

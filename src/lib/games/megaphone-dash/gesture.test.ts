@@ -88,4 +88,19 @@ describe('Gestures', () => {
     expect(g.move(9, 0, 0)).toEqual([]);
     expect(g.up(9, 0, 0)).toEqual([]);
   });
+
+  it('レーン移動後、上へ流れながら戻るときは横位置から測る', () => {
+    const g = new Gestures();
+    g.down(1, 100, 100);
+    expect(g.move(1, 131, 100)).toEqual(['right']);
+    expect(g.move(1, 100, 92)).toEqual(['left']);
+  });
+
+  it('斜めで跳んだあとは横ずれをリセットして、そのあとの動きだけを見る', () => {
+    const g = new Gestures();
+    g.down(1, 100, 100);
+    expect(g.move(1, 132, 50)).toEqual(['jump']);
+    expect(g.move(1, 133, 50)).toEqual([]);
+    expect(g.move(1, 163, 50)).toEqual(['right']);
+  });
 });
