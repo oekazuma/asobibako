@@ -7,5 +7,9 @@ export const sounds = {
   },
   close: () => tone(523, 160, 'sine', 0.12),
   wrong: () => tone(247, 110, 'square', 0.05),
-  turn: () => sweep(440, 880, 220)
+  turn: () => sweep(440, 880, 220),
+  buzz: () => {
+    tone(988, 70, 'square', 0.08);
+    tone(1319, 120, 'square', 0.08, 70);
+  }
 };

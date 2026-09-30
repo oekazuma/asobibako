@@ -45,9 +45,9 @@
     {/each}
   </ul>
   {#if host}
-    <button class="pill gold" onclick={onagain}>もういちど</button>
+    <button class="pill gold" onclick={onagain}>あそびを えらぶ</button>
   {:else}
-    <p role="status">おやが つぎを えらぶのを まってね</p>
+    <p role="status">おやが つぎの あそびを えらぶのを まってね</p>
   {/if}
 </div>
 

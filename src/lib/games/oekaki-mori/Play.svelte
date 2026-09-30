@@ -1,5 +1,7 @@
 <script lang="ts">
+  import type { Message } from '$lib/net/link';
   import type { Seat } from '$lib/net/party.svelte';
+  import Buzzer from './Buzzer.svelte';
   import Board from './Board.svelte';
   import Bubbles, { type Bubble } from './Bubbles.svelte';
   import type { View } from './engine';
@@ -15,8 +17,7 @@
     bubbles,
     close,
     onink,
-    onguess,
-    onpick
+    act
   }: {
     view: View;
     me: Seat;
@@ -24,8 +25,7 @@
     bubbles: Bubble[];
     close: boolean;
     onink: (ink: Ink) => void;
-    onguess: (text: string) => void;
-    onpick: (index: number) => void;
+    act: (message: Message) => void;
   } = $props();
 
   let color = $state<string>(PENS[0].hex);
@@ -40,15 +40,13 @@
 <div class="middle">
   <Board {strokes} {pen} {onink} />
   <Bubbles {bubbles} />
-  {#if view.phase === 'pick'}
+  {#if view.phase === 'ready'}
     <div class="cover">
-      {#if view.choices}
-        <p>どっちを かく？</p>
-        {#each view.choices as word, i (word)}
-          <button class="pill gold" onclick={() => onpick(i)}>{word}</button>
-        {/each}
+      {#if drawing}
+        <p>おだいは「{view.word}」</p>
+        <button class="pill gold" onclick={() => act({ t: 'start' })}>かきはじめる</button>
       {:else}
-        <p>{view.drawer}P が かくものを えらんでいます</p>
+        <p>{view.drawer}P が じゅんびしています</p>
       {/if}
     </div>
   {:else if view.phase === 'reveal'}
@@ -59,8 +57,10 @@
 </div>
 {#if drawing}
   <Tools bind:color bind:size bind:erasing onundo={() => onink({ k: 'undo' })} onclear={() => onink({ k: 'clear' })} />
+{:else if view.mode === 'hayaoshi'}
+  <Buzzer {view} {me} {act} />
 {:else}
-  <KanaPad disabled={view.phase !== 'draw' || solved} onsubmit={onguess} />
+  <KanaPad disabled={view.phase !== 'draw' || solved} onsubmit={(text) => act({ t: 'guess', text })} />
 {/if}
 
 <style>
