@@ -7,13 +7,16 @@
     ontemplate,
     onwork,
     onphoto,
-    onremove
+    onremove,
+    onback
   }: {
     works: Work[];
     ontemplate: (t: Template) => void;
     onwork: (w: Work) => void;
     onphoto: () => void;
     onremove: (w: Work) => void;
+    /** 渡されたときだけ「あそびかたに もどる」を出す（みんなでぬりえの親） */
+    onback?: () => void;
   } = $props();
 
   /** 押し間違いで消えないよう、「けす」を押しているあいだだけ作品を消せる */
@@ -66,6 +69,7 @@
       {/each}
     </ul>
   {/if}
+  {#if onback}<button class="pill back" onclick={onback}>あそびかたに もどる</button>{/if}
 </div>
 
 <style>

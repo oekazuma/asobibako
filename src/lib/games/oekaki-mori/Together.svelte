@@ -13,6 +13,7 @@
   import type { Message } from '$lib/net/link';
   import type { Party } from '$lib/net/party.svelte';
   import { saveImage } from '$lib/share';
+  import Finished from './Finished.svelte';
   import { paintBy, shared, undoBy } from './together';
 
   let { party, onagain }: { party: Party; onagain: () => void } = $props();
@@ -25,6 +26,9 @@
   let host = shared();
   /** 線画を戻すのは非同期なので、そのあいだに届いた塗りを落とさないよう、届いた順に 1 本の列で処理する */
   let queue = Promise.resolve();
+  let note = $state('');
+  /** 親が「できた！」を押したあと。まだ届いていない塗りを受け付けると、保存した絵と画面が食い違う */
+  let closed = false;
 
   async function send(mask: Uint8Array, template?: Template) {
     // 配り終えるまでに別の絵を押されると 2 枚配られ、親の塗り手順と画面の色が食い違うので、すぐ待つ画面にする
@@ -51,7 +55,8 @@
       if (m.color === null) delete next[Number(m.region)];
       else next[Number(m.region)] = String(m.color);
       colors = next;
-    } else if (m.t === 'finished') finish();
+    } else if (m.t === 'undone') sounds.undo();
+    else if (m.t === 'finished') finish();
   }
 
   function finish() {
@@ -74,23 +79,38 @@
 
   onMount(() => {
     phase = party.host ? 'pick' : 'wait';
-    const off = [party.onTell((m) => (queue = queue.then(() => receive(m)).catch(() => {})))];
+    const off = [
+      party.onTell(
+        (m) =>
+          (queue = queue
+            .then(() => receive(m))
+            // 1 つの知らせでしくじっても、あとの知らせは続けて受ける
+            .catch(() => {
+              if (m.t === 'art') note = 'えを うけとれませんでした';
+            }))
+      )
+    ];
     if (party.host)
       off.push(
         party.onAct((m, from) => {
+          if (closed) return;
           const change =
             m.t === 'paint'
               ? paintBy(host, from, Number(m.region), String(m.color))
               : m.t === 'unpaint'
                 ? undoBy(host, from)
                 : null;
-          if (change) party.tell('all', { t: 'painted', ...change });
+          if (!change) return;
+          party.tell('all', { t: 'painted', ...change });
+          // 戻す音は、実際に戻ったときだけ押した人に鳴らす（子の端末は戻せるものがあるか知らない）
+          if (m.t === 'unpaint') party.tell(from, { t: 'undone' });
         })
       );
     return () => off.forEach((stop) => stop());
   });
 </script>
 
+{#if note}<p class="note" role="alert">{note}</p>{/if}
 {#if phase === 'pick'}
   <Picker
     works={[]}
@@ -98,6 +118,7 @@
     onwork={() => {}}
     onphoto={() => (phase = 'photo')}
     onremove={() => {}}
+    onback={onagain}
   />
 {:else if phase === 'photo'}
   <PhotoMaker onmake={(mask) => send(mask)} onback={() => (phase = 'pick')} />
@@ -112,19 +133,11 @@
       onfill={(region) => {
         if (phase !== 'paint') return;
         party.act({ t: 'paint', region, color });
-        sounds.fill();
+        if (colors[region] !== color) sounds.fill();
       }}
     />
     {#if phase === 'done'}
-      <div class="finished">
-        <p class="yuru">できた！</p>
-        <button class="pill" onclick={exportImage}>しゃしんに ほぞん</button>
-        {#if party.host}
-          <button class="pill gold" onclick={onagain}>あそびを えらぶ</button>
-        {:else}
-          <p role="status">おやが つぎの あそびを えらぶのを まってね</p>
-        {/if}
-      </div>
+      <Finished host={party.host} onsave={exportImage} {onagain} />
     {/if}
   </div>
   {#if phase === 'paint'}
@@ -133,9 +146,13 @@
       canUndo={true}
       onundo={() => {
         party.act({ t: 'unpaint' });
-        sounds.undo();
       }}
-      ondone={party.host ? () => party.tell('all', { t: 'finished' }) : undefined}
+      ondone={party.host
+        ? () => {
+            closed = true;
+            party.tell('all', { t: 'finished' });
+          }
+        : undefined}
       onsave={exportImage}
     />
   {/if}
@@ -153,30 +170,18 @@
     container-type: size;
   }
 
+  .note {
+    padding: max(64px, env(safe-area-inset-top)) 16px 0;
+    color: var(--p2-deep);
+    font-weight: 800;
+    text-align: center;
+  }
+
   .wait {
     flex: 1;
     display: grid;
     place-items: center;
     color: var(--line);
     font-weight: 800;
-  }
-
-  .finished {
-    position: absolute;
-    bottom: 16px;
-    display: grid;
-    justify-items: center;
-    gap: 10px;
-    padding: 16px 24px;
-    border: 3px solid var(--line);
-    border-radius: 20px;
-    background: var(--paper);
-    box-shadow: var(--soft-shadow);
-    color: var(--line);
-    font-weight: 800;
-  }
-
-  .finished .yuru {
-    font-size: clamp(28px, 6cqh, 48px);
   }
 </style>
