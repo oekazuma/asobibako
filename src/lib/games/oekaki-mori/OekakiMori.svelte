@@ -16,6 +16,7 @@
   import Together from './Together.svelte';
   import { sounds } from './sounds';
   import { apply, type Ink, type Stroke } from './strokes';
+  import { typed } from './typing';
 
   let party = $state.raw<Party | null>(null);
   let screen = $state<'lobby' | 'mode' | 'play' | 'result' | 'practice' | 'together'>('lobby');
@@ -23,6 +24,8 @@
   let strokes = $state.raw<Stroke[]>([]);
   let bubbles = $state.raw<Bubble[]>([]);
   let gallery = $state.raw<Drawing[]>([]);
+  /** 当てる人ごとの打っている字。描く人にはそのまま、ほかの人には字数だけ届く */
+  let typing = $state.raw<Record<number, string>>({});
   let close = $state(false);
   let note = $state('');
   let referee: Referee | null = null;
@@ -42,6 +45,7 @@
       gallery = [];
     } else if (m.t === 'view') show(m.view as View);
     else if (m.t === 'ink') strokes = apply(strokes, m.ink as Ink);
+    else if (m.t === 'typing') typing = typed(typing, Number(m.seat), String(m.text));
     else if (m.t === 'bubble') {
       const b: Bubble = { id: ++bubbleId, seat: m.seat as Seat, text: String(m.text), note: m.note === true };
       bubbles = [...bubbles.slice(-4), b];
@@ -58,6 +62,7 @@
     const prev = view;
     if (prev && next.turn !== prev.turn) {
       strokes = [];
+      typing = {};
       sounds.turn();
     }
     if (prev?.phase === 'draw' && next.phase === 'reveal')
@@ -114,7 +119,17 @@
   {:else if screen === 'together'}
     <Together {party} onagain={toMode} />
   {:else if screen === 'play' && view}
-    <Play {view} me={party.me} {strokes} {bubbles} {close} onink={ink} act={(m) => party?.act(m)} />
+    <Play
+      {view}
+      me={party.me}
+      {strokes}
+      {bubbles}
+      {close}
+      onink={ink}
+      act={(m) => party?.act(m)}
+      {typing}
+      ontype={(text) => party?.act({ t: 'typing', text })}
+    />
   {:else if screen === 'result' && view}
     <Result {view} me={party.me} {gallery} host={party.host} onagain={toMode} />
   {/if}

@@ -54,4 +54,23 @@ describe('Referee', () => {
     expect(views).toHaveLength(1);
     expect((views[0][1].view as { players: Seat[] }).players).toEqual([1, 2, 3]);
   });
+
+  // 50 音盤は「こたえる」を送ってから空を知らせるので、当てた人の空を捨てると ● が残る
+  it('当てたあとや描く時間のあとでも、空の字は配って消させる', () => {
+    const { party, told, act } = fakeParty([1, 2, 3]);
+    new Referee(party).start('egokoro');
+    act({ t: 'start' }, 1);
+    const word = String(
+      (told.findLast(([seat, m]) => seat === 1 && m.t === 'view')![1].view as { word: string }).word
+    );
+    act({ t: 'typing', text: word }, 2);
+    told.length = 0;
+    act({ t: 'guess', text: word }, 2);
+    act({ t: 'typing', text: '' }, 2);
+    const typing = told.filter(([, m]) => m.t === 'typing').map(([seat, m]) => [seat, m.text]);
+    expect(typing).toEqual([
+      [1, ''],
+      [3, '']
+    ]);
+  });
 });

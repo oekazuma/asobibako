@@ -2,7 +2,7 @@
   import type { Seat } from '$lib/net/party.svelte';
   import type { View } from './engine';
 
-  let { view, me }: { view: View; me: Seat } = $props();
+  let { view, me, typing = {} }: { view: View; me: Seat; typing?: Record<number, string> } = $props();
   const drawing = $derived(view.drawer === me);
 </script>
 
@@ -30,6 +30,7 @@
       >
         {seat}P{seat === me ? '（あなた）' : ''}
         {view.scores[seat]}
+        {#if typing[seat]}<span class="typing">{typing[seat]}</span>{/if}
       </li>
     {/each}
   </ul>
@@ -76,6 +77,31 @@
     border: 2px solid var(--line);
     border-radius: 999px;
     font-size: clamp(13px, 2cqh, 17px);
+  }
+
+  .typing {
+    margin-left: 6px;
+    padding: 0 6px;
+    border-radius: 6px;
+    background: #fff;
+    letter-spacing: 0.08em;
+  }
+
+  .typing::after {
+    content: '▍';
+    animation: blink 1s steps(1) infinite;
+  }
+
+  @keyframes blink {
+    50% {
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .typing::after {
+      animation: none;
+    }
   }
 
   .scores .p1 {

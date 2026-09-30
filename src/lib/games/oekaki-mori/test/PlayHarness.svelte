@@ -22,5 +22,15 @@
   });
 </script>
 
-<Play {view} me={2} strokes={[]} bubbles={[]} close={false} onink={() => {}} act={() => {}} />
+<Play
+  {view}
+  me={2}
+  strokes={[]}
+  bubbles={[]}
+  close={false}
+  onink={() => {}}
+  act={() => {}}
+  typing={{}}
+  ontype={() => {}}
+/>
 <button class="next-turn" onclick={() => (view = { ...view, turn: view.turn + 1 })}>next</button>

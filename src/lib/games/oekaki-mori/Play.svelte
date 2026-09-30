@@ -17,7 +17,9 @@
     bubbles,
     close,
     onink,
-    act
+    act,
+    typing,
+    ontype
   }: {
     view: View;
     me: Seat;
@@ -26,6 +28,8 @@
     close: boolean;
     onink: (ink: Ink) => void;
     act: (message: Message) => void;
+    typing: Record<number, string>;
+    ontype: (text: string) => void;
   } = $props();
 
   let color = $state<string>(PENS[0].hex);
@@ -36,7 +40,7 @@
   const solved = $derived(view.solved.includes(me));
 </script>
 
-<TopBar {view} {me} />
+<TopBar {view} {me} {typing} />
 <div class="middle">
   <Board {strokes} {pen} {onink} />
   <Bubbles {bubbles} />
@@ -62,7 +66,7 @@
   <Buzzer {view} {me} {act} />
 {:else}
   {#key view.turn}
-    <KanaPad disabled={view.phase !== 'draw' || solved} onsubmit={(text) => act({ t: 'guess', text })} />
+    <KanaPad disabled={view.phase !== 'draw' || solved} onsubmit={(text) => act({ t: 'guess', text })} {ontype} />
   {/key}
 {/if}
 

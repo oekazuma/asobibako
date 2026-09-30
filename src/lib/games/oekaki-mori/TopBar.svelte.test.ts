@@ -37,4 +37,17 @@ describe('TopBar', () => {
     expect(chips[0].classList.contains('answering')).toBe(false);
     unmount(app);
   });
+
+  it('打っている字を、その人の丸に出す', () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(TopBar, {
+      target,
+      props: { view: { ...view, mode: 'egokoro' }, me: 1, typing: { 2: 'りん' } }
+    });
+    flushSync();
+    const chips = [...target.querySelectorAll('.scores li')];
+    expect(chips[1].querySelector('.typing')?.textContent).toBe('りん');
+    expect(chips[2].querySelector('.typing')).toBeNull();
+    unmount(app);
+  });
 });

@@ -1,7 +1,11 @@
 <script lang="ts">
   import { COLUMNS, cycle } from './kana';
 
-  let { disabled = false, onsubmit }: { disabled?: boolean; onsubmit: (text: string) => void } = $props();
+  let {
+    disabled = false,
+    onsubmit,
+    ontype
+  }: { disabled?: boolean; onsubmit: (text: string) => void; ontype?: (text: string) => void } = $props();
 
   const MAX = 10;
   /** 50 音表のポスターと同じく、あ行を右端に置いて左へ並べる */
@@ -10,16 +14,20 @@
   );
   let text = $state('');
 
+  const set = (next: string) => {
+    text = next;
+    ontype?.(next);
+  };
   const put = (ch: string) => {
-    if (!disabled && text.length < MAX) text += ch;
+    if (!disabled && text.length < MAX) set(text + ch);
   };
   const turn = () => {
-    if (!disabled && text) text = text.slice(0, -1) + cycle(text.slice(-1));
+    if (!disabled && text) set(text.slice(0, -1) + cycle(text.slice(-1)));
   };
   function send() {
     if (disabled || !text) return;
     onsubmit(text);
-    text = '';
+    set('');
   }
 </script>
 
@@ -35,7 +43,7 @@
   <div class="row">
     <button class="key wide" {disabled} aria-label="だくてん・はんだくてん・ちいさいじ" onclick={turn}>゛゜小</button>
     <button class="key" {disabled} onclick={() => put('ー')}>ー</button>
-    <button class="key wide" {disabled} onclick={() => (text = text.slice(0, -1))}>1じ けす</button>
+    <button class="key wide" {disabled} onclick={() => set(text.slice(0, -1))}>1じ けす</button>
     <button class="pill gold send" disabled={disabled || !text} onclick={send}>こたえる</button>
   </div>
 </div>

@@ -64,9 +64,13 @@ export class Referee {
     this.#push();
   }
 
-  /** 描く人には打っている字をそのまま、ほかの当てる人には字数だけ見せる（字が見えると答えがばれる） */
+  /**
+   * 描く人には打っている字をそのまま、ほかの当てる人には字数だけ見せる（字が見えると答えがばれる）。
+   * 空の字は、当てたあとや描く時間のあとでも配る。50 音盤は答えを送ってから空を知らせるので、捨てると ● が残る
+   */
   #typing(s: Quiz, from: Seat, text: string) {
-    if (s.mode !== 'egokoro' || s.phase !== 'draw' || from === drawer(s) || s.solved.includes(from)) return;
+    if (s.mode !== 'egokoro' || from === drawer(s)) return;
+    if (text && (s.phase !== 'draw' || s.solved.includes(from))) return;
     const hidden = '●'.repeat([...text].length);
     for (const seat of this.#party.members) {
       if (seat === from) continue;
