@@ -4,7 +4,7 @@
   import { audio, toggleMute, wake } from '$lib/audio.svelte';
   import Icon from '$lib/components/Icon.svelte';
   import type { Message } from '$lib/net/link';
-  import type { Party, Seat } from '$lib/net/party.svelte';
+  import { MISMATCH, type Party, type Seat } from '$lib/net/party.svelte';
   import type { Bubble } from './Bubbles.svelte';
   import type { Mode, View } from './engine';
   import Invite from './Invite.svelte';
@@ -115,10 +115,11 @@
   // 親とのつながりが切れた子は、ロビーからつなぎ直す
   $effect(() => {
     if (!party?.lost) return;
-    was = party.me;
+    // 版ちがいで切られた子は、同じ番号で戻っても遊べないので、もういちど つなぐ を出さない
+    was = party.mismatch ? undefined : party.me;
+    note = party.mismatch ? MISMATCH : 'つながりが きれました';
     party = null;
     screen = 'lobby';
-    note = 'つながりが きれました';
   });
 
   onDestroy(() => {
@@ -154,7 +155,7 @@
   {/if}
   {#if party}
     <Menu {party} oninvite={() => (inviting = true)} />
-    {#if party.host}<Invite away={party.away} onlink={(link) => party?.add(link)} bind:open={inviting} />{/if}
+    {#if party.host}<Invite away={party.away} onlink={async (link) => party?.add(link)} bind:open={inviting} />{/if}
   {:else}
     <a class="round back" href={resolve('/')} aria-label="ゲーム選択へ戻る">✕</a>
     <button class="round mute" onclick={toggleMute} aria-label="ミュート" aria-pressed={audio.muted}>

@@ -1,13 +1,13 @@
 <script lang="ts">
   import Handshake from '$lib/net/Handshake.svelte';
   import type { Link } from '$lib/net/link';
-  import type { Seat } from '$lib/net/party.svelte';
+  import { MISMATCH, type Seat } from '$lib/net/party.svelte';
 
   let {
     away,
     onlink,
     open = $bindable(false)
-  }: { away: Seat[]; onlink: (link: Link) => void; open?: boolean } = $props();
+  }: { away: Seat[]; onlink: (link: Link) => Promise<unknown>; open?: boolean } = $props();
   let failed = $state('');
 
   function close() {
@@ -21,9 +21,9 @@
   <div class="invite">
     <Handshake
       role="host"
-      onlink={(link) => {
-        onlink(link);
-        close();
+      onlink={async (link) => {
+        if ((await onlink(link)) === 'mismatch') failed = MISMATCH;
+        else close();
       }}
       onfail={(text) => (failed = text)}
     />

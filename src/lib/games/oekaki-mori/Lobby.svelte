@@ -2,13 +2,14 @@
   import { resolve } from '$app/paths';
   import Handshake from '$lib/net/Handshake.svelte';
   import type { Link } from '$lib/net/link';
-  import { Party, type Seat } from '$lib/net/party.svelte';
+  import { MISMATCH, Party, type Seat } from '$lib/net/party.svelte';
 
   let {
     party,
     note = '',
     retry = false,
     was,
+    look,
     onparty,
     onstart
   }: {
@@ -18,6 +19,8 @@
     retry?: boolean;
     /** 切れる前の自分の番号。親はこの番号が空いていれば同じ番号で迎える */
     was?: Seat;
+    /** この端末の動物 */
+    look?: string;
     onparty: (party: Party) => void;
     onstart: () => void;
   } = $props();
@@ -26,13 +29,15 @@
   let failed = $state('');
   const SEATS: Seat[] = [1, 2, 3];
 
-  function linked(link: Link) {
-    if (joining === 'host') {
-      const p = party ?? Party.host();
-      p.add(link);
-      if (!party) onparty(p);
-    } else onparty(Party.guest(link, was));
+  async function linked(link: Link) {
+    const as = joining;
     joining = null;
+    if (as === 'host') {
+      const p = party ?? Party.host(look);
+      if ((await p.add(link)) === 'mismatch') failed = MISMATCH;
+      // 最初の子を断ったら、誰もいない Party でロビーを進めない
+      else if (!party) onparty(p);
+    } else onparty(Party.guest(link, { was, look }));
   }
 
   function join(as: 'host' | 'guest') {

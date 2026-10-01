@@ -11,6 +11,12 @@ export interface Pipe {
   close(): void;
 }
 
+/** 端末どうしの知らせの形の版。形を変えたら 1 上げる。アプリの版とは別なので、ほかのゲームを直しただけでは更新を求めない */
+export const PROTOCOL = 3;
+export const MISMATCH = 'アプリの はんが ちがうよ。どちらも さいしんに してね';
+/** 子の hello を待つ長さ。古い版の子は hello を送らない */
+const HELLO_MS = 3000;
+
 type ActListener = (message: Message, from: Seat) => void;
 type TellListener = (message: Message) => void;
 
@@ -26,6 +32,10 @@ export class Party {
   lost = $state(false);
   /** 親だけ。つながりが切れた子の番号。呼び直した子にはこの番号を先に渡し、点数と番を引き継がせる */
   away = $state<Seat[]>([]);
+  /** 番号 → 動物。親が持ち、顔ぶれと一緒に配る */
+  looks = $state<Record<number, string>>({});
+  /** 子で、親とつなぎ方の版がちがった */
+  mismatch = $state(false);
   readonly host: boolean;
   readonly #pipes = new SvelteMap<Seat, Pipe>();
   readonly #acts = new SvelteSet<ActListener>();
@@ -35,46 +45,64 @@ export class Party {
     this.host = host;
   }
 
-  static host(): Party {
-    return new Party(true);
+  static host(look?: string): Party {
+    const party = new Party(true);
+    if (look) party.looks = { 1: look };
+    return party;
   }
 
-  /** was は、つながりが切れる前の番号。親はその番号が空いていれば同じ番号で迎える */
-  static guest(pipe: Pipe, was?: Seat): Party {
+  /** was は切れる前の番号、look は動物。親は was が切れたまま空いていれば同じ番号で迎える */
+  static guest(pipe: Pipe, hello: { was?: Seat; look?: string } = {}): Party {
     const party = new Party(false);
     party.#pipes.set(1, pipe);
     pipe.on((message) => {
       if (message.t === 'seat') party.me = message.seat as Seat;
-      else if (message.t === 'members') party.members = message.members as Seat[];
+      else if (message.t === 'members') {
+        party.members = message.members as Seat[];
+        party.looks = (message.looks ?? {}) as Record<number, string>;
+      } else if (message.t === 'mismatch') party.mismatch = true;
       else for (const listener of party.#tells) listener(message);
     });
     pipe.closed.then(() => (party.lost = true));
-    pipe.send({ t: 'hello', was: was ?? null });
+    pipe.send({ t: 'hello', v: PROTOCOL, was: hello.was ?? null, look: hello.look ?? null });
     return party;
   }
 
   /**
    * 親だけ。子の最初の知らせ（hello）を待って番号を決める。切れる前の番号が切れたまま空いていればその番号、
-   * なければ切れた子の番号、それもなければ空いた番号で迎える。満員なら閉じて null
+   * なければ切れた子の番号、それもなければ空いた番号で迎える。満員なら閉じて null。
+   * つなぎ方の版がちがう子と、hello を送らない古い版の子は、理由を知らせて切り 'mismatch' を返す
    */
-  add(pipe: Pipe): Promise<Seat | null> {
+  add(pipe: Pipe): Promise<Seat | null | 'mismatch'> {
     if (!this.host || this.#pipes.size >= 2) {
       pipe.close();
       return Promise.resolve(null);
     }
     return new Promise((resolve) => {
       let greeted = false;
+      const refuse = () => {
+        greeted = true;
+        pipe.send({ t: 'mismatch' });
+        pipe.close();
+        resolve('mismatch');
+      };
+      const timer = setTimeout(() => !greeted && refuse(), HELLO_MS);
       // Link はためていた知らせを on の中で渡すので、ここで外すと外す口がまだ無い。hello のあとは聞き流す
       pipe.on((message) => {
         if (greeted || message.t !== 'hello') return;
+        clearTimeout(timer);
+        if (message.v !== PROTOCOL) return refuse();
         greeted = true;
-        resolve(this.#seat(pipe, message.was as Seat | null));
+        resolve(this.#seat(pipe, message.was as Seat | null, message.look as string | null));
       });
-      pipe.closed.then(() => resolve(null));
+      pipe.closed.then(() => {
+        clearTimeout(timer);
+        resolve(null);
+      });
     });
   }
 
-  #seat(pipe: Pipe, was: Seat | null): Seat | null {
+  #seat(pipe: Pipe, was: Seat | null, look: string | null): Seat | null {
     const free = (s: Seat) => !this.#pipes.has(s);
     const back = was !== null && this.away.includes(was) && free(was) ? was : undefined;
     const seat = back ?? this.away.find(free) ?? ([2, 3] as const).find((s) => free(s) && !this.away.includes(s));
@@ -83,6 +111,7 @@ export class Party {
       return null;
     }
     this.away = this.away.filter((s) => s !== seat);
+    if (look) this.looks = { ...this.looks, [seat]: look };
     this.#pipes.set(seat, pipe);
     pipe.on((message) => this.#act(message, seat));
     pipe.closed.then(() => this.#drop(seat, pipe));
@@ -140,6 +169,6 @@ export class Party {
 
   #setMembers(members: Seat[]) {
     this.members = [...members].sort((a, b) => a - b);
-    for (const pipe of this.#pipes.values()) pipe.send({ t: 'members', members: this.members });
+    for (const pipe of this.#pipes.values()) pipe.send({ t: 'members', members: this.members, looks: this.looks });
   }
 }

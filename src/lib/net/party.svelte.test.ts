@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Message } from './link';
-import { Party, type Pipe, type Seat } from './party.svelte';
+import { MISMATCH, Party, PROTOCOL, type Pipe, type Seat } from './party.svelte';
 
 /** 手元でつないだ 2 本の管。close はどちらの端からでも両方を閉じる。Link と同じく、最初の聞き手が付くまで届いた知らせをためる */
 function pipes(): [Pipe, Pipe] {
@@ -173,10 +173,10 @@ describe('Party', () => {
     await settle();
     expect(host.away).toEqual([2, 3]);
     const [c, c2] = pipes();
-    const back3 = Party.guest(c2, 3);
+    const back3 = Party.guest(c2, { was: 3 });
     expect(await host.add(c)).toBe(3);
     const [d, d2] = pipes();
-    const back2 = Party.guest(d2, 2);
+    const back2 = Party.guest(d2, { was: 2 });
     expect(await host.add(d)).toBe(2);
     expect([back3.me, back2.me]).toEqual([3, 2]);
   });
@@ -187,5 +187,44 @@ describe('Party', () => {
     await settle();
     host.close();
     expect(host.away).toEqual([]);
+  });
+
+  // 古い版の子は知らせの形がちがうので、つないでも遊べない。理由を出して切る
+  it('つなぎ方の版がちがう子は断り、mismatch を返して知らせる', async () => {
+    const host = Party.host();
+    const [a, a2] = pipes();
+    const seen: Message[] = [];
+    a2.on((m) => seen.push(m));
+    a2.send({ t: 'hello', v: PROTOCOL - 1, was: null, look: null });
+    expect(await host.add(a)).toBe('mismatch');
+    expect(seen).toContainEqual({ t: 'mismatch' });
+    expect(host.members).toEqual([1]);
+  });
+
+  it('hello を送らない古い版の子は、3 秒で見切る', async () => {
+    vi.useFakeTimers();
+    const host = Party.host();
+    const [a] = pipes();
+    const result = host.add(a);
+    vi.advanceTimersByTime(3000);
+    expect(await result).toBe('mismatch');
+    vi.useRealTimers();
+  });
+
+  it('子は mismatch を受け取ったら mismatch を立てる', () => {
+    const [a, a2] = pipes();
+    const g = Party.guest(a2);
+    a.send({ t: 'mismatch' });
+    expect(g.mismatch).toBe(true);
+    expect(MISMATCH).toContain('さいしん');
+  });
+
+  it('動物を hello で受け取り、顔ぶれと一緒に全員へ配る', async () => {
+    const host = Party.host('cat');
+    const [a, a2] = pipes();
+    const g = Party.guest(a2, { look: 'rabbit' });
+    await host.add(a);
+    expect(host.looks).toEqual({ 1: 'cat', 2: 'rabbit' });
+    expect(g.looks).toEqual({ 1: 'cat', 2: 'rabbit' });
   });
 });
