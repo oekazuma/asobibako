@@ -5,11 +5,13 @@
   import { photoArt, snapshot, templateArt, type Art } from '$lib/coloring/art';
   import { listWorks, newId, pack, removeWork, saveWork, unpack, type Work } from '$lib/coloring/book';
   import Canvas from '$lib/coloring/Canvas.svelte';
+  import LineFix from '$lib/coloring/LineFix.svelte';
   import { empty, fill, undo, type Coloring } from '$lib/coloring/paint';
   import Palette, { COLORS } from '$lib/coloring/Palette.svelte';
   import PhotoMaker from '$lib/coloring/PhotoMaker.svelte';
   import Picker from '$lib/coloring/Picker.svelte';
   import { hideCovered, label, type Regions } from '$lib/coloring/regions';
+  import { remap } from '$lib/coloring/remap';
   import { sounds } from '$lib/coloring/sounds';
   import { TEMPLATES, type Template } from '$lib/coloring/templates';
 
@@ -25,7 +27,7 @@
     lines?: Uint8Array;
   }
 
-  let screen = $state<'pick' | 'paint' | 'photo'>('pick');
+  let screen = $state<'pick' | 'paint' | 'photo' | 'lines'>('pick');
   let works = $state.raw<Work[]>([]);
   let current = $state.raw<Current | null>(null);
   let coloring = $state.raw<Coloring>(empty());
@@ -87,6 +89,17 @@
     timer = setTimeout(save, 800);
   }
 
+  /** 塗りはじめてから線を直したとき。場所の番号が変わるので、塗った色は重なりで引き継ぎ、戻す並びは捨てる */
+  function relined(mask: Uint8Array) {
+    const c = current;
+    if (!c) return;
+    const regions = label(mask);
+    coloring = { colors: remap(c.regions, coloring.colors, regions, mask.length), history: [] };
+    current = { ...c, art: photoArt(mask), regions, photo: pack(mask) };
+    screen = 'paint';
+    void save();
+  }
+
   // iOS の IndexedDB は開くところで止まることがあるので、保存を待たずに戻る
   function done() {
     sounds.done();
@@ -106,6 +119,9 @@
 {#if screen === 'paint' && current}
   <div class="middle">
     <Canvas art={current.art} regions={current.regions} colors={coloring.colors} onfill={paint} />
+    {#if current.art.kind === 'photo'}
+      <button class="pill relines" onclick={() => (screen = 'lines')}>せんを なおす</button>
+    {/if}
   </div>
   <Palette
     bind:color
@@ -119,6 +135,8 @@
     ondone={done}
     onsave={exportImage}
   />
+{:else if screen === 'lines' && current}
+  <LineFix mask={current.art.mask} onmake={relined} onback={() => (screen = 'paint')} />
 {:else if screen === 'photo'}
   <PhotoMaker onmake={fromPhoto} onback={() => (screen = 'pick')} />
 {:else}
@@ -136,6 +154,7 @@
 
 <style>
   .middle {
+    position: relative;
     flex: 1;
     display: grid;
     place-items: center;
@@ -143,5 +162,15 @@
     /* 上の隅には共通の ✕ と ↻ があるので、線画の角が重ならないよう空けておく */
     padding: max(68px, env(safe-area-inset-top)) 12px 12px;
     container-type: size;
+  }
+
+  /* 上の隅の ✕ と ↻ のあいだに置く */
+  .relines {
+    position: absolute;
+    top: max(12px, env(safe-area-inset-top));
+    left: 50%;
+    translate: -50% 0;
+    padding: 6px 16px;
+    font-size: 15px;
   }
 </style>
