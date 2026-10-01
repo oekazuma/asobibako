@@ -1,4 +1,5 @@
 import { SIZE, type Regions } from './regions';
+import { FULL, type View } from './zoom';
 import { LINE, type Template } from './templates';
 
 export type Art =
@@ -70,13 +71,24 @@ export function fillImage(ctx: CanvasRenderingContext2D, regions: Regions, color
   ctx.putImageData(img, 0, 0);
 }
 
-/** 塗り（SIZE の canvas）を px の大きさに広げ、テンプレートならその上に線をなめらかに描く */
-export function compose(ctx: CanvasRenderingContext2D, fill: HTMLCanvasElement, art: Art, px: number) {
+/**
+ * 塗り（SIZE の canvas）を px の大きさに広げ、テンプレートならその上に線をなめらかに描く。
+ * view は拡大して見ている範囲。拡大でも引きのばさず、その倍率で描き直してテンプレートの線をなめらかに保つ
+ */
+export function compose(
+  ctx: CanvasRenderingContext2D,
+  fill: HTMLCanvasElement,
+  art: Art,
+  px: number,
+  view: View = FULL
+) {
+  const size = px * view.scale;
+  const [ox, oy] = [-view.x * size, -view.y * size];
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.imageSmoothingEnabled = true;
-  ctx.drawImage(fill, 0, 0, px, px);
+  ctx.drawImage(fill, ox, oy, size, size);
   if (art.kind !== 'template') return;
-  ctx.setTransform(px / 100, 0, 0, px / 100, 0, 0);
+  ctx.setTransform(size / 100, 0, 0, size / 100, ox, oy);
   ctx.lineWidth = LINE;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
