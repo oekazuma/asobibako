@@ -2,9 +2,9 @@
   import { onDestroy } from 'svelte';
   import { initialCrop, zoomCrop, type Crop } from './crop';
   import CropView from './CropView.svelte';
+  import LineEditor from './LineEditor.svelte';
   import { Lines, type Mode } from './lines.svelte';
   import { cropPixels, openPhoto } from './photo';
-  import { SIZE } from './regions';
 
   let { onmake, onback }: { onmake: (mask: Uint8Array) => void; onback: () => void } = $props();
 
@@ -23,7 +23,6 @@
   let picks = 0;
   let alive = true;
   let note = $state('');
-  let preview = $state<HTMLCanvasElement>();
 
   function release() {
     lines.clear();
@@ -58,29 +57,22 @@
   });
 
   const drawing = $derived(lines.busy && lines.mode === 'ai');
-
-  $effect(() => {
-    const g = preview?.getContext('2d');
-    const mask = lines.mask;
-    if (!g || !mask) return;
-    const img = g.createImageData(SIZE, SIZE);
-    const d = img.data;
-    for (let i = 0; i < mask.length; i++) {
-      const line = mask[i] === 1;
-      d[i * 4] = line ? 59 : 255;
-      d[i * 4 + 1] = line ? 47 : 255;
-      d[i * 4 + 2] = line ? 42 : 255;
-      d[i * 4 + 3] = 255;
-    }
-    g.putImageData(img, 0, 0);
-  });
 </script>
 
 <div class="maker">
   <h2 class="yuru">しゃしんから つくる</h2>
   {#if bmp && (lines.mask || drawing)}
     <div class="sheet">
-      <canvas class="preview" width={SIZE} height={SIZE} bind:this={preview}></canvas>
+      {#if lines.mask}
+        <LineEditor
+          mask={lines.mask}
+          onedit={(e) => lines.edit(e)}
+          onundo={() => lines.undoEdit()}
+          canUndo={lines.edits.length > 0}
+        />
+      {:else}
+        <div class="waiting"></div>
+      {/if}
       {#if drawing}
         <p class="busy" role="status">
           AI が かいています…<br /><small>はじめての ときは よみこみに すこし じかんが かかるよ</small>
@@ -159,8 +151,7 @@
     text-align: center;
   }
 
-  .preview {
-    display: block;
+  .waiting {
     width: min(86cqw, 52cqh);
     aspect-ratio: 1;
     border: 3px solid var(--line);
