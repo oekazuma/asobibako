@@ -12,14 +12,23 @@
 <script lang="ts">
   import Board from './Board.svelte';
   import type { View } from './engine';
+  import Face from './Face.svelte';
 
   let {
     view,
     me,
     gallery,
     host,
-    onagain
-  }: { view: View; me: Seat; gallery: Drawing[]; host: boolean; onagain: () => void } = $props();
+    onagain,
+    looks = {}
+  }: {
+    view: View;
+    me: Seat;
+    gallery: Drawing[];
+    host: boolean;
+    onagain: () => void;
+    looks?: Record<number, string>;
+  } = $props();
 
   const ranking = $derived(
     Object.entries(view.scores)
@@ -33,14 +42,17 @@
   <h2 class="yuru">けっか</h2>
   <ol class="ranking">
     {#each ranking as r (r.seat)}
-      <li class="pill p{r.seat}">{rank(r.points)}い {r.seat}P{r.seat === me ? '（あなた）' : ''} {r.points}てん</li>
+      <li class="pill p{r.seat}">
+        {rank(r.points)}い <Face seat={r.seat} look={looks[r.seat]} name />{r.seat === me ? '（あなた）' : ''}
+        {r.points}てん
+      </li>
     {/each}
   </ol>
   <ul class="gallery">
     {#each gallery as d (d)}
       <li>
         <div class="thumb"><Board strokes={d.strokes} /></div>
-        <span class="p{d.by}">{d.by}P「{d.word}」</span>
+        <span><Face seat={d.by} look={looks[d.by]} />「{d.word}」</span>
       </li>
     {/each}
   </ul>

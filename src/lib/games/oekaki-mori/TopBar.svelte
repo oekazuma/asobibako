@@ -1,15 +1,22 @@
 <script lang="ts">
   import type { Seat } from '$lib/net/party.svelte';
   import type { View } from './engine';
+  import Face from './Face.svelte';
+  import { who } from './looks';
 
-  let { view, me, typing = {} }: { view: View; me: Seat; typing?: Record<number, string> } = $props();
+  let {
+    view,
+    me,
+    typing = {},
+    looks = {}
+  }: { view: View; me: Seat; typing?: Record<number, string>; looks?: Record<number, string> } = $props();
   const drawing = $derived(view.drawer === me);
 </script>
 
 <header class="bar">
   <p class="word" aria-live="polite">
     {#if view.phase === 'ready'}
-      {drawing ? 'おだいを みてね' : `${view.drawer}P が じゅんびしています`}
+      {drawing ? 'おだいを みてね' : `${who(view.drawer, looks)} が じゅんびしています`}
     {:else if view.word}
       {drawing ? 'おだい' : 'こたえ'} <b>{view.word}</b>
     {:else if view.mode === 'hayaoshi'}
@@ -28,7 +35,7 @@
         class:out={view.out.includes(seat)}
         class:answering={seat === view.buzzer}
       >
-        {seat}P{seat === me ? '（あなた）' : ''}
+        <Face {seat} look={looks[seat]} name />{seat === me ? '（あなた）' : ''}
         {view.scores[seat]}
         {#if typing[seat]}<span class="typing">{typing[seat]}</span>{/if}
       </li>

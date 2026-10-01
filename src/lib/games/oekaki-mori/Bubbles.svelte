@@ -11,12 +11,16 @@
 </script>
 
 <script lang="ts">
-  let { bubbles }: { bubbles: Bubble[] } = $props();
+  import { who } from './looks';
+
+  let { bubbles, looks = {} }: { bubbles: Bubble[]; looks?: Record<number, string> } = $props();
 </script>
 
 <ul class="bubbles" aria-live="polite">
   {#each bubbles as b (b.id)}
-    <li class="bubble p{b.seat}">{b.note ? `${b.seat}P ${b.text}` : `${b.seat}P「${b.text}」`}</li>
+    <li class="bubble p{b.seat}">
+      {b.note ? `${who(b.seat, looks)} ${b.text}` : `${who(b.seat, looks)}「${b.text}」`}
+    </li>
   {/each}
 </ul>
 

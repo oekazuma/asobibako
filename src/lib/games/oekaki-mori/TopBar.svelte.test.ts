@@ -50,4 +50,15 @@ describe('TopBar', () => {
     expect(chips[2].querySelector('.typing')).toBeNull();
     unmount(app);
   });
+
+  it('点数の丸に、番号のかわりに動物の名前を出す', () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(TopBar, { target, props: { view, me: 1, looks: { 1: 'cat', 2: 'rabbit' } } });
+    flushSync();
+    const chips = [...target.querySelectorAll('.scores li')].map((li) => li.textContent);
+    expect(chips[0]).toContain('ねこ');
+    expect(chips[1]).toContain('うさぎ');
+    expect(chips[2]).toContain('3P');
+    unmount(app);
+  });
 });

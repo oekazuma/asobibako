@@ -2,8 +2,14 @@
   import type { Message } from '$lib/net/link';
   import type { Seat } from '$lib/net/party.svelte';
   import type { View } from './engine';
+  import { who } from './looks';
 
-  let { view, me, act }: { view: View; me: Seat; act: (message: Message) => void } = $props();
+  let {
+    view,
+    me,
+    act,
+    looks = {}
+  }: { view: View; me: Seat; act: (message: Message) => void; looks?: Record<number, string> } = $props();
 
   const out = $derived(view.out.includes(me));
   /**
@@ -30,7 +36,7 @@
       {/each}
     </div>
   {:else if view.buzzer !== null}
-    <p class="wait" role="status">{view.buzzer}P が こたえています</p>
+    <p class="wait" role="status">{who(view.buzzer, looks)} が こたえています</p>
   {:else}
     <button
       class="buzz"

@@ -2,12 +2,19 @@
   import Handshake from '$lib/net/Handshake.svelte';
   import type { Link } from '$lib/net/link';
   import { MISMATCH, type Seat } from '$lib/net/party.svelte';
+  import { who } from './looks';
 
   let {
     away,
     onlink,
+    looks = {},
     open = $bindable(false)
-  }: { away: Seat[]; onlink: (link: Link) => Promise<unknown>; open?: boolean } = $props();
+  }: {
+    away: Seat[];
+    onlink: (link: Link) => Promise<unknown>;
+    looks?: Record<number, string>;
+    open?: boolean;
+  } = $props();
   let failed = $state('');
 
   function close() {
@@ -32,7 +39,7 @@
   </div>
 {:else if away.length}
   <p class="lost" role="status">
-    {away.map((s) => `${s}P`).join('と')} の つながりが きれました
+    {away.map((s) => who(s, looks)).join('と')} の つながりが きれました
     <button class="pill p2" onclick={() => (open = true)}>よびなおす</button>
   </p>
 {/if}

@@ -144,6 +144,13 @@ export const ICONS = {
     { d: 'M5 16.5V19h2.5z', fill: INK },
     { d: 'M15.5 6l1.8-1.8a1.5 1.5 0 0 1 2.1 0l.4.4a1.5 1.5 0 0 1 0 2.1L18 8.5z', fill: '#ff8fa3' }
   ],
+  rabbit: [
+    { d: ellipse(9, 6, 2.2, 5) + ellipse(15, 6, 2.2, 5), fill: '#fff', stroke: INK, width: 0.8 },
+    { d: ellipse(9, 6.5, 0.9, 3.4) + ellipse(15, 6.5, 0.9, 3.4), fill: '#ffb3c1' },
+    { d: ellipse(12, 15, 7, 6), fill: '#fff', stroke: INK, width: 0.8 },
+    { d: circle(9.5, 14, 1.2) + circle(14.5, 14, 1.2), fill: INK },
+    { d: ellipse(12, 16.6, 1, 0.7), fill: '#ff8fa3' }
+  ],
   bee: [
     { d: ellipse(9, 7, 3.5, 4.5) + ellipse(15, 7, 3.5, 4.5), fill: '#dcefff', stroke: '#9fb6cc', width: 0.8 },
     { d: ellipse(12, 14, 7, 5.5), fill: '#ffc233', stroke: INK, width: 0.8 },

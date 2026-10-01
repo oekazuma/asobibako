@@ -6,6 +6,7 @@
   import Bubbles, { type Bubble } from './Bubbles.svelte';
   import type { View } from './engine';
   import KanaPad from './KanaPad.svelte';
+  import { who } from './looks';
   import { ERASER, PENS, SIZES, type Ink, type Stroke } from './strokes';
   import Tools from './Tools.svelte';
   import TopBar from './TopBar.svelte';
@@ -19,7 +20,8 @@
     onink,
     act,
     typing,
-    ontype
+    ontype,
+    looks = {}
   }: {
     view: View;
     me: Seat;
@@ -30,6 +32,7 @@
     act: (message: Message) => void;
     typing: Record<number, string>;
     ontype: (text: string) => void;
+    looks?: Record<number, string>;
   } = $props();
 
   let color = $state<string>(PENS[0].hex);
@@ -40,17 +43,17 @@
   const solved = $derived(view.solved.includes(me));
 </script>
 
-<TopBar {view} {me} {typing} />
+<TopBar {view} {me} {typing} {looks} />
 <div class="middle">
   <Board {strokes} {pen} {onink} />
-  <Bubbles {bubbles} />
+  <Bubbles {bubbles} {looks} />
   {#if view.phase === 'ready'}
     <div class="cover">
       {#if drawing}
         <p>おだいは「{view.word}」</p>
         <button class="pill gold" onclick={() => act({ t: 'start' })}>かきはじめる</button>
       {:else}
-        <p>{view.drawer}P が じゅんびしています</p>
+        <p>{who(view.drawer, looks)} が じゅんびしています</p>
       {/if}
     </div>
   {:else if view.phase === 'reveal'}
@@ -63,7 +66,7 @@
 {#if drawing}
   <Tools bind:color bind:size bind:erasing onundo={() => onink({ k: 'undo' })} onclear={() => onink({ k: 'clear' })} />
 {:else if view.mode === 'hayaoshi'}
-  <Buzzer {view} {me} {act} />
+  <Buzzer {view} {me} {act} {looks} />
 {:else}
   {#key view.turn}
     <KanaPad disabled={view.phase !== 'draw' || solved} onsubmit={(text) => act({ t: 'guess', text })} {ontype} />

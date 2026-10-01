@@ -3,13 +3,16 @@
   import Handshake from '$lib/net/Handshake.svelte';
   import type { Link } from '$lib/net/link';
   import { MISMATCH, Party, type Seat } from '$lib/net/party.svelte';
+  import Face from './Face.svelte';
+  import LookPicker from './LookPicker.svelte';
+  import { who } from './looks';
+  import { readLook, saveLook } from './prefs';
 
   let {
     party,
     note = '',
     retry = false,
     was,
-    look,
     onparty,
     onstart
   }: {
@@ -19,14 +22,14 @@
     retry?: boolean;
     /** 切れる前の自分の番号。親はこの番号が空いていれば同じ番号で迎える */
     was?: Seat;
-    /** この端末の動物 */
-    look?: string;
     onparty: (party: Party) => void;
     onstart: () => void;
   } = $props();
 
   let joining = $state<'host' | 'guest' | null>(null);
   let failed = $state('');
+  /** この端末の動物。つなぐときに親へ知らせる */
+  let look = $state(readLook());
   const SEATS: Seat[] = [1, 2, 3];
 
   async function linked(link: Link) {
@@ -67,6 +70,14 @@
       </button>
     {:else}
       <p>2〜3にんで、ひとり 1だいずつ つかって あそぶよ</p>
+      <p>あなたの どうぶつ</p>
+      <LookPicker
+        {look}
+        onlook={(next) => {
+          look = next;
+          saveLook(next);
+        }}
+      />
       <button class="pill p1 card" onclick={() => join('host')}>
         なかまを よぶ
         <small>この たんまつに QR が でる</small>
@@ -81,10 +92,12 @@
     <ul class="members">
       {#each SEATS as seat (seat)}
         {@const here = party.members.includes(seat)}
-        <li class="face p{seat}" class:empty={!here}>{here ? `${seat}P` : '＋'}</li>
+        <li class="face p{seat}" class:empty={!here}>
+          {#if here}<Face {seat} look={party.looks[seat]} size="52px" />{:else}＋{/if}
+        </li>
       {/each}
     </ul>
-    <p>あなたは {party.me}P{party.host ? '（おや）' : ''}</p>
+    <p>あなたは {who(party.me, party.looks)}{party.host ? '（おや）' : ''}</p>
     {#if party.host}
       {#if party.members.length < 3}
         <button class="pill" onclick={() => join('host')}>

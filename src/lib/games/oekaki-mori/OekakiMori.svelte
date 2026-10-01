@@ -152,13 +152,19 @@
       act={(m) => party?.act(m)}
       {typing}
       ontype={(text) => party?.act({ t: 'typing', text })}
+      looks={party.looks}
     />
   {:else if screen === 'result' && view}
-    <Result {view} me={party.me} {gallery} host={party.host} onagain={toMode} />
+    <Result {view} me={party.me} {gallery} host={party.host} onagain={toMode} looks={party.looks} />
   {/if}
   {#if party}
     <Menu {party} oninvite={() => (inviting = true)} />
-    {#if party.host}<Invite away={party.away} onlink={async (link) => party?.add(link)} bind:open={inviting} />{/if}
+    {#if party.host}<Invite
+        away={party.away}
+        looks={party.looks}
+        onlink={async (link) => party?.add(link)}
+        bind:open={inviting}
+      />{/if}
   {:else}
     <a class="round back" href={resolve('/')} aria-label="ゲーム選択へ戻る">✕</a>
     <button class="round mute" onclick={toggleMute} aria-label="ミュート" aria-pressed={audio.muted}>
