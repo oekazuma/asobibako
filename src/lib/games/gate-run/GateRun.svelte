@@ -4,9 +4,10 @@
   import { BoardInput } from '$lib/board-input';
   import type { SoloProps } from '$lib/games';
   import { animate } from '$lib/loop';
+  import Icon from '$lib/components/Icon.svelte';
   import { CONFETTI, Floaters, Particles, Shake } from '$lib/fx';
-  import { createState, steer, step, type RunEvent } from './engine';
-  import { opText, paint, project, zOf } from './paint';
+  import { createState, foes, steer, step, type RunEvent } from './engine';
+  import { paint, project, signed } from './paint';
   import { sounds } from './sounds';
 
   let { level, onfinish }: SoloProps = $props();
@@ -19,6 +20,7 @@
   /** 指を置いた位置と、そのときの群れの位置。指を動かした分だけ群れを動かす */
   let grab: { id: number; from: number; x: number } | null = null;
   let hits = 0;
+  let left = $state(foes(game));
   let now = 0;
   const particles = new Particles();
   const floaters = new Floaters();
@@ -43,12 +45,13 @@
   function play(event: RunEvent, w: number, h: number) {
     const v = { w, h };
     if (event.type === 'gate') {
-      (event.good ? sounds.good : sounds.bad)();
-      const [x, y] = project(v, event.x, 1.05);
-      floaters.add(opText(event.op), x, y - h * 0.12, w * 0.12, event.good ? '#1f9bff' : '#ff4d5e');
+      const good = event.n >= 0;
+      (good ? sounds.good : sounds.bad)();
+      const [x, y] = project(v, event.x, 0.05);
+      floaters.add(signed(event.n), x, y - h * 0.12, w * 0.12, good ? '#1f9bff' : '#ff4d5e');
       particles.burst(x, y - h * 0.1, {
         count: 24,
-        color: event.good ? ['#9fd8ff', '#fff', '#1f9bff'] : ['#ffb3ba', '#ff4d5e'],
+        color: good ? ['#9fd8ff', '#fff', '#1f9bff'] : ['#ffb3ba', '#ff4d5e'],
         speed: w * 0.5,
         size: w * 0.012,
         life: 0.6,
@@ -58,18 +61,10 @@
       // 門の数・撃ち倒す・ぶつかるの音と火花は、人数が多いと毎秒何十回も出るので間引く
       if (hits++ % 3 !== 0) return;
       sounds.bump();
-      const [x, y] = project(v, event.x, zOf(game, event.at));
-      particles.burst(x, y - h * 0.05, {
-        count: 3,
-        color: ['#fff', '#9fd8ff'],
-        speed: w * 0.2,
-        size: w * 0.008,
-        life: 0.3
-      });
     } else if (event.type === 'kill') {
       if (hits++ % 2 !== 0) return;
       sounds.pop();
-      const [x, y, s] = project(v, event.x, zOf(game, event.at));
+      const [x, y, s] = project(v, event.x, event.at - game.dist);
       particles.burst(x, y - w * 0.04 * s, {
         count: 4,
         color: ['#ffb3ba', '#ff4d5e', '#fff3c4'],
@@ -80,8 +75,8 @@
       });
     } else if (event.type === 'loot') {
       sounds.loot();
-      const [x, y] = project(v, event.x, zOf(game, event.at));
-      const text = event.reward.kind === 'power' ? 'れんしゃ アップ' : `+${event.reward.n}`;
+      const [x, y] = project(v, event.x, event.at - game.dist);
+      const text = event.reward.kind === 'power' ? 'パワー アップ' : `+${event.reward.n}`;
       floaters.add(text, x, y - h * 0.1, w * 0.08, '#ff9f1c');
       particles.burst(x, y - h * 0.04, {
         count: 22,
@@ -94,7 +89,7 @@
     } else if (event.type === 'hit') {
       if (hits++ % 3 !== 0) return;
       sounds.hit();
-      const [x, y] = project(v, game.x, 1.12);
+      const [x, y] = project(v, game.x, 0.15);
       particles.burst(x, y - h * 0.03, {
         count: 4,
         color: ['#fff3c4', '#ffc233'],
@@ -127,6 +122,7 @@
     const finger = grab && input.fingers.all.get(grab.id);
     if (grab && finger) steer(game, grab.x + (finger.x - grab.from) * 1.3);
     for (const event of step(game, dt)) play(event, w, h);
+    left = foes(game);
     particles.step(dt);
     floaters.step(dt);
     if (!ctx) return;
@@ -151,6 +147,7 @@
 <div class="board" use:input.board={resize} role="application" aria-label="数のゲートの道">
   <canvas bind:this={canvas}></canvas>
   <span class="level sticker">レベル {level}</span>
+  <span class="foes"><Icon name="skull" />{left}</span>
 </div>
 
 <style>
@@ -175,5 +172,23 @@
     left: 50%;
     translate: -50% 0;
     font-size: 26px;
+  }
+
+  .foes {
+    position: absolute;
+    top: 60px;
+    left: 50%;
+    translate: -50% 0;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 2px 16px 2px 8px;
+    border: 3px solid #fff;
+    border-radius: 999px;
+    background: #d02c3e;
+    box-shadow: var(--lift);
+    font-size: 26px;
+    font-weight: 800;
+    color: #fff;
   }
 </style>

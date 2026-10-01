@@ -1,210 +1,141 @@
-import { cloud, icon, label, stamp } from '$lib/fx';
-import {
-  BARREL_R,
-  crowdCenter,
-  crowdHalf,
-  enemyCount,
-  isGood,
-  MAX_DOTS,
-  type GameState,
-  type Item,
-  type Op
-} from './engine';
-import { barrel, castle, runner, tree } from './sprites';
-
-const CLOUDS = [
-  [0.1, 0.3, 0.22],
-  [0.55, 0.18, 0.3],
-  [0.9, 0.45, 0.18]
-] as const;
+import { icon, label, stamp } from '$lib/fx';
+import { BARREL_R, crowdCenter, enemyCount, MAX_DOTS, type GameState, type Item } from './engine';
+import { barrel, castle, foe, runner, tree } from './sprites';
 
 /**
- * 群れの後ろ上から見下ろす遠近。奥行き z の点は 1/z 倍に縮み、z が大きいほど地平線へ寄る。
- * 群れは z = CROWD_Z に置き、コースの距離 1 を奥行き DEPTH に対応させる
+ * 群れの後ろの高いところから見下ろす遠近。群れから ahead 先の点は 1 / (1 + ahead × TILT) 倍に縮む。
+ * 地平線は画面の上の外にあり、道の先の陣形まで見わたせる
  */
-const HORIZON = 0.3;
-const CROWD_Z = 1;
-const DEPTH = 1.25;
-const FAR = 9;
+const TILT = 0.25;
+const TOP = -0.3;
+const BASE = 0.8;
+const FAR = 10;
 const GOLDEN = 2.39996;
 
 const BLUE = ['#4db5ff', '#0b6fcc'] as const;
-const RED = ['#ff7a86', '#c42a3b'] as const;
 
 export interface View {
   w: number;
   h: number;
 }
 
-/** 道の横位置 lane（0..1）と奥行き z を画面の位置と倍率へ */
-export function project(v: View, lane: number, z: number): [number, number, number] {
-  const s = 1 / z;
-  return [v.w / 2 + (lane - 0.5) * v.w * 0.92 * s, v.h * HORIZON + v.h * 0.5 * s, s];
+/** 道の横位置 lane（0..1）と群れからの距離 ahead を、画面の位置と倍率へ */
+export function project(v: View, lane: number, ahead: number): [number, number, number] {
+  const s = 1 / (1 + Math.max(-0.6, ahead) * TILT);
+  return [v.w / 2 + (lane - 0.5) * v.w * 0.92 * s, v.h * (TOP + (BASE - TOP) * s), s];
 }
 
-export const zOf = (state: GameState, at: number) => (at - state.dist) * DEPTH + CROWD_Z;
-export const opText = (op: Op) => (op.kind === 'mul' ? `×${op.n}` : op.n < 0 ? `-${-op.n}` : `+${op.n}`);
+export const signed = (n: number) => (n < 0 ? `-${-n}` : `+${n}`);
 
-function ground(ctx: CanvasRenderingContext2D, v: View, state: GameState, now: number) {
-  const sky = ctx.createLinearGradient(0, 0, 0, v.h * HORIZON);
-  sky.addColorStop(0, '#6ec8ff');
-  sky.addColorStop(1, '#d9f2ff');
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, v.w, v.h * HORIZON + 1);
-  for (const [cx, cy, r] of CLOUDS) {
-    const x = ((cx + now * 0.01) % 1.3) - 0.15;
-    stamp(ctx, cloud(), x * v.w, cy * v.h * HORIZON, r * v.w);
-  }
-  const grass = ctx.createLinearGradient(0, v.h * HORIZON, 0, v.h);
-  grass.addColorStop(0, '#9fdc7c');
-  grass.addColorStop(1, '#58b947');
-  ctx.fillStyle = grass;
-  ctx.fillRect(0, v.h * HORIZON, v.w, v.h);
-
+function ground(c: CanvasRenderingContext2D, v: View, state: GameState) {
+  c.fillStyle = '#7fcf62';
+  c.fillRect(0, 0, v.w, v.h);
   // 道は奥行きの帯ごとに台形で塗り、進んだ距離に合わせて縞を流す
-  const band = 0.25;
-  const first = Math.floor(state.dist / band);
-  for (let k = first + 12 * 4; k >= first - 2; k--) {
-    const z0 = zOf(state, k * band);
-    const z1 = zOf(state, (k + 1) * band);
-    if (z1 <= 0.35 || z0 > FAR * 2) continue;
-    const a = Math.max(0.35, z0);
-    const [lx0, y0] = project(v, -0.02, a);
-    const [rx0] = project(v, 1.02, a);
-    const [lx1, y1] = project(v, -0.02, z1);
-    const [rx1] = project(v, 1.02, z1);
-    ctx.fillStyle = k % 2 ? '#f3f0ff' : '#e2ddf7';
-    ctx.beginPath();
-    ctx.moveTo(lx0, y0);
-    ctx.lineTo(rx0, y0);
-    ctx.lineTo(rx1, y1);
-    ctx.lineTo(lx1, y1);
-    ctx.fill();
+  const band = 0.4;
+  const first = Math.floor((state.dist - 1) / band);
+  for (let k = first + Math.ceil((FAR + 1) / band); k >= first; k--) {
+    const a0 = k * band - state.dist;
+    const a1 = a0 + band;
+    const [lx0, y0] = project(v, -0.02, a0);
+    const [rx0] = project(v, 1.02, a0);
+    const [lx1, y1] = project(v, -0.02, a1);
+    const [rx1] = project(v, 1.02, a1);
+    c.fillStyle = k % 2 ? '#f3f0ff' : '#e2ddf7';
+    c.beginPath();
+    c.moveTo(lx0, y0);
+    c.lineTo(rx0, y0);
+    c.lineTo(rx1, y1);
+    c.lineTo(lx1, y1);
+    c.fill();
   }
-  // 道のふち
+  c.strokeStyle = '#fff';
+  c.lineWidth = 4;
   for (const lane of [-0.02, 1.02]) {
-    const [x0, y0] = project(v, lane, 0.4);
-    const [x1, y1] = project(v, lane, FAR * 2);
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(x0, y0);
-    ctx.lineTo(x1, y1);
-    ctx.stroke();
+    const [x0, y0] = project(v, lane, -1);
+    const [x1, y1] = project(v, lane, FAR + 1);
+    c.beginPath();
+    c.moveTo(x0, y0);
+    c.lineTo(x1, y1);
+    c.stroke();
   }
 }
 
 // 群れの点は毎フレーム最大 140 × 3 個生成されるので、クロージャでなくデータで持って GC 負荷を抑える
 type Draw = { z: number; draw: () => void } | { z: number; img: HTMLCanvasElement; x: number; y: number; size: number };
 
-function crowdDraws(
-  c: CanvasRenderingContext2D,
-  v: View,
-  lane: number,
-  z: number,
-  n: number,
-  colors: readonly [string, string],
-  now: number
-): Draw[] {
+function crowdDraws(v: View, lane: number, ahead: number, n: number, enemy: boolean, now: number): Draw[] {
   const dots = Math.min(n, MAX_DOTS);
-  const center = crowdCenter(lane, n);
   const draws: Draw[] = [];
   for (let i = 0; i < dots; i++) {
     const d = 0.026 * Math.sqrt(i);
-    const dl = Math.cos(i * GOLDEN) * d;
-    const dz = Math.sin(i * GOLDEN) * d * 0.9;
-    const pz = z + dz;
-    if (pz < 0.4) continue;
-    const [x, y, s] = project(v, center + dl, pz);
+    const pz = ahead + Math.sin(i * GOLDEN) * d * 0.9;
+    const [x, y, s] = project(v, lane + Math.cos(i * GOLDEN) * d, pz);
     const size = v.w * 0.075 * s;
     const frame = Math.floor(now * 10 + i * 0.37) % 2 === 0 ? 0 : 1;
     const bob = Math.abs(Math.sin(now * 16 + i)) * size * 0.08;
-    draws.push({ z: pz, img: runner(colors[0], colors[1], frame), x, y: y - size * 0.45 - bob, size });
+    const img = enemy ? foe(frame) : runner(BLUE[0], BLUE[1], frame);
+    draws.push({ z: pz, img, x, y: y - size * 0.45 - bob, size });
   }
   return draws;
 }
 
 /** 群れのいちばん奥の人の頭の上に、人数を出す */
-function countTag(
-  c: CanvasRenderingContext2D,
-  v: View,
-  lane: number,
-  z: number,
-  n: number,
-  color: string,
-  big: boolean,
-  prefix = ''
-) {
-  const [x, y, s] = project(v, lane, z + crowdHalf(n) * 0.9);
-  const size = v.w * (big ? 0.085 : 0.065) * Math.min(1.4, s);
-  label(
-    c,
-    prefix + String(n),
-    Math.min(v.w * 0.85, Math.max(v.w * 0.15, x)),
-    y - v.w * 0.075 * s * 0.9 - size * 0.4,
-    size,
-    color
-  );
+function countTag(c: CanvasRenderingContext2D, v: View, lane: number, ahead: number, n: number, color: string) {
+  const [x, y, s] = project(v, lane, ahead + 0.026 * Math.sqrt(Math.min(n, MAX_DOTS)) * 0.9);
+  const size = v.w * 0.075 * Math.min(1.3, s);
+  label(c, String(n), Math.min(v.w * 0.85, Math.max(v.w * 0.15, x)), y - v.w * 0.075 * s - size * 0.4, size, color);
 }
 
 export function paint(c: CanvasRenderingContext2D, state: GameState, v: View, now: number) {
-  ground(c, v, state, now);
+  ground(c, v, state);
   const draws: Draw[] = [];
+  const ahead = (at: number) => at - state.dist;
 
   // 道ばたの木。コースと一緒に流れてくる
-  for (let k = Math.floor(state.dist / 0.8) - 1; k < state.dist / 0.8 + 10; k++) {
-    const z = zOf(state, k * 0.8);
-    if (z < 0.45 || z > FAR) continue;
-    for (const lane of [-0.28, 1.28]) {
+  for (let k = Math.floor(state.dist / 0.9) - 1; k < (state.dist + FAR) / 0.9; k++) {
+    const z = ahead(k * 0.9);
+    if (z < -0.8) continue;
+    for (const lane of [-0.22, 1.22]) {
       draws.push({
         z,
         draw: () => {
           const [x, y, s] = project(v, lane, z);
-          const size = v.w * 0.3 * s;
+          const size = v.w * 0.26 * s;
           stamp(c, tree(), x, y - size * 0.45, size);
         }
       });
     }
   }
 
-  const castleZ = zOf(state, state.length) + 4;
-  if (castleZ < FAR * 1.2) {
+  const castleZ = ahead(state.length + 4.5);
+  if (castleZ < FAR) {
     draws.push({
       z: castleZ,
       draw: () => {
         const [x, y, s] = project(v, 0.5, castleZ);
-        const size = v.w * 1.1 * s;
+        const size = v.w * 0.9 * s;
         stamp(c, castle(), x, y - size * 0.45, size);
       }
     });
   }
 
   for (const item of state.items) {
-    if (item.done) continue;
-    const z = zOf(state, item.at);
-    if (z < 0.45 || z > FAR) continue;
-    if (item.type === 'gates') {
-      for (const [op, l0] of [
-        [item.left, 0.02],
-        [item.right, 0.51]
-      ] as const) {
-        draws.push({ z, draw: () => gate(c, v, op, l0, z, now) });
-      }
-    } else if (item.type === 'barrel') {
-      draws.push({ z, draw: () => cask(c, v, item, z) });
-    } else if (item.boss) {
-      draws.push({ z, draw: () => giant(c, v, item.x, z, enemyCount(item.hp), now) });
-    } else {
+    const z = ahead(item.at);
+    if (item.done || z < -0.6 || z > FAR) continue;
+    if (item.type === 'gate') draws.push({ z, draw: () => gate(c, v, item, z) });
+    else if (item.type === 'barrel') draws.push({ z, draw: () => cask(c, v, item, z) });
+    else {
       const n = enemyCount(item.hp);
-      draws.push(...crowdDraws(c, v, item.x, z, n, RED, now));
-      draws.push({ z: z - 0.01, draw: () => countTag(c, v, item.x, z, n, '#d02c3e', false) });
+      draws.push(...crowdDraws(v, item.x, z, n, true, now));
+      draws.push({ z: z - 0.01, draw: () => countTag(c, v, item.x, z, n, '#d02c3e') });
     }
   }
-  if (state.aim && state.count > 0) draws.push(...bullets(c, v, state, state.aim, now));
 
   if (state.count > 0) {
-    draws.push(...crowdDraws(c, v, state.x, CROWD_Z, state.count, BLUE, now));
-    draws.push({ z: 0.1, draw: () => countTag(c, v, state.x, CROWD_Z, state.count, '#0b6fcc', true) });
+    const x = crowdCenter(state.x, state.count);
+    draws.push(...crowdDraws(v, x, 0, state.count, false, now));
+    draws.push({ z: -0.5, draw: () => countTag(c, v, x, 0, state.count, '#0b6fcc') });
+    draws.push(...bullets(c, v, state, now));
   }
 
   draws.sort((a, b) => b.z - a.z);
@@ -214,84 +145,66 @@ export function paint(c: CanvasRenderingContext2D, state: GameState, v: View, no
   }
 }
 
-function gate(c: CanvasRenderingContext2D, v: View, op: Op, l0: number, z: number, now: number) {
-  const good = isGood(op);
-  const [x0, y] = project(v, l0, z);
-  const [x1, , s] = project(v, l0 + 0.47, z);
-  const gh = v.w * 0.26 * s;
-  const glass = c.createLinearGradient(0, y - gh, 0, y);
-  glass.addColorStop(0, good ? 'rgb(120 200 255 / 0.85)' : 'rgb(255 140 150 / 0.85)');
-  glass.addColorStop(1, good ? 'rgb(31 155 255 / 0.45)' : 'rgb(255 77 94 / 0.45)');
-  c.fillStyle = glass;
-  c.beginPath();
-  c.roundRect(x0, y - gh, x1 - x0, gh, 10 * s);
-  c.fill();
-  // 光の帯が門の上を流れる
-  const shine = ((now * 0.6 + l0) % 1.4) - 0.2;
-  c.save();
-  c.clip();
-  c.fillStyle = 'rgb(255 255 255 / 0.35)';
-  c.beginPath();
-  const sx = x0 + (x1 - x0) * shine;
-  c.moveTo(sx, y - gh);
-  c.lineTo(sx + gh * 0.25, y - gh);
-  c.lineTo(sx - gh * 0.15, y);
-  c.lineTo(sx - gh * 0.4, y);
-  c.fill();
-  c.restore();
-  c.lineWidth = Math.max(2, 7 * s);
+/** 道の半分にかかる横長の門。数が負なら赤、0 以上なら青 */
+function gate(c: CanvasRenderingContext2D, v: View, item: Extract<Item, { type: 'gate' }>, z: number) {
+  const good = item.n >= 0;
+  const [x0, y, s] = project(v, item.x0, z);
+  const [x1] = project(v, item.x1, z);
+  const bh = v.w * 0.075 * s;
+  const top = y - v.w * 0.06 * s - bh;
+  c.fillStyle = '#5d6275';
+  for (const x of [x0, x1]) c.fillRect(x - 2.5 * s, top, 5 * s, y - top);
+  const fill = c.createLinearGradient(0, top, 0, top + bh);
+  fill.addColorStop(0, good ? '#6cc4ff' : '#ff8a95');
+  fill.addColorStop(1, good ? '#1f7fe0' : '#d33445');
+  c.fillStyle = fill;
   c.strokeStyle = '#fff';
+  c.lineWidth = Math.max(2, 5 * s);
   c.beginPath();
-  c.roundRect(x0, y - gh, x1 - x0, gh, 10 * s);
+  c.roundRect(x0, top, x1 - x0, bh, 6 * s);
+  c.fill();
   c.stroke();
-  label(c, opText(op), (x0 + x1) / 2, y - gh / 2, v.w * 0.11 * s, good ? '#0b6fcc' : '#d02c3e');
+  label(c, signed(item.n), (x0 + x1) / 2, top + bh / 2, bh * 0.85, good ? '#0b6fcc' : '#d02c3e');
 }
 
-/** 群れから撃っている相手へ流れる弾。人数が多いほど粒も多い */
-function bullets(c: CanvasRenderingContext2D, v: View, state: GameState, aim: Item, now: number): Draw[] {
-  const from = crowdCenter(state.x, state.count);
-  const h = crowdHalf(state.count);
-  const to = aim.type === 'gates' ? (state.x < 0.5 ? 0.25 : 0.75) : aim.x;
-  const z1 = Math.max(CROWD_Z + 0.05, zOf(state, aim.at));
-  const k = Math.min(36, 8 + Math.ceil(Math.sqrt(state.count) * state.power * 2));
+/** 弾。群れの列ごとに、当たる相手まで光の筋が流れる */
+function bullets(c: CanvasRenderingContext2D, v: View, state: GameState, now: number): Draw[] {
   const draws: Draw[] = [];
-  for (let i = 0; i < k; i++) {
-    const t = (now * 2.6 + i / k) % 1;
-    const lane = from + (((i * 0.618) % 1) - 0.5) * 2 * h * (1 - t) + (to - from) * t;
-    const z = CROWD_Z + (z1 - CROWD_Z) * t;
-    draws.push({
-      z,
-      draw: () => {
-        const [x, y, s] = project(v, lane, z);
-        c.fillStyle = '#ffe066';
-        c.strokeStyle = '#ff9f1c';
-        c.lineWidth = Math.max(1, 2 * s);
-        c.beginPath();
-        c.ellipse(x, y - v.w * 0.05 * s, v.w * 0.014 * s, v.w * 0.026 * s, 0, 0, Math.PI * 2);
-        c.fill();
-        c.stroke();
-      }
-    });
-  }
+  const per = Math.min(4, 1 + Math.floor(Math.sqrt(state.count * state.power) / 3));
+  state.shots.forEach((shot, i) => {
+    const to = Math.max(0.2, shot.at - state.dist);
+    for (let j = 0; j < per; j++) {
+      const t = (now * 3 + i * 0.37 + j / per) % 1;
+      const z = to * t;
+      draws.push({
+        z,
+        draw: () => {
+          const [x, y, s] = project(v, shot.x, z);
+          const [, y2] = project(v, shot.x, Math.max(0, z - 0.35));
+          c.strokeStyle = '#ffb347';
+          c.lineCap = 'round';
+          c.lineWidth = Math.max(1.5, v.w * 0.008 * s);
+          c.beginPath();
+          c.moveTo(x, y - v.w * 0.05 * s);
+          c.lineTo(x, y2 - v.w * 0.05 * s);
+          c.stroke();
+        }
+      });
+    }
+  });
   return draws;
 }
 
-/** 撃てば壊れる樽。残りの耐久と、中のごほうびを上に出す */
+/** 撃てば壊れる樽。残りの耐久を胴に、中のごほうびを上に出す */
 function cask(c: CanvasRenderingContext2D, v: View, item: Extract<Item, { type: 'barrel' }>, z: number) {
   const [x, y, s] = project(v, item.x, z);
-  const size = BARREL_R * 3.2 * v.w * 0.92 * s;
+  const size = BARREL_R * 2 * v.w * 0.92 * s;
   stamp(c, barrel(), x, y - size * 0.45, size);
-  label(c, String(Math.ceil(item.hp)), x, y - size * 0.45, size * 0.38, '#6b3a1f');
-  const top = y - size * 1.15;
-  if (item.reward.kind === 'power') icon(c, 'bolt', x, top, size * 0.55);
-  else label(c, `+${item.reward.n}`, x, top, size * 0.4, '#0b6fcc');
-}
-
-/** 城を守るボス。大きな 1 人で、頭の上に残りの人数を出す */
-function giant(c: CanvasRenderingContext2D, v: View, lane: number, z: number, n: number, now: number) {
-  const [x, y, s] = project(v, lane, z);
-  const size = v.w * 0.5 * s;
-  const bob = Math.abs(Math.sin(now * 5)) * size * 0.03;
-  stamp(c, runner(RED[0], RED[1], Math.floor(now * 4) % 2 === 0 ? 0 : 1), x, y - size * 0.45 - bob, size);
-  label(c, String(n), x, y - size * 0.95, v.w * 0.1 * Math.min(1.4, s), '#d02c3e');
+  label(c, String(Math.ceil(item.hp)), x, y - size * 0.4, size * 0.36, '#6b3a1f');
+  const top = y - size * 1.05;
+  if (item.reward.kind === 'power') icon(c, 'bolt', x, top, size * 0.6);
+  else {
+    stamp(c, runner(BLUE[0], BLUE[1], 0), x, top, size * 0.6);
+    label(c, `+${item.reward.n}`, x, top - size * 0.45, size * 0.3, '#0b6fcc');
+  }
 }

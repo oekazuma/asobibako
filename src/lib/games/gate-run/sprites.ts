@@ -128,3 +128,22 @@ export const barrel = () =>
       c.stroke();
     }
   });
+
+/** 赤い盾を前に構えて歩いてくる敵。frame 0 と 1 で足を入れ替える */
+export function foe(frame: 0 | 1) {
+  return sprite(`foe:${frame}`, 96, (c) => {
+    c.drawImage(runner('#ff7a86', '#c42a3b', frame), 0, 0, 1, 1);
+    c.beginPath();
+    c.arc(0.5, 0.56, 0.17, 0, Math.PI * 2);
+    c.fillStyle = '#fff';
+    c.fill();
+    c.beginPath();
+    c.arc(0.5, 0.56, 0.13, 0, Math.PI * 2);
+    c.fillStyle = '#d02c3e';
+    c.fill();
+    c.beginPath();
+    c.arc(0.5, 0.56, 0.05, 0, Math.PI * 2);
+    c.fillStyle = '#ffc233';
+    c.fill();
+  });
+}
