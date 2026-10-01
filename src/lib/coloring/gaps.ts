@@ -1,10 +1,14 @@
+/** 細線化を繰り返す上限。これより太いところは線ではなく塗りつぶしなので、芯まで削らなくてよい */
+const PASSES = 20;
+
 /**
  * 線画の芯を 1 画素の太さにする（Zhang–Suen の細線化）。線の端を見つけるのに使う
  */
 export function thin(mask: Uint8Array, w: number, h: number): Uint8Array {
   const img = mask.slice();
   const drop: number[] = [];
-  for (let changed = true; changed;) {
+  const p = new Uint8Array(8);
+  for (let pass = 0, changed = true; changed && pass < PASSES; pass++) {
     changed = false;
     for (const step of [0, 1]) {
       drop.length = 0;
@@ -13,22 +17,20 @@ export function thin(mask: Uint8Array, w: number, h: number): Uint8Array {
           const i = y * w + x;
           if (!img[i]) continue;
           // p2 から時計回りに p9 まで
-          const p = [
-            img[i - w],
-            img[i - w + 1],
-            img[i + 1],
-            img[i + w + 1],
-            img[i + w],
-            img[i + w - 1],
-            img[i - 1],
-            img[i - w - 1]
-          ];
-          const b = p.reduce((a, v) => a + v, 0);
+          p[0] = img[i - w];
+          p[1] = img[i - w + 1];
+          p[2] = img[i + 1];
+          p[3] = img[i + w + 1];
+          p[4] = img[i + w];
+          p[5] = img[i + w - 1];
+          p[6] = img[i - 1];
+          p[7] = img[i - w - 1];
+          const b = p[0] + p[1] + p[2] + p[3] + p[4] + p[5] + p[6] + p[7];
           if (b < 2 || b > 6) continue;
           let a = 0;
-          for (let k = 0; k < 8; k++) if (!p[k] && p[(k + 1) % 8]) a++;
+          for (let k = 0; k < 8; k++) if (!p[k] && p[(k + 1) & 7]) a++;
           if (a !== 1) continue;
-          const [p2, , p4, , p6, , p8] = p;
+          const [p2, p4, p6, p8] = [p[0], p[2], p[4], p[6]];
           if (step === 0 ? p2 * p4 * p6 || p4 * p6 * p8 : p2 * p4 * p8 || p2 * p6 * p8) continue;
           drop.push(i);
         }
@@ -63,6 +65,10 @@ const AHEAD = 0.5;
  * 写真の線画は輪郭が細かく途切れ、太らせて細らせるだけではふさがらないすき間から塗りがはみ出す
  */
 export function closeGaps(mask: Uint8Array, w: number, h: number, reach: number): Uint8Array {
+  // 線が画面の 4 分の 1 を超えるのは、暗いところが塗りつぶされた線画。つなぐ端が多すぎて遅く、ふさぐ意味もない
+  let ink = 0;
+  for (let i = 0; i < mask.length; i++) ink += mask[i];
+  if (ink > mask.length / 4) return mask.slice();
   const skel = thin(mask, w, h);
   const out = mask.slice();
   const near = [-w - 1, -w, -w + 1, -1, 1, w - 1, w, w + 1];

@@ -28,4 +28,11 @@ describe('remap', () => {
     expect(remap(before, { [left]: '#00f', [right]: '#f00' }, after, N * N)).toEqual({ [after.labels[0]]: '#f00' });
     expect(remap(before, {}, after, N * N)).toEqual({});
   });
+
+  // 小さな塗った場所と大きな白い場所の境の線を消しても、白い場所まで染めない
+  it('塗っていない画素も数え、塗っていないほうが多ければ塗らない', () => {
+    const before = label(wall(blank(), 3), N, N);
+    const after = label(blank(), N, N);
+    expect(remap(before, { [before.labels[5 * N + 1]]: '#f00' }, after, N * N)).toEqual({});
+  });
 });

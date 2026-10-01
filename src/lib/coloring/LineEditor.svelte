@@ -17,14 +17,16 @@
   let canvas = $state<HTMLCanvasElement>();
   /** 選ぶまでは何もしない。押しまちがいで線を消さないため */
   let tool = $state<'add' | 'erase' | null>(null);
-  let pts: number[] | null = null;
+  /** なぞっている 1 本の指とその線。ほかの指は線に入れない */
+  let stroke: { id: number; pts: number[] } | null = null;
 
   const input = new BoardInput({
-    down: (_event, x, y) => {
-      if (tool) pts = [x, y];
+    down: (event, x, y) => {
+      if (tool && !stroke) stroke = { id: event.pointerId, pts: [x, y] };
     },
-    move: (_event, x, y) => {
-      if (!pts || !tool) return;
+    move: (event, x, y) => {
+      if (!stroke || !tool || event.pointerId !== stroke.id) return;
+      const { pts } = stroke;
       // なぞっているあいだは、その場で描いて見せる（線画を作り直すのは離したとき）
       const g = canvas?.getContext('2d');
       if (g) {
@@ -38,11 +40,13 @@
       }
       pts.push(x, y);
     },
-    up: (_event, _finger, x, y) => {
-      if (!pts || !tool) return;
+    up: (event, _finger, x, y) => {
+      if (!stroke || event.pointerId !== stroke.id) return;
+      const { pts } = stroke;
+      stroke = null;
+      if (!tool) return;
       pts.push(x, y);
       onedit({ kind: tool, pts, width: WIDTH[tool] });
-      pts = null;
     }
   });
 

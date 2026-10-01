@@ -4,7 +4,8 @@ import Canvas from './Canvas.svelte';
 import { label, SIZE } from './regions';
 
 // 本物の描き方は canvas の描画が要るので、描くところだけ差し替える
-vi.mock('./art', () => ({ compose: () => {}, fillImage: () => {} }));
+const { fillImage } = vi.hoisted(() => ({ fillImage: vi.fn() }));
+vi.mock('./art', () => ({ compose: () => {}, fillImage }));
 vi.mock('$lib/audio.svelte', () => ({ wake: () => {} }));
 
 /** 真ん中に縦の線を引いた線画。左と右で別の場所になる */
@@ -76,6 +77,25 @@ describe('Canvas', () => {
     fire('pointerup', 3, 0.6);
     expect(onfill).toHaveBeenCalledWith(side(0.45));
     expect(side(0.45)).not.toBe(side(0.6));
+    unmount(app);
+  });
+
+  // 塗りの画像を作り直すのは 1 回で 2.4MB を書くので、つまんで見え方が変わるだけなら作り直さない
+  it('つまんでいるあいだは、塗りの画像を作り直さない', () => {
+    // 大きさの無い盤面には描かないので、描くところまで進むように大きさと描き先を与える
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({} as never);
+    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(100);
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(100);
+    const { app, fire } = show();
+    const before = fillImage.mock.calls.length;
+    expect(before).toBeGreaterThan(0);
+    fire('pointerdown', 1, 0.4);
+    fire('pointerdown', 2, 0.6);
+    fire('pointermove', 2, 0.8);
+    flushSync();
+    fire('pointermove', 2, 0.9);
+    flushSync();
+    expect(fillImage.mock.calls.length).toBe(before);
     unmount(app);
   });
 

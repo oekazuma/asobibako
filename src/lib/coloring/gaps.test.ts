@@ -59,4 +59,17 @@ describe('closeGaps', () => {
     const out = closeGaps(m, N, N, 16);
     for (let i = 0; i < m.length; i++) if (m[i]) expect(out[i]).toBe(1);
   });
+
+  // 線を作り直すたびに画面の中で動くので、太い黒い場所があっても止まらない
+  it('太く塗りつぶした場所があっても、すぐに終わる', () => {
+    const S = 768;
+    const blob = new Uint8Array(S * S);
+    for (let y = 200; y < 500; y++) for (let x = 200; x < 500; x++) blob[y * S + x] = 1;
+    const half = new Uint8Array(S * S).fill(1, 0, (S * S) / 2);
+    for (const m of [blob, half]) {
+      const t = performance.now();
+      closeGaps(m, S, S, 16);
+      expect(performance.now() - t).toBeLessThan(500);
+    }
+  });
 });

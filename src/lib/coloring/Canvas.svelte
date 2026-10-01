@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { BoardInput } from '$lib/board-input';
   import { compose, fillImage, type Art } from './art';
   import { regionAt, SIZE, type Regions } from './regions';
@@ -79,7 +79,8 @@
     const next = { art, regions, colors };
     if (!fill) return;
     fillImage(fill.getContext('2d')!, next.regions, next.colors, next.art);
-    draw();
+    // draw は view を読むので、追うとつまむたびに塗りを作り直してしまう
+    untrack(draw);
   });
 
   // つまんでいるあいだは見え方だけが変わるので、塗りを作り直さずに描き直す

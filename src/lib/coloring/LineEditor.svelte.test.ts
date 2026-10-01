@@ -15,9 +15,9 @@ function show() {
   });
   flushSync();
   const sheet = target.querySelector('.editor')!;
-  const fire = (type: string, x: number) =>
+  const fire = (type: string, x: number, id = 1) =>
     sheet.dispatchEvent(
-      new PointerEvent(type, { pointerId: 1, pointerType: 'touch', clientX: x * 100, clientY: 50, bubbles: true })
+      new PointerEvent(type, { pointerId: id, pointerType: 'touch', clientX: x * 100, clientY: 50, bubbles: true })
     );
   const press = (label: string) => {
     [...target.querySelectorAll('button')].find((b) => b.textContent?.trim() === label)!.click();
@@ -70,6 +70,23 @@ describe('LineEditor', () => {
     expect(onedit).toHaveBeenLastCalledWith(expect.objectContaining({ kind: 'erase' }));
     press('1つ もどす');
     expect(onundo).toHaveBeenCalled();
+    unmount(app);
+  });
+
+  // 2 本目の指が触れても、1 本目の線を切ったり、指のあいだをつないだりしない
+  it('なぞっている指のほかの指は、線に入れない', () => {
+    const { app, onedit, fire, press } = show();
+    press('せんを けす');
+    fire('pointerdown', 0.2, 1);
+    fire('pointerdown', 0.8, 2);
+    fire('pointermove', 0.9, 2);
+    fire('pointermove', 0.3, 1);
+    fire('pointerup', 0.9, 2);
+    fire('pointerup', 0.4, 1);
+    expect(onedit).toHaveBeenCalledTimes(1);
+    const xs = onedit.mock.lastCall![0].pts.filter((_: number, i: number) => i % 2 === 0);
+    expect(xs[0]).toBeCloseTo(0.2);
+    expect(Math.max(...xs)).toBeLessThanOrEqual(0.4 + 1e-9);
     unmount(app);
   });
 });
