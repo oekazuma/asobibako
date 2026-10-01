@@ -100,7 +100,7 @@ describe('Referee', () => {
     act({ t: 'stamp', id: 'wow' }, 1);
     now = 1600;
     act({ t: 'stamp', id: 'huh' }, 2);
-    act({ t: 'stamp', id: 'nope' }, 3);
+    act({ t: 'stamp', id: 'idea' }, 3);
     const stamps = told.filter(([, m]) => m.t === 'stamp').map(([seat, m]) => [seat, m.seat, m.id]);
     expect(stamps).toEqual([
       [1, 2, 'like'],
@@ -109,9 +109,19 @@ describe('Referee', () => {
       [1, 2, 'huh'],
       [2, 2, 'huh'],
       [3, 2, 'huh'],
-      [1, 3, 'nope'],
-      [2, 3, 'nope'],
-      [3, 3, 'nope']
+      [1, 3, 'idea'],
+      [2, 3, 'idea'],
+      [3, 3, 'idea']
     ]);
+  });
+
+  // 表にないスタンプは画面に出ないのに、浮かべる枠と送れる間隔だけを使ってしまう
+  it('表にないスタンプは配らない', () => {
+    const { party, told, act } = fakeParty([1, 2, 3]);
+    new Referee(party, () => 0).start('egokoro');
+    act({ t: 'start' }, 1);
+    told.length = 0;
+    act({ t: 'stamp', id: 'nope' }, 2);
+    expect(told.filter(([, m]) => m.t === 'stamp')).toEqual([]);
   });
 });

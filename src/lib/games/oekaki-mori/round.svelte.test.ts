@@ -77,4 +77,14 @@ describe('Round', () => {
     r.receive({ t: 'view', view: view({ phase: 'reveal' }) });
     expect(r.gallery[0].misses).toEqual([]);
   });
+
+  // 番の途中で戻った子は、その番でそれまでに外れた答えを知らない
+  it('送り直しで、いまの番の外れた答えも受け取る', () => {
+    const r = new Round();
+    r.receive({ t: 'sync', strokes: [], misses: [{ by: 2, text: 'たぬき' }] });
+    r.receive({ t: 'view', view: view({}) });
+    r.receive({ t: 'view', view: view({ phase: 'reveal' }) });
+    expect(r.gallery[0].misses).toEqual([{ by: 2, text: 'たぬき' }]);
+    expect(r.misses).toEqual([]);
+  });
 });

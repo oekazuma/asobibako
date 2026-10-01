@@ -53,13 +53,17 @@
     {#if task.kind === 'draw'}おだい <b>{task.word}</b>{:else if task.kind === 'guess'}なにの えかな？{:else}ほかの
       ひとを まっています{/if}
   </p>
-  <p class="left"><small>{view.step + 1} / {view.steps}</small> {view.left}</p>
+  <p class="left">
+    {#if view.steps}<small>{view.step + 1} / {view.steps}</small>{/if}
+    {view.left}
+  </p>
 </header>
 <div class="middle">
   {#if task.kind === 'draw'}
     <Board {strokes} {pen} onink={ink} />
   {:else if task.kind === 'guess'}
     <Board strokes={task.strokes} />
+    {#if !task.strokes.length}<p class="blank">（えが ありません）</p>{/if}
   {:else}
     <p class="wait" role="status">ほかの ひとを まっています</p>
   {/if}
@@ -68,6 +72,10 @@
   <Tools bind:color bind:size bind:erasing onundo={() => ink({ k: 'undo' })} onclear={() => ink({ k: 'clear' })} />
   <button class="pill gold done" onclick={() => ondone()}>できた</button>
 {:else if task.kind === 'guess'}
+  {#if !task.strokes.length}
+    <!-- 抜けた人の白紙は答えようがないので、時間を待たずにとばせる -->
+    <button class="pill done" onclick={() => ondone()}>とばす</button>
+  {/if}
   <KanaPad onsubmit={(text) => ondone(text)} {ontype} />
 {/if}
 
@@ -101,6 +109,12 @@
     min-height: 0;
     padding: 8px;
     container-type: size;
+  }
+
+  .blank {
+    position: absolute;
+    color: var(--line);
+    font-weight: 800;
   }
 
   .wait {

@@ -168,7 +168,7 @@ export function tick(
   if (s.chains.every((_, c) => s.done.includes(assignee(s, c, s.step)))) advance(s, rand, words);
 }
 
-/** 抜けた人のいまのこまは、描きかけの線や打った答えのまま埋める。1 人になったらふりかえりへ */
+/** 抜けた人のいまのこまは、描きかけの線のまま、答えはわからなかったとして埋める。1 人になったらふりかえりへ */
 export function leave(s: Relay, seat: Seat): void {
   s.present = s.present.filter((p) => p !== seat);
   if (s.phase === 'play' && chainOf(s, seat) >= 0 && !s.done.includes(seat)) s.done.push(seat);

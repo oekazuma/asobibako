@@ -121,7 +121,7 @@
     list-style: none;
   }
 
-  .gallery li {
+  .gallery > li {
     display: grid;
     gap: 4px;
     justify-items: center;

@@ -39,7 +39,8 @@
     if (next.host)
       next.onAct((m, from) => {
         if (m.t !== 'join') return;
-        for (const message of catchUp(round.screen, round.strokes, round.gallery)) next.tell(from, message);
+        for (const message of catchUp(round.screen, round.strokes, round.gallery, round.misses))
+          next.tell(from, message);
       });
   }
 

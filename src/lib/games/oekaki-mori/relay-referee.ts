@@ -59,16 +59,19 @@ export class RelayReferee {
     this.#push();
   }
 
-  /** 戻った子に、いまの見え方・受け持ち・いまのリレーのめくり終えたこまを送り直す */
+  /** 戻った子に、いまの見え方・受け持ち・めくり終えたこまを送り直す（その端末で保存する 1 枚に全部のリレーが入るように） */
   #catchUp(s: Relay, seat: Seat) {
     this.#party.tell(seat, { t: 'relayView', ...this.#viewOf(s) });
     if (s.phase === 'play') return this.#party.tell(seat, { t: 'relayTask', step: s.step, task: taskOf(s, seat) });
     const page = pageOf(s);
     if (!page) return;
-    for (let index = 0; index <= page.index; index++) {
-      const chain = s.chains[page.chain];
-      const entry = index === 0 ? { kind: 'prompt', text: chain.start } : chain.entries[index - 1];
-      this.#party.tell(seat, { t: 'relayPage', chain: page.chain, index, entry, last: index === chain.entries.length });
+    for (let c = 0; c <= page.chain; c++) {
+      const chain = s.chains[c];
+      const upto = c < page.chain ? chain.entries.length : page.index;
+      for (let index = 0; index <= upto; index++) {
+        const entry = index === 0 ? { kind: 'prompt', text: chain.start } : chain.entries[index - 1];
+        this.#party.tell(seat, { t: 'relayPage', chain: c, index, entry, last: index === chain.entries.length });
+      }
     }
   }
 

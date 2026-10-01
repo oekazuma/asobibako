@@ -17,6 +17,7 @@ import {
   type Mode,
   type Quiz
 } from './engine';
+import { stampOf } from './stamps';
 import { WORDS } from './words';
 
 /** 1 人がスタンプを続けて送れる間隔 */
@@ -91,19 +92,19 @@ export class Referee {
     this.#push();
   }
 
-  /**
-   * 描く人には打っている字をそのまま、ほかの当てる人には字数だけ見せる（字が見えると答えがばれる）。
-   * 空の字は、当てたあとや描く時間のあとでも配る。50 音盤は答えを送ってから空を知らせるので、捨てると ● が残る
-   */
   /** 当てる人のスタンプを全員へ配る。小さい子の連打で画面が埋まらないよう、1 人 1.5 秒に 1 つまで */
   #stamp(s: Quiz, from: Seat, id: string) {
-    if (s.phase !== 'draw' || from === drawer(s)) return;
+    if (s.phase !== 'draw' || from === drawer(s) || !stampOf(id)) return;
     const now = this.#now();
     if (now - (this.#stamped.get(from) ?? -Infinity) < STAMP_MS) return;
     this.#stamped.set(from, now);
     this.#party.tell('all', { t: 'stamp', seat: from, id });
   }
 
+  /**
+   * 描く人には打っている字をそのまま、ほかの当てる人には字数だけ見せる（字が見えると答えがばれる）。
+   * 空の字は、当てたあとや描く時間のあとでも配る。50 音盤は答えを送ってから空を知らせるので、捨てると ● が残る
+   */
   #typing(s: Quiz, from: Seat, text: string) {
     if (s.mode !== 'egokoro' || from === drawer(s)) return;
     if (text && (s.phase !== 'draw' || s.solved.includes(from))) return;

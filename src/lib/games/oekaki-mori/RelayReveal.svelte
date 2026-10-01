@@ -26,9 +26,10 @@
   const current = $derived(pages.at(-1));
   const shown = $derived(pages.filter((p) => p.chain === current?.chain));
   const first = $derived(shown.find((p) => p.index === 0)?.entry);
+  /** 描くだんの途中で終わったリレーは最後のこまが絵なので、いちばん新しい答えを最後の言葉にする */
   const lastWord = $derived.by(() => {
-    const e = current?.entry;
-    return e?.kind === 'guess' ? (e.text ?? UNKNOWN) : '';
+    const guess = shown.findLast((p) => p.entry.kind === 'guess')?.entry;
+    return guess?.kind === 'guess' ? (guess.text ?? UNKNOWN) : null;
   });
   let end = $state<HTMLElement>();
   $effect(() => {
@@ -53,7 +54,7 @@
       </li>
     {/each}
   </ol>
-  {#if current?.last && first?.kind === 'prompt'}
+  {#if current?.last && first?.kind === 'prompt' && lastWord !== null}
     <p class="punch">さいしょは「{first.text}」→ さいごは「{lastWord}」</p>
   {/if}
   <div bind:this={end} class="actions">

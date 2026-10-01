@@ -55,6 +55,7 @@ export class Round {
     else if (m.t === 'sync') {
       this.strokes = m.strokes as Stroke[];
       this.gallery = [];
+      this.#misses = (m.misses ?? []) as Miss[];
     } else if (m.t === 'drawing') this.gallery = [...this.gallery, m.drawing as Drawing];
     else if (m.t === 'typing') this.typing = typed(this.typing, Number(m.seat), String(m.text));
     else if (m.t === 'bubble') {
@@ -74,6 +75,11 @@ export class Round {
     }
   }
 
+  /** いまの番に外れた答え。番の途中で戻った子へ送り直す */
+  get misses(): Miss[] {
+    return this.#misses;
+  }
+
   ink(i: Ink) {
     this.strokes = apply(this.strokes, i);
   }
@@ -86,11 +92,13 @@ export class Round {
       this.#misses = [];
       sounds.turn();
     }
-    if (prev?.phase === 'draw' && next.phase === 'reveal')
+    if (prev?.phase === 'draw' && next.phase === 'reveal') {
       this.gallery = [
         ...this.gallery,
         { word: next.word ?? '', by: next.drawer, strokes: this.strokes, misses: this.#misses }
       ];
+      this.#misses = [];
+    }
     if (next.phase === 'draw' && next.left <= TICK_FROM && next.left > 0 && next.left !== prev?.left)
       sounds.tick(next.left <= HIGH_FROM);
     if (prev && next.solved.length > prev.solved.length) sounds.right();

@@ -106,4 +106,31 @@ describe('RelayReferee', () => {
     const tasks = of(told, 'relayTask').filter(([seat, m]) => seat === 1 && m.step === 2);
     expect((tasks[0][1].task as { word: string }).word).not.toBe('りん');
   });
+
+  // 戻る前にめくり終えたリレーが無いと、その端末で保存する 1 枚から抜け落ちる
+  it('ふりかえりの途中で戻った子には、めくり終えたリレーのこまも全部送る', () => {
+    frames.list = [];
+    const { party, told, act } = fakeParty([1, 2]);
+    new RelayReferee(party).start('short', null);
+    for (let i = 0; i < 4; i++) {
+      act({ t: 'relayDone', step: i, text: 'くま' }, 1);
+      act({ t: 'relayDone', step: i, text: 'くま' }, 2);
+      frame();
+    }
+    for (let i = 0; i < 6; i++) act({ t: 'relayNext' }, 1);
+    told.length = 0;
+    act({ t: 'join' }, 2);
+    const resent = of(told, 'relayPage')
+      .filter(([seat]) => seat === 2)
+      .map(([, m]) => [m.chain, m.index]);
+    expect(resent).toEqual([
+      [0, 0],
+      [0, 1],
+      [0, 2],
+      [0, 3],
+      [0, 4],
+      [1, 0],
+      [1, 1]
+    ]);
+  });
 });

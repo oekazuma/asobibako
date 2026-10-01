@@ -7,7 +7,7 @@ import RelayPlay from './RelayPlay.svelte';
 vi.mock('$lib/audio.svelte', () => ({ wake: () => {} }));
 
 function show(task: Task, done: Seat[] = []) {
-  const view = { phase: 'play', step: 0, steps: 4, left: 40, done };
+  const view = { phase: 'play', step: 0, steps: task.kind === 'wait' ? 0 : 4, left: 40, done };
   const ondone = vi.fn();
   const target = document.body.appendChild(document.createElement('div'));
   const app = mount(RelayPlay, {
@@ -52,6 +52,21 @@ describe('RelayPlay', () => {
     const { app, target } = show({ kind: 'draw', word: 'りんご' }, [1]);
     expect(target.textContent).toContain('まっています');
     expect([...target.querySelectorAll('button')].some((b) => b.textContent?.trim() === 'できた')).toBe(false);
+    unmount(app);
+  });
+
+  // 抜けた人の白紙を見せられても答えようがないので、すぐとばせるようにする
+  it('白紙の絵には、えが ありませんと とばすを出す', () => {
+    const { app, target, ondone } = show({ kind: 'guess', strokes: [] });
+    expect(target.textContent).toContain('えが ありません');
+    [...target.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'とばす')!.click();
+    expect(ondone).toHaveBeenCalledWith();
+    unmount(app);
+  });
+
+  it('だんの数が届く前は、だんの数を出さない', () => {
+    const { app, target } = show({ kind: 'wait' });
+    expect(target.textContent).not.toContain('/ 0');
     unmount(app);
   });
 });
