@@ -16,6 +16,8 @@
     open?: boolean;
   } = $props();
   let failed = $state('');
+  /** 版ちがいで断った QR は使い終わっているので、数を進めて手順を作り直す */
+  let tries = $state(0);
 
   function close() {
     open = false;
@@ -26,14 +28,17 @@
 {#if open}
   <!-- 遊びは止めずに、上に重ねて QR の手順を出す -->
   <div class="invite">
-    <Handshake
-      role="host"
-      onlink={async (link) => {
-        if ((await onlink(link)) === 'mismatch') failed = MISMATCH;
-        else close();
-      }}
-      onfail={(text) => (failed = text)}
-    />
+    {#key tries}
+      <Handshake
+        role="host"
+        onlink={async (link) => {
+          if ((await onlink(link)) !== 'mismatch') return close();
+          failed = MISMATCH;
+          tries++;
+        }}
+        onfail={(text) => (failed = text)}
+      />
+    {/key}
     {#if failed}<p role="alert">{failed}</p>{/if}
     <button class="pill" onclick={close}>とじる</button>
   </div>

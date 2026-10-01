@@ -96,7 +96,7 @@
     <ul class="members">
       {#each SEATS as seat (seat)}
         {@const here = party.members.includes(seat)}
-        <li class="face p{seat}" class:empty={!here}>
+        <li class="face p{seat}" class:empty={!here} class:here>
           {#if here}<Face {seat} look={party.looks[seat]} size="52px" />{:else}＋{/if}
         </li>
       {/each}
@@ -180,6 +180,12 @@
 
   .face.p3 {
     background: var(--pastel-p3);
+  }
+
+  /* 来ている人は Face が自分の丸を持つので、外側の輪と色を消して二重に見せない */
+  .face.here {
+    border: 0;
+    background: none;
   }
 
   .face.empty {

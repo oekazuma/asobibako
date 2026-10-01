@@ -18,10 +18,21 @@ describe('アプリについて', () => {
       'アプリの状態',
       'データについて',
       '自動バックアップ',
-      'バックアップ'
+      'バックアップ',
+      'つかわせて もらったもの'
     ]);
     expect(target.querySelector('.update')).not.toBeNull();
     expect(target.querySelectorAll('.status li')).toHaveLength(3);
+    unmount(app);
+  });
+
+  it('つかわせて もらったものと、ライセンスの全文へのリンクを出す', () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(Page, { target });
+    flushSync();
+    expect(target.textContent).toContain('Informative Drawings');
+    expect(target.textContent).toContain('onnxruntime-web');
+    expect(target.querySelector('a[href$="licenses.txt"]')).not.toBeNull();
     unmount(app);
   });
 });

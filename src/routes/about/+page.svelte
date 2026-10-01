@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { resolve } from '$app/paths';
+  import { asset, resolve } from '$app/paths';
   import AppUpdate from '$lib/components/AppUpdate.svelte';
   import Backup from '$lib/components/Backup.svelte';
   import Icon from '$lib/components/Icon.svelte';
@@ -68,6 +68,18 @@
     <section class="card">
       <h2>バックアップ</h2>
       <Backup />
+    </section>
+
+    <section class="card">
+      <h2>つかわせて もらったもの</h2>
+      <ul class="credits">
+        <li>Informative Drawings（Caroline Chan、MIT）… ぬりえの AI の線画</li>
+        <li>onnxruntime-web（Microsoft、MIT）… AI を動かす</li>
+        <li>three.js（three.js authors、MIT）… 3D の画面</li>
+        <li>jsQR（Cosmo Wolfe ほか、Apache-2.0）… QR を読む</li>
+        <li>uqr（Project Nayuki、Anthony Fu、MIT）… QR を作る</li>
+      </ul>
+      <a href={asset('/licenses.txt')}>ライセンスの全文</a>
     </section>
   </div>
 </main>
