@@ -10,6 +10,8 @@
 </script>
 
 <script lang="ts">
+  import { saveImage } from '$lib/share';
+  import { album } from './album';
   import Board from './Board.svelte';
   import type { View } from './engine';
   import Face from './Face.svelte';
@@ -56,6 +58,20 @@
       </li>
     {/each}
   </ul>
+  {#if gallery.length}
+    <button
+      class="pill"
+      onclick={() =>
+        saveImage(
+          album(
+            gallery,
+            ranking.map((r) => ({ ...r, rank: rank(r.points) })),
+            looks
+          ),
+          'oekaki-mori.png'
+        )}>しゃしんに ほぞん</button
+    >
+  {/if}
   {#if host}
     <button class="pill gold" onclick={onagain}>あそびを えらぶ</button>
   {:else}
