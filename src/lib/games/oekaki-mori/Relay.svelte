@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { Party, Seat } from '$lib/net/party.svelte';
+  import { saveImage } from '$lib/share';
   import type { Entry, Task } from './relay';
+  import { relayAlbum } from './relay-album';
   import RelayPlay from './RelayPlay.svelte';
   import RelayReveal from './RelayReveal.svelte';
   import type { Ink } from './strokes';
@@ -14,6 +16,18 @@
   let task = $state.raw<Task>({ kind: 'wait' });
   let view = $state.raw<View>({ phase: 'play', step: 0, steps: 0, left: 0, done: [] });
   let pages = $state.raw<Page[]>([]);
+
+  /** めくったこまを、リレーごとに順に並べ直して 1 枚にする */
+  function save() {
+    const chains = [...new Set(pages.map((p) => p.chain))].sort((a, b) => a - b);
+    const columns = chains.map((c) =>
+      pages
+        .filter((p) => p.chain === c)
+        .sort((a, b) => a.index - b.index)
+        .map((p) => p.entry)
+    );
+    saveImage(relayAlbum(columns, looks), 'oekaki-relay.png');
+  }
 
   onMount(() =>
     party.onTell((m) => {
@@ -45,6 +59,6 @@
     {looks}
     onnext={() => party.act({ t: 'relayNext' })}
     {onagain}
-    onsave={() => {}}
+    onsave={save}
   />
 {/if}
