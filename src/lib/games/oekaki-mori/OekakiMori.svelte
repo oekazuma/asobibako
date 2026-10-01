@@ -3,10 +3,8 @@
   import { resolve } from '$app/paths';
   import { audio, toggleMute, wake } from '$lib/audio.svelte';
   import Icon from '$lib/components/Icon.svelte';
-  import type { Message } from '$lib/net/link';
   import { MISMATCH, type Party, type Seat } from '$lib/net/party.svelte';
-  import type { Bubble } from './Bubbles.svelte';
-  import type { Length, Mode, View } from './engine';
+  import type { Length, Mode } from './engine';
   import Invite from './Invite.svelte';
   import Lobby from './Lobby.svelte';
   import Menu from './Menu.svelte';
@@ -14,89 +12,36 @@
   import Play from './Play.svelte';
   import { readLength, saveLength } from './prefs';
   import { Referee } from './referee';
-  import Result, { type Drawing } from './Result.svelte';
+  import Result from './Result.svelte';
+  import { Round } from './round.svelte';
   import Together from './Together.svelte';
-  import { sounds } from './sounds';
-  import { catchUp, type Screen } from './sync';
-  import { apply, type Ink, type Stroke } from './strokes';
-  import { typed } from './typing';
+  import { catchUp } from './sync';
+  import type { Ink } from './strokes';
 
   let party = $state.raw<Party | null>(null);
-  let screen = $state<Screen>('lobby');
-  let view = $state.raw<View | null>(null);
-  let strokes = $state.raw<Stroke[]>([]);
-  let bubbles = $state.raw<Bubble[]>([]);
-  let gallery = $state.raw<Drawing[]>([]);
-  /** 当てる人ごとの打っている字。描く人にはそのまま、ほかの人には字数だけ届く */
-  let typing = $state.raw<Record<number, string>>({});
-  let close = $state(false);
+  const round = new Round();
   let inviting = $state(false);
   let length = $state<Length>(readLength());
   /** 親とのつながりが切れた子の、切れる前の番号。ロビーで「もういちど つなぐ」を出し、同じ番号で戻る */
   let was = $state<Seat>();
   let note = $state('');
   let referee: Referee | null = null;
-  let bubbleId = 0;
 
   function joined(next: Party) {
-    // 前のつながりの見え方が残ると、番が変わったとみなして送り直された絵を消してしまう
-    view = null;
-    strokes = [];
-    gallery = [];
-    typing = {};
-    bubbles = [];
+    round.reset();
     note = '';
     was = undefined;
     party = next;
-    next.onTell(receive);
+    next.onTell((m) => round.receive(m));
     if (next.host)
       next.onAct((m, from) => {
-        if (m.t === 'join') for (const message of catchUp(screen, strokes, gallery)) next.tell(from, message);
+        if (m.t !== 'join') return;
+        for (const message of catchUp(round.screen, round.strokes, round.gallery)) next.tell(from, message);
       });
   }
 
-  function receive(m: Message) {
-    if (m.t === 'screen') {
-      screen = m.screen as 'lobby' | 'mode' | 'together';
-      view = null;
-      strokes = [];
-      gallery = [];
-    } else if (m.t === 'view') show(m.view as View);
-    else if (m.t === 'ink') strokes = apply(strokes, m.ink as Ink);
-    else if (m.t === 'sync') {
-      strokes = m.strokes as Stroke[];
-      gallery = [];
-    } else if (m.t === 'drawing') gallery = [...gallery, m.drawing as Drawing];
-    else if (m.t === 'typing') typing = typed(typing, Number(m.seat), String(m.text));
-    else if (m.t === 'bubble') {
-      const b: Bubble = { id: ++bubbleId, seat: m.seat as Seat, text: String(m.text), note: m.note === true };
-      bubbles = [...bubbles.slice(-4), b];
-      setTimeout(() => (bubbles = bubbles.filter((x) => x !== b)), 3000);
-      sounds.wrong();
-    } else if (m.t === 'close') {
-      close = true;
-      setTimeout(() => (close = false), 1500);
-      sounds.close();
-    }
-  }
-
-  function show(next: View) {
-    const prev = view;
-    if (prev && next.turn !== prev.turn) {
-      strokes = [];
-      typing = {};
-      sounds.turn();
-    }
-    if (prev?.phase === 'draw' && next.phase === 'reveal')
-      gallery = [...gallery, { word: next.word ?? '', by: next.drawer, strokes }];
-    if (prev && next.solved.length > prev.solved.length) sounds.right();
-    if (prev && next.buzzer !== null && next.buzzer !== prev.buzzer) sounds.buzz();
-    view = next;
-    screen = next.phase === 'done' ? 'result' : 'play';
-  }
-
   function ink(i: Ink) {
-    strokes = apply(strokes, i);
+    round.ink(i);
     party?.act({ t: 'ink', ink: i });
   }
 
@@ -122,7 +67,7 @@
     was = party.mismatch ? undefined : party.me;
     note = party.mismatch ? MISMATCH : 'つながりが きれました';
     party = null;
-    screen = 'lobby';
+    round.screen = 'lobby';
   });
 
   onDestroy(() => {
@@ -135,27 +80,34 @@
 
 <!-- 当てる人は盤面に触れずに 50 音盤だけを押すので、どこに触れても音を起こす（iOS は操作の中でしか鳴らし始められない） -->
 <main class="stage mori" onpointerdown={wake}>
-  {#if screen === 'lobby' || !party}
+  {#if round.screen === 'lobby' || !party}
     <Lobby {party} {note} retry={was !== undefined} {was} onparty={joined} onstart={toMode} />
-  {:else if screen === 'mode'}
+  {:else if round.screen === 'mode'}
     <ModeSelect {party} onpick={begin} bind:length />
-  {:else if screen === 'together'}
+  {:else if round.screen === 'together'}
     <Together {party} onagain={toMode} />
-  {:else if screen === 'play' && view}
+  {:else if round.screen === 'play' && round.view}
     <Play
-      {view}
+      view={round.view}
       me={party.me}
-      {strokes}
-      {bubbles}
-      {close}
+      strokes={round.strokes}
+      bubbles={round.bubbles}
+      close={round.close}
       onink={ink}
       act={(m) => party?.act(m)}
-      {typing}
+      typing={round.typing}
       ontype={(text) => party?.act({ t: 'typing', text })}
       looks={party.looks}
     />
-  {:else if screen === 'result' && view}
-    <Result {view} me={party.me} {gallery} host={party.host} onagain={toMode} looks={party.looks} />
+  {:else if round.screen === 'result' && round.view}
+    <Result
+      view={round.view}
+      me={party.me}
+      gallery={round.gallery}
+      host={party.host}
+      onagain={toMode}
+      looks={party.looks}
+    />
   {/if}
   {#if party}
     <Menu {party} oninvite={() => (inviting = true)} />

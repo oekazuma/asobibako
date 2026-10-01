@@ -2,10 +2,17 @@
   import type { Seat } from '$lib/net/party.svelte';
   import type { Stroke } from './strokes';
 
+  export interface Miss {
+    by: Seat;
+    text: string;
+  }
+
   export interface Drawing {
     word: string;
     by: Seat;
     strokes: Stroke[];
+    /** その番に外れた答え */
+    misses: Miss[];
   }
 </script>
 

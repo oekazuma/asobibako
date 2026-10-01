@@ -5,7 +5,7 @@ describe('catchUp', () => {
   // DataChannel の 1 通には上限があり、絵をまとめて送ると越えることがある
   it('遊んでいるあいだは、いまの絵とこれまでの絵を 1 枚ずつ別の知らせで送る', () => {
     const strokes = [{ color: '#000', size: 0.01, pts: [0, 0] }];
-    const drawing = { word: 'いぬ', by: 1 as const, strokes };
+    const drawing = { word: 'いぬ', by: 1 as const, strokes, misses: [] };
     expect(catchUp('play', strokes, [drawing, drawing])).toEqual([
       { t: 'sync', strokes },
       { t: 'drawing', drawing },

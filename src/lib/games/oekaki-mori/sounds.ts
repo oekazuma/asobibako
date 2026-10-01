@@ -6,6 +6,7 @@ export const sounds = {
     tone(1047, 220, 'triangle', 0.14, 110);
   },
   close: () => tone(523, 160, 'sine', 0.12),
+  tick: (high: boolean) => tone(high ? 1319 : 988, 60, 'square', 0.05),
   wrong: () => tone(247, 110, 'square', 0.05),
   turn: () => sweep(440, 880, 220),
   buzz: () => {
