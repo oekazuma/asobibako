@@ -16,6 +16,8 @@
   let task = $state.raw<Task>({ kind: 'wait' });
   let view = $state.raw<View>({ phase: 'play', step: 0, steps: 0, left: 0, done: [] });
   let pages = $state.raw<Page[]>([]);
+  /** 受け持ちを受け取っただん。「できた」に付けて、遅れて届いたものを親が捨てられるようにする */
+  let step = 0;
 
   /** めくったこまを、リレーごとに順に並べ直して 1 枚にする */
   function save() {
@@ -31,8 +33,10 @@
 
   onMount(() =>
     party.onTell((m) => {
-      if (m.t === 'relayTask') task = m.task as Task;
-      else if (m.t === 'relayView') view = m as unknown as View;
+      if (m.t === 'relayTask') {
+        task = m.task as Task;
+        step = Number(m.step);
+      } else if (m.t === 'relayView') view = m as unknown as View;
       else if (m.t === 'relayPage') {
         const page = m as unknown as Page;
         // 戻った子への送り直しで同じこまが 2 度届いても、1 こまにまとめる
@@ -46,9 +50,9 @@
   <RelayPlay
     {task}
     {view}
-    {looks}
+    me={party.me}
     onink={(ink: Ink) => party.act({ t: 'ink', ink })}
-    ondone={(text?: string) => party.act({ t: 'relayDone', text })}
+    ondone={(text?: string) => party.act({ t: 'relayDone', step, text })}
     ontype={(text) => party.act({ t: 'typing', text })}
   />
 {:else}

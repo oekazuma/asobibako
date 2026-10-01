@@ -47,8 +47,8 @@ describe('RelayReferee', () => {
     const views = of(told, 'relayView').length;
     frame();
     expect(of(told, 'relayView').length).toBe(views);
-    act({ t: 'relayDone' }, 1);
-    act({ t: 'relayDone' }, 2);
+    act({ t: 'relayDone', step: 0 }, 1);
+    act({ t: 'relayDone', step: 0 }, 2);
     frame();
     const tasks = of(told, 'relayTask').map(([, m]) => (m.task as { kind: string }).kind);
     expect(tasks).toEqual(['draw', 'draw', 'guess', 'guess']);
@@ -59,8 +59,8 @@ describe('RelayReferee', () => {
     const { party, told, act } = fakeParty([1, 2]);
     new RelayReferee(party).start('short', null);
     for (let i = 0; i < 4; i++) {
-      act({ t: 'relayDone', text: 'くま' }, 1);
-      act({ t: 'relayDone', text: 'くま' }, 2);
+      act({ t: 'relayDone', step: i, text: 'くま' }, 1);
+      act({ t: 'relayDone', step: i, text: 'くま' }, 2);
       frame();
     }
     told.length = 0;
@@ -73,5 +73,37 @@ describe('RelayReferee', () => {
     act({ t: 'join' }, 2);
     const resent = of(told, 'relayPage').filter(([seat]) => seat === 2);
     expect(resent.map(([, m]) => m.index)).toEqual([0, 1, 2]);
+  });
+
+  // 二度押しや時間切れまぎわの「できた」が遅れて届くと、次のだんのこまを勝手に終わらせてしまう
+  it('いまのだんでない「できた」は受けない', () => {
+    frames.list = [];
+    const { party, told, act } = fakeParty([1, 2]);
+    new RelayReferee(party).start('short', null);
+    frame();
+    act({ t: 'relayDone', step: 0 }, 1);
+    act({ t: 'relayDone', step: 0 }, 2);
+    frame();
+    act({ t: 'relayDone', step: 0 }, 2);
+    act({ t: 'relayDone', step: 1, text: 'いぬ' }, 1);
+    frame();
+    const views = of(told, 'relayView').map(([, m]) => m);
+    expect(views.at(-1)).toMatchObject({ step: 1, done: [1] });
+  });
+
+  // 前のだんの打ちかけの字が残ると、何も打たなかった人の答えになってしまう
+  it('だんが替わったら、打ちかけの字を忘れる', () => {
+    frames.list = [];
+    const { party, told, act } = fakeParty([1, 2]);
+    new RelayReferee(party).start('short', null);
+    frame();
+    act({ t: 'typing', text: 'りん' }, 2);
+    act({ t: 'relayDone', step: 0 }, 1);
+    act({ t: 'relayDone', step: 0 }, 2);
+    frame();
+    act({ t: 'relayDone', step: 1, text: 'いぬ' }, 1);
+    frame(31);
+    const tasks = of(told, 'relayTask').filter(([seat, m]) => seat === 1 && m.step === 2);
+    expect((tasks[0][1].task as { word: string }).word).not.toBe('りん');
   });
 });

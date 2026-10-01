@@ -46,8 +46,11 @@ export class RelayReferee {
     if (!s) return;
     if (message.t === 'ink') addInk(s, from, message.ink as Ink);
     else if (message.t === 'typing') this.#typed[from] = String(message.text);
-    else if (message.t === 'relayDone') finish(s, from, message.text === undefined ? undefined : String(message.text));
-    else if (message.t === 'relayNext' && from === 1) next(s);
+    else if (message.t === 'relayDone') {
+      // 二度押しや時間切れまぎわの「できた」が遅れて届いても、次のだんのこまを終わらせない
+      if (Number(message.step) === s.step)
+        finish(s, from, message.text === undefined ? undefined : String(message.text));
+    } else if (message.t === 'relayNext' && from === 1) next(s);
     else if (message.t === 'leave') leave(s, from);
     else if (message.t === 'join') {
       rejoin(s, from);
@@ -78,6 +81,8 @@ export class RelayReferee {
     if (!s) return;
     if (s.phase === 'play' && s.step !== this.#step) {
       this.#step = s.step;
+      // 前のだんの打ちかけの字が、何も打たなかった人の答えにならないようにする
+      this.#typed = {};
       for (const seat of this.#party.members)
         this.#party.tell(seat, { t: 'relayTask', step: s.step, task: taskOf(s, seat) });
     }

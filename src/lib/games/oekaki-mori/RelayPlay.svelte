@@ -1,25 +1,35 @@
+<script module lang="ts">
+  import type { Task as T } from './relay';
+
+  const WAIT: T = { kind: 'wait' };
+</script>
+
 <script lang="ts">
   import Board from './Board.svelte';
   import KanaPad from './KanaPad.svelte';
+  import type { Seat } from '$lib/net/party.svelte';
   import type { Task } from './relay';
   import { apply, ERASER, PENS, SIZES, type Ink, type Stroke } from './strokes';
   import Tools from './Tools.svelte';
 
   let {
-    task,
+    task: given,
     view,
+    me,
     onink,
     ondone,
     ontype
   }: {
     task: Task;
-    view: { step: number; steps: number; left: number };
-    looks?: Record<number, string>;
+    view: { step: number; steps: number; left: number; done: Seat[] };
+    me: Seat;
     onink: (ink: Ink) => void;
     ondone: (text?: string) => void;
     ontype: (text: string) => void;
   } = $props();
 
+  /** できたを押した人は、次のだんの受け持ちが届くまで待つ。同じものを返して、毎秒の見え方で線が消えないようにする */
+  const task = $derived(given.kind !== 'wait' && view.done.includes(me) ? WAIT : given);
   let strokes = $state.raw<Stroke[]>([]);
   let color = $state<string>(PENS[0].hex);
   let size = $state(1);

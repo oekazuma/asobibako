@@ -1,17 +1,18 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { Seat } from '$lib/net/party.svelte';
 import type { Task } from './relay';
 import RelayPlay from './RelayPlay.svelte';
 
 vi.mock('$lib/audio.svelte', () => ({ wake: () => {} }));
-const view = { phase: 'play', step: 0, steps: 4, left: 40, done: [] };
 
-function show(task: Task) {
+function show(task: Task, done: Seat[] = []) {
+  const view = { phase: 'play', step: 0, steps: 4, left: 40, done };
   const ondone = vi.fn();
   const target = document.body.appendChild(document.createElement('div'));
   const app = mount(RelayPlay, {
     target,
-    props: { task, view, looks: {}, onink: () => {}, ondone, ontype: () => {} }
+    props: { task, view, me: 1, onink: () => {}, ondone, ontype: () => {} }
   });
   flushSync();
   return { app, target, ondone };
@@ -44,5 +45,13 @@ describe('RelayPlay', () => {
     const b = show({ kind: 'wait' });
     expect(b.target.textContent).toContain('まっています');
     unmount(b.app);
+  });
+
+  // できたを押したあとも盤面が残ると、描き足した線が次の人に届かず、見えている絵と食い違う
+  it('できたを押した人には、まっていますを出す', () => {
+    const { app, target } = show({ kind: 'draw', word: 'りんご' }, [1]);
+    expect(target.textContent).toContain('まっています');
+    expect([...target.querySelectorAll('button')].some((b) => b.textContent?.trim() === 'できた')).toBe(false);
+    unmount(app);
   });
 });
