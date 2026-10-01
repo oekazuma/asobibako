@@ -4,21 +4,25 @@ import { WORDS } from './words';
 
 export type Mode = 'egokoro' | 'hayaoshi';
 
-/** 描く時間。はやおし検定は早く押すほど点が高く、長く描かせる必要がない */
-export const DRAW_S: Record<Mode, number> = { egokoro: 90, hayaoshi: 60 };
+export type Length = 'short' | 'normal' | 'long';
+/** ひとりが描く回数と描く時間。はやおし検定は早く押すほど点が高く、長く描かせる必要がない */
+export const LENGTHS: Record<Length, { rounds: number; draw: Record<Mode, number> }> = {
+  short: { rounds: 1, draw: { egokoro: 60, hayaoshi: 45 } },
+  normal: { rounds: 2, draw: { egokoro: 90, hayaoshi: 60 } },
+  long: { rounds: 3, draw: { egokoro: 120, hayaoshi: 80 } }
+};
 /** お題を描く人に見せてから描き始めるまで */
 export const READY_S = 3;
 export const REVEAL_S = 3;
 /** はやおし検定で、押した人が候補を選ぶ時間 */
 export const ANSWER_S = 5;
-export const ROUNDS = 2;
 /** 残り秒がこれを切ったら 1 文字ずつ見せる（エゴコロクイズだけ） */
 export const HINTS = [45, 20] as const;
 export const POINTS = { first: 3, second: 2, drawer: 2 } as const;
-/** はやおし検定で、押したときの描く残り秒がこれ以上ならこの点 */
+/** はやおし検定で、押したときの描く残り時間が描く時間のこの割合以上ならこの点 */
 export const BUZZ_POINTS = [
-  [40, 3],
-  [20, 2],
+  [2 / 3, 3],
+  [1 / 3, 2],
   [0, 1]
 ] as const;
 
@@ -27,6 +31,7 @@ export type Phase = 'ready' | 'draw' | 'reveal' | 'done';
 /** 親だけが持つ。子へは view() で人ごとに見せる分だけを渡す */
 export interface Quiz {
   mode: Mode;
+  length: Length;
   players: Seat[];
   /** 抜けた人の点も結果に残すので、players とは別に持つ */
   scores: Record<number, number>;
@@ -90,13 +95,15 @@ export function create(
   players: Seat[],
   rand = Math.random,
   words: readonly string[] = WORDS,
-  mode: Mode = 'egokoro'
+  mode: Mode = 'egokoro',
+  length: Length = 'normal'
 ): Quiz {
   const s: Quiz = {
     mode,
+    length,
     players: [...players],
     scores: Object.fromEntries(players.map((p) => [p, 0])),
-    order: Array.from({ length: ROUNDS }, () => players).flat(),
+    order: Array.from({ length: LENGTHS[length].rounds }, () => players).flat(),
     turn: 0,
     phase: 'ready',
     left: 0,
@@ -117,7 +124,7 @@ export function create(
 export function start(s: Quiz, by: Seat): boolean {
   if (s.phase !== 'ready' || by !== drawer(s)) return false;
   s.phase = 'draw';
-  s.left = DRAW_S[s.mode];
+  s.left = LENGTHS[s.length].draw[s.mode];
   return true;
 }
 
@@ -173,7 +180,8 @@ export function answer(s: Quiz, by: Seat, index: number): 'right' | 'wrong' | nu
     return 'wrong';
   }
   s.solved = [by];
-  s.scores[by] += BUZZ_POINTS.find(([at]) => s.buzzedAt >= at)![1];
+  const ratio = s.buzzedAt / LENGTHS[s.length].draw[s.mode];
+  s.scores[by] += BUZZ_POINTS.find(([at]) => ratio >= at)![1];
   s.scores[drawer(s)] += POINTS.drawer;
   reveal(s);
   return 'right';

@@ -78,6 +78,8 @@ describe('backup', () => {
     localStorage.setItem('asobibako:menu-tab', '2');
     localStorage.setItem('asobibako:muted', '1');
     localStorage.setItem('asobibako:doodle-worm:look', 'yarn');
+    localStorage.setItem('asobibako:oekaki-mori:look', 'cat');
+    localStorage.setItem('asobibako:oekaki-mori:length', 'short');
     expect(hasRecords()).toBe(false);
     localStorage.setItem('asobibako:reached:maze', '5');
     expect(hasRecords()).toBe(true);

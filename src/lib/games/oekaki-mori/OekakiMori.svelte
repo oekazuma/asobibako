@@ -6,12 +6,13 @@
   import type { Message } from '$lib/net/link';
   import { MISMATCH, type Party, type Seat } from '$lib/net/party.svelte';
   import type { Bubble } from './Bubbles.svelte';
-  import type { Mode, View } from './engine';
+  import type { Length, Mode, View } from './engine';
   import Invite from './Invite.svelte';
   import Lobby from './Lobby.svelte';
   import Menu from './Menu.svelte';
   import ModeSelect from './ModeSelect.svelte';
   import Play from './Play.svelte';
+  import { readLength, saveLength } from './prefs';
   import { Referee } from './referee';
   import Result, { type Drawing } from './Result.svelte';
   import Together from './Together.svelte';
@@ -30,6 +31,7 @@
   let typing = $state.raw<Record<number, string>>({});
   let close = $state(false);
   let inviting = $state(false);
+  let length = $state<Length>(readLength());
   /** 親とのつながりが切れた子の、切れる前の番号。ロビーで「もういちど つなぐ」を出し、同じ番号で戻る */
   let was = $state<Seat>();
   let note = $state('');
@@ -103,7 +105,8 @@
     referee = null;
     if (mode === 'together') return party?.tell('all', { t: 'screen', screen: 'together' });
     referee = new Referee(party!);
-    referee.start(mode);
+    saveLength(length);
+    referee.start(mode, length);
   }
 
   function toMode() {
@@ -135,7 +138,7 @@
   {#if screen === 'lobby' || !party}
     <Lobby {party} {note} retry={was !== undefined} {was} onparty={joined} onstart={toMode} />
   {:else if screen === 'mode'}
-    <ModeSelect {party} onpick={begin} />
+    <ModeSelect {party} onpick={begin} bind:length />
   {:else if screen === 'together'}
     <Together {party} onagain={toMode} />
   {:else if screen === 'play' && view}

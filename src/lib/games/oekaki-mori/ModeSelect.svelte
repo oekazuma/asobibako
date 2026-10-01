@@ -1,9 +1,19 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon.svelte';
   import type { Party } from '$lib/net/party.svelte';
-  import type { Mode } from './engine';
+  import type { Length, Mode } from './engine';
 
-  let { party, onpick }: { party: Party; onpick: (mode: Mode | 'together') => void } = $props();
+  let {
+    party,
+    onpick,
+    length = $bindable('normal')
+  }: { party: Party; onpick: (mode: Mode | 'together') => void; length?: Length } = $props();
+
+  const LENGTH_NAMES = [
+    ['short', 'みじかめ'],
+    ['normal', 'ふつう'],
+    ['long', 'ながめ']
+  ] as const;
 
   const MODES = [
     { mode: 'egokoro', icon: 'pencil', name: 'エゴコロクイズ', note: 'ひとりが かいて、みんなで こたえを うつ' },
@@ -15,6 +25,11 @@
 <div class="mode">
   <h2 class="yuru">あそびかた</h2>
   {#if party.host}
+    <div class="lengths" role="group" aria-label="ながさ">
+      {#each LENGTH_NAMES as [id, name] (id)}
+        <button class="pill" aria-pressed={length === id} onclick={() => (length = id)}>{name}</button>
+      {/each}
+    </div>
     {#each MODES as m (m.mode)}
       <button class="pill gold choice" disabled={party.members.length < 2} onclick={() => onpick(m.mode)}>
         <Icon name={m.icon} size="40px" />
@@ -44,6 +59,15 @@
 
   h2 {
     font-size: clamp(26px, min(5cqh, 8cqw), 44px);
+  }
+
+  .lengths {
+    display: flex;
+    gap: 8px;
+  }
+
+  .lengths [aria-pressed='true'] {
+    --face: var(--pastel-gold);
   }
 
   .choice {

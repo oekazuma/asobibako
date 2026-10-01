@@ -22,8 +22,17 @@ const MAX_CHARS = 16 * 1024 * 1024;
 export const BACKUP_AT_KEY = 'asobibako:backup-at';
 // 書き出しには入れるが「記録がある」とは数えない。ゲームを開くだけ・好みを選ぶだけで書かれるので、これで記録ありとみなすと、
 // 消えたあとの起動で控えから戻さず、空に近い中身で控えを上書きしてしまう
-// 'asobibako:doodle-worm:look' はらくがきパレードの絵柄。ゲームの描画を全ページの入口に載せないよう、import せず名前で持つ
-const NOT_RECORDS = new Set([BACKUP_AT_KEY, RECENT_KEY, MENU_TAB_KEY, MUTED_KEY, 'asobibako:doodle-worm:look']);
+// 絵柄（らくがきパレード）と動物・遊ぶ長さ（おえかきのもり）も好みなので数えない。
+// ゲームの描画を全ページの入口に載せないよう、import せず名前で持つ
+const NOT_RECORDS = new Set([
+  BACKUP_AT_KEY,
+  RECENT_KEY,
+  MENU_TAB_KEY,
+  MUTED_KEY,
+  'asobibako:doodle-worm:look',
+  'asobibako:oekaki-mori:look',
+  'asobibako:oekaki-mori:length'
+]);
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const backedUp = (k: string) => k.startsWith(PREFIX) && !EXCLUDED.has(k);

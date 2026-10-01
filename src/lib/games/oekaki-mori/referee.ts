@@ -1,7 +1,21 @@
 import { animate } from '$lib/loop';
 import type { Message } from '$lib/net/link';
 import type { Party, Seat } from '$lib/net/party.svelte';
-import { answer, buzz, create, drawer, guess, leave, rejoin, start, tick, view, type Mode, type Quiz } from './engine';
+import {
+  answer,
+  buzz,
+  create,
+  drawer,
+  guess,
+  leave,
+  rejoin,
+  start,
+  tick,
+  view,
+  type Length,
+  type Mode,
+  type Quiz
+} from './engine';
 import { WORDS } from './words';
 
 /**
@@ -18,8 +32,8 @@ export class Referee {
     this.#party = party;
   }
 
-  start(mode: Mode): void {
-    this.#state = create(this.#party.members, Math.random, WORDS, mode);
+  start(mode: Mode, length: Length = 'normal'): void {
+    this.#state = create(this.#party.members, Math.random, WORDS, mode, length);
     this.#stop.push(
       this.#party.onAct((message, from) => this.#act(message, from)),
       animate((dt) => {

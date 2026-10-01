@@ -6,7 +6,7 @@ import {
   buzz,
   create,
   drawer,
-  DRAW_S,
+  LENGTHS,
   guess,
   leave,
   READY_S,
@@ -58,7 +58,7 @@ describe('start', () => {
     expect(start(s, 2)).toBe(false);
     expect(start(s, 1)).toBe(true);
     expect(s.phase).toBe('draw');
-    expect(s.left).toBe(DRAW_S.egokoro);
+    expect(s.left).toBe(LENGTHS.normal.draw.egokoro);
     expect(start(s, 1)).toBe(false);
   });
 
@@ -121,7 +121,7 @@ describe('tick', () => {
   it('残り 45 秒で 1 文字目、残り 20 秒でもう 1 文字を見せる', () => {
     const s = create([1, 2], fixed, ['らいおん', 'きりん']);
     go(s);
-    run(s, DRAW_S.egokoro - 45 - 0.5);
+    run(s, LENGTHS.normal.draw.egokoro - 45 - 0.5);
     expect(s.hints).toEqual([]);
     run(s, 1);
     expect(s.hints).toEqual([0]);
@@ -133,14 +133,14 @@ describe('tick', () => {
   it('2 文字のお題は 2 つ目のヒントを出さない', () => {
     const s = create([1, 2], fixed, ['ねこ', 'いぬ']);
     go(s);
-    run(s, DRAW_S.egokoro - 1);
+    run(s, LENGTHS.normal.draw.egokoro - 1);
     expect(s.hints).toEqual([0]);
   });
 
   it('時間切れで答えを見せ、3 秒後に次の人の番になる', () => {
     const s = game();
     go(s);
-    run(s, DRAW_S.egokoro + 0.5);
+    run(s, LENGTHS.normal.draw.egokoro + 0.5);
     expect(s.phase).toBe('reveal');
     run(s, REVEAL_S);
     expect(s.phase).toBe('ready');
@@ -155,7 +155,7 @@ describe('tick', () => {
     const seen: string[] = [];
     while (s.phase !== 'done') {
       seen.push(go(s));
-      run(s, DRAW_S.egokoro + REVEAL_S + 1);
+      run(s, LENGTHS.normal.draw.egokoro + REVEAL_S + 1);
     }
     expect(s.turn).toBe(4);
     expect(new Set(seen).size).toBe(seen.length);
@@ -166,7 +166,7 @@ describe('buzz と answer（はやおし検定）', () => {
   it('描く時間は 60 秒で、字数のヒントは出さない', () => {
     const s = hayaoshi();
     go(s);
-    expect(s.left).toBe(DRAW_S.hayaoshi);
+    expect(s.left).toBe(LENGTHS.normal.draw.hayaoshi);
     run(s, 50);
     expect(s.hints).toEqual([]);
     expect(view(s, 2).mask).toBe('');
@@ -270,7 +270,7 @@ describe('buzz と answer（はやおし検定）', () => {
   it('答えている途中で描く時間が切れたら、答えを待たずにターンを終える', () => {
     const s = hayaoshi();
     go(s);
-    run(s, DRAW_S.hayaoshi - 1);
+    run(s, LENGTHS.normal.draw.hayaoshi - 1);
     buzz(s, 2, fixed, WORDS);
     run(s, 1.5);
     expect(s.phase).toBe('reveal');
@@ -332,7 +332,7 @@ describe('view', () => {
     expect(view(s, 2).word).toBeNull();
     expect(view(s, 2).mask).toBe('○○○○');
     expect(JSON.stringify(view(s, 2))).not.toContain(word);
-    run(s, DRAW_S.egokoro - 44);
+    run(s, LENGTHS.normal.draw.egokoro - 44);
     expect(view(s, 3).mask).toBe('ら○○○');
     guess(s, 2, word);
     expect(view(s, 2).word).toBe(word);
@@ -349,7 +349,7 @@ describe('view', () => {
   it('答えを見せる時間は全員にお題を渡し、残り秒は切り上げる', () => {
     const s = game();
     go(s);
-    run(s, DRAW_S.egokoro + 0.5);
+    run(s, LENGTHS.normal.draw.egokoro + 0.5);
     expect(view(s, 3).word).toBe(s.word);
     expect(Number.isInteger(view(s, 3).left)).toBe(true);
   });
@@ -383,5 +383,28 @@ describe('rejoin', () => {
     rejoin(s, 3);
     expect(s.players).toEqual([1, 2, 3]);
     expect(s.scores[3]).toBe(0);
+  });
+});
+
+describe('length', () => {
+  it('みじかめは 1 回ずつ 60 秒、ながめは 3 回ずつ 120 秒', () => {
+    const short = create([1, 2], fixed, WORDS, 'egokoro', 'short');
+    expect(short.order).toEqual([1, 2]);
+    go(short);
+    expect(short.left).toBe(60);
+    const long = create([1, 2], fixed, WORDS, 'hayaoshi', 'long');
+    expect(long.order).toEqual([1, 2, 1, 2, 1, 2]);
+    go(long);
+    expect(long.left).toBe(80);
+  });
+
+  // 描く時間が長さで変わるので、はやおしの点は残り秒ではなく描く時間に対する割合で決める
+  it('はやおし検定の点は、描く時間の 2/3 以上残っていれば 3 点、1/3 以上なら 2 点', () => {
+    const s = create([1, 2], fixed, WORDS, 'hayaoshi', 'long');
+    go(s);
+    run(s, 80 / 3 + 1);
+    buzz(s, 2, fixed, WORDS);
+    answer(s, 2, s.options.indexOf(s.word));
+    expect(s.scores[2]).toBe(2);
   });
 });
