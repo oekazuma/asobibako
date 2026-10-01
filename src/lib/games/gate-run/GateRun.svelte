@@ -55,6 +55,8 @@
         gravity: h * 0.8
       });
     } else if (event.type === 'bump') {
+      // 門の数・撃ち倒す・ぶつかるの音と火花は、人数が多いと毎秒何十回も出るので間引く
+      if (hits++ % 3 !== 0) return;
       sounds.bump();
       const [x, y] = project(v, event.x, zOf(game, event.at));
       particles.burst(x, y - h * 0.05, {
@@ -65,7 +67,6 @@
         life: 0.3
       });
     } else if (event.type === 'kill') {
-      // 撃ち倒す音と火花は毎回だと多すぎるので間引く
       if (hits++ % 2 !== 0) return;
       sounds.pop();
       const [x, y, s] = project(v, event.x, zOf(game, event.at));
@@ -77,7 +78,6 @@
         life: 0.35,
         gravity: h * 0.6
       });
-      if (event.boss) shake.add(0.05);
     } else if (event.type === 'loot') {
       sounds.loot();
       const [x, y] = project(v, event.x, zOf(game, event.at));
