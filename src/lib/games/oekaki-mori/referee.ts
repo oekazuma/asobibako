@@ -12,11 +12,15 @@ import {
   start,
   tick,
   view,
+  type Chars,
   type Length,
   type Mode,
   type Quiz
 } from './engine';
 import { WORDS } from './words';
+
+/** 1 人がスタンプを続けて送れる間隔 */
+const STAMP_MS = 1500;
 
 /**
  * 親の端末だけで動く。遊ぶ人の操作を受けてルールを進め、人ごとの見え方を配る。
@@ -27,13 +31,16 @@ export class Referee {
   #state: Quiz | null = null;
   #sent = new Map<Seat, string>();
   #stop: (() => void)[] = [];
+  readonly #now: () => number;
+  #stamped = new Map<Seat, number>();
 
-  constructor(party: Party) {
+  constructor(party: Party, now: () => number = () => performance.now()) {
     this.#party = party;
+    this.#now = now;
   }
 
-  start(mode: Mode, length: Length = 'normal'): void {
-    this.#state = create(this.#party.members, Math.random, WORDS, mode, length);
+  start(mode: Mode, length: Length = 'normal', chars: Chars = null): void {
+    this.#state = create(this.#party.members, Math.random, WORDS, mode, length, chars);
     this.#stop.push(
       this.#party.onAct((message, from) => this.#act(message, from)),
       animate((dt) => {
@@ -74,6 +81,7 @@ export class Referee {
       // 戻った子の画面は何も持っていないので、前に送った見え方と同じでも送り直す
       this.#sent.delete(from);
     } else if (message.t === 'typing') return this.#typing(s, from, String(message.text));
+    else if (message.t === 'stamp') return this.#stamp(s, from, String(message.id));
     else if (message.t === 'leave') {
       leave(s, from);
       // 打っている途中で切れた人の ● が、番の終わりまで残らないようにする
@@ -87,6 +95,15 @@ export class Referee {
    * 描く人には打っている字をそのまま、ほかの当てる人には字数だけ見せる（字が見えると答えがばれる）。
    * 空の字は、当てたあとや描く時間のあとでも配る。50 音盤は答えを送ってから空を知らせるので、捨てると ● が残る
    */
+  /** 当てる人のスタンプを全員へ配る。小さい子の連打で画面が埋まらないよう、1 人 1.5 秒に 1 つまで */
+  #stamp(s: Quiz, from: Seat, id: string) {
+    if (s.phase !== 'draw' || from === drawer(s)) return;
+    const now = this.#now();
+    if (now - (this.#stamped.get(from) ?? -Infinity) < STAMP_MS) return;
+    this.#stamped.set(from, now);
+    this.#party.tell('all', { t: 'stamp', seat: from, id });
+  }
+
   #typing(s: Quiz, from: Seat, text: string) {
     if (s.mode !== 'egokoro' || from === drawer(s)) return;
     if (text && (s.phase !== 'draw' || s.solved.includes(from))) return;

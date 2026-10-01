@@ -86,4 +86,32 @@ describe('Referee', () => {
       [2, 3, '']
     ]);
   });
+
+  it('スタンプは描く時間に当てる人のものだけを全員へ配り、同じ人の 1.5 秒以内の 2 つ目は配らない', () => {
+    const { party, told, act } = fakeParty([1, 2, 3]);
+    let now = 0;
+    new Referee(party, () => now).start('egokoro');
+    act({ t: 'stamp', id: 'like' }, 2);
+    act({ t: 'start' }, 1);
+    told.length = 0;
+    act({ t: 'stamp', id: 'like' }, 2);
+    now = 1000;
+    act({ t: 'stamp', id: 'wow' }, 2);
+    act({ t: 'stamp', id: 'wow' }, 1);
+    now = 1600;
+    act({ t: 'stamp', id: 'huh' }, 2);
+    act({ t: 'stamp', id: 'nope' }, 3);
+    const stamps = told.filter(([, m]) => m.t === 'stamp').map(([seat, m]) => [seat, m.seat, m.id]);
+    expect(stamps).toEqual([
+      [1, 2, 'like'],
+      [2, 2, 'like'],
+      [3, 2, 'like'],
+      [1, 2, 'huh'],
+      [2, 2, 'huh'],
+      [3, 2, 'huh'],
+      [1, 3, 'nope'],
+      [2, 3, 'nope'],
+      [3, 3, 'nope']
+    ]);
+  });
 });

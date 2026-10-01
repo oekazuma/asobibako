@@ -1,4 +1,4 @@
-import type { Length } from './engine';
+import type { Chars, Length } from './engine';
 import { LOOKS, type Look } from './looks';
 
 export const LENGTH_KEY = 'asobibako:oekaki-mori:length';
@@ -42,5 +42,25 @@ export function saveLook(look: Look): void {
     localStorage.setItem(LOOK_KEY, look);
   } catch {
     // 覚えられなくても、この回は選んだ動物で遊べる
+  }
+}
+
+export const CHARS_KEY = 'asobibako:oekaki-mori:chars';
+
+/** 前に選んだお題の字数の上限。読めないときは ぜんぶ */
+export function readChars(): Chars {
+  try {
+    const v = localStorage.getItem(CHARS_KEY);
+    return v === '3' ? 3 : v === '4' ? 4 : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveChars(chars: Chars): void {
+  try {
+    localStorage.setItem(CHARS_KEY, String(chars ?? 'all'));
+  } catch {
+    // 覚えられなくても、選んだ字数で遊べる
   }
 }

@@ -31,7 +31,8 @@ const NOT_RECORDS = new Set([
   MUTED_KEY,
   'asobibako:doodle-worm:look',
   'asobibako:oekaki-mori:look',
-  'asobibako:oekaki-mori:length'
+  'asobibako:oekaki-mori:length',
+  'asobibako:oekaki-mori:chars'
 ]);
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);

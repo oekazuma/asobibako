@@ -5,6 +5,15 @@ import { WORDS } from './words';
 export type Mode = 'egokoro' | 'hayaoshi';
 
 export type Length = 'short' | 'normal' | 'long';
+/** お題の字数の上限。null は ぜんぶ。小さい字と「ー」も 1 字に数える */
+export type Chars = 3 | 4 | null;
+
+/** 字数で絞ったお題。絞ると 1 つも残らないときは絞らない */
+export function fit(words: readonly string[], chars: Chars): readonly string[] {
+  if (chars === null) return words;
+  const kept = words.filter((w) => [...w].length <= chars);
+  return kept.length ? kept : words;
+}
 /** ひとりが描く回数と描く時間。はやおし検定は早く押すほど点が高く、長く描かせる必要がない */
 export const LENGTHS: Record<Length, { rounds: number; draw: Record<Mode, number> }> = {
   short: { rounds: 1, draw: { egokoro: 60, hayaoshi: 45 } },
@@ -16,8 +25,11 @@ export const READY_S = 3;
 export const REVEAL_S = 3;
 /** はやおし検定で、押した人が候補を選ぶ時間 */
 export const ANSWER_S = 5;
-/** 残り秒がこれを切ったら 1 文字ずつ見せる（エゴコロクイズだけ） */
-export const HINTS = [45, 20] as const;
+/** 描く時間に対するこの割合が残ったら 1 文字ずつ見せる（エゴコロクイズだけ）。ふつうの 90 秒では残り 45 秒と 20 秒 */
+export const HINTS = [
+  [1, 2],
+  [2, 9]
+] as const;
 export const POINTS = { first: 3, second: 2, drawer: 2 } as const;
 /** はやおし検定で、押したときの描く残り時間が描く時間のこの割合以上ならこの点 */
 export const BUZZ_POINTS = [
@@ -32,6 +44,7 @@ export type Phase = 'ready' | 'draw' | 'reveal' | 'done';
 export interface Quiz {
   mode: Mode;
   length: Length;
+  chars: Chars;
   players: Seat[];
   /** 抜けた人の点も結果に残すので、players とは別に持つ */
   scores: Record<number, number>;
@@ -64,10 +77,11 @@ export function drawer(s: Quiz): Seat {
 const guessers = (s: Quiz) => s.players.filter((p) => p !== drawer(s));
 
 function pickWord(s: Quiz, rand: () => number, words: readonly string[]): string {
-  let pool = words.filter((w) => !s.used.includes(w));
+  const all = fit(words, s.chars);
+  let pool = all.filter((w) => !s.used.includes(w));
   if (!pool.length) {
     s.used = [];
-    pool = [...words];
+    pool = [...all];
   }
   const word = pool[Math.floor(rand() * pool.length)];
   s.used.push(word);
@@ -96,11 +110,13 @@ export function create(
   rand = Math.random,
   words: readonly string[] = WORDS,
   mode: Mode = 'egokoro',
-  length: Length = 'normal'
+  length: Length = 'normal',
+  chars: Chars = null
 ): Quiz {
   const s: Quiz = {
     mode,
     length,
+    chars,
     players: [...players],
     scores: Object.fromEntries(players.map((p) => [p, 0])),
     order: Array.from({ length: LENGTHS[length].rounds }, () => players).flat(),
@@ -153,9 +169,12 @@ export function buzz(s: Quiz, by: Seat, rand = Math.random, words: readonly stri
   s.buzzer = by;
   s.answerLeft = ANSWER_S;
   s.buzzedAt = s.left;
-  const pool = words.filter((w) => w !== s.word);
+  // 字数で絞った中から選び、足りなければ全体から足す（候補が 4 つに満たないと、残った 1 つで答えが分かる）
+  const near = fit(words, s.chars).filter((w) => w !== s.word);
+  const far = words.filter((w) => w !== s.word && !near.includes(w));
   const options = [s.word];
-  while (options.length < 4 && pool.length) options.push(pool.splice(Math.floor(rand() * pool.length), 1)[0]);
+  for (const pool of [near.slice(), far.slice()])
+    while (options.length < 4 && pool.length) options.push(pool.splice(Math.floor(rand() * pool.length), 1)[0]);
   // 正解の位置で見当がつかないよう、毎回並びを混ぜる
   for (let i = options.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
@@ -202,8 +221,11 @@ export function tick(s: Quiz, dt: number, rand = Math.random, words: readonly st
   let late: Seat | null = null;
   if (s.mode === 'egokoro') {
     const n = [...s.word].length;
-    if (s.hints.length === 0 && s.left <= HINTS[0]) s.hints.push(0);
-    if (s.hints.length === 1 && s.left <= HINTS[1] && n > 2) s.hints.push(1 + Math.floor(rand() * (n - 1)));
+    const draw = LENGTHS[s.length].draw[s.mode];
+    // 割り算を後にして、ふつうでぴったり 45 と 20 になるようにする
+    const at = ([num, den]: readonly [number, number]) => (draw * num) / den;
+    if (s.hints.length === 0 && s.left <= at(HINTS[0])) s.hints.push(0);
+    if (s.hints.length === 1 && s.left <= at(HINTS[1]) && n > 2) s.hints.push(1 + Math.floor(rand() * (n - 1)));
   } else if (s.buzzer !== null) {
     s.answerLeft -= dt;
     if (s.answerLeft <= 0) {

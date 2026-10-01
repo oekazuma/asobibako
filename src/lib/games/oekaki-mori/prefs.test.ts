@@ -1,5 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { LENGTH_KEY, LOOK_KEY, readLength, readLook, saveLength, saveLook } from './prefs';
+import {
+  CHARS_KEY,
+  LENGTH_KEY,
+  LOOK_KEY,
+  readChars,
+  readLength,
+  readLook,
+  saveChars,
+  saveLength,
+  saveLook
+} from './prefs';
 
 const store = new Map<string, string>();
 vi.stubGlobal('localStorage', {
@@ -30,5 +40,20 @@ describe('look prefs', () => {
     expect(readLook()).toBe('bear');
     store.set(LOOK_KEY, 'dragon');
     expect(readLook(() => 0)).toBe('rabbit');
+  });
+});
+
+describe('chars prefs', () => {
+  beforeEach(() => store.clear());
+
+  it('選んだ字数を覚え、知らない値や無いときは ぜんぶ', () => {
+    expect(readChars()).toBeNull();
+    saveChars(3);
+    expect(store.get(CHARS_KEY)).toBe('3');
+    expect(readChars()).toBe(3);
+    saveChars(null);
+    expect(readChars()).toBeNull();
+    store.set(CHARS_KEY, '9');
+    expect(readChars()).toBeNull();
   });
 });

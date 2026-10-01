@@ -6,6 +6,7 @@ import {
   buzz,
   create,
   drawer,
+  fit,
   LENGTHS,
   guess,
   leave,
@@ -406,5 +407,43 @@ describe('length', () => {
     buzz(s, 2, fixed, WORDS);
     answer(s, 2, s.options.indexOf(s.word));
     expect(s.scores[2]).toBe(2);
+  });
+});
+
+describe('chars', () => {
+  it('3 もじまでなら、お題に 4 文字以上の言葉を出さない', () => {
+    const s = create([1, 2], Math.random, WORDS, 'egokoro', 'long', 3);
+    for (let i = 0; i < 6; i++) {
+      expect([...s.word].length).toBeLessThanOrEqual(3);
+      go(s);
+      run(s, LENGTHS.long.draw.egokoro + REVEAL_S + 1);
+      if (s.phase === 'done') break;
+    }
+  });
+
+  it('はやおし検定の候補も字数で絞り、足りないときは全体から足して 4 つにする', () => {
+    const words = ['ねこ', 'いぬ', 'らいおん', 'きりん', 'ぺんぎん'];
+    const s = create([1, 2], fixed, words, 'hayaoshi', 'normal', 3);
+    go(s);
+    buzz(s, 2, fixed, words);
+    expect(s.options).toHaveLength(4);
+    expect(s.options).toContain(s.word);
+  });
+
+  it('絞ると空になるときは、絞らない', () => {
+    expect(fit(['らいおん'], 3)).toEqual(['らいおん']);
+    expect(fit(['ねこ', 'らいおん'], 3)).toEqual(['ねこ']);
+    expect(fit(['ねこ', 'らいおん'], null)).toEqual(['ねこ', 'らいおん']);
+  });
+});
+
+describe('hints by length', () => {
+  it('みじかめは残り 30 秒で 1 文字目を見せる', () => {
+    const s = create([1, 2], fixed, WORDS, 'egokoro', 'short');
+    go(s);
+    run(s, 60 - 30 - 0.5);
+    expect(s.hints).toEqual([]);
+    run(s, 1);
+    expect(s.hints).toEqual([0]);
   });
 });

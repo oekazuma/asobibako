@@ -80,6 +80,7 @@ describe('backup', () => {
     localStorage.setItem('asobibako:doodle-worm:look', 'yarn');
     localStorage.setItem('asobibako:oekaki-mori:look', 'cat');
     localStorage.setItem('asobibako:oekaki-mori:length', 'short');
+    localStorage.setItem('asobibako:oekaki-mori:chars', '3');
     expect(hasRecords()).toBe(false);
     localStorage.setItem('asobibako:reached:maze', '5');
     expect(hasRecords()).toBe(true);
