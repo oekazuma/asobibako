@@ -227,4 +227,29 @@ describe('Party', () => {
     expect(host.looks).toEqual({ 1: 'cat', 2: 'rabbit' });
     expect(g.looks).toEqual({ 1: 'cat', 2: 'rabbit' });
   });
+
+  // send は非同期なので、知らせてすぐ閉じると理由が届かない
+  it('断るときは、理由を送ってから少し待って閉じる', async () => {
+    vi.useFakeTimers();
+    const host = Party.host();
+    const [a, a2] = pipes();
+    let closed = false;
+    a2.closed.then(() => (closed = true));
+    a2.send({ t: 'hello', v: PROTOCOL - 1, was: null, look: null });
+    expect(await host.add(a)).toBe('mismatch');
+    await Promise.resolve();
+    expect(closed).toBe(false);
+    vi.advanceTimersByTime(1000);
+    await Promise.resolve();
+    expect(closed).toBe(true);
+    vi.useRealTimers();
+  });
+
+  // 閉じたことが子に伝わるのを待つと、iOS では 30 秒ほど何も出ない
+  it('子は mismatch を受け取ったら、すぐ lost にする', () => {
+    const [a, a2] = pipes();
+    const g = Party.guest(a2);
+    a.send({ t: 'mismatch' });
+    expect(g.lost).toBe(true);
+  });
 });

@@ -16,6 +16,8 @@ export const PROTOCOL = 3;
 export const MISMATCH = 'アプリの はんが ちがうよ。どちらも さいしんに してね';
 /** 子の hello を待つ長さ。古い版の子は hello を送らない */
 const HELLO_MS = 3000;
+/** 断る理由を送ってから閉じるまで */
+const CLOSE_AFTER_MS = 1000;
 
 type ActListener = (message: Message, from: Seat) => void;
 type TellListener = (message: Message) => void;
@@ -60,8 +62,12 @@ export class Party {
       else if (message.t === 'members') {
         party.members = message.members as Seat[];
         party.looks = (message.looks ?? {}) as Record<number, string>;
-      } else if (message.t === 'mismatch') party.mismatch = true;
-      else for (const listener of party.#tells) listener(message);
+      } else if (message.t === 'mismatch') {
+        // 親が閉じたことが伝わるのを待つと、iOS では 30 秒ほど何も出ない
+        party.mismatch = true;
+        party.lost = true;
+        pipe.close();
+      } else for (const listener of party.#tells) listener(message);
     });
     pipe.closed.then(() => (party.lost = true));
     pipe.send({ t: 'hello', v: PROTOCOL, was: hello.was ?? null, look: hello.look ?? null });
@@ -83,7 +89,8 @@ export class Party {
       const refuse = () => {
         greeted = true;
         pipe.send({ t: 'mismatch' });
-        pipe.close();
+        // send は非同期で、すぐ閉じると理由が子に届く前に捨てられる
+        setTimeout(() => pipe.close(), CLOSE_AFTER_MS);
         resolve('mismatch');
       };
       const timer = setTimeout(() => !greeted && refuse(), HELLO_MS);

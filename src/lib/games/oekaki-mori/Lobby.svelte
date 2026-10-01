@@ -33,14 +33,18 @@
   const SEATS: Seat[] = [1, 2, 3];
 
   async function linked(link: Link) {
-    const as = joining;
-    joining = null;
-    if (as === 'host') {
+    if (joining === 'host') {
       const p = party ?? Party.host(look);
-      if ((await p.add(link)) === 'mismatch') failed = MISMATCH;
+      // hello を待つあいだも QR の手順の画面のままにする。ロビーに戻すと、もう一度よべて親が 2 つできる
+      const seat = await p.add(link);
+      joining = null;
+      if (seat === 'mismatch') failed = MISMATCH;
       // 最初の子を断ったら、誰もいない Party でロビーを進めない
       else if (!party) onparty(p);
-    } else onparty(Party.guest(link, { was, look }));
+    } else {
+      joining = null;
+      onparty(Party.guest(link, { was, look }));
+    }
   }
 
   function join(as: 'host' | 'guest') {
