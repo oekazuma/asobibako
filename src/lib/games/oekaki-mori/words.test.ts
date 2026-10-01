@@ -2,8 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { WORDS } from './words';
 
 describe('WORDS', () => {
-  it('150 語以上ある', () => {
-    expect(WORDS.length).toBeGreaterThanOrEqual(150);
+  it('380 語以上あり、3 もじまでで 200 語以上残る', () => {
+    expect(WORDS.length).toBeGreaterThanOrEqual(380);
+    expect(WORDS.filter((w) => [...w].length <= 3).length).toBeGreaterThanOrEqual(200);
+  });
+
+  it('4 もじまでで 300 語以上残る', () => {
+    expect(WORDS.filter((w) => [...w].length <= 4).length).toBeGreaterThanOrEqual(300);
   });
 
   it('ひらがなと「ー」だけで、2 文字以上', () => {
