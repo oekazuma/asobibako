@@ -54,6 +54,16 @@ describe('closeGaps', () => {
     expect([...closeGaps(m, N, N, 16)]).toEqual([...m]);
   });
 
+  // 片方が長くても、短いほうの端から長いほうの横腹へつないで細い場所の口をふさがない
+  it('長さのちがう並んだ 2 本の線も、横どうしではつながない', () => {
+    for (const extra of [8, 12, 16]) {
+      const m = blank();
+      line(m, 20, 50, 90, 50);
+      line(m, 20, 62, 90 + extra, 62);
+      expect([...closeGaps(m, N, N, 16)], `${extra}`).toEqual([...m]);
+    }
+  });
+
   it('もとの線は消さない', () => {
     const m = ring(10);
     const out = closeGaps(m, N, N, 16);

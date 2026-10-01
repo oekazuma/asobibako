@@ -29,15 +29,26 @@
     return f ? [f.x, f.y] : [0, 0];
   };
 
+  /** 残っている指から 2 本を選び、いまの見え方からつまみ始める */
+  function pair() {
+    const ids = [...input.fingers.all.keys()];
+    if (ids.length < 2) return (pinching = null);
+    const two: [number, number] = [ids[0], ids[1]];
+    pinching = { view, ids: two, at: [point(two[0]), point(two[1])] };
+  }
+
   const input = new BoardInput({
     // 触れた瞬間に塗ると、2 本指でつまむときの 1 本目で塗れてしまうので、離したときに塗る
     down: (event, x, y) => {
-      const ids = [...input.fingers.all.keys()];
-      if (ids.length === 1) tap = { id: event.pointerId, x, y };
-      else {
+      // 1 本目の指が触れたのに前の指が残っているのは、離した知らせを取りこぼしたとき。残ったままだと二度と塗れない
+      if (event.isPrimary)
+        for (const id of [...input.fingers.all.keys()]) if (id !== event.pointerId) input.fingers.all.delete(id);
+      if (input.fingers.all.size === 1) {
+        tap = { id: event.pointerId, x, y };
+        pinching = null;
+      } else {
         tap = null;
-        const pair: [number, number] = [ids[0], ids[1]];
-        pinching = { view, ids: pair, at: [point(pair[0]), point(pair[1])] };
+        if (!pinching) pair();
       }
     },
     move: (event, x, y) => {
@@ -46,11 +57,12 @@
       view = pinch(pinching.view, pinching.at[0], pinching.at[1], point(pinching.ids[0]), point(pinching.ids[1]));
     },
     up: (event, _finger, x, y) => {
-      if (pinching?.ids.includes(event.pointerId)) pinching = null;
+      if (pinching?.ids.includes(event.pointerId)) pair();
       if (!tap || event.pointerId !== tap.id) return;
       const start = tap;
       tap = null;
-      if (Math.hypot(x - start.x, y - start.y) > TAP) return;
+      // iOS が取り消した指（端からのジェスチャーや手のひら）は、塗るつもりで触れた指ではない
+      if (event.type === 'pointercancel' || Math.hypot(x - start.x, y - start.y) > TAP) return;
       const [cx, cy] = toContent(view, x, y);
       const region = regionAt(regions, Math.floor(cx * SIZE), Math.floor(cy * SIZE));
       if (region >= 0) onfill(region);
@@ -72,6 +84,8 @@
   $effect.pre(() => {
     void art;
     view = FULL;
+    tap = null;
+    pinching = null;
   });
 
   $effect(() => {
@@ -101,7 +115,7 @@
     <canvas bind:this={canvas}></canvas>
   </div>
   {#if view.scale > 1}
-    <!-- 盤面の外に置く。盤面の上だと押した指が塗りの指として拾われる -->
+    <!-- 盤面の外（上）に置く。盤面の上だと隅が押せず、つまんで離した指に iOS が合成 click を当てることもある -->
     <button class="pill reset" onclick={() => (view = FULL)}>もとに もどす</button>
   {/if}
 </div>
@@ -111,10 +125,11 @@
     position: relative;
   }
 
+  /* 上の隅の ↻ と、真ん中の「せんを なおす」のあいだ */
   .reset {
     position: absolute;
-    top: 8px;
-    right: 8px;
+    bottom: calc(100% + 8px);
+    right: 56px;
     padding: 6px 14px;
     font-size: 14px;
   }

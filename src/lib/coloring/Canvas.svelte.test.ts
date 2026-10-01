@@ -1,4 +1,4 @@
-import { flushSync, mount, unmount } from 'svelte';
+import { flushSync, mount, unmount, type ComponentProps } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Canvas from './Canvas.svelte';
 import { label, SIZE } from './regions';
@@ -19,18 +19,32 @@ function show() {
   const regions = halves();
   const onfill = vi.fn();
   const target = document.body.appendChild(document.createElement('div'));
-  const app = mount(Canvas, {
-    target,
-    props: { art: { kind: 'photo', mask: new Uint8Array(0) }, regions, colors: {}, onfill }
+  const props = $state<ComponentProps<typeof Canvas>>({
+    art: { kind: 'photo', mask: new Uint8Array(0) },
+    regions,
+    colors: {},
+    onfill
   });
+  const app = mount(Canvas, { target, props });
   flushSync();
   const sheet = target.querySelector('.sheet')!;
-  const fire = (type: string, id: number, x: number) =>
+  const fire = (type: string, id: number, x: number, isPrimary = false) =>
     sheet.dispatchEvent(
-      new PointerEvent(type, { pointerId: id, pointerType: 'touch', clientX: x * 100, clientY: 50, bubbles: true })
+      new PointerEvent(type, {
+        pointerId: id,
+        pointerType: 'touch',
+        isPrimary,
+        clientX: x * 100,
+        clientY: 50,
+        bubbles: true
+      })
     );
   const side = (x: number) => regions.labels[(SIZE / 2) * SIZE + Math.floor(x * SIZE)];
-  return { app, target, onfill, fire, side };
+  const zoomed = () => {
+    flushSync();
+    return target.textContent?.includes('もとに もどす');
+  };
+  return { app, props, target, onfill, fire, side, zoomed };
 }
 
 describe('Canvas', () => {
@@ -105,6 +119,49 @@ describe('Canvas', () => {
     fire('pointermove', 1, 0.3);
     fire('pointerup', 1, 0.3);
     expect(onfill).not.toHaveBeenCalled();
+    unmount(app);
+  });
+
+  // 端からのジェスチャーや手のひらで iOS が取り消した指は、触れたつもりのない指なので塗らない
+  it('取り消された指では塗らない', () => {
+    const { app, onfill, fire } = show();
+    fire('pointerdown', 1, 0.6);
+    fire('pointercancel', 1, 0.6);
+    expect(onfill).not.toHaveBeenCalled();
+    unmount(app);
+  });
+
+  // 離した知らせを取りこぼした指が残っても、次に 1 本で触れたら塗れる
+  it('新しく 1 本目の指が触れたら、残っていた指を忘れる', () => {
+    const { app, onfill, fire, side } = show();
+    fire('pointerdown', 1, 0.2, true);
+    fire('pointerdown', 2, 0.6, true);
+    fire('pointerup', 2, 0.6, true);
+    expect(onfill).toHaveBeenCalledWith(side(0.6));
+    unmount(app);
+  });
+
+  it('3 本指からつまんでいる指を 1 本離しても、残りの 2 本でつまみ続ける', () => {
+    const { app, fire, zoomed } = show();
+    fire('pointerdown', 1, 0.4);
+    fire('pointerdown', 2, 0.6);
+    fire('pointerdown', 3, 0.8);
+    fire('pointerup', 1, 0.4);
+    fire('pointermove', 3, 0.95);
+    expect(zoomed()).toBe(true);
+    unmount(app);
+  });
+
+  it('つまんでいる途中で絵が替わったら、前の絵の拡大を持ちこまない', () => {
+    const { app, props, fire, zoomed } = show();
+    fire('pointerdown', 1, 0.4);
+    fire('pointerdown', 2, 0.6);
+    fire('pointermove', 2, 0.8);
+    expect(zoomed()).toBe(true);
+    props.art = { kind: 'photo', mask: new Uint8Array(0) };
+    flushSync();
+    fire('pointermove', 2, 0.9);
+    expect(zoomed()).toBe(false);
     unmount(app);
   });
 });
