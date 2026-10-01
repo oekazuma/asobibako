@@ -19,4 +19,11 @@ describe('layout', () => {
       for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) expect(overlap(cells[i], cells[j])).toBe(false);
     }
   });
+
+  it('まちがい答えの行があっても、絵とまちがい答えが重ならない', () => {
+    const plain = layout(4);
+    const tall = layout(4, 3);
+    expect(tall.height).toBeGreaterThan(plain.height);
+    expect(tall.cells[2].y - tall.cells[0].y).toBeGreaterThan(plain.cells[2].y - plain.cells[0].y);
+  });
 });

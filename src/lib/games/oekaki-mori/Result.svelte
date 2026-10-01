@@ -22,6 +22,7 @@
   import Board from './Board.svelte';
   import type { View } from './engine';
   import Face from './Face.svelte';
+  import { who } from './looks';
 
   let {
     view,
@@ -62,6 +63,11 @@
       <li>
         <div class="thumb"><Board strokes={d.strokes} /></div>
         <span><Face seat={d.by} look={looks[d.by]} />「{d.word}」</span>
+        {#if d.misses.length}
+          <ul class="misses">
+            {#each d.misses as m (m)}<li>{who(m.by, looks)}「{m.text}」</li>{/each}
+          </ul>
+        {/if}
       </li>
     {/each}
   </ul>
@@ -120,6 +126,13 @@
     gap: 4px;
     justify-items: center;
     font-size: 14px;
+  }
+
+  .misses {
+    list-style: none;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
   }
 
   .thumb {

@@ -1,18 +1,25 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon.svelte';
   import type { Party } from '$lib/net/party.svelte';
-  import type { Length, Mode } from './engine';
+  import type { Chars, Length, Mode } from './engine';
 
   let {
     party,
     onpick,
-    length = $bindable('normal')
-  }: { party: Party; onpick: (mode: Mode | 'together') => void; length?: Length } = $props();
+    length = $bindable('normal'),
+    chars = $bindable(null)
+  }: { party: Party; onpick: (mode: Mode | 'together') => void; length?: Length; chars?: Chars } = $props();
 
   const LENGTH_NAMES = [
     ['short', 'みじかめ'],
     ['normal', 'ふつう'],
     ['long', 'ながめ']
+  ] as const;
+
+  const CHARS_NAMES = [
+    [3, '3 もじまで'],
+    [4, '4 もじまで'],
+    [null, 'ぜんぶ']
   ] as const;
 
   const MODES = [
@@ -28,6 +35,11 @@
     <div class="lengths" role="group" aria-label="ながさ">
       {#each LENGTH_NAMES as [id, name] (id)}
         <button class="pill" aria-pressed={length === id} onclick={() => (length = id)}>{name}</button>
+      {/each}
+    </div>
+    <div class="lengths" role="group" aria-label="もじすう">
+      {#each CHARS_NAMES as [id, name] (id)}
+        <button class="pill" aria-pressed={chars === id} onclick={() => (chars = id)}>{name}</button>
       {/each}
     </div>
     {#each MODES as m (m.mode)}

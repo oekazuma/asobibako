@@ -4,6 +4,7 @@
   import Buzzer from './Buzzer.svelte';
   import Board from './Board.svelte';
   import Bubbles, { type Bubble } from './Bubbles.svelte';
+  import Stamps from './Stamps.svelte';
   import type { View } from './engine';
   import KanaPad from './KanaPad.svelte';
   import { who } from './looks';
@@ -21,7 +22,9 @@
     act,
     typing,
     ontype,
-    looks = {}
+    looks = {},
+    stamps = [],
+    onstamp = () => {}
   }: {
     view: View;
     me: Seat;
@@ -32,6 +35,8 @@
     act: (message: Message) => void;
     typing: Record<number, string>;
     ontype: (text: string) => void;
+    stamps?: { key: number; seat: Seat; id: string }[];
+    onstamp?: (id: string) => void;
     looks?: Record<number, string>;
   } = $props();
 
@@ -47,6 +52,7 @@
 <div class="middle">
   <Board {strokes} {pen} {onink} />
   <Bubbles {bubbles} {looks} />
+  <Stamps {stamps} {looks} canSend={!drawing && view.phase === 'draw'} onsend={onstamp} />
   {#if view.phase === 'ready'}
     <div class="cover">
       {#if drawing}

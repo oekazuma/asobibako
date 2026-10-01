@@ -4,13 +4,13 @@
   import { audio, toggleMute, wake } from '$lib/audio.svelte';
   import Icon from '$lib/components/Icon.svelte';
   import { MISMATCH, type Party, type Seat } from '$lib/net/party.svelte';
-  import type { Length, Mode } from './engine';
+  import type { Chars, Length, Mode } from './engine';
   import Invite from './Invite.svelte';
   import Lobby from './Lobby.svelte';
   import Menu from './Menu.svelte';
   import ModeSelect from './ModeSelect.svelte';
   import Play from './Play.svelte';
-  import { readLength, saveLength } from './prefs';
+  import { readChars, readLength, saveChars, saveLength } from './prefs';
   import { Referee } from './referee';
   import Result from './Result.svelte';
   import { Round } from './round.svelte';
@@ -22,6 +22,7 @@
   const round = new Round();
   let inviting = $state(false);
   let length = $state<Length>(readLength());
+  let chars = $state<Chars>(readChars());
   /** 親とのつながりが切れた子の、切れる前の番号。ロビーで「もういちど つなぐ」を出し、同じ番号で戻る */
   let was = $state<Seat>();
   let note = $state('');
@@ -51,7 +52,8 @@
     if (mode === 'together') return party?.tell('all', { t: 'screen', screen: 'together' });
     referee = new Referee(party!);
     saveLength(length);
-    referee.start(mode, length);
+    saveChars(chars);
+    referee.start(mode, length, chars);
   }
 
   function toMode() {
@@ -83,7 +85,7 @@
   {#if round.screen === 'lobby' || !party}
     <Lobby {party} {note} retry={was !== undefined} {was} onparty={joined} onstart={toMode} />
   {:else if round.screen === 'mode'}
-    <ModeSelect {party} onpick={begin} bind:length />
+    <ModeSelect {party} onpick={begin} bind:length bind:chars />
   {:else if round.screen === 'together'}
     <Together {party} onagain={toMode} />
   {:else if round.screen === 'play' && round.view}
@@ -98,6 +100,8 @@
       typing={round.typing}
       ontype={(text) => party?.act({ t: 'typing', text })}
       looks={party.looks}
+      stamps={round.stamps}
+      onstamp={(id) => party?.act({ t: 'stamp', id })}
     />
   {:else if round.screen === 'result' && round.view}
     <Result
