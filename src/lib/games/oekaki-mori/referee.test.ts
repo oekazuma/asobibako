@@ -71,4 +71,19 @@ describe('Referee', () => {
       [3, '']
     ]);
   });
+
+  // 打っている途中で切れた人の ● が、番が終わるまで全員の画面に残る
+  it('抜けた人の打っている字を全員の画面から消す', () => {
+    const { party, told, act } = fakeParty([1, 2, 3]);
+    new Referee(party).start('egokoro');
+    act({ t: 'start' }, 1);
+    act({ t: 'typing', text: 'り' }, 3);
+    told.length = 0;
+    act({ t: 'leave' }, 3);
+    const cleared = told.filter(([, m]) => m.t === 'typing').map(([seat, m]) => [seat, m.seat, m.text]);
+    expect(cleared).toEqual([
+      [1, 3, ''],
+      [2, 3, '']
+    ]);
+  });
 });

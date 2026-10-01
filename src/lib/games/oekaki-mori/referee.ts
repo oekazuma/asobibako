@@ -60,7 +60,12 @@ export class Referee {
       // 戻った子の画面は何も持っていないので、前に送った見え方と同じでも送り直す
       this.#sent.delete(from);
     } else if (message.t === 'typing') return this.#typing(s, from, String(message.text));
-    else if (message.t === 'leave') leave(s, from);
+    else if (message.t === 'leave') {
+      leave(s, from);
+      // 打っている途中で切れた人の ● が、番の終わりまで残らないようにする
+      for (const seat of this.#party.members)
+        if (seat !== from) this.#party.tell(seat, { t: 'typing', seat: from, text: '' });
+    }
     this.#push();
   }
 

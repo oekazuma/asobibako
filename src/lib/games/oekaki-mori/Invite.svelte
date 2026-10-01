@@ -71,5 +71,11 @@
     color: var(--line);
     font-weight: 800;
     white-space: nowrap;
+    /* 描く人の盤面の上の端に重なるので、ボタンのほかは指を通して線を引けるようにする */
+    pointer-events: none;
+  }
+
+  .lost button {
+    pointer-events: auto;
   }
 </style>

@@ -8,6 +8,7 @@
     party,
     note = '',
     retry = false,
+    was,
     onparty,
     onstart
   }: {
@@ -15,6 +16,8 @@
     note?: string;
     /** 親とのつながりが切れた子。親が同じ番号で呼び直せるので、すぐ QR を読みに行けるようにする */
     retry?: boolean;
+    /** 切れる前の自分の番号。親はこの番号が空いていれば同じ番号で迎える */
+    was?: Seat;
     onparty: (party: Party) => void;
     onstart: () => void;
   } = $props();
@@ -28,7 +31,7 @@
       const p = party ?? Party.host();
       p.add(link);
       if (!party) onparty(p);
-    } else onparty(Party.guest(link));
+    } else onparty(Party.guest(link, was));
     joining = null;
   }
 

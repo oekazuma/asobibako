@@ -39,7 +39,8 @@ export class Party {
     return new Party(true);
   }
 
-  static guest(pipe: Pipe): Party {
+  /** was は、つながりが切れる前の番号。親はその番号が空いていれば同じ番号で迎える */
+  static guest(pipe: Pipe, was?: Seat): Party {
     const party = new Party(false);
     party.#pipes.set(1, pipe);
     pipe.on((message) => {
@@ -48,14 +49,36 @@ export class Party {
       else for (const listener of party.#tells) listener(message);
     });
     pipe.closed.then(() => (party.lost = true));
+    pipe.send({ t: 'hello', was: was ?? null });
     return party;
   }
 
-  /** 親だけ。切れた子の番号か、空いている番号で子を迎える。満員なら閉じて null */
-  add(pipe: Pipe): Seat | null {
+  /**
+   * 親だけ。子の最初の知らせ（hello）を待って番号を決める。切れる前の番号が切れたまま空いていればその番号、
+   * なければ切れた子の番号、それもなければ空いた番号で迎える。満員なら閉じて null
+   */
+  add(pipe: Pipe): Promise<Seat | null> {
+    if (!this.host || this.#pipes.size >= 2) {
+      pipe.close();
+      return Promise.resolve(null);
+    }
+    return new Promise((resolve) => {
+      let greeted = false;
+      // Link はためていた知らせを on の中で渡すので、ここで外すと外す口がまだ無い。hello のあとは聞き流す
+      pipe.on((message) => {
+        if (greeted || message.t !== 'hello') return;
+        greeted = true;
+        resolve(this.#seat(pipe, message.was as Seat | null));
+      });
+      pipe.closed.then(() => resolve(null));
+    });
+  }
+
+  #seat(pipe: Pipe, was: Seat | null): Seat | null {
     const free = (s: Seat) => !this.#pipes.has(s);
-    const seat = this.away.find(free) ?? ([2, 3] as const).find((s) => free(s) && !this.away.includes(s));
-    if (!this.host || !seat) {
+    const back = was !== null && this.away.includes(was) && free(was) ? was : undefined;
+    const seat = back ?? this.away.find(free) ?? ([2, 3] as const).find((s) => free(s) && !this.away.includes(s));
+    if (!seat) {
       pipe.close();
       return null;
     }

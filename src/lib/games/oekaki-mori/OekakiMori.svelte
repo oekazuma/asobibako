@@ -30,8 +30,8 @@
   let typing = $state.raw<Record<number, string>>({});
   let close = $state(false);
   let inviting = $state(false);
-  /** 親とのつながりが切れた子。ロビーで「もういちど つなぐ」を出す */
-  let lost = $state(false);
+  /** 親とのつながりが切れた子の、切れる前の番号。ロビーで「もういちど つなぐ」を出し、同じ番号で戻る */
+  let was = $state<Seat>();
   let note = $state('');
   let referee: Referee | null = null;
   let bubbleId = 0;
@@ -44,7 +44,7 @@
     typing = {};
     bubbles = [];
     note = '';
-    lost = false;
+    was = undefined;
     party = next;
     next.onTell(receive);
     if (next.host)
@@ -115,9 +115,9 @@
   // 親とのつながりが切れた子は、ロビーからつなぎ直す
   $effect(() => {
     if (!party?.lost) return;
+    was = party.me;
     party = null;
     screen = 'lobby';
-    lost = true;
     note = 'つながりが きれました';
   });
 
@@ -132,7 +132,7 @@
 <!-- 当てる人は盤面に触れずに 50 音盤だけを押すので、どこに触れても音を起こす（iOS は操作の中でしか鳴らし始められない） -->
 <main class="stage mori" onpointerdown={wake}>
   {#if screen === 'lobby' || !party}
-    <Lobby {party} {note} retry={lost} onparty={joined} onstart={toMode} />
+    <Lobby {party} {note} retry={was !== undefined} {was} onparty={joined} onstart={toMode} />
   {:else if screen === 'mode'}
     <ModeSelect {party} onpick={begin} />
   {:else if screen === 'together'}
