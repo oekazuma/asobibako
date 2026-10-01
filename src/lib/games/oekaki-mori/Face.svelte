@@ -6,7 +6,7 @@
   let {
     seat,
     look,
-    size = '1.5em',
+    size = '2em',
     name = false
   }: { seat: Seat; look?: string; size?: string; name?: boolean } = $props();
 
@@ -16,7 +16,7 @@
 <!-- 同じ動物を選んだ人どうしも、番号の色の丸で見分ける -->
 <span class="face">
   <span class="disc p{seat}" style:width={size} style:height={size}>
-    {#if found}<Icon name={found.id} size="80%" />{:else}{seat}P{/if}
+    {#if found}<Icon name={found.id} size="80%" />{:else}<small>{seat}P</small>{/if}
   </span>
   {#if name && found}<span>{found.name}</span>{/if}
 </span>
@@ -34,7 +34,11 @@
     place-items: center;
     border: 2px solid var(--line);
     border-radius: 50%;
-    font-size: 0.7em;
+  }
+
+  /* 丸の大きさは em で受けるので、丸そのものの文字の大きさは変えず、番号だけを小さくする */
+  small {
+    font-size: 0.6em;
   }
 
   .disc.p1 {
