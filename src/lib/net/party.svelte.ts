@@ -12,7 +12,7 @@ export interface Pipe {
 }
 
 /** 端末どうしの知らせの形の版。形を変えたら 1 上げる。アプリの版とは別なので、ほかのゲームを直しただけでは更新を求めない */
-export const PROTOCOL = 4;
+export const PROTOCOL = 5;
 export const MISMATCH = 'アプリの はんが ちがうよ。どちらも さいしんに してね';
 /** 子の hello を待つ長さ。古い版の子は hello を送らない */
 const HELLO_MS = 3000;
