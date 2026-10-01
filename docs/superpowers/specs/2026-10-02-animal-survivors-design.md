@@ -133,7 +133,8 @@
 - `draw.ts` は仮想画面に、地面 → 影 → 玉 → 敵 → 自分 → 弾・エフェクト → ダメージ数字の順で描く。仮想画面の幅は 260 ドット前後で、端末の画素数を割り切れる整数の倍率で拡大する（`imageSmoothingEnabled = false`）。数字は 3×5 の自作のドット字。
 - 地面と飾りは、タイルの座標から決まる乱数で並べる。どこまで歩いても同じ森が続き、端はない。カメラは自分を追う。
 - `input.ts` はキーボード（WASD・矢印キー）・指とマウス（置いた所からずらした向きへ進む、浮き出るスティック）・ゲームパッド（`navigator.getGamepads()` の左スティック）を 1 本の向きにまとめる。指は `pointerdown` と `pointerId` で扱い、最初の 1 本だけを使う。
-- 画面は `Survivors.svelte`（キャラ選択・プレイ・リザルトの切り替え）と、`CharSelect.svelte`・`Hud.svelte`・`LevelUp.svelte`・`Result.svelte`。HUD には Lv・HP・EXP・生存時間・撃破数・武器とパッシブの一覧（アイコンと Lv）を出す。HUD・3 択・リザルトは HTML で、角ばった枠と濃いふちのレトロな見た目にする。日本語のドット書体は外部フォントになるので使わず、ヒラギノの太字に枠でレトロさを出す。
+- HUD（Lv・HP・EXP・生存時間・撃破数・武器とパッシブの一覧のアイコンと Lv）は、英数字だけなので `hud.ts` が同じ canvas に 3×5 のドット字で描く。
+- 画面は `Survivors.svelte`（キャラ選択・プレイ・リザルトの切り替え）・`Play.svelte`（canvas とループ）・`CharSelect.svelte`・`LevelUp.svelte`・`Result.svelte`。日本語の文字が要る 3 択・キャラ選択・リザルトは HTML で、角ばった枠と濃いふちのレトロな見た目にする。3 択とリザルトは指の下に出るので、`$lib/settle.svelte` の `Settle` で出た直後の合成 click を防ぐ。日本語のドット書体は外部フォントになるので使わず、ヒラギノの太字に枠でレトロさを出す。
 - 効果音は `$lib/audio.svelte` の `tone` と `noise` で作る。撃破音や拾う音は 1 フレームに 1 回までにまとめる。ループは `$lib/loop.ts` の `animate`。
 - コンポーネントは 200 行未満に保つ。
 
