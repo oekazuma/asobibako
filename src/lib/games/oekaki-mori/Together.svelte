@@ -13,6 +13,7 @@
   import type { Message } from '$lib/net/link';
   import type { Party, Seat } from '$lib/net/party.svelte';
   import { saveImage } from '$lib/share';
+  import { catchUpTogether } from './catch-up';
   import Finished from './Finished.svelte';
   import { paintBy, shared, undoBy } from './together';
 
@@ -29,12 +30,20 @@
   let note = $state('');
   /** 親が「できた！」を押したあと。まだ届いていない塗りを受け付けると、保存した絵と画面が食い違う */
   let closed = false;
+  /** 配った線画の知らせ。戻った子には、配り終えるのを待ってから同じものを送る */
+  let dealt: Promise<Message> | null = null;
+  const catchUp = (seat: Seat) =>
+    catchUpTogether(
+      (m) => party.tell(seat, m),
+      () => ({ dealt, colors, closed })
+    );
 
   async function send(mask: Uint8Array, template?: Template) {
     // 配り終えるまでに別の絵を押されると 2 枚配られ、親の塗り手順と画面の色が食い違うので、すぐ待つ画面にする
     phase = 'wait';
     host = shared();
-    party.tell('all', { t: 'art', template: template?.id ?? null, lines: await encodeLines(mask) });
+    dealt = encodeLines(mask).then((lines) => ({ t: 'art', template: template?.id ?? null, lines }));
+    party.tell('all', await dealt);
   }
 
   async function receive(m: Message) {
@@ -75,15 +84,6 @@
     saveWork({ ...work, updated: Date.now() }).catch(() => {});
   }
 
-  /** 戻った子（途中から来た子）に、いまの線画と塗った色を送る。「できた！」のあとならそれも送る */
-  async function catchUpGuest(seat: Seat) {
-    const s = sheet;
-    if (!s) return;
-    party.tell(seat, { t: 'art', template: s.template ?? null, lines: await encodeLines(s.mask) });
-    for (const [region, color] of Object.entries(colors)) party.tell(seat, { t: 'painted', region: +region, color });
-    if (closed) party.tell(seat, { t: 'finished' });
-  }
-
   function exportImage() {
     if (sheet) saveImage(snapshot(sheet.art, sheet.regions, colors, 1536), 'nurie.png');
   }
@@ -104,7 +104,7 @@
     if (party.host)
       off.push(
         party.onAct((m, from) => {
-          if (m.t === 'join') return void catchUpGuest(from);
+          if (m.t === 'join') return void catchUp(from);
           if (closed) return;
           const change =
             m.t === 'paint'

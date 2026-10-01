@@ -162,4 +162,14 @@ describe('Together', () => {
     expect(sentTo.filter(([to]) => to === 2).map(([, m]) => m.t)).toEqual(['art', 'painted', 'finished']);
     unmount(app);
   });
+
+  // 親の画面に線画が出る前に戻った子は、配り終えるのを待たないと何も受け取れない
+  it('配り終える前に戻った子にも、配り終えたあとで線画を送る', async () => {
+    const { app, button, party } = show();
+    button('りんご')!.click();
+    (party as unknown as { join: (seat: Seat) => void }).join(2);
+    await settle();
+    expect(sentTo.filter(([to]) => to === 2).map(([, m]) => m.t)).toEqual(['art']);
+    unmount(app);
+  });
 });
