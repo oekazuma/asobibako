@@ -1,8 +1,13 @@
 import { aiMask, toTensor } from './ai';
 import { drawWithAi, stopAi } from './ai-run';
+import { applyEdits, type Edit } from './edits';
+import { closeGaps } from './gaps';
 import { inkArt, lineArt } from './lineart';
 import { SIZE } from './regions';
 import { colorWalls } from './walls';
+
+/** 線の端から別の線へつなぐ距離（768 画素の絵で）。これより広いすき間は手で足してもらう */
+const GAP = 16;
 
 /**
  * 写真の線の拾い方。ink は線のある絵（マンホールなど）のもとの黒い線、color はそれに色の境目を足したもの（線が重なって
@@ -15,6 +20,10 @@ export class Lines {
   mode = $state<Mode>('ink');
   amount = $state(0.5);
   mask = $state.raw<Uint8Array | null>(null);
+  /** 手で足した線と消した所。拾い方や線の量を変えても残す */
+  edits = $state.raw<Edit[]>([]);
+  /** 自動で作った線画（すき間をふさいだあと）。手の直しはこの上に重ねる */
+  #auto: Uint8Array | null = null;
   /** AI が描いているあいだ */
   busy = $state(false);
   note = $state('');
@@ -51,6 +60,8 @@ export class Lines {
     clearTimeout(this.#timer);
     this.#round++;
     this.mask = null;
+    this.#auto = null;
+    this.edits = [];
     if (this.busy) stopAi();
     this.busy = false;
   }
@@ -68,19 +79,39 @@ export class Lines {
     stopAi();
   }
 
+  edit(e: Edit) {
+    this.edits = [...this.edits, e];
+    this.#show();
+  }
+
+  undoEdit() {
+    this.edits = this.edits.slice(0, -1);
+    this.#show();
+  }
+
+  /** 自動の線画のすき間をふさぎ、手の直しを重ねて見せる */
+  #set(auto: Uint8Array) {
+    this.#auto = closeGaps(auto, SIZE, SIZE, GAP);
+    this.#show();
+  }
+
+  #show() {
+    if (this.#auto) this.mask = applyEdits(this.#auto, this.edits);
+  }
+
   build() {
     const rgba = this.#rgba;
     if (!rgba) return;
     if (this.mode === 'ai') {
-      if (this.#ai) this.mask = aiMask(this.#ai, this.amount);
+      if (this.#ai) this.#set(aiMask(this.#ai, this.amount));
       else if (!this.busy) void this.#draw(rgba);
       return;
     }
-    if (this.mode === 'edge') return void (this.mask = lineArt(rgba, SIZE, SIZE, this.amount));
+    if (this.mode === 'edge') return this.#set(lineArt(rgba, SIZE, SIZE, this.amount));
     const ink = inkArt(rgba, SIZE, SIZE, this.amount);
-    if (this.mode === 'ink') return void (this.mask = ink);
+    if (this.mode === 'ink') return this.#set(ink);
     const walls = (this.#walls ??= colorWalls(rgba, SIZE, SIZE, 5));
-    this.mask = ink.map((v, i) => v | walls[i]);
+    this.#set(ink.map((v, i) => v | walls[i]));
   }
 
   async #draw(rgba: Uint8ClampedArray) {
@@ -91,7 +122,7 @@ export class Lines {
       const out = await drawWithAi(toTensor(rgba));
       if (round !== this.#round) return;
       this.#ai = out;
-      if (this.mode === 'ai') this.mask = aiMask(out, this.amount);
+      if (this.mode === 'ai') this.#set(aiMask(out, this.amount));
     } catch {
       if (round !== this.#round) return;
       this.busy = false;

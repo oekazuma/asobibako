@@ -13,6 +13,9 @@ vi.mock('./lineart', () => ({ lineArt: fake.edge, inkArt: fake.ink }));
 vi.mock('./walls', () => ({ colorWalls: fake.walls }));
 vi.mock('./ai-run', () => ({ drawWithAi: fake.run, stopAi: fake.stop }));
 vi.mock('./ai', () => ({ toTensor: () => new Float32Array(1), aiMask: fake.aiMask }));
+vi.mock('./gaps', () => ({ closeGaps: (m: Uint8Array) => m }));
+// 直しの数を線画の末尾に足して、直しが残っているかを見えるようにする
+vi.mock('./edits', () => ({ applyEdits: (m: Uint8Array, edits: unknown[]) => Uint8Array.from([...m, edits.length]) }));
 
 const rgba = new Uint8ClampedArray(4);
 const settle = () => new Promise((r) => setTimeout(r));
@@ -26,11 +29,11 @@ describe('Lines', () => {
   it('えの せん・いろで わける・しゃしんの りんかく で線画を作る', () => {
     const lines = new Lines();
     lines.start(rgba);
-    expect([...lines.mask!]).toEqual([1]);
+    expect([...lines.mask!]).toEqual([1, 0]);
     lines.setMode('color');
-    expect([...lines.mask!]).toEqual([3]);
+    expect([...lines.mask!]).toEqual([3, 0]);
     lines.setMode('edge');
-    expect([...lines.mask!]).toEqual([2]);
+    expect([...lines.mask!]).toEqual([2, 0]);
   });
 
   it('AI は描き終えるまで busy にし、描き終えたら線画にする', async () => {
@@ -43,7 +46,7 @@ describe('Lines', () => {
     finish(new Float32Array(1));
     await settle();
     expect(lines.busy).toBe(false);
-    expect([...lines.mask!]).toEqual([9]);
+    expect([...lines.mask!]).toEqual([9, 0]);
   });
 
   // AI は 1 回に数秒〜十数秒かかるので、線の量を変えるたびに描き直さない
@@ -70,7 +73,7 @@ describe('Lines', () => {
     expect(lines.busy).toBe(false);
     expect(lines.note).toContain('AI で かけませんでした');
     expect(lines.mode).toBe('edge');
-    expect([...lines.mask!]).toEqual([2]);
+    expect([...lines.mask!]).toEqual([2, 0]);
   });
 
   it('AI が描いているあいだに別の拾い方を選んだら、その線画を出す', () => {
@@ -79,7 +82,7 @@ describe('Lines', () => {
     lines.start(rgba);
     lines.setMode('ai');
     lines.setMode('edge');
-    expect([...lines.mask!]).toEqual([2]);
+    expect([...lines.mask!]).toEqual([2, 0]);
   });
 
   // 描き終えるのを待つと、次の切り取りの AI がそのぶん遅れ、画面を離れてもモデルのメモリが残る
@@ -105,5 +108,21 @@ describe('Lines', () => {
     await settle();
     expect(lines.mask).toBeNull();
     expect(lines.busy).toBe(false);
+  });
+
+  // 線の量や拾い方を変えるたびに手で直した所が消えると、直し直しになる
+  it('手で直した線は、拾い方を変えても残り、1 つずつ戻せる', () => {
+    const lines = new Lines();
+    lines.start(rgba);
+    lines.edit({ kind: 'add', pts: [0.1, 0.1], width: 4 });
+    lines.edit({ kind: 'erase', pts: [0.2, 0.2], width: 12 });
+    expect([...lines.mask!]).toEqual([1, 2]);
+    lines.setMode('edge');
+    expect([...lines.mask!]).toEqual([2, 2]);
+    lines.undoEdit();
+    expect([...lines.mask!]).toEqual([2, 1]);
+    lines.recrop();
+    lines.start(rgba);
+    expect([...lines.mask!]).toEqual([2, 0]);
   });
 });
