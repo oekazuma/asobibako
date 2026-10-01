@@ -8,7 +8,7 @@
     onpick,
     length = $bindable('normal'),
     chars = $bindable(null)
-  }: { party: Party; onpick: (mode: Mode | 'together') => void; length?: Length; chars?: Chars } = $props();
+  }: { party: Party; onpick: (mode: Mode | 'together' | 'relay') => void; length?: Length; chars?: Chars } = $props();
 
   const LENGTH_NAMES = [
     ['short', 'みじかめ'],
@@ -25,7 +25,8 @@
   const MODES = [
     { mode: 'egokoro', icon: 'pencil', name: 'エゴコロクイズ', note: 'ひとりが かいて、みんなで こたえを うつ' },
     { mode: 'hayaoshi', icon: 'bolt', name: 'はやおし検定', note: 'わかったら はやおし！ 4つから えらぶ' },
-    { mode: 'together', icon: 'brush', name: 'みんなでぬりえ', note: 'おなじ えを みんなで いっしょに ぬる' }
+    { mode: 'together', icon: 'brush', name: 'みんなでぬりえ', note: 'おなじ えを みんなで いっしょに ぬる' },
+    { mode: 'relay', icon: 'arrow', name: 'おえかきリレー', note: 'えと ことばを じゅんばんに つなぐ' }
   ] as const;
 </script>
 

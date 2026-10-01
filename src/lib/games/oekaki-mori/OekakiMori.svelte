@@ -12,6 +12,8 @@
   import Play from './Play.svelte';
   import { readChars, readLength, saveChars, saveLength } from './prefs';
   import { Referee } from './referee';
+  import Relay from './Relay.svelte';
+  import { RelayReferee } from './relay-referee';
   import Result from './Result.svelte';
   import { Round } from './round.svelte';
   import Together from './Together.svelte';
@@ -26,7 +28,7 @@
   /** 親とのつながりが切れた子の、切れる前の番号。ロビーで「もういちど つなぐ」を出し、同じ番号で戻る */
   let was = $state<Seat>();
   let note = $state('');
-  let referee: Referee | null = null;
+  let referee: { stop(): void } | null = null;
 
   function joined(next: Party) {
     round.reset();
@@ -46,14 +48,22 @@
     party?.act({ t: 'ink', ink: i });
   }
 
-  function begin(mode: Mode | 'together') {
+  function begin(mode: Mode | 'together' | 'relay') {
     referee?.stop();
     referee = null;
     if (mode === 'together') return party?.tell('all', { t: 'screen', screen: 'together' });
-    referee = new Referee(party!);
     saveLength(length);
     saveChars(chars);
-    referee.start(mode, length, chars);
+    if (mode === 'relay') {
+      party?.tell('all', { t: 'screen', screen: 'relay' });
+      const relay = new RelayReferee(party!);
+      relay.start(length, chars);
+      referee = relay;
+      return;
+    }
+    const quiz = new Referee(party!);
+    quiz.start(mode, length, chars);
+    referee = quiz;
   }
 
   function toMode() {
@@ -86,6 +96,8 @@
     <Lobby {party} {note} retry={was !== undefined} {was} onparty={joined} onstart={toMode} />
   {:else if round.screen === 'mode'}
     <ModeSelect {party} onpick={begin} bind:length bind:chars />
+  {:else if round.screen === 'relay'}
+    <Relay {party} looks={party.looks} onagain={toMode} />
   {:else if round.screen === 'together'}
     <Together {party} onagain={toMode} />
   {:else if round.screen === 'play' && round.view}
