@@ -3,37 +3,43 @@ import meta from './meta';
 
 /**
  * 道は横 0..1、前へ進んだ距離は盤面の高さを 1 とした単位。
- * 群れは自動で前へ進み、プレイヤーは左右だけ動かす
+ * 群れは自動で前へ進みながら、立っている列の前へ撃ち続ける。プレイヤーは左右だけ動かす
  */
-export type Op = { kind: '+' | '-' | 'x' | '÷'; n: number };
+export type Op = { kind: 'add' | 'mul'; n: number };
+
+export type Reward = { kind: 'power' } | { kind: 'add'; n: number };
 
 /**
- * saw は道を左右に往復する回転ノコギリ。位置は時間ではなく進んだ距離で決め、敵と戦って止まっている間は止まる。
- * wall はすき間のあるトゲの柵、ally は道に立っていて触れると仲間になる人たち
+ * add の門は撃つたびに数が 1 ずつ増え、-10 も撃ち続ければ + に変わる。mul の門は撃っても変わらず、弾は素通りする。
+ * 敵は近づくと歩いてきて群れのほうへ寄る。hp は残りの人数（撃たれて端数になる）。
+ * 樽は撃ち壊すとごほうびが出て、壊せずに通り過ぎると何も起きない
  */
 export type Item =
-  | { type: 'gates'; at: number; left: Op; right: Op; done: boolean }
-  | { type: 'enemy'; at: number; x: number; n: number; done: boolean }
-  | { type: 'saw'; at: number; x: number; amp: number; freq: number; done: boolean }
-  | { type: 'wall'; at: number; gap: number; width: number; done: boolean }
-  | { type: 'ally'; at: number; x: number; n: number; done: boolean };
+  | { type: 'gates'; at: number; left: Op; right: Op; heat: [number, number]; done: boolean }
+  | { type: 'enemy'; at: number; x: number; hp: number; boss: boolean; done: boolean }
+  | { type: 'barrel'; at: number; x: number; hp: number; max: number; reward: Reward; done: boolean };
 
 export interface GameState {
   dist: number;
   x: number;
   count: number;
+  /** 1 人あたりの連射の強さ。樽で上がる */
+  power: number;
   items: Item[];
+  /** 道の終わり。ここで止まってボスを迎え撃つ */
   length: number;
-  boss: number;
+  /** いま撃っている相手。弾の絵を描くためだけに使う */
+  aim: Item | null;
   /** 敵とぶつかっている間は止まって、双方が同じ数ずつ減っていく */
-  fight: { n: number; per: number; tick: number; boss: boolean; item: Item | null } | null;
+  fight: { item: Extract<Item, { type: 'enemy' }>; per: number; tick: number } | null;
   result: 'clear' | 'fail' | null;
 }
 
 export type RunEvent =
   | { type: 'gate'; good: boolean; op: Op; x: number }
-  | { type: 'cut'; n: number; x: number }
-  | { type: 'join'; n: number; x: number }
+  | { type: 'bump'; x: number; at: number }
+  | { type: 'kill'; x: number; at: number; boss: boolean }
+  | { type: 'loot'; reward: Reward; x: number; at: number }
   | { type: 'hit'; n: number }
   | { type: 'clear' }
   | { type: 'fail' };
@@ -41,11 +47,23 @@ export type RunEvent =
 export const SPEED = 0.5;
 export const MIN_X = 0.14;
 export const MAX_X = 0.86;
+/** 撃てる距離 */
+export const RANGE = 2.4;
+/** 敵が歩きはじめる距離。遠くからは歩かせず、面の並びを時間で崩さない */
+const WAKE = 3.2;
+const WALK = 0.3;
+const BOSS_WALK = 0.12;
+const CHASE = 0.18;
+const BOSS_GAP = 2.2;
+/** ぶつかったとみなす距離 */
+const CONTACT = 0.12;
 const FIGHT_TICK = 0.03;
-/** 敵の群れは、この数の打ち合いで決着がつくように 1 回の減り方を決める */
 const FIGHT_STEPS = 30;
-export const SAW_R = 0.09;
-export const ALLY_R = 0.07;
+/** 1 秒に倒せる敵の数は FIRE × power × √人数 */
+const FIRE = 1;
+/** 敵 1 人を倒す弾で、門の数がいくつ上がるか */
+const GATE_RATE = 0.8;
+export const BARREL_R = 0.08;
 /** 描く人数の上限。群れの広がりもこの人数で頭打ちにする */
 export const MAX_DOTS = 140;
 
@@ -56,196 +74,199 @@ export const crowdCenter = (x: number, n: number) => {
   const h = crowdHalf(n);
   return Math.min(1 - h - 0.02, Math.max(h + 0.02, x));
 };
-export const sawX = (item: { x: number; amp: number; freq: number }, dist: number) =>
-  item.x + item.amp * Math.sin(dist * item.freq);
 
-const overlap = (a0: number, a1: number, b0: number, b1: number) => Math.max(0, Math.min(a1, b1) - Math.max(a0, b0));
+const overlap = (a0: number, a1: number, b0: number, b1: number) => Math.min(a1, b1) > Math.max(a0, b0);
 
-/** 群れが x にいるとき、ノコギリか柵で減る人数。触れた幅の割合だけ減る */
-export function cutBy(item: Item, x: number, count: number): number {
-  const h = crowdHalf(count);
-  const c = crowdCenter(x, count);
-  if (h === 0) return 0;
-  let frac = 0;
-  if (item.type === 'saw') {
-    const sx = sawX(item, item.at);
-    frac = overlap(c - h, c + h, sx - SAW_R, sx + SAW_R) / (2 * h);
-  } else if (item.type === 'wall') {
-    frac = 1 - overlap(c - h, c + h, item.gap - item.width / 2, item.gap + item.width / 2) / (2 * h);
-  }
-  return Math.min(count, Math.max(0, Math.ceil(count * frac - 1e-9)));
+export function apply(op: Op, count: number): number {
+  return op.kind === 'mul' ? count * op.n : Math.max(0, count + op.n);
 }
 
-/** 群れが x にいるとき、道の仲間に触れて増える人数 */
-export function joinBy(item: Item, x: number, count: number): number {
-  if (item.type !== 'ally') return 0;
-  const h = crowdHalf(count);
-  const c = crowdCenter(x, count);
-  return overlap(c - h, c + h, item.x - ALLY_R, item.x + ALLY_R) > 0 ? item.n : 0;
-}
+export const isGood = (op: Op) => op.kind === 'mul' || op.n >= 0;
+export const enemyCount = (hp: number) => Math.ceil(hp - 1e-9);
+export const dps = (state: GameState) => FIRE * state.power * Math.sqrt(state.count);
+const side = (x: number): 0 | 1 => (x < 0.5 ? 0 : 1);
 
-/** 障害物や仲間のところで、いちばん得をする立ち位置 */
-export function bestX(item: Item, count: number): number {
-  let best = 0.5;
-  let score = -Infinity;
-  for (let x = MIN_X; x <= MAX_X + 1e-9; x += 0.01) {
-    const v = joinBy(item, x, count) - cutBy(item, x, count) - Math.abs(x - 0.5) * 1e-3;
-    if (v > score) [best, score] = [x, v];
+/** 群れの前の列で、いちばん手前の撃てる相手 */
+export function aimAt(state: GameState): Item | null {
+  const c = crowdCenter(state.x, state.count);
+  const h = Math.max(0.05, crowdHalf(state.count));
+  let best: Item | null = null;
+  for (const item of state.items) {
+    const ahead = item.at - state.dist;
+    if (item.done || ahead < -CONTACT || ahead > RANGE || (best && item.at >= best.at)) continue;
+    if (item.type === 'gates') {
+      if ((side(state.x) ? item.right : item.left).kind === 'mul') continue;
+    } else {
+      const r = item.type === 'barrel' ? BARREL_R : Math.max(0.05, crowdHalf(item.hp));
+      if (!overlap(c - h, c + h, item.x - r, item.x + r)) continue;
+    }
+    best = item;
   }
   return best;
 }
 
-export function apply(op: Op, count: number): number {
-  if (op.kind === '+') return count + op.n;
-  if (op.kind === '-') return Math.max(0, count - op.n);
-  if (op.kind === 'x') return count * op.n;
-  return Math.floor(count / op.n);
-}
-
-export const isGood = (op: Op) => op.kind === '+' || op.kind === 'x';
-
-/** 難しくなるほど ×3 が減り、+ の門も小さくなる */
-function goodOp(rng: Rng, d: number): Op {
-  if (rng.chance(0.3)) return { kind: 'x', n: rng.chance(lerp(0.3, 0.05, d)) ? 3 : 2 };
-  return { kind: '+', n: 5 * rng.int(1, Math.round(lerp(6, 3, d))) };
-}
-
-/** 難しくなるほど、減らす門の数も大きくなる */
-function badOp(rng: Rng, d: number): Op {
-  return rng.chance(0.4)
-    ? { kind: '÷', n: rng.chance(d * 0.5) ? 3 : 2 }
-    : { kind: '-', n: 5 * rng.int(1, Math.round(lerp(3, 8, d))) };
-}
-
-/**
- * 門はどれも「数が多いほど結果も多い」ので、門ごとに多いほうを選ぶのが最善になる。
- * その最善の数から敵とボスの数を決め、どの面も必ずクリアできるようにする
- */
-export function createState(level: number): GameState {
-  const d = difficulty(level, meta.levels);
-  const rng = new Rng(level);
-  const items: Item[] = [];
-  let best = 10;
-  // 難しくなるほど、コースが長く、敵の群れが多く、門どうしの間がつまる
-  const rows = Math.round(lerp(6, 22, d));
-  const foe = lerp(1 / 3, 1 / 2, d);
-  const isEnemy = (i: number) => Math.floor((i + 1) * foe) > Math.floor(i * foe);
-  const gateRows = rows - Array.from({ length: rows }, (_, i) => i).filter(isEnemy).length;
-  // 片方が赤い列は青を選ぶだけで済むので、×2 と +N を比べる列を面ごとに決まった数だけ混ぜる
-  const tough = Math.round(lerp(1, 3, d));
-  // 門と敵のあいだに、道の仲間・ノコギリ・柵を面が進むほど多く挟む。種類は面ごとに少しずつ解禁する
-  const extras = Math.round(lerp(0, 9, d));
-  const kinds: ('ally' | 'saw' | 'wall')[] = ['ally'];
-  if (level >= 4) kinds.push('saw');
-  if (level >= 9) kinds.push('wall');
-  const extraAfter = (i: number) => Math.floor(((i + 1) * extras) / rows) > Math.floor((i * extras) / rows);
-  let g = -1;
-  const gap = lerp(1.3, 1.0, d);
-  let at = 1.6;
-  for (let i = 0; i < rows; i++) {
-    if (isEnemy(i)) {
-      const n = Math.max(3, Math.round(best * lerp(0.12, 0.4, d)));
-      items.push({ type: 'enemy', at, x: rng.range(0.3, 0.7), n, done: false });
-      best -= n;
-    } else {
-      g++;
-      const hard = level > 2 && Math.floor(((g + 1) * tough) / gateRows) > Math.floor((g * tough) / gateRows);
-      const a: Op = hard ? { kind: 'x', n: 2 } : goodOp(rng, d);
-      // 最初の 2 面は、どちらをくぐっても増える門だけにする
-      const b: Op = hard ? { kind: '+', n: 5 * rng.int(2, 6) } : level <= 2 ? goodOp(rng, d) : badOp(rng, d);
-      const [left, right] = rng.chance(0.5) ? [a, b] : [b, a];
-      items.push({ type: 'gates', at, left, right, done: false });
-      best = Math.max(apply(left, best), apply(right, best));
+function shoot(state: GameState, dt: number, events: RunEvent[]) {
+  const item = (state.aim = aimAt(state));
+  if (!item) return;
+  const dmg = dps(state) * dt;
+  if (item.type === 'gates') {
+    const s = side(state.x);
+    const op = s ? item.right : item.left;
+    item.heat[s] += dmg * GATE_RATE;
+    while (item.heat[s] >= 1) {
+      item.heat[s] -= 1;
+      op.n += 1;
+      events.push({ type: 'bump', x: s ? 0.75 : 0.25, at: item.at });
     }
-    at += gap;
-    if (level < 2 || !extraAfter(i)) continue;
-    const kind = rng.pick(kinds);
-    const extra: Item =
-      kind === 'ally'
-        ? { type: 'ally', at, x: rng.range(0.2, 0.8), n: 5 * rng.int(1, 4), done: false }
-        : kind === 'saw'
-          ? { type: 'saw', at, x: rng.range(0.35, 0.65), amp: lerp(0.12, 0.28, d), freq: rng.range(3, 6), done: false }
-          : { type: 'wall', at, gap: rng.range(0.3, 0.7), width: lerp(0.5, 0.32, d), done: false };
-    items.push(extra);
-    const x = bestX(extra, best);
-    best += joinBy(extra, x, best) - cutBy(extra, x, best);
-    at += gap * 0.8;
+  } else if (item.type === 'enemy') {
+    const before = enemyCount(item.hp);
+    item.hp = Math.max(0, item.hp - dmg);
+    if (enemyCount(item.hp) < before) events.push({ type: 'kill', x: item.x, at: item.at, boss: item.boss });
+  } else {
+    item.hp -= dmg;
+    if (item.hp <= 0) {
+      item.done = true;
+      if (item.reward.kind === 'power') state.power += 0.5;
+      else state.count += item.reward.n;
+      events.push({ type: 'loot', reward: item.reward, x: item.x, at: item.at });
+    }
   }
-  return {
-    dist: 0,
-    x: 0.5,
-    count: 10,
-    items,
-    length: at + 0.4,
-    boss: Math.max(5, Math.round(best * lerp(0.3, 0.9, d))),
-    fight: null,
-    result: null
-  };
+}
+
+function fight(state: GameState, dt: number, events: RunEvent[]) {
+  const f = state.fight!;
+  f.tick += dt;
+  while (f.tick >= FIGHT_TICK && f.item.hp > 0 && state.count > 0) {
+    f.tick -= FIGHT_TICK;
+    const hit = Math.min(f.per, enemyCount(f.item.hp), state.count);
+    f.item.hp = Math.max(0, f.item.hp - hit);
+    state.count -= hit;
+    events.push({ type: 'hit', n: hit });
+  }
 }
 
 export function steer(state: GameState, x: number): void {
   state.x = Math.min(MAX_X, Math.max(MIN_X, x));
 }
 
-function startFight(state: GameState, n: number, item: Item | null) {
-  state.fight = { n, per: Math.max(1, Math.ceil(n / FIGHT_STEPS)), tick: 0, boss: item === null, item };
-}
-
 export function step(state: GameState, dt: number): RunEvent[] {
   if (state.result) return [];
   const events: RunEvent[] = [];
-  const fight = state.fight;
-  if (fight) {
-    fight.tick += dt;
-    while (fight.tick >= FIGHT_TICK && fight.n > 0 && state.count > 0) {
-      fight.tick -= FIGHT_TICK;
-      const hit = Math.min(fight.per, fight.n, state.count);
-      fight.n -= hit;
-      state.count -= hit;
-      events.push({ type: 'hit', n: hit });
-    }
-    if (fight.boss) state.boss = fight.n;
-    if (state.count <= 0) {
-      state.result = 'fail';
-      events.push({ type: 'fail' });
-    } else if (fight.n <= 0) {
-      state.fight = null;
-      if (fight.boss) {
-        state.result = 'clear';
-        events.push({ type: 'clear' });
+  shoot(state, dt, events);
+  if (state.fight) fight(state, dt, events);
+  else state.dist = Math.min(state.length, state.dist + SPEED * dt);
+
+  const c = crowdCenter(state.x, state.count);
+  for (const item of state.items) {
+    if (item.done) continue;
+    if (item.type === 'enemy') {
+      if (item.hp <= 0) {
+        item.done = true;
+        if (state.fight?.item === item) state.fight = null;
+        if (item.boss) {
+          state.result = 'clear';
+          events.push({ type: 'clear' });
+          return events;
+        }
+        continue;
+      }
+      if (state.fight || item.at - state.dist > WAKE) continue;
+      item.at -= (item.boss ? BOSS_WALK : WALK) * dt;
+      if (!item.boss) item.x += Math.sign(c - item.x) * Math.min(Math.abs(c - item.x), CHASE * dt);
+      if (item.at - state.dist <= CONTACT) {
+        state.fight = { item, per: Math.max(1, Math.ceil(item.hp / FIGHT_STEPS)), tick: 0 };
+      }
+    } else if (item.at <= state.dist) {
+      item.done = true;
+      if (item.type === 'gates') {
+        const op = side(state.x) ? item.right : item.left;
+        state.count = apply(op, state.count);
+        events.push({ type: 'gate', good: isGood(op), op, x: side(state.x) ? 0.75 : 0.25 });
       }
     }
-    return events;
   }
-
-  state.dist += SPEED * dt;
-  for (const item of state.items) {
-    if (item.done || item.at > state.dist) continue;
-    item.done = true;
-    if (item.type === 'gates') {
-      const op = state.x < 0.5 ? item.left : item.right;
-      state.count = apply(op, state.count);
-      events.push({ type: 'gate', good: isGood(op), op, x: state.x < 0.5 ? 0.25 : 0.75 });
-    } else if (item.type === 'enemy') {
-      startFight(state, item.n, item);
-      return events;
-    } else {
-      const x = crowdCenter(state.x, state.count);
-      const cut = cutBy(item, state.x, state.count);
-      const join = joinBy(item, state.x, state.count);
-      state.count += join - cut;
-      if (cut > 0) events.push({ type: 'cut', n: cut, x });
-      if (join > 0) events.push({ type: 'join', n: join, x });
-    }
-    if (state.count <= 0) {
-      state.result = 'fail';
-      events.push({ type: 'fail' });
-      return events;
-    }
-  }
-  if (state.dist >= state.length) {
-    state.dist = state.length;
-    startFight(state, state.boss, null);
+  if (state.count <= 0) {
+    state.result = 'fail';
+    events.push({ type: 'fail' });
   }
   return events;
+}
+
+/** 次の門は、着くまでに撃って上がる分も見込んで多くなるほうへ、樽は撃ちに寄る。面がクリアできるかを確かめるのに使う */
+export function autopilot(state: GameState): number {
+  const next = state.items.find((item) => !item.done && item.type !== 'enemy' && item.at > state.dist);
+  if (next?.type === 'barrel') return next.x;
+  if (next?.type !== 'gates') return 0.5;
+  const shots = (dps(state) * GATE_RATE * (next.at - state.dist)) / SPEED;
+  const gain = (op: Op) => apply(op.kind === 'add' ? { kind: 'add', n: op.n + shots } : op, state.count);
+  return gain(next.left) >= gain(next.right) ? 0.25 : 0.75;
+}
+
+export function autoplay(state: GameState): GameState['result'] {
+  for (let t = 0; t < 240 && !state.result; t += 1 / 30) {
+    steer(state, autopilot(state));
+    step(state, 1 / 30);
+  }
+  return state.result;
+}
+
+/** 難しくなるほど ×3 が減り、+ の門も小さくなる */
+function goodOp(rng: Rng, d: number): Op {
+  if (rng.chance(0.35)) return { kind: 'mul', n: rng.chance(lerp(0.3, 0.05, d)) ? 3 : 2 };
+  return { kind: 'add', n: 5 * rng.int(1, Math.round(lerp(4, 2, d))) };
+}
+
+/** 赤い門。撃てば上がるので、難しくなるほど深くする */
+const badOp = (rng: Rng, d: number): Op => ({ kind: 'add', n: -5 * rng.int(1, Math.round(lerp(3, 10, d))) });
+
+/**
+ * 敵と樽の強さは、門ごとに多いほうを選んだときの人数を目安に決め、scale 倍する。
+ * createState は autoplay がクリアできるいちばん大きな scale（1 まで）を選び、どの面も必ずクリアできるようにする
+ */
+function course(level: number, scale: number): GameState {
+  const d = difficulty(level, meta.levels);
+  const rng = new Rng(level);
+  const items: Item[] = [];
+  let best = 10;
+  const rows = Math.round(lerp(6, 14, d));
+  const foe = lerp(1 / 3, 1 / 2, d);
+  const isEnemy = (i: number) => Math.floor((i + 1) * foe) > Math.floor(i * foe);
+  const barrels = level < 2 ? 0 : Math.round(lerp(1, 5, d));
+  const barrelAfter = (i: number) => Math.floor(((i + 1) * barrels) / rows) > Math.floor((i * barrels) / rows);
+  const gap = lerp(1.4, 1.1, d);
+  let at = 1.6;
+  for (let i = 0; i < rows; i++) {
+    if (isEnemy(i)) {
+      const n = Math.max(3, Math.round(best * lerp(0.3, 0.7, d) * scale));
+      items.push({ type: 'enemy', at, x: rng.range(0.25, 0.75), hp: n, boss: false, done: false });
+    } else {
+      const a = goodOp(rng, d);
+      // 最初の 2 面は、どちらをくぐっても増える門だけにする
+      const b = level <= 2 ? goodOp(rng, d) : badOp(rng, d);
+      const [left, right] = rng.chance(0.5) ? [a, b] : [b, a];
+      items.push({ type: 'gates', at, left, right, heat: [0, 0], done: false });
+      best = Math.max(apply(left, best), apply(right, best));
+    }
+    at += gap;
+    if (!barrelAfter(i)) continue;
+    const reward: Reward = rng.chance(0.5) ? { kind: 'power' } : { kind: 'add', n: 5 * rng.int(2, 6) };
+    const hp = Math.round(lerp(10, 40, d));
+    items.push({ type: 'barrel', at, x: rng.range(0.2, 0.8), hp, max: hp, reward, done: false });
+    at += gap * 0.8;
+  }
+  const length = at;
+  const boss = Math.max(5, Math.round(best * lerp(0.8, 2, d) * scale));
+  items.push({ type: 'enemy', at: length + BOSS_GAP, x: 0.5, hp: boss, boss: true, done: false });
+  return { dist: 0, x: 0.5, count: 10, power: 1, items, length, aim: null, fight: null, result: null };
+}
+
+export function createState(level: number): GameState {
+  if (autoplay(course(level, 1)) === 'clear') return course(level, 1);
+  let [lo, hi] = [0, 1];
+  for (let i = 0; i < 8; i++) {
+    const mid = (lo + hi) / 2;
+    if (autoplay(course(level, mid)) === 'clear') lo = mid;
+    else hi = mid;
+  }
+  return course(level, lo);
 }

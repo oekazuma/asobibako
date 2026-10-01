@@ -96,3 +96,35 @@ export const tree = () =>
       c.fill();
     }
   });
+
+/** 撃って壊す木の樽 */
+export const barrel = () =>
+  sprite('barrel', 128, (c) => {
+    c.beginPath();
+    c.ellipse(0.5, 0.93, 0.3, 0.05, 0, 0, Math.PI * 2);
+    c.fillStyle = 'rgb(43 45 66 / 0.2)';
+    c.fill();
+    const wood = c.createLinearGradient(0.18, 0, 0.82, 0);
+    wood.addColorStop(0, '#b06a35');
+    wood.addColorStop(0.45, '#e0a060');
+    wood.addColorStop(1, '#8a4b2a');
+    c.fillStyle = wood;
+    c.strokeStyle = '#fff';
+    c.lineWidth = 0.035;
+    c.beginPath();
+    c.moveTo(0.24, 0.1);
+    c.quadraticCurveTo(0.12, 0.5, 0.24, 0.9);
+    c.lineTo(0.76, 0.9);
+    c.quadraticCurveTo(0.88, 0.5, 0.76, 0.1);
+    c.closePath();
+    c.fill();
+    c.stroke();
+    c.strokeStyle = '#5d6275';
+    c.lineWidth = 0.05;
+    for (const y of [0.24, 0.76]) {
+      c.beginPath();
+      c.moveTo(0.19, y);
+      c.lineTo(0.81, y);
+      c.stroke();
+    }
+  });

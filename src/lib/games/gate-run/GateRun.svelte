@@ -6,7 +6,7 @@
   import { animate } from '$lib/loop';
   import { CONFETTI, Floaters, Particles, Shake } from '$lib/fx';
   import { createState, steer, step, type RunEvent } from './engine';
-  import { paint, project } from './paint';
+  import { opText, paint, project, zOf } from './paint';
   import { sounds } from './sounds';
 
   let { level, onfinish }: SoloProps = $props();
@@ -45,8 +45,7 @@
     if (event.type === 'gate') {
       (event.good ? sounds.good : sounds.bad)();
       const [x, y] = project(v, event.x, 1.05);
-      const text = `${event.op.kind === 'x' ? '×' : event.op.kind}${event.op.n}`;
-      floaters.add(text, x, y - h * 0.12, w * 0.12, event.good ? '#1f9bff' : '#ff4d5e');
+      floaters.add(opText(event.op), x, y - h * 0.12, w * 0.12, event.good ? '#1f9bff' : '#ff4d5e');
       particles.burst(x, y - h * 0.1, {
         count: 24,
         color: event.good ? ['#9fd8ff', '#fff', '#1f9bff'] : ['#ffb3ba', '#ff4d5e'],
@@ -55,25 +54,47 @@
         life: 0.6,
         gravity: h * 0.8
       });
-    } else if (event.type === 'cut' || event.type === 'join') {
-      const cut = event.type === 'cut';
-      (cut ? sounds.bad : sounds.good)();
-      const [x, y] = project(v, event.x, 1);
-      floaters.add(`${cut ? '-' : '+'}${event.n}`, x, y - h * 0.16, w * 0.1, cut ? '#ff4d5e' : '#1f9bff');
-      particles.burst(x, y - h * 0.06, {
-        count: 18,
-        color: cut ? ['#ffb3ba', '#ff4d5e', '#d7dbe7'] : ['#d3d6e0', '#9fd8ff', '#1f9bff'],
-        speed: w * 0.45,
-        size: w * 0.011,
-        life: 0.5,
-        gravity: h * 0.8
+    } else if (event.type === 'bump') {
+      sounds.bump();
+      const [x, y] = project(v, event.x, zOf(game, event.at));
+      particles.burst(x, y - h * 0.05, {
+        count: 3,
+        color: ['#fff', '#9fd8ff'],
+        speed: w * 0.2,
+        size: w * 0.008,
+        life: 0.3
       });
-      if (cut) shake.add(0.3);
+    } else if (event.type === 'kill') {
+      // 撃ち倒す音と火花は毎回だと多すぎるので間引く
+      if (hits++ % 2 !== 0) return;
+      sounds.pop();
+      const [x, y, s] = project(v, event.x, zOf(game, event.at));
+      particles.burst(x, y - w * 0.04 * s, {
+        count: 4,
+        color: ['#ffb3ba', '#ff4d5e', '#fff3c4'],
+        speed: w * 0.3 * s,
+        size: w * 0.012 * s,
+        life: 0.35,
+        gravity: h * 0.6
+      });
+      if (event.boss) shake.add(0.05);
+    } else if (event.type === 'loot') {
+      sounds.loot();
+      const [x, y] = project(v, event.x, zOf(game, event.at));
+      const text = event.reward.kind === 'power' ? 'れんしゃ アップ' : `+${event.reward.n}`;
+      floaters.add(text, x, y - h * 0.1, w * 0.08, '#ff9f1c');
+      particles.burst(x, y - h * 0.04, {
+        count: 22,
+        color: ['#e0a060', '#8a4b2a', '#ffe066'],
+        speed: w * 0.5,
+        size: w * 0.013,
+        life: 0.6,
+        gravity: h * 0.9
+      });
     } else if (event.type === 'hit') {
-      // 打ち合いの音と火花は毎回だと多すぎるので間引く
       if (hits++ % 3 !== 0) return;
       sounds.hit();
-      const [x, y] = project(v, game.x, 1.17);
+      const [x, y] = project(v, game.x, 1.12);
       particles.burst(x, y - h * 0.03, {
         count: 4,
         color: ['#fff3c4', '#ffc233'],

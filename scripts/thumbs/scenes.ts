@@ -222,17 +222,15 @@ export const SCENES: Scene[] = [
     }
   },
   {
-    // 最後から 2 つ目の門（×2 と +10）の手前。そこまでの門は増えるほうをくぐる
+    // 仲間が赤い門を撃って数字を上げているところ
     id: 'gate-run',
     level: 6,
     clip: band(280),
     play: async (s) => {
       await s.startSolo();
       await s.touch(1, 'down', 384, 900);
-      await s.touch(1, 'move', 530, 900);
-      await s.wait(8000);
-      await s.touch(1, 'move', 325, 900);
-      await s.wait(11700);
+      await s.touch(1, 'move', 300, 900);
+      await s.wait(4300);
     }
   },
   {
