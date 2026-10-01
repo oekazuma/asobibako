@@ -252,4 +252,12 @@ describe('Party', () => {
     a.send({ t: 'mismatch' });
     expect(g.lost).toBe(true);
   });
+
+  // 前の版（3）はまちがい答えとスタンプの知らせを知らないので、つなぐと結果の画面が壊れる
+  it('知らせの形を変えた前の版の子は断る', async () => {
+    const host = Party.host();
+    const [a, a2] = pipes();
+    a2.send({ t: 'hello', v: 3, was: null, look: null });
+    expect(await host.add(a)).toBe('mismatch');
+  });
 });

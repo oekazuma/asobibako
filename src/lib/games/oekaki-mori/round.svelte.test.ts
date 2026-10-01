@@ -64,4 +64,17 @@ describe('Round', () => {
     for (const left of [12, 11, 10, 10, 9, 3]) r.receive({ t: 'view', view: view({ left }) });
     expect(sound.tick.mock.calls).toEqual([[false], [false], [true]]);
   });
+
+  // 2 人の遊びで 1 人が抜けて終わると番が進まないので、画面が替わるときに消さないと次の遊びに混ざる
+  it('画面が替わったら、前の遊びの外れた答えと打っている字を消す', () => {
+    const r = new Round();
+    r.receive({ t: 'view', view: view({}) });
+    r.receive({ t: 'bubble', seat: 2, text: 'たぬき' });
+    r.receive({ t: 'typing', seat: 2, text: 'た' });
+    r.receive({ t: 'screen', screen: 'mode' });
+    expect(r.typing).toEqual({});
+    r.receive({ t: 'view', view: view({}) });
+    r.receive({ t: 'view', view: view({ phase: 'reveal' }) });
+    expect(r.gallery[0].misses).toEqual([]);
+  });
 });

@@ -47,6 +47,9 @@ export class Round {
       this.view = null;
       this.strokes = [];
       this.gallery = [];
+      // 1 人が抜けて終わった遊びは番が進まないので、ここで消さないと次の遊びの最初の絵に混ざる
+      this.typing = {};
+      this.#misses = [];
     } else if (m.t === 'view') this.#show(m.view as View);
     else if (m.t === 'ink') this.strokes = apply(this.strokes, m.ink as Ink);
     else if (m.t === 'sync') {
