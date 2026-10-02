@@ -301,18 +301,18 @@ export const ITEM_ART: Record<string, Art> = {
     h: 12,
     frames: [
       [
-        '............',
-        '.kkkkkkkkkk.',
+        '...k..k..k..',
+        '..kbkkbkkb..',
+        '.kcbcbcbcbc.',
         'kbbbbbbbbbbk',
-        'kbbbbbbbbbbk',
-        'kbbbbbBbbbbk',
-        'kbbBbbbbbbbk',
-        'kbbbbbbbBbbk',
-        'kbbbbbbbbbbk',
-        'kbbbBbbBbbbk',
-        'kbbBbbBbbBbk',
-        'kBBkBBkBBkBk',
-        '.kk.kk.kk.k.'
+        'kssbbbbbbssk',
+        'kssssssssssk',
+        'kSssspspssSk',
+        '.kSssspssSk.',
+        '..ksspppsk..',
+        '..kSssssSk..',
+        '...kSssSk...',
+        '....kssk....'
       ]
     ]
   },
@@ -323,15 +323,15 @@ export const ITEM_ART: Record<string, Art> = {
       [
         '............',
         '............',
-        '....kkkk....',
-        '...kGGGGk...',
-        '..kGwwGGGk..',
-        '.kGGGGGGGGk.',
-        '.kGGkGGGkGk.',
-        '.kGGkGGGkGk.',
-        '..kGGGGGGk..',
-        '...kkGGkk...',
-        '.....kk.....',
+        '..........s.',
+        '...kk....s.s',
+        '..kbbkk...s.',
+        '.kBbbbbk...s',
+        'kBBBbkbkkw..',
+        'kBBBbbccckk.',
+        'kBBBbccccck.',
+        '.kBBBBccck..',
+        '..kkkkkkk...',
         '............'
       ]
     ]
@@ -402,16 +402,16 @@ export const ITEM_ART: Record<string, Art> = {
     frames: [
       [
         '............',
-        '............',
-        '............',
-        '.....kk.....',
-        'ww..kook..ww',
-        '..wkooookw..',
-        '..wkookokw..',
-        'ww..kook..ww',
-        '.....kk.....',
-        '............',
-        '............',
+        '...k....k...',
+        '..kok..kok..',
+        '..kookkook..',
+        '..kooooook..',
+        '..kooooook..',
+        'kkookoookokk',
+        '.koooopoook.',
+        '..kowwowwk..',
+        'kk.kooook.kk',
+        '....kkkk....',
         '............'
       ]
     ]

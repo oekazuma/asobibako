@@ -205,11 +205,37 @@ export const BOSS_ART: Record<'bear' | 'spiderQueen' | 'spiderling', Art> = {
     ]
   },
   spiderling: {
-    w: 10,
-    h: 8,
+    w: 14,
+    h: 12,
     frames: [
-      ['..kGkGk...', '..kGkGk...', '.kvvvvkkk.', '.kvvvGGGrk', '.kvvrGGGrk', '.kvvvvkkk.', '..kGkGk...', '...k.k....'],
-      ['...kGGk...', '..kkGGk...', '.kvvvvkkk.', '.kvvvGGGrk', '.kvvrGGGrk', '.kvvvvGkk.', '.kGkkkGk..', '..k...k...']
+      [
+        '.kGGkGk.kGkGGk',
+        '..kGGkGkkGkGGk',
+        '...kkGkGkGkGk.',
+        '..kvvvGGkGGGk.',
+        '.kvvvvvvGGGk..',
+        'kvvvrvvGGGGrk.',
+        'kUvvrrvGGGGrk.',
+        '.kUvvvvvGGGk..',
+        '..kUUvGGkGGGk.',
+        '...kkGkGkGkGkk',
+        '...kGkGGkkGkGG',
+        '....k.kk..k.kk'
+      ],
+      [
+        '...kGkGGkkGkkG',
+        '...kGkGGkkGkGk',
+        '...kkGkGkGkGk.',
+        '..kvvvGGkGGGk.',
+        '.kvvvvvvGGGk..',
+        'kvvvrvvGGGGrk.',
+        'kUvvrrvGGGGrk.',
+        '.kUvvvvvGGGk..',
+        '..kUUvGGkGGGk.',
+        '..kkkGkGkGkGk.',
+        '.kGGGGGkkGkGGk',
+        '..kkkkk..k.kk.'
+      ]
     ]
   }
 };
