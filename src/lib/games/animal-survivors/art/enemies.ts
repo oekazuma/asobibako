@@ -13,7 +13,15 @@ export const ENEMY_ART: Record<
   | 'ghost'
   | 'skeleton'
   | 'zombie'
-  | 'metal',
+  | 'metal'
+  | 'penguin'
+  | 'snowsprite'
+  | 'seal'
+  | 'snowman'
+  | 'reindeer'
+  | 'hare'
+  | 'polar'
+  | 'snowling',
   Art
 > = {
   rat: {
