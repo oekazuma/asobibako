@@ -21,7 +21,8 @@ const run: RunSummary = {
   evolved: ['woofEvo'],
   dealt: [
     { id: 'woofEvo', damage: 1200, kills: 40 },
-    { id: 'paw', damage: 300, kills: 10 }
+    { id: 'paw', damage: 300, kills: 10 },
+    { id: 'woof', damage: 100, kills: 3 }
   ]
 };
 
@@ -37,6 +38,8 @@ describe('DamageTable', () => {
     expect(rows[0]).toContain('★');
     expect(rows[0]).toContain('1,200');
     expect(rows[1]).toContain('Lv3');
+    // 進化前の武器は持ち物に残らないが、Lv5 で進化したので Lv5 と出す
+    expect(rows[2]).toContain('Lv5');
     unmount(app);
   });
 });

@@ -1,13 +1,14 @@
 <script lang="ts">
   import { itemArt } from './art/evolved';
   import PixelIcon from './PixelIcon.svelte';
-  import { WEAPONS } from './weapons';
+  import { MAX_LEVEL, WEAPONS } from './weapons';
   import type { RunSummary } from './world';
 
   let { run }: { run: RunSummary } = $props();
 
   const top = $derived(Math.max(1, ...run.dealt.map((d) => d.damage)));
-  const level = (id: string) => run.weapons.find((o) => o.id === id)?.level ?? 0;
+  // 持ち物に無い武器は Lv5 で進化した元の武器
+  const level = (id: string) => run.weapons.find((o) => o.id === id)?.level ?? MAX_LEVEL;
   const n = (v: number) => v.toLocaleString('ja-JP');
 </script>
 

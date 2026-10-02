@@ -5,6 +5,7 @@
   import type { Reward } from './chest';
   import { PASSIVES } from './passives';
   import PixelIcon from './PixelIcon.svelte';
+  import { sounds } from './sounds';
   import { WEAPONS } from './weapons';
 
   let { rewards, locked, onclose }: { rewards: Reward[]; locked: boolean; onclose: () => void } = $props();
@@ -44,8 +45,10 @@
 
   onMount(() => {
     let id: ReturnType<typeof setTimeout>;
+    // 進化の出来事は宝箱を開けた step の外で起きて効果の側に届かないので、見せたときにここで鳴らす
     const tick = () => {
       shown += 1;
+      if (rewards[shown - 1]?.kind === 'evolve') sounds.evolve();
       if (shown < rewards.length) id = setTimeout(tick, 250);
     };
     id = setTimeout(tick, 600);
