@@ -452,5 +452,293 @@ export const ENEMY_ART: Record<
         '...kTTkkkkTTk...'
       ]
     ]
+  },
+  penguin: {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '.....kkk....',
+        '....knnnk...',
+        '...knnnnnk..',
+        '..knnnwwwnk.',
+        '.knnnnwkknk.',
+        '.knnnnwkkYYk',
+        '.knnnnnnwnk.',
+        '.knnnwwwwk..',
+        '.knnnwwwwk..',
+        '..knnwwwwk..',
+        '...kYYwwYYk.',
+        '....kkkkkk..'
+      ],
+      [
+        '......kk....',
+        '....kknnkk..',
+        '...knnnnnnk.',
+        '..knnnwwwnk.',
+        '..knnnwkwkk.',
+        '..knnnnkwkYk',
+        '.knnnnnnwnk.',
+        '..knnnwwwnk.',
+        '..knnnwwwnk.',
+        '..knnnwwwk..',
+        '...knYYwYYk.',
+        '....kkkkkk..'
+      ]
+    ]
+  },
+  snowsprite: {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '............',
+        '......k.....',
+        '....kkwk....',
+        '...kwjwjk..k',
+        'k.kwwwwwwkkj',
+        'jkwwwwwwwwjk',
+        'kjwwwkwkwwjk',
+        '.kwwpwwwpwk.',
+        '..kjjjjjjk..',
+        '...kjjjjk...',
+        '....kkkk....',
+        '............'
+      ],
+      [
+        '......k.....',
+        '.....kwk....',
+        '...kkjwjk...',
+        '.kkwwwwwwkk.',
+        'kjwwwwwwwwjk',
+        'jkwwwkwkwwjk',
+        'kkwwpwwwpwkj',
+        '..kwwwwwwk.k',
+        '..kjjjjjjk..',
+        '...kkkkkk...',
+        '............',
+        '............'
+      ]
+    ]
+  },
+  seal: {
+    w: 14,
+    h: 12,
+    frames: [
+      [
+        '..............',
+        '..............',
+        '........kkkk..',
+        '.......kssssk.',
+        '...kkkkssssssk',
+        '.kksssssswkssk',
+        'ksssssssskkwwk',
+        'ssssssssssswwk',
+        'SSSsssssssssk.',
+        'SSSSSSSSSSSk..',
+        'kkkSSSSSSkk...',
+        '...kkkkkSk....'
+      ],
+      [
+        '..............',
+        '.........kk...',
+        '........ksskk.',
+        '.......ksssssk',
+        '..kkkkksswkssk',
+        '.kssssssskkssk',
+        'ksssssssssswwk',
+        'ssssssssssssk.',
+        'SSSSSSSSSSSk..',
+        'kkSSSSSSSSk...',
+        '..kkkkkkSk....',
+        '........k.....'
+      ]
+    ]
+  },
+  snowman: {
+    w: 14,
+    h: 16,
+    frames: [
+      [
+        '.....kkkkk....',
+        '....knnnnnk...',
+        '....knnnnnk...',
+        '...knnnnnnnk..',
+        '...kwwkwkIk...',
+        '..kwwwkwkIIk..',
+        'k..kwwwwwook..',
+        'Tk.krrrrrrrk.k',
+        'kTkwwwwwwrIkkT',
+        '.kTwwwwwwRIkTk',
+        '.kwwwwwkwwIIk.',
+        '.kwwwwwwwwIIk.',
+        '.kwwwwwkwwIIk.',
+        '..kIIIIIIIIk..',
+        '...kIIIIIIk...',
+        '....kkkkkk....'
+      ],
+      [
+        '.....kkkkk....',
+        '....knnnnnk...',
+        '....knnnnnk...',
+        '...knnnnnnnk..',
+        '...kwwkwkIk...',
+        '..kwwwkwkIIk..',
+        '...kwwwwwook..',
+        '...krrrrrrrk..',
+        '..kwwwwwwrIk..',
+        '.kkwwwwwwRIkk.',
+        'kTTwwwwkwwIITk',
+        'TkwwwwwwwwIIkT',
+        'kkwwwwwkwwIIkk',
+        '..kIIIIIIIIk..',
+        '...kIIIIIIk...',
+        '....kkkkkk....'
+      ]
+    ]
+  },
+  reindeer: {
+    w: 20,
+    h: 16,
+    frames: [
+      [
+        '.............k.k....',
+        '............kTkTkk..',
+        '...........kTkTkTTk.',
+        '............kkTbTk..',
+        '............kbbbbbk.',
+        '.....kkkkkkkkbbkcckk',
+        '..kkkbbbbbbbbbbkccrr',
+        '.kwwbbbbbbbbbbbbbckk',
+        '.kwwbbbbbbbbbbbkkk..',
+        '..kbbbbbbbbbbbbk....',
+        '...kcccccccccck.....',
+        '....kcccccccck......',
+        '...kBkBkkkkBkBk.....',
+        '...kBkBk..kBkBk.....',
+        '...kBkBk..kBkBk.....',
+        '....k.k....k.k......'
+      ],
+      [
+        '.............k.k....',
+        '............kTkTkk..',
+        '...........kTkTkTTk.',
+        '............kkTbTk..',
+        '............kbbbbbk.',
+        '.....kkkkkkkkbbkcckk',
+        '..kkkbbbbbbbbbbkccrr',
+        '.kwwbbbbbbbbbbbbbckk',
+        '.kwwbbbbbbbbbbbkkk..',
+        '..kbbbbbbbbbbbbk....',
+        '...kcccccccccck.....',
+        '....kcccccccck......',
+        '....kBkBkkBkBk......',
+        '....kBkBkkBkBk......',
+        '....kBkBkkBkBk......',
+        '.....k.k..k.k.......'
+      ]
+    ]
+  },
+  hare: {
+    w: 14,
+    h: 12,
+    frames: [
+      [
+        '.........k....',
+        '........kwk...',
+        '........kpwk..',
+        '........kwwk..',
+        '...kkkkkwwwwk.',
+        '.kkwwwwwwwkwwk',
+        'kwwwwwwwwwkwwk',
+        'kwwwwwwwwwwwpk',
+        'kwwwwwwwwwwkk.',
+        '.kwwwwwwwwk...',
+        '..kIIIIIIk....',
+        '...kIkkkIk....'
+      ],
+      [
+        '........kwk...',
+        '........kpwk..',
+        '........kwwk..',
+        '....kkkkkwwwk.',
+        '..kkwwwwwwkwwk',
+        '.kwwwwwwwwkwwk',
+        'kwwwwwwwwwwwpk',
+        'kwwwwwwwwwwkk.',
+        '.kwwwwwwwwk...',
+        '.kIIIIIIIIk...',
+        '..kIIIIIkIk...',
+        '...kkkkk.k....'
+      ]
+    ]
+  },
+  polar: {
+    w: 24,
+    h: 14,
+    frames: [
+      [
+        '........................',
+        '.................k......',
+        '.......kkkkkkk..kwkkk...',
+        '....kkkwwwwwwwkkwIwwwk..',
+        '...kwwwwwwwwwwwwwwwwwwk.',
+        '..kwwwwwwwwwwwwwwwwkwwwk',
+        '.kwwwwwwwwwwwwwwwwkkwwwk',
+        '.kwwwwwwwwwwwwwwwwwwwwkk',
+        '.kwwwwwwwwwwwwwwwwwwwwk.',
+        '..kwwwwwwwwwwwwwwwkkkk..',
+        '...kIIIIIIIIIIIIIk......',
+        '...kIIkIIIIIIIIkIIk.....',
+        '...kIIkIIkkkkIIkIIk.....',
+        '....kk.kk....kk.kk......'
+      ],
+      [
+        '........................',
+        '.................k......',
+        '.......kkkkkkk..kwkkk...',
+        '....kkkwwwwwwwkkwIwwwk..',
+        '...kwwwwwwwwwwwwwwwwwwk.',
+        '..kwwwwwwwwwwwwwwwwkwwwk',
+        '.kwwwwwwwwwwwwwwwwkkwwwk',
+        '.kwwwwwwwwwwwwwwwwwwwwkk',
+        '.kwwwwwwwwwwwwwwwwwwwwk.',
+        '..kwwwwwwwwwwwwwwwkkkk..',
+        '...kIIIIIIIIIIIIIk......',
+        '....kIIIIIIIIIkIIk......',
+        '....kIIkIIkkIIkIIk......',
+        '.....kk.kk..kk.kk.......'
+      ]
+    ]
+  },
+  snowling: {
+    w: 10,
+    h: 10,
+    frames: [
+      [
+        '....kwk...',
+        '...kuuk...',
+        '..kuuuuk..',
+        '..kuuuuk..',
+        'kkwwwwwIkk',
+        'TwwwkwkIIT',
+        'kTwwwwwoTk',
+        'kwwwwwwIIk',
+        '.kIIIIIIk.',
+        '..kkIIkk..'
+      ],
+      [
+        '...kuwk...',
+        '..kuuuuk..',
+        '..kuuuuk..',
+        'kkwwwwwIkk',
+        'TwwwkwkIIT',
+        'kTwwwwwoTk',
+        'kwwwwwwIIk',
+        '.kIIIIIIk.',
+        '..kIIIIk..',
+        '...kkkk...'
+      ]
+    ]
   }
 };
