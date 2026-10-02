@@ -89,7 +89,7 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
         minion: 'snowling',
         shot: 'snowball'
       },
-      { ...e('dragon', '氷の竜', [1500, 40, 28, 18, 0], 'boss', 1, 'dragon'), ai: 'dragon', shot: 'icicle' }
+      { ...e('dragon', '氷の竜', [1200, 40, 28, 18, 0], 'boss', 1, 'dragon'), ai: 'dragon', shot: 'icicle' }
     ] satisfies EnemyDef[]
   ).map((d) => [d.id, d])
 );
