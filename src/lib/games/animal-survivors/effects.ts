@@ -44,7 +44,17 @@ const BODY: Record<string, string> = {
   zombie: PALETTE.l,
   pumpkinling: PALETTE.o,
   pumpkin: PALETTE.o,
-  knight: PALETTE.q
+  knight: PALETTE.q,
+  penguin: PALETTE.n,
+  snowsprite: PALETTE.j,
+  seal: PALETTE.s,
+  snowman: PALETTE.w,
+  reindeer: PALETTE.b,
+  hare: PALETTE.w,
+  polar: PALETTE.w,
+  snowling: PALETTE.w,
+  yeti: PALETTE.w,
+  dragon: PALETTE.j
 };
 
 /** 見た目と音だけの演出。World の出来事を読み、ルールには触らない */

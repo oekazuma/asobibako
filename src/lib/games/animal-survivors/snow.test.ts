@@ -89,6 +89,18 @@ describe('雪山を選べる条件', () => {
   });
 });
 
+describe('雪山の記録', () => {
+  it('大雪男と氷の竜を倒した記録は読み直しても残る', () => {
+    const r = parseRecords(JSON.stringify({ bosses: ['yeti', 'dragon', 'bear'] }));
+    expect([...r.bosses].sort()).toEqual(['bear', 'dragon', 'yeti']);
+  });
+
+  it('墓地と雪山のヌシの表は森のヌシと同じ数', () => {
+    expect(SNOW.chiefs.every((c) => ENEMIES[c.enemy])).toBe(true);
+    expect(stageOf('graveyard').chiefs.every((c) => ENEMIES[c.enemy])).toBe(true);
+  });
+});
+
 describe('雪山の実績', () => {
   it('雪山のクリアと、雪山の 2 体のボス', () => {
     const clear = ACHIEVEMENTS.find((a) => a.id === 'snowClear')!;

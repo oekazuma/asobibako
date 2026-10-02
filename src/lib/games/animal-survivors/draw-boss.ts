@@ -107,7 +107,7 @@ export function hazardsAbove(ctx: CanvasRenderingContext2D, w: World, q: Snap): 
     if (!h.alive) continue;
     if (h.kind === 'web') ctx.drawImage(bake(ITEM_ART[h.art ?? 'web']), q(h.x - 4), q(h.y - 4));
     else if (h.kind === 'pillar' && h.delay <= 0) {
-      // 地面から突き出し、消えるまでに少し沈む
+      // 地面から 0.1 秒で突き出す
       const ic = ITEM_ART.icicle;
       const rise = Math.min(1, (0.4 - h.life) / 0.1);
       ctx.drawImage(bake(ic), q(h.x - ic.w), q(h.y + 8 - ic.h * 2 * rise), ic.w * 2, Math.max(1, ic.h * 2 * rise));

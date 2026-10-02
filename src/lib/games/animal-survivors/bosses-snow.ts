@@ -49,8 +49,7 @@ export function yeti(w: World, i: number, e: Enemy, ux: number, uy: number, dt: 
       r: YETI.ballR[0],
       delay: 0,
       life: YETI.ballLife,
-      dmg: YETI.ballDmg,
-      art: e.def.shot
+      dmg: YETI.ballDmg
     });
     e.cd = YETI.every / (e.def.rage ?? 1);
   } else {

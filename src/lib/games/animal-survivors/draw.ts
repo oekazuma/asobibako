@@ -203,10 +203,18 @@ function crown(ctx: CanvasRenderingContext2D, e: Enemy, art: Art, flip: boolean)
   ctx.drawImage(bake(c), q(x - (c.w * 3) / 2), q(y), c.w * 3, c.h * 3);
 }
 
-/** 宙にいる大雪男は、飛び立った所から落ちる先へ弧を描いて進む */
-function leap(e: Enemy) {
+/** 宙にいる大雪男の真下の地面。飛び立った所から落ちる先へ進む（影と画面に入るかはここで見る） */
+function footing(e: Enemy) {
+  if (!airborne(e)) return e;
   const t = 1 - Math.max(0, e.wait) / YETI.pounceWarn;
-  return { x: e.x + (e.dx - e.x) * t, y: e.y + (e.dy - e.y) * t - Math.sin(Math.PI * t) * 48 };
+  return { x: e.x + (e.dx - e.x) * t, y: e.y + (e.dy - e.y) * t };
+}
+
+/** 宙にいる大雪男は、真下の地面から弧を描いて浮く */
+function leap(e: Enemy) {
+  const g = footing(e);
+  const t = 1 - Math.max(0, e.wait) / YETI.pounceWarn;
+  return { x: g.x, y: g.y - Math.sin(Math.PI * t) * 48 };
 }
 
 /** きらきらハリネズミのまわりで、光の点が順にまたたく */
@@ -227,12 +235,17 @@ function sparkle(ctx: CanvasRenderingContext2D, e: Enemy, now: number) {
 
 function enemies(ctx: CanvasRenderingContext2D, w: World, cx: number, cy: number, v: ViewSize, now: number) {
   order.length = 0;
-  for (const e of w.enemies)
-    if (e.alive && e.x > cx - 48 && e.x < cx + v.w + 48 && e.y > cy - 48 && e.y < cy + v.h + 48) order.push(e);
+  for (const e of w.enemies) {
+    if (!e.alive) continue;
+    const g = footing(e);
+    if (g.x > cx - 48 && g.x < cx + v.w + 48 && g.y > cy - 48 && g.y < cy + v.h + 48) order.push(e);
+  }
   order.sort((a, b) => a.y - b.y);
   ctx.fillStyle = 'rgb(0 0 0 / 0.25)';
-  for (const e of order)
-    shadow(ctx, e.x, e.y + (ART[e.def.id].h * sizeOf(e)) / 2 - 1, Math.round(e.def.r * (e.def.boss ? 2.2 : 1.8)));
+  for (const e of order) {
+    const g = footing(e);
+    shadow(ctx, g.x, g.y + (ART[e.def.id].h * sizeOf(e)) / 2 - 1, Math.round(e.def.r * (e.def.boss ? 2.2 : 1.8)));
+  }
   for (const e of order) {
     const art = ART[e.def.id];
     // 巨大ベアは地ならしの予告のあいだ、大雪男は宙にいるあいだ、両手を上げたコマにする

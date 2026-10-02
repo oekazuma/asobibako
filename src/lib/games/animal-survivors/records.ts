@@ -2,7 +2,7 @@ import { ACHIEVEMENTS, grant, type AchievementDef } from './achievements';
 import { ANIMALS, type AnimalId } from './animals';
 import { EVOLUTIONS } from './evolutions';
 import { STAGES } from './stages';
-import type { BossId } from './enemies';
+import { ENEMIES, type BossId } from './enemies';
 import { UPGRADES, type Ranks } from './upgrades';
 import type { RunSummary } from './world';
 
@@ -34,7 +34,8 @@ export interface Records {
 
 export const RECORDS_KEY = 'asobibako:animal-survivors';
 const STARTERS: AnimalId[] = ['dog', 'cat', 'wolf'];
-const BOSSES: BossId[] = ['bear', 'spiderQueen', 'pumpkin', 'knight'];
+/** ボスを足したら記録にも残るよう、敵の表から作る */
+const BOSSES: BossId[] = Object.values(ENEMIES).flatMap((d) => (d.boss ? [d.boss] : []));
 
 export function emptyRecords(): Records {
   return {

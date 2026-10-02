@@ -568,8 +568,8 @@ function separate(w: World) {
     for (const j of w.grid.near(a.x, a.y, a.def.r * 2, near)) {
       if (j === i) continue;
       const b = es[j];
-      // ランタンは押さず押されない
-      if (a.def.prop || b.def.prop) continue;
+      // ランタンと宙にいる大雪男は押さず押されない
+      if (a.def.prop || b.def.prop || airborne(a) || airborne(b)) continue;
       const dx = b.x - a.x;
       const dy = b.y - a.y;
       const min = a.def.r + b.def.r;

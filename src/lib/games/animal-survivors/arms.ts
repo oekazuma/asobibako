@@ -1,3 +1,4 @@
+import { airborne } from './bosses-snow';
 import { MAX_R } from './enemies';
 import { WEAPONS, weaponStats, type WeaponDef, type WeaponStats } from './weapons';
 import { damageEnemy, type Enemy, type World } from './world';
@@ -150,7 +151,7 @@ function nearest(w: World, x: number, y: number): Enemy | undefined {
   let best: Enemy | undefined;
   let bd = Infinity;
   for (const e of w.enemies) {
-    if (!e.alive || e.def.prop) continue;
+    if (!e.alive || e.def.prop || airborne(e)) continue;
     const d = (e.x - x) ** 2 + (e.y - y) ** 2;
     if (d < bd) {
       bd = d;
@@ -177,7 +178,7 @@ function within(w: World, x: number, y: number, r: number, out: number[]) {
   for (const i of found) {
     const e = w.enemies[i];
     const rr = r + e.def.r;
-    if (e.alive && (e.x - x) ** 2 + (e.y - y) ** 2 < rr * rr) out.push(i);
+    if (e.alive && !airborne(e) && (e.x - x) ** 2 + (e.y - y) ** 2 < rr * rr) out.push(i);
   }
   return out;
 }

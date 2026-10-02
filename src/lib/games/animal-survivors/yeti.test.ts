@@ -74,6 +74,25 @@ describe('大雪男', () => {
     expect(w.events.some((o) => o.type === 'hurt')).toBe(false);
   });
 
+  it('跳んでいるあいだは弾を吸わず、狙いも引きつけない', () => {
+    const w = arena();
+    w.player.invuln = 1e9;
+    const e = w.enemies[0];
+    e.turn = 1;
+    e.cd = 0;
+    tick(w, 1 / 60);
+    w.enemies[1] = makeEnemy(ENEMIES.penguin, -80, 0, 1e6);
+    w.weapons = [{ id: 'woof', level: 1, cd: 0 }];
+    step(w, { x: 0, y: 0 }, 1 / 60);
+    const shot = w.shots.find((o) => o.alive)!;
+    expect(shot.vx).toBeLessThan(0);
+    // 飛び立った所に置いた弾も消えずに進む
+    shot.x = e.x;
+    shot.y = e.y;
+    step(w, { x: 0, y: 0 }, 1 / 60);
+    expect(shot.alive).toBe(true);
+  });
+
   it('着地は予告の円の中だけが痛く、ちび雪だるまが 3 匹出る', () => {
     for (const [px, hit] of [
       [20, true],
