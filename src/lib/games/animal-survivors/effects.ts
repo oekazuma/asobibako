@@ -117,6 +117,15 @@ export class Effects {
           this.#bit(p.x, p.y, Math.cos(a) * 90, Math.sin(a) * 90, 0.5, i % 2 ? PALETTE.y : PALETTE.w);
         }
         sounds.levelup();
+      } else if (e.type === 'grow') {
+        this.flash = 0.35;
+        const p = w.player;
+        for (let i = 0; i < 48; i++) {
+          const a = (i / 48) * Math.PI * 2;
+          const v = i % 2 ? 160 : 100;
+          this.#bit(p.x, p.y, Math.cos(a) * v, Math.sin(a) * v, 0.7, [PALETTE.y, PALETTE.w, PALETTE.Y][i % 3], 3);
+        }
+        sounds.evolve();
       } else if (e.type === 'magnet') {
         this.edge = 0.3;
         sounds.magnet();

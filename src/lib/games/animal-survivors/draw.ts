@@ -126,13 +126,15 @@ function ground(ctx: CanvasRenderingContext2D, w: World, cx: number, cy: number,
 
 function player(ctx: CanvasRenderingContext2D, w: World, now: number) {
   const p = w.player;
-  const a = ANIMAL_ART[w.animal.id].forms[0];
+  const a = ANIMAL_ART[w.animal.id].forms[w.form];
   ctx.fillStyle = 'rgb(0 0 0 / 0.25)';
-  shadow(ctx, p.x, p.y + 7, 12);
+  shadow(ctx, p.x, p.y + 7, 12 + w.form * 3);
   if (p.invuln > 0 && Math.floor(p.invuln / 0.08) % 2 === 1) return;
   const [art, frame] =
     p.hurt > 0 ? [a.hurt, 0] : p.attack > 0 ? [a.attack, 0] : p.moving ? [a.walk, frameAt(now * 10, 4)] : [a.walk, 0];
   const flip = p.facing < 0;
+  // 育って大きくなっても足もとは 1 段階めと同じ高さにそろえる
+  const y = p.y - (art.h - 16) / 2;
   // 白いふちで、大群の中でも自分を見失わないようにする
   for (const [dx, dy] of [
     [-1, 0],
@@ -140,8 +142,8 @@ function player(ctx: CanvasRenderingContext2D, w: World, now: number) {
     [0, -1],
     [0, 1]
   ])
-    sprite(ctx, art, frame, p.x + dx, p.y + dy, flip, true);
-  sprite(ctx, art, frame, p.x, p.y, flip);
+    sprite(ctx, art, frame, p.x + dx, y + dy, flip, true);
+  sprite(ctx, art, frame, p.x, y, flip);
   if (p.hp < w.stats.maxHp) {
     const x = q(p.x - 8);
     const y = q(p.y + 10);

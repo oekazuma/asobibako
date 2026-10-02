@@ -44,6 +44,10 @@ export class Prompts {
       if (e.type === 'warning') {
         this.warning = { name: ENEMIES[e.boss].name, key: w.time, until: w.time + WARN_AHEAD };
       } else if (e.type === 'swarm' && e.text) this.notice = { text: e.text, key: w.time, until: w.time + NOTICE };
+      else if (e.type === 'grow') {
+        const [from, to] = [w.animal.forms[e.form - 1], w.animal.forms[e.form]];
+        this.notice = { text: `${from}は ${to}に育った！`, key: w.time, until: w.time + NOTICE };
+      }
     // 倒していないボスが残ったまま次のボスが出ることがあるので、予告した数と倒した数で決める
     this.boss = w.warned > w.bossKills.length;
     if (this.warning && w.time >= this.warning.until) this.warning = null;

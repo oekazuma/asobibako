@@ -19,6 +19,7 @@ const run: RunSummary = {
   opened: 0,
   evolved: [],
   stage: 'forest',
+  form: 0,
   dealt: []
 };
 

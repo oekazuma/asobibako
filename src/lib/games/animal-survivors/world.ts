@@ -79,13 +79,16 @@ export type GameEvent =
   | { type: 'evolve'; id: string }
   | { type: 'swarm'; text: string }
   | { type: 'cross' }
-  | { type: 'freeze' };
+  | { type: 'freeze' }
+  | { type: 'grow'; form: 1 | 2 };
 
 export interface World {
   rand: Rng;
   time: number;
   stage: Stage;
   animal: Animal;
+  /** 育った段階。0 が 1 段階め */
+  form: 0 | 1 | 2;
   stats: Stats;
   /** 店の強化。パッシブを取って stats を作り直すときにも足す */
   boost: Partial<Stats>;
@@ -172,6 +175,7 @@ export function createWorld(
     time: 0,
     stage,
     animal: a,
+    form: 0,
     stats: s,
     boost: k.boost,
     greed: k.greed,
@@ -643,6 +647,8 @@ export interface RunSummary {
   /** 武器ごとのダメージと倒した数。ダメージの多い順 */
   dealt: { id: string; damage: number; kills: number }[];
   stage: string;
+  /** いちばん育った段階 */
+  form: 0 | 1 | 2;
 }
 
 /** 強欲を掛けたこの回のコイン。1 枚ずつ掛けると端数で減るので、合計に掛ける */
@@ -667,6 +673,7 @@ export function summary(w: World): RunSummary {
     dealt: Object.entries(w.dealt)
       .map(([id, d]) => ({ id, damage: Math.round(d.damage), kills: d.kills }))
       .sort((a, b) => b.damage - a.damage),
-    stage: w.stage.id
+    stage: w.stage.id,
+    form: w.form
   };
 }

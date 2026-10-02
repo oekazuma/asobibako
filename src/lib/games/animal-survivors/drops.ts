@@ -1,4 +1,5 @@
 import type { Enemy, World } from './world';
+import { stats } from './passives';
 
 export interface Gem {
   alive: boolean;
@@ -73,6 +74,9 @@ export function gemTier(value: number): 0 | 1 | 2 {
   return value >= 20 ? 2 : value >= 5 ? 1 : 0;
 }
 
+/** この Lv に届いたら 1 段階育つ */
+export const GROW_AT = [10, 25];
+
 export function gainXp(w: World, value: number): void {
   const v = value * w.stats.growth;
   w.xp += v;
@@ -82,7 +86,15 @@ export function gainXp(w: World, value: number): void {
     w.level += 1;
     w.pending += 1;
     w.events.push({ type: 'levelup' });
+    if (GROW_AT.includes(w.level)) grow(w);
   }
+}
+
+function grow(w: World): void {
+  w.form = Math.min(2, w.form + 1) as World['form'];
+  w.stats = stats(w.animal, w.passives, w.boost, w.form);
+  w.player.hp = w.stats.maxHp;
+  w.events.push({ type: 'grow', form: w.form as 1 | 2 });
 }
 
 /** 玉が MAX_GEMS 個あれば、新しく作らずに自分からいちばん遠い玉へ値を足す（経験値を消さずに数を抑える） */

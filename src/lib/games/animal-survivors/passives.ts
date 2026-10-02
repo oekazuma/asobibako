@@ -56,7 +56,16 @@ export const PASSIVES: Record<string, PassiveDef> = Object.fromEntries(
   ].map((d) => [d.id, d])
 );
 
-export function stats(a: Animal, passives: { id: string; level: number }[], boost: Partial<Stats> = {}): Stats {
+/** 育った段階ごとに足す強さ */
+export const GROW_MIGHT = 0.1;
+export const GROW_HP = 20;
+
+export function stats(
+  a: Animal,
+  passives: { id: string; level: number }[],
+  boost: Partial<Stats> = {},
+  form = 0
+): Stats {
   const s: Stats = {
     maxHp: a.hp,
     might: a.might,
@@ -75,6 +84,8 @@ export function stats(a: Animal, passives: { id: string; level: number }[], boos
   for (const [k, v] of Object.entries(boost) as [StatKey, number][]) s[k] += v;
   for (const [k, v] of Object.entries(a.bonus ?? {}) as [StatKey, number][]) s[k] += v;
   for (const { id, level } of passives) s[PASSIVES[id].stat] += PASSIVES[id].per * level;
+  s.might += GROW_MIGHT * form;
+  s.maxHp += GROW_HP * form;
   return s;
 }
 

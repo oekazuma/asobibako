@@ -20,6 +20,7 @@ const run: RunSummary = {
   opened: 0,
   evolved: ['woofEvo'],
   stage: 'forest',
+  form: 0,
   dealt: [
     { id: 'woofEvo', damage: 1200, kills: 40 },
     { id: 'paw', damage: 300, kills: 10 },

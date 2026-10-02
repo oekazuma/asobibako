@@ -18,6 +18,8 @@ export interface Animal {
   bonus?: Partial<Stats>;
   /** 特別な強みの文（キャラ選択の「とくい」） */
   perk?: string;
+  /** 育つ 3 段階の名前 */
+  forms: [string, string, string];
   /** 解放の条件の文。最初から選べる動物には無い */
   unlock?: string;
 }
@@ -25,6 +27,7 @@ export interface Animal {
 export const ANIMALS: Animal[] = [
   {
     id: 'dog',
+    forms: ['子犬', 'わんぱく犬', '勇者の犬'],
     name: '犬',
     style: 'バランス型',
     blurb: 'なんでもこなす相棒。骨を投げて戦う',
@@ -35,6 +38,7 @@ export const ANIMALS: Animal[] = [
   },
   {
     id: 'cat',
+    forms: ['子猫', '忍び猫', 'ねこまた'],
     name: '猫',
     style: 'スピード型',
     blurb: '足が速いが打たれ弱い。すばやい爪で引っかく',
@@ -45,6 +49,7 @@ export const ANIMALS: Animal[] = [
   },
   {
     id: 'wolf',
+    forms: ['子狼', '銀狼', '月の大狼'],
     name: '狼',
     style: 'パワー型',
     blurb: '力強くタフ。遠吠えで周りをまとめて吹き飛ばす',
@@ -55,6 +60,7 @@ export const ANIMALS: Animal[] = [
   },
   {
     id: 'fox',
+    forms: ['子ギツネ', '三尾の狐', '九尾の狐'],
     name: 'キツネ',
     style: 'テクニック型',
     blurb: '狐火を足もとに残し、会心の一撃をねらう',
@@ -68,6 +74,7 @@ export const ANIMALS: Animal[] = [
   },
   {
     id: 'bear',
+    forms: ['子グマ', '金太郎グマ', '横綱グマ'],
     name: 'クマ',
     style: 'タンク型',
     blurb: '遅いが打たれ強い。大きな爪でなぎ払う',
@@ -81,6 +88,7 @@ export const ANIMALS: Animal[] = [
   },
   {
     id: 'rabbit',
+    forms: ['子ウサギ', '跳び兎', '月の兎'],
     name: 'ウサギ',
     style: '逃げ足型',
     blurb: 'とても速いが打たれ弱い。駆け抜けて吹き飛ばす',
@@ -94,6 +102,7 @@ export const ANIMALS: Animal[] = [
   },
   {
     id: 'panda',
+    forms: ['子パンダ', '拳法パンダ', '達人パンダ'],
     name: 'パンダ',
     style: '回復型',
     blurb: 'ゆっくりだがしぶとい。ツタで敵を足止めする',

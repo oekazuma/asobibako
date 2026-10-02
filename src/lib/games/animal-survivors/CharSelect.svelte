@@ -49,7 +49,11 @@
       {@const weapon = WEAPONS[a.weapon]}
       <button class="as-card" class:closed={!open} data-animal={a.id} disabled={!open} onclick={() => onpick(a.id)}>
         <span class="face"
-          ><PixelIcon art={ANIMAL_ART[a.id].forms[0].walk} frame={open ? tick % 4 : 0} size="min(14cqw, 8cqh, 80px)" /></span
+          ><PixelIcon
+            art={ANIMAL_ART[a.id].forms[0].walk}
+            frame={open ? tick % 4 : 0}
+            size="min(14cqw, 8cqh, 80px)"
+          /></span
         >
         <span class="body">
           {#if open}

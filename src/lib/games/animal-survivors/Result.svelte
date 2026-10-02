@@ -25,7 +25,7 @@
     onselect: () => void;
   } = $props();
 
-  const art = $derived(ANIMAL_ART[run.animal].forms[0]);
+  const art = $derived(ANIMAL_ART[run.animal].forms[run.form]);
   const rows = $derived([
     ['生存時間', clock(run.time)],
     ['レベル', `Lv.${run.level}`],
@@ -56,7 +56,7 @@
     {/each}
     <div class="who">
       <PixelIcon art={run.cleared ? art.walk : art.hurt} size="min(18cqw, 10cqh, 96px)" />
-      <span>使用キャラクター<br /><b>{animal(run.animal).name}</b></span>
+      <span>使用キャラクター<br /><b>{animal(run.animal).forms[run.form]}</b></span>
     </div>
     <dl>
       {#each rows as [label, value] (label)}

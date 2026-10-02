@@ -81,6 +81,17 @@ describe('Prompts', () => {
     expect(p.notice).toBeNull();
   });
 
+  it('育ったら「子犬は わんぱく犬に育った！」の帯を出す', () => {
+    const w = createWorld('dog', 1, { w: 274, h: 394 });
+    const p = new Prompts(w);
+    w.events = [{ type: 'grow', form: 1 }];
+    p.take();
+    expect(p.notice?.text).toBe('子犬は わんぱく犬に育った！');
+    w.events = [{ type: 'grow', form: 2 }];
+    p.take();
+    expect(p.notice?.text).toBe('わんぱく犬は 勇者の犬に育った！');
+  });
+
   it('巨大ベアが残ったまま女王グモが出たら、片方を倒してもボスの曲のまま', () => {
     const w = createWorld('dog', 1, { w: 274, h: 394 });
     const p = new Prompts(w);

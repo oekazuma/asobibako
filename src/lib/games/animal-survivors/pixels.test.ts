@@ -11,9 +11,7 @@ import { goldOf, problems, type Art } from './pixels';
 
 const all: [string, Art][] = [
   ...Object.entries(ANIMAL_ART).flatMap(([id, a]) =>
-    a.forms.flatMap((pose, f) =>
-      Object.entries(pose).map(([k, art]) => [`${id}.${f}.${k}`, art] as [string, Art])
-    )
+    a.forms.flatMap((pose, f) => Object.entries(pose).map(([k, art]) => [`${id}.${f}.${k}`, art] as [string, Art]))
   ),
   ...Object.entries(ENEMY_ART),
   ...Object.entries(BOSS_ART),
@@ -49,7 +47,8 @@ describe('ドット絵の格子', () => {
         [20, 20],
         [24, 24]
       ]);
-      for (const p of a.forms) for (const art of [p.attack, p.hurt]) expect([art.w, art.h]).toEqual([p.walk.w, p.walk.h]);
+      for (const p of a.forms)
+        for (const art of [p.attack, p.hurt]) expect([art.w, art.h]).toEqual([p.walk.w, p.walk.h]);
     }
   });
 

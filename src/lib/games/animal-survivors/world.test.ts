@@ -100,7 +100,8 @@ describe('世界', () => {
       opened: 0,
       evolved: [],
       dealt: [],
-      stage: 'forest'
+      stage: 'forest',
+      form: 0
     });
   });
 });
