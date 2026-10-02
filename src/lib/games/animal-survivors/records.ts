@@ -1,5 +1,6 @@
 import { ANIMALS, type AnimalId } from './animals';
 import type { BossId } from './enemies';
+import { UPGRADES, type Ranks } from './upgrades';
 import type { RunSummary } from './world';
 
 export interface Records {
@@ -10,6 +11,16 @@ export interface Records {
   bosses: BossId[];
   clears: number;
   unlocked: AnimalId[];
+  /** もちもののコイン */
+  coins: number;
+  /** 店の品ごとの段 */
+  ranks: Ranks;
+  /** 達成した実績の id */
+  achieved: string[];
+  /** クリアした動物 */
+  clearedBy: AnimalId[];
+  /** 開けた宝箱の合計 */
+  chests: number;
 }
 
 export const RECORDS_KEY = 'asobibako:animal-survivors';
@@ -25,7 +36,18 @@ const UNLOCK: Partial<Record<AnimalId, (r: Records) => boolean>> = {
 };
 
 export function emptyRecords(): Records {
-  return { best: 0, kills: 0, bosses: [], clears: 0, unlocked: [...STARTERS] };
+  return {
+    best: 0,
+    kills: 0,
+    bosses: [],
+    clears: 0,
+    unlocked: [...STARTERS],
+    coins: 0,
+    ranks: {},
+    achieved: [],
+    clearedBy: [],
+    chests: 0
+  };
 }
 
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : 0);
@@ -48,8 +70,24 @@ export function parseRecords(text: string | null): Records {
     kills: num(raw.kills),
     bosses: list(raw.bosses, BOSSES),
     clears: num(raw.clears),
-    unlocked: ids.filter((id) => STARTERS.includes(id) || unlocked.includes(id))
+    unlocked: ids.filter((id) => STARTERS.includes(id) || unlocked.includes(id)),
+    coins: Math.floor(num(raw.coins)),
+    ranks: ranksOf(raw.ranks),
+    achieved: Array.isArray(raw.achieved) ? raw.achieved.filter((v): v is string => typeof v === 'string') : [],
+    clearedBy: list(raw.clearedBy, ids),
+    chests: Math.floor(num(raw.chests))
   };
+}
+
+/** 知らない品と数でない段は読み飛ばし、段は 0〜最大の整数にする */
+function ranksOf(v: unknown): Ranks {
+  const out: Ranks = {};
+  if (!v || typeof v !== 'object') return out;
+  for (const d of UPGRADES) {
+    const n = Math.min(d.max, Math.floor(num((v as Record<string, unknown>)[d.id])));
+    if (n > 0) out[d.id] = n;
+  }
+  return out;
 }
 
 /** 1 回の結果で記録を更新し、新しく解放した動物を ANIMALS の順で返す。解放は取り消さない */
