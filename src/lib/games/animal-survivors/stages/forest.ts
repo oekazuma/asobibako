@@ -12,6 +12,14 @@ export interface Wave {
 export interface Stage {
   id: string;
   name: string;
+  /** 地面と飾りの絵 */
+  art: 'forest' | 'graveyard';
+  /** コインに掛ける倍率 */
+  coin: number;
+  /** 遊んでいるあいだの曲（songs.ts） */
+  song: 'field' | 'grave';
+  /** まだ選べないときに出す、選べる条件 */
+  unlock?: string;
   /** 秒。ここまで生き延びればクリア */
   length: number;
   waves: Wave[];
@@ -37,6 +45,9 @@ export function spawnRate(w: Wave, t: number): number {
 export const FOREST: Stage = {
   id: 'forest',
   name: '森',
+  art: 'forest',
+  coin: 1,
+  song: 'field',
   length: 900,
   events: [
     { at: 90, kind: 'swarm', enemy: 'bat', count: 30, text: 'コウモリの大群！' },

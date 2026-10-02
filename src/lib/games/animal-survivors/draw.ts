@@ -2,6 +2,7 @@ import { ANIMAL_ART } from './art/animals';
 import { BOSS_ART } from './art/bosses';
 import { ENEMY_ART } from './art/enemies';
 import { FOREST_ART } from './art/forest';
+import { GRAVE_ART } from './art/graveyard';
 import { ITEM_ART } from './art/items';
 import { PALETTE } from './art/palette';
 import { shots, swipes, zonesBelow } from './draw-arms';
@@ -70,34 +71,55 @@ function shadow(ctx: CanvasRenderingContext2D, x: number, y: number, w: number) 
   ctx.fillRect(x0 + 1, y0 + 1, w - 2, 1);
 }
 
-const DECOR: [number, keyof typeof FOREST_ART.decor | null][] = [
-  [0.55, null],
-  [0.73, 'tuft'],
-  [0.85, 'flower'],
-  [0.91, 'rock'],
-  [0.95, 'stump'],
-  [1, 'tree']
-];
+/** 面ごとの地面と飾り。飾りは場所のハッシュがこの値より小さい最初の種類（null は何も置かない） */
+const GROUNDS = {
+  forest: {
+    art: FOREST_ART,
+    decor: [
+      [0.55, null],
+      [0.73, 'tuft'],
+      [0.85, 'flower'],
+      [0.91, 'rock'],
+      [0.95, 'stump'],
+      [1, 'tree']
+    ],
+    shadowed: ['tree', 'rock', 'stump']
+  },
+  graveyard: {
+    art: GRAVE_ART,
+    decor: [
+      [0.55, null],
+      [0.72, 'bones'],
+      [0.84, 'candle'],
+      [0.92, 'cross'],
+      [0.97, 'tomb'],
+      [1, 'deadtree']
+    ],
+    shadowed: ['tomb', 'cross', 'deadtree']
+  }
+} as const;
 
-function ground(ctx: CanvasRenderingContext2D, cx: number, cy: number, v: ViewSize) {
+function ground(ctx: CanvasRenderingContext2D, w: World, cx: number, cy: number, v: ViewSize) {
+  const g = GROUNDS[w.stage.art];
+  const decor: Record<string, Art> = g.art.decor;
   const T = 16;
   for (let ty = Math.floor(cy / T); ty * T < cy + v.h; ty++)
     for (let tx = Math.floor(cx / T); tx * T < cx + v.w; tx++) {
       const h = hash(tx, ty);
-      if (h < 0.08) ctx.drawImage(bake(FOREST_ART.dirt), tx * T, ty * T);
-      else ctx.drawImage(bake(FOREST_ART.grass, Math.floor(hash(tx + 911, ty) * 4)), tx * T, ty * T);
+      if (h < 0.08) ctx.drawImage(bake(g.art.dirt), tx * T, ty * T);
+      else ctx.drawImage(bake(g.art.grass, Math.floor(hash(tx + 911, ty) * 4)), tx * T, ty * T);
     }
   const C = 48;
   ctx.fillStyle = 'rgb(0 0 0 / 0.22)';
   for (let gy = Math.floor(cy / C) - 1; gy * C < cy + v.h + 40; gy++)
     for (let gx = Math.floor(cx / C) - 1; gx * C < cx + v.w + 16; gx++) {
       const h = hash(gx * 7 + 3, gy * 5 + 1);
-      const kind = DECOR.find(([p]) => h < p)![1];
+      const kind = g.decor.find(([p]) => h < p)![1];
       if (!kind) continue;
-      const art = FOREST_ART.decor[kind];
+      const art = decor[kind];
       const x = gx * C + 8 + Math.floor(hash(gx, gy * 3) * 32);
       const y = gy * C + 16 + Math.floor(hash(gx * 3, gy) * 28);
-      if (kind === 'tree' || kind === 'rock' || kind === 'stump') shadow(ctx, x, y - 1, Math.round(art.w * 0.8));
+      if ((g.shadowed as readonly string[]).includes(kind)) shadow(ctx, x, y - 1, Math.round(art.w * 0.8));
       ctx.drawImage(bake(art), Math.round(x - art.w / 2), y - art.h);
     }
 }
@@ -153,7 +175,7 @@ function enemies(ctx: CanvasRenderingContext2D, w: World, cx: number, cy: number
   for (const e of order) {
     const art = ART[e.def.id];
     // 巨大ベアは地ならしの予告のあいだ、両手を上げたコマにする
-    const frame = e.def.boss === 'bear' && e.state === 3 ? 2 : frameAt(e.t * (e.def.boss ? 4 : 6), 2);
+    const frame = e.def.ai === 'bear' && e.state === 3 ? 2 : frameAt(e.t * (e.def.boss ? 4 : 6), 2);
     sprite(ctx, art, frame, e.x, e.y, !e.def.prop && w.player.x < e.x, e.flash > 0, e.def.elite);
   }
 }
@@ -189,7 +211,7 @@ export function draw(
   const cx = p.x - v.w / 2;
   const cy = p.y - v.h / 2;
   ctx.setTransform(S, 0, 0, S, -devicePx(cx, S), -devicePx(cy, S));
-  ground(ctx, cx, cy, v);
+  ground(ctx, w, cx, cy, v);
   hazardsBelow(ctx, w, q, now);
   zonesBelow(ctx, w, q, now);
   pickups(ctx, w, now);

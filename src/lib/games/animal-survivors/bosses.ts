@@ -15,6 +15,8 @@ export interface Hazard {
   delay: number;
   /** 当たったあとに見せる残り秒。web は飛ぶ残り秒 */
   life: number;
+  /** web の絵（ITEM_ART の名前）。無ければ糸の玉 */
+  art?: string;
   dmg: number;
 }
 
@@ -158,14 +160,15 @@ function queen(w: World, e: Enemy, ux: number, uy: number, d: number, dt: number
         r: QUEEN.webR,
         delay: 0,
         life: QUEEN.webLife,
-        dmg: QUEEN.webDmg
+        dmg: QUEEN.webDmg,
+        art: e.def.shot
       });
     }
   }
   e.turn -= dt;
   if (e.turn <= 0) {
     e.turn = QUEEN.broodEvery;
-    const def = ENEMIES.spiderling;
+    const def = ENEMIES[e.def.minion ?? 'spiderling'];
     for (let k = 0; k < QUEEN.brood; k++) {
       const free = w.enemies.findIndex((o) => !o.alive);
       const at = free >= 0 ? free : w.enemies.length < MAX_ENEMIES ? w.enemies.length : -1;
@@ -188,7 +191,7 @@ export function moveBoss(w: World, i: number, dt: number): { vx: number; vy: num
   const dx = w.player.x - e.x;
   const dy = w.player.y - e.y;
   const d = Math.hypot(dx, dy) || 1;
-  return e.def.boss === 'bear' ? bear(w, i, e, dx / d, dy / d, dt) : queen(w, e, dx / d, dy / d, d, dt);
+  return e.def.ai === 'bear' ? bear(w, i, e, dx / d, dy / d, dt) : queen(w, e, dx / d, dy / d, d, dt);
 }
 
 export function updateHazards(w: World, dt: number): void {

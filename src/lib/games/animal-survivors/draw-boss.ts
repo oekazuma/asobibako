@@ -69,7 +69,7 @@ export function hazardsBelow(ctx: CanvasRenderingContext2D, w: World, q: Snap, n
 export function hazardsAbove(ctx: CanvasRenderingContext2D, w: World, q: Snap): void {
   for (const h of w.hazards) {
     if (!h.alive) continue;
-    if (h.kind === 'web') ctx.drawImage(bake(ITEM_ART.web), q(h.x - 4), q(h.y - 4));
+    if (h.kind === 'web') ctx.drawImage(bake(ITEM_ART[h.art ?? 'web']), q(h.x - 4), q(h.y - 4));
     else if (h.kind === 'slam' && h.delay <= 0) {
       const t = 1 - h.life / 0.3;
       ctx.globalAlpha = 0.8 * (1 - t);

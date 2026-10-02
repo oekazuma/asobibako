@@ -6,7 +6,8 @@ import { ENEMIES, type BossId, type EnemyDef } from './enemies';
 import { Grid } from './grid';
 import { stats, type Stats } from './passives';
 import { rng, type Rng } from './rng';
-import { FOREST, spawnRate, type Stage } from './stages/forest';
+import { stageOf } from './stages';
+import { spawnRate, type Stage } from './stages/forest';
 import { perks, type Ranks } from './upgrades';
 import { WEAPONS } from './weapons';
 
@@ -155,14 +156,21 @@ const REVIVE_INVULN = 2;
 const REVIVE_REACH = 80;
 const REVIVE_PUSH = 400;
 
-export function createWorld(id: AnimalId, seed: number, view: { w: number; h: number }, ranks: Ranks = {}): World {
+export function createWorld(
+  id: AnimalId,
+  seed: number,
+  view: { w: number; h: number },
+  ranks: Ranks = {},
+  stageId = 'forest'
+): World {
+  const stage = stageOf(stageId);
   const a = animal(id);
   const k = perks(ranks);
   const s = stats(a, [], k.boost);
   return {
     rand: rng(seed),
     time: 0,
-    stage: FOREST,
+    stage,
     animal: a,
     stats: s,
     boost: k.boost,
@@ -213,7 +221,7 @@ export function createWorld(id: AnimalId, seed: number, view: { w: number; h: nu
     over: null,
     view,
     events: [],
-    spawnAcc: FOREST.waves.map(() => 0),
+    spawnAcc: stage.waves.map(() => 0),
     grid: new Grid()
   };
 }
@@ -313,7 +321,7 @@ export function addEnemy(w: World, def: EnemyDef, x: number, y: number): Enemy |
 
 function spawn(w: World, base: EnemyDef) {
   const chance = w.stage.elite(w.time);
-  const def = chance > 0 && !base.boss && base.id !== 'spiderling' && w.rand() < chance ? eliteOf(base) : base;
+  const def = chance > 0 && !base.boss && !base.id.endsWith('ling') && w.rand() < chance ? eliteOf(base) : base;
   const at = spawnPoint(w);
   addEnemy(w, def, at.x, at.y);
 }
@@ -502,7 +510,7 @@ function touch(w: World) {
     if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 >= r * r) continue;
     // ボスは時間で強くならない。突進中の巨大ベアは強く当たる
     const base = e.def.boss
-      ? e.def.boss === 'bear' && e.state === 2
+      ? e.def.ai === 'bear' && e.state === 2
         ? BEAR_DASH_ATK
         : e.def.atk
       : e.def.atk * w.stage.fury(w.time);
@@ -638,7 +646,7 @@ export interface RunSummary {
 
 /** 強欲を掛けたこの回のコイン。1 枚ずつ掛けると端数で減るので、合計に掛ける */
 export function coinsOf(w: World): number {
-  return Math.floor(w.coins * w.greed + 1e-9);
+  return Math.floor(w.coins * w.greed * w.stage.coin + 1e-9);
 }
 
 export function summary(w: World): RunSummary {

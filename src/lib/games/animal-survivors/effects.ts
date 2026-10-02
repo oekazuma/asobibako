@@ -38,7 +38,13 @@ const BODY: Record<string, string> = {
   spiderling: PALETTE.v,
   bear: PALETTE.B,
   spiderQueen: PALETTE.v,
-  lantern: PALETTE.y
+  lantern: PALETTE.y,
+  ghost: PALETTE.w,
+  skeleton: PALETTE.q,
+  zombie: PALETTE.l,
+  pumpkinling: PALETTE.o,
+  pumpkin: PALETTE.o,
+  knight: PALETTE.q
 };
 
 /** 見た目と音だけの演出。World の出来事を読み、ルールには触らない */
