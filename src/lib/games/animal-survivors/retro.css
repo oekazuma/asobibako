@@ -101,3 +101,10 @@
   translate: 0 3px;
   box-shadow: none;
 }
+
+/* HUD を書きはじめる高さを測る。シェルの隅のボタンの下 */
+.as-probe {
+  position: absolute;
+  visibility: hidden;
+  height: max(72px, calc(env(safe-area-inset-top) + 60px));
+}

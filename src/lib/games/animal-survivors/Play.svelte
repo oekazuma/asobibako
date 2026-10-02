@@ -20,13 +20,15 @@
     ranks,
     onover,
     onend,
-    onrestart
+    onrestart,
+    onmusic
   }: {
     animal: AnimalId;
     ranks: Ranks;
     onover: (w: World) => void;
     onend: () => void;
     onrestart: () => void;
+    onmusic: (m: { song: 'field' | 'boss'; quiet: boolean }) => void;
   } = $props();
 
   const MOVE_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
@@ -104,6 +106,8 @@
     if (ctx) draw(ctx, world, fx, view, now, top);
   }
 
+  $effect(() => onmusic({ song: prompts.boss ? 'boss' : 'field', quiet: menu }));
+
   function pause() {
     if (!canPause(world, prompts.busy)) return;
     menuFinger = stick?.id ?? null;
@@ -154,7 +158,7 @@
 
 <div class="board" use:input.board={resize} role="application" aria-label="森のフィールド">
   <canvas bind:this={canvas}></canvas>
-  <span class="probe" bind:this={probe}></span>
+  <span class="as-probe" bind:this={probe}></span>
   {#if stick}
     {@const [w, h] = input.px(1, 1)}
     <Stick {...stick} {w} {h} />
@@ -189,11 +193,5 @@
     top: 0;
     left: 0;
     image-rendering: pixelated;
-  }
-
-  .probe {
-    position: absolute;
-    visibility: hidden;
-    height: max(72px, calc(env(safe-area-inset-top) + 60px));
   }
 </style>

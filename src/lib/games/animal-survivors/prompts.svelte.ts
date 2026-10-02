@@ -13,6 +13,8 @@ export class Prompts {
   warning = $state<{ name: string; key: number; until: number } | null>(null);
   /** 3 択の引き直しの残り。World の値は $state でないので、画面のために写しを持つ */
   rerolls = $state(0);
+  /** WARNING からボスを倒すまで（ボスの曲を流す） */
+  boss = $state(false);
   readonly lock = new Lock();
   readonly #w: World;
 
@@ -29,7 +31,10 @@ export class Prompts {
   take(): void {
     const w = this.#w;
     for (const e of w.events)
-      if (e.type === 'warning') this.warning = { name: ENEMIES[e.boss].name, key: w.time, until: w.time + WARN_AHEAD };
+      if (e.type === 'warning') {
+        this.warning = { name: ENEMIES[e.boss].name, key: w.time, until: w.time + WARN_AHEAD };
+        this.boss = true;
+      } else if (e.type === 'bossdown') this.boss = false;
     if (this.warning && w.time >= this.warning.until) this.warning = null;
   }
 

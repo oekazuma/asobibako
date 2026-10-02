@@ -53,4 +53,16 @@ describe('Prompts', () => {
     expect(p.options).toBe(second);
     p.stop();
   });
+
+  it('WARNING でボスの曲、ボスを倒すと森の曲に戻す', () => {
+    const w = createWorld('dog', 1, { w: 274, h: 394 });
+    const p = new Prompts(w);
+    expect(p.boss).toBe(false);
+    w.events = [{ type: 'warning', boss: 'bear' }];
+    p.take();
+    expect(p.boss).toBe(true);
+    w.events = [{ type: 'bossdown', x: 0, y: 0 }];
+    p.take();
+    expect(p.boss).toBe(false);
+  });
 });
