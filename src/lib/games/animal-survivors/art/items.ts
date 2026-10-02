@@ -807,5 +807,46 @@ export const ITEM_ART: Record<string, Art> = {
         '............'
       ]
     ]
+  },
+  pouch: {
+    w: 8,
+    h: 8,
+    frames: [['..kkkk..', '...kk...', '..ktTk..', '.ktttTk.', 'ktttyttk', 'kttttTTk', '.kTTTTk.', '..kkkk..']]
+  },
+  cross: {
+    w: 10,
+    h: 10,
+    frames: [
+      [
+        '....kk....',
+        '...kyyk...',
+        '...kywk...',
+        '.kkkyykkk.',
+        'kyyyyyyyyk',
+        'kYYYyyYYYk',
+        '.kkkyykkk.',
+        '...kyyk...',
+        '...kyYk...',
+        '....kk....'
+      ]
+    ]
+  },
+  clock: {
+    w: 10,
+    h: 10,
+    frames: [
+      [
+        '...kkkk...',
+        '..kuuuuk..',
+        '.kuwwwwuk.',
+        'kuwwkwwwuk',
+        'kuwwkwwwuk',
+        'kuwwkkkwuk',
+        'kuwwwwwwuk',
+        '.kuwwwwuk.',
+        '..kuuuuk..',
+        '...kkkk...'
+      ]
+    ]
   }
 };

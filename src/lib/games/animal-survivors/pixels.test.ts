@@ -98,6 +98,11 @@ describe('ドット絵の格子', () => {
       expect(ITEM_ART[k]).toBeDefined();
   });
 
+  it('ランタンと、小袋・十字架・時計の絵がある', () => {
+    expect(ENEMY_ART.lantern.frames).toHaveLength(2);
+    for (const k of ['pouch', 'cross', 'clock']) expect(ITEM_ART[k]).toBeDefined();
+  });
+
   it('7 匹ぶんの絵がある', () => {
     expect(Object.keys(ANIMAL_ART).sort()).toEqual(['bear', 'cat', 'dog', 'fox', 'panda', 'rabbit', 'wolf']);
   });
