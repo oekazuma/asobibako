@@ -180,7 +180,7 @@ export function dropFrom(w: World, e: Enemy): void {
   if (e.def.elite)
     for (let i = 0; i < ELITE_COINS; i++) {
       const a = (i / ELITE_COINS) * Math.PI * 2;
-      dropItem(w, 'coin', e.x + Math.cos(a) * 8, e.y + Math.sin(a) * 8);
+      dropItem(w, 'coin', e.x + Math.cos(a) * 8, e.y + Math.sin(a) * 8, w.rush > 0);
     }
   else if (w.rand() < COIN_CHANCE * (1 + w.stats.luck)) dropItem(w, 'coin', e.x - 4, e.y, w.rush > 0);
 }

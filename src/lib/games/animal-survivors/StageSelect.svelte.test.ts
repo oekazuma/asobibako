@@ -32,6 +32,8 @@ describe('StageSelect', () => {
     expect(card('graveyard').disabled).toBe(false);
     expect(card('graveyard').getAttribute('aria-current')).toBe('true');
     expect(card('graveyard').textContent).toContain('×1.5');
+    expect(card('forest').textContent).toContain('ボス: 巨大ベア・女王グモ');
+    expect(card('forest').textContent).not.toContain('女王グモ・巨大ベア');
     card('graveyard').click();
     expect(picked).toEqual(['graveyard']);
     unmount(app);

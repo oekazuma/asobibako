@@ -108,6 +108,16 @@ describe('金の磁石', () => {
     expect(coins / 4000).toBeLessThan(0.16);
   });
 
+  it('コインラッシュのあいだは強化個体のコインも勝手に集まる', () => {
+    const w = quiet();
+    w.rush = RUSH;
+    w.enemies[0] = makeEnemy(eliteOf(ENEMIES.rat), 0, 0, 1);
+    damageEnemy(w, 0, 9, 0, 0);
+    const coins = w.items.filter((o) => o.alive && o.kind === 'coin');
+    expect(coins.length).toBeGreaterThanOrEqual(5);
+    expect(coins.every((o) => o.pulled)).toBe(true);
+  });
+
   it('コインラッシュはゲームの時間で 15 秒続き、3 択のあいだは減らない', () => {
     const w = quiet();
     w.propCd = 9999;

@@ -176,6 +176,17 @@ describe('ボスの流れ', () => {
     expect(e.hp).toBeCloseTo(ENEMIES.bear.hp * 0.6 * FOREST.toughness(180) * BOSS_HP);
   });
 
+  it('体力のバーが満タンから減るよう、表の体力も出たときの体力にそろえる', () => {
+    const w = createWorld('dog', 1, VIEW);
+    w.stage = { ...w.stage, waves: [], events: [], chiefs: [] };
+    w.metalAt = -1;
+    w.time = FINALE;
+    spawnBosses(w);
+    const bosses = alive(w).filter((o) => o.def.boss);
+    expect(bosses).toHaveLength(6);
+    for (const e of bosses) expect(e.def.hp).toBe(e.hp);
+  });
+
   it('2 回めのボスは攻撃の間が短い', () => {
     const count = (rage: number) => {
       const w = quiet();

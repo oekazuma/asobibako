@@ -4,6 +4,8 @@ import { bossRun, FOREST, type Stage } from './forest';
 /** 森の時刻の流れのまま、敵を墓地の顔ぶれにして 1 段強くした面 */
 const HARDER = 1.1;
 
+const CHIEFS = ['skeleton', 'zombie', 'ghost', 'skeleton'];
+
 const SWAP: Record<string, string> = { rat: 'ghost', snake: 'skeleton', caterpillar: 'zombie' };
 
 export const GRAVEYARD: Stage = {
@@ -18,12 +20,7 @@ export const GRAVEYARD: Stage = {
     const to = SWAP[ev.enemy];
     return to ? { ...ev, enemy: to, text: ev.text.replace(ENEMIES[ev.enemy].name, ENEMIES[to].name) } : ev;
   }),
-  chiefs: [
-    { at: 90, enemy: 'skeleton', hp: 400 },
-    { at: 270, enemy: 'zombie', hp: 690 },
-    { at: 450, enemy: 'ghost', hp: 980 },
-    { at: 630, enemy: 'skeleton', hp: 1270 }
-  ],
+  chiefs: FOREST.chiefs.map((c, i) => ({ ...c, enemy: CHIEFS[i], hp: Math.round(c.hp * HARDER) })),
   bosses: bossRun('knight', 'pumpkin'),
   waves: FOREST.waves.map((w) => ({ ...w, enemy: SWAP[w.enemy] ?? w.enemy })),
   cap: (t) => Math.min(400, Math.round(FOREST.cap(t) * 1.15)),

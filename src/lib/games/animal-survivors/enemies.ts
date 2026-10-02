@@ -54,7 +54,7 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
       e('spider', 'クモ', [18, 36, 9, 6, 3], 'leap', 0.2),
       e('croc', 'ワニ', [120, 16, 16, 9, 10], 'chase', 0.9),
       e('spiderling', '子グモ', [8, 50, 6, 4, 1], 'chase', 0),
-      // ボスの HP には toughness を掛けない（出る時刻が決まっているので表の値がそのまま強さになる）
+      // ボスの体力はこの値に、出る時刻の硬さと行の倍率を掛ける（bosses.ts の spawnBosses）
       { ...e('bear', '巨大ベア', [700, 28, 20, 15, 0], 'boss', 1, 'bear'), ai: 'bear' },
       {
         ...e('spiderQueen', '女王グモ', [900, 38, 25, 16, 0], 'boss', 1, 'spiderQueen'),

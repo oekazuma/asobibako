@@ -34,7 +34,7 @@
         <span class="body">
           <span class="name">{s.name}</span>
           {#if open}
-            <span class="info">ボス: {s.bosses.map((b) => ENEMIES[b.id].name).join('・')}</span>
+            <span class="info">ボス: {[...new Set(s.bosses.map((b) => ENEMIES[b.id].name))].join('・')}</span>
             <span class="info">コイン ×{s.coin}</span>
             {#if s.id !== 'forest'}<span class="info hard">敵が強い</span>{/if}
           {:else}
