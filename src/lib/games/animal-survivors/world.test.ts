@@ -94,7 +94,8 @@ describe('世界', () => {
       kills: 2384,
       xp: 12450,
       weapons: [{ id: 'paw', level: 1 }],
-      passives: []
+      passives: [],
+      bosses: []
     });
   });
 });

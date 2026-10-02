@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { emptyRecords, parseRecords, record } from './records';
+import { ENEMIES } from './enemies';
+import { createWorld, makeEnemy, step, summary, type RunSummary } from './world';
 import { ANIMALS, animal } from './animals';
 import { stats } from './passives';
 import { WEAPONS } from './weapons';
@@ -27,5 +30,66 @@ describe('動物', () => {
       expect(animal(id).perk).toBeTruthy();
     }
     for (const id of ['dog', 'cat', 'wolf'] as const) expect(animal(id).unlock).toBeUndefined();
+  });
+});
+
+const run = (o: Partial<RunSummary>): RunSummary => ({
+  animal: 'dog',
+  cleared: false,
+  time: 100,
+  level: 5,
+  kills: 100,
+  xp: 0,
+  weapons: [],
+  passives: [],
+  bosses: [],
+  ...o
+});
+
+describe('記録と解放', () => {
+  it('初めは犬・猫・狼だけ', () => {
+    expect(emptyRecords().unlocked).toEqual(['dog', 'cat', 'wolf']);
+  });
+
+  it('5 分生き延びるとキツネ。一度解放したものはもう返さない', () => {
+    const r = emptyRecords();
+    expect(record(r, run({ time: 299 }))).toEqual([]);
+    expect(record(r, run({ time: 300 }))).toEqual(['fox']);
+    expect(r.unlocked).toContain('fox');
+    expect(record(r, run({ time: 400 }))).toEqual([]);
+    expect(r.best).toBe(400);
+  });
+
+  it('同じ回で 2 匹の条件を満たせば 2 匹とも解放する', () => {
+    const r = emptyRecords();
+    expect(record(r, run({ time: 310, bosses: ['bear'] }))).toEqual(['fox', 'bear']);
+  });
+
+  it('撃破の合計 3000 でウサギ、クリアでパンダ', () => {
+    const r = emptyRecords();
+    expect(record(r, run({ kills: 1500 }))).toEqual([]);
+    expect(record(r, run({ kills: 1500 }))).toEqual(['rabbit']);
+    expect(record(r, run({ time: 900, cleared: true }))).toEqual(['fox', 'panda']);
+    expect(r.clears).toBe(1);
+  });
+
+  it('壊れた保存や型の違う値は空の記録として読む', () => {
+    expect(parseRecords(null)).toEqual(emptyRecords());
+    expect(parseRecords('{oops')).toEqual(emptyRecords());
+    expect(parseRecords(JSON.stringify({ best: 'x', kills: 50, unlocked: ['fox', 'nope'] }))).toEqual({
+      ...emptyRecords(),
+      kills: 50,
+      unlocked: ['dog', 'cat', 'wolf', 'fox']
+    });
+  });
+
+  it('その回に倒したボスがリザルトに入る', () => {
+    const w = createWorld('dog', 1, { w: 274, h: 394 });
+    w.stage = { ...w.stage, waves: [], bosses: [] };
+    w.spawnAcc = [];
+    w.weapons = [{ id: 'woof', level: 1, cd: 0 }];
+    w.enemies.push(makeEnemy({ ...ENEMIES.bear, speed: 0 }, 60, 0, 1));
+    for (let i = 0; i < 60; i++) step(w, { x: 0, y: 0 }, 1 / 60);
+    expect(summary(w).bosses).toEqual(['bear']);
   });
 });

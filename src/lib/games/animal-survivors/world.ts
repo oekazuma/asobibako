@@ -94,6 +94,8 @@ export interface World {
   pending: number;
   /** まだ開けていない宝箱の数。0 より大きいあいだ step は進まない */
   chests: number;
+  /** その回に倒したボス */
+  bossKills: BossId[];
   /** 次に出すボスの番号と、予告を出したボスの数 */
   bossNext: number;
   warned: number;
@@ -147,6 +149,7 @@ export function createWorld(id: AnimalId, seed: number, view: { w: number; h: nu
     kills: 0,
     pending: 0,
     chests: 0,
+    bossKills: [],
     bossNext: 0,
     warned: 0,
     over: null,
@@ -203,7 +206,10 @@ export function damageEnemy(w: World, i: number, dmg: number, kx: number, ky: nu
   e.alive = false;
   w.kills += 1;
   w.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.def.id });
-  if (e.def.boss) w.events.push({ type: 'bossdown', x: e.x, y: e.y });
+  if (e.def.boss) {
+    w.bossKills.push(e.def.boss);
+    w.events.push({ type: 'bossdown', x: e.x, y: e.y });
+  }
   dropFrom(w, e);
 }
 
@@ -441,6 +447,7 @@ export interface RunSummary {
   xp: number;
   weapons: Owned[];
   passives: Owned[];
+  bosses: BossId[];
 }
 
 export function summary(w: World): RunSummary {
@@ -452,6 +459,7 @@ export function summary(w: World): RunSummary {
     kills: w.kills,
     xp: w.xpTotal,
     weapons: w.weapons.map(({ id, level }) => ({ id, level })),
-    passives: w.passives.map(({ id, level }) => ({ id, level }))
+    passives: w.passives.map(({ id, level }) => ({ id, level })),
+    bosses: [...w.bossKills]
   };
 }
