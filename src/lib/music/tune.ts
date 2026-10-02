@@ -10,8 +10,8 @@ import { bgmOut, play } from './synth';
  * 楽譜。melody は 8 分音符 1 つを 1 語にして小節を | で区切る（音名とオクターブ、`-` は前の音をのばす、`.` は休み）。
  * chords は 1 小節に 1 つのコード。伴奏の刻み方は style が決める
  */
-export type Lead = 'box' | 'mallet' | 'bubble' | 'brass' | 'flute';
-export type Style = 'waltz' | 'bounce' | 'march' | 'gentle';
+export type Lead = 'box' | 'mallet' | 'bubble' | 'brass' | 'flute' | 'chip';
+export type Style = 'waltz' | 'bounce' | 'march' | 'gentle' | 'drive';
 
 export interface Song {
   beats: 3 | 4;
@@ -84,7 +84,7 @@ const hold =
   (ctx, out, t, f, dur, g) =>
     play(ctx, out, t, note(ctx, name, f), g * k, { end: t + dur * cut, release });
 
-const LEADS: Record<Lead | 'pluck' | 'bass' | 'pad', Play> = {
+const LEADS: Record<Lead | 'pluck' | 'bass' | 'pad' | 'tri', Play> = {
   box: hit('box', 0.45),
   mallet: hit('marimba', 0.75),
   bubble: hit('drop', 0.7),
@@ -92,7 +92,9 @@ const LEADS: Record<Lead | 'pluck' | 'bass' | 'pad', Play> = {
   flute: hold('flute', 0.6, 0.2),
   pluck: hit('harp', 1.1),
   pad: hold('pad', 1.6, 0.4),
-  bass: hold('bass', 1.3, 0.12)
+  bass: hold('bass', 1.3, 0.12),
+  chip: hold('pulse', 0.45, 0.03, 0.9),
+  tri: hold('tri', 1.1, 0.03, 0.9)
 };
 
 /** 行進曲の小太鼓。ブラシで軽くたたいたシャッ */
@@ -135,6 +137,13 @@ export function playStep(ctx: BaseAudioContext, out: AudioNode, sc: Score, step:
       if (p === 0 || p === 4) bass(p ? c[2] : c[0], 2);
       else if (p === 2 || p === 6) strum(LEADS.pluck, 0.5, CHORD * 1.2);
       tick(ctx, out, t, p % 2 ? 0.025 : 0.05);
+      return;
+    case 'drive':
+      // 8 ビートで根音と 1 オクターブ上を交互に刻み、1・3 拍にキック、2・4 拍にスネア、裏にハイハット
+      LEADS.tri(ctx, out, t, hz(low(c[0]) + (p % 2 ? 12 : 0)), sd * 0.9, BASS);
+      if (p === 0 || p === 4) play(ctx, out, t, note(ctx, 'kick', 0), 0.35);
+      if (p === 2 || p === 6) tick(ctx, out, t, 0.06);
+      if (p % 2) play(ctx, out, t, note(ctx, 'hat', 0), 0.05);
       return;
     case 'gentle':
       if (p === 0) strum(LEADS.pad, sc.perBar, CHORD * 0.45);

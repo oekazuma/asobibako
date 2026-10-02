@@ -1,4 +1,4 @@
-import { biquad, click, hiss, pluck, RATE, ring, toBuffer, wave, white } from './synth';
+import { biquad, click, thump, hiss, pluck, RATE, ring, toBuffer, wave, white } from './synth';
 
 /**
  * 本物の楽器に近い音色。打つ楽器は板や棒の倍音の比（整数倍ではない）で減衰の違うサイン波を重ね、
@@ -143,6 +143,46 @@ const DEFS = {
       hiss(d, sr, 0, 0.06, 1800, 8000, 0.5, (u) => Math.exp(-u * 4), 0.3);
       ring(d, sr, 0, 200, 0.25, 0.012);
     }
+  },
+  /**
+   * ピコピコの旋律。デューティ 25% の矩形波を倍音で組む（そのまま矩形を書くと高い倍音が折り返して濁る）。
+   * 1 音の計算が遊んでいる最中に走るので、長さと倍音の数を絞る
+   */
+  pulse: {
+    sec: 0.9,
+    make: (d, sr, f) => {
+      for (let n = 1; f * n < sr * 0.45 && n <= 24; n++) {
+        const a = (2 / (n * Math.PI)) * Math.sin(n * Math.PI * 0.25) * 0.6;
+        const k = (2 * Math.PI * f * n) / sr;
+        for (let i = 0; i < d.length; i++) d[i] += a * Math.sin(k * i);
+      }
+      shape(d, sr, 0.004, 0.9);
+    }
+  },
+  /** ピコピコの低音。三角波（奇数倍音を 1/n² で） */
+  tri: {
+    sec: 0.6,
+    make: (d, sr, f) => {
+      for (let n = 1; f * n < sr * 0.45 && n <= 9; n += 2) {
+        const a = (8 / (Math.PI * Math.PI * n * n)) * (((n - 1) / 2) % 2 ? -1 : 1) * 0.8;
+        const k = (2 * Math.PI * f * n) / sr;
+        for (let i = 0; i < d.length; i++) d[i] += a * Math.sin(k * i);
+      }
+      shape(d, sr, 0.003, 0.6);
+    }
+  },
+  /** バスドラム。高さが下がるドン */
+  kick: {
+    sec: 0.25,
+    make: (d, sr) => {
+      thump(d, sr, 0, 140, 1, 0.05, 0.9);
+      click(d, sr, 0, 0.3, 1500, 4000);
+    }
+  },
+  /** ハイハット。ごく短い高いシャッ */
+  hat: {
+    sec: 0.05,
+    make: (d, sr) => hiss(d, sr, 0, 0.04, 6000, 12000, 0.5, (u) => (1 - u) ** 2)
   },
   /** ホルン風のやわらかいラッパ。吹きはじめは暗く、息が通ると上の倍音が開く */
   horn: {
