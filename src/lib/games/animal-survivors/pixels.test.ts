@@ -5,7 +5,7 @@ import { ENEMY_ART } from './art/enemies';
 import { FOREST_ART } from './art/forest';
 import { ITEM_ART } from './art/items';
 import { PALETTE } from './art/palette';
-import { problems, type Art } from './pixels';
+import { goldOf, problems, type Art } from './pixels';
 
 const all: [string, Art][] = [
   ...Object.entries(ANIMAL_ART).flatMap(([id, a]) =>
@@ -40,5 +40,31 @@ describe('ドット絵の格子', () => {
     expect(BOSS_ART.spiderQueen.frames).toHaveLength(2);
     expect(BOSS_ART.spiderling.frames).toHaveLength(2);
     expect(ITEM_ART.web).toBeDefined();
+  });
+
+  it('新しい武器と敵の絵がある', () => {
+    for (const k of [
+      'weapon-claw',
+      'weapon-dash',
+      'weapon-acorn',
+      'weapon-flame',
+      'weapon-vine',
+      'acorn',
+      'flame',
+      'vine'
+    ])
+      expect(ITEM_ART[k]).toBeDefined();
+    expect(ITEM_ART.flame.frames).toHaveLength(2);
+    expect(ITEM_ART.vine.frames).toHaveLength(2);
+    expect(ENEMY_ART.spider.frames).toHaveLength(2);
+    expect(ENEMY_ART.croc.frames).toHaveLength(2);
+  });
+
+  it('金色の版は線を残し、明るい色ほど明るい金色にする', () => {
+    expect(goldOf(PALETTE.k)).toBe(PALETTE.k);
+    const dark = goldOf('#303030');
+    const light = goldOf('#f0f0f0');
+    expect(dark).not.toBe(light);
+    expect([dark, light].every((c) => /^#[0-9a-f]{6}$/.test(c))).toBe(true);
   });
 });

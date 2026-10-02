@@ -9,7 +9,17 @@ export interface Art {
   pal?: Record<string, string>;
 }
 
-export type BakeMode = 'normal' | 'flip' | 'white' | 'flipWhite';
+export type BakeMode = 'normal' | 'flip' | 'white' | 'flipWhite' | 'gold' | 'flipGold';
+
+const GOLD = ['#b8860b', '#ffc233', '#fff1a8'];
+
+/** 強化個体の金色。線はそのまま、ほかの色は明るさで金色の 3 段に置き換える */
+export function goldOf(hex: string): string {
+  if (hex === PALETTE.k) return hex;
+  const n = parseInt(hex.slice(1), 16);
+  const l = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  return GOLD[l < 0.33 ? 0 : l < 0.66 ? 1 : 2];
+}
 
 export function problems(name: string, art: Art, palette: Record<string, string>): string[] {
   const out: string[] = [];
@@ -38,13 +48,15 @@ export function bake(art: Art, frame = 0, mode: BakeMode = 'normal'): HTMLCanvas
   c.width = art.w;
   c.height = art.h;
   const ctx = c.getContext('2d')!;
-  const flip = mode === 'flip' || mode === 'flipWhite';
+  const flip = mode === 'flip' || mode === 'flipWhite' || mode === 'flipGold';
+  const gold = mode === 'gold' || mode === 'flipGold';
   const white = mode === 'white' || mode === 'flipWhite';
   art.frames[frame].forEach((row, y) => {
     for (let x = 0; x < art.w; x++) {
       const ch = row[x];
       if (ch === '.') continue;
-      ctx.fillStyle = white ? '#ffffff' : (art.pal?.[ch] ?? PALETTE[ch]);
+      const color = art.pal?.[ch] ?? PALETTE[ch];
+      ctx.fillStyle = white ? '#ffffff' : gold ? goldOf(color) : color;
       ctx.fillRect(flip ? art.w - 1 - x : x, y, 1, 1);
     }
   });

@@ -444,5 +444,182 @@ export const ITEM_ART: Record<string, Art> = {
     w: 8,
     h: 8,
     frames: [['..kkkk..', '.kwwswk.', 'kwswwswk', 'kwwsswwk', 'kswsswsk', 'kwswwswk', '.kwwswk.', '..kkkk..']]
+  },
+  'weapon-claw': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '....k..k..k.',
+        '...krkkrkkrk',
+        '..krrkrrkrrk',
+        '..krrkrrkrrk',
+        '..krwkrwkrw.',
+        '.krrkrrkrrk.',
+        '.krrkrrkrrk.',
+        '.krwkrwkrw..',
+        'krrkrrkrrk..',
+        'krrkrrkrrk..',
+        'krkkrkkrk...',
+        '.k..k..k....'
+      ]
+    ]
+  },
+  'weapon-dash': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '............',
+        '.......k....',
+        '......kyk...',
+        'www...kyyk..',
+        '....kkkyyyk.',
+        '.wwkyyyyyyyk',
+        '.wwkYYYyyyYk',
+        '....kkkyyYk.',
+        'www...kyYk..',
+        '......kYk...',
+        '.......k....',
+        '............'
+      ]
+    ]
+  },
+  'weapon-acorn': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '.....kk.....',
+        '..kkkBTkkk..',
+        '.kBBBBBBBBk.',
+        'kBBBBtBtBBBk',
+        'kBBBBBBBBBBk',
+        '.kBBBBBBBBk.',
+        '.kttcBBtttk.',
+        '.kttctttttk.',
+        '.kTttttttTk.',
+        '..kTttttTk..',
+        '...kTTTTk...',
+        '....kkkk....'
+      ]
+    ]
+  },
+  'weapon-flame': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '.....k......',
+        '....kok.....',
+        '...kook.....',
+        '..koyyyk....',
+        '..koyyyok...',
+        '.kooyyyyok..',
+        '.kooyyyyok..',
+        '..koyyyyk...',
+        '...koywok...',
+        '....kkwk....',
+        '............',
+        '............'
+      ]
+    ]
+  },
+  'weapon-vine': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '......kk....',
+        '.....kLLk...',
+        '...kkkLLk...',
+        '..kllkkLLk..',
+        '.kLlllkLLk..',
+        '..kLdlLLk...',
+        '..kkkLLkkkk.',
+        '.kLLLLLllllk',
+        '.kLLkkkLLdLk',
+        '.kLk...kkkk.',
+        'kLLk........',
+        'kLLk........'
+      ]
+    ]
+  },
+  acorn: {
+    w: 6,
+    h: 6,
+    frames: [['.kkTk.', 'kBBBBk', 'kBBBBk', 'kttttk', 'kTttTk', '.kttk.']]
+  },
+  flame: {
+    w: 10,
+    h: 12,
+    frames: [
+      [
+        '....k.....',
+        '...kok....',
+        '..kook....',
+        '..koyyk...',
+        '.koyyyok..',
+        '.koyyyok..',
+        '.koyyyok..',
+        '..koyyok..',
+        '..koyyk...',
+        '...kkk....',
+        '..........',
+        '..........'
+      ],
+      [
+        '.....k....',
+        '....kok...',
+        '....kook..',
+        '...kyyok..',
+        '..koyyyok.',
+        '..koyyyok.',
+        '..koyyyok.',
+        '..koyyok..',
+        '...kyyok..',
+        '....kkk...',
+        '..........',
+        '..........'
+      ]
+    ]
+  },
+  vine: {
+    w: 12,
+    h: 14,
+    frames: [
+      [
+        '............',
+        '............',
+        '............',
+        '............',
+        '............',
+        '....kkk.....',
+        '...kLLLk....',
+        '...kLLLk....',
+        '....kLLLkk..',
+        '....kLLLlLk.',
+        '...kLLLkLk..',
+        '...kLLk.k...',
+        '...kkddkk...',
+        '..kddddddk..'
+      ],
+      [
+        '............',
+        '.....kk.....',
+        '....kLLkkk..',
+        '....kLLlllk.',
+        '..kkkkLLLLk.',
+        '.klllLLLkk..',
+        'kLlllLLk....',
+        '.kLLLLLkkk..',
+        '..kkkLLlllk.',
+        '....kLLLllLk',
+        '...kLLLkLLk.',
+        '...kLLk.kk..',
+        '...kkddkk...',
+        '..kddddddk..'
+      ]
+    ]
   }
 };

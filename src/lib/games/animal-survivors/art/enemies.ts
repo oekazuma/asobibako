@@ -1,7 +1,7 @@
 import type { Art } from '../pixels';
 
 /** 右向き（自分のほうを向くよう、描くときに反転する）。2 コマで歩くか羽ばたく */
-export const ENEMY_ART: Record<'rat' | 'bat' | 'snake' | 'caterpillar' | 'boar', Art> = {
+export const ENEMY_ART: Record<'rat' | 'bat' | 'snake' | 'caterpillar' | 'boar' | 'spider' | 'croc', Art> = {
   rat: {
     w: 12,
     h: 12,
@@ -173,6 +173,78 @@ export const ENEMY_ART: Record<'rat' | 'bat' | 'snake' | 'caterpillar' | 'boar',
         '..kBBkBBkkBBkBBk....',
         '...kk.kk..kk.kk.....',
         '....................'
+      ]
+    ]
+  },
+  spider: {
+    w: 16,
+    h: 14,
+    frames: [
+      [
+        'kGGkkGGk.kGkkGGk',
+        '.kkGGkGGkkGkkGGk',
+        '...kkGkkGkGkkGk.',
+        '...kkkGkGkGkGk..',
+        '..kTTTTTGkGkGk..',
+        '.kTTTTTTTGGGGk..',
+        'kTTToToTTGGGGrk.',
+        'kkTTTTTTTGGGGrk.',
+        '.kkoToTTTGGGGk..',
+        '..kkkkTkGkGkGk..',
+        '...kkkGkGkGkGk..',
+        '...kkGkkGkGkkGkk',
+        '..kGGkkGk.kGkkGG',
+        '...kk..k...k..kk'
+      ],
+      [
+        '..kGk.kGk.kGk.kG',
+        '...kGkkGk.kGkkGk',
+        '....kGkkGkGkkGk.',
+        '...kkkGkGkGkGk..',
+        '..kTTTTTGkGkGk..',
+        '.kTTTTTTTGGGGk..',
+        'kTTToToTTGGGGrk.',
+        'kkTTTTTTTGGGGrk.',
+        '.kkoToTTTGGGGk..',
+        '..kkkkTkGkGkGk..',
+        '...kkkGkGkGkGk..',
+        '.kkkkGkkGkGkkGk.',
+        'kGGGGGGGkkGkkGGk',
+        '.kkkkkkk..k..kk.'
+      ]
+    ]
+  },
+  croc: {
+    w: 26,
+    h: 12,
+    frames: [
+      [
+        '..........................',
+        '..........................',
+        '...............kkkkk......',
+        '.......kkkkkkkkLLkyLkkkkk.',
+        '....kkkLLLLLLLLLLLLwLwLLLk',
+        '..kkdLdLdLdLdLdLLkkkkkkkLL',
+        '.kLLLLLLLLLLLLLLLLwLwLwLLL',
+        'kLLLLLLLLLLLLLLLLLLLLLLLLL',
+        'kdddddLccccccccccdLLdddddd',
+        '.kkkkkddkddkkkkddkddkkkkkk',
+        '......kk.kk....kk.kk......',
+        '..........................'
+      ],
+      [
+        '..........................',
+        '..........................',
+        '...............kkkkk......',
+        '.......kkkkkkkkLLkyLkkkkk.',
+        '....kkkLLLLLLLLLLLLwLwLLLk',
+        '..kkdLdLdLdLdLdLLkkkkkkkLL',
+        '.kLLLLLLLLLLLLLLLLwLwLwLLL',
+        'kLLLLLLLLLLLLLLLLLLLLLLLLL',
+        'kddddLLccccccccccddLLddddd',
+        '.kkkkddkkkddkkddkkkddkkkkk',
+        '.....kk...kk..kk...kk.....',
+        '..........................'
       ]
     ]
   }
