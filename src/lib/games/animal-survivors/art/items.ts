@@ -707,5 +707,65 @@ export const ITEM_ART: Record<string, Art> = {
         '.....kk.....'
       ]
     ]
+  },
+  'passive-twin': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '............',
+        '............',
+        '.......kkkk.',
+        '......kcbbbk',
+        '.kkkk.kbkbkk',
+        'kcbbbkkbbbBk',
+        'kbkbkkkbBBBk',
+        'kbbbBk.kkkk.',
+        'kbBBBk......',
+        '.kkkk.......',
+        '............',
+        '............'
+      ]
+    ]
+  },
+  'passive-tail': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '......kkkk..',
+        '....kkoowwk.',
+        '...kooooowwk',
+        '..kooookkwwk',
+        '..kook..kkk.',
+        '.kook.......',
+        '.kook.......',
+        '.kYok.......',
+        '..kYok......',
+        '...kYYk.....',
+        '....kk......',
+        '............'
+      ]
+    ]
+  },
+  'passive-clover': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '............',
+        '..kk....kk..',
+        '.kllk..kllk.',
+        '.klLlkklLlk.',
+        '..kllkkllk..',
+        '...kkLLkk...',
+        '..kllkkllk..',
+        '.klLlkklLlk.',
+        '.kllk..kllk.',
+        '..kk.dd.kk..',
+        '......dd....',
+        '.......d....'
+      ]
+    ]
   }
 };
