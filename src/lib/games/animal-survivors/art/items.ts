@@ -853,5 +853,11 @@ export const ITEM_ART: Record<string, Art> = {
     w: 8,
     h: 8,
     frames: [['..kkkk..', '.kwwwwk.', 'kwwqwwwk', 'kwqwwwqk', 'kwwwwqwk', '.kqwwqk.', '..kqqk..', '...kk...']]
+  },
+  /** ヌシの頭に載せる */
+  crown: {
+    w: 10,
+    h: 7,
+    frames: [['.k..kk..k.', 'kykkyykkyk', 'kyykyykyyk', 'kyyyyyyyyk', 'kyryyuyryk', 'kYYYYYYYYk', '.kkkkkkkk.']]
   }
 };

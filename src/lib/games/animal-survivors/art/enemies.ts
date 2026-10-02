@@ -2,7 +2,18 @@ import type { Art } from '../pixels';
 
 /** 右向き（自分のほうを向くよう、描くときに反転する）。2 コマで歩くか羽ばたく */
 export const ENEMY_ART: Record<
-  'rat' | 'bat' | 'snake' | 'caterpillar' | 'boar' | 'spider' | 'croc' | 'lantern' | 'ghost' | 'skeleton' | 'zombie',
+  | 'rat'
+  | 'bat'
+  | 'snake'
+  | 'caterpillar'
+  | 'boar'
+  | 'spider'
+  | 'croc'
+  | 'lantern'
+  | 'ghost'
+  | 'skeleton'
+  | 'zombie'
+  | 'metal',
   Art
 > = {
   rat: {
@@ -404,6 +415,41 @@ export const ENEMY_ART: Record<
         '..kUk.kUk...',
         '..kLk.kLk...',
         '..kk...kk...'
+      ]
+    ]
+  },
+  /** きらきらハリネズミ。逃げるので、描くときは自分と反対を向かせる */
+  metal: {
+    w: 16,
+    h: 12,
+    frames: [
+      [
+        '.y....k.........',
+        'ywyk.ksk.k......',
+        '.ykskswsksk..y..',
+        '.kswskqsswskywy.',
+        '.ksqsssqsqsk.y..',
+        'ksssqsssssqskk..',
+        'kssssqsssscccck.',
+        'ksqsssqsqcccwkck',
+        'kssqsssssccckkck',
+        '.kssssssscccccpk',
+        '..kSSSSSSSkcckk.',
+        '...kkTTkkTTkk...'
+      ],
+      [
+        '......k....y....',
+        '...k.ksk.kywy...',
+        '..kskswsksky....',
+        '.kswskqsswsk..y.',
+        '.ksqsssqsqsk.ywy',
+        'ksssqsssssqskky.',
+        'kssssqsssscccck.',
+        'ksqsssqsqcccwkck',
+        'kssqsssssccckkck',
+        '.kssssssscccccpk',
+        '..kSSSSSSSkcckk.',
+        '...kTTkkkkTTk...'
       ]
     ]
   }
