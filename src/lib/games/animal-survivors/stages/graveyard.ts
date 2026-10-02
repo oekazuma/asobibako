@@ -1,7 +1,7 @@
 import { FOREST, type Stage } from './forest';
 
 /** 森の時刻の流れのまま、敵を墓地の顔ぶれにして 1 段強くした面 */
-const HARDER = 1.3;
+const HARDER = 1.15;
 
 const SWAP: Record<string, string> = { rat: 'ghost', snake: 'skeleton', caterpillar: 'zombie' };
 

@@ -30,10 +30,10 @@ describe('面の表', () => {
     expect(stageOf('nope')).toBe(FOREST);
   });
 
-  it('墓地は森より 1.3 倍強く、コインは 1.5 倍', () => {
+  it('墓地は森より 1.15 倍強く、コインは 1.5 倍', () => {
     for (const t of [0, 300, 899]) {
-      expect(GRAVEYARD.toughness(t)).toBeCloseTo(FOREST.toughness(t) * 1.3);
-      expect(GRAVEYARD.fury(t)).toBeCloseTo(FOREST.fury(t) * 1.3);
+      expect(GRAVEYARD.toughness(t)).toBeCloseTo(FOREST.toughness(t) * 1.15);
+      expect(GRAVEYARD.fury(t)).toBeCloseTo(FOREST.fury(t) * 1.15);
     }
     const w = createWorld('dog', 1, VIEW, {}, 'graveyard');
     expect(w.stage).toBe(GRAVEYARD);

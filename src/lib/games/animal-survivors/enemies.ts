@@ -61,7 +61,7 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
       e('zombie', 'ゾンビ', [80, 18, 16, 8, 8], 'chase', 0.7),
       e('pumpkinling', 'ちびかぼちゃ', [10, 46, 7, 5, 1], 'chase', 0),
       {
-        ...e('pumpkin', 'かぼちゃ大王', [950, 36, 26, 16, 0], 'boss', 1, 'pumpkin'),
+        ...e('pumpkin', 'かぼちゃ大王', [800, 36, 26, 16, 0], 'boss', 1, 'pumpkin'),
         ai: 'queen',
         minion: 'pumpkinling',
         shot: 'seed'
