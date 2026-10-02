@@ -1,12 +1,15 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { audio, toggleMute } from '$lib/audio.svelte';
+  import Icon from '$lib/components/Icon.svelte';
   import { ANIMALS, type AnimalId } from './animals';
   import { ANIMAL_ART } from './art/animals';
   import { ITEM_ART } from './art/items';
   import PixelIcon from './PixelIcon.svelte';
   import { WEAPONS } from './weapons';
 
-  let { unlocked, onpick }: { unlocked: AnimalId[]; onpick: (id: AnimalId) => void } = $props();
+  let { unlocked, onpick, onquit }: { unlocked: AnimalId[]; onpick: (id: AnimalId) => void; onquit: () => void } =
+    $props();
 
   const top = {
     hp: Math.max(...ANIMALS.map((a) => a.hp)),
@@ -22,6 +25,10 @@
 </script>
 
 <div class="as-screen">
+  <button class="round corner back" onclick={onquit} aria-label="タイトルへ戻る">✕</button>
+  <button class="round corner mute" onclick={toggleMute} aria-label="ミュート" aria-pressed={audio.muted}>
+    <Icon name={audio.muted ? 'mute' : 'speaker'} size="26px" />
+  </button>
   <section class="as-panel" aria-label="キャラクター選択">
     <h2 class="as-title">キャラクターを選ぶ</h2>
     {#each ANIMALS as a (a.id)}
@@ -53,6 +60,20 @@
 </div>
 
 <style>
+  .corner {
+    position: absolute;
+    top: max(12px, env(safe-area-inset-top));
+    z-index: 5;
+  }
+
+  .back {
+    left: max(12px, env(safe-area-inset-left));
+  }
+
+  .mute {
+    right: max(12px, env(safe-area-inset-right));
+  }
+
   .as-card {
     padding-block: min(1cqh, 8px);
   }

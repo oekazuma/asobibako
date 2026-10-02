@@ -7,13 +7,27 @@
   import { draw, viewSize, type ViewSize } from './draw';
   import { Effects } from './effects';
   import { keyVector, padVector, pick, stickVector } from './input';
-  import BossWarning from './BossWarning.svelte';
-  import ChestOpen from './ChestOpen.svelte';
-  import LevelUp from './LevelUp.svelte';
+  import { canPause } from './pause';
+  import Pause from './Pause.svelte';
+  import PromptLayer from './PromptLayer.svelte';
   import { Prompts } from './prompts.svelte';
-  import { createWorld, step, type World } from './world';
+  import Stick from './Stick.svelte';
+  import type { Ranks } from './upgrades';
+  import { createWorld, step, summary, type World } from './world';
 
-  let { animal, onover, onend }: { animal: AnimalId; onover: (w: World) => void; onend: () => void } = $props();
+  let {
+    animal,
+    ranks,
+    onover,
+    onend,
+    onrestart
+  }: {
+    animal: AnimalId;
+    ranks: Ranks;
+    onover: (w: World) => void;
+    onend: () => void;
+    onrestart: () => void;
+  } = $props();
 
   const MOVE_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
 
@@ -24,12 +38,14 @@
   /** HUD を書きはじめる高さ（仮想ドット）。シェルの隅のボタンの下 */
   let top = 24;
   // svelte-ignore state_referenced_locally
-  const world = createWorld(animal, Date.now() % 2 ** 31, { w: view.w, h: view.h });
+  const world = createWorld(animal, Date.now() % 2 ** 31, { w: view.w, h: view.h }, ranks);
   const fx = new Effects();
   const keys = new SvelteSet<string>();
   const prompts = new Prompts(world);
   let stick = $state<{ id: number; x: number; y: number; dx: number; dy: number } | null>(null);
-  let paused = false;
+  let menu = $state(false);
+  let hidden = false;
+  let ended = $state(false);
   let now = 0;
   let endTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -46,16 +62,6 @@
       prompts.lock.lift(event.pointerId);
       if (stick?.id === event.pointerId) stick = null;
     }
-  });
-
-  /** つまみは、外の丸の半径（盤面の幅の 12%）までずらして見せる */
-  const knob = $derived.by(() => {
-    if (!stick) return '0 0';
-    const [w, h] = input.px(1, 1);
-    const x = stick.dx * w;
-    const y = stick.dy * h;
-    const k = Math.min(1, (0.12 * w) / (Math.hypot(x, y) || 1));
-    return `${x * k}px ${y * k}px`;
   });
 
   function resize() {
@@ -78,7 +84,7 @@
   }
 
   function frame(dt: number) {
-    if (!prompts.busy && !paused) {
+    if (!prompts.busy && !menu && !hidden) {
       now += dt;
       step(world, direction(), dt);
       fx.take(world);
@@ -86,14 +92,38 @@
       fx.update(dt);
     }
     prompts.next(stick?.id ?? null);
-    if (world.over && !endTimer) {
+    if (world.over && !ended) {
+      ended = true;
       onover(world);
       endTimer = setTimeout(onend, world.over === 'clear' ? 2000 : 1200);
     }
     if (ctx) draw(ctx, world, fx, view, now, top);
   }
 
+  function pause() {
+    if (!canPause(world, prompts.busy)) return;
+    menu = true;
+    stick = null;
+    keys.clear();
+  }
+
+  /** やめるとやり直すは倒れたときと同じに記録する（コインを失わないため） */
+  function leave(again: boolean) {
+    if (ended) return;
+    ended = true;
+    world.over = 'dead';
+    onover(world);
+    if (again) onrestart();
+    else onend();
+  }
+
   function keydown(event: KeyboardEvent) {
+    if (event.code === 'Escape' || event.code === 'KeyP') {
+      event.preventDefault();
+      if (menu) menu = false;
+      else pause();
+      return;
+    }
     if (!MOVE_KEYS.has(event.code)) return;
     event.preventDefault();
     keys.add(event.code);
@@ -110,41 +140,34 @@
 </script>
 
 <svelte:window onkeydown={keydown} onkeyup={(event) => keys.delete(event.code)} onblur={() => keys.clear()} />
-<svelte:document onvisibilitychange={() => (paused = document.hidden)} />
+<svelte:document
+  onvisibilitychange={() => {
+    hidden = document.hidden;
+    if (hidden) pause();
+  }}
+/>
 
 <div class="board" use:input.board={resize} role="application" aria-label="森のフィールド">
   <canvas bind:this={canvas}></canvas>
   <span class="probe" bind:this={probe}></span>
   {#if stick}
-    <span class="stick" style:left="{stick.x * 100}%" style:top="{stick.y * 100}%">
-      <span class="knob" style:translate={knob}></span>
-    </span>
+    {@const [w, h] = input.px(1, 1)}
+    <Stick {...stick} {w} {h} />
   {/if}
 </div>
 <!-- 盤面の中に置くと pointerdown が盤面へ伝わって指をつかまれ、click がカードに届かない -->
-{#if prompts.warning}
-  {#key prompts.warning.key}
-    <BossWarning name={prompts.warning.name} />
-  {/key}
+{#if !menu && !prompts.busy && !ended}
+  <button class="as-pause" onclick={pause} aria-label="一時停止">Ⅱ</button>
 {/if}
-{#if prompts.rewards}
-  <!-- 宝箱を続けて開けたときに、見せた数を最初から数え直す -->
-  {#key prompts.rewards}
-    <ChestOpen
-      rewards={prompts.rewards}
-      locked={prompts.lock.active}
-      onclose={() => prompts.close(stick?.id ?? null)}
-    />
-  {/key}
-{:else if prompts.options}
-  <LevelUp
-    options={prompts.options}
-    locked={prompts.lock.active}
-    rerolls={prompts.rerolls}
-    onpick={(c) => prompts.choose(c, stick?.id ?? null)}
-    onreroll={() => prompts.reroll(stick?.id ?? null)}
+{#if menu}
+  <Pause
+    run={summary(world)}
+    onresume={() => (menu = false)}
+    onrestart={() => leave(true)}
+    onquit={() => leave(false)}
   />
 {/if}
+<PromptLayer {prompts} finger={stick?.id ?? null} />
 
 <style>
   .board {
@@ -166,23 +189,5 @@
     position: absolute;
     visibility: hidden;
     height: max(72px, calc(env(safe-area-inset-top) + 60px));
-  }
-
-  .stick {
-    position: absolute;
-    width: 24cqw;
-    aspect-ratio: 1;
-    translate: -50% -50%;
-    border: 3px solid rgb(255 255 255 / 0.5);
-    border-radius: 50%;
-    background: rgb(36 21 31 / 0.15);
-    pointer-events: none;
-  }
-
-  .knob {
-    position: absolute;
-    inset: 30%;
-    border-radius: 50%;
-    background: rgb(255 255 255 / 0.6);
   }
 </style>

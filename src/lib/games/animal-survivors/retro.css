@@ -80,3 +80,24 @@
 .as-locked .as-card {
   pointer-events: none;
 }
+
+.as-pause {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  z-index: 5;
+  width: 48px;
+  height: 48px;
+  border: 3px solid #24151f;
+  background: #fff3d6;
+  box-shadow: 0 4px 0 #8a6a4a;
+  color: #24151f;
+  font: inherit;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.as-pause:active {
+  translate: 0 3px;
+  box-shadow: none;
+}

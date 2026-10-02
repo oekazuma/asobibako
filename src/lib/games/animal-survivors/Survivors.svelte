@@ -6,12 +6,13 @@
   import CharSelect from './CharSelect.svelte';
   import Play from './Play.svelte';
   import { loadRecords, record, saveRecords } from './records';
+  import type { Ranks } from './upgrades';
   import Result from './Result.svelte';
   import { summary, type RunSummary, type World } from './world';
   import './retro.css';
 
   // 15 分の 1 回が面ひとつなので、シェルの level と onfinish は使わない（リザルトはこのゲームが持つ）
-  const _props: SoloProps = $props();
+  let { onquit }: SoloProps = $props();
 
   let screen = $state<'select' | 'play' | 'result'>('select');
   let animal = $state<AnimalId>('dog');
@@ -19,6 +20,7 @@
   /** 選べる動物と、この回で新しく仲間になった動物 */
   let unlocked = $state<AnimalId[]>(['dog', 'cat', 'wolf']);
   let fresh = $state<AnimalId[]>([]);
+  let ranks = $state<Ranks>({});
   let round = $state(0);
   // 倒れたときは移動の指が残っていることが多い。離した指の合成 click でリザルトのボタンが押されないようにする
   const settle = new Settle();
@@ -36,6 +38,7 @@
     fresh = record(r, run).flatMap((a) => (a.animal ? [a.animal] : []));
     saveRecords(r);
     unlocked = r.unlocked;
+    ranks = r.ranks;
   }
 
   function end() {
@@ -44,16 +47,18 @@
   }
 
   onMount(() => {
-    unlocked = loadRecords().unlocked;
+    const r = loadRecords();
+    unlocked = r.unlocked;
+    ranks = r.ranks;
     return settle.listen();
   });
 </script>
 
 {#if screen === 'select'}
-  <CharSelect {unlocked} onpick={start} />
+  <CharSelect {unlocked} onpick={start} onquit={() => onquit?.()} />
 {:else if screen === 'play'}
   {#key round}
-    <Play {animal} onover={over} onend={end} />
+    <Play {animal} {ranks} onover={over} onend={end} onrestart={() => start(animal)} />
   {/key}
 {:else if run}
   <Result {run} {fresh} locked={settle.active} onagain={() => start(animal)} onselect={() => (screen = 'select')} />
