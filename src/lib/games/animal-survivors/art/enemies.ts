@@ -286,5 +286,123 @@ export const ENEMY_ART: Record<'rat' | 'bat' | 'snake' | 'caterpillar' | 'boar' 
           '..kkkkkk..'
         ]
       ]
+    },
+    ghost: {
+      w: 12,
+      h: 12,
+      frames: [
+        [
+          '...kkkkkk...',
+          '..kwwwwwwk..',
+          '.kwwwwwwwwk.',
+          '.kwkwwwwkwk.',
+          '.kwkwwwwkwk.',
+          '.kwwwwwwwwk.',
+          '.kwwwkkwwwk.',
+          '.kwwwkkwwqk.',
+          '.kwwwwwwqqk.',
+          '.kqwwwwqqqk.',
+          '.kqkqqkqqkk.',
+          '..k.kk.kk...'
+        ],
+        [
+          '...kkkkkk...',
+          '..kwwwwwwk..',
+          '.kwwwwwwwwk.',
+          '.kwkwwwwkwk.',
+          '.kwkwwwwkwk.',
+          '.kwwwwwwwwk.',
+          '.kwwwkkwwwk.',
+          '.kwwwkkwwqk.',
+          '.kwwwwwwqqk.',
+          '.kqwwwwqqqk.',
+          '.kkqqkqqkqk.',
+          '...kk.kk.k..'
+        ]
+      ]
+    },
+    skeleton: {
+      w: 12,
+      h: 16,
+      frames: [
+        [
+          '...kkkkk....',
+          '..kqqqqqk...',
+          '.kqqqqqqqk..',
+          '.kqkkqkkqk..',
+          '.kqkkqkkqk..',
+          '.kqqqkqqqk..',
+          '..kqkqkqk...',
+          '...kkkkk....',
+          '..k.kqk.k...',
+          '.kqkqqqkqk..',
+          '.kqkkqkkqk..',
+          '...kqqqk....',
+          '...kqkqk....',
+          '..kqk.kqk...',
+          '..kqk.kqk...',
+          '..kk...kk...'
+        ],
+        [
+          '...kkkkk....',
+          '..kqqqqqk...',
+          '.kqqqqqqqk..',
+          '.kqkkqkkqk..',
+          '.kqkkqkkqk..',
+          '.kqqqkqqqk..',
+          '..kqkqkqk...',
+          '...kkkkk....',
+          '..k.kqk.k...',
+          '.kqkqqqkqk..',
+          '.kqkkqkkqk..',
+          '...kqqqk....',
+          '...kqkqk....',
+          '...kqkqk....',
+          '..kqk..kqk..',
+          '.kk.....kk..'
+        ]
+      ]
+    },
+    zombie: {
+      w: 12,
+      h: 16,
+      frames: [
+        [
+          '...kkkkk....',
+          '..klllllk...',
+          '.kllllllLk..',
+          '.klkklkkLk..',
+          '.kllllllLk..',
+          '.klkkkklLk..',
+          '..kLLLLLk...',
+          '.kkTTTTTkk..',
+          'kllTTvTTllk.',
+          'kLkTTTTTkLk.',
+          '.k.kTTvTk.k.',
+          '...kTTTTk...',
+          '...kUUUUk...',
+          '...kUkkUk...',
+          '..kUk..kUk..',
+          '..kk....kk..'
+        ],
+        [
+          '...kkkkk....',
+          '..klllllk...',
+          '.kllllllLk..',
+          '.klkklkkLk..',
+          '.kllllllLk..',
+          '.klkkkklLk..',
+          '..kLLLLLk...',
+          '.kkTTTTTkk..',
+          'kllTTvTTllk.',
+          'kLkTTTTTkLk.',
+          '.k.kTTvTk.k.',
+          '...kTTTTk...',
+          '...kUUUUk...',
+          '..kUk.kUk...',
+          '..kLk.kLk...',
+          '..kk...kk...'
+        ]
+      ]
     }
   };

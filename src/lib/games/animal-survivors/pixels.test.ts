@@ -3,6 +3,7 @@ import { ANIMAL_ART } from './art/animals';
 import { BOSS_ART } from './art/bosses';
 import { ENEMY_ART } from './art/enemies';
 import { FOREST_ART } from './art/forest';
+import { GRAVE_ART } from './art/graveyard';
 import { ITEM_ART } from './art/items';
 import { goldArt, itemArt } from './art/evolved';
 import { PALETTE } from './art/palette';
@@ -17,7 +18,10 @@ const all: [string, Art][] = [
   ...Object.entries(ITEM_ART),
   ['grass', FOREST_ART.grass],
   ['dirt', FOREST_ART.dirt],
-  ...Object.entries(FOREST_ART.decor)
+  ...Object.entries(FOREST_ART.decor),
+  ['grave.grass', GRAVE_ART.grass],
+  ['grave.dirt', GRAVE_ART.dirt],
+  ...Object.entries(GRAVE_ART.decor)
 ];
 
 describe('ドット絵の格子', () => {
@@ -101,6 +105,12 @@ describe('ドット絵の格子', () => {
   it('ランタンと、小袋・十字架・時計の絵がある', () => {
     expect(ENEMY_ART.lantern.frames).toHaveLength(2);
     for (const k of ['pouch', 'cross', 'clock']) expect(ITEM_ART[k]).toBeDefined();
+  });
+
+  it('墓地の地面・飾り・敵 3 種の絵がある', () => {
+    expect(GRAVE_ART.grass.frames).toHaveLength(4);
+    expect(Object.keys(GRAVE_ART.decor).sort()).toEqual(['bones', 'candle', 'cross', 'deadtree', 'tomb']);
+    for (const k of ['ghost', 'skeleton', 'zombie'] as const) expect(ENEMY_ART[k].frames).toHaveLength(2);
   });
 
   it('7 匹ぶんの絵がある', () => {
