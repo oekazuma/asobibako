@@ -65,3 +65,85 @@ describe('ボスの出かた', () => {
     expect(Math.hypot(w.enemies[1].x - 100, w.enemies[1].y)).toBeGreaterThan(15);
   });
 });
+describe('ボスの攻撃', () => {
+  const placeBoss = (w: World, id: 'bear' | 'spiderQueen', x: number, y = 0) => {
+    const e = makeEnemy(ENEMIES[id], x, y, ENEMIES[id].hp);
+    w.enemies.push(e);
+    return e;
+  };
+
+  it('巨大ベアの地ならしは、予告のあいだは当たらず、予告が終わると輪の中に当たる', () => {
+    const w = quiet();
+    const bear = placeBoss(w, 'bear', 40);
+    bear.cd = 0;
+    bear.turn = 1; // 奇数なので地ならし
+    w.time = 10;
+    run(w, 0.5);
+    expect(w.hazards.some((h) => h.alive && h.kind === 'slam')).toBe(true);
+    const before = w.player.hp;
+    run(w, 0.3);
+    expect(w.player.hp).toBe(before);
+    run(w, 0.4);
+    expect(w.player.hp).toBe(before - 28);
+  });
+
+  it('巨大ベアの突進は、予告の矢印を出して止まり、そのあと速く走る', () => {
+    const w = quiet();
+    const bear = placeBoss(w, 'bear', 200);
+    bear.cd = 0;
+    w.time = 10;
+    run(w, 0.3);
+    expect(w.hazards.some((h) => h.alive && h.kind === 'dash')).toBe(true);
+    const x0 = bear.x;
+    run(w, 0.3);
+    expect(bear.x).toBeCloseTo(x0, 0);
+    run(w, 0.5);
+    expect(x0 - bear.x).toBeGreaterThan(60);
+    expect(w.hazards.some((h) => h.alive && h.kind === 'dash')).toBe(false);
+  });
+
+  it('女王グモの糸の玉に当たると 2 秒遅くなる', () => {
+    const w = quiet();
+    const q = placeBoss(w, 'spiderQueen', 110);
+    q.cd = 0;
+    q.turn = 99;
+    w.time = 10;
+    run(w, 1.5);
+    q.cd = 99; // 2 回目の玉が当たらないように
+    expect(w.player.slow).toBeGreaterThan(0);
+    w.player.x = 0;
+    const x0 = w.player.x;
+    step(w, { x: 1, y: 0 }, 1 / 60);
+    expect(w.player.x - x0).toBeCloseTo((60 * 0.6) / 60, 3);
+    run(w, 2.1);
+    expect(w.player.slow).toBeLessThanOrEqual(0);
+  });
+
+  it('女王グモは 6 秒ごとに子グモを 6 匹生む', () => {
+    const w = quiet();
+    const q = placeBoss(w, 'spiderQueen', 110);
+    q.cd = 99;
+    q.turn = 0;
+    w.time = 10;
+    run(w, 0.1);
+    expect(w.enemies.filter((e) => e.alive && e.def.id === 'spiderling')).toHaveLength(6);
+    q.cd = 99;
+    run(w, 5.5);
+    expect(w.enemies.filter((e) => e.def.id === 'spiderling').length).toBe(6);
+    q.cd = 99;
+    run(w, 0.6);
+    expect(w.enemies.filter((e) => e.def.id === 'spiderling').length).toBe(12);
+  });
+
+  it('予告の途中で巨大ベアが倒れたら、予告は消える', () => {
+    const w = quiet();
+    const bear = placeBoss(w, 'bear', 40);
+    bear.cd = 0;
+    bear.turn = 1;
+    w.time = 10;
+    run(w, 0.3);
+    bear.alive = false;
+    run(w, 0.1);
+    expect(w.hazards.some((h) => h.alive)).toBe(false);
+  });
+});

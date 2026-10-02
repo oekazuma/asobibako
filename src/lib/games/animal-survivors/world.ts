@@ -1,6 +1,6 @@
 import { animal, type Animal, type AnimalId } from './animals';
 import { fire, hits, type Effect, type Shot } from './arms';
-import { moveBoss, spawnBosses, type Hazard } from './bosses';
+import { moveBoss, spawnBosses, updateHazards, type Hazard } from './bosses';
 import { collect, dropFrom, type Gem, type Item } from './drops';
 import { ENEMIES, type BossId, type EnemyDef } from './enemies';
 import { Grid } from './grid';
@@ -304,8 +304,13 @@ function touch(w: World) {
       : e.def.atk * w.stage.fury(w.time);
     atk = Math.max(atk, base);
   }
-  if (atk === 0) return;
-  const dmg = Math.max(1, Math.round(atk - w.stats.armor));
+  if (atk > 0) hurtPlayer(w, atk);
+}
+
+/** 自分にダメージを与え、少し無敵にする。防御を引き、最低 1 */
+export function hurtPlayer(w: World, raw: number): void {
+  const p = w.player;
+  const dmg = Math.max(1, Math.round(raw - w.stats.armor));
   p.hp -= dmg;
   p.invuln = 0.5;
   p.hurt = 0.3;
@@ -377,6 +382,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   });
   separate(w);
   touch(w);
+  updateHazards(w, dt);
   if (w.over) return;
 
   fire(w, dt);
