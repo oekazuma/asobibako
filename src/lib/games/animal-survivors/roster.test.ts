@@ -47,6 +47,7 @@ const run = (o: Partial<RunSummary>): RunSummary => ({
   opened: 0,
   evolved: [],
   dealt: [],
+  stage: 'forest',
   ...o
 });
 

@@ -642,6 +642,7 @@ export interface RunSummary {
   evolved: string[];
   /** 武器ごとのダメージと倒した数。ダメージの多い順 */
   dealt: { id: string; damage: number; kills: number }[];
+  stage: string;
 }
 
 /** 強欲を掛けたこの回のコイン。1 枚ずつ掛けると端数で減るので、合計に掛ける */
@@ -665,6 +666,7 @@ export function summary(w: World): RunSummary {
     evolved: [...w.evolvedNow],
     dealt: Object.entries(w.dealt)
       .map(([id, d]) => ({ id, damage: Math.round(d.damage), kills: d.kills }))
-      .sort((a, b) => b.damage - a.damage)
+      .sort((a, b) => b.damage - a.damage),
+    stage: w.stage.id
   };
 }

@@ -4,7 +4,7 @@ import { stats } from './passives';
 import { emptyRecords, parseRecords } from './records';
 import { UPGRADES, buy, perks, price } from './upgrades';
 import { ACHIEVEMENTS, grant } from './achievements';
-import { record } from './records';
+import { canPlay, record } from './records';
 import { createWorld, damageEnemy, eliteOf, hurtPlayer, makeEnemy, step, summary, type RunSummary } from './world';
 import { collect } from './drops';
 import { openChest } from './chest';
@@ -25,6 +25,7 @@ const run = (o: Partial<RunSummary> = {}): RunSummary => ({
   opened: 0,
   evolved: [],
   dealt: [],
+  stage: 'forest',
   ...o
 });
 
@@ -109,9 +110,9 @@ describe('記録の拡張', () => {
 });
 
 describe('実績', () => {
-  it('25 個あり、id は重ならない', () => {
-    expect(ACHIEVEMENTS).toHaveLength(25);
-    expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(25);
+  it('27 個あり、id は重ならない', () => {
+    expect(ACHIEVEMENTS).toHaveLength(27);
+    expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(27);
   });
 
   it('1 回の結果で記録を足し、達成した実績のコインと動物を渡す。同じ実績は 2 度渡さない', () => {
@@ -241,5 +242,33 @@ describe('ゲームの中の積み上げ', () => {
     w.player.invuln = 0;
     hurtPlayer(w, 999);
     expect(w.over).toBe('dead');
+  });
+});
+
+describe('面の記録と解放', () => {
+  it('森をクリアすると墓地が選べ、前に遊んだ面を覚える', () => {
+    const r = emptyRecords();
+    expect(canPlay(r, 'graveyard')).toBe(false);
+    record(r, run({ cleared: true, time: 900 }));
+    expect(r.stages).toEqual(['forest']);
+    expect(canPlay(r, 'graveyard')).toBe(true);
+    record(r, run({ stage: 'graveyard', time: 100 }));
+    expect(r.stage).toBe('graveyard');
+  });
+
+  it('古い保存はクリアがあれば森をクリアしたことにし、知らない面は森で読む', () => {
+    expect(parseRecords(JSON.stringify({ clears: 1 })).stages).toEqual(['forest']);
+    expect(canPlay(parseRecords(JSON.stringify({ clears: 0 })), 'graveyard')).toBe(false);
+    expect(parseRecords(JSON.stringify({ stage: 'moon' })).stage).toBe('forest');
+  });
+
+  it('墓地のクリアと 2 体のボスの実績。墓地のボスは森の実績を満たさない', () => {
+    const r = emptyRecords();
+    const got = record(r, run({ stage: 'graveyard', cleared: true, time: 900, bosses: ['pumpkin', 'knight'] }));
+    const ids = got.map((a) => a.id);
+    expect(ids).toContain('graveClear');
+    expect(ids).toContain('graveBosses');
+    expect(ids).not.toContain('bear');
+    expect(ids).not.toContain('queen');
   });
 });

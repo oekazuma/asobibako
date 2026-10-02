@@ -98,6 +98,13 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     coins: 500,
     done: (r) => r.evolved.length >= EVOLUTIONS.length,
     progress: (r) => [r.evolved.length, EVOLUTIONS.length]
+  },
+  { id: 'graveClear', name: '夜の墓地をクリア', coins: 300, done: (r) => r.stages.includes('graveyard') },
+  {
+    id: 'graveBosses',
+    name: '墓地の 2 体のボスを倒す',
+    coins: 200,
+    done: (r) => r.bosses.includes('pumpkin') && r.bosses.includes('knight')
   }
 ];
 

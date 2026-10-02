@@ -1,6 +1,7 @@
 import { ACHIEVEMENTS, grant, type AchievementDef } from './achievements';
 import { ANIMALS, type AnimalId } from './animals';
 import { EVOLUTIONS } from './evolutions';
+import { STAGES } from './stages';
 import type { BossId } from './enemies';
 import { UPGRADES, type Ranks } from './upgrades';
 import type { RunSummary } from './world';
@@ -25,11 +26,15 @@ export interface Records {
   chests: number;
   /** 作った進化形 */
   evolved: string[];
+  /** クリアした面 */
+  stages: string[];
+  /** 前に遊んだ面 */
+  stage: string;
 }
 
 export const RECORDS_KEY = 'asobibako:animal-survivors';
 const STARTERS: AnimalId[] = ['dog', 'cat', 'wolf'];
-const BOSSES: BossId[] = ['bear', 'spiderQueen'];
+const BOSSES: BossId[] = ['bear', 'spiderQueen', 'pumpkin', 'knight'];
 
 export function emptyRecords(): Records {
   return {
@@ -43,7 +48,9 @@ export function emptyRecords(): Records {
     achieved: [],
     clearedBy: [],
     chests: 0,
-    evolved: []
+    evolved: [],
+    stages: [],
+    stage: 'forest'
   };
 }
 
@@ -52,6 +59,14 @@ const list = <T extends string>(v: unknown, known: readonly T[]): T[] =>
   Array.isArray(v) ? known.filter((k) => v.includes(k)) : [];
 
 /** 壊れた保存や型の違う値は既定値にする。犬・猫・狼はいつも選べる */
+const STAGE_IDS = STAGES.map((s) => s.id);
+
+/** 面を覚える前の保存は、クリアの回数があれば森をクリアしている */
+function stagesOf(raw: Record<string, unknown>): string[] {
+  const got = list(raw.stages, STAGE_IDS);
+  return num(raw.clears) >= 1 && !got.includes('forest') ? ['forest', ...got] : got;
+}
+
 export function parseRecords(text: string | null): Records {
   let raw: Record<string, unknown> = {};
   try {
@@ -79,7 +94,9 @@ export function parseRecords(text: string | null): Records {
     evolved: list(
       raw.evolved,
       EVOLUTIONS.map((e) => e.to)
-    )
+    ),
+    stages: stagesOf(raw),
+    stage: typeof raw.stage === 'string' && STAGE_IDS.includes(raw.stage) ? raw.stage : 'forest'
   };
 }
 
@@ -105,6 +122,8 @@ export function record(r: Records, run: RunSummary): AchievementDef[] {
   }
   r.chests += run.opened;
   r.coins += run.coins;
+  if (run.cleared && !r.stages.includes(run.stage)) r.stages.push(run.stage);
+  r.stage = run.stage;
   for (const id of run.evolved) if (!r.evolved.includes(id)) r.evolved.push(id);
   return grant(r, run);
 }
@@ -124,4 +143,9 @@ export function saveRecords(r: Records): void {
   } catch {
     // 保存できなくても遊び続けられるようにする
   }
+}
+
+/** 森はいつも選べ、ほかの面は森をクリアすると選べる */
+export function canPlay(r: Records, stage: string): boolean {
+  return stage === 'forest' || r.stages.includes('forest');
 }

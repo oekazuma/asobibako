@@ -19,6 +19,7 @@ const run: RunSummary = {
   coins: 0,
   opened: 0,
   evolved: ['woofEvo'],
+  stage: 'forest',
   dealt: [
     { id: 'woofEvo', damage: 1200, kills: 40 },
     { id: 'paw', damage: 300, kills: 10 },

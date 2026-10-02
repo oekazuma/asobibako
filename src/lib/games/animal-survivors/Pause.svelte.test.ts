@@ -18,6 +18,7 @@ const run: RunSummary = {
   coins: 12,
   opened: 0,
   evolved: [],
+  stage: 'forest',
   dealt: []
 };
 

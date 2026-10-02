@@ -99,7 +99,8 @@ describe('世界', () => {
       coins: 0,
       opened: 0,
       evolved: [],
-      dealt: []
+      dealt: [],
+      stage: 'forest'
     });
   });
 });
