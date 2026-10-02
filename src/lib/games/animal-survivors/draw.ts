@@ -163,7 +163,15 @@ function pickups(ctx: CanvasRenderingContext2D, w: World, now: number) {
     if (!g.alive) continue;
     sprite(ctx, ITEM_ART[`gem${gemTier(g.value)}`], frameAt(now * 3 + g.x * 0.1, 2), g.x, g.y);
   }
-  for (const it of w.items) if (it.alive) sprite(ctx, ITEM_ART[it.kind], 0, it.x, it.y + Math.sin(now * 4) * 1.5);
+  for (const it of w.items)
+    if (it.alive)
+      sprite(
+        ctx,
+        ITEM_ART[it.kind],
+        it.kind === 'coin' ? frameAt(now * 6, 2) : 0,
+        it.x,
+        it.y + Math.sin(now * 4) * 1.5
+      );
 }
 
 /** 端末の画素の canvas に、仮想画面の scale 倍で描く */

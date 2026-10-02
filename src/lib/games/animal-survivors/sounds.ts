@@ -26,6 +26,13 @@ export const sounds = {
     noise(400, 0.12);
     for (const [i, f] of [392, 523, 659, 784, 1047].entries()) tone(f, 220, 'square', 0.05, 200 + i * 110);
   },
+  coin: () => {
+    tone(1568, 50, 'square', 0.04);
+    tone(2093, 120, 'square', 0.04, 50);
+  },
+  revive: () => {
+    for (const [i, f] of [392, 523, 784, 1047].entries()) tone(f, 180, 'triangle', 0.09, i * 80);
+  },
   chest: () => {
     for (const [i, f] of [659, 880, 1175].entries()) tone(f, 120, 'triangle', 0.09, i * 90);
   }

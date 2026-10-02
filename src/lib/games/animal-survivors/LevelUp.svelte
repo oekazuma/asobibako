@@ -5,7 +5,19 @@
   import PixelIcon from './PixelIcon.svelte';
   import { WEAPONS, upText } from './weapons';
 
-  let { options, locked, onpick }: { options: Choice[]; locked: boolean; onpick: (c: Choice) => void } = $props();
+  let {
+    options,
+    locked,
+    rerolls,
+    onpick,
+    onreroll
+  }: {
+    options: Choice[];
+    locked: boolean;
+    rerolls: number;
+    onpick: (c: Choice) => void;
+    onreroll: () => void;
+  } = $props();
 
   function info(c: Choice) {
     if (c.kind === 'weapon') {
@@ -32,6 +44,11 @@
   }
 
   function key(event: KeyboardEvent) {
+    if (!locked && event.key.toLowerCase() === 'r' && rerolls > 0) {
+      event.preventDefault();
+      onreroll();
+      return;
+    }
     const n = Number(event.key);
     if (locked || !Number.isInteger(n) || n < 1 || n > options.length) return;
     event.preventDefault();
@@ -57,6 +74,9 @@
         </span>
       </button>
     {/each}
+    {#if rerolls > 0}
+      <button class="as-card reroll" onclick={onreroll}>引き直す（のこり {rerolls}）</button>
+    {/if}
   </section>
 </div>
 
@@ -73,6 +93,12 @@
 
   .pop {
     animation: pop 280ms steps(4);
+  }
+
+  .reroll {
+    justify-content: center;
+    background: #d6e8ff;
+    font-size: min(4cqw, 2.4cqh, 20px);
   }
 
   .key {

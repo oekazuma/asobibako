@@ -70,6 +70,7 @@ export class Effects {
 
   take(w: World): void {
     let hit = false;
+    let coin = false;
     let kill = false;
     for (const e of w.events) {
       if (e.type === 'hit') {
@@ -131,6 +132,17 @@ export class Effects {
           );
         }
         sounds.bossdown();
+      } else if (e.type === 'coin') {
+        coin = true;
+        if (e.value > 1) this.#number(`+${e.value}`, w.player.x, w.player.y - 14, PALETTE.y, 2);
+      } else if (e.type === 'revive') {
+        this.flash = 0.3;
+        const p = w.player;
+        for (let i = 0; i < 40; i++) {
+          const a = (i / 40) * Math.PI * 2;
+          this.#bit(p.x, p.y, Math.cos(a) * 140, Math.sin(a) * 140, 0.6, i % 2 ? PALETTE.r : PALETTE.w, 3);
+        }
+        sounds.revive();
       } else if (e.type === 'warning') sounds.warning();
       else if (e.type === 'chest') sounds.chest();
       else if (e.type === 'clear') sounds.clear();
@@ -139,6 +151,7 @@ export class Effects {
     // 大群を倒すと 1 フレームに何十回も鳴るので、1 フレームに 1 回にまとめる
     if (hit) sounds.hit();
     if (kill) sounds.kill();
+    if (coin) sounds.coin();
   }
 
   update(dt: number): void {

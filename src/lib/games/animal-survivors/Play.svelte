@@ -140,7 +140,9 @@
   <LevelUp
     options={prompts.options}
     locked={prompts.lock.active}
+    rerolls={prompts.rerolls}
     onpick={(c) => prompts.choose(c, stick?.id ?? null)}
+    onreroll={() => prompts.reroll(stick?.id ?? null)}
   />
 {/if}
 
