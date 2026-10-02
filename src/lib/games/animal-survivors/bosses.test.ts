@@ -3,7 +3,7 @@ import { chestSize, openChest } from './chest';
 import { MAX_LEVEL, WEAPONS } from './weapons';
 import { PASSIVES } from './passives';
 import { ENEMIES } from './enemies';
-import { createWorld, makeEnemy, MAX_ENEMIES, step, type World } from './world';
+import { createWorld, makeEnemy, MAX_ENEMIES, SLOW, step, type World } from './world';
 
 const VIEW = { w: 274, h: 394 };
 const still = { x: 0, y: 0 };
@@ -36,7 +36,7 @@ describe('ボスの出かた', () => {
     run(w, 2.6);
     const bear = w.enemies.find((e) => e.alive && e.def.boss === 'bear')!;
     expect(bear).toBeDefined();
-    expect(bear.hp).toBe(2400);
+    expect(bear.hp).toBe(ENEMIES.bear.hp);
   });
 
   it('10 分には女王グモが出る（倒していない巨大ベアは残る）', () => {
@@ -117,25 +117,25 @@ describe('ボスの攻撃', () => {
     w.player.x = 0;
     const x0 = w.player.x;
     step(w, { x: 1, y: 0 }, 1 / 60);
-    expect(w.player.x - x0).toBeCloseTo((60 * 0.6) / 60, 3);
+    expect(w.player.x - x0).toBeCloseTo((60 * SLOW) / 60, 3);
     run(w, 2.1);
     expect(w.player.slow).toBeLessThanOrEqual(0);
   });
 
-  it('女王グモは 6 秒ごとに子グモを 6 匹生む', () => {
+  it('女王グモは 8 秒ごとに子グモを 4 匹生む', () => {
     const w = quiet();
     const q = placeBoss(w, 'spiderQueen', 110);
     q.cd = 99;
     q.turn = 0;
     w.time = 10;
     run(w, 0.1);
-    expect(w.enemies.filter((e) => e.alive && e.def.id === 'spiderling')).toHaveLength(6);
+    expect(w.enemies.filter((e) => e.alive && e.def.id === 'spiderling')).toHaveLength(4);
     q.cd = 99;
-    run(w, 5.5);
-    expect(w.enemies.filter((e) => e.def.id === 'spiderling').length).toBe(6);
+    run(w, 7.5);
+    expect(w.enemies.filter((e) => e.def.id === 'spiderling').length).toBe(4);
     q.cd = 99;
     run(w, 0.6);
-    expect(w.enemies.filter((e) => e.def.id === 'spiderling').length).toBe(12);
+    expect(w.enemies.filter((e) => e.def.id === 'spiderling').length).toBe(8);
   });
 
   it('予告の途中で巨大ベアが倒れたら、予告は消える', () => {

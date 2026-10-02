@@ -106,7 +106,7 @@ export interface World {
 export const MAX_ENEMIES = 400;
 export const BASE_SPEED = 60;
 /** 糸の玉に当たったときの速さの倍率 */
-export const SLOW = 0.6;
+export const SLOW = 0.85;
 const BEAR_DASH_ATK = 30;
 
 export function createWorld(id: AnimalId, seed: number, view: { w: number; h: number }): World {

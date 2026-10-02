@@ -65,16 +65,16 @@ const BEAR = {
 };
 const QUEEN = {
   keep: 110,
-  webEvery: 2.5,
+  webEvery: 3,
   webs: 5,
   webSpread: (15 * Math.PI) / 180,
   webSpeed: 90,
   webLife: 3,
   webR: 4,
-  webDmg: 8,
-  slow: 2,
-  broodEvery: 6,
-  brood: 6
+  webDmg: 6,
+  slow: 1,
+  broodEvery: 8,
+  brood: 4
 };
 const STILL = { vx: 0, vy: 0 };
 

@@ -34,9 +34,9 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
     e('snake', 'ヘビ', [14, 34, 8, 6, 2], 'snake', 0.2),
     e('caterpillar', 'イモムシ', [40, 20, 10, 7, 5], 'chase', 0.6),
     e('boar', 'イノシシ', [70, 26, 18, 8, 8], 'charge', 0.8),
-    e('spiderling', '子グモ', [8, 62, 6, 4, 1], 'chase', 0),
+    e('spiderling', '子グモ', [8, 50, 6, 4, 1], 'chase', 0),
     // ボスの HP には toughness を掛けない（出る時刻が決まっているので表の値がそのまま強さになる）
-    e('bear', '巨大ベア', [2400, 28, 20, 15, 0], 'boss', 1, 'bear'),
-    e('spiderQueen', '女王グモ', [6000, 38, 25, 16, 0], 'boss', 1, 'spiderQueen')
+    e('bear', '巨大ベア', [700, 28, 20, 15, 0], 'boss', 1, 'bear'),
+    e('spiderQueen', '女王グモ', [900, 38, 25, 16, 0], 'boss', 1, 'spiderQueen')
   ].map((d) => [d.id, d])
 );
