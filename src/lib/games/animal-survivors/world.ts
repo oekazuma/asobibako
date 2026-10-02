@@ -27,6 +27,8 @@ export interface Enemy {
   dy: number;
   /** ボスの次の攻撃までの秒 */
   cd: number;
+  /** ツタで足止めされている残り秒 */
+  root: number;
   /** ボスの攻撃の数え（巨大ベアは突進と地ならしの交互、女王グモは子グモまでの秒） */
   turn: number;
   /** 武器の枠ごとに、最後に当たった時刻 */
@@ -173,6 +175,7 @@ export function makeEnemy(def: EnemyDef, x: number, y: number, hp: number): Enem
     dy: 0,
     cd: 2,
     turn: 0,
+    root: 0,
     hit: new Float64Array(6).fill(-1)
   };
 }
@@ -247,6 +250,12 @@ function moveEnemy(w: World, i: number, dt: number) {
       vx = e.state === 2 ? e.dx * sp * 4 : 0;
       vy = e.state === 2 ? e.dy * sp * 4 : 0;
     }
+  }
+  // 足止めのあいだも動き方（ボスの攻撃の時計）は進め、位置だけを止める
+  if (e.root > 0) {
+    e.root -= dt;
+    vx = vy = 0;
+    e.kx = e.ky = 0;
   }
   const decay = Math.pow(1e-4, dt);
   e.x += (vx + e.kx) * dt;

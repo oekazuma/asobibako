@@ -55,3 +55,48 @@ describe('新しい武器', () => {
     for (let i = 1; i < angles.length; i++) expect(angles[i] - angles[i - 1]).toBeCloseTo(Math.PI / 3, 5);
   });
 });
+describe('炎とツタ', () => {
+  it('炎は足もとに残り、上の敵を 0.5 秒ごとに削る（重なった炎でも 1 回）', () => {
+    const w = only('flame');
+    w.enemies.push(target(0, 0));
+    run(w, 1.2);
+    expect(w.enemies[0].hp).toBe(985);
+    expect(w.effects.filter((f) => f.alive && f.kind === 'flame').length).toBeGreaterThan(1);
+  });
+
+  it('炎は歩いたあとに残り、時間がたつと消える', () => {
+    const w = only('flame');
+    run(w, 0.1);
+    run(w, 1, { x: 1, y: 0 });
+    expect(w.effects.some((f) => f.alive && f.kind === 'flame' && Math.abs(f.x) < 2)).toBe(true);
+    run(w, 2.5, { x: 1, y: 0 });
+    expect(w.effects.some((f) => f.alive && f.kind === 'flame' && Math.abs(f.x) < 2)).toBe(false);
+  });
+
+  it('ツタの中の敵は動けず、削られる', () => {
+    const w = only('vine');
+    const rat = makeEnemy(ENEMIES.rat, 100, 0, 1000);
+    w.enemies.push(rat);
+    run(w, 1);
+    // 1 フレーム目は動いてからツタが生えるので、2 ドットまでは許す
+    expect(Math.abs(rat.x - 100)).toBeLessThan(2);
+    expect(rat.hp).toBeLessThan(1000);
+  });
+
+  it('ツタで足止めされた巨大ベアは動かないが、攻撃の時計は進む', () => {
+    const w = only('vine');
+    const bear = makeEnemy(ENEMIES.bear, 100, 0, 1e6);
+    bear.cd = 0.5;
+    w.enemies.push(bear);
+    run(w, 1);
+    expect(Math.abs(bear.x - 100)).toBeLessThan(2);
+    expect(bear.state).not.toBe(0);
+  });
+
+  it('画面に敵がいなければ、ツタは撃たずに待つ', () => {
+    const w = only('vine');
+    run(w, 0.5);
+    expect(w.effects.some((f) => f.alive && f.kind === 'vine')).toBe(false);
+    expect(w.weapons[0].cd).toBeLessThan(1);
+  });
+});

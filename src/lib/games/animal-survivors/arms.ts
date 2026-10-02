@@ -1,5 +1,6 @@
 import { WEAPONS, weaponStats, type WeaponDef, type WeaponStats } from './weapons';
 import { damageEnemy, type Enemy, type World } from './world';
+import { dropFlame, growVines, updateZones } from './zones';
 
 export interface Shot {
   alive: boolean;
@@ -25,7 +26,7 @@ export interface Shot {
 export interface Effect {
   alive: boolean;
   slot: number;
-  kind: 'swipe' | 'ring' | 'bolt' | 'burst';
+  kind: 'swipe' | 'ring' | 'bolt' | 'burst' | 'flame' | 'vine';
   x: number;
   y: number;
   age: number;
@@ -200,8 +201,10 @@ function launch(w: World, def: WeaponDef, s: WeaponStats, slot: number): boolean
         shoot(w, slot, 'shot', s, aim + (i / s.amount) * Math.PI * 2, SIZE.acorn * area);
       return true;
     case 'trail':
+      dropFlame(w, slot, s, area);
+      return true;
     case 'snare':
-      return false;
+      return growVines(w, slot, s, area);
     case 'boomerang':
       for (let i = 0; i < s.amount; i++)
         shoot(w, slot, 'boomerang', s, aim + (i - (s.amount - 1) / 2) * FAN, SIZE.boomerang * area).life =
@@ -363,4 +366,5 @@ export function hits(w: World, dt: number): void {
       strike(w, j, f.dmg, f.x, f.y, f.knock);
     }
   }
+  updateZones(w);
 }
