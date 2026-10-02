@@ -18,5 +18,15 @@ export const sounds = {
   clear: () => {
     for (const [i, f] of [523, 659, 784, 1047].entries()) tone(f, 260, 'square', 0.05, i * 140);
   },
-  dead: () => sweep(400, 80, 900, 0.1)
+  dead: () => sweep(400, 80, 900, 0.1),
+  warning: () => {
+    for (let i = 0; i < 3; i++) tone(220, 300, 'square', 0.07, i * 500);
+  },
+  bossdown: () => {
+    noise(400, 0.12);
+    for (const [i, f] of [392, 523, 659, 784, 1047].entries()) tone(f, 220, 'square', 0.05, 200 + i * 110);
+  },
+  chest: () => {
+    for (const [i, f] of [659, 880, 1175].entries()) tone(f, 120, 'triangle', 0.09, i * 90);
+  }
 };

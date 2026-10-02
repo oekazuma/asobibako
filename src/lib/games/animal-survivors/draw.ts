@@ -4,6 +4,7 @@ import { ENEMY_ART } from './art/enemies';
 import { FOREST_ART } from './art/forest';
 import { ITEM_ART } from './art/items';
 import { PALETTE } from './art/palette';
+import { bossBars, hazardsAbove, hazardsBelow } from './draw-boss';
 import { gemTier } from './drops';
 import type { Effects } from './effects';
 import { hud } from './hud';
@@ -138,13 +139,16 @@ const order: Enemy[] = [];
 function enemies(ctx: CanvasRenderingContext2D, w: World, cx: number, cy: number, v: ViewSize) {
   order.length = 0;
   for (const e of w.enemies)
-    if (e.alive && e.x > cx - 24 && e.x < cx + v.w + 24 && e.y > cy - 24 && e.y < cy + v.h + 24) order.push(e);
+    if (e.alive && e.x > cx - 32 && e.x < cx + v.w + 32 && e.y > cy - 32 && e.y < cy + v.h + 32) order.push(e);
   order.sort((a, b) => a.y - b.y);
   ctx.fillStyle = 'rgb(0 0 0 / 0.25)';
-  for (const e of order) shadow(ctx, e.x, e.y + ART[e.def.id].h / 2 - 1, Math.round(e.def.r * 1.8));
+  for (const e of order)
+    shadow(ctx, e.x, e.y + ART[e.def.id].h / 2 - 1, Math.round(e.def.r * (e.def.boss ? 2.2 : 1.8)));
   for (const e of order) {
     const art = ART[e.def.id];
-    sprite(ctx, art, frameAt(e.t * 6, 2), e.x, e.y, w.player.x < e.x, e.flash > 0);
+    // 巨大ベアは地ならしの予告のあいだ、両手を上げたコマにする
+    const frame = e.def.boss === 'bear' && e.state === 3 ? 2 : frameAt(e.t * (e.def.boss ? 4 : 6), 2);
+    sprite(ctx, art, frame, e.x, e.y, w.player.x < e.x, e.flash > 0);
   }
 }
 
@@ -249,11 +253,13 @@ export function draw(
   const cy = p.y - v.h / 2;
   ctx.setTransform(S, 0, 0, S, -devicePx(cx, S), -devicePx(cy, S));
   ground(ctx, cx, cy, v);
+  hazardsBelow(ctx, w, q, now);
   pickups(ctx, w, now);
   enemies(ctx, w, cx, cy, v);
   player(ctx, w, now);
   shots(ctx, w);
   effects(ctx, w);
+  hazardsAbove(ctx, w, q);
   fx.draw(ctx, S);
   ctx.setTransform(S, 0, 0, S, 0, 0);
   // 磁石は青、被弾は赤で画面の縁を光らせる（画面を揺らすと酔うので揺らさない）
@@ -267,6 +273,12 @@ export function draw(
     ctx.lineWidth = 4;
     ctx.strokeRect(2, 2, v.w - 4, v.h - 4);
   }
+  if (fx.flash > 0) {
+    ctx.globalAlpha = (fx.flash / 0.25) * 0.7;
+    ctx.fillStyle = PALETTE.w;
+    ctx.fillRect(0, 0, v.w, v.h);
+  }
   ctx.globalAlpha = 1;
   hud(ctx, w, v, top);
+  bossBars(ctx, w, v, top);
 }

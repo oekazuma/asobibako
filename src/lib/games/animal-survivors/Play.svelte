@@ -4,12 +4,13 @@
   import { BoardInput } from '$lib/board-input';
   import { animate } from '$lib/loop';
   import type { AnimalId } from './animals';
-  import { apply, choices, type Choice } from './choices';
   import { draw, viewSize, type ViewSize } from './draw';
   import { Effects } from './effects';
   import { keyVector, padVector, pick, stickVector } from './input';
+  import BossWarning from './BossWarning.svelte';
+  import ChestOpen from './ChestOpen.svelte';
   import LevelUp from './LevelUp.svelte';
-  import { Lock } from './lock.svelte';
+  import { Prompts } from './prompts.svelte';
   import { createWorld, step, type World } from './world';
 
   let { animal, onend }: { animal: AnimalId; onend: (w: World) => void } = $props();
@@ -26,8 +27,7 @@
   const world = createWorld(animal, Date.now() % 2 ** 31, { w: view.w, h: view.h });
   const fx = new Effects();
   const keys = new SvelteSet<string>();
-  const lock = new Lock();
-  let options = $state<Choice[] | null>(null);
+  const prompts = new Prompts(world);
   let stick = $state<{ id: number; x: number; y: number; dx: number; dy: number } | null>(null);
   let paused = false;
   let now = 0;
@@ -35,7 +35,7 @@
 
   const input = new BoardInput({
     down: (event, x, y) => {
-      if (!stick && !options) stick = { id: event.pointerId, x, y, dx: 0, dy: 0 };
+      if (!stick && !prompts.busy) stick = { id: event.pointerId, x, y, dx: 0, dy: 0 };
     },
     move: (event, x, y) => {
       if (stick?.id !== event.pointerId) return;
@@ -43,7 +43,7 @@
       stick.dy = y - stick.y;
     },
     up: (event) => {
-      lock.lift(event.pointerId);
+      prompts.lock.lift(event.pointerId);
       if (stick?.id === event.pointerId) stick = null;
     }
   });
@@ -77,23 +77,15 @@
     return pick(finger, keyVector(keys), padVector(navigator.getGamepads?.()[0]?.axes));
   }
 
-  function choose(c: Choice) {
-    apply(world, c);
-    options = world.pending > 0 ? choices(world) : null;
-    if (options) lock.begin(stick?.id ?? null);
-  }
-
   function frame(dt: number) {
-    if (!options && !paused) {
+    if (!prompts.busy && !paused) {
       now += dt;
       step(world, direction(), dt);
       fx.take(world);
+      prompts.take();
       fx.update(dt);
     }
-    if (world.pending > 0 && !options && !world.over) {
-      options = choices(world);
-      lock.begin(stick?.id ?? null);
-    }
+    prompts.next(stick?.id ?? null);
     if (world.over && !endTimer) endTimer = setTimeout(() => onend(world), world.over === 'clear' ? 2000 : 1200);
     if (ctx) draw(ctx, world, fx, view, now, top);
   }
@@ -108,7 +100,7 @@
     const stop = animate(frame);
     return () => {
       stop();
-      lock.stop();
+      prompts.stop();
       clearTimeout(endTimer);
     };
   });
@@ -127,8 +119,26 @@
   {/if}
 </div>
 <!-- 盤面の中に置くと pointerdown が盤面へ伝わって指をつかまれ、click がカードに届かない -->
-{#if options}
-  <LevelUp {options} locked={lock.active} onpick={choose} />
+{#if prompts.warning}
+  {#key prompts.warning.key}
+    <BossWarning name={prompts.warning.name} />
+  {/key}
+{/if}
+{#if prompts.rewards}
+  <!-- 宝箱を続けて開けたときに、見せた数を最初から数え直す -->
+  {#key prompts.rewards}
+    <ChestOpen
+      rewards={prompts.rewards}
+      locked={prompts.lock.active}
+      onclose={() => prompts.close(stick?.id ?? null)}
+    />
+  {/key}
+{:else if prompts.options}
+  <LevelUp
+    options={prompts.options}
+    locked={prompts.lock.active}
+    onpick={(c) => prompts.choose(c, stick?.id ?? null)}
+  />
 {/if}
 
 <style>

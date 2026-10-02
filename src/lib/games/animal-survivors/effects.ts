@@ -43,6 +43,8 @@ export class Effects {
   edge = 0;
   /** 被弾で画面の縁が赤く光る残り時間 */
   hurt = 0;
+  /** ボスを倒して画面全体が白く光る残り時間 */
+  flash = 0;
   #chain = 0;
   #lastPick = -1;
   #clock = 0;
@@ -108,7 +110,25 @@ export class Effects {
       } else if (e.type === 'heal') {
         this.#number(`+${e.amount}`, w.player.x, w.player.y - 14, PALETTE.l, 1);
         sounds.heal();
-      } else if (e.type === 'clear') sounds.clear();
+      } else if (e.type === 'bossdown') {
+        this.flash = 0.25;
+        for (let i = 0; i < 60; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const v = 40 + Math.random() * 120;
+          this.#bit(
+            e.x,
+            e.y,
+            Math.cos(a) * v,
+            Math.sin(a) * v - 30,
+            0.6 + Math.random() * 0.4,
+            [PALETTE.w, PALETTE.y, PALETTE.v, PALETTE.B][i % 4],
+            3
+          );
+        }
+        sounds.bossdown();
+      } else if (e.type === 'warning') sounds.warning();
+      else if (e.type === 'chest') sounds.chest();
+      else if (e.type === 'clear') sounds.clear();
       else if (e.type === 'dead') sounds.dead();
     }
     // 大群を倒すと 1 フレームに何十回も鳴るので、1 フレームに 1 回にまとめる
@@ -119,6 +139,7 @@ export class Effects {
   update(dt: number): void {
     this.#clock += dt;
     this.hurt = Math.max(0, this.hurt - dt);
+    this.flash = Math.max(0, this.flash - dt);
     this.edge = Math.max(0, this.edge - dt);
     for (const b of this.#bits) {
       if (b.life <= 0) continue;
