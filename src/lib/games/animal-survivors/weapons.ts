@@ -24,6 +24,10 @@ export interface WeaponDef {
   ups: Partial<WeaponStats>[];
   /** shot の弾の半径（px）。無ければ 4 */
   size?: number;
+  /** 進化形。3 択と宝箱の候補に出ず、それ以上は上がらない */
+  evolved?: boolean;
+  /** 当たるたびに戻す HP。1 秒に戻せる量には上限がある（world.ts の DRAIN） */
+  drain?: number;
 }
 
 export const MAX_LEVEL = 5;
@@ -44,6 +48,19 @@ const w = (
   base: { damage, cooldown, amount, area, speed, pierce, duration, knockback },
   ups,
   ...(size && { size })
+});
+
+const evo = (
+  id: string,
+  name: string,
+  blurb: string,
+  kind: WeaponKind,
+  stats: number[],
+  extra: { drain?: number; size?: number } = {}
+): WeaponDef => ({
+  ...w(id, name, blurb, kind, stats, [], extra.size),
+  evolved: true,
+  ...(extra.drain && { drain: extra.drain })
 });
 
 export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
@@ -144,7 +161,40 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
       'snare',
       [6, 3, 2, 1, 0, 99, 2.5, 0],
       [{ amount: 1 }, { damage: 3 }, { duration: 1, area: 0.3 }, { amount: 2 }]
-    )
+    ),
+    evo('woofEvo', 'ホネのあられ', '骨を 4 本ずつ投げ、敵を貫く', 'shot', [18, 0.5, 4, 1.2, 220, 3, 1.4, 50]),
+    evo(
+      'pawEvo',
+      'ネコ百烈拳',
+      '前と後ろを同時に引っかき、当たると少し回復',
+      'swipe',
+      [20, 0.35, 2, 1.6, 0, 99, 0.15, 70],
+      {
+        drain: 1
+      }
+    ),
+    evo('howlEvo', '月夜の大遠吠え', 'とても大きな輪で、強く吹き飛ばす', 'ring', [28, 2, 1, 2.2, 0, 99, 0.6, 140]),
+    evo(
+      'boomerangEvo',
+      'つむじブーメラン',
+      '3 本が飛んで戻り、どこまでも貫く',
+      'boomerang',
+      [24, 1.2, 3, 1.4, 170, 99, 1.6, 60]
+    ),
+    evo('featherEvo', '風切り羽の舞', '羽根が増え、ずっと回り続ける', 'orbit', [16, 0.1, 6, 1.4, 4.2, 99, 5, 40]),
+    evo('thunderEvo', '雷雲の嵐', '画面の敵へ雷を次々と落とす', 'strike', [40, 0.9, 5, 1.6, 0, 99, 0.25, 30]),
+    evo('fishEvo', 'サカナの群れ', '5 匹の魚が追いかけて弾ける', 'homing', [26, 0.9, 5, 1.6, 150, 1, 2.5, 40]),
+    evo('clawEvo', '大熊の爪', '大きく重い爪で裂き、当たると少し回復', 'swipe', [24, 0.35, 3, 1.5, 0, 99, 0.12, 60], {
+      drain: 1
+    }),
+    evo('dashEvo', 'はやて突進', '分身が速く多く駆け抜け、敵を貫く', 'shot', [40, 1.2, 3, 1.4, 340, 99, 0.6, 200], {
+      size: 10
+    }),
+    evo('acornEvo', 'どんぐりの大樹', 'どんぐりを全方向へ倍の数で撃ち出す', 'nova', [16, 1, 16, 1.3, 150, 3, 1.6, 40]),
+    evo('flameEvo', '燃える心臓', '太く長く残る炎で焼き、当たると少し回復', 'trail', [12, 0.2, 1, 1.8, 0, 99, 4, 0], {
+      drain: 0.5
+    }),
+    evo('vineEvo', '森の守り', '広く長く絡むツタで足止めする', 'snare', [14, 2, 6, 1.6, 0, 99, 4, 0])
   ].map((d) => [d.id, d])
 );
 

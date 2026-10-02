@@ -16,7 +16,8 @@ const run: RunSummary = {
   passives: [],
   bosses: [],
   coins: 12,
-  opened: 0
+  opened: 0,
+  evolved: []
 };
 
 function show(finger: number | null = null) {

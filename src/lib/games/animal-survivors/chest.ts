@@ -1,9 +1,14 @@
 import { levelUp } from './choices';
 import { CHEST_COINS } from './drops';
+import { evolvable, evolve } from './evolutions';
 import { MAX_LEVEL } from './weapons';
 import type { World } from './world';
 
-export type Reward = { kind: 'weapon' | 'passive'; id: string; level: number } | { kind: 'meat' } | { kind: 'bag' };
+export type Reward =
+  | { kind: 'weapon' | 'passive'; id: string; level: number }
+  | { kind: 'meat' }
+  | { kind: 'bag' }
+  | { kind: 'evolve'; from: string; id: string };
 
 /** 上がる数。6 割が 1、3 割が 3、1 割が 5 */
 export function chestSize(r: number): 1 | 3 | 5 {
@@ -16,7 +21,14 @@ export function openChest(w: World): Reward[] {
   w.opened += 1;
   w.coins += CHEST_COINS * w.greed;
   const out: Reward[] = [];
-  for (let n = chestSize(w.rand()); n > 0; n--) {
+  let n = chestSize(w.rand());
+  const e = evolvable(w);
+  if (e) {
+    evolve(w, e);
+    out.push({ kind: 'evolve', from: e.from, id: e.to });
+    n -= 1;
+  }
+  for (; n > 0; n--) {
     const open = [
       ...w.weapons
         .filter((o) => o.level < MAX_LEVEL)

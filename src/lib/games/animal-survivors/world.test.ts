@@ -97,7 +97,8 @@ describe('世界', () => {
       passives: [],
       bosses: [],
       coins: 0,
-      opened: 0
+      opened: 0,
+      evolved: []
     });
   });
 });

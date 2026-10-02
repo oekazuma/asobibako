@@ -1,11 +1,12 @@
 import { gainXp } from './drops';
+import { EVOLUTIONS, baseOf } from './evolutions';
 import { PASSIVES, stats } from './passives';
 import { MAX_LEVEL, WEAPONS } from './weapons';
 import type { World } from './world';
 
 export type Choice =
-  | { kind: 'weapon'; id: string; level: number }
-  | { kind: 'passive'; id: string; level: number }
+  | { kind: 'weapon'; id: string; level: number; evo?: boolean }
+  | { kind: 'passive'; id: string; level: number; evo?: boolean }
   | { kind: 'meat' }
   | { kind: 'bag' };
 
@@ -15,13 +16,17 @@ const BAG_XP = 25;
 
 function candidates(w: World): Choice[] {
   const out: Choice[] = [];
+  // 進化した武器の元の武器と、進化形そのものは新しい武器として出さない
+  const had = new Set(w.weapons.map((o) => baseOf(o.id)));
+  const fresh = (kind: 'weapon' | 'passive', id: string) =>
+    kind === 'passive' || (!WEAPONS[id].evolved && !had.has(id));
   for (const [kind, owned, all] of [
     ['weapon', w.weapons, Object.keys(WEAPONS)],
     ['passive', w.passives, Object.keys(PASSIVES)]
   ] as const) {
     for (const o of owned) if (o.level < MAX_LEVEL) out.push({ kind, id: o.id, level: o.level + 1 });
     if (owned.length < SLOTS)
-      for (const id of all) if (!owned.some((o) => o.id === id)) out.push({ kind, id, level: 1 });
+      for (const id of all) if (!owned.some((o) => o.id === id) && fresh(kind, id)) out.push({ kind, id, level: 1 });
   }
   return out;
 }
@@ -35,6 +40,11 @@ export function choices(w: World, n = 3): Choice[] {
   }
   const out = list.slice(0, n);
   for (const filler of [{ kind: 'meat' }, { kind: 'bag' }] as const) if (out.length < n) out.push(filler);
+  for (const c of out) {
+    if (c.kind === 'passive') c.evo = EVOLUTIONS.some((e) => e.with === c.id && w.weapons.some((o) => o.id === e.from));
+    else if (c.kind === 'weapon')
+      c.evo = EVOLUTIONS.some((e) => e.from === c.id && w.passives.some((p) => p.id === e.with));
+  }
   return out;
 }
 

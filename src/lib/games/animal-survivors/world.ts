@@ -71,7 +71,8 @@ export type GameEvent =
   | { type: 'bossdown'; x: number; y: number }
   | { type: 'chest' }
   | { type: 'coin'; value: number }
-  | { type: 'revive' };
+  | { type: 'revive' }
+  | { type: 'evolve'; id: string };
 
 export interface World {
   rand: Rng;
@@ -110,6 +111,8 @@ export interface World {
   coins: number;
   /** この回に開けた宝箱 */
   opened: number;
+  /** この回に作った進化形 */
+  evolvedNow: string[];
   /** 次に出すボスの番号と、予告を出したボスの数 */
   bossNext: number;
   warned: number;
@@ -174,6 +177,7 @@ export function createWorld(id: AnimalId, seed: number, view: { w: number; h: nu
     bossKills: [],
     coins: 0,
     opened: 0,
+    evolvedNow: [],
     bossNext: 0,
     warned: 0,
     over: null,
@@ -491,6 +495,7 @@ export interface RunSummary {
   bosses: BossId[];
   coins: number;
   opened: number;
+  evolved: string[];
 }
 
 export function summary(w: World): RunSummary {
@@ -505,6 +510,7 @@ export function summary(w: World): RunSummary {
     passives: w.passives.map(({ id, level }) => ({ id, level })),
     bosses: [...w.bossKills],
     coins: Math.floor(w.coins),
-    opened: w.opened
+    opened: w.opened,
+    evolved: [...w.evolvedNow]
   };
 }

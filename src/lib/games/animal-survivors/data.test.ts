@@ -12,7 +12,7 @@ describe('データの表', () => {
   });
 
   it('武器はどれも Lv5 までの上げ幅を 4 つ持つ', () => {
-    for (const d of Object.values(WEAPONS)) expect(d.ups).toHaveLength(MAX_LEVEL - 1);
+    for (const d of Object.values(WEAPONS)) expect(d.ups).toHaveLength(d.evolved ? 0 : MAX_LEVEL - 1);
   });
 
   it('weaponStats は Lv までの上げ幅を足す', () => {
