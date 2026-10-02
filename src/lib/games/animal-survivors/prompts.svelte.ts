@@ -6,6 +6,9 @@ import { Lock } from './lock.svelte';
 import type { World } from './world';
 
 /** ゲームを止めて重ねる画面（宝箱・3 択）と、WARNING の帯の出し入れ。宝箱は 3 択より先に開ける */
+/** 群れの帯を出す秒 */
+const NOTICE = 2;
+
 export class Prompts {
   options = $state<Choice[] | null>(null);
   rewards = $state<Reward[] | null>(null);
@@ -13,6 +16,8 @@ export class Prompts {
   warning = $state<{ name: string; key: number; until: number } | null>(null);
   /** 3 択の引き直しの残り。World の値は $state でないので、画面のために写しを持つ */
   rerolls = $state(0);
+  /** 群れの帯。WARNING と同じくゲームの時間で出す */
+  notice = $state<{ text: string; key: number; until: number } | null>(null);
   /** WARNING からボスを倒すまで（ボスの曲を流す） */
   boss = $state(false);
   readonly lock = new Lock();
@@ -35,7 +40,9 @@ export class Prompts {
         this.warning = { name: ENEMIES[e.boss].name, key: w.time, until: w.time + WARN_AHEAD };
         this.boss = true;
       } else if (e.type === 'bossdown') this.boss = false;
+      else if (e.type === 'swarm' && e.text) this.notice = { text: e.text, key: w.time, until: w.time + NOTICE };
     if (this.warning && w.time >= this.warning.until) this.warning = null;
+    if (this.notice && w.time >= this.notice.until) this.notice = null;
   }
 
   /** 毎フレーム呼ぶ。finger は画面に残っている移動の指（出た直後の合成 click を捨てるため） */

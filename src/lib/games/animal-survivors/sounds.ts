@@ -33,6 +33,7 @@ export const sounds = {
   revive: () => {
     for (const [i, f] of [392, 523, 784, 1047].entries()) tone(f, 180, 'triangle', 0.09, i * 80);
   },
+  swarm: () => sweep(200, 600, 300, 0.07),
   evolve: () => {
     for (const [i, f] of [523, 659, 784, 1047, 1319].entries()) tone(f, 160, 'square', 0.06, i * 90);
   },

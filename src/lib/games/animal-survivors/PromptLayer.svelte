@@ -8,6 +8,11 @@
   let { prompts, finger }: { prompts: Prompts; finger: number | null } = $props();
 </script>
 
+{#if prompts.notice}
+  {#key prompts.notice.key}
+    <p class="notice" role="status">{prompts.notice.text}</p>
+  {/key}
+{/if}
 {#if prompts.warning}
   {#key prompts.warning.key}
     <BossWarning name={prompts.warning.name} />
@@ -27,3 +32,36 @@
     onreroll={() => prompts.reroll(finger)}
   />
 {/if}
+
+<style>
+  .notice {
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    z-index: 3;
+    margin: 0;
+    padding: 4px 16px;
+    border: 3px solid #24151f;
+    background: #ffd84a;
+    color: #24151f;
+    font-weight: 900;
+    font-size: min(4.6cqw, 2.8cqh, 24px);
+    white-space: nowrap;
+    translate: -50% 0;
+    pointer-events: none;
+    animation: slide 300ms steps(3);
+  }
+
+  @keyframes slide {
+    from {
+      translate: -50% -40px;
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .notice {
+      animation: none;
+    }
+  }
+</style>

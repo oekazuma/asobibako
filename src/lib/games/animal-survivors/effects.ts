@@ -153,6 +153,7 @@ export class Effects {
         sounds.revive();
       } else if (e.type === 'warning') sounds.warning();
       else if (e.type === 'chest') sounds.chest();
+      else if (e.type === 'swarm') sounds.swarm();
       else if (e.type === 'clear') sounds.clear();
       else if (e.type === 'dead') sounds.dead();
     }

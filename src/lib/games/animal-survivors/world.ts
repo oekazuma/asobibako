@@ -35,6 +35,8 @@ export interface Enemy {
   turn: number;
   /** 武器の枠ごとに、最後に当たった時刻 */
   hit: Float64Array;
+  /** まっすぐ飛ぶ残りの秒（群れ）。0 になったら消え、倒した数には入らない */
+  drift: number;
 }
 
 export interface Player {
@@ -73,7 +75,8 @@ export type GameEvent =
   | { type: 'chest' }
   | { type: 'coin'; value: number }
   | { type: 'revive' }
-  | { type: 'evolve'; id: string };
+  | { type: 'evolve'; id: string }
+  | { type: 'swarm'; text: string };
 
 export interface World {
   rand: Rng;
@@ -116,6 +119,8 @@ export interface World {
   evolvedNow: string[];
   /** 今当たって戻せる HP。毎秒 DRAIN × 最大 HP ずつ、その量まで戻る */
   drainLeft: number;
+  /** 次に出すステージの出来事の番号 */
+  eventNext: number;
   /** 次に出すボスの番号と、予告を出したボスの数 */
   bossNext: number;
   warned: number;
@@ -184,6 +189,7 @@ export function createWorld(id: AnimalId, seed: number, view: { w: number; h: nu
     opened: 0,
     evolvedNow: [],
     drainLeft: s.maxHp * DRAIN,
+    eventNext: 0,
     bossNext: 0,
     warned: 0,
     over: null,
@@ -213,7 +219,8 @@ export function makeEnemy(def: EnemyDef, x: number, y: number, hp: number): Enem
     cd: 2,
     turn: 0,
     root: 0,
-    hit: new Float64Array(6).fill(-1)
+    hit: new Float64Array(6).fill(-1),
+    drift: 0
   };
 }
 
@@ -267,20 +274,69 @@ export function eliteOf(def: EnemyDef): EnemyDef {
   return { ...def, hp: def.hp * 8, xp: def.xp * 5, r: def.r * 1.6, heavy: Math.max(def.heavy, 0.6), elite: true };
 }
 
+/** 入れ物に敵を 1 体置く。体力はそのときの toughness を掛ける。400 体を使い切っていれば null */
+export function addEnemy(w: World, def: EnemyDef, x: number, y: number): Enemy | null {
+  const hp = def.hp * w.stage.toughness(w.time);
+  const free = w.enemies.find((e) => !e.alive);
+  if (free) Object.assign(free, makeEnemy(def, x, y, hp), { hit: free.hit.fill(-1) });
+  else if (w.enemies.length < MAX_ENEMIES) w.enemies.push(makeEnemy(def, x, y, hp));
+  else return null;
+  const e = free ?? w.enemies[w.enemies.length - 1];
+  e.phase = w.rand() * Math.PI * 2;
+  return e;
+}
+
 function spawn(w: World, base: EnemyDef) {
   const chance = w.stage.elite(w.time);
   const def = chance > 0 && !base.boss && base.id !== 'spiderling' && w.rand() < chance ? eliteOf(base) : base;
   const at = spawnPoint(w);
-  const hp = def.hp * w.stage.toughness(w.time);
-  const free = w.enemies.find((e) => !e.alive);
-  if (free) Object.assign(free, makeEnemy(def, at.x, at.y, hp), { hit: free.hit.fill(-1) });
-  else if (w.enemies.length < MAX_ENEMIES) w.enemies.push(makeEnemy(def, at.x, at.y, hp));
-  else return;
-  (free ?? w.enemies[w.enemies.length - 1]).phase = w.rand() * Math.PI * 2;
+  addEnemy(w, def, at.x, at.y);
+}
+
+const SWARM_SPEED = 1.5;
+
+/** 時刻になったステージの出来事を出す。群れと輪は同時に出せる数の上限とは別に出す */
+export function spawnEvents(w: World): void {
+  const list = w.stage.events;
+  while (w.eventNext < list.length && list[w.eventNext].at <= w.time) {
+    const ev = list[w.eventNext++];
+    const def = ENEMIES[ev.enemy];
+    const p = w.player;
+    const r = Math.hypot(w.view.w, w.view.h) / 2 + 24;
+    if (ev.kind === 'ring') {
+      for (let i = 0; i < ev.count; i++) {
+        const a = (i / ev.count) * Math.PI * 2;
+        if (!addEnemy(w, def, p.x + Math.cos(a) * r, p.y + Math.sin(a) * r)) break;
+      }
+    } else {
+      // 画面の外の片側に、進む向きと直角に帯になって並び、反対側へ抜ける
+      const a = w.rand() * Math.PI * 2;
+      const dx = Math.cos(a);
+      const dy = Math.sin(a);
+      const life = (2 * r + 60) / (def.speed * SWARM_SPEED);
+      for (let i = 0; i < ev.count; i++) {
+        const side = (i / Math.max(1, ev.count - 1) - 0.5) * r * 1.6;
+        const back = w.rand() * 40;
+        const e = addEnemy(w, def, p.x - dx * (r + back) - dy * side, p.y - dy * (r + back) + dx * side);
+        if (!e) break;
+        Object.assign(e, { dx, dy, drift: life });
+      }
+    }
+    w.events.push({ type: 'swarm', text: ev.text });
+  }
 }
 
 function moveEnemy(w: World, i: number, dt: number) {
   const e = w.enemies[i];
+  if (e.drift > 0) {
+    e.drift -= dt;
+    if (e.drift <= 0) e.alive = false;
+    e.x += e.dx * e.def.speed * SWARM_SPEED * dt;
+    e.y += e.dy * e.def.speed * SWARM_SPEED * dt;
+    e.t += dt;
+    e.flash -= dt;
+    return;
+  }
   const p = w.player;
   const dx = p.x - e.x;
   const dy = p.y - e.y;
@@ -482,13 +538,14 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
     }
   });
   spawnBosses(w);
+  spawnEvents(w);
 
   const far = Math.hypot(w.view.w, w.view.h) * 0.9;
   w.grid.clear();
   w.enemies.forEach((e, i) => {
     if (!e.alive) return;
     moveEnemy(w, i, dt);
-    if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 > far * far) {
+    if (e.drift <= 0 && (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > far * far) {
       const at = spawnPoint(w);
       e.x = at.x;
       e.y = at.y;

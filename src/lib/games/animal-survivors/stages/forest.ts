@@ -25,6 +25,8 @@ export interface Stage {
   elite: (t: number) => number;
   /** 敵の攻撃力に掛ける */
   fury: (t: number) => number;
+  /** 時刻ごとの出来事。swarm は群れが画面を横切り、ring は輪になって迫る */
+  events: { at: number; kind: 'swarm' | 'ring'; enemy: string; count: number; text: string }[];
 }
 
 export function spawnRate(w: Wave, t: number): number {
@@ -36,6 +38,16 @@ export const FOREST: Stage = {
   id: 'forest',
   name: '森',
   length: 900,
+  events: [
+    { at: 90, kind: 'swarm', enemy: 'bat', count: 30, text: 'コウモリの大群！' },
+    { at: 180, kind: 'ring', enemy: 'rat', count: 40, text: 'ネズミに囲まれた！' },
+    { at: 270, kind: 'swarm', enemy: 'bat', count: 50, text: 'コウモリの大群！' },
+    { at: 390, kind: 'swarm', enemy: 'boar', count: 12, text: 'イノシシの突進！' },
+    { at: 480, kind: 'ring', enemy: 'caterpillar', count: 40, text: 'イモムシに囲まれた！' },
+    { at: 660, kind: 'swarm', enemy: 'bat', count: 80, text: 'コウモリの大群！' },
+    { at: 750, kind: 'ring', enemy: 'snake', count: 60, text: 'ヘビに囲まれた！' },
+    { at: 840, kind: 'swarm', enemy: 'boar', count: 20, text: 'イノシシの突進！' }
+  ],
   bosses: [
     { at: 300, id: 'bear' },
     { at: 600, id: 'spiderQueen' }

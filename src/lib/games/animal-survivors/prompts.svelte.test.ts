@@ -65,4 +65,17 @@ describe('Prompts', () => {
     p.take();
     expect(p.boss).toBe(false);
   });
+
+  it('群れの帯をゲームの時間で 2 秒出す', () => {
+    const w = createWorld('dog', 1, { w: 274, h: 394 });
+    const p = new Prompts(w);
+    w.time = 90;
+    w.events = [{ type: 'swarm', text: 'コウモリの大群！' }];
+    p.take();
+    expect(p.notice?.text).toBe('コウモリの大群！');
+    w.events = [];
+    w.time = 92.1;
+    p.take();
+    expect(p.notice).toBeNull();
+  });
 });
