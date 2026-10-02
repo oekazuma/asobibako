@@ -6,7 +6,7 @@
   import PixelIcon from './PixelIcon.svelte';
   import { WEAPONS } from './weapons';
 
-  let { onpick }: { onpick: (id: AnimalId) => void } = $props();
+  let { unlocked, onpick }: { unlocked: AnimalId[]; onpick: (id: AnimalId) => void } = $props();
 
   const top = {
     hp: Math.max(...ANIMALS.map((a) => a.hp)),
@@ -25,18 +25,27 @@
   <section class="as-panel" aria-label="キャラクター選択">
     <h2 class="as-title">キャラクターを選ぶ</h2>
     {#each ANIMALS as a (a.id)}
+      {@const open = unlocked.includes(a.id)}
       {@const weapon = WEAPONS[a.weapon]}
-      <button class="as-card" data-animal={a.id} onclick={() => onpick(a.id)}>
-        <PixelIcon art={ANIMAL_ART[a.id].walk} frame={tick % 4} size="min(20cqw, 12cqh, 112px)" />
+      <button class="as-card" class:closed={!open} data-animal={a.id} disabled={!open} onclick={() => onpick(a.id)}>
+        <span class="face"
+          ><PixelIcon art={ANIMAL_ART[a.id].walk} frame={open ? tick % 4 : 0} size="min(14cqw, 8cqh, 80px)" /></span
+        >
         <span class="body">
-          <span class="name">{a.name}<span class="style">{a.style}</span></span>
-          {#each [['HP', a.hp / top.hp], ['速さ', a.speed / top.speed], ['攻撃', a.might / top.might]] as const as [label, ratio] (label)}
-            <span class="stat"><span class="label">{label}</span><span class="bar" style:--r={ratio}></span></span>
-          {/each}
-          <span class="weapon">
-            <PixelIcon art={ITEM_ART[`weapon-${a.weapon}`]} size="min(6cqw, 3.6cqh, 32px)" />
-            <span><b>{weapon.name}</b><br />{weapon.blurb}</span>
-          </span>
+          {#if open}
+            <span class="name">{a.name}<span class="style">{a.style}</span></span>
+            {#each [['HP', a.hp / top.hp], ['速さ', a.speed / top.speed], ['攻撃', a.might / top.might]] as const as [label, ratio] (label)}
+              <span class="stat"><span class="label">{label}</span><span class="bar" style:--r={ratio}></span></span>
+            {/each}
+            <span class="weapon">
+              <PixelIcon art={ITEM_ART[`weapon-${a.weapon}`]} size="min(5cqw, 3cqh, 26px)" />
+              <b>{weapon.name}</b>
+            </span>
+            {#if a.perk}<span class="perk">とくい: {a.perk}</span>{/if}
+          {:else}
+            <span class="name">？？？</span>
+            <span class="unlock">{a.unlock}</span>
+          {/if}
         </span>
       </button>
     {/each}
@@ -44,17 +53,36 @@
 </div>
 
 <style>
+  .as-card {
+    padding-block: min(1cqh, 8px);
+  }
+
+  .closed {
+    cursor: default;
+    background: #d9cbb0;
+  }
+
+  /* 解放前は黒い影だけを見せる */
+  .closed .face {
+    filter: brightness(0);
+    opacity: 0.55;
+  }
+
+  .face {
+    display: flex;
+  }
+
   .body {
     display: grid;
     flex: 1;
-    gap: 5px;
+    gap: 3px;
   }
 
   .name {
     display: flex;
     gap: 10px;
     align-items: baseline;
-    font-size: min(6cqw, 3.4cqh, 30px);
+    font-size: min(5cqw, 2.8cqh, 26px);
   }
 
   .style {
@@ -66,7 +94,7 @@
     display: flex;
     gap: 8px;
     align-items: center;
-    font-size: min(3.2cqw, 1.9cqh, 16px);
+    font-size: min(2.8cqw, 1.6cqh, 14px);
   }
 
   .label {
@@ -75,22 +103,27 @@
 
   .bar {
     flex: 1;
-    height: 0.7em;
+    height: 0.6em;
     border: 2px solid #24151f;
     background: linear-gradient(90deg, #d8463c calc(var(--r) * 100%), #5d3a2a 0);
   }
 
-  .weapon {
+  .weapon,
+  .perk,
+  .unlock {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
-    margin-top: 2px;
     color: #5d3a2a;
-    font-size: min(3.2cqw, 1.9cqh, 16px);
+    font-size: min(2.9cqw, 1.7cqh, 15px);
     font-weight: 700;
   }
 
   .weapon b {
     color: #24151f;
+  }
+
+  .perk {
+    color: #2a64c8;
   }
 </style>

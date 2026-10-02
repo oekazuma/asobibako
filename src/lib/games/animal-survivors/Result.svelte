@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { animal } from './animals';
+  import { animal, type AnimalId } from './animals';
   import { ANIMAL_ART } from './art/animals';
   import { ITEM_ART } from './art/items';
   import { clock } from './hud';
@@ -8,10 +8,11 @@
 
   let {
     run,
+    fresh,
     locked,
     onagain,
     onselect
-  }: { run: RunSummary; locked: boolean; onagain: () => void; onselect: () => void } = $props();
+  }: { run: RunSummary; fresh: AnimalId[]; locked: boolean; onagain: () => void; onselect: () => void } = $props();
 
   const art = $derived(ANIMAL_ART[run.animal]);
   const rows = $derived([
@@ -29,6 +30,13 @@
 <div class="as-screen">
   <section class="as-panel" class:as-locked={locked} aria-label="結果">
     <h2 class="as-title" class:over={!run.cleared}>{run.cleared ? '生存成功！' : 'GAME OVER'}</h2>
+    {#each fresh as id (id)}
+      <p class="new">
+        <PixelIcon art={ANIMAL_ART[id].walk} size="min(10cqw, 6cqh, 56px)" /><span
+          ><b>NEW!</b> {animal(id).name}が仲間になった</span
+        >
+      </p>
+    {/each}
     <div class="who">
       <PixelIcon art={run.cleared ? art.walk : art.hurt} size="min(18cqw, 10cqh, 96px)" />
       <span>使用キャラクター<br /><b>{animal(run.animal).name}</b></span>
@@ -54,6 +62,36 @@
 </div>
 
 <style>
+  .new {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 6px 12px;
+    border: 3px solid #ffd84a;
+    background: #3a2a14;
+    color: #fff3d6;
+    font-size: min(4.2cqw, 2.5cqh, 22px);
+    animation: pop 360ms steps(4);
+  }
+
+  .new b {
+    color: #ffd84a;
+  }
+
+  @keyframes pop {
+    from {
+      scale: 0.5;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .new {
+      animation: none;
+    }
+  }
+
   .over {
     color: #ff7b6e;
   }
