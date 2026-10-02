@@ -29,12 +29,16 @@
     screen = 'play';
   }
 
-  function end(w: World) {
+  // リザルトを待たずに記録する。決着からリザルトまでの間に ✕ で抜けたり終わらされたりしても、その回を落とさない
+  function over(w: World) {
     run = summary(w);
     const r = loadRecords();
     fresh = record(r, run);
     saveRecords(r);
     unlocked = r.unlocked;
+  }
+
+  function end() {
     screen = 'result';
     settle.begin();
   }
@@ -49,7 +53,7 @@
   <CharSelect {unlocked} onpick={start} />
 {:else if screen === 'play'}
   {#key round}
-    <Play {animal} onend={end} />
+    <Play {animal} onover={over} onend={end} />
   {/key}
 {:else if run}
   <Result {run} {fresh} locked={settle.active} onagain={() => start(animal)} onselect={() => (screen = 'select')} />

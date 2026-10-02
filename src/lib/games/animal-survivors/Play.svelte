@@ -13,7 +13,7 @@
   import { Prompts } from './prompts.svelte';
   import { createWorld, step, type World } from './world';
 
-  let { animal, onend }: { animal: AnimalId; onend: (w: World) => void } = $props();
+  let { animal, onover, onend }: { animal: AnimalId; onover: (w: World) => void; onend: () => void } = $props();
 
   const MOVE_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
 
@@ -86,7 +86,10 @@
       fx.update(dt);
     }
     prompts.next(stick?.id ?? null);
-    if (world.over && !endTimer) endTimer = setTimeout(() => onend(world), world.over === 'clear' ? 2000 : 1200);
+    if (world.over && !endTimer) {
+      onover(world);
+      endTimer = setTimeout(onend, world.over === 'clear' ? 2000 : 1200);
+    }
     if (ctx) draw(ctx, world, fx, view, now, top);
   }
 
