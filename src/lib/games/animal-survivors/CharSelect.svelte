@@ -2,14 +2,27 @@
   import { onMount } from 'svelte';
   import { audio, toggleMute } from '$lib/audio.svelte';
   import Icon from '$lib/components/Icon.svelte';
+  import { ACHIEVEMENTS } from './achievements';
   import { ANIMALS, type AnimalId } from './animals';
   import { ANIMAL_ART } from './art/animals';
   import { ITEM_ART } from './art/items';
   import PixelIcon from './PixelIcon.svelte';
+  import type { Records } from './records';
   import { WEAPONS } from './weapons';
 
-  let { unlocked, onpick, onquit }: { unlocked: AnimalId[]; onpick: (id: AnimalId) => void; onquit: () => void } =
-    $props();
+  let {
+    records,
+    onpick,
+    onquit,
+    onshop,
+    ontrophies
+  }: {
+    records: Records;
+    onpick: (id: AnimalId) => void;
+    onquit: () => void;
+    onshop: () => void;
+    ontrophies: () => void;
+  } = $props();
 
   const top = {
     hp: Math.max(...ANIMALS.map((a) => a.hp)),
@@ -32,7 +45,7 @@
   <section class="as-panel" aria-label="キャラクター選択">
     <h2 class="as-title">キャラクターを選ぶ</h2>
     {#each ANIMALS as a (a.id)}
-      {@const open = unlocked.includes(a.id)}
+      {@const open = records.unlocked.includes(a.id)}
       {@const weapon = WEAPONS[a.weapon]}
       <button class="as-card" class:closed={!open} data-animal={a.id} disabled={!open} onclick={() => onpick(a.id)}>
         <span class="face"
@@ -56,6 +69,14 @@
         </span>
       </button>
     {/each}
+    <div class="links">
+      <button class="as-card link" onclick={onshop}>
+        <PixelIcon art={ITEM_ART.coin} size="min(5cqw, 3cqh, 26px)" />パワーアップ（{records.coins.toLocaleString(
+          'ja-JP'
+        )}）
+      </button>
+      <button class="as-card link" onclick={ontrophies}>実績 {records.achieved.length} / {ACHIEVEMENTS.length}</button>
+    </div>
   </section>
 </div>
 
@@ -76,6 +97,17 @@
 
   .as-card {
     padding-block: min(1cqh, 8px);
+  }
+
+  .links {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .link {
+    justify-content: center;
+    font-size: min(3.8cqw, 2.2cqh, 19px);
   }
 
   .closed {

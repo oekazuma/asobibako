@@ -1,18 +1,28 @@
 <script lang="ts">
-  import { animal, type AnimalId } from './animals';
+  import type { AchievementDef } from './achievements';
+  import { animal } from './animals';
   import { ANIMAL_ART } from './art/animals';
   import { ITEM_ART } from './art/items';
   import { clock } from './hud';
   import PixelIcon from './PixelIcon.svelte';
+  import Trophy from './Trophy.svelte';
   import type { RunSummary } from './world';
 
   let {
     run,
-    fresh,
+    got,
+    total,
     locked,
     onagain,
     onselect
-  }: { run: RunSummary; fresh: AnimalId[]; locked: boolean; onagain: () => void; onselect: () => void } = $props();
+  }: {
+    run: RunSummary;
+    got: AchievementDef[];
+    total: number;
+    locked: boolean;
+    onagain: () => void;
+    onselect: () => void;
+  } = $props();
 
   const art = $derived(ANIMAL_ART[run.animal]);
   const rows = $derived([
@@ -30,12 +40,22 @@
 <div class="as-screen">
   <section class="as-panel" class:as-locked={locked} aria-label="結果">
     <h2 class="as-title" class:over={!run.cleared}>{run.cleared ? '生存成功！' : 'GAME OVER'}</h2>
-    {#each fresh as id (id)}
-      <p class="new">
-        <PixelIcon art={ANIMAL_ART[id].walk} size="min(10cqw, 6cqh, 56px)" /><span
-          ><b>NEW!</b> {animal(id).name}が仲間になった</span
-        >
-      </p>
+    {#each got as a (a.id)}
+      {#if a.animal}
+        <p class="new">
+          <PixelIcon art={ANIMAL_ART[a.animal].walk} size="min(10cqw, 6cqh, 56px)" /><span
+            ><b>NEW!</b> {animal(a.animal).name}が仲間になった</span
+          >
+        </p>
+      {/if}
+    {/each}
+    <p class="coins">
+      <PixelIcon art={ITEM_ART.coin} size="min(5cqw, 3cqh, 26px)" /><b>+{run.coins}</b> コイン（もちもの {total.toLocaleString(
+        'ja-JP'
+      )}）
+    </p>
+    {#each got as a (a.id)}
+      <Trophy {a} />
     {/each}
     <div class="who">
       <PixelIcon art={run.cleared ? art.walk : art.hurt} size="min(18cqw, 10cqh, 96px)" />
@@ -90,6 +110,19 @@
     .new {
       animation: none;
     }
+  }
+
+  .coins {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    font-size: min(4.2cqw, 2.5cqh, 22px);
+  }
+
+  .coins b {
+    color: #ffd84a;
   }
 
   .over {

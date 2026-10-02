@@ -66,7 +66,7 @@
   cursor: pointer;
 }
 
-.as-card:hover,
+.as-card:not(:disabled):hover,
 .as-card:focus-visible {
   background: #ffe28a;
   outline: none;

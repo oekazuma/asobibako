@@ -2,25 +2,26 @@
   import { onMount } from 'svelte';
   import type { SoloProps } from '$lib/games';
   import { Settle } from '$lib/settle.svelte';
+  import type { AchievementDef } from './achievements';
   import type { AnimalId } from './animals';
   import CharSelect from './CharSelect.svelte';
   import Play from './Play.svelte';
-  import { loadRecords, record, saveRecords } from './records';
-  import type { Ranks } from './upgrades';
+  import { emptyRecords, loadRecords, record, saveRecords } from './records';
   import Result from './Result.svelte';
+  import Shop from './Shop.svelte';
+  import Trophies from './Trophies.svelte';
   import { summary, type RunSummary, type World } from './world';
   import './retro.css';
 
   // 15 分の 1 回が面ひとつなので、シェルの level と onfinish は使わない（リザルトはこのゲームが持つ）
   let { onquit }: SoloProps = $props();
 
-  let screen = $state<'select' | 'play' | 'result'>('select');
+  let screen = $state<'select' | 'shop' | 'trophies' | 'play' | 'result'>('select');
   let animal = $state<AnimalId>('dog');
   let run = $state<RunSummary | null>(null);
-  /** 選べる動物と、この回で新しく仲間になった動物 */
-  let unlocked = $state<AnimalId[]>(['dog', 'cat', 'wolf']);
-  let fresh = $state<AnimalId[]>([]);
-  let ranks = $state<Ranks>({});
+  let records = $state(emptyRecords());
+  /** この回に達成した実績 */
+  let got = $state<AchievementDef[]>([]);
   let round = $state(0);
   // 倒れたときは移動の指が残っていることが多い。離した指の合成 click でリザルトのボタンが押されないようにする
   const settle = new Settle();
@@ -35,10 +36,9 @@
   function over(w: World) {
     run = summary(w);
     const r = loadRecords();
-    fresh = record(r, run).flatMap((a) => (a.animal ? [a.animal] : []));
+    got = record(r, run);
     saveRecords(r);
-    unlocked = r.unlocked;
-    ranks = r.ranks;
+    records = r;
   }
 
   function end() {
@@ -46,20 +46,41 @@
     settle.begin();
   }
 
+  /** 店で買ったあとは記録が変わっているので読み直す */
+  function back() {
+    records = loadRecords();
+    screen = 'select';
+  }
+
   onMount(() => {
-    const r = loadRecords();
-    unlocked = r.unlocked;
-    ranks = r.ranks;
+    records = loadRecords();
     return settle.listen();
   });
 </script>
 
 {#if screen === 'select'}
-  <CharSelect {unlocked} onpick={start} onquit={() => onquit?.()} />
+  <CharSelect
+    {records}
+    onpick={start}
+    onquit={() => onquit?.()}
+    onshop={() => (screen = 'shop')}
+    ontrophies={() => (screen = 'trophies')}
+  />
+{:else if screen === 'shop'}
+  <Shop onback={back} />
+{:else if screen === 'trophies'}
+  <Trophies onback={back} />
 {:else if screen === 'play'}
   {#key round}
-    <Play {animal} {ranks} onover={over} onend={end} onrestart={() => start(animal)} />
+    <Play {animal} ranks={records.ranks} onover={over} onend={end} onrestart={() => start(animal)} />
   {/key}
 {:else if run}
-  <Result {run} {fresh} locked={settle.active} onagain={() => start(animal)} onselect={() => (screen = 'select')} />
+  <Result
+    {run}
+    {got}
+    total={records.coins}
+    locked={settle.active}
+    onagain={() => start(animal)}
+    onselect={() => (screen = 'select')}
+  />
 {/if}
