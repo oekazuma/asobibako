@@ -4,6 +4,7 @@ import { ENEMY_ART } from './art/enemies';
 import { FOREST_ART } from './art/forest';
 import { ITEM_ART } from './art/items';
 import { PALETTE } from './art/palette';
+import { shots, swipes, zonesBelow } from './draw-arms';
 import { bossBars, hazardsAbove, hazardsBelow } from './draw-boss';
 import { gemTier } from './drops';
 import type { Effects } from './effects';
@@ -39,7 +40,7 @@ let S = 1;
 const q = (v: number) => devicePx(v, S) / S;
 
 /** 座標から決まる 0..1。地面と飾りを毎フレーム同じに並べる */
-function hash(x: number, y: number) {
+export function hash(x: number, y: number) {
   let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263)) >>> 0;
   h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0;
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
@@ -52,13 +53,13 @@ function sprite(
   x: number,
   y: number,
   flip = false,
-  white = false
+  white = false,
+  gold = false
 ) {
-  ctx.drawImage(
-    bake(art, frame, flip ? (white ? 'flipWhite' : 'flip') : white ? 'white' : 'normal'),
-    q(x - art.w / 2),
-    q(y - art.h / 2)
-  );
+  const mode = white ? (flip ? 'flipWhite' : 'white') : gold ? (flip ? 'flipGold' : 'gold') : flip ? 'flip' : 'normal';
+  // 強化個体は 2 倍で描く（整数倍ならドットの粒がそろう）
+  const k = gold ? 2 : 1;
+  ctx.drawImage(bake(art, frame, mode), q(x - (art.w * k) / 2), q(y - (art.h * k) / 2), art.w * k, art.h * k);
 }
 
 function shadow(ctx: CanvasRenderingContext2D, x: number, y: number, w: number) {
@@ -143,12 +144,17 @@ function enemies(ctx: CanvasRenderingContext2D, w: World, cx: number, cy: number
   order.sort((a, b) => a.y - b.y);
   ctx.fillStyle = 'rgb(0 0 0 / 0.25)';
   for (const e of order)
-    shadow(ctx, e.x, e.y + ART[e.def.id].h / 2 - 1, Math.round(e.def.r * (e.def.boss ? 2.2 : 1.8)));
+    shadow(
+      ctx,
+      e.x,
+      e.y + (ART[e.def.id].h * (e.def.elite ? 2 : 1)) / 2 - 1,
+      Math.round(e.def.r * (e.def.boss ? 2.2 : 1.8))
+    );
   for (const e of order) {
     const art = ART[e.def.id];
     // 巨大ベアは地ならしの予告のあいだ、両手を上げたコマにする
     const frame = e.def.boss === 'bear' && e.state === 3 ? 2 : frameAt(e.t * (e.def.boss ? 4 : 6), 2);
-    sprite(ctx, art, frame, e.x, e.y, w.player.x < e.x, e.flash > 0);
+    sprite(ctx, art, frame, e.x, e.y, w.player.x < e.x, e.flash > 0, e.def.elite);
   }
 }
 
@@ -158,83 +164,6 @@ function pickups(ctx: CanvasRenderingContext2D, w: World, now: number) {
     sprite(ctx, ITEM_ART[`gem${gemTier(g.value)}`], frameAt(now * 3 + g.x * 0.1, 2), g.x, g.y);
   }
   for (const it of w.items) if (it.alive) sprite(ctx, ITEM_ART[it.kind], 0, it.x, it.y + Math.sin(now * 4) * 1.5);
-}
-
-function rotated(ctx: CanvasRenderingContext2D, art: Art, x: number, y: number, angle: number, size = 1) {
-  ctx.save();
-  ctx.translate(q(x), q(y));
-  ctx.rotate(angle);
-  ctx.drawImage(bake(art), (-art.w * size) / 2, (-art.h * size) / 2, art.w * size, art.h * size);
-  ctx.restore();
-}
-
-function shots(ctx: CanvasRenderingContext2D, w: World) {
-  for (const o of w.shots) {
-    if (!o.alive) continue;
-    if (o.kind === 'shot') rotated(ctx, ITEM_ART.bone, o.x, o.y, o.age * 14);
-    else if (o.kind === 'boomerang') rotated(ctx, ITEM_ART.bone, o.x, o.y, o.age * 16, 1.6);
-    else if (o.kind === 'homing') rotated(ctx, ITEM_ART.fish, o.x, o.y, o.angle);
-    else rotated(ctx, ITEM_ART.feather, o.x, o.y, o.angle + Math.PI / 2);
-  }
-}
-
-function bolt(ctx: CanvasRenderingContext2D, x: number, y: number, seed: number) {
-  ctx.beginPath();
-  ctx.moveTo(x + 6, y - 90);
-  for (let i = 1; i <= 6; i++) ctx.lineTo(x + (i === 6 ? 0 : (hash(seed, i) - 0.5) * 14), y - 90 + i * 15);
-  ctx.stroke();
-}
-
-function effects(ctx: CanvasRenderingContext2D, w: World) {
-  ctx.lineCap = 'square';
-  for (const f of w.effects) {
-    if (!f.alive) continue;
-    const t = f.age / f.life;
-    if (f.kind === 'swipe') {
-      ctx.globalAlpha = 0.75 * (1 - t);
-      ctx.strokeStyle = PALETTE.w;
-      for (const [r, lw] of [
-        [0.85, 3],
-        [0.6, 2]
-      ]) {
-        ctx.lineWidth = lw;
-        ctx.beginPath();
-        ctx.arc(f.x, f.y, f.r * r, f.angle - 0.95 + t * 0.4, f.angle + 0.95 + t * 0.4);
-        ctx.stroke();
-      }
-    } else if (f.kind === 'ring') {
-      const r = t * f.r;
-      ctx.globalAlpha = 0.75 * (1 - t);
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = PALETTE.w;
-      ctx.beginPath();
-      ctx.arc(f.x, f.y, r, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.strokeStyle = PALETTE.u;
-      ctx.beginPath();
-      ctx.arc(f.x, f.y, Math.max(0, r - 3), 0, Math.PI * 2);
-      ctx.stroke();
-    } else if (f.kind === 'bolt') {
-      ctx.globalAlpha = 0.75 * (1 - t * t);
-      ctx.strokeStyle = PALETTE.y;
-      ctx.lineWidth = 3;
-      bolt(ctx, f.x, f.y, Math.floor(f.born * 60));
-      ctx.strokeStyle = PALETTE.w;
-      ctx.lineWidth = 1;
-      bolt(ctx, f.x, f.y, Math.floor(f.born * 60));
-      ctx.fillStyle = PALETTE.y;
-      ctx.beginPath();
-      ctx.arc(f.x, f.y, f.r * (1 - t), 0, Math.PI * 2);
-      ctx.fill();
-    } else {
-      ctx.globalAlpha = 0.7 * (1 - t);
-      ctx.fillStyle = PALETTE.o;
-      ctx.beginPath();
-      ctx.arc(f.x, f.y, f.r * (0.6 + t * 0.4), 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-  ctx.globalAlpha = 1;
 }
 
 /** 端末の画素の canvas に、仮想画面の scale 倍で描く */
@@ -254,11 +183,12 @@ export function draw(
   ctx.setTransform(S, 0, 0, S, -devicePx(cx, S), -devicePx(cy, S));
   ground(ctx, cx, cy, v);
   hazardsBelow(ctx, w, q, now);
+  zonesBelow(ctx, w, q, now);
   pickups(ctx, w, now);
   enemies(ctx, w, cx, cy, v);
   player(ctx, w, now);
-  shots(ctx, w);
-  effects(ctx, w);
+  shots(ctx, w, q);
+  swipes(ctx, w, q);
   hazardsAbove(ctx, w, q);
   fx.draw(ctx, S);
   ctx.setTransform(S, 0, 0, S, 0, 0);

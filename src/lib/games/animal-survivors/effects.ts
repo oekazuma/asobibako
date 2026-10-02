@@ -32,7 +32,12 @@ const BODY: Record<string, string> = {
   bat: PALETTE.v,
   snake: PALETTE.l,
   caterpillar: PALETTE.l,
-  boar: PALETTE.T
+  boar: PALETTE.T,
+  spider: PALETTE.T,
+  croc: PALETTE.L,
+  spiderling: PALETTE.v,
+  bear: PALETTE.B,
+  spiderQueen: PALETTE.v
 };
 
 /** 見た目と音だけの演出。World の出来事を読み、ルールには触らない */
