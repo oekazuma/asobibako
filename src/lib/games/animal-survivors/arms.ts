@@ -265,6 +265,8 @@ export function fire(w: World, dt: number): void {
     const wait = s.cooldown * Math.max(0.35, 1 - w.stats.haste);
     // 羽根は回り終えてから待ち時間を数える
     own.cd = def.kind === 'orbit' ? s.duration + wait : wait;
+    // 炎は足もとに置くだけで、しかも間が短いので、攻撃の格好にすると歩く動きが見えなくなる
+    if (def.kind === 'trail') return;
     w.player.attack = 0.15;
     w.events.push({ type: 'fire', weapon: own.id });
   });

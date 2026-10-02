@@ -66,6 +66,13 @@ describe('炎とツタ', () => {
     expect(w.effects.filter((f) => f.alive && f.kind === 'flame').length).toBeGreaterThan(1);
   });
 
+  it('炎を置いても、自分は攻撃の格好にならない（歩く動きを見せ続ける）', () => {
+    const w = only('flame');
+    run(w, 1, { x: 1, y: 0 });
+    expect(w.player.attack).toBeLessThanOrEqual(0);
+    expect(w.effects.some((f) => f.alive && f.kind === 'flame')).toBe(true);
+  });
+
   it('炎は歩いたあとに残り、時間がたつと消える', () => {
     const w = only('flame');
     run(w, 0.1);
