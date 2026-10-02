@@ -24,6 +24,7 @@ const run = (o: Partial<RunSummary> = {}): RunSummary => ({
   coins: 0,
   opened: 0,
   evolved: [],
+  dealt: [],
   ...o
 });
 

@@ -17,7 +17,8 @@ const run: RunSummary = {
   bosses: [],
   coins: 12,
   opened: 0,
-  evolved: []
+  evolved: [],
+  dealt: []
 };
 
 function show(finger: number | null = null) {

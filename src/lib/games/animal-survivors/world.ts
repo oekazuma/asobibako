@@ -119,6 +119,8 @@ export interface World {
   evolvedNow: string[];
   /** 今当たって戻せる HP。毎秒 DRAIN × 最大 HP ずつ、その量まで戻る */
   drainLeft: number;
+  /** 武器の id ごとの、与えたダメージと倒した数 */
+  dealt: Record<string, { damage: number; kills: number }>;
   /** 次に出すステージの出来事の番号 */
   eventNext: number;
   /** 次に出すボスの番号と、予告を出したボスの数 */
@@ -189,6 +191,7 @@ export function createWorld(id: AnimalId, seed: number, view: { w: number; h: nu
     opened: 0,
     evolvedNow: [],
     drainLeft: s.maxHp * DRAIN,
+    dealt: {},
     eventNext: 0,
     bossNext: 0,
     warned: 0,
@@ -253,6 +256,7 @@ export function damageEnemy(
     w.drainLeft -= amt;
     w.player.hp = Math.min(w.stats.maxHp, w.player.hp + amt);
   }
+  if (source) (w.dealt[source] ??= { damage: 0, kills: 0 }).damage += Math.max(0, Math.min(dmg, e.hp));
   e.hp -= dmg;
   e.flash = 0.12;
   e.kx += kx * (1 - e.def.heavy);
@@ -261,6 +265,7 @@ export function damageEnemy(
   if (e.hp > 0) return;
   e.alive = false;
   w.kills += 1;
+  if (source) w.dealt[source].kills += 1;
   w.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.def.id });
   if (e.def.boss) {
     w.bossKills.push(e.def.boss);
@@ -575,6 +580,8 @@ export interface RunSummary {
   coins: number;
   opened: number;
   evolved: string[];
+  /** 武器ごとのダメージと倒した数。ダメージの多い順 */
+  dealt: { id: string; damage: number; kills: number }[];
 }
 
 export function summary(w: World): RunSummary {
@@ -590,6 +597,9 @@ export function summary(w: World): RunSummary {
     bosses: [...w.bossKills],
     coins: Math.floor(w.coins),
     opened: w.opened,
-    evolved: [...w.evolvedNow]
+    evolved: [...w.evolvedNow],
+    dealt: Object.entries(w.dealt)
+      .map(([id, d]) => ({ id, damage: Math.round(d.damage), kills: d.kills }))
+      .sort((a, b) => b.damage - a.damage)
   };
 }

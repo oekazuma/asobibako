@@ -113,3 +113,25 @@ describe('当たって回復', () => {
     expect(w.player.hp).toBe(10);
   });
 });
+
+describe('ダメージ表', () => {
+  it('武器ごとにダメージ（残りの HP を越えない）と倒した数を数え、多い順に並べる', () => {
+    const w = createWorld('dog', 1, VIEW);
+    for (let i = 0; i < 3; i++) w.enemies.push(makeEnemy(ENEMIES.rat, 10, 0, 10));
+    damageEnemy(w, 0, 25, 0, 0, false, 'woof');
+    damageEnemy(w, 1, 4, 0, 0, false, 'paw');
+    damageEnemy(w, 2, 30, 0, 0, false, 'paw');
+    expect(summary(w).dealt).toEqual([
+      { id: 'paw', damage: 14, kills: 1 },
+      { id: 'woof', damage: 10, kills: 1 }
+    ]);
+  });
+
+  it('クリアの一掃はどの武器にも数えない', () => {
+    const w = createWorld('dog', 1, VIEW);
+    w.enemies.push(makeEnemy(ENEMIES.rat, 10, 0, 10));
+    w.time = w.stage.length;
+    step(w, { x: 0, y: 0 }, 1 / 60);
+    expect(summary(w).dealt).toEqual([]);
+  });
+});

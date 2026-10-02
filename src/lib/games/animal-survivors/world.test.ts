@@ -98,7 +98,8 @@ describe('世界', () => {
       bosses: [],
       coins: 0,
       opened: 0,
-      evolved: []
+      evolved: [],
+      dealt: []
     });
   });
 });

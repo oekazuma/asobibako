@@ -2,8 +2,8 @@
   import type { AchievementDef } from './achievements';
   import { animal } from './animals';
   import { ANIMAL_ART } from './art/animals';
-  import { itemArt } from './art/evolved';
   import { ITEM_ART } from './art/items';
+  import DamageTable from './DamageTable.svelte';
   import { clock } from './hud';
   import PixelIcon from './PixelIcon.svelte';
   import Trophy from './Trophy.svelte';
@@ -31,10 +31,6 @@
     ['レベル', `Lv.${run.level}`],
     ['撃破数', run.kills.toLocaleString('ja-JP')],
     ['獲得経験値', Math.round(run.xp).toLocaleString('ja-JP')]
-  ]);
-  const owned = $derived([
-    ...run.weapons.map((o) => ({ ...o, key: `weapon-${o.id}` })),
-    ...run.passives.map((o) => ({ ...o, key: `passive-${o.id}` }))
   ]);
 </script>
 
@@ -68,13 +64,7 @@
         <dd>{value}</dd>
       {/each}
     </dl>
-    <ul class="owned" aria-label="取った武器とパッシブ">
-      {#each owned as o (o.key)}
-        <li class="slot">
-          <PixelIcon art={itemArt(o.key)} size="min(8cqw, 4.6cqh, 40px)" /><span class="lv">{o.level}</span>
-        </li>
-      {/each}
-    </ul>
+    <DamageTable {run} />
     <div class="buttons">
       <button class="as-card" onclick={onagain}>もう一度</button>
       <button class="as-card" onclick={onselect}>キャラ選択へ</button>
@@ -159,31 +149,6 @@
     margin: 0;
     text-align: right;
     color: #ffd84a;
-  }
-
-  .owned {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    justify-content: center;
-  }
-
-  .slot {
-    position: relative;
-    padding: 3px;
-    background: #1f1530;
-  }
-
-  .lv {
-    position: absolute;
-    right: 2px;
-    bottom: 0;
-    color: #ffd84a;
-    font-size: min(3cqw, 1.8cqh, 14px);
-    text-shadow: 1px 1px 0 #24151f;
   }
 
   .buttons {
