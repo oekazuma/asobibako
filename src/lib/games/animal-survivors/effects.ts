@@ -126,6 +126,15 @@ export class Effects {
           this.#bit(p.x, p.y, Math.cos(a) * v, Math.sin(a) * v, 0.7, [PALETTE.y, PALETTE.w, PALETTE.Y][i % 3], 3);
         }
         sounds.evolve();
+      } else if (e.type === 'rush') {
+        this.flash = 0.3;
+        const p = w.player;
+        for (let i = 0; i < 36; i++) {
+          const a = (i / 36) * Math.PI * 2;
+          this.#bit(p.x, p.y, Math.cos(a) * 120, Math.sin(a) * 120, 0.6, i % 2 ? PALETTE.y : PALETTE.Y, 3);
+        }
+        sounds.coin();
+        sounds.magnet();
       } else if (e.type === 'magnet') {
         this.edge = 0.3;
         sounds.magnet();

@@ -11,7 +11,7 @@ export interface Gem {
 
 export interface Item {
   alive: boolean;
-  kind: 'meat' | 'magnet' | 'chest' | 'coin' | 'purse' | 'pouch' | 'cross' | 'clock';
+  kind: 'meat' | 'magnet' | 'goldMagnet' | 'chest' | 'coin' | 'purse' | 'pouch' | 'cross' | 'clock';
   x: number;
   y: number;
   pulled: boolean;
@@ -21,6 +21,8 @@ export const MAX_GEMS = 400;
 const PICK = 8;
 const PULL_SPEED = 220;
 const MEAT_HEAL = 30;
+/** 15 分で 1 万体ほど倒すので、肉が画面にあふれない割合にする */
+const MEAT_CHANCE = 0.003;
 export const CLEAR_COINS = 100;
 export const CHEST_COINS = 10;
 const PURSE = 50;
@@ -31,12 +33,19 @@ const POUCH = 10;
 export const FREEZE = 10;
 /** ランタンから出る品の重み。十字架と時計は運で増える */
 const LOOT: [Item['kind'], number, boolean][] = [
-  ['meat', 40, false],
-  ['pouch', 25, false],
-  ['magnet', 15, false],
+  ['meat', 20, false],
+  ['pouch', 35, false],
+  ['magnet', 25, false],
   ['cross', 10, true],
-  ['clock', 10, true]
+  ['clock', 10, true],
+  ['goldMagnet', 3, true]
 ];
+
+/** 金の磁石のコインラッシュの秒と、そのあいだ倒した敵がコインを落とす確率 */
+export const RUSH = 15;
+const RUSH_COIN = 0.1;
+/** 強化個体が金の磁石を落とす確率（強い相手ほどごほうびを大きくする） */
+const ELITE_GOLD = 0.05;
 
 /** ランタンが壊れたときの品を 1 つ置く */
 export function dropLoot(w: World, x: number, y: number): void {
@@ -128,10 +137,10 @@ export function dropGem(w: World, x: number, y: number, value: number): void {
   Object.assign(g, { alive: true, x, y, value, pulled: false });
 }
 
-function dropItem(w: World, kind: Item['kind'], x: number, y: number) {
+function dropItem(w: World, kind: Item['kind'], x: number, y: number, pulled = false) {
   const it =
     w.items.find((o) => !o.alive) ?? (w.items[w.items.length] = { alive: false, kind, x: 0, y: 0, pulled: false });
-  Object.assign(it, { alive: true, kind, x, y, pulled: false });
+  Object.assign(it, { alive: true, kind, x, y, pulled });
 }
 
 const BOSS_GEMS = 10;
@@ -162,15 +171,17 @@ export function dropFrom(w: World, e: Enemy): void {
   }
   dropGem(w, e.x, e.y, e.def.xp);
   if (e.def.chief) dropItem(w, 'chest', e.x + 10, e.y);
-  if (w.rand() < 0.012) dropItem(w, 'meat', e.x + 4, e.y);
+  if (w.rand() < MEAT_CHANCE) dropItem(w, 'meat', e.x + 4, e.y);
   else if (w.rand() < 0.004) dropItem(w, 'magnet', e.x + 4, e.y);
   if (e.def.elite && w.rand() < ELITE_CHEST) dropItem(w, 'chest', e.x, e.y);
+  if (e.def.elite && w.rand() < ELITE_GOLD) dropItem(w, 'goldMagnet', e.x, e.y + 8);
+  if (w.rush > 0 && w.rand() < RUSH_COIN) dropItem(w, 'coin', e.x, e.y - 4, true);
   if (e.def.elite)
     for (let i = 0; i < ELITE_COINS; i++) {
       const a = (i / ELITE_COINS) * Math.PI * 2;
       dropItem(w, 'coin', e.x + Math.cos(a) * 8, e.y + Math.sin(a) * 8);
     }
-  else if (w.rand() < COIN_CHANCE * (1 + w.stats.luck)) dropItem(w, 'coin', e.x - 4, e.y);
+  else if (w.rand() < COIN_CHANCE * (1 + w.stats.luck)) dropItem(w, 'coin', e.x - 4, e.y, w.rush > 0);
 }
 
 /** 吸い寄せて、届いたら true */
@@ -211,6 +222,12 @@ export function collect(w: World, dt: number): void {
     if (it.kind === 'cross') {
       clearScreen(w);
       w.events.push({ type: 'cross' });
+      continue;
+    }
+    if (it.kind === 'goldMagnet') {
+      for (const o of w.items) if (o.kind === 'coin' || o.kind === 'pouch' || o.kind === 'purse') o.pulled ||= o.alive;
+      w.rush = RUSH;
+      w.events.push({ type: 'rush' });
       continue;
     }
     if (it.kind === 'clock') {

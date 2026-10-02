@@ -80,7 +80,8 @@ export type GameEvent =
   | { type: 'swarm'; text: string }
   | { type: 'cross' }
   | { type: 'freeze' }
-  | { type: 'grow'; form: 1 | 2 };
+  | { type: 'grow'; form: 1 | 2 }
+  | { type: 'rush' };
 
 export interface World {
   rand: Rng;
@@ -135,6 +136,8 @@ export interface World {
   eventNext: number;
   /** 時計で敵が止まっている残り秒 */
   freeze: number;
+  /** 金の磁石のコインラッシュの残り秒 */
+  rush: number;
   /** 次にランタンを足すまでの秒 */
   propCd: number;
   /** 次に出すヌシの番号 */
@@ -236,6 +239,7 @@ export function createWorld(
     dealt: {},
     eventNext: 0,
     freeze: 0,
+    rush: 0,
     propCd: 2,
     chiefNext: 0,
     metalAt: metalTime(seed),
@@ -680,6 +684,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   spawnEvents(w);
   spawnProps(w, dt);
   w.freeze = Math.max(0, w.freeze - dt);
+  w.rush = Math.max(0, w.rush - dt);
 
   const far = Math.hypot(w.view.w, w.view.h) * 0.9;
   w.grid.clear();

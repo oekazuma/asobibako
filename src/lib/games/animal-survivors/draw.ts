@@ -3,6 +3,7 @@ import { BOSS_ART } from './art/bosses';
 import { ENEMY_ART } from './art/enemies';
 import { FOREST_ART } from './art/forest';
 import { GRAVE_ART } from './art/graveyard';
+import { goldArt } from './art/evolved';
 import { ITEM_ART } from './art/items';
 import { PALETTE } from './art/palette';
 import { shots, swipes, zonesBelow } from './draw-arms';
@@ -232,7 +233,7 @@ function pickups(ctx: CanvasRenderingContext2D, w: World, now: number) {
     if (it.alive)
       sprite(
         ctx,
-        ITEM_ART[it.kind],
+        it.kind === 'goldMagnet' ? goldArt(ITEM_ART.magnet) : ITEM_ART[it.kind],
         it.kind === 'coin' ? frameAt(now * 6, 2) : 0,
         it.x,
         it.y + Math.sin(now * 4) * 1.5

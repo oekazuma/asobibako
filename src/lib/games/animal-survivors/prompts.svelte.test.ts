@@ -92,6 +92,14 @@ describe('Prompts', () => {
     expect(p.notice?.text).toBe('わんぱく犬は 勇者の犬に育った！');
   });
 
+  it('金の磁石で「コインラッシュ！」の帯を出す', () => {
+    const w = createWorld('dog', 1, { w: 274, h: 394 });
+    const p = new Prompts(w);
+    w.events = [{ type: 'rush' }];
+    p.take();
+    expect(p.notice?.text).toBe('コインラッシュ！');
+  });
+
   it('面の主の WARNING はボスの名前ではなく「面の主」', () => {
     const w = createWorld('dog', 1, { w: 274, h: 394 });
     const p = new Prompts(w);
