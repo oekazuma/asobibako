@@ -19,13 +19,14 @@ const run: RunSummary = {
   opened: 0
 };
 
-function show() {
+function show(finger: number | null = null) {
   const calls: string[] = [];
   const target = document.body.appendChild(document.createElement('div'));
   const app = mount(Pause, {
     target,
     props: {
       run,
+      finger,
       onresume: () => calls.push('resume'),
       onrestart: () => calls.push('restart'),
       onquit: () => calls.push('quit')
@@ -76,6 +77,22 @@ describe('Pause', () => {
     flushSync();
     expect(calls).toEqual([]);
     expect(target.textContent).toContain('ポーズ');
+    unmount(app);
+  });
+
+  it('スティックの指が残っていれば、その指が離れたあとも 350ms は押せない', () => {
+    const { target, app, button } = show(7);
+    expect(target.querySelector('.as-locked')).not.toBeNull();
+    vi.advanceTimersByTime(400);
+    flushSync();
+    button('やめる').click();
+    flushSync();
+    vi.advanceTimersByTime(400);
+    flushSync();
+    expect(target.querySelector('.as-locked')).toBeNull();
+    window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 7 }));
+    flushSync();
+    expect(target.querySelector('.as-locked')).not.toBeNull();
     unmount(app);
   });
 });

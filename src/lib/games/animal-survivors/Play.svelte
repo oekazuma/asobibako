@@ -7,7 +7,7 @@
   import { draw, viewSize, type ViewSize } from './draw';
   import { Effects } from './effects';
   import { keyVector, padVector, pick, stickVector } from './input';
-  import { canPause } from './pause';
+  import { PendingPause, canPause } from './pause';
   import Pause from './Pause.svelte';
   import PromptLayer from './PromptLayer.svelte';
   import { Prompts } from './prompts.svelte';
@@ -44,6 +44,9 @@
   const prompts = new Prompts(world);
   let stick = $state<{ id: number; x: number; y: number; dx: number; dy: number } | null>(null);
   let menu = $state(false);
+  const later = new PendingPause();
+  /** 一時停止を開いたときに残っていたスティックの指（離したときの合成 click を確かめで受けないため） */
+  let menuFinger = $state<number | null>(null);
   let hidden = false;
   let ended = $state(false);
   let now = 0;
@@ -92,6 +95,7 @@
       fx.update(dt);
     }
     prompts.next(stick?.id ?? null);
+    if (later.due(world, prompts.busy)) pause();
     if (world.over && !ended) {
       ended = true;
       onover(world);
@@ -102,6 +106,7 @@
 
   function pause() {
     if (!canPause(world, prompts.busy)) return;
+    menuFinger = stick?.id ?? null;
     menu = true;
     stick = null;
     keys.clear();
@@ -143,7 +148,7 @@
 <svelte:document
   onvisibilitychange={() => {
     hidden = document.hidden;
-    if (hidden) pause();
+    if (hidden && later.hide(world, prompts.busy)) pause();
   }}
 />
 
@@ -162,6 +167,7 @@
 {#if menu}
   <Pause
     run={summary(world)}
+    finger={menuFinger}
     onresume={() => (menu = false)}
     onrestart={() => leave(true)}
     onquit={() => leave(false)}

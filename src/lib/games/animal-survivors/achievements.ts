@@ -92,19 +92,28 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   }
 ];
 
-/** まだの実績を達成にしてコインと動物を渡し、表の順に返す。ごほうびの動物で次の実績が満ちることがあるので、増えなくなるまで見る */
+/**
+ * まだの実績を達成にしてコインと動物を渡し、表の順に返す。ごほうびの動物で次の実績が満ちることがあるので、増えなくなるまで見る。
+ * 返す実績の animal は、この判定で新しく仲間になったときだけ残す（前の版で仲間になった動物を「NEW」と出さないため）
+ */
 export function grant(r: Records, run: RunSummary | null): AchievementDef[] {
   const out: AchievementDef[] = [];
+  const joined = new Set<AnimalId>();
   for (let more = true; more;) {
     more = false;
     for (const a of ACHIEVEMENTS) {
       if (r.achieved.includes(a.id) || !a.done(r, run)) continue;
       r.achieved.push(a.id);
       r.coins += a.coins;
-      if (a.animal && !r.unlocked.includes(a.animal)) r.unlocked.push(a.animal);
+      if (a.animal && !r.unlocked.includes(a.animal)) {
+        r.unlocked.push(a.animal);
+        joined.add(a.animal);
+      }
       out.push(a);
       more = true;
     }
   }
-  return ACHIEVEMENTS.filter((a) => out.includes(a));
+  return ACHIEVEMENTS.filter((a) => out.includes(a)).map((a) =>
+    a.animal && !joined.has(a.animal) ? { ...a, animal: undefined } : a
+  );
 }

@@ -125,6 +125,13 @@ describe('実績', () => {
     expect(r.unlocked).toHaveLength(7);
   });
 
+  it('もう仲間の動物は、実績を後から達成しても新しく仲間になったことにしない', () => {
+    const r = parseRecords(JSON.stringify({ best: 400, unlocked: ['fox'] }));
+    const got = record(r, run({ time: 30 }));
+    expect(got.map((a) => a.id)).toContain('survive5');
+    expect(got.flatMap((a) => (a.animal ? [a.animal] : []))).toEqual([]);
+  });
+
   it('動物ごとのクリアと宝箱の合計を数える', () => {
     const r = emptyRecords();
     record(r, run({ animal: 'cat', cleared: true, time: 900, opened: 4 }));

@@ -9,19 +9,30 @@
 
   let {
     run,
+    finger,
     onresume,
     onrestart,
     onquit
-  }: { run: RunSummary; onresume: () => void; onrestart: () => void; onquit: () => void } = $props();
+  }: {
+    run: RunSummary;
+    /** 開いたときに残っていたスティックの指 */
+    finger: number | null;
+    onresume: () => void;
+    onrestart: () => void;
+    onquit: () => void;
+  } = $props();
 
   let asking = $state<'restart' | 'quit' | null>(null);
-  // 確かめの「やめる」はメニューの「やめる」と近い位置に出るので、2 度押しで決まらないよう少し止める
+  // 確かめの「やめる」はメニューの「やめる」と近い位置に出るので、2 度押しで決まらないよう少し止める。
+  // スティックを親指で押さえたまま開いたときは、その指を離した合成 click もメニューと確かめで受けない
   const lock = new Lock();
+  // svelte-ignore state_referenced_locally
+  lock.begin(finger);
   onDestroy(() => lock.stop());
 
   function ask(what: 'restart' | 'quit') {
     asking = what;
-    lock.begin(null);
+    lock.begin(finger);
   }
 
   const owned = $derived([
@@ -29,6 +40,8 @@
     ...run.passives.map((o) => ({ ...o, key: `passive-${o.id}` }))
   ]);
 </script>
+
+<svelte:window onpointerup={(e) => lock.lift(e.pointerId)} onpointercancel={(e) => lock.lift(e.pointerId)} />
 
 <div class="veil">
   {#if asking}
@@ -44,7 +57,7 @@
       <button class="as-card" onclick={() => (asking = null)}>つづける</button>
     </section>
   {:else}
-    <section class="as-panel" aria-label="ポーズ">
+    <section class="as-panel" class:as-locked={lock.active} aria-label="ポーズ">
       <h2 class="as-title">ポーズ</h2>
       <p class="now"><span>{clock(run.time)}</span><span>Lv.{run.level}</span><span>コイン {run.coins}</span></p>
       <ul class="owned" aria-label="取った武器とパッシブ">

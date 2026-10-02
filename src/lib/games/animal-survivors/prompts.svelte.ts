@@ -11,11 +11,14 @@ export class Prompts {
   rewards = $state<Reward[] | null>(null);
   /** key は帯を作り直すための数。until までゲームの時間で出す（3 択で止まっているあいだに消えないように） */
   warning = $state<{ name: string; key: number; until: number } | null>(null);
+  /** 3 択の引き直しの残り。World の値は $state でないので、画面のために写しを持つ */
+  rerolls = $state(0);
   readonly lock = new Lock();
   readonly #w: World;
 
   constructor(w: World) {
     this.#w = w;
+    this.rerolls = w.rerolls;
   }
 
   get busy(): boolean {
@@ -46,15 +49,12 @@ export class Prompts {
     this.next(finger);
   }
 
-  get rerolls(): number {
-    return this.#w.rerolls;
-  }
-
   /** 3 択を引き直す。引き直した札も出た直後の合成 click を捨てる */
   reroll(finger: number | null): void {
     const w = this.#w;
     if (!this.options || w.rerolls <= 0) return;
     w.rerolls -= 1;
+    this.rerolls = w.rerolls;
     this.options = choices(w);
     this.lock.begin(finger);
   }
