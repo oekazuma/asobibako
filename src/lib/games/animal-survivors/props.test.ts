@@ -109,4 +109,26 @@ describe('ランタンの品', () => {
     expect(rate(0)).toBeLessThan(0.25);
     expect(rate(1)).toBeGreaterThan(rate(0) + 0.08);
   });
+
+  it('止まっているあいだの吹き飛ばしはためず、時計が切れても飛ばない', () => {
+    const w = quiet();
+    w.player.invuln = 9999;
+    const croc = makeEnemy(ENEMIES.croc, 60, 0, 9999);
+    w.enemies.push(croc);
+    w.freeze = 2;
+    for (let i = 0; i < 60; i++) {
+      damageEnemy(w, 0, 1, 500, 0);
+      step(w, { x: 0, y: 0 }, 1 / 60);
+    }
+    for (let i = 0; i < 90; i++) step(w, { x: 0, y: 0 }, 1 / 60);
+    expect(croc.x).toBeLessThan(80);
+  });
+
+  it('ランタンは灯りのコマが進む', () => {
+    const w = quiet();
+    const lantern = makeEnemy(ENEMIES.lantern, 40, 0, 1);
+    w.enemies.push(lantern);
+    for (let i = 0; i < 30; i++) step(w, { x: 0, y: 0 }, 1 / 60);
+    expect(lantern.t).toBeGreaterThan(0.4);
+  });
 });

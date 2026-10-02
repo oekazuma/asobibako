@@ -24,14 +24,17 @@
     <ChestOpen rewards={prompts.rewards} locked={prompts.lock.active} onclose={() => prompts.close(finger)} />
   {/key}
 {:else if prompts.options}
-  <LevelUp
-    options={prompts.options}
-    locked={prompts.lock.active}
-    tools={prompts.tools}
-    onpick={(c) => prompts.choose(c, finger)}
-    ontool={(t) => (t === 'reroll' ? prompts.reroll(finger) : prompts.skip(finger))}
-    onbanish={(c) => prompts.banish(c, finger)}
-  />
+  <!-- 札が替わるたびに作り直し、除外を選んでいる途中の状態を次のレベルアップへ持ち越さない -->
+  {#key prompts.options}
+    <LevelUp
+      options={prompts.options}
+      locked={prompts.lock.active}
+      tools={prompts.tools}
+      onpick={(c) => prompts.choose(c, finger)}
+      ontool={(t) => (t === 'reroll' ? prompts.reroll(finger) : prompts.skip(finger))}
+      onbanish={(c) => prompts.banish(c, finger)}
+    />
+  {/key}
 {/if}
 
 <style>

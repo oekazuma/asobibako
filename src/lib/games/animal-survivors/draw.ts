@@ -154,7 +154,7 @@ function enemies(ctx: CanvasRenderingContext2D, w: World, cx: number, cy: number
     const art = ART[e.def.id];
     // 巨大ベアは地ならしの予告のあいだ、両手を上げたコマにする
     const frame = e.def.boss === 'bear' && e.state === 3 ? 2 : frameAt(e.t * (e.def.boss ? 4 : 6), 2);
-    sprite(ctx, art, frame, e.x, e.y, w.player.x < e.x, e.flash > 0, e.def.elite);
+    sprite(ctx, art, frame, e.x, e.y, !e.def.prop && w.player.x < e.x, e.flash > 0, e.def.elite);
   }
 }
 

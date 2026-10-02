@@ -371,6 +371,9 @@ export function spawnEvents(w: World): void {
 function moveEnemy(w: World, i: number, dt: number) {
   const e = w.enemies[i];
   if (e.def.prop || w.freeze > 0) {
+    // ランタンは灯りだけ揺らす。止まっているあいだの吹き飛ばしはためない（切れた瞬間にまとめて飛ぶ）
+    if (e.def.prop) e.t += dt;
+    e.kx = e.ky = 0;
     e.flash -= dt;
     return;
   }
