@@ -132,7 +132,7 @@ describe('クモ・ワニ・強化個体', () => {
 
   it('強化個体は表を写して強くし、元の表は変えない', () => {
     const e = eliteOf(ENEMIES.rat);
-    expect(e).toMatchObject({ hp: 48, xp: 10, elite: true });
+    expect(e).toMatchObject({ hp: 48, xp: 5, elite: true });
     expect(e.r).toBeCloseTo(8);
     expect(e.heavy).toBe(0.6);
     expect(ENEMIES.rat.hp).toBe(6);

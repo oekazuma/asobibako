@@ -209,7 +209,7 @@ export function damageEnemy(w: World, i: number, dmg: number, kx: number, ky: nu
 
 /** 強化個体の表。元の表は書き換えない */
 export function eliteOf(def: EnemyDef): EnemyDef {
-  return { ...def, hp: def.hp * 8, xp: def.xp * 10, r: def.r * 1.6, heavy: Math.max(def.heavy, 0.6), elite: true };
+  return { ...def, hp: def.hp * 8, xp: def.xp * 5, r: def.r * 1.6, heavy: Math.max(def.heavy, 0.6), elite: true };
 }
 
 function spawn(w: World, base: EnemyDef) {
