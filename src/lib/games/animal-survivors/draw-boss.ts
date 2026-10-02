@@ -11,7 +11,7 @@ type Snap = (v: number) => number;
 export function hazardsBelow(ctx: CanvasRenderingContext2D, w: World, q: Snap, now: number): void {
   for (const h of w.hazards) {
     if (!h.alive) continue;
-    if (h.kind === 'slam' && h.delay > 0) {
+    if ((h.kind === 'slam' || h.kind === 'pounce') && h.delay > 0) {
       const t = 1 - h.delay / 1;
       ctx.fillStyle = 'rgb(216 70 60 / 0.25)';
       ctx.beginPath();
@@ -70,7 +70,10 @@ export function hazardsAbove(ctx: CanvasRenderingContext2D, w: World, q: Snap): 
   for (const h of w.hazards) {
     if (!h.alive) continue;
     if (h.kind === 'web') ctx.drawImage(bake(ITEM_ART[h.art ?? 'web']), q(h.x - 4), q(h.y - 4));
-    else if (h.kind === 'slam' && h.delay <= 0) {
+    else if (h.kind === 'ball') {
+      const r = Math.round(h.r);
+      ctx.drawImage(bake(ITEM_ART.snowball), q(h.x - r), q(h.y - r), r * 2, r * 2);
+    } else if ((h.kind === 'slam' || h.kind === 'pounce') && h.delay <= 0) {
       const t = 1 - h.life / 0.3;
       ctx.globalAlpha = 0.8 * (1 - t);
       ctx.lineWidth = 3;

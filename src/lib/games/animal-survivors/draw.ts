@@ -10,6 +10,7 @@ import { PALETTE } from './art/palette';
 import { shots, swipes, zonesBelow } from './draw-arms';
 import { bossBars, hazardsAbove, hazardsBelow } from './draw-boss';
 import { blizzard } from './draw-storm';
+import { airborne, YETI } from './bosses-snow';
 import { gemTier } from './drops';
 import type { Effects } from './effects';
 import { hud } from './hud';
@@ -202,6 +203,12 @@ function crown(ctx: CanvasRenderingContext2D, e: Enemy, art: Art, flip: boolean)
   ctx.drawImage(bake(c), q(x - (c.w * 3) / 2), q(y), c.w * 3, c.h * 3);
 }
 
+/** 宙にいる大雪男は、飛び立った所から落ちる先へ弧を描いて進む */
+function leap(e: Enemy) {
+  const t = 1 - Math.max(0, e.wait) / YETI.pounceWarn;
+  return { x: e.x + (e.dx - e.x) * t, y: e.y + (e.dy - e.y) * t - Math.sin(Math.PI * t) * 48 };
+}
+
 /** きらきらハリネズミのまわりで、光の点が順にまたたく */
 function sparkle(ctx: CanvasRenderingContext2D, e: Enemy, now: number) {
   for (let i = 0; i < 3; i++) {
@@ -228,11 +235,13 @@ function enemies(ctx: CanvasRenderingContext2D, w: World, cx: number, cy: number
     shadow(ctx, e.x, e.y + (ART[e.def.id].h * sizeOf(e)) / 2 - 1, Math.round(e.def.r * (e.def.boss ? 2.2 : 1.8)));
   for (const e of order) {
     const art = ART[e.def.id];
-    // 巨大ベアは地ならしの予告のあいだ、両手を上げたコマにする
-    const frame = e.def.ai === 'bear' && e.state === 3 ? 2 : frameAt(e.t * (e.def.boss ? 4 : 6), 2);
+    // 巨大ベアは地ならしの予告のあいだ、大雪男は宙にいるあいだ、両手を上げたコマにする
+    const up = (e.def.ai === 'bear' && e.state === 3) || airborne(e);
+    const frame = up ? 2 : frameAt(e.t * (e.def.boss ? 4 : 6), 2);
     // 敵は自分のほうを向く。逃げるきらきらハリネズミだけは反対を向く
     const flip = !e.def.prop && w.player.x < e.x !== Boolean(e.def.metal);
-    sprite(ctx, art, frame, e.x, e.y, flip, e.flash > 0, e.def.elite, sizeOf(e));
+    const at = airborne(e) ? leap(e) : e;
+    sprite(ctx, art, frame, at.x, at.y, flip, e.flash > 0, e.def.elite, sizeOf(e));
     if (e.def.chief) crown(ctx, e, art, flip);
     if (e.def.metal) sparkle(ctx, e, now);
   }

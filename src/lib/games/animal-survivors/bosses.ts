@@ -1,9 +1,10 @@
+import { rolled, yeti } from './bosses-snow';
 import { ENEMIES } from './enemies';
 import { hurtPlayer, makeEnemy, MAX_ENEMIES, spawnPoint, type Enemy, type World } from './world';
 
 export interface Hazard {
   alive: boolean;
-  kind: 'slam' | 'dash' | 'web';
+  kind: 'slam' | 'dash' | 'web' | 'ball' | 'pounce';
   /** 予告の持ち主（ボスの enemies の番号）。web は -1 */
   owner: number;
   x: number;
@@ -88,7 +89,7 @@ const QUEEN = {
 };
 const STILL = { vx: 0, vy: 0 };
 
-function hazard(w: World, h: Omit<Hazard, 'alive'>) {
+export function hazard(w: World, h: Omit<Hazard, 'alive'>) {
   const free = w.hazards.find((o) => !o.alive);
   if (free) Object.assign(free, h, { alive: true });
   else w.hazards.push({ ...h, alive: true });
@@ -176,14 +177,7 @@ function queen(w: World, e: Enemy, ux: number, uy: number, d: number, dt: number
   e.turn -= dt;
   if (e.turn <= 0) {
     e.turn = QUEEN.broodEvery / (e.def.rage ?? 1);
-    const def = ENEMIES[e.def.minion ?? 'spiderling'];
-    for (let k = 0; k < QUEEN.brood; k++) {
-      const free = w.enemies.findIndex((o) => !o.alive);
-      const at = free >= 0 ? free : w.enemies.length < MAX_ENEMIES ? w.enemies.length : -1;
-      if (at < 0) break;
-      const a = (k / QUEEN.brood) * Math.PI * 2;
-      w.enemies[at] = makeEnemy(def, e.x + Math.cos(a) * 20, e.y + Math.sin(a) * 20, def.hp);
-    }
+    brood(w, e, QUEEN.brood);
   }
   // 近づきすぎたら下がり、遠ければ寄り、いつも横へ回り込む
   const radial = Math.max(-1, Math.min(1, (d - QUEEN.keep) / 30));
@@ -194,26 +188,41 @@ function queen(w: World, e: Enemy, ux: number, uy: number, d: number, dt: number
   return { vx: (vx / len) * e.def.speed, vy: (vy / len) * e.def.speed };
 }
 
+/** ボスのまわりに手下を n 匹出す。入れ物が埋まっていれば出せるだけ */
+export function brood(w: World, e: Enemy, n: number): void {
+  const def = ENEMIES[e.def.minion ?? 'spiderling'];
+  for (let k = 0; k < n; k++) {
+    const free = w.enemies.findIndex((o) => !o.alive);
+    const at = free >= 0 ? free : w.enemies.length < MAX_ENEMIES ? w.enemies.length : -1;
+    if (at < 0) break;
+    const a = (k / n) * Math.PI * 2;
+    w.enemies[at] = makeEnemy(def, e.x + Math.cos(a) * 20, e.y + Math.sin(a) * 20, def.hp);
+  }
+}
+
 export function moveBoss(w: World, i: number, dt: number): { vx: number; vy: number } {
   const e = w.enemies[i];
   const dx = w.player.x - e.x;
   const dy = w.player.y - e.y;
   const d = Math.hypot(dx, dy) || 1;
-  return e.def.ai === 'bear' ? bear(w, i, e, dx / d, dy / d, dt) : queen(w, e, dx / d, dy / d, d, dt);
+  if (e.def.ai === 'bear') return bear(w, i, e, dx / d, dy / d, dt);
+  if (e.def.ai === 'yeti') return yeti(w, i, e, dx / d, dy / d, dt);
+  return queen(w, e, dx / d, dy / d, d, dt);
 }
 
 export function updateHazards(w: World, dt: number): void {
   const p = w.player;
   for (const h of w.hazards) {
     if (!h.alive) continue;
-    if (h.kind === 'web') {
+    if (h.kind === 'web' || h.kind === 'ball') {
       h.x += h.vx * dt;
       h.y += h.vy * dt;
       h.life -= dt;
+      if (h.kind === 'ball') h.r = rolled(h.life);
       if (h.life <= 0) h.alive = false;
       else if (p.invuln <= 0 && (h.x - p.x) ** 2 + (h.y - p.y) ** 2 < (h.r + 6) ** 2) {
         h.alive = false;
-        p.slow = QUEEN.slow;
+        if (h.kind === 'web') p.slow = QUEEN.slow;
         hurtPlayer(w, h.dmg);
       }
       continue;

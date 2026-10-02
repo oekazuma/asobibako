@@ -1,6 +1,7 @@
 import { animal, type Animal, type AnimalId } from './animals';
 import { fire, hits, type Effect, type Shot } from './arms';
 import { moveBoss, slot, spawnBosses, updateHazards, type Hazard } from './bosses';
+import { airborne } from './bosses-snow';
 import { CLEAR_COINS, collect, dropFrom, type Gem, type Item } from './drops';
 import { ENEMIES, MAX_R, type BossId, type EnemyDef } from './enemies';
 import { Grid } from './grid';
@@ -304,7 +305,7 @@ export function damageEnemy(
   source?: string
 ): void {
   const e = w.enemies[i];
-  if (!e.alive) return;
+  if (!e.alive || airborne(e)) return;
   const heal = source ? (WEAPONS[source]?.drain ?? 0) : 0;
   if (heal > 0 && w.drainLeft > 0) {
     const amt = Math.min(heal, w.drainLeft);
@@ -596,7 +597,7 @@ function touch(w: World) {
   let atk = 0;
   for (const i of w.grid.near(p.x, p.y, 5 + MAX_R, near)) {
     const e = w.enemies[i];
-    if (!e.alive) continue;
+    if (!e.alive || airborne(e)) continue;
     const r = e.def.r + 5;
     if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 >= r * r) continue;
     // ボスは時間で強くならない。突進中の巨大ベアは強く当たる
