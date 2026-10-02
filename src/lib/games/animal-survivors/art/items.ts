@@ -621,5 +621,91 @@ export const ITEM_ART: Record<string, Art> = {
         '..kddddddk..'
       ]
     ]
+  },
+  coin: {
+    w: 8,
+    h: 8,
+    frames: [
+      ['..kkkk..', '.kyyyyk.', 'kywyYyYk', 'kywyYyYk', 'kyyyYyYk', 'kyyyyyYk', '.kYYYYk.', '..kkkk..'],
+      ['...kk...', '..kyyk..', '..kwyk..', '..kwYk..', '..kyYk..', '..kyYk..', '..kYYk..', '...kk...']
+    ]
+  },
+  purse: {
+    w: 10,
+    h: 10,
+    frames: [
+      [
+        '...kkkk...',
+        '..kTttTk..',
+        '...kTTk...',
+        '..kttttk..',
+        '.kttyyttk.',
+        'kttyYytttk',
+        'kttyyYtTTk',
+        'kttttttTTk',
+        '.kTTTTTTk.',
+        '..kkkkkk..'
+      ]
+    ]
+  },
+  'upgrade-greed': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '............',
+        '.kkkkk......',
+        'kyyyyyk.....',
+        'kYYYYYk.....',
+        'kyyyyyk.....',
+        'kYYYYYkkkkk.',
+        'kyyyyykwwyyk',
+        'kYYYYYkwyyyk',
+        'kyyyyykyyyYk',
+        'kYYYYYkyyYYk',
+        '.kkkkk.kkkk.',
+        '............'
+      ]
+    ]
+  },
+  'upgrade-reroll': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '............',
+        '.kkkkkkkkkk.',
+        '.kwwwwwwwsk.',
+        '.kwkkwwwwsk.',
+        '.kwkkwwwwsk.',
+        '.kwwwkkwwsk.',
+        '.kwwwkkwwsk.',
+        '.kwwwwwkksk.',
+        '.kwwwwwkksk.',
+        '.kssssssssk.',
+        '.kkkkkkkkkk.',
+        '............'
+      ]
+    ]
+  },
+  'upgrade-revive': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '...kkkkkk...',
+        '..kyyyyyyk..',
+        '.ky......yk.',
+        '..kyyyyyyk..',
+        '...kkkkkk...',
+        '...kk..kk...',
+        '..krrkkrrk..',
+        '..krwrrrrk..',
+        '..krrrrrRk..',
+        '...krrrRk...',
+        '....kRRk....',
+        '.....kk.....'
+      ]
+    ]
   }
 };

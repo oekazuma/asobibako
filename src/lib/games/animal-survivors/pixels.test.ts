@@ -68,6 +68,13 @@ describe('ドット絵の格子', () => {
     expect([dark, light].every((c) => /^#[0-9a-f]{6}$/.test(c))).toBe(true);
   });
 
+  it('コイン・大袋・店のアイコンがある', () => {
+    for (const k of ['coin', 'purse', 'upgrade-greed', 'upgrade-reroll', 'upgrade-revive'])
+      expect(ITEM_ART[k]).toBeDefined();
+    expect(ITEM_ART.coin.frames).toHaveLength(2);
+    expect([ITEM_ART['upgrade-greed'].w, ITEM_ART['upgrade-greed'].h]).toEqual([12, 12]);
+  });
+
   it('7 匹ぶんの絵がある', () => {
     expect(Object.keys(ANIMAL_ART).sort()).toEqual(['bear', 'cat', 'dog', 'fox', 'panda', 'rabbit', 'wolf']);
   });
