@@ -34,7 +34,8 @@ export async function pwaStatus(): Promise<PwaStatus> {
     globalThis.matchMedia?.('(display-mode: standalone)').matches === true ||
     (navigator as Navigator & { standalone?: boolean }).standalone === true;
   const swActive = !!(await navigator.serviceWorker?.getRegistration())?.active;
-  const key = ((await globalThis.caches?.keys()) ?? []).find((k) => k.startsWith('asobibako-'));
+  // asobibako-ai は Service Worker が activate のたびに空でも作り、更新を重ねると版のキャッシュより前に並ぶ
+  const key = ((await globalThis.caches?.keys()) ?? []).find((k) => k.startsWith('asobibako-') && k !== 'asobibako-ai');
   const cached = !!key && (await (await caches.open(key)).keys()).length > 0;
   return { standalone, swActive, cached };
 }
