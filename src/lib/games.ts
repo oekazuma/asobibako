@@ -1,4 +1,5 @@
 import type { Component } from 'svelte';
+import animalSurvivors from './games/animal-survivors/meta';
 import bombRelay from './games/bomb-relay/meta';
 import borderRush from './games/border-rush/meta';
 import bugRush from './games/bug-rush/meta';
@@ -89,6 +90,7 @@ export interface PartyMeta extends BaseMeta {
 export type GameMeta = DuelMeta | SoloMeta | PartyMeta;
 
 export const games: GameMeta[] = [
+  animalSurvivors,
   megaphoneDash,
   petHouse,
   pinRescue,

@@ -210,6 +210,21 @@ export const SCENES: Scene[] = [
     }
   },
   {
+    // 40 秒ほど指で円を描いて走り回り、骨が飛びかうところ。3 択は 1 枚目を選んで進める
+    id: 'animal-survivors',
+    clip: band(290),
+    play: async (s) => {
+      await s.startSolo();
+      await s.touch(1, 'down', 384, 700);
+      for (let i = 0; i < 40; i++) {
+        const card = s.page.locator('.card').first();
+        if (await card.count()) await card.dispatchEvent('click');
+        await s.touch(1, 'move', 384 + Math.cos(i * 0.7) * 80, 700 + Math.sin(i * 0.7) * 80);
+        await s.wait(1000);
+      }
+    }
+  },
+  {
     // イヌも乗せる川渡り。あなたとオオカミとヒツジを舟に乗せ、岸にキャベツとイヌが残ったところ
     id: 'hirameki',
     level: 12,
