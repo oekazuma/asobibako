@@ -160,11 +160,11 @@ function nearest(w: World, x: number, y: number): Enemy | undefined {
 }
 
 /** 当てる。向きは (fx, fy) から敵へ */
-function strike(w: World, i: number, base: number, fx: number, fy: number, knock: number) {
+function strike(w: World, i: number, base: number, fx: number, fy: number, knock: number, slot: number) {
   const e = w.enemies[i];
   const d = Math.hypot(e.x - fx, e.y - fy) || 1;
   const { dmg, crit } = power(w, base);
-  damageEnemy(w, i, dmg, ((e.x - fx) / d) * knock, ((e.y - fy) / d) * knock, crit);
+  damageEnemy(w, i, dmg, ((e.x - fx) / d) * knock, ((e.y - fy) / d) * knock, crit, w.weapons[slot]?.id);
 }
 
 const near: number[] = [];
@@ -229,7 +229,7 @@ function launch(w: World, def: WeaponDef, s: WeaponStats, slot: number): boolean
           const e = w.enemies[j];
           let da = Math.atan2(e.y - (p.y - 6), e.x - p.x) - a;
           da = Math.atan2(Math.sin(da), Math.cos(da));
-          if (Math.abs(da) < SWIPE_HALF) strike(w, j, s.damage, p.x, p.y, s.knockback);
+          if (Math.abs(da) < SWIPE_HALF) strike(w, j, s.damage, p.x, p.y, s.knockback, slot);
         }
       }
       return true;
@@ -245,7 +245,7 @@ function launch(w: World, def: WeaponDef, s: WeaponStats, slot: number): boolean
         const t = seen.splice(Math.floor(w.rand() * seen.length), 1)[0];
         const r = SIZE.strike * area;
         effect(w, slot, 'bolt', t.x, t.y, r, s.duration, 0, 0, 0);
-        for (const j of within(w, t.x, t.y, r, targets)) strike(w, j, s.damage, t.x, t.y - 1, s.knockback);
+        for (const j of within(w, t.x, t.y, r, targets)) strike(w, j, s.damage, t.x, t.y - 1, s.knockback, slot);
       }
       return true;
     }
@@ -321,7 +321,7 @@ function hitShot(w: World, o: Shot) {
     if (o.kind === 'shot') {
       if (o.hits.includes(j)) continue;
       o.hits.push(j);
-      strike(w, j, o.dmg, o.x - o.vx, o.y - o.vy, o.knock);
+      strike(w, j, o.dmg, o.x - o.vx, o.y - o.vy, o.knock, o.slot);
       if (--o.pierce <= 0) {
         o.alive = false;
         return;
@@ -329,13 +329,13 @@ function hitShot(w: World, o: Shot) {
     } else if (o.kind === 'homing') {
       const r = SIZE.burst * (o.r / SIZE.homing);
       effect(w, o.slot, 'burst', o.x, o.y, r, 0.25, 0, 0, 0);
-      for (const k of within(w, o.x, o.y, r, [])) strike(w, k, o.dmg, o.x, o.y, o.knock);
+      for (const k of within(w, o.x, o.y, r, [])) strike(w, k, o.dmg, o.x, o.y, o.knock, o.slot);
       o.alive = false;
       return;
     } else {
       if (w.time - e.hit[o.slot] < REHIT[o.kind]) continue;
       e.hit[o.slot] = w.time;
-      strike(w, j, o.dmg, w.player.x, w.player.y, o.knock);
+      strike(w, j, o.dmg, w.player.x, w.player.y, o.knock, o.slot);
     }
   }
 }
@@ -365,7 +365,7 @@ export function hits(w: World, dt: number): void {
       if (e.hit[f.slot] >= f.born) continue;
       if (Math.hypot(e.x - f.x, e.y - f.y) < r - 6 - e.def.r) continue;
       e.hit[f.slot] = w.time;
-      strike(w, j, f.dmg, f.x, f.y, f.knock);
+      strike(w, j, f.dmg, f.x, f.y, f.knock, f.slot);
     }
   }
   updateZones(w);

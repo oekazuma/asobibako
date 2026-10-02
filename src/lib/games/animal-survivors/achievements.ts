@@ -1,4 +1,5 @@
 import { ANIMALS, type AnimalId } from './animals';
+import { EVOLUTIONS } from './evolutions';
 import type { Records } from './records';
 import { UPGRADES } from './upgrades';
 import { MAX_LEVEL } from './weapons';
@@ -89,6 +90,14 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     coins: 500,
     done: (r) => maxed(r) >= UPGRADES.length,
     progress: (r) => [maxed(r), UPGRADES.length]
+  },
+  { id: 'evolve1', name: 'はじめての進化', coins: 100, done: (r) => r.evolved.length >= 1 },
+  {
+    id: 'evolveAll',
+    name: '12 種すべて進化',
+    coins: 500,
+    done: (r) => r.evolved.length >= EVOLUTIONS.length,
+    progress: (r) => [r.evolved.length, EVOLUTIONS.length]
   }
 ];
 

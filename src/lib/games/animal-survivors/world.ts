@@ -8,6 +8,7 @@ import { stats, type Stats } from './passives';
 import { rng, type Rng } from './rng';
 import { FOREST, spawnRate, type Stage } from './stages/forest';
 import { perks, type Ranks } from './upgrades';
+import { WEAPONS } from './weapons';
 
 export interface Enemy {
   alive: boolean;
@@ -113,6 +114,8 @@ export interface World {
   opened: number;
   /** この回に作った進化形 */
   evolvedNow: string[];
+  /** 今当たって戻せる HP。毎秒 DRAIN × 最大 HP ずつ、その量まで戻る */
+  drainLeft: number;
   /** 次に出すボスの番号と、予告を出したボスの数 */
   bossNext: number;
   warned: number;
@@ -125,6 +128,8 @@ export interface World {
 }
 
 export const MAX_ENEMIES = 400;
+/** 当たって戻せる HP は 1 秒に最大 HP のこの割合まで（大群に当てて一瞬で満タンにならないように） */
+export const DRAIN = 0.03;
 export const BASE_SPEED = 60;
 /** 糸の玉に当たったときの速さの倍率 */
 export const SLOW = 0.85;
@@ -178,6 +183,7 @@ export function createWorld(id: AnimalId, seed: number, view: { w: number; h: nu
     coins: 0,
     opened: 0,
     evolvedNow: [],
+    drainLeft: s.maxHp * DRAIN,
     bossNext: 0,
     warned: 0,
     over: null,
@@ -222,9 +228,24 @@ export function spawnPoint(w: World, out = { x: 0, y: 0 }) {
   return out;
 }
 
-export function damageEnemy(w: World, i: number, dmg: number, kx: number, ky: number, crit = false): void {
+/** source はダメージを出した武器の id（当たって回復とダメージ表に使う） */
+export function damageEnemy(
+  w: World,
+  i: number,
+  dmg: number,
+  kx: number,
+  ky: number,
+  crit = false,
+  source?: string
+): void {
   const e = w.enemies[i];
   if (!e.alive) return;
+  const heal = source ? (WEAPONS[source]?.drain ?? 0) : 0;
+  if (heal > 0 && w.drainLeft > 0) {
+    const amt = Math.min(heal, w.drainLeft);
+    w.drainLeft -= amt;
+    w.player.hp = Math.min(w.stats.maxHp, w.player.hp + amt);
+  }
   e.hp -= dmg;
   e.flash = 0.12;
   e.kx += kx * (1 - e.def.heavy);
@@ -446,6 +467,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   p.attack -= dt;
   p.slow -= dt;
   p.hp = Math.min(w.stats.maxHp, p.hp + w.stats.regen * dt);
+  w.drainLeft = Math.min(w.stats.maxHp * DRAIN, w.drainLeft + w.stats.maxHp * DRAIN * dt);
 
   let alive = 0;
   for (const e of w.enemies) if (e.alive) alive++;

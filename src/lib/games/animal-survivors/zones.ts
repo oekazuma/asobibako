@@ -62,7 +62,7 @@ export function updateZones(w: World): void {
       if (w.time - e.hit[f.slot] < ZONE_TICK) continue;
       e.hit[f.slot] = w.time;
       const { dmg, crit } = power(w, f.dmg);
-      damageEnemy(w, i, dmg, 0, 0, crit);
+      damageEnemy(w, i, dmg, 0, 0, crit, w.weapons[f.slot]?.id);
     }
   }
 }

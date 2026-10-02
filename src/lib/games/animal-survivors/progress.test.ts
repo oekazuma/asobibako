@@ -103,9 +103,9 @@ describe('記録の拡張', () => {
 });
 
 describe('実績', () => {
-  it('23 個あり、id は重ならない', () => {
-    expect(ACHIEVEMENTS).toHaveLength(23);
-    expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(23);
+  it('25 個あり、id は重ならない', () => {
+    expect(ACHIEVEMENTS).toHaveLength(25);
+    expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(25);
   });
 
   it('1 回の結果で記録を足し、達成した実績のコインと動物を渡す。同じ実績は 2 度渡さない', () => {
@@ -153,6 +153,16 @@ describe('実績', () => {
     r.kills = 1234;
     const total = ACHIEVEMENTS.find((a) => a.id === 'total3000')!;
     expect(total.progress!(r)).toEqual([1234, 3000]);
+  });
+
+  it('進化を記録し、はじめての進化と 12 種すべての実績を渡す', () => {
+    const r = emptyRecords();
+    const got = record(r, run({ evolved: ['woofEvo'] }));
+    expect(r.evolved).toEqual(['woofEvo']);
+    expect(got.map((a) => a.id)).toContain('evolve1');
+    const all = ACHIEVEMENTS.find((a) => a.id === 'evolveAll')!;
+    expect(all.progress!(r)).toEqual([1, 12]);
+    expect(parseRecords(JSON.stringify({ evolved: ['woofEvo', 'nope', 'woofEvo'] })).evolved).toEqual(['woofEvo']);
   });
 
   it('保存の知らない実績の id は読み飛ばす', () => {

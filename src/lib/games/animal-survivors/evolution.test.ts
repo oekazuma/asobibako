@@ -4,7 +4,8 @@ import { choices } from './choices';
 import { EVOLUTIONS, baseOf, evolvable } from './evolutions';
 import { PASSIVES } from './passives';
 import { MAX_LEVEL, WEAPONS } from './weapons';
-import { createWorld, summary } from './world';
+import { DRAIN, createWorld, damageEnemy, makeEnemy, step, summary } from './world';
+import { ENEMIES } from './enemies';
 
 const VIEW = { w: 260, h: 380 };
 
@@ -86,5 +87,29 @@ describe('宝箱での進化', () => {
     for (let i = 0; i < 60; i++)
       for (const c of choices(w)) if ((c.kind === 'passive' || c.kind === 'weapon') && c.evo) marks.add(c.id);
     expect(marks.has('woof')).toBe(true);
+  });
+});
+
+describe('当たって回復', () => {
+  it('drain のある武器で当てると HP が戻り、1 秒に最大 HP の 3% まで', () => {
+    const w = createWorld('dog', 1, VIEW);
+    w.player.hp = 10;
+    for (let i = 0; i < 50; i++) w.enemies.push(makeEnemy(ENEMIES.rat, 10, 0, 999));
+    for (let i = 0; i < 50; i++) damageEnemy(w, i, 1, 0, 0, false, 'pawEvo');
+    expect(w.player.hp).toBeCloseTo(10 + w.stats.maxHp * DRAIN);
+    w.stage = { ...w.stage, waves: [], bosses: [] };
+    w.spawnAcc = [];
+    w.weapons = [];
+    w.enemies.length = 0;
+    for (let i = 0; i < 60; i++) step(w, { x: 0, y: 0 }, 1 / 60);
+    expect(w.drainLeft).toBeCloseTo(w.stats.maxHp * DRAIN);
+  });
+
+  it('drain の無い武器では戻らない', () => {
+    const w = createWorld('dog', 1, VIEW);
+    w.player.hp = 10;
+    w.enemies.push(makeEnemy(ENEMIES.rat, 10, 0, 999));
+    damageEnemy(w, 0, 1, 0, 0, false, 'woof');
+    expect(w.player.hp).toBe(10);
   });
 });

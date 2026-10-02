@@ -1,5 +1,6 @@
 import { ACHIEVEMENTS, grant, type AchievementDef } from './achievements';
 import { ANIMALS, type AnimalId } from './animals';
+import { EVOLUTIONS } from './evolutions';
 import type { BossId } from './enemies';
 import { UPGRADES, type Ranks } from './upgrades';
 import type { RunSummary } from './world';
@@ -22,6 +23,8 @@ export interface Records {
   clearedBy: AnimalId[];
   /** 開けた宝箱の合計 */
   chests: number;
+  /** 作った進化形 */
+  evolved: string[];
 }
 
 export const RECORDS_KEY = 'asobibako:animal-survivors';
@@ -39,7 +42,8 @@ export function emptyRecords(): Records {
     ranks: {},
     achieved: [],
     clearedBy: [],
-    chests: 0
+    chests: 0,
+    evolved: []
   };
 }
 
@@ -71,7 +75,11 @@ export function parseRecords(text: string | null): Records {
       ACHIEVEMENTS.map((a) => a.id)
     ),
     clearedBy: list(raw.clearedBy, ids),
-    chests: Math.floor(num(raw.chests))
+    chests: Math.floor(num(raw.chests)),
+    evolved: list(
+      raw.evolved,
+      EVOLUTIONS.map((e) => e.to)
+    )
   };
 }
 
@@ -97,6 +105,7 @@ export function record(r: Records, run: RunSummary): AchievementDef[] {
   }
   r.chests += run.opened;
   r.coins += run.coins;
+  for (const id of run.evolved) if (!r.evolved.includes(id)) r.evolved.push(id);
   return grant(r, run);
 }
 
