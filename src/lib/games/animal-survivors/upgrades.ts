@@ -33,17 +33,17 @@ const u = (
 ): UpgradeDef => ({ id, name, blurb, max, base, stat, per, icon });
 
 export const UPGRADES: UpgradeDef[] = [
-  u('might', '攻撃', '攻撃力 +5%', 5, 60, 'might', 0.05, 'passive-fang'),
-  u('maxHp', '最大 HP', '最大 HP +10', 5, 60, 'maxHp', 10, 'passive-heart'),
-  u('speed', '速さ', '移動速度 +4%', 5, 60, 'speed', 0.04, 'passive-paws'),
-  u('armor', '防御', '受けるダメージ -1', 3, 150, 'armor', 1, 'passive-fur'),
-  u('regen', '回復', '毎秒 HP +0.1 回復', 5, 60, 'regen', 0.1, 'passive-leaf'),
-  u('magnet', '拾う範囲', 'アイテムを拾う範囲 +10%', 5, 40, 'magnet', 0.1, 'passive-whisker'),
-  u('growth', '経験値', '経験値 +5%', 5, 60, 'growth', 0.05, 'passive-nose'),
-  u('crit', '会心', '会心率 +2%', 5, 60, 'crit', 0.02, 'passive-claw'),
-  u('greed', '強欲', 'コイン +10%', 5, 50, undefined, 0.1, 'upgrade-greed'),
-  u('reroll', 'リロール', '3 択の引き直し +1 回', 3, 200, undefined, 1, 'upgrade-reroll'),
-  u('revive', '復活', '倒れたとき 1 回だけ HP 半分で起き上がる', 1, 800, undefined, 1, 'upgrade-revive')
+  u('might', '攻撃', '攻撃力 +5%', 5, 90, 'might', 0.05, 'passive-fang'),
+  u('maxHp', '最大 HP', '最大 HP +10', 5, 90, 'maxHp', 10, 'passive-heart'),
+  u('speed', '速さ', '移動速度 +4%', 5, 90, 'speed', 0.04, 'passive-paws'),
+  u('armor', '防御', '受けるダメージ -1', 3, 225, 'armor', 1, 'passive-fur'),
+  u('regen', '回復', '毎秒 HP +0.1 回復', 5, 90, 'regen', 0.1, 'passive-leaf'),
+  u('magnet', '拾う範囲', 'アイテムを拾う範囲 +10%', 5, 60, 'magnet', 0.1, 'passive-whisker'),
+  u('growth', '経験値', '経験値 +5%', 5, 90, 'growth', 0.05, 'passive-nose'),
+  u('crit', '会心', '会心率 +2%', 5, 90, 'crit', 0.02, 'passive-claw'),
+  u('greed', '強欲', 'コイン +10%', 5, 75, undefined, 0.1, 'upgrade-greed'),
+  u('reroll', 'リロール', '3 択の引き直し +1 回', 3, 300, undefined, 1, 'upgrade-reroll'),
+  u('revive', '復活', '倒れたとき 1 回だけ HP 半分で起き上がる', 1, 1200, undefined, 1, 'upgrade-revive')
 ];
 
 export function price(d: UpgradeDef, rank: number): number {
