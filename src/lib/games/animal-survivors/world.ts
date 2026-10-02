@@ -331,3 +331,27 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   hits(w, dt);
   collect(w, dt);
 }
+
+export interface RunSummary {
+  animal: AnimalId;
+  cleared: boolean;
+  time: number;
+  level: number;
+  kills: number;
+  xp: number;
+  weapons: Owned[];
+  passives: Owned[];
+}
+
+export function summary(w: World): RunSummary {
+  return {
+    animal: w.animal.id,
+    cleared: w.over === 'clear',
+    time: w.time,
+    level: w.level,
+    kills: w.kills,
+    xp: w.xpTotal,
+    weapons: w.weapons.map(({ id, level }) => ({ id, level })),
+    passives: w.passives.map(({ id, level }) => ({ id, level }))
+  };
+}

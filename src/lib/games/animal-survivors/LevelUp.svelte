@@ -42,11 +42,11 @@
 <svelte:window onkeydown={key} />
 
 <div class="veil">
-  <section class="panel" class:locked aria-label="レベルアップ">
-    <h2>LEVEL UP!</h2>
+  <section class="as-panel pop" class:as-locked={locked} aria-label="レベルアップ">
+    <h2 class="as-title">LEVEL UP!</h2>
     {#each options as c, i (c.kind + ('id' in c ? c.id : ''))}
       {@const d = info(c)}
-      <button class="card" onclick={() => onpick(c)}>
+      <button class="as-card" onclick={() => onpick(c)}>
         <span class="key">{i + 1}</span>
         <PixelIcon art={d.art} size="min(10cqw, 6cqh, 64px)" />
         <span class="body">
@@ -71,72 +71,8 @@
     background: rgb(20 10 30 / 0.55);
   }
 
-  .panel {
-    display: grid;
-    gap: min(2cqh, 14px);
-    width: min(100%, 560px);
-    padding: min(3cqh, 22px) min(4cqw, 22px);
-    border: 3px solid #24151f;
-    background: #2b1d3a;
-    box-shadow:
-      inset 0 0 0 2px #6d5a8e,
-      0 6px 0 #160c1f;
-    clip-path: polygon(
-      4px 0,
-      calc(100% - 4px) 0,
-      100% 4px,
-      100% calc(100% - 4px),
-      calc(100% - 4px) 100%,
-      4px 100%,
-      0 calc(100% - 4px),
-      0 4px
-    );
+  .pop {
     animation: pop 280ms steps(4);
-  }
-
-  .locked .card {
-    pointer-events: none;
-  }
-
-  h2 {
-    margin: 0;
-    text-align: center;
-    color: #ffd84a;
-    font-size: min(7cqw, 4.4cqh, 40px);
-    letter-spacing: 0.12em;
-    text-shadow:
-      3px 3px 0 #a3501c,
-      -2px -2px 0 #24151f,
-      2px -2px 0 #24151f,
-      -2px 2px 0 #24151f;
-  }
-
-  .card {
-    display: flex;
-    gap: min(3cqw, 16px);
-    align-items: center;
-    padding: min(1.6cqh, 12px) min(3cqw, 16px);
-    border: 3px solid #24151f;
-    background: #fff3d6;
-    box-shadow:
-      inset 0 0 0 2px #fff,
-      0 4px 0 #8a6a4a;
-    color: #24151f;
-    text-align: left;
-    font: inherit;
-    font-weight: 800;
-    cursor: pointer;
-  }
-
-  .card:hover,
-  .card:focus-visible {
-    background: #ffe28a;
-    outline: none;
-  }
-
-  .card:active {
-    translate: 0 3px;
-    box-shadow: inset 0 0 0 2px #fff;
   }
 
   .key {
@@ -180,7 +116,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .panel {
+    .pop {
       animation: none;
     }
   }

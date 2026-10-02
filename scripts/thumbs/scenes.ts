@@ -210,18 +210,22 @@ export const SCENES: Scene[] = [
     }
   },
   {
-    // 40 秒ほど指で円を描いて走り回り、骨が飛びかうところ。3 択は 1 枚目を選んで進める
+    // 狼で 50 秒ほど指で円を描いて走り回り、遠吠えの輪と骨が飛びかうところ。3 択は 1 枚目を選び、最後は指を離してスティックを消す
     id: 'animal-survivors',
     clip: band(290),
     play: async (s) => {
       await s.startSolo();
+      await s.press('[data-animal="wolf"]');
+      await s.wait(300);
       await s.touch(1, 'down', 384, 700);
-      for (let i = 0; i < 40; i++) {
-        const card = s.page.locator('.card').first();
+      for (let i = 0; i < 50; i++) {
+        const card = s.page.locator('.as-card').first();
         if (await card.count()) await card.dispatchEvent('click');
         await s.touch(1, 'move', 384 + Math.cos(i * 0.7) * 80, 700 + Math.sin(i * 0.7) * 80);
         await s.wait(1000);
       }
+      await s.touch(1, 'up', 384, 700);
+      await s.wait(700);
     }
   },
   {

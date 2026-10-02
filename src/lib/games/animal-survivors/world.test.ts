@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ENEMIES } from './enemies';
 import { Grid } from './grid';
-import { createWorld, makeEnemy, spawnPoint, step } from './world';
+import { createWorld, makeEnemy, spawnPoint, step, summary } from './world';
 
 const VIEW = { w: 260, h: 380 };
 const still = { x: 0, y: 0 };
@@ -76,5 +76,24 @@ describe('世界', () => {
     step(b, still, 1 / 60);
     expect(b.over).toBe('dead');
     expect(b.events.map((e) => e.type)).toContain('dead');
+  });
+
+  it('summary はリザルトに要るものを World から写す', () => {
+    const w = createWorld('cat', 1, VIEW);
+    w.time = 763.4;
+    w.kills = 2384;
+    w.level = 18;
+    w.xpTotal = 12450;
+    w.over = 'dead';
+    expect(summary(w)).toEqual({
+      animal: 'cat',
+      cleared: false,
+      time: 763.4,
+      level: 18,
+      kills: 2384,
+      xp: 12450,
+      weapons: [{ id: 'paw', level: 1 }],
+      passives: []
+    });
   });
 });
