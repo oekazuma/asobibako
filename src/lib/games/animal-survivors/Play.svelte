@@ -3,13 +3,13 @@
   import { SvelteSet } from 'svelte/reactivity';
   import { BoardInput } from '$lib/board-input';
   import { animate } from '$lib/loop';
-  import { Settle } from '$lib/settle.svelte';
   import type { AnimalId } from './animals';
   import { apply, choices, type Choice } from './choices';
   import { draw, viewSize, type ViewSize } from './draw';
   import { Effects } from './effects';
   import { keyVector, padVector, pick, stickVector } from './input';
   import LevelUp from './LevelUp.svelte';
+  import { Lock } from './lock.svelte';
   import { createWorld, step, type World } from './world';
 
   let { animal, onend }: { animal: AnimalId; onend: (w: World) => void } = $props();
@@ -28,8 +28,7 @@
   const world = createWorld(animal, Date.now() % 2 ** 31, { w: view.w, h: view.h });
   const fx = new Effects();
   const keys = new SvelteSet<string>();
-  // 3 択が指の下に出るので、指を離したときの合成 click でカードが押されないよう、出た直後は当たり判定を消す
-  const settle = new Settle();
+  const lock = new Lock();
   let options = $state<Choice[] | null>(null);
   let stick = $state<{ id: number; x: number; y: number; dx: number; dy: number } | null>(null);
   let paused = false;
@@ -46,6 +45,7 @@
       stick.dy = y - stick.y;
     },
     up: (event) => {
+      lock.lift(event.pointerId);
       if (stick?.id === event.pointerId) stick = null;
     }
   });
@@ -86,7 +86,7 @@
   function choose(c: Choice) {
     apply(world, c);
     options = world.pending > 0 ? choices(world) : null;
-    if (options) settle.begin();
+    if (options) lock.begin(stick?.id ?? null);
   }
 
   function frame(dt: number) {
@@ -98,7 +98,7 @@
     }
     if (world.pending > 0 && !options && !world.over) {
       options = choices(world);
-      settle.begin();
+      lock.begin(stick?.id ?? null);
     }
     if (world.over && !endTimer) endTimer = setTimeout(() => onend(world), world.over === 'clear' ? 2000 : 1200);
     if (!ctx || !lowCtx || !low) return;
@@ -114,11 +114,10 @@
   }
 
   onMount(() => {
-    const stopSettle = settle.listen();
     const stop = animate(frame);
     return () => {
       stop();
-      stopSettle();
+      lock.stop();
       clearTimeout(endTimer);
     };
   });
@@ -135,10 +134,11 @@
       <span class="knob" style:translate={knob}></span>
     </span>
   {/if}
-  {#if options}
-    <LevelUp {options} locked={settle.active} onpick={choose} />
-  {/if}
 </div>
+<!-- 盤面の中に置くと pointerdown が盤面へ伝わって指をつかまれ、click がカードに届かない -->
+{#if options}
+  <LevelUp {options} locked={lock.active} onpick={choose} />
+{/if}
 
 <style>
   .board {
