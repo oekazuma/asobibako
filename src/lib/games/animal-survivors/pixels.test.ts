@@ -5,6 +5,7 @@ import { ENEMY_ART } from './art/enemies';
 import { FOREST_ART } from './art/forest';
 import { GRAVE_ART } from './art/graveyard';
 import { ITEM_ART } from './art/items';
+import { SNOW_ART } from './art/snow';
 import { goldArt, itemArt } from './art/evolved';
 import { PALETTE } from './art/palette';
 import { goldOf, problems, type Art } from './pixels';
@@ -21,7 +22,10 @@ const all: [string, Art][] = [
   ...Object.entries(FOREST_ART.decor),
   ['grave.grass', GRAVE_ART.grass],
   ['grave.dirt', GRAVE_ART.dirt],
-  ...Object.entries(GRAVE_ART.decor)
+  ...Object.entries(GRAVE_ART.decor),
+  ['snow.grass', SNOW_ART.grass],
+  ['snow.dirt', SNOW_ART.dirt],
+  ...Object.entries(SNOW_ART.decor)
 ];
 
 describe('ドット絵の格子', () => {

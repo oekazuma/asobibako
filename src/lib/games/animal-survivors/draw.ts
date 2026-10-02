@@ -5,6 +5,7 @@ import { FOREST_ART } from './art/forest';
 import { GRAVE_ART } from './art/graveyard';
 import { goldArt } from './art/evolved';
 import { ITEM_ART } from './art/items';
+import { SNOW_ART } from './art/snow';
 import { PALETTE } from './art/palette';
 import { shots, swipes, zonesBelow } from './draw-arms';
 import { bossBars, hazardsAbove, hazardsBelow } from './draw-boss';
@@ -97,6 +98,18 @@ const GROUNDS = {
       [1, 'deadtree']
     ],
     shadowed: ['tomb', 'cross', 'deadtree']
+  },
+  snow: {
+    art: SNOW_ART,
+    decor: [
+      [0.58, null],
+      [0.72, 'drift'],
+      [0.82, 'tuft'],
+      [0.9, 'ice'],
+      [0.95, 'rock'],
+      [1, 'pine']
+    ],
+    shadowed: ['pine', 'rock']
   }
 } as const;
 

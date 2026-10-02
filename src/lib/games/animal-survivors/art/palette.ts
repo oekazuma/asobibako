@@ -28,5 +28,9 @@ export const PALETTE: Record<string, string> = {
   N: '#272040',
   m: '#5a4e3c',
   M: '#3e3528',
-  q: '#d8d0e8'
+  q: '#d8d0e8',
+  i: '#e6eef7',
+  I: '#c5d4e6',
+  j: '#bfe2f7',
+  J: '#6fa8d9'
 };
