@@ -1,4 +1,4 @@
-import { WEAPONS, weaponStats, type WeaponKind, type WeaponStats } from './weapons';
+import { WEAPONS, weaponStats, type WeaponDef, type WeaponStats } from './weapons';
 import { damageEnemy, type Enemy, type World } from './world';
 
 export interface Shot {
@@ -38,7 +38,18 @@ export interface Effect {
 }
 
 /** 武器の種類ごとの基本の大きさ（px）。WeaponStats.area を掛ける */
-const SIZE = { shot: 4, swipe: 26, ring: 56, boomerang: 6, orbit: 30, strike: 14, homing: 4, burst: 16, feather: 5 };
+const SIZE = {
+  shot: 4,
+  acorn: 3,
+  swipe: 26,
+  ring: 56,
+  boomerang: 6,
+  orbit: 30,
+  strike: 14,
+  homing: 4,
+  burst: 16,
+  feather: 5
+};
 const SWIPE_HALF = (55 * Math.PI) / 180;
 const SPREAD = (12 * Math.PI) / 180;
 const FAN = (25 * Math.PI) / 180;
@@ -172,7 +183,8 @@ function within(w: World, x: number, y: number, r: number, out: number[]) {
 const targets: number[] = [];
 
 /** 撃てたら true。雷のように的がいないと撃たない武器は false を返して待ち時間を使わない */
-function launch(w: World, kind: WeaponKind, s: WeaponStats, slot: number): boolean {
+function launch(w: World, def: WeaponDef, s: WeaponStats, slot: number): boolean {
+  const kind = def.kind;
   const p = w.player;
   // 逃げながらでも当たるよう、向きは進む向きではなくいちばん近い敵へ向ける
   const t = nearest(w, p.x, p.y);
@@ -181,8 +193,15 @@ function launch(w: World, kind: WeaponKind, s: WeaponStats, slot: number): boole
   switch (kind) {
     case 'shot':
       for (let i = 0; i < s.amount; i++)
-        shoot(w, slot, 'shot', s, aim + (i - (s.amount - 1) / 2) * SPREAD, SIZE.shot * area);
+        shoot(w, slot, 'shot', s, aim + (i - (s.amount - 1) / 2) * SPREAD, (def.size ?? SIZE.shot) * area);
       return true;
+    case 'nova':
+      for (let i = 0; i < s.amount; i++)
+        shoot(w, slot, 'shot', s, aim + (i / s.amount) * Math.PI * 2, SIZE.acorn * area);
+      return true;
+    case 'trail':
+    case 'snare':
+      return false;
     case 'boomerang':
       for (let i = 0; i < s.amount; i++)
         shoot(w, slot, 'boomerang', s, aim + (i - (s.amount - 1) / 2) * FAN, SIZE.boomerang * area).life =
@@ -236,7 +255,7 @@ export function fire(w: World, dt: number): void {
     if (own.cd > 0) return;
     const def = WEAPONS[own.id];
     const s = weaponStats(def, own.level);
-    if (!launch(w, def.kind, s, slot)) {
+    if (!launch(w, def, s, slot)) {
       own.cd = 0.25;
       return;
     }

@@ -1,4 +1,5 @@
-export type WeaponKind = 'shot' | 'swipe' | 'ring' | 'boomerang' | 'orbit' | 'strike' | 'homing';
+export type WeaponKind =
+  'shot' | 'swipe' | 'ring' | 'boomerang' | 'orbit' | 'strike' | 'homing' | 'nova' | 'trail' | 'snare';
 
 export interface WeaponStats {
   damage: number;
@@ -21,6 +22,8 @@ export interface WeaponDef {
   base: WeaponStats;
   /** Lv2 から Lv5 へ上げるときに足すもの */
   ups: Partial<WeaponStats>[];
+  /** shot の弾の半径（px）。無ければ 4 */
+  size?: number;
 }
 
 export const MAX_LEVEL = 5;
@@ -31,14 +34,16 @@ const w = (
   blurb: string,
   kind: WeaponKind,
   [damage, cooldown, amount, area, speed, pierce, duration, knockback]: number[],
-  ups: Partial<WeaponStats>[]
+  ups: Partial<WeaponStats>[],
+  size?: number
 ): WeaponDef => ({
   id,
   name,
   blurb,
   kind,
   base: { damage, cooldown, amount, area, speed, pierce, duration, knockback },
-  ups
+  ups,
+  ...(size && { size })
 });
 
 export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
@@ -98,6 +103,47 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
       'homing',
       [14, 1.4, 1, 1, 120, 1, 2.5, 30],
       [{ damage: 4 }, { amount: 1 }, { area: 0.4 }, { amount: 1, cooldown: -0.2 }]
+    ),
+    w(
+      'claw',
+      '爪',
+      '近い敵の側を、細長く速い 3 本の爪で裂く',
+      'swipe',
+      [8, 0.45, 1, 1.1, 0, 99, 0.12, 30],
+      [{ damage: 2 }, { amount: 1 }, { area: 0.2 }, { damage: 3, cooldown: -0.1 }]
+    ),
+    w(
+      'dash',
+      'ダッシュアタック',
+      '分身が近い敵の方へ駆け抜け、通り道の敵を吹き飛ばす',
+      'shot',
+      [20, 2.4, 1, 1, 260, 99, 0.5, 150],
+      [{ damage: 6 }, { cooldown: -0.4 }, { amount: 1 }, { damage: 8, area: 0.3 }],
+      8
+    ),
+    w(
+      'acorn',
+      'どんぐりショット',
+      'どんぐりを全方向へ一度に撃ち出す',
+      'nova',
+      [8, 1.6, 6, 1, 130, 1, 1.4, 30],
+      [{ amount: 2 }, { damage: 3 }, { amount: 2, pierce: 1 }, { cooldown: -0.4, damage: 3 }]
+    ),
+    w(
+      'flame',
+      '野生の炎',
+      '歩いた跡に炎が残り、上の敵を焼き続ける',
+      'trail',
+      [5, 0.3, 1, 1, 0, 99, 2, 0],
+      [{ damage: 2 }, { duration: 1 }, { area: 0.3 }, { damage: 3, duration: 1 }]
+    ),
+    w(
+      'vine',
+      'ツタ',
+      '敵の足もとからツタが生え、足止めして削る',
+      'snare',
+      [6, 3, 2, 1, 0, 99, 2.5, 0],
+      [{ amount: 1 }, { damage: 3 }, { duration: 1, area: 0.3 }, { amount: 2 }]
     )
   ].map((d) => [d.id, d])
 );
