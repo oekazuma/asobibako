@@ -1,3 +1,5 @@
+import type { BossId } from '../enemies';
+
 export interface Wave {
   /** 秒 */
   from: number;
@@ -13,6 +15,8 @@ export interface Stage {
   /** 秒。ここまで生き延びればクリア */
   length: number;
   waves: Wave[];
+  /** 秒と、そのときに出すボス */
+  bosses: { at: number; id: BossId }[];
   /** 同時に出ている敵の上限 */
   cap: (t: number) => number;
   /** 敵の HP に掛ける */
@@ -30,6 +34,10 @@ export const FOREST: Stage = {
   id: 'forest',
   name: '森',
   length: 900,
+  bosses: [
+    { at: 300, id: 'bear' },
+    { at: 600, id: 'spiderQueen' }
+  ],
   waves: [
     { from: 0, to: 300, enemy: 'rat', rate: [0.8, 3] },
     { from: 60, to: 600, enemy: 'bat', rate: [0.5, 2.5] },

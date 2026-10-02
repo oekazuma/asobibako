@@ -1,7 +1,8 @@
 import { animal, type Animal, type AnimalId } from './animals';
 import { fire, hits, type Effect, type Shot } from './arms';
+import { moveBoss, spawnBosses, type Hazard } from './bosses';
 import { collect, dropFrom, type Gem, type Item } from './drops';
-import { ENEMIES, type EnemyDef } from './enemies';
+import { ENEMIES, type BossId, type EnemyDef } from './enemies';
 import { Grid } from './grid';
 import { stats, type Stats } from './passives';
 import { rng, type Rng } from './rng';
@@ -19,11 +20,15 @@ export interface Enemy {
   flash: number;
   t: number;
   phase: number;
-  /** 突進の段階。0 追う、1 ためる、2 走る */
-  state: 0 | 1 | 2;
+  /** 突進の段階。0 追う、1 ためる、2 走る。巨大ベアは 3 が地ならしの予告 */
+  state: number;
   wait: number;
   dx: number;
   dy: number;
+  /** ボスの次の攻撃までの秒 */
+  cd: number;
+  /** ボスの攻撃の数え（巨大ベアは突進と地ならしの交互、女王グモは子グモまでの秒） */
+  turn: number;
   /** 武器の枠ごとに、最後に当たった時刻 */
   hit: Float64Array;
 }
@@ -39,6 +44,8 @@ export interface Player {
   moving: boolean;
   attack: number;
   hurt: number;
+  /** 糸の玉で足が遅くなっている残り秒 */
+  slow: number;
 }
 
 export interface Owned {
@@ -56,7 +63,10 @@ export type GameEvent =
   | { type: 'fire'; weapon: string }
   | { type: 'levelup' }
   | { type: 'clear' }
-  | { type: 'dead' };
+  | { type: 'dead' }
+  | { type: 'warning'; boss: BossId }
+  | { type: 'bossdown'; x: number; y: number }
+  | { type: 'chest' };
 
 export interface World {
   rand: Rng;
@@ -72,12 +82,19 @@ export interface World {
   effects: Effect[];
   gems: Gem[];
   items: Item[];
+  /** ボスの予告と飛び道具 */
+  hazards: Hazard[];
   level: number;
   xp: number;
   xpTotal: number;
   kills: number;
   /** まだ選んでいない 3 択の数。0 より大きいあいだ step は進まない */
   pending: number;
+  /** まだ開けていない宝箱の数。0 より大きいあいだ step は進まない */
+  chests: number;
+  /** 次に出すボスの番号と、予告を出したボスの数 */
+  bossNext: number;
+  warned: number;
   over: null | 'dead' | 'clear';
   /** 仮想画面の大きさ（px）。出現と回し直しの距離に使う */
   view: { w: number; h: number };
@@ -88,6 +105,9 @@ export interface World {
 
 export const MAX_ENEMIES = 400;
 export const BASE_SPEED = 60;
+/** 糸の玉に当たったときの速さの倍率 */
+export const SLOW = 0.6;
+const BEAR_DASH_ATK = 30;
 
 export function createWorld(id: AnimalId, seed: number, view: { w: number; h: number }): World {
   const a = animal(id);
@@ -98,7 +118,19 @@ export function createWorld(id: AnimalId, seed: number, view: { w: number; h: nu
     stage: FOREST,
     animal: a,
     stats: s,
-    player: { x: 0, y: 0, hp: s.maxHp, facing: 1, aimX: 1, aimY: 0, invuln: 0, moving: false, attack: 0, hurt: 0 },
+    player: {
+      x: 0,
+      y: 0,
+      hp: s.maxHp,
+      facing: 1,
+      aimX: 1,
+      aimY: 0,
+      invuln: 0,
+      moving: false,
+      attack: 0,
+      hurt: 0,
+      slow: 0
+    },
     weapons: [{ id: a.weapon, level: 1, cd: 0.3 }],
     passives: [],
     enemies: [],
@@ -106,11 +138,15 @@ export function createWorld(id: AnimalId, seed: number, view: { w: number; h: nu
     effects: [],
     gems: [],
     items: [],
+    hazards: [],
     level: 1,
     xp: 0,
     xpTotal: 0,
     kills: 0,
     pending: 0,
+    chests: 0,
+    bossNext: 0,
+    warned: 0,
     over: null,
     view,
     events: [],
@@ -135,6 +171,8 @@ export function makeEnemy(def: EnemyDef, x: number, y: number, hp: number): Enem
     wait: 0,
     dx: 0,
     dy: 0,
+    cd: 2,
+    turn: 0,
     hit: new Float64Array(6).fill(-1)
   };
 }
@@ -175,7 +213,8 @@ function spawn(w: World, def: EnemyDef) {
   (free ?? w.enemies[w.enemies.length - 1]).phase = w.rand() * Math.PI * 2;
 }
 
-function moveEnemy(w: World, e: Enemy, dt: number) {
+function moveEnemy(w: World, i: number, dt: number) {
+  const e = w.enemies[i];
   const p = w.player;
   const dx = p.x - e.x;
   const dy = p.y - e.y;
@@ -186,7 +225,8 @@ function moveEnemy(w: World, e: Enemy, dt: number) {
   let vx = ux * sp;
   let vy = uy * sp;
   const move = e.def.move;
-  if (move === 'wave' || move === 'snake') {
+  if (move === 'boss') ({ vx, vy } = moveBoss(w, i, dt));
+  else if (move === 'wave' || move === 'snake') {
     const s = move === 'wave' ? Math.sin(e.t * 6 + e.phase) * 0.8 : Math.sin(e.t * 3 + e.phase) * 0.5;
     vx += -uy * s * sp;
     vy += ux * s * sp;
@@ -234,11 +274,14 @@ function separate(w: World) {
       const d2 = dx * dx + dy * dy;
       if (d2 >= min * min) continue;
       const d = Math.sqrt(d2) || 0.01;
-      const push = (min - d) / 2 / d;
-      a.x -= dx * push;
-      a.y -= dy * push;
-      b.x += dx * push;
-      b.y += dy * push;
+      // ボスは押されず、相手だけが重なりの分だけ下がる
+      const ka = a.def.boss ? 0 : b.def.boss ? 1 : 0.5;
+      const kb = b.def.boss ? 0 : a.def.boss ? 1 : 0.5;
+      const over = (min - d) / d;
+      a.x -= dx * over * ka;
+      a.y -= dy * over * ka;
+      b.x += dx * over * kb;
+      b.y += dy * over * kb;
       if (++n >= 4) break;
     }
   }
@@ -248,11 +291,18 @@ function touch(w: World) {
   const p = w.player;
   if (p.invuln > 0) return;
   let atk = 0;
-  for (const i of w.grid.near(p.x, p.y, 16, near)) {
+  for (const i of w.grid.near(p.x, p.y, 24, near)) {
     const e = w.enemies[i];
     if (!e.alive) continue;
     const r = e.def.r + 5;
-    if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 < r * r) atk = Math.max(atk, e.def.atk * w.stage.fury(w.time));
+    if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 >= r * r) continue;
+    // ボスは時間で強くならない。突進中の巨大ベアは強く当たる
+    const base = e.def.boss
+      ? e.def.boss === 'bear' && e.state === 2
+        ? BEAR_DASH_ATK
+        : e.def.atk
+      : e.def.atk * w.stage.fury(w.time);
+    atk = Math.max(atk, base);
   }
   if (atk === 0) return;
   const dmg = Math.max(1, Math.round(atk - w.stats.armor));
@@ -268,7 +318,7 @@ function touch(w: World) {
 
 export function step(w: World, input: { x: number; y: number }, dt: number): void {
   w.events.length = 0;
-  if (w.over || w.pending > 0) return;
+  if (w.over || w.pending > 0 || w.chests > 0) return;
   w.time += dt;
   if (w.time >= w.stage.length) {
     for (const e of w.enemies) {
@@ -283,7 +333,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   }
 
   const p = w.player;
-  const speed = BASE_SPEED * w.stats.speed;
+  const speed = BASE_SPEED * w.stats.speed * (p.slow > 0 ? SLOW : 1);
   p.moving = input.x !== 0 || input.y !== 0;
   p.x += input.x * speed * dt;
   p.y += input.y * speed * dt;
@@ -296,6 +346,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   p.invuln -= dt;
   p.hurt -= dt;
   p.attack -= dt;
+  p.slow -= dt;
   p.hp = Math.min(w.stats.maxHp, p.hp + w.stats.regen * dt);
 
   let alive = 0;
@@ -310,12 +361,13 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
       alive++;
     }
   });
+  spawnBosses(w);
 
   const far = Math.hypot(w.view.w, w.view.h) * 0.9;
   w.grid.clear();
   w.enemies.forEach((e, i) => {
     if (!e.alive) return;
-    moveEnemy(w, e, dt);
+    moveEnemy(w, i, dt);
     if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 > far * far) {
       const at = spawnPoint(w);
       e.x = at.x;

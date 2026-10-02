@@ -1,4 +1,5 @@
 import { ANIMAL_ART } from './art/animals';
+import { BOSS_ART } from './art/bosses';
 import { ENEMY_ART } from './art/enemies';
 import { FOREST_ART } from './art/forest';
 import { ITEM_ART } from './art/items';
@@ -129,6 +130,9 @@ function player(ctx: CanvasRenderingContext2D, w: World, now: number) {
   }
 }
 
+/** ふつうの敵とボスの絵を id で引く */
+const ART: Record<string, Art> = { ...ENEMY_ART, ...BOSS_ART };
+
 const order: Enemy[] = [];
 
 function enemies(ctx: CanvasRenderingContext2D, w: World, cx: number, cy: number, v: ViewSize) {
@@ -137,10 +141,9 @@ function enemies(ctx: CanvasRenderingContext2D, w: World, cx: number, cy: number
     if (e.alive && e.x > cx - 24 && e.x < cx + v.w + 24 && e.y > cy - 24 && e.y < cy + v.h + 24) order.push(e);
   order.sort((a, b) => a.y - b.y);
   ctx.fillStyle = 'rgb(0 0 0 / 0.25)';
-  for (const e of order)
-    shadow(ctx, e.x, e.y + ENEMY_ART[e.def.id as keyof typeof ENEMY_ART].h / 2 - 1, Math.round(e.def.r * 1.8));
+  for (const e of order) shadow(ctx, e.x, e.y + ART[e.def.id].h / 2 - 1, Math.round(e.def.r * 1.8));
   for (const e of order) {
-    const art = ENEMY_ART[e.def.id as keyof typeof ENEMY_ART];
+    const art = ART[e.def.id];
     sprite(ctx, art, frameAt(e.t * 6, 2), e.x, e.y, w.player.x < e.x, e.flash > 0);
   }
 }
