@@ -887,22 +887,22 @@ export const ITEM_ART: Record<string, Art> = {
     h: 16,
     frames: [
       [
-        '..kkkkkk..',
-        '.kIIIIIIk.',
-        '.kwjjjJJk.',
-        '.kwjjjJJk.',
-        '.kwwjjJJk.',
-        '..kwjjJk..',
-        '..kwjjJk..',
-        '..kwjjJk..',
+        '....kk....',
+        '...kwjk...',
+        '...kwjk...',
+        '...kwjk...',
+        '...kwjk...',
+        '...kwjk...',
+        '...kwjk...',
         '..kwwjJk..',
-        '...kwjk...',
-        '...kwjk...',
-        '...kwjk...',
-        '...kwjk...',
-        '...kwjk...',
-        '...kwjk...',
-        '....kk....'
+        '..kwjjJk..',
+        '..kwjjJk..',
+        '..kwjjJk..',
+        '.kwwjjJJk.',
+        '.kwjjjJJk.',
+        '.kwjjjJJk.',
+        '.kIIIIIIk.',
+        '..kkkkkk..'
       ]
     ]
   }

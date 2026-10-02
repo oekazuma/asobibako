@@ -1,10 +1,10 @@
-import { rolled, yeti } from './bosses-snow';
+import { breathe, dragon, rolled, yeti } from './bosses-snow';
 import { ENEMIES } from './enemies';
 import { hurtPlayer, makeEnemy, MAX_ENEMIES, spawnPoint, type Enemy, type World } from './world';
 
 export interface Hazard {
   alive: boolean;
-  kind: 'slam' | 'dash' | 'web' | 'ball' | 'pounce';
+  kind: 'slam' | 'dash' | 'web' | 'ball' | 'pounce' | 'pillar' | 'breath';
   /** 予告の持ち主（ボスの enemies の番号）。web は -1 */
   owner: number;
   x: number;
@@ -18,11 +18,15 @@ export interface Hazard {
   life: number;
   /** web の絵（ITEM_ART の名前）。無ければ糸の玉 */
   art?: string;
+  /** breath の次に当てるまでの秒 */
+  tick?: number;
   dmg: number;
 }
 
 /** ボスの体力に掛ける面の硬さを弱める（そのままだと序盤のボスに 2 分かかる） */
 export const BOSS_HP = 0.7;
+/** 糸の玉と冷たい息で遅くなる秒 */
+export const SLOWED = 1;
 
 /** ボスが出る何秒前に WARNING を出すか */
 export const WARN_AHEAD = 3;
@@ -83,7 +87,6 @@ const QUEEN = {
   webLife: 3,
   webR: 4,
   webDmg: 6,
-  slow: 1,
   broodEvery: 8,
   brood: 4
 };
@@ -151,6 +154,16 @@ function bear(w: World, i: number, e: Enemy, ux: number, uy: number, dt: number)
   return e.state === 2 ? { vx: e.dx * BEAR.dashSpeed, vy: e.dy * BEAR.dashSpeed } : STILL;
 }
 
+/** 少し離れた所を保ち、いつも横へ回り込む速さ（女王グモ型と氷の竜） */
+export function circle(e: Enemy, ux: number, uy: number, d: number, keep: number) {
+  const radial = Math.max(-1, Math.min(1, (d - keep) / 30));
+  const side = Math.sin(e.phase) >= 0 ? 1 : -1;
+  const vx = ux * radial - uy * side;
+  const vy = uy * radial + ux * side;
+  const len = Math.hypot(vx, vy) || 1;
+  return { vx: (vx / len) * e.def.speed, vy: (vy / len) * e.def.speed };
+}
+
 /** 女王グモ。少し離れた所を保って回り込み、糸の玉を撃ち、子グモを生む */
 function queen(w: World, e: Enemy, ux: number, uy: number, d: number, dt: number) {
   e.cd -= dt;
@@ -179,13 +192,7 @@ function queen(w: World, e: Enemy, ux: number, uy: number, d: number, dt: number
     e.turn = QUEEN.broodEvery / (e.def.rage ?? 1);
     brood(w, e, QUEEN.brood);
   }
-  // 近づきすぎたら下がり、遠ければ寄り、いつも横へ回り込む
-  const radial = Math.max(-1, Math.min(1, (d - QUEEN.keep) / 30));
-  const side = Math.sin(e.phase) >= 0 ? 1 : -1;
-  const vx = ux * radial - uy * side;
-  const vy = uy * radial + ux * side;
-  const len = Math.hypot(vx, vy) || 1;
-  return { vx: (vx / len) * e.def.speed, vy: (vy / len) * e.def.speed };
+  return circle(e, ux, uy, d, QUEEN.keep);
 }
 
 /** ボスのまわりに手下を n 匹出す。入れ物が埋まっていれば出せるだけ */
@@ -207,6 +214,7 @@ export function moveBoss(w: World, i: number, dt: number): { vx: number; vy: num
   const d = Math.hypot(dx, dy) || 1;
   if (e.def.ai === 'bear') return bear(w, i, e, dx / d, dy / d, dt);
   if (e.def.ai === 'yeti') return yeti(w, i, e, dx / d, dy / d, dt);
+  if (e.def.ai === 'dragon') return dragon(w, i, e, dx / d, dy / d, d, dt);
   return queen(w, e, dx / d, dy / d, d, dt);
 }
 
@@ -222,12 +230,16 @@ export function updateHazards(w: World, dt: number): void {
       if (h.life <= 0) h.alive = false;
       else if (p.invuln <= 0 && (h.x - p.x) ** 2 + (h.y - p.y) ** 2 < (h.r + 6) ** 2) {
         h.alive = false;
-        if (h.kind === 'web') p.slow = QUEEN.slow;
+        if (h.kind === 'web') p.slow = SLOWED;
         hurtPlayer(w, h.dmg);
       }
       continue;
     }
     const owner = w.enemies[h.owner];
+    if (h.kind === 'breath') {
+      breathe(w, h, dt);
+      continue;
+    }
     // 予告のあいだに持ち主が倒れたら、予告ごと消す
     if (h.delay > 0 && !(owner?.alive && owner.def.boss)) {
       h.alive = false;

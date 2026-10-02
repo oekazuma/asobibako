@@ -3,14 +3,50 @@ import { PALETTE } from './art/palette';
 import type { ViewSize } from './draw';
 import { text } from './font';
 import { bake } from './pixels';
+import { DRAGON } from './bosses-snow';
+import type { Hazard } from './bosses';
 import type { World } from './world';
 
 type Snap = (v: number) => number;
 
-/** 床に出す予告（地ならしの輪と突進の矢印）。敵より先に描く */
+function fan(ctx: CanvasRenderingContext2D, h: Hazard, q: Snap) {
+  const a = Math.atan2(h.vy, h.vx);
+  ctx.beginPath();
+  ctx.moveTo(q(h.x), q(h.y));
+  ctx.arc(q(h.x), q(h.y), h.r, a - DRAGON.breathAngle / 2, a + DRAGON.breathAngle / 2);
+  ctx.closePath();
+}
+
+/** 床に出す予告（地ならしの輪・突進の矢印・氷の柱の円・息の扇）。敵より先に描く */
 export function hazardsBelow(ctx: CanvasRenderingContext2D, w: World, q: Snap, now: number): void {
   for (const h of w.hazards) {
     if (!h.alive) continue;
+    if (h.kind === 'pillar' && h.delay > 0) {
+      const t = 1 - h.delay / DRAGON.pillarWarn;
+      ctx.fillStyle = 'rgb(111 168 217 / 0.3)';
+      ctx.beginPath();
+      ctx.ellipse(q(h.x), q(h.y + 8), h.r * t, h.r * t * 0.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgb(42 100 200 / 0.8)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(q(h.x), q(h.y + 8), h.r, h.r * 0.6, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      continue;
+    }
+    if (h.kind === 'breath' && h.delay > 0) {
+      ctx.globalAlpha = Math.floor(now * 8) % 2 ? 0.35 : 0.2;
+      ctx.fillStyle = PALETTE.u;
+      fan(ctx, h, q);
+      ctx.fill();
+      ctx.globalAlpha = 0.8;
+      ctx.strokeStyle = PALETTE.U;
+      ctx.lineWidth = 1.5;
+      fan(ctx, h, q);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      continue;
+    }
     if ((h.kind === 'slam' || h.kind === 'pounce') && h.delay > 0) {
       const t = 1 - h.delay / 1;
       ctx.fillStyle = 'rgb(216 70 60 / 0.25)';
@@ -70,7 +106,18 @@ export function hazardsAbove(ctx: CanvasRenderingContext2D, w: World, q: Snap): 
   for (const h of w.hazards) {
     if (!h.alive) continue;
     if (h.kind === 'web') ctx.drawImage(bake(ITEM_ART[h.art ?? 'web']), q(h.x - 4), q(h.y - 4));
-    else if (h.kind === 'ball') {
+    else if (h.kind === 'pillar' && h.delay <= 0) {
+      // 地面から突き出し、消えるまでに少し沈む
+      const ic = ITEM_ART.icicle;
+      const rise = Math.min(1, (0.4 - h.life) / 0.1);
+      ctx.drawImage(bake(ic), q(h.x - ic.w), q(h.y + 8 - ic.h * 2 * rise), ic.w * 2, Math.max(1, ic.h * 2 * rise));
+    } else if (h.kind === 'breath' && h.delay <= 0) {
+      ctx.globalAlpha = 0.45 + Math.random() * 0.15;
+      ctx.fillStyle = PALETTE.j;
+      fan(ctx, h, q);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    } else if (h.kind === 'ball') {
       const r = Math.round(h.r);
       ctx.drawImage(bake(ITEM_ART.snowball), q(h.x - r), q(h.y - r), r * 2, r * 2);
     } else if ((h.kind === 'slam' || h.kind === 'pounce') && h.delay <= 0) {
