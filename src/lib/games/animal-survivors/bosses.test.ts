@@ -138,6 +138,23 @@ describe('ボスの攻撃', () => {
     expect(w.enemies.filter((e) => e.def.id === 'spiderling').length).toBe(8);
   });
 
+  it('突進の予告の最後のフレームで巨大ベアが倒れても、矢印は残らない', () => {
+    const w = quiet();
+    const bear = placeBoss(w, 'bear', 200);
+    bear.cd = 0;
+    bear.turn = 0;
+    w.time = 10;
+    // 矢印の残り時間がベアの待ち時間より 1 フレーム先に切れる瞬間を待つ
+    for (let i = 0; i < 60; i++) {
+      step(w, still, 1 / 60);
+      const dash = w.hazards.find((h) => h.alive && h.kind === 'dash');
+      if (dash && dash.delay <= 0 && bear.state === 1) break;
+    }
+    bear.alive = false;
+    run(w, 0.1);
+    expect(w.hazards.some((h) => h.alive && h.kind === 'dash')).toBe(false);
+  });
+
   it('予告の途中で巨大ベアが倒れたら、予告は消える', () => {
     const w = quiet();
     const bear = placeBoss(w, 'bear', 40);

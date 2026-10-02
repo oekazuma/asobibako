@@ -215,7 +215,7 @@ export function updateHazards(w: World, dt: number): void {
     }
     if (h.kind === 'dash') {
       h.delay -= dt;
-      if (owner.state !== 1) h.alive = false;
+      if (!owner.alive || owner.state !== 1) h.alive = false;
       continue;
     }
     if (h.delay > 0) {
