@@ -22,7 +22,7 @@ const meta = {
   load: async () => ({ Game: StubGame, Howto: StubHowto })
 };
 
-function show(extra: { levelName?: string; ownResult?: boolean; anyOrder?: boolean } = {}) {
+function show(extra: { levelName?: string; ownResult?: boolean; anyOrder?: boolean; ownMenu?: boolean } = {}) {
   const target = document.body.appendChild(document.createElement('div'));
   const app = mount(SoloShell, { target, props: { meta: { ...meta, ...extra }, Game: StubGame, Howto: StubHowto } });
   flushSync();
@@ -43,6 +43,25 @@ describe('SoloShell', () => {
   afterEach(() => {
     vi.useRealTimers();
     document.body.innerHTML = '';
+  });
+
+  it('ownMenu のゲームでは遊んでいるあいだ隅の ✕ と ↻ を出さず、onquit でタイトルへ戻る', () => {
+    const { target, app } = show({ ownMenu: true });
+    start(target);
+    expect(target.querySelector('[aria-label="やめる"]')).toBeNull();
+    expect(target.querySelector('[aria-label="やりなおし"]')).toBeNull();
+    hooks.quit!();
+    flushSync();
+    expect(target.querySelector('button.go')).not.toBeNull();
+    unmount(app);
+  });
+
+  it('ownMenu でなければ今までどおり隅のボタンを出す', () => {
+    const { target, app } = show();
+    start(target);
+    expect(target.querySelector('[aria-label="やめる"]')).not.toBeNull();
+    expect(target.querySelector('[aria-label="やりなおし"]')).not.toBeNull();
+    unmount(app);
   });
 
   it('onfinish(true) を 2 回呼んでもレベルは 1 つしか進まない', () => {

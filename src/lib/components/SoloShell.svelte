@@ -80,16 +80,18 @@
 <main class="stage solo" class:settling={settle.active}>
   {#if screen === 'playing'}
     {#key round}
-      <Game {level} onfinish={finish} onhint={(text) => (hint = text)} />
+      <Game {level} onfinish={finish} onhint={(text) => (hint = text)} onquit={() => (screen = 'title')} />
     {/key}
     {#if hint}
       {#key hint}
         <p class="hint" role="status">{hint}</p>
       {/key}
     {/if}
-    <!-- 遊んでいる途中でもやめられるよう、小さく隅に置く。一覧ではなくタイトルへ戻る -->
-    <button class="round corner quit" onclick={() => (screen = 'title')} aria-label="やめる">✕</button>
-    <button class="round corner retry" onclick={retry} aria-label="やりなおし">↻</button>
+    {#if !meta.ownMenu}
+      <!-- 遊んでいる途中でもやめられるよう、小さく隅に置く。一覧ではなくタイトルへ戻る -->
+      <button class="round corner quit" onclick={() => (screen = 'title')} aria-label="やめる">✕</button>
+      <button class="round corner retry" onclick={retry} aria-label="やりなおし">↻</button>
+    {/if}
     {#if meta.anyOrder}
       <button class="round corner skip" onclick={skip} aria-label="とばす">
         <Icon name="arrow" size="26px" rotate={90} />
@@ -135,7 +137,6 @@
   .quit {
     left: max(12px, env(safe-area-inset-left));
   }
-
   .quit {
     opacity: 0.7;
   }

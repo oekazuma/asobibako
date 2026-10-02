@@ -6,6 +6,7 @@ export const hooks: {
   solo?: (cleared: boolean) => void;
   duel?: (winner: Player) => void;
   hint?: (text: string) => void;
+  quit?: () => void;
 } = {
   level: 0
 };

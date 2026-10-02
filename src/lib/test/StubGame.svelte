@@ -6,8 +6,9 @@
   let {
     level = 0,
     onfinish,
-    onhint
-  }: { level?: number; onfinish: (v: never) => void; onhint?: (text: string) => void } = $props();
+    onhint,
+    onquit
+  }: { level?: number; onfinish: (v: never) => void; onhint?: (text: string) => void; onquit?: () => void } = $props();
 
   // スタブは mount 時の値だけ受け皿に写せばよい（追従は要らない）
   untrack(() => {
@@ -15,6 +16,7 @@
     hooks.solo = onfinish as (cleared: boolean) => void;
     hooks.duel = onfinish as (winner: 1 | 2) => void;
     hooks.hint = onhint;
+    hooks.quit = onquit;
   });
 </script>
 

@@ -40,6 +40,8 @@ export interface SoloProps {
   onfinish: (cleared: boolean) => void;
   /** 画面の上に出す「いまやること」。空文字で消す。呼ばなければ何も出ない */
   onhint?: (text: string) => void;
+  /** ゲームが自分の画面から抜けるとき（meta.ownMenu のゲームの「タイトルへ」）に呼ぶ */
+  onquit?: () => void;
 }
 
 export interface SoloModule {
@@ -77,6 +79,8 @@ export interface SoloMeta extends BaseMeta {
   ownResult?: boolean;
   /** 面を好きな順に選べ、とばせる。解いた面を 1 つずつ覚える（難しさの順に並ばないナゾ解きなど） */
   anyOrder?: boolean;
+  /** 遊んでいるあいだの隅の ✕ と ↻ を出さない。ゲームが自分で一時停止やタイトルへ戻る口を持つ（長い 1 回を押し間違いで失わないため） */
+  ownMenu?: boolean;
   load: () => Promise<SoloModule>;
 }
 
