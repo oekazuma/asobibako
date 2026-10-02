@@ -4,6 +4,7 @@ import { BOSS_ART } from './art/bosses';
 import { ENEMY_ART } from './art/enemies';
 import { FOREST_ART } from './art/forest';
 import { ITEM_ART } from './art/items';
+import { goldArt, itemArt } from './art/evolved';
 import { PALETTE } from './art/palette';
 import { goldOf, problems, type Art } from './pixels';
 
@@ -73,6 +74,23 @@ describe('ドット絵の格子', () => {
       expect(ITEM_ART[k]).toBeDefined();
     expect(ITEM_ART.coin.frames).toHaveLength(2);
     expect([ITEM_ART['upgrade-greed'].w, ITEM_ART['upgrade-greed'].h]).toEqual([12, 12]);
+  });
+
+  it('進化形のアイコンは元の絵と同じ大きさで、色だけ金色になり、右上に星がある', () => {
+    const base = ITEM_ART['weapon-woof'];
+    const evo = itemArt('weapon-woofEvo');
+    expect([evo.w, evo.h]).toEqual([base.w, base.h]);
+    expect(itemArt('weapon-woofEvo')).toBe(evo);
+    expect(evo.frames[0][1][base.w - 2]).toBe('*');
+    expect(problems('weapon-woofEvo', evo, { ...PALETTE, ...evo.pal })).toEqual([]);
+    expect(itemArt('meat')).toBe(ITEM_ART.meat);
+  });
+
+  it('goldArt は線を残して明るい色を金色にする', () => {
+    const g = goldArt(ITEM_ART.bone);
+    expect(g.pal?.k).toBe(PALETTE.k);
+    expect(g.pal?.w).not.toBe(PALETTE.w);
+    expect(goldArt(ITEM_ART.bone)).toBe(g);
   });
 
   it('7 匹ぶんの絵がある', () => {
