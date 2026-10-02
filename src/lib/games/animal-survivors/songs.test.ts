@@ -8,4 +8,10 @@ describe('BGM の楽譜', () => {
     expect(score(SONGS.field.song).chords).toHaveLength(16);
     expect(SONGS.boss.bpm).toBeGreaterThan(SONGS.field.bpm);
   });
+
+  it('墓地の曲は 8 ビートで、森より少し遅い', () => {
+    expect(() => score(SONGS.grave.song)).not.toThrow();
+    expect(SONGS.grave.song.style).toBe('drive');
+    expect(SONGS.grave.bpm).toBeLessThan(SONGS.field.bpm);
+  });
 });

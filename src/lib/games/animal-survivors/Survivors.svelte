@@ -12,6 +12,7 @@
   import Result from './Result.svelte';
   import Shop from './Shop.svelte';
   import StageSelect from './StageSelect.svelte';
+  import { stageOf } from './stages';
   import { SONGS } from './songs';
   import Trophies from './Trophies.svelte';
   import { summary, type RunSummary, type World } from './world';
@@ -35,7 +36,7 @@
   let field = $state<{ song: 'field' | 'boss'; quiet: boolean }>({ song: 'field', quiet: false });
 
   $effect(() => {
-    const t = SONGS[screen === 'play' ? field.song : 'menu'];
+    const t = SONGS[screen !== 'play' ? 'menu' : field.song === 'boss' ? 'boss' : stageOf(pick.stage).song];
     loop.play(t.song, t.bpm, screen === 'play' && field.quiet ? t.gain * 0.4 : t.gain);
   });
 
