@@ -86,6 +86,18 @@ describe('pwaStatus', () => {
     expect(opened).toEqual(['asobibako-x']);
   });
 
+  it('更新を重ねて AI 用の空のキャッシュが先に並んでも、版のキャッシュを見る', async () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    vi.stubGlobal('navigator', { serviceWorker: { getRegistration: async () => ({ active: {} }) } });
+    vi.stubGlobal('caches', {
+      keys: async () => ['asobibako-ai', 'asobibako-v2'],
+      open: async (k: string) => ({
+        keys: async () => (k === 'asobibako-ai' ? [] : [new Request('https://example.com/')])
+      })
+    });
+    expect((await pwaStatus()).cached).toBe(true);
+  });
+
   it('キャッシュが空なら保存済みとしない', async () => {
     vi.stubGlobal('matchMedia', () => ({ matches: false }));
     vi.stubGlobal('navigator', { standalone: true, serviceWorker: { getRegistration: async () => undefined } });
