@@ -316,22 +316,6 @@ export const SCENES: Scene[] = [
     }
   },
   {
-    id: 'megaphone-dash',
-    level: 1,
-    clip: band(460),
-    play: async (s) => {
-      await s.startSolo();
-      // 3D の準備（最長 1.5 秒）が済んで走り出すのを待つ
-      await s.wait(2000);
-      // 指を置いたまま左右へゆっくり揺らして群れを巻きこみ、並走するファンと「+N」を写す
-      await s.touch(1, 'down', 384, 760);
-      for (let i = 0; i < 40; i++) {
-        await s.touch(1, 'move', 384 + Math.sin(i / 6) * 120, 760);
-        await s.wait(150);
-      }
-    }
-  },
-  {
     // 吹き出しまでは 680 : 400 に収まらないので、目から下とゴミ箱を入れる。
     // 道具の先端は指より少し上（TIP）に出るので、指は狙う場所の 41px 下に置く
     id: 'dentist',

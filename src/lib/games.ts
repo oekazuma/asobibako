@@ -11,7 +11,6 @@ import gateRun from './games/gate-run/meta';
 import hirameki from './games/hirameki/meta';
 import hockey from './games/hockey/meta';
 import lightning from './games/lightning/meta';
-import megaphoneDash from './games/megaphone-dash/meta';
 import nurie from './games/nurie/meta';
 import oekakiMori from './games/oekaki-mori/meta';
 import petHouse from './games/pet-house/meta';
@@ -95,7 +94,6 @@ export type GameMeta = DuelMeta | SoloMeta | PartyMeta;
 
 export const games: GameMeta[] = [
   animalSurvivors,
-  megaphoneDash,
   petHouse,
   pinRescue,
   hirameki,
