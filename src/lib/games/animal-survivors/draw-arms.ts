@@ -1,17 +1,33 @@
 import { ANIMAL_ART } from './art/animals';
+import { goldArt } from './art/evolved';
 import { ITEM_ART } from './art/items';
 import { PALETTE } from './art/palette';
 import { frameAt, hash } from './draw';
 import { bake, type Art } from './pixels';
+import { baseOf } from './evolutions';
+import { WEAPONS } from './weapons';
 import type { World } from './world';
 
 type Snap = (v: number) => number;
 
-function rotated(ctx: CanvasRenderingContext2D, q: Snap, art: Art, x: number, y: number, angle: number, size = 1) {
+/** 進化形の武器の弾・炎・ツタ・線は金色で描く */
+const isGold = (w: World, slot: number) => WEAPONS[w.weapons[slot]?.id ?? '']?.evolved ?? false;
+const kindOf = (w: World, slot: number) => baseOf(w.weapons[slot]?.id ?? '');
+
+function rotated(
+  ctx: CanvasRenderingContext2D,
+  q: Snap,
+  art: Art,
+  x: number,
+  y: number,
+  angle: number,
+  size = 1,
+  gold = false
+) {
   ctx.save();
   ctx.translate(q(x), q(y));
   ctx.rotate(angle);
-  ctx.drawImage(bake(art), (-art.w * size) / 2, (-art.h * size) / 2, art.w * size, art.h * size);
+  ctx.drawImage(bake(gold ? goldArt(art) : art), (-art.w * size) / 2, (-art.h * size) / 2, art.w * size, art.h * size);
   ctx.restore();
 }
 
@@ -33,13 +49,14 @@ function afterimage(ctx: CanvasRenderingContext2D, q: Snap, w: World, x: number,
 export function shots(ctx: CanvasRenderingContext2D, w: World, q: Snap): void {
   for (const o of w.shots) {
     if (!o.alive) continue;
-    const weapon = w.weapons[o.slot]?.id;
+    const weapon = kindOf(w, o.slot);
+    const gold = isGold(w, o.slot);
     if (weapon === 'dash') afterimage(ctx, q, w, o.x, o.y, o.vx, o.vy);
-    else if (weapon === 'acorn') rotated(ctx, q, ITEM_ART.acorn, o.x, o.y, o.age * 10);
-    else if (o.kind === 'shot') rotated(ctx, q, ITEM_ART.bone, o.x, o.y, o.age * 14);
-    else if (o.kind === 'boomerang') rotated(ctx, q, ITEM_ART.bone, o.x, o.y, o.age * 16, 1.6);
-    else if (o.kind === 'homing') rotated(ctx, q, ITEM_ART.fish, o.x, o.y, o.angle);
-    else rotated(ctx, q, ITEM_ART.feather, o.x, o.y, o.angle + Math.PI / 2);
+    else if (weapon === 'acorn') rotated(ctx, q, ITEM_ART.acorn, o.x, o.y, o.age * 10, 1, gold);
+    else if (o.kind === 'shot') rotated(ctx, q, ITEM_ART.bone, o.x, o.y, o.age * 14, 1, gold);
+    else if (o.kind === 'boomerang') rotated(ctx, q, ITEM_ART.bone, o.x, o.y, o.age * 16, 1.6, gold);
+    else if (o.kind === 'homing') rotated(ctx, q, ITEM_ART.fish, o.x, o.y, o.angle, 1, gold);
+    else rotated(ctx, q, ITEM_ART.feather, o.x, o.y, o.angle + Math.PI / 2, 1, gold);
   }
 }
 
@@ -48,11 +65,11 @@ export function zonesBelow(ctx: CanvasRenderingContext2D, w: World, q: Snap, now
   for (const f of w.effects) {
     if (!f.alive) continue;
     if (f.kind === 'flame') {
-      const art = ITEM_ART.flame;
+      const art = isGold(w, f.slot) ? goldArt(ITEM_ART.flame) : ITEM_ART.flame;
       ctx.globalAlpha = Math.min(1, (f.life - f.age) / 0.3);
       ctx.drawImage(bake(art, frameAt(now * 8 + f.x, 2)), q(f.x - art.w / 2), q(f.y - art.h + 2));
     } else if (f.kind === 'vine') {
-      const art = ITEM_ART.vine;
+      const art = isGold(w, f.slot) ? goldArt(ITEM_ART.vine) : ITEM_ART.vine;
       ctx.globalAlpha = Math.min(1, (f.life - f.age) / 0.3);
       ctx.drawImage(bake(art, f.age < 0.2 ? 0 : 1), q(f.x - art.w / 2), q(f.y - art.h + 4));
     }
@@ -73,10 +90,11 @@ export function swipes(ctx: CanvasRenderingContext2D, w: World, q: Snap): void {
   for (const f of w.effects) {
     if (!f.alive) continue;
     const t = f.age / f.life;
-    if (f.kind === 'swipe' && w.weapons[f.slot]?.id === 'claw') {
+    const line = isGold(w, f.slot) ? PALETTE.y : PALETTE.w;
+    if (f.kind === 'swipe' && kindOf(w, f.slot) === 'claw') {
       // 爪は細い 3 本の爪痕
       ctx.globalAlpha = 0.9 * (1 - t);
-      ctx.strokeStyle = PALETTE.w;
+      ctx.strokeStyle = line;
       ctx.lineWidth = 1;
       const ux = Math.cos(f.angle);
       const uy = Math.sin(f.angle);
@@ -90,7 +108,7 @@ export function swipes(ctx: CanvasRenderingContext2D, w: World, q: Snap): void {
       }
     } else if (f.kind === 'swipe') {
       ctx.globalAlpha = 0.75 * (1 - t);
-      ctx.strokeStyle = PALETTE.w;
+      ctx.strokeStyle = line;
       for (const [r, lw] of [
         [0.85, 3],
         [0.6, 2]
@@ -104,7 +122,7 @@ export function swipes(ctx: CanvasRenderingContext2D, w: World, q: Snap): void {
       const r = t * f.r;
       ctx.globalAlpha = 0.75 * (1 - t);
       ctx.lineWidth = 2;
-      ctx.strokeStyle = PALETTE.w;
+      ctx.strokeStyle = line;
       ctx.beginPath();
       ctx.arc(f.x, f.y, r, 0, Math.PI * 2);
       ctx.stroke();

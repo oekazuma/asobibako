@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
   import { audio, toggleMute } from '$lib/audio.svelte';
-  import { ITEM_ART } from './art/items';
+  import { itemArt } from './art/evolved';
   import { clock } from './hud';
   import { Lock } from './lock.svelte';
   import PixelIcon from './PixelIcon.svelte';
@@ -63,7 +63,7 @@
       <ul class="owned" aria-label="取った武器とパッシブ">
         {#each owned as o (o.key)}
           <li class="slot">
-            <PixelIcon art={ITEM_ART[o.key]} size="min(8cqw, 4.6cqh, 40px)" /><span class="lv">{o.level}</span>
+            <PixelIcon art={itemArt(o.key)} size="min(8cqw, 4.6cqh, 40px)" /><span class="lv">{o.level}</span>
           </li>
         {/each}
       </ul>

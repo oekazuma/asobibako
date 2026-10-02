@@ -1,9 +1,11 @@
+import { itemArt } from './art/evolved';
 import { ITEM_ART } from './art/items';
 import { PALETTE } from './art/palette';
 import { xpNeed } from './drops';
 import type { ViewSize } from './draw';
 import { text, textWidth } from './font';
 import { bake } from './pixels';
+import { WEAPONS } from './weapons';
 import type { Owned, World } from './world';
 
 const SLOT = 14;
@@ -40,8 +42,9 @@ function slots(ctx: CanvasRenderingContext2D, owned: Owned[], prefix: string, x:
     ctx.fillRect(sx, y, SLOT - 1, SLOT - 1);
     const o = owned[i];
     if (!o) continue;
-    ctx.drawImage(bake(ITEM_ART[`${prefix}-${o.id}`]), sx, y);
-    text(ctx, String(o.level), sx + SLOT - 5, y + SLOT - 6, PALETTE.y);
+    ctx.drawImage(bake(itemArt(`${prefix}-${o.id}`)), sx, y);
+    const lv = prefix === 'weapon' && WEAPONS[o.id]?.evolved ? '*' : String(o.level);
+    text(ctx, lv, sx + SLOT - 5, y + SLOT - 6, PALETTE.y);
   }
 }
 

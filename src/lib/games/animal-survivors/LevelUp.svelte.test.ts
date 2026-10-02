@@ -40,4 +40,21 @@ describe('LevelUp', () => {
     expect(calls).toEqual(['reroll']);
     unmount(app);
   });
+
+  it('進化に使う札に「進化」の印を出す', () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(LevelUp, {
+      target,
+      props: {
+        options: [{ kind: 'passive', id: 'fang', level: 1, evo: true }],
+        locked: false,
+        rerolls: 0,
+        onpick: () => {},
+        onreroll: () => {}
+      }
+    });
+    flushSync();
+    expect(target.querySelector('.evo')?.textContent).toBe('進化');
+    unmount(app);
+  });
 });

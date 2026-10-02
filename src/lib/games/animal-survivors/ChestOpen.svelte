@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { itemArt } from './art/evolved';
   import { ITEM_ART } from './art/items';
   import type { Reward } from './chest';
   import { PASSIVES } from './passives';
@@ -13,22 +14,26 @@
   const done = $derived(shown >= rewards.length);
 
   function info(r: Reward) {
+    if (r.kind === 'evolve')
+      return { key: `e-${r.id}`, art: itemArt(`weapon-${r.id}`), name: WEAPONS[r.id].name, text: '進化！', evo: true };
     if (r.kind === 'weapon')
       return {
         key: `w-${r.id}-${r.level}`,
-        art: ITEM_ART[`weapon-${r.id}`],
+        art: itemArt(`weapon-${r.id}`),
         name: WEAPONS[r.id].name,
-        text: `Lv ${r.level}`
+        text: `Lv ${r.level}`,
+        evo: false
       };
     if (r.kind === 'passive')
       return {
         key: `p-${r.id}-${r.level}`,
-        art: ITEM_ART[`passive-${r.id}`],
+        art: itemArt(`passive-${r.id}`),
         name: PASSIVES[r.id].name,
-        text: `Lv ${r.level}`
+        text: `Lv ${r.level}`,
+        evo: false
       };
-    if (r.kind === 'meat') return { key: 'meat', art: ITEM_ART.meat, name: '肉', text: 'HP を 30% 回復' };
-    return { key: 'bag', art: ITEM_ART.chest, name: '経験値の袋', text: '経験値 +25' };
+    if (r.kind === 'meat') return { key: 'meat', art: ITEM_ART.meat, name: '肉', text: 'HP を 30% 回復', evo: false };
+    return { key: 'bag', art: ITEM_ART.chest, name: '経験値の袋', text: '経験値 +25', evo: false };
   }
 
   function key(event: KeyboardEvent) {
@@ -57,7 +62,9 @@
     <ul>
       {#each rewards.slice(0, shown) as r, i (info(r).key + i)}
         {@const d = info(r)}
-        <li><PixelIcon art={d.art} size="min(8cqw, 4.8cqh, 44px)" /><b>{d.name}</b><span>{d.text}</span></li>
+        <li class:evo={d.evo}>
+          <PixelIcon art={d.art} size="min(8cqw, 4.8cqh, 44px)" /><b>{d.name}</b><span>{d.text}</span>
+        </li>
       {/each}
     </ul>
     {#if done}
@@ -110,6 +117,16 @@
   li span {
     margin-left: auto;
     color: #2a64c8;
+  }
+
+  li.evo {
+    border-color: #ffd84a;
+    background: #3a2a14;
+    color: #ffd84a;
+  }
+
+  li.evo span {
+    color: #fff3d6;
   }
 
   .ok {

@@ -135,6 +135,14 @@ export class Effects {
       } else if (e.type === 'coin') {
         coin = true;
         if (e.value > 1) this.#number(`+${e.value}`, w.player.x, w.player.y - 14, PALETTE.y, 2);
+      } else if (e.type === 'evolve') {
+        this.flash = 0.2;
+        const p = w.player;
+        for (let i = 0; i < 40; i++) {
+          const a = (i / 40) * Math.PI * 2;
+          this.#bit(p.x, p.y, Math.cos(a) * 110, Math.sin(a) * 110, 0.6, i % 2 ? PALETTE.y : PALETTE.w, 3);
+        }
+        sounds.evolve();
       } else if (e.type === 'revive') {
         this.flash = 0.3;
         const p = w.player;

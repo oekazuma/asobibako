@@ -1,6 +1,7 @@
 <script lang="ts">
   import { ACHIEVEMENTS } from './achievements';
   import { animal } from './animals';
+  import Evolutions from './Evolutions.svelte';
   import { loadRecords } from './records';
 
   let { onback }: { onback: () => void } = $props();
@@ -26,6 +27,7 @@
         </li>
       {/each}
     </ul>
+    <Evolutions evolved={r.evolved} />
     <button class="as-card back" onclick={onback}>もどる</button>
   </section>
 </div>

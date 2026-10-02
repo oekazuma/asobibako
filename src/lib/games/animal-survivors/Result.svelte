@@ -2,6 +2,7 @@
   import type { AchievementDef } from './achievements';
   import { animal } from './animals';
   import { ANIMAL_ART } from './art/animals';
+  import { itemArt } from './art/evolved';
   import { ITEM_ART } from './art/items';
   import { clock } from './hud';
   import PixelIcon from './PixelIcon.svelte';
@@ -70,7 +71,7 @@
     <ul class="owned" aria-label="取った武器とパッシブ">
       {#each owned as o (o.key)}
         <li class="slot">
-          <PixelIcon art={ITEM_ART[o.key]} size="min(8cqw, 4.6cqh, 40px)" /><span class="lv">{o.level}</span>
+          <PixelIcon art={itemArt(o.key)} size="min(8cqw, 4.6cqh, 40px)" /><span class="lv">{o.level}</span>
         </li>
       {/each}
     </ul>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { itemArt } from './art/evolved';
   import { ITEM_ART } from './art/items';
   import type { Choice } from './choices';
   import { PASSIVES } from './passives';
@@ -24,23 +25,25 @@
       const d = WEAPONS[c.id];
       const fresh = c.level === 1;
       return {
-        art: ITEM_ART[`weapon-${c.id}`],
+        art: itemArt(`weapon-${c.id}`),
         name: d.name,
         tag: fresh ? 'NEW' : `Lv ${c.level}`,
-        text: fresh ? d.blurb : upText(d, c.level)
+        text: fresh ? d.blurb : upText(d, c.level),
+        evo: c.evo ?? false
       };
     }
     if (c.kind === 'passive') {
       const d = PASSIVES[c.id];
       return {
-        art: ITEM_ART[`passive-${c.id}`],
+        art: itemArt(`passive-${c.id}`),
         name: d.name,
         tag: c.level === 1 ? 'NEW' : `Lv ${c.level}`,
-        text: d.blurb
+        text: d.blurb,
+        evo: c.evo ?? false
       };
     }
-    if (c.kind === 'meat') return { art: ITEM_ART.meat, name: '肉', tag: '', text: 'HP を 30% 回復' };
-    return { art: ITEM_ART.chest, name: '経験値の袋', tag: '', text: '経験値 +25' };
+    if (c.kind === 'meat') return { art: ITEM_ART.meat, name: '肉', tag: '', text: 'HP を 30% 回復', evo: false };
+    return { art: ITEM_ART.chest, name: '経験値の袋', tag: '', text: '経験値 +25', evo: false };
   }
 
   function key(event: KeyboardEvent) {
@@ -68,7 +71,9 @@
         <PixelIcon art={d.art} size="min(10cqw, 6cqh, 64px)" />
         <span class="body">
           <span class="name"
-            >{d.name}{#if d.tag}<span class="tag" class:new={d.tag === 'NEW'}>{d.tag}</span>{/if}</span
+            >{d.name}{#if d.tag}<span class="tag" class:new={d.tag === 'NEW'}>{d.tag}</span>{/if}{#if d.evo}<span
+                class="tag evo">進化</span
+              >{/if}</span
           >
           <span class="text">{d.text}</span>
         </span>
@@ -127,6 +132,10 @@
 
   .tag.new {
     background: #d8463c;
+  }
+
+  .tag.evo {
+    background: #e09a1c;
   }
 
   .text {
