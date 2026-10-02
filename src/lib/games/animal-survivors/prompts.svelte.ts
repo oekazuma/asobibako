@@ -46,6 +46,19 @@ export class Prompts {
     this.next(finger);
   }
 
+  get rerolls(): number {
+    return this.#w.rerolls;
+  }
+
+  /** 3 択を引き直す。引き直した札も出た直後の合成 click を捨てる */
+  reroll(finger: number | null): void {
+    const w = this.#w;
+    if (!this.options || w.rerolls <= 0) return;
+    w.rerolls -= 1;
+    this.options = choices(w);
+    this.lock.begin(finger);
+  }
+
   close(finger: number | null): void {
     this.rewards = null;
     this.next(finger);

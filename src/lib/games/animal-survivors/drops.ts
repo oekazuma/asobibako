@@ -10,7 +10,7 @@ export interface Gem {
 
 export interface Item {
   alive: boolean;
-  kind: 'meat' | 'magnet' | 'chest';
+  kind: 'meat' | 'magnet' | 'chest' | 'coin' | 'purse';
   x: number;
   y: number;
   pulled: boolean;
@@ -20,6 +20,11 @@ export const MAX_GEMS = 400;
 const PICK = 8;
 const PULL_SPEED = 220;
 const MEAT_HEAL = 30;
+export const CLEAR_COINS = 100;
+export const CHEST_COINS = 10;
+const PURSE = 50;
+const ELITE_COINS = 5;
+const COIN_CHANCE = 0.03;
 
 /** Lv から次の Lv へ要る経験値。5 から始めて Lv20 まで 10 ずつ、Lv40 まで 13 ずつ、そこからは 16 ずつ増える */
 export function xpNeed(level: number): number {
@@ -91,6 +96,7 @@ export function dropFrom(w: World, e: Enemy): void {
       const a = (i / BOSS_GEMS) * Math.PI * 2;
       dropGem(w, e.x + Math.cos(a) * 24, e.y + Math.sin(a) * 24, BOSS_GEM_XP);
     }
+    dropItem(w, 'purse', e.x + 12, e.y);
     dropItem(w, 'chest', e.x, e.y);
     return;
   }
@@ -98,6 +104,12 @@ export function dropFrom(w: World, e: Enemy): void {
   if (w.rand() < 0.012) dropItem(w, 'meat', e.x + 4, e.y);
   else if (w.rand() < 0.004) dropItem(w, 'magnet', e.x + 4, e.y);
   if (e.def.elite && w.rand() < ELITE_CHEST) dropItem(w, 'chest', e.x, e.y);
+  if (e.def.elite)
+    for (let i = 0; i < ELITE_COINS; i++) {
+      const a = (i / ELITE_COINS) * Math.PI * 2;
+      dropItem(w, 'coin', e.x + Math.cos(a) * 8, e.y + Math.sin(a) * 8);
+    }
+  else if (w.rand() < COIN_CHANCE) dropItem(w, 'coin', e.x - 4, e.y);
 }
 
 /** 吸い寄せて、届いたら true */
@@ -135,6 +147,12 @@ export function collect(w: World, dt: number): void {
     }
     if (!pull(w, it, reach, dt)) continue;
     it.alive = false;
+    if (it.kind === 'coin' || it.kind === 'purse') {
+      const value = it.kind === 'coin' ? 1 : PURSE;
+      w.coins += value * w.greed;
+      w.events.push({ type: 'coin', value });
+      continue;
+    }
     if (it.kind === 'meat') {
       const p = w.player;
       const before = p.hp;

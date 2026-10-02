@@ -38,4 +38,19 @@ describe('Prompts', () => {
     expect(p.options).not.toBeNull();
     p.stop();
   });
+
+  it('リロールは残りがあるときだけ 3 択を引き直し、残りを減らす', () => {
+    const w = createWorld('dog', 1, { w: 260, h: 380 }, { reroll: 1 });
+    w.pending = 1;
+    const p = new Prompts(w);
+    p.next(null);
+    const first = p.options;
+    p.reroll(null);
+    expect(w.rerolls).toBe(0);
+    expect(p.options).not.toBe(first);
+    const second = p.options;
+    p.reroll(null);
+    expect(p.options).toBe(second);
+    p.stop();
+  });
 });

@@ -55,7 +55,7 @@ export function levelUp(w: World, c: Choice): void {
     if (own) own.level = c.level;
     else w.passives.push({ id: c.id, level: 1 });
     const before = w.stats.maxHp;
-    w.stats = stats(w.animal, w.passives);
+    w.stats = stats(w.animal, w.passives, w.boost);
     p.hp += Math.max(0, w.stats.maxHp - before);
   } else if (c.kind === 'meat') {
     p.hp = Math.min(w.stats.maxHp, p.hp + w.stats.maxHp * 0.3);

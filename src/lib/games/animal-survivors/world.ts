@@ -1,12 +1,13 @@
 import { animal, type Animal, type AnimalId } from './animals';
 import { fire, hits, type Effect, type Shot } from './arms';
 import { moveBoss, spawnBosses, updateHazards, type Hazard } from './bosses';
-import { collect, dropFrom, type Gem, type Item } from './drops';
+import { CLEAR_COINS, collect, dropFrom, type Gem, type Item } from './drops';
 import { ENEMIES, type BossId, type EnemyDef } from './enemies';
 import { Grid } from './grid';
 import { stats, type Stats } from './passives';
 import { rng, type Rng } from './rng';
 import { FOREST, spawnRate, type Stage } from './stages/forest';
+import { perks, type Ranks } from './upgrades';
 
 export interface Enemy {
   alive: boolean;
@@ -68,7 +69,9 @@ export type GameEvent =
   | { type: 'dead' }
   | { type: 'warning'; boss: BossId }
   | { type: 'bossdown'; x: number; y: number }
-  | { type: 'chest' };
+  | { type: 'chest' }
+  | { type: 'coin'; value: number }
+  | { type: 'revive' };
 
 export interface World {
   rand: Rng;
@@ -76,6 +79,13 @@ export interface World {
   stage: Stage;
   animal: Animal;
   stats: Stats;
+  /** 店の強化。パッシブを取って stats を作り直すときにも足す */
+  boost: Partial<Stats>;
+  /** コインに掛ける倍率 */
+  greed: number;
+  /** 残りの 3 択の引き直しと復活 */
+  rerolls: number;
+  revives: number;
   player: Player;
   weapons: (Owned & { cd: number })[];
   passives: Owned[];
@@ -116,16 +126,24 @@ export const BASE_SPEED = 60;
 /** 糸の玉に当たったときの速さの倍率 */
 export const SLOW = 0.85;
 const BEAR_DASH_ATK = 30;
+const REVIVE_INVULN = 2;
+const REVIVE_REACH = 80;
+const REVIVE_PUSH = 400;
 
-export function createWorld(id: AnimalId, seed: number, view: { w: number; h: number }): World {
+export function createWorld(id: AnimalId, seed: number, view: { w: number; h: number }, ranks: Ranks = {}): World {
   const a = animal(id);
-  const s = stats(a, []);
+  const k = perks(ranks);
+  const s = stats(a, [], k.boost);
   return {
     rand: rng(seed),
     time: 0,
     stage: FOREST,
     animal: a,
     stats: s,
+    boost: k.boost,
+    greed: k.greed,
+    rerolls: k.rerolls,
+    revives: k.revives,
     player: {
       x: 0,
       y: 0,
@@ -370,6 +388,22 @@ export function hurtPlayer(w: World, raw: number): void {
   p.hurt = 0.3;
   w.events.push({ type: 'hurt', dmg });
   if (p.hp > 0) return;
+  if (w.revives > 0) {
+    w.revives -= 1;
+    p.hp = Math.round(w.stats.maxHp / 2);
+    p.invuln = REVIVE_INVULN;
+    for (const e of w.enemies) {
+      if (!e.alive || e.def.boss) continue;
+      const dx = e.x - p.x;
+      const dy = e.y - p.y;
+      const d = Math.hypot(dx, dy) || 1;
+      if (d > REVIVE_REACH) continue;
+      e.kx += (dx / d) * REVIVE_PUSH;
+      e.ky += (dy / d) * REVIVE_PUSH;
+    }
+    w.events.push({ type: 'revive' });
+    return;
+  }
   p.hp = 0;
   w.over = 'dead';
   w.events.push({ type: 'dead' });
@@ -386,6 +420,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
       w.kills += 1;
       w.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.def.id });
     }
+    w.coins += CLEAR_COINS * w.greed;
     w.over = 'clear';
     w.events.push({ type: 'clear' });
     return;

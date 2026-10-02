@@ -5,7 +5,11 @@ import { emptyRecords, parseRecords } from './records';
 import { UPGRADES, buy, perks, price } from './upgrades';
 import { ACHIEVEMENTS, grant } from './achievements';
 import { record } from './records';
-import type { RunSummary } from './world';
+import { createWorld, damageEnemy, eliteOf, hurtPlayer, makeEnemy, step, summary, type RunSummary } from './world';
+import { collect } from './drops';
+import { openChest } from './chest';
+import { levelUp } from './choices';
+import { ENEMIES } from './enemies';
 
 const run = (o: Partial<RunSummary> = {}): RunSummary => ({
   animal: 'dog',
@@ -145,5 +149,66 @@ describe('実績', () => {
 
   it('保存の知らない実績の id は読み飛ばす', () => {
     expect(parseRecords(JSON.stringify({ achieved: ['survive1', 'nope', 3] })).achieved).toEqual(['survive1']);
+  });
+});
+
+const VIEW = { w: 260, h: 380 };
+
+describe('ゲームの中の積み上げ', () => {
+  it('店の段が始めの強さ・強欲・リロール・復活に入る', () => {
+    const w = createWorld('dog', 1, VIEW, { maxHp: 2, greed: 1, reroll: 2, revive: 1 });
+    expect(w.stats.maxHp).toBe(animal('dog').hp + 20);
+    expect(w.player.hp).toBe(w.stats.maxHp);
+    expect(w.greed).toBeCloseTo(1.1);
+    expect([w.rerolls, w.revives]).toEqual([2, 1]);
+  });
+
+  it('レベルアップでパッシブを取っても店の強化は残る', () => {
+    const w = createWorld('dog', 1, VIEW, { might: 2 });
+    levelUp(w, { kind: 'passive', id: 'fang', level: 1 });
+    expect(w.stats.might).toBeCloseTo(animal('dog').might + 0.1 + 0.1);
+  });
+
+  it('強化個体は必ずコインを 5 枚、ボスは大袋を落とす', () => {
+    const w = createWorld('dog', 1, VIEW);
+    w.enemies.push(makeEnemy(eliteOf(ENEMIES.rat), 100, 0, 1));
+    damageEnemy(w, 0, 99, 0, 0);
+    expect(w.items.filter((i) => i.alive && i.kind === 'coin')).toHaveLength(5);
+    w.enemies.push(makeEnemy(ENEMIES.bear, 100, 0, 1));
+    damageEnemy(w, 1, 99, 0, 0);
+    expect(w.items.filter((i) => i.alive && i.kind === 'purse')).toHaveLength(1);
+  });
+
+  it('コインを拾うと強欲を掛けて数え、出来事を出す', () => {
+    const w = createWorld('dog', 1, VIEW, { greed: 5 });
+    w.items.push({ alive: true, kind: 'coin', x: 0, y: 0, pulled: false });
+    w.items.push({ alive: true, kind: 'purse', x: 0, y: 0, pulled: false });
+    collect(w, 1 / 60);
+    expect(w.coins).toBeCloseTo(51 * 1.5);
+    expect(w.events.filter((e) => e.type === 'coin')).toHaveLength(2);
+  });
+
+  it('宝箱を開けると 10 枚と開けた数、クリアで 100 枚', () => {
+    const w = createWorld('dog', 1, VIEW);
+    w.chests = 1;
+    openChest(w);
+    expect([w.coins, w.opened]).toEqual([10, 1]);
+    w.time = w.stage.length;
+    step(w, { x: 0, y: 0 }, 1 / 60);
+    expect(summary(w).coins).toBe(110);
+  });
+
+  it('復活は 1 回だけ効き、HP 半分・2 秒の無敵・周りを吹き飛ばす', () => {
+    const w = createWorld('dog', 1, VIEW, { revive: 1 });
+    w.enemies.push(makeEnemy(ENEMIES.rat, 20, 0, 10));
+    hurtPlayer(w, 999);
+    expect(w.over).toBeNull();
+    expect(w.player.hp).toBe(Math.round(w.stats.maxHp / 2));
+    expect(w.player.invuln).toBe(2);
+    expect(w.enemies[0].kx).toBeGreaterThan(0);
+    expect(w.events.some((e) => e.type === 'revive')).toBe(true);
+    w.player.invuln = 0;
+    hurtPlayer(w, 999);
+    expect(w.over).toBe('dead');
   });
 });
