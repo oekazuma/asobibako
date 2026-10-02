@@ -252,10 +252,10 @@ function touch(w: World) {
     const e = w.enemies[i];
     if (!e.alive) continue;
     const r = e.def.r + 5;
-    if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 < r * r) atk = Math.max(atk, e.def.atk);
+    if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 < r * r) atk = Math.max(atk, e.def.atk * w.stage.fury(w.time));
   }
   if (atk === 0) return;
-  const dmg = Math.max(1, atk - w.stats.armor);
+  const dmg = Math.max(1, Math.round(atk - w.stats.armor));
   p.hp -= dmg;
   p.invuln = 0.5;
   p.hurt = 0.3;

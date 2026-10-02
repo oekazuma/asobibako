@@ -174,16 +174,15 @@ const targets: number[] = [];
 /** 撃てたら true。雷のように的がいないと撃たない武器は false を返して待ち時間を使わない */
 function launch(w: World, kind: WeaponKind, s: WeaponStats, slot: number): boolean {
   const p = w.player;
-  const aim = Math.atan2(p.aimY, p.aimX);
+  // 逃げながらでも当たるよう、向きは進む向きではなくいちばん近い敵へ向ける
+  const t = nearest(w, p.x, p.y);
+  const aim = t ? Math.atan2(t.y - (p.y - 6), t.x - p.x) : Math.atan2(p.aimY, p.aimX);
   const area = s.area * w.stats.area;
   switch (kind) {
-    case 'shot': {
-      const t = nearest(w, p.x, p.y);
-      const a = t ? Math.atan2(t.y - (p.y - 6), t.x - p.x) : aim;
+    case 'shot':
       for (let i = 0; i < s.amount; i++)
-        shoot(w, slot, 'shot', s, a + (i - (s.amount - 1) / 2) * SPREAD, SIZE.shot * area);
+        shoot(w, slot, 'shot', s, aim + (i - (s.amount - 1) / 2) * SPREAD, SIZE.shot * area);
       return true;
-    }
     case 'boomerang':
       for (let i = 0; i < s.amount; i++)
         shoot(w, slot, 'boomerang', s, aim + (i - (s.amount - 1) / 2) * FAN, SIZE.boomerang * area).life =

@@ -30,7 +30,7 @@ export const ANIMALS: Animal[] = [
     name: '猫',
     style: 'スピード型',
     blurb: '足が速いが打たれ弱い。すばやい爪で引っかく',
-    hp: 70,
+    hp: 90,
     speed: 1.25,
     might: 0.9,
     weapon: 'paw'
@@ -40,9 +40,9 @@ export const ANIMALS: Animal[] = [
     name: '狼',
     style: 'パワー型',
     blurb: '力強くタフ。遠吠えで周りをまとめて吹き飛ばす',
-    hp: 120,
+    hp: 110,
     speed: 1,
-    might: 1.3,
+    might: 1.2,
     weapon: 'howl'
   }
 ];

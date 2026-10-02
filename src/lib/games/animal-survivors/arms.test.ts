@@ -37,8 +37,24 @@ describe('武器', () => {
     const w = only('paw');
     w.enemies.push(makeEnemy(ENEMIES.caterpillar, 15, 0, 100), makeEnemy(ENEMIES.caterpillar, -15, 0, 100));
     step(w, still, 1 / 60);
-    expect(w.enemies[0].hp).toBe(91);
+    expect(w.enemies[0].hp).toBe(90);
     expect(w.enemies[1].hp).toBe(100);
+  });
+
+  it('ネコパンチは背中側にしか敵がいなければ、そちらへ振り向いて引っかく', () => {
+    const w = only('paw');
+    w.enemies.push(makeEnemy(ENEMIES.caterpillar, -15, 0, 100));
+    step(w, still, 1 / 60);
+    expect(w.enemies[0].hp).toBe(90);
+  });
+
+  it('骨ブーメランは近い敵のほうへ投げる', () => {
+    const w = only('boomerang');
+    w.enemies.push(makeEnemy({ ...ENEMIES.caterpillar, speed: 0 }, 0, 60, 100));
+    step(w, still, 1 / 60);
+    const b = w.shots.find((o) => o.alive)!;
+    expect(b.vy).toBeGreaterThan(0);
+    expect(Math.abs(b.vx)).toBeLessThan(1);
   });
 
   it('遠吠えの輪は 1 回の輪で同じ敵に 1 度だけ当たる', () => {
@@ -46,7 +62,7 @@ describe('武器', () => {
     w.enemies.push(makeEnemy(ENEMIES.caterpillar, 30, 0, 1000));
     w.enemies[0].def = { ...ENEMIES.caterpillar, speed: 0, heavy: 1 };
     run(w, 0.5);
-    expect(w.enemies[0].hp).toBe(988);
+    expect(w.enemies[0].hp).toBe(990);
   });
 
   it('羽根の嵐は同じ敵に間をあけて何度も当たる', () => {

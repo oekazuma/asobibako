@@ -100,7 +100,7 @@ function pull(w: World, o: { x: number; y: number; pulled: boolean }, reach: num
 }
 
 export function collect(w: World, dt: number): void {
-  const reach = 24 * w.stats.magnet;
+  const reach = 32 * w.stats.magnet;
   for (const g of w.gems) {
     if (!g.alive || !pull(w, g, reach, dt)) continue;
     g.alive = false;

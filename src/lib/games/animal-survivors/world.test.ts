@@ -46,10 +46,11 @@ describe('世界', () => {
     const w = createWorld('dog', 1, VIEW);
     w.weapons = [];
     w.enemies.push(makeEnemy(ENEMIES.rat, 3, 0, 6));
+    // 序盤の敵の攻撃力は 0.6 倍（ネズミの 5 が 3 になる）
     step(w, still, 1 / 60);
-    expect(w.player.hp).toBe(95);
+    expect(w.player.hp).toBe(97);
     step(w, still, 1 / 60);
-    expect(w.player.hp).toBe(95);
+    expect(w.player.hp).toBe(97);
   });
 
   it('回し直す位置はいつも画面の外', () => {

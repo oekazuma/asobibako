@@ -35,7 +35,7 @@ describe('データの表', () => {
       { id: 'heart', level: 2 },
       { id: 'paws', level: 1 }
     ]);
-    expect(s.maxHp).toBe(110);
+    expect(s.maxHp).toBe(130);
     expect(s.speed).toBeCloseTo(1.35);
     expect(Object.keys(PASSIVES)).toHaveLength(10);
   });

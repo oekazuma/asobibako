@@ -54,9 +54,9 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
     w(
       'paw',
       'ネコパンチ',
-      '向いている側をすばやく引っかく',
+      '近くの敵をすばやく引っかく',
       'swipe',
-      [9, 0.6, 1, 1, 0, 99, 0.15, 60],
+      [10, 0.5, 1, 1.3, 0, 99, 0.15, 60],
       [{ damage: 3 }, { area: 0.25 }, { amount: 1 }, { damage: 3, cooldown: -0.1 }]
     ),
     w(
@@ -64,13 +64,13 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
       '遠吠え',
       '周りに衝撃の輪を広げ、敵を吹き飛ばす',
       'ring',
-      [12, 2.2, 1, 1, 0, 99, 0.45, 140],
+      [10, 3, 1, 1, 0, 99, 0.45, 60],
       [{ damage: 4 }, { area: 0.3 }, { cooldown: -0.4 }, { damage: 6, area: 0.2 }]
     ),
     w(
       'boomerang',
       '骨ブーメラン',
-      '向いている側へ飛んで戻る。敵を貫く',
+      '近い敵へ飛んで戻る。敵を貫く',
       'boomerang',
       [12, 1.6, 1, 1, 150, 99, 1.4, 50],
       [{ damage: 2.4 }, { amount: 1 }, { area: 0.25 }, { damage: 3, amount: 1 }]

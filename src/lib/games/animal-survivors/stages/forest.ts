@@ -17,6 +17,8 @@ export interface Stage {
   cap: (t: number) => number;
   /** 敵の HP に掛ける */
   toughness: (t: number) => number;
+  /** 敵の攻撃力に掛ける */
+  fury: (t: number) => number;
 }
 
 export function spawnRate(w: Wave, t: number): number {
@@ -39,5 +41,6 @@ export const FOREST: Stage = {
     { from: 720, to: 900, enemy: 'rat', rate: [8, 14] }
   ],
   cap: (t) => Math.min(400, Math.round(30 + (t / 720) * 370)),
-  toughness: (t) => 1 + (t / 900) * 1.5
+  toughness: (t) => 1 + (t / 900) * 3,
+  fury: (t) => 0.6 + (t / 900) * 1.4
 };
