@@ -1,0 +1,35 @@
+import { describe, expect, it } from 'vitest';
+import { ANIMAL_ART } from './art/animals';
+import { ENEMY_ART } from './art/enemies';
+import { FOREST_ART } from './art/forest';
+import { ITEM_ART } from './art/items';
+import { PALETTE } from './art/palette';
+import { problems, type Art } from './pixels';
+
+const all: [string, Art][] = [
+  ...Object.entries(ANIMAL_ART).flatMap(([id, a]) =>
+    Object.entries(a).map(([k, art]) => [`${id}.${k}`, art] as [string, Art])
+  ),
+  ...Object.entries(ENEMY_ART),
+  ...Object.entries(ITEM_ART),
+  ['grass', FOREST_ART.grass],
+  ['dirt', FOREST_ART.dirt],
+  ...Object.entries(FOREST_ART.decor)
+];
+
+describe('ドット絵の格子', () => {
+  it('problems は幅のずれと知らない文字と行数のずれを見つける', () => {
+    expect(problems('bad', { w: 2, h: 2, frames: [['k.', 'kkk']] }, { k: '#000' })).toEqual(['bad[0] 2 行目の幅が 3']);
+    expect(problems('x', { w: 1, h: 1, frames: [['z']] }, { k: '#000' })).toEqual(['x[0] に色のない文字 z']);
+    expect(problems('n', { w: 1, h: 2, frames: [['k']] }, { k: '#000' })).toEqual(['n[0] の行数が 1']);
+  });
+
+  it.each(all)('%s はすべてのコマが正しい', (name, art) => {
+    expect(problems(name, art, PALETTE)).toEqual([]);
+  });
+
+  it('動物の歩きは 4 コマ、敵は 2 コマ', () => {
+    for (const a of Object.values(ANIMAL_ART)) expect(a.walk.frames).toHaveLength(4);
+    for (const e of Object.values(ENEMY_ART)) expect(e.frames).toHaveLength(2);
+  });
+});
