@@ -1,0 +1,333 @@
+import { animal, type Animal, type AnimalId } from './animals';
+import { fire, hits, type Effect, type Shot } from './arms';
+import { collect, dropFrom, type Gem, type Item } from './drops';
+import { ENEMIES, type EnemyDef } from './enemies';
+import { Grid } from './grid';
+import { stats, type Stats } from './passives';
+import { rng, type Rng } from './rng';
+import { FOREST, spawnRate, type Stage } from './stages/forest';
+
+export interface Enemy {
+  alive: boolean;
+  def: EnemyDef;
+  x: number;
+  y: number;
+  /** 吹き飛ばしの速さ（px/秒）。毎秒 1e-4 倍に減る */
+  kx: number;
+  ky: number;
+  hp: number;
+  flash: number;
+  t: number;
+  phase: number;
+  /** 突進の段階。0 追う、1 ためる、2 走る */
+  state: 0 | 1 | 2;
+  wait: number;
+  dx: number;
+  dy: number;
+  /** 武器の枠ごとに、最後に当たった時刻 */
+  hit: Float64Array;
+}
+
+export interface Player {
+  x: number;
+  y: number;
+  hp: number;
+  facing: 1 | -1;
+  aimX: number;
+  aimY: number;
+  invuln: number;
+  moving: boolean;
+  attack: number;
+  hurt: number;
+}
+
+export interface Owned {
+  id: string;
+  level: number;
+}
+
+export type GameEvent =
+  | { type: 'hit'; x: number; y: number; dmg: number; crit: boolean }
+  | { type: 'kill'; x: number; y: number; enemy: string }
+  | { type: 'pickup'; value: number }
+  | { type: 'heal'; amount: number }
+  | { type: 'magnet' }
+  | { type: 'hurt'; dmg: number }
+  | { type: 'fire'; weapon: string }
+  | { type: 'levelup' }
+  | { type: 'clear' }
+  | { type: 'dead' };
+
+export interface World {
+  rand: Rng;
+  time: number;
+  stage: Stage;
+  animal: Animal;
+  stats: Stats;
+  player: Player;
+  weapons: (Owned & { cd: number })[];
+  passives: Owned[];
+  enemies: Enemy[];
+  shots: Shot[];
+  effects: Effect[];
+  gems: Gem[];
+  items: Item[];
+  level: number;
+  xp: number;
+  xpTotal: number;
+  kills: number;
+  /** まだ選んでいない 3 択の数。0 より大きいあいだ step は進まない */
+  pending: number;
+  over: null | 'dead' | 'clear';
+  /** 仮想画面の大きさ（px）。出現と回し直しの距離に使う */
+  view: { w: number; h: number };
+  events: GameEvent[];
+  spawnAcc: number[];
+  grid: Grid;
+}
+
+export const MAX_ENEMIES = 400;
+export const BASE_SPEED = 60;
+
+export function createWorld(id: AnimalId, seed: number, view: { w: number; h: number }): World {
+  const a = animal(id);
+  const s = stats(a, []);
+  return {
+    rand: rng(seed),
+    time: 0,
+    stage: FOREST,
+    animal: a,
+    stats: s,
+    player: { x: 0, y: 0, hp: s.maxHp, facing: 1, aimX: 1, aimY: 0, invuln: 0, moving: false, attack: 0, hurt: 0 },
+    weapons: [{ id: a.weapon, level: 1, cd: 0.3 }],
+    passives: [],
+    enemies: [],
+    shots: [],
+    effects: [],
+    gems: [],
+    items: [],
+    level: 1,
+    xp: 0,
+    xpTotal: 0,
+    kills: 0,
+    pending: 0,
+    over: null,
+    view,
+    events: [],
+    spawnAcc: FOREST.waves.map(() => 0),
+    grid: new Grid()
+  };
+}
+
+export function makeEnemy(def: EnemyDef, x: number, y: number, hp: number): Enemy {
+  return {
+    alive: true,
+    def,
+    x,
+    y,
+    kx: 0,
+    ky: 0,
+    hp,
+    flash: 0,
+    t: 0,
+    phase: 0,
+    state: 0,
+    wait: 0,
+    dx: 0,
+    dy: 0,
+    hit: new Float64Array(6).fill(-1)
+  };
+}
+
+/** 自分を中心にした、画面の外の輪の上。動いていれば進む先から来やすくする */
+export function spawnPoint(w: World, out = { x: 0, y: 0 }) {
+  const p = w.player;
+  const r = Math.hypot(w.view.w, w.view.h) / 2 + 24;
+  const a =
+    p.moving && w.rand() < 0.6 ? Math.atan2(p.aimY, p.aimX) + (w.rand() - 0.5) * Math.PI : w.rand() * Math.PI * 2;
+  out.x = p.x + Math.cos(a) * r;
+  out.y = p.y + Math.sin(a) * r;
+  return out;
+}
+
+export function damageEnemy(w: World, i: number, dmg: number, kx: number, ky: number, crit = false): void {
+  const e = w.enemies[i];
+  if (!e.alive) return;
+  e.hp -= dmg;
+  e.flash = 0.12;
+  e.kx += kx * (1 - e.def.heavy);
+  e.ky += ky * (1 - e.def.heavy);
+  w.events.push({ type: 'hit', x: e.x, y: e.y - e.def.r, dmg, crit });
+  if (e.hp > 0) return;
+  e.alive = false;
+  w.kills += 1;
+  w.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.def.id });
+  dropFrom(w, e);
+}
+
+function spawn(w: World, def: EnemyDef) {
+  const at = spawnPoint(w);
+  const hp = def.hp * w.stage.toughness(w.time);
+  const free = w.enemies.find((e) => !e.alive);
+  if (free) Object.assign(free, makeEnemy(def, at.x, at.y, hp), { hit: free.hit.fill(-1) });
+  else if (w.enemies.length < MAX_ENEMIES) w.enemies.push(makeEnemy(def, at.x, at.y, hp));
+  else return;
+  (free ?? w.enemies[w.enemies.length - 1]).phase = w.rand() * Math.PI * 2;
+}
+
+function moveEnemy(w: World, e: Enemy, dt: number) {
+  const p = w.player;
+  const dx = p.x - e.x;
+  const dy = p.y - e.y;
+  const d = Math.hypot(dx, dy) || 1;
+  const ux = dx / d;
+  const uy = dy / d;
+  const sp = e.def.speed;
+  let vx = ux * sp;
+  let vy = uy * sp;
+  const move = e.def.move;
+  if (move === 'wave' || move === 'snake') {
+    const s = move === 'wave' ? Math.sin(e.t * 6 + e.phase) * 0.8 : Math.sin(e.t * 3 + e.phase) * 0.5;
+    vx += -uy * s * sp;
+    vy += ux * s * sp;
+  } else if (move === 'charge') {
+    if (e.state === 0 && d < 60) {
+      e.state = 1;
+      e.wait = 0.6;
+      e.dx = ux;
+      e.dy = uy;
+    }
+    if (e.state > 0) {
+      e.wait -= dt;
+      if (e.wait <= 0) {
+        e.state = e.state === 1 ? 2 : 0;
+        e.wait = e.state === 2 ? 0.8 : 0;
+      }
+      vx = e.state === 2 ? e.dx * sp * 4 : 0;
+      vy = e.state === 2 ? e.dy * sp * 4 : 0;
+    }
+  }
+  const decay = Math.pow(1e-4, dt);
+  e.x += (vx + e.kx) * dt;
+  e.y += (vy + e.ky) * dt;
+  e.kx *= decay;
+  e.ky *= decay;
+  e.t += dt;
+  e.flash -= dt;
+}
+
+const near: number[] = [];
+
+/** 重なった敵を半分ずつ押し返し、団子にならないようにする。比べるのは近い 4 体まで */
+function separate(w: World) {
+  const es = w.enemies;
+  for (let i = 0; i < es.length; i++) {
+    const a = es[i];
+    if (!a.alive) continue;
+    let n = 0;
+    for (const j of w.grid.near(a.x, a.y, a.def.r * 2, near)) {
+      if (j === i) continue;
+      const b = es[j];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const min = a.def.r + b.def.r;
+      const d2 = dx * dx + dy * dy;
+      if (d2 >= min * min) continue;
+      const d = Math.sqrt(d2) || 0.01;
+      const push = (min - d) / 2 / d;
+      a.x -= dx * push;
+      a.y -= dy * push;
+      b.x += dx * push;
+      b.y += dy * push;
+      if (++n >= 4) break;
+    }
+  }
+}
+
+function touch(w: World) {
+  const p = w.player;
+  if (p.invuln > 0) return;
+  let atk = 0;
+  for (const i of w.grid.near(p.x, p.y, 16, near)) {
+    const e = w.enemies[i];
+    if (!e.alive) continue;
+    const r = e.def.r + 5;
+    if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 < r * r) atk = Math.max(atk, e.def.atk);
+  }
+  if (atk === 0) return;
+  const dmg = Math.max(1, atk - w.stats.armor);
+  p.hp -= dmg;
+  p.invuln = 0.5;
+  p.hurt = 0.3;
+  w.events.push({ type: 'hurt', dmg });
+  if (p.hp > 0) return;
+  p.hp = 0;
+  w.over = 'dead';
+  w.events.push({ type: 'dead' });
+}
+
+export function step(w: World, input: { x: number; y: number }, dt: number): void {
+  w.events.length = 0;
+  if (w.over || w.pending > 0) return;
+  w.time += dt;
+  if (w.time >= w.stage.length) {
+    for (const e of w.enemies) {
+      if (!e.alive) continue;
+      e.alive = false;
+      w.kills += 1;
+      w.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.def.id });
+    }
+    w.over = 'clear';
+    w.events.push({ type: 'clear' });
+    return;
+  }
+
+  const p = w.player;
+  const speed = BASE_SPEED * w.stats.speed;
+  p.moving = input.x !== 0 || input.y !== 0;
+  p.x += input.x * speed * dt;
+  p.y += input.y * speed * dt;
+  if (p.moving) {
+    const len = Math.hypot(input.x, input.y);
+    p.aimX = input.x / len;
+    p.aimY = input.y / len;
+    if (input.x !== 0) p.facing = input.x > 0 ? 1 : -1;
+  }
+  p.invuln -= dt;
+  p.hurt -= dt;
+  p.attack -= dt;
+  p.hp = Math.min(w.stats.maxHp, p.hp + w.stats.regen * dt);
+
+  let alive = 0;
+  for (const e of w.enemies) if (e.alive) alive++;
+  const cap = w.stage.cap(w.time);
+  w.stage.waves.forEach((wave, i) => {
+    if (alive >= cap) return;
+    w.spawnAcc[i] += spawnRate(wave, w.time) * dt;
+    while (w.spawnAcc[i] >= 1 && alive < cap) {
+      w.spawnAcc[i] -= 1;
+      spawn(w, ENEMIES[wave.enemy]);
+      alive++;
+    }
+  });
+
+  const far = Math.hypot(w.view.w, w.view.h) * 0.9;
+  w.grid.clear();
+  w.enemies.forEach((e, i) => {
+    if (!e.alive) return;
+    moveEnemy(w, e, dt);
+    if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 > far * far) {
+      const at = spawnPoint(w);
+      e.x = at.x;
+      e.y = at.y;
+    }
+    w.grid.add(i, e.x, e.y);
+  });
+  separate(w);
+  touch(w);
+  if (w.over) return;
+
+  fire(w, dt);
+  hits(w, dt);
+  collect(w, dt);
+}
