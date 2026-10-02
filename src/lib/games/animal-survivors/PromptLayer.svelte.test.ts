@@ -11,7 +11,7 @@ describe('PromptLayer', () => {
     document.body.innerHTML = '';
   });
 
-  it('引き直すと「のこり N」が減り、使い切るとボタンが消える', () => {
+  it('引き直すと残りの数が減り、使い切るとボタンが消える', () => {
     const w = createWorld('dog', 1, { w: 260, h: 380 }, { reroll: 2 });
     w.pending = 1;
     const prompts = new Prompts(w);
@@ -20,10 +20,10 @@ describe('PromptLayer', () => {
     const app = mount(PromptLayer, { target, props: { prompts, finger: null } });
     flushSync();
     const reroll = () => [...target.querySelectorAll('button')].find((b) => b.textContent?.includes('引き直す'));
-    expect(reroll()?.textContent).toContain('のこり 2');
+    expect(reroll()?.textContent).toContain('引き直す 2');
     reroll()!.click();
     flushSync();
-    expect(reroll()?.textContent).toContain('のこり 1');
+    expect(reroll()?.textContent).toContain('引き直す 1');
     reroll()!.click();
     flushSync();
     expect(reroll()).toBeUndefined();

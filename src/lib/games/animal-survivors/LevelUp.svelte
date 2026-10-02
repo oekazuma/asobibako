@@ -9,16 +9,29 @@
   let {
     options,
     locked,
-    rerolls,
+    tools,
     onpick,
-    onreroll
+    ontool,
+    onbanish
   }: {
     options: Choice[];
     locked: boolean;
-    rerolls: number;
+    /** 引き直す・飛ばす・除外の残り */
+    tools: { rerolls: number; skips: number; banishes: number };
     onpick: (c: Choice) => void;
-    onreroll: () => void;
+    ontool: (t: 'reroll' | 'skip') => void;
+    onbanish: (c: Choice) => void;
   } = $props();
+
+  /** 除外を押したあと、消す札を選んでいるところ */
+  let banishing = $state(false);
+
+  function choose(c: Choice) {
+    if (!banishing) return onpick(c);
+    if (c.kind === 'meat' || c.kind === 'bag') return;
+    banishing = false;
+    onbanish(c);
+  }
 
   function info(c: Choice) {
     if (c.kind === 'weapon') {
@@ -47,26 +60,26 @@
   }
 
   function key(event: KeyboardEvent) {
-    if (!locked && event.key.toLowerCase() === 'r' && rerolls > 0) {
+    if (!locked && event.key.toLowerCase() === 'r' && tools.rerolls > 0) {
       event.preventDefault();
-      onreroll();
+      ontool('reroll');
       return;
     }
     const n = Number(event.key);
     if (locked || !Number.isInteger(n) || n < 1 || n > options.length) return;
     event.preventDefault();
-    onpick(options[n - 1]);
+    choose(options[n - 1]);
   }
 </script>
 
 <svelte:window onkeydown={key} />
 
 <div class="veil">
-  <section class="as-panel pop" class:as-locked={locked} aria-label="レベルアップ">
+  <section class="as-panel pop" class:as-locked={locked} class:banishing aria-label="レベルアップ">
     <h2 class="as-title">LEVEL UP!</h2>
     {#each options as c, i (c.kind + ('id' in c ? c.id : ''))}
       {@const d = info(c)}
-      <button class="as-card" onclick={() => onpick(c)}>
+      <button class="as-card" onclick={() => choose(c)}>
         <span class="key">{i + 1}</span>
         <PixelIcon art={d.art} size="min(10cqw, 6cqh, 64px)" />
         <span class="body">
@@ -79,8 +92,20 @@
         </span>
       </button>
     {/each}
-    {#if rerolls > 0}
-      <button class="as-card reroll" onclick={onreroll}>引き直す（のこり {rerolls}）</button>
+    {#if tools.rerolls + tools.skips + tools.banishes > 0}
+      <div class="tools">
+        {#if tools.rerolls > 0}
+          <button class="as-card tool" onclick={() => ontool('reroll')}>引き直す {tools.rerolls}</button>
+        {/if}
+        {#if tools.skips > 0}
+          <button class="as-card tool" onclick={() => ontool('skip')}>飛ばす {tools.skips}</button>
+        {/if}
+        {#if tools.banishes > 0}
+          <button class="as-card tool" class:on={banishing} onclick={() => (banishing = !banishing)}
+            >除外 {tools.banishes}</button
+          >
+        {/if}
+      </div>
     {/if}
   </section>
 </div>
@@ -100,10 +125,21 @@
     animation: pop 280ms steps(4);
   }
 
-  .reroll {
+  .tools {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(6em, 1fr));
+    gap: 8px;
+  }
+
+  .tool {
     justify-content: center;
     background: #d6e8ff;
-    font-size: min(4cqw, 2.4cqh, 20px);
+    font-size: min(3.8cqw, 2.3cqh, 19px);
+  }
+
+  .tool.on,
+  .banishing .as-card:not(.tool) {
+    background: #ffb4a8;
   }
 
   .key {
