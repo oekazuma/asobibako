@@ -33,7 +33,7 @@ function rotated(
 
 /** ダッシュの分身。自分の絵を半透明にして、少し遅れた残像も重ねる */
 function afterimage(ctx: CanvasRenderingContext2D, q: Snap, w: World, x: number, y: number, vx: number, vy: number) {
-  const art = ANIMAL_ART[w.animal.id].walk;
+  const art = ANIMAL_ART[w.animal.id].forms[0].walk;
   const img = bake(art, 1, vx < 0 ? 'flip' : 'normal');
   for (const [lag, alpha] of [
     [0.06, 0.2],

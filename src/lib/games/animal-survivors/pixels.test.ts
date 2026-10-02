@@ -11,7 +11,9 @@ import { goldOf, problems, type Art } from './pixels';
 
 const all: [string, Art][] = [
   ...Object.entries(ANIMAL_ART).flatMap(([id, a]) =>
-    Object.entries(a).map(([k, art]) => [`${id}.${k}`, art] as [string, Art])
+    a.forms.flatMap((pose, f) =>
+      Object.entries(pose).map(([k, art]) => [`${id}.${f}.${k}`, art] as [string, Art])
+    )
   ),
   ...Object.entries(ENEMY_ART),
   ...Object.entries(BOSS_ART),
@@ -36,8 +38,19 @@ describe('ドット絵の格子', () => {
   });
 
   it('動物の歩きは 4 コマ、敵は 2 コマ', () => {
-    for (const a of Object.values(ANIMAL_ART)) expect(a.walk.frames).toHaveLength(4);
+    for (const a of Object.values(ANIMAL_ART)) for (const p of a.forms) expect(p.walk.frames).toHaveLength(4);
     for (const e of Object.values(ENEMY_ART)) expect(e.frames).toHaveLength(2);
+  });
+
+  it('動物は 3 段階で、大きさが 16・20・24 ドット', () => {
+    for (const a of Object.values(ANIMAL_ART)) {
+      expect(a.forms.map((p) => [p.walk.w, p.walk.h])).toEqual([
+        [16, 16],
+        [20, 20],
+        [24, 24]
+      ]);
+      for (const p of a.forms) for (const art of [p.attack, p.hurt]) expect([art.w, art.h]).toEqual([p.walk.w, p.walk.h]);
+    }
   });
 
   it('巨大ベアは 3 コマ、女王グモと子グモは 2 コマ', () => {

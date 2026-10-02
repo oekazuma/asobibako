@@ -126,7 +126,7 @@ function ground(ctx: CanvasRenderingContext2D, w: World, cx: number, cy: number,
 
 function player(ctx: CanvasRenderingContext2D, w: World, now: number) {
   const p = w.player;
-  const a = ANIMAL_ART[w.animal.id];
+  const a = ANIMAL_ART[w.animal.id].forms[0];
   ctx.fillStyle = 'rgb(0 0 0 / 0.25)';
   shadow(ctx, p.x, p.y + 7, 12);
   if (p.invuln > 0 && Math.floor(p.invuln / 0.08) % 2 === 1) return;

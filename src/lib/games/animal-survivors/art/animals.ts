@@ -1,10 +1,11 @@
 import type { Art } from '../pixels';
+import { GROWN } from './grown';
+
+export type Pose = { walk: Art; attack: Art; hurt: Art };
+type AnimalId = 'dog' | 'cat' | 'wolf' | 'fox' | 'bear' | 'rabbit' | 'panda';
 
 /** 右向き。左向きは描くときに反転する。歩きは体を 1 ドット上下させ、足の形を入れ替えている */
-export const ANIMAL_ART: Record<
-  'dog' | 'cat' | 'wolf' | 'fox' | 'bear' | 'rabbit' | 'panda',
-  { walk: Art; attack: Art; hurt: Art }
-> = {
+const BASE: Record<AnimalId, Pose> = {
   dog: {
     walk: {
       w: 16,
@@ -908,3 +909,8 @@ export const ANIMAL_ART: Record<
     }
   }
 };
+
+/** 育つ 3 段階の絵。forms[0] がキャラ選択でも使う 1 段階め */
+export const ANIMAL_ART = Object.fromEntries(
+  Object.entries(BASE).map(([id, pose]) => [id, { forms: [pose, ...GROWN[id]] }])
+) as Record<AnimalId, { forms: [Pose, Pose, Pose] }>;
