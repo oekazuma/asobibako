@@ -11,6 +11,7 @@
   import { emptyRecords, loadRecords, record, saveRecords } from './records';
   import Result from './Result.svelte';
   import Shop from './Shop.svelte';
+  import StageSelect from './StageSelect.svelte';
   import { SONGS } from './songs';
   import Trophies from './Trophies.svelte';
   import { summary, type RunSummary, type World } from './world';
@@ -19,8 +20,9 @@
   // 15 分の 1 回が面ひとつなので、シェルの level と onfinish は使わない（リザルトはこのゲームが持つ）
   let { onquit }: SoloProps = $props();
 
-  let screen = $state<'select' | 'shop' | 'trophies' | 'play' | 'result'>('select');
-  let animal = $state<AnimalId>('dog');
+  let screen = $state<'select' | 'stage' | 'shop' | 'trophies' | 'play' | 'result'>('select');
+  /** これから遊ぶ動物と面。「もう一度」とやり直しは同じ組で始める */
+  let pick = $state<{ animal: AnimalId; stage: string }>({ animal: 'dog', stage: 'forest' });
   let run = $state<RunSummary | null>(null);
   let records = $state(emptyRecords());
   /** この回に達成した実績 */
@@ -37,8 +39,8 @@
     loop.play(t.song, t.bpm, screen === 'play' && field.quiet ? t.gain * 0.4 : t.gain);
   });
 
-  function start(id: AnimalId) {
-    animal = id;
+  function start(stage: string) {
+    pick = { ...pick, stage };
     field = { song: 'field', quiet: false };
     round += 1;
     screen = 'play';
@@ -51,6 +53,11 @@
     got = record(r, run);
     saveRecords(r);
     records = r;
+  }
+
+  function choose(animal: AnimalId) {
+    pick = { animal, stage: records.stage };
+    screen = 'stage';
   }
 
   function end() {
@@ -82,11 +89,13 @@
 {#if screen === 'select'}
   <CharSelect
     {records}
-    onpick={start}
+    onpick={choose}
     onquit={() => onquit?.()}
     onshop={() => (screen = 'shop')}
     ontrophies={() => (screen = 'trophies')}
   />
+{:else if screen === 'stage'}
+  <StageSelect {records} onpick={start} onback={() => (screen = 'select')} />
 {:else if screen === 'shop'}
   <Shop onback={back} />
 {:else if screen === 'trophies'}
@@ -94,11 +103,11 @@
 {:else if screen === 'play'}
   {#key round}
     <Play
-      {animal}
+      choice={pick}
       ranks={records.ranks}
       onover={over}
       onend={end}
-      onrestart={() => start(animal)}
+      onrestart={() => start(pick.stage)}
       onmusic={(m) => (field = m)}
     />
   {/key}
@@ -108,7 +117,7 @@
     {got}
     total={records.coins}
     locked={settle.active}
-    onagain={() => start(animal)}
+    onagain={() => start(pick.stage)}
     onselect={() => (screen = 'select')}
   />
 {/if}

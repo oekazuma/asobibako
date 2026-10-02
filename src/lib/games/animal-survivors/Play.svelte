@@ -16,14 +16,15 @@
   import { createWorld, step, summary, type World } from './world';
 
   let {
-    animal,
+    choice,
     ranks,
     onover,
     onend,
     onrestart,
     onmusic
   }: {
-    animal: AnimalId;
+    /** 遊ぶ動物と面 */
+    choice: { animal: AnimalId; stage: string };
     ranks: Ranks;
     onover: (w: World) => void;
     onend: () => void;
@@ -40,7 +41,7 @@
   /** HUD を書きはじめる高さ（仮想ドット）。シェルの隅のボタンの下 */
   let top = 24;
   // svelte-ignore state_referenced_locally
-  const world = createWorld(animal, Date.now() % 2 ** 31, { w: view.w, h: view.h }, ranks);
+  const world = createWorld(choice.animal, Date.now() % 2 ** 31, { w: view.w, h: view.h }, ranks, choice.stage);
   const fx = new Effects();
   const keys = new SvelteSet<string>();
   const prompts = new Prompts(world);
