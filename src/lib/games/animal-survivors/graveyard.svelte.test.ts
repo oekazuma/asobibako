@@ -3,7 +3,8 @@ import { ENEMIES } from './enemies';
 import { FOREST } from './stages/forest';
 import { GRAVEYARD } from './stages/graveyard';
 import { STAGES, stageOf } from './stages';
-import { coinsOf, createWorld, makeEnemy, step, type World } from './world';
+import { Prompts } from './prompts.svelte';
+import { coinsOf, createWorld, damageEnemy, makeEnemy, step, type World } from './world';
 
 const VIEW = { w: 274, h: 394 };
 
@@ -65,5 +66,32 @@ describe('墓地のボス', () => {
       for (const h of w.hazards) if (h.alive) kinds.add(h.kind);
     }
     expect(kinds).toEqual(new Set(['dash', 'slam']));
+  });
+});
+
+describe('墓地のボスの WARNING と曲', () => {
+  it('5 分の前にかぼちゃ大王の WARNING が出てボスの曲になり、倒すと戻る', () => {
+    const w = createWorld('dog', 1, VIEW, {}, 'graveyard');
+    w.stage = { ...w.stage, waves: [], events: [] };
+    w.spawnAcc = [];
+    w.weapons = [];
+    w.propCd = 9999;
+    w.player.invuln = 9999;
+    const p = new Prompts(w);
+    w.time = 296;
+    let warned = '';
+    for (let i = 0; i < 60 * 5; i++) {
+      step(w, { x: 0, y: 0 }, 1 / 60);
+      p.take();
+      if (p.warning) warned = p.warning.name;
+    }
+    expect(warned).toBe('かぼちゃ大王');
+    expect(p.boss).toBe(true);
+    const i = w.enemies.findIndex((e) => e.alive && e.def.id === 'pumpkin');
+    damageEnemy(w, i, 99999, 0, 0);
+    p.take();
+    expect(p.boss).toBe(false);
+    expect(w.bossKills).toEqual(['pumpkin']);
+    p.stop();
   });
 });
