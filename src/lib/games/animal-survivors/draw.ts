@@ -9,6 +9,7 @@ import { SNOW_ART } from './art/snow';
 import { PALETTE } from './art/palette';
 import { shots, swipes, zonesBelow } from './draw-arms';
 import { bossBars, hazardsAbove, hazardsBelow } from './draw-boss';
+import { blizzard } from './draw-storm';
 import { gemTier } from './drops';
 import type { Effects } from './effects';
 import { hud } from './hud';
@@ -302,6 +303,7 @@ export function draw(
     ctx.fillRect(0, 0, v.w, v.h);
   }
   ctx.globalAlpha = 1;
+  blizzard(ctx, w, v.w, v.h, now);
   hud(ctx, w, v, top);
   bossBars(ctx, w, v, top);
 }

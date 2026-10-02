@@ -7,6 +7,7 @@ import { Grid } from './grid';
 import { stats, type Stats } from './passives';
 import { rng, type Rng } from './rng';
 import { stageOf } from './stages';
+import { calm, STORM_PUSH, stepStorm, windFactor, type Storm } from './storm';
 import { spawnRate, type Stage } from './stages/forest';
 import { perks, type Ranks } from './upgrades';
 import { WEAPONS } from './weapons';
@@ -138,6 +139,8 @@ export interface World {
   freeze: number;
   /** 金の磁石のコインラッシュの残り秒 */
   rush: number;
+  /** 雪山の吹雪 */
+  storm: Storm;
   /** 次にランタンを足すまでの秒 */
   propCd: number;
   /** 次に出すヌシの番号 */
@@ -240,6 +243,7 @@ export function createWorld(
     eventNext: 0,
     freeze: 0,
     rush: 0,
+    storm: calm(),
     propCd: 2,
     chiefNext: 0,
     metalAt: metalTime(seed),
@@ -531,6 +535,11 @@ function moveEnemy(w: World, i: number, dt: number) {
       vy = e.state === 2 ? e.dy * sp * 4 : 0;
     }
   }
+  if (!e.def.boss) {
+    const k = windFactor(w, vx, vy);
+    vx *= k;
+    vy *= k;
+  }
   // 足止めのあいだも動き方（ボスの攻撃の時計）は進め、位置だけを止める
   if (e.root > 0) {
     e.root -= dt;
@@ -653,6 +662,11 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   p.moving = input.x !== 0 || input.y !== 0;
   p.x += input.x * speed * dt;
   p.y += input.y * speed * dt;
+  stepStorm(w, dt);
+  if (w.storm.left > 0 && w.freeze <= 0) {
+    p.x += w.storm.wx * BASE_SPEED * STORM_PUSH * dt;
+    p.y += w.storm.wy * BASE_SPEED * STORM_PUSH * dt;
+  }
   if (p.moving) {
     const len = Math.hypot(input.x, input.y);
     p.aimX = input.x / len;
