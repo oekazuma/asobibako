@@ -30,10 +30,10 @@ describe('面の表', () => {
     expect(stageOf('nope')).toBe(FOREST);
   });
 
-  it('墓地は森より 1.15 倍強く、コインは 1.5 倍', () => {
+  it('墓地は森より 1.1 倍強く、コインは 1.5 倍', () => {
     for (const t of [0, 300, 899]) {
-      expect(GRAVEYARD.toughness(t)).toBeCloseTo(FOREST.toughness(t) * 1.15);
-      expect(GRAVEYARD.fury(t)).toBeCloseTo(FOREST.fury(t) * 1.15);
+      expect(GRAVEYARD.toughness(t)).toBeCloseTo(FOREST.toughness(t) * 1.1);
+      expect(GRAVEYARD.fury(t)).toBeCloseTo(FOREST.fury(t) * 1.1);
     }
     const w = createWorld('dog', 1, VIEW, {}, 'graveyard');
     expect(w.stage).toBe(GRAVEYARD);
@@ -70,7 +70,7 @@ describe('墓地のボス', () => {
 });
 
 describe('墓地のボスの WARNING と曲', () => {
-  it('5 分の前にかぼちゃ大王の WARNING が出てボスの曲になり、倒すと戻る', () => {
+  it('3 分の前にガイコツの騎士の WARNING が出てボスの曲になり、倒すと戻る', () => {
     const w = createWorld('dog', 1, VIEW, {}, 'graveyard');
     w.stage = { ...w.stage, waves: [], events: [] };
     w.spawnAcc = [];
@@ -78,20 +78,20 @@ describe('墓地のボスの WARNING と曲', () => {
     w.propCd = 9999;
     w.player.invuln = 9999;
     const p = new Prompts(w);
-    w.time = 296;
+    w.time = 176;
     let warned = '';
     for (let i = 0; i < 60 * 5; i++) {
       step(w, { x: 0, y: 0 }, 1 / 60);
       p.take();
       if (p.warning) warned = p.warning.name;
     }
-    expect(warned).toBe('かぼちゃ大王');
+    expect(warned).toBe('ガイコツの騎士');
     expect(p.boss).toBe(true);
-    const i = w.enemies.findIndex((e) => e.alive && e.def.id === 'pumpkin');
+    const i = w.enemies.findIndex((e) => e.alive && e.def.id === 'knight');
     damageEnemy(w, i, 99999, 0, 0);
     p.take();
     expect(p.boss).toBe(false);
-    expect(w.bossKills).toEqual(['pumpkin']);
+    expect(w.bossKills).toEqual(['knight']);
     p.stop();
   });
 });

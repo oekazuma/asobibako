@@ -16,6 +16,14 @@ describe('経験値', () => {
     expect(xpNeed(21)).toBe(208);
   });
 
+  it('Lv30 から 24 ずつ、Lv40 から 30 ずつ増え、後半はレベルが上がりにくい', () => {
+    expect(xpNeed(29)).toBe(312);
+    expect(xpNeed(30)).toBe(325);
+    expect(xpNeed(31)).toBe(349);
+    expect(xpNeed(40)).toBe(565);
+    expect(xpNeed(41)).toBe(595);
+  });
+
   it('一度に 2 つ上がれば 3 択が 2 回たまる', () => {
     const w = fresh();
     gainXp(w, 20);

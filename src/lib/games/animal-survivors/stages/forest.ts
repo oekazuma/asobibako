@@ -24,8 +24,8 @@ const RAGE = 1.5;
 
 /** 3・6 分に 2 体を、9・12 分に同じ 2 体を攻撃を速めて出し、13:30 に面の主 */
 export const bossRun = (a: BossId, b: BossId): Stage['bosses'] => [
-  { at: 180, id: a },
-  { at: 360, id: b },
+  { at: 180, id: a, hp: 0.6 },
+  { at: 360, id: b, hp: 0.8 },
   { at: 540, id: a, rage: RAGE },
   { at: 720, id: b, rage: RAGE },
   { at: FINALE, id: a, hp: 1.5, rage: RAGE, title: '面の主' },
@@ -114,5 +114,5 @@ export const FOREST: Stage = {
   cap: (t) => Math.min(400, Math.round(30 + (t / 720) * 370)),
   toughness: (t) => 1 + (t / 900) * 6.5,
   elite: (t) => (t < 240 ? 0 : 0.02),
-  fury: (t) => 0.6 + (t / 900) * 1.4
+  fury: (t) => 0.6 + (t / 900) * 2
 };

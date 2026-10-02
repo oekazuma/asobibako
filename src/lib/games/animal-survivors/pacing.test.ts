@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ACHIEVEMENTS } from './achievements';
-import { spawnBosses } from './bosses';
+import { BOSS_HP, spawnBosses } from './bosses';
 import { collect } from './drops';
 import { ENEMIES } from './enemies';
 import { emptyRecords } from './records';
@@ -173,7 +173,7 @@ describe('ボスの流れ', () => {
     w.time = 180;
     spawnBosses(w);
     const [e] = alive(w).filter((o) => o.def.boss);
-    expect(e.hp).toBeCloseTo(ENEMIES.bear.hp * FOREST.toughness(180));
+    expect(e.hp).toBeCloseTo(ENEMIES.bear.hp * 0.6 * FOREST.toughness(180) * BOSS_HP);
   });
 
   it('2 回めのボスは攻撃の間が短い', () => {
@@ -210,7 +210,7 @@ describe('面の主', () => {
     spawnBosses(w);
     const bosses = alive(w).filter((e) => e.def.boss);
     expect(bosses.map((e) => e.def.id)).toEqual(finale.map((b) => b.id));
-    for (const e of bosses) expect(e.hp).toBeCloseTo(ENEMIES[e.def.id].hp * 1.5 * s.toughness(FINALE));
+    for (const e of bosses) expect(e.hp).toBeCloseTo(ENEMIES[e.def.id].hp * 1.5 * s.toughness(FINALE) * BOSS_HP);
     expect(w.warned).toBe(s.bosses.length);
   });
 });

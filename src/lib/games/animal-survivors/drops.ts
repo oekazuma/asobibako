@@ -75,11 +75,12 @@ function clearScreen(w: World) {
   }
 }
 
-/** Lv から次の Lv へ要る経験値。5 から始めて Lv20 まで 10 ずつ、Lv40 まで 13 ずつ、そこからは 16 ずつ増える */
+/** Lv から次の Lv へ要る経験値。5 から始めて Lv20 まで 10 ずつ、Lv30 まで 13 ずつ、Lv40 まで 24 ずつ、そこからは 30 ずつ増える（後半に強くなりすぎないように） */
 export function xpNeed(level: number): number {
   if (level < 20) return 5 + (level - 1) * 10;
-  if (level < 40) return 195 + (level - 20) * 13;
-  return 455 + (level - 40) * 16;
+  if (level < 30) return 195 + (level - 20) * 13;
+  if (level < 40) return 325 + (level - 30) * 24;
+  return 565 + (level - 40) * 30;
 }
 
 /** 描く色。1〜4 は青、5〜19 は緑、20 以上は赤 */

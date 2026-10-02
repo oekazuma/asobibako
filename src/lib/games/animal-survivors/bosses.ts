@@ -20,6 +20,9 @@ export interface Hazard {
   dmg: number;
 }
 
+/** ボスの体力に掛ける面の硬さを弱める（そのままだと序盤のボスに 2 分かかる） */
+export const BOSS_HP = 0.7;
+
 /** ボスが出る何秒前に WARNING を出すか */
 export const WARN_AHEAD = 3;
 
@@ -54,7 +57,7 @@ export function spawnBosses(w: World): void {
     const b = list[w.bossNext++];
     const def = ENEMIES[b.id];
     const at = spawnPoint(w);
-    const hp = def.hp * (b.hp ?? 1) * w.stage.toughness(b.at);
+    const hp = def.hp * (b.hp ?? 1) * w.stage.toughness(b.at) * BOSS_HP;
     w.enemies[slot(w)] = makeEnemy(b.rage ? { ...def, rage: b.rage } : def, at.x, at.y, hp);
   }
 }

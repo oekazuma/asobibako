@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { chestSize, openChest } from './chest';
 import { MAX_LEVEL, WEAPONS } from './weapons';
 import { PASSIVES } from './passives';
+import { BOSS_HP } from './bosses';
 import { ENEMIES } from './enemies';
 import { createWorld, makeEnemy, MAX_ENEMIES, SLOW, step, type World } from './world';
 
@@ -36,7 +37,7 @@ describe('ボスの出かた', () => {
     run(w, 2.6);
     const bear = w.enemies.find((e) => e.alive && e.def.boss === 'bear')!;
     expect(bear).toBeDefined();
-    expect(bear.hp).toBeCloseTo(ENEMIES.bear.hp * w.stage.toughness(180));
+    expect(bear.hp).toBeCloseTo(ENEMIES.bear.hp * 0.6 * w.stage.toughness(180) * BOSS_HP);
   });
 
   it('6 分には女王グモが出る（倒していない巨大ベアは残る）', () => {
