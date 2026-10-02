@@ -67,4 +67,8 @@ describe('ドット絵の格子', () => {
     expect(dark).not.toBe(light);
     expect([dark, light].every((c) => /^#[0-9a-f]{6}$/.test(c))).toBe(true);
   });
+
+  it('7 匹ぶんの絵がある', () => {
+    expect(Object.keys(ANIMAL_ART).sort()).toEqual(['bear', 'cat', 'dog', 'fox', 'panda', 'rabbit', 'wolf']);
+  });
 });

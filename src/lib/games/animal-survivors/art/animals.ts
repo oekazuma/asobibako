@@ -1,7 +1,10 @@
 import type { Art } from '../pixels';
 
 /** 右向き。左向きは描くときに反転する。歩きは体を 1 ドット上下させ、足の形を入れ替えている */
-export const ANIMAL_ART: Record<'dog' | 'cat' | 'wolf', { walk: Art; attack: Art; hurt: Art }> = {
+export const ANIMAL_ART: Record<
+  'dog' | 'cat' | 'wolf' | 'fox' | 'bear' | 'rabbit' | 'panda',
+  { walk: Art; attack: Art; hurt: Art }
+> = {
   dog: {
     walk: {
       w: 16,
@@ -384,6 +387,521 @@ export const ANIMAL_ART: Record<'dog' | 'cat' | 'wolf', { walk: Art; attack: Art
           'kgggggwwwggGk...',
           '.kkkGGggggGGk...',
           '....kGGkkGGk....',
+          '....kkkkkkkk....'
+        ]
+      ]
+    }
+  },
+  fox: {
+    walk: {
+      w: 16,
+      h: 16,
+      pal: { F: '#e06a28', D: '#9c3f12' },
+      frames: [
+        [
+          '..k..........k..',
+          '..kk........kk..',
+          '..kkk......kkk..',
+          '..kDFkkkkkkFDk..',
+          '..kFFFFFFFFFFk..',
+          '..kFkwFFFFkwFk..',
+          '..kwkkFFFFkkwk..',
+          '..kwwwwFFwwwwk..',
+          '...kwwwkkwwwk...',
+          'kwwkkwwwwwk.....',
+          'kFFkFFwwwwFFk...',
+          'kFFFFFwwwwFFk...',
+          'kFFFFFFwwFFDk...',
+          '.kkkDFFFFFDDk...',
+          '...kGGk..kGGk...',
+          '...kkkk..kkkk...'
+        ],
+        [
+          '..kk........kk..',
+          '..kkk......kkk..',
+          '..kDFkkkkkkFDk..',
+          '..kFFFFFFFFFFk..',
+          '..kFkwFFFFkwFk..',
+          '..kwkkFFFFkkwk..',
+          '..kwwwwFFwwwwk..',
+          '...kwwwkkwwwk...',
+          'kwwkkwwwwwk.....',
+          'kFFkFFwwwwFFk...',
+          'kFFFFFwwwwFFk...',
+          'kFFFFFFwwFFDk...',
+          '.kkkDFFFFFDDk...',
+          '.kkkDFFFFFDDk...',
+          '..kGGk....kGGk..',
+          '..kkkk....kkkk..'
+        ],
+        [
+          '..k..........k..',
+          '..kk........kk..',
+          '..kkk......kkk..',
+          '..kDFkkkkkkFDk..',
+          '..kFFFFFFFFFFk..',
+          '..kFkwFFFFkwFk..',
+          '..kwkkFFFFkkwk..',
+          '..kwwwwFFwwwwk..',
+          '...kwwwkkwwwk...',
+          'kwwkkwwwwwk.....',
+          'kFFkFFwwwwFFk...',
+          'kFFFFFwwwwFFk...',
+          'kFFFFFFwwFFDk...',
+          '.kkkDFFFFFDDk...',
+          '...kGGk..kGGk...',
+          '...kkkk..kkkk...'
+        ],
+        [
+          '..kk........kk..',
+          '..kkk......kkk..',
+          '..kDFkkkkkkFDk..',
+          '..kFFFFFFFFFFk..',
+          '..kFkwFFFFkwFk..',
+          '..kwkkFFFFkkwk..',
+          '..kwwwwFFwwwwk..',
+          '...kwwwkkwwwk...',
+          'kwwkkwwwwwk.....',
+          'kFFkFFwwwwFFk...',
+          'kFFFFFwwwwFFk...',
+          'kFFFFFFwwFFDk...',
+          '.kkkDFFFFFDDk...',
+          '.kkkDFFFFFDDk...',
+          '....kGGkkGGk....',
+          '....kkkkkkkk....'
+        ]
+      ]
+    },
+    attack: {
+      w: 16,
+      h: 16,
+      pal: { F: '#e06a28', D: '#9c3f12' },
+      frames: [
+        [
+          '...k..........k.',
+          '...kk........kk.',
+          '...kkk......kkk.',
+          '...kDFkkkkkkFDk.',
+          '...kFFFFFFFFFFk.',
+          '...kFkwFFFFkwFk.',
+          '...kwkkFFFFkkwk.',
+          '...kwwwwFFwwwwk.',
+          '....kwwkppkwwk..',
+          '.kwwkkwwwwwk....',
+          '.kFFkFFwwwwFFk..',
+          '.kFFFFFwwwwFFk..',
+          '.kFFFFFFwwFFDk..',
+          '..kkkDFFFFFDDk..',
+          '...kGGk....kGGk.',
+          '...kkkk....kkkk.'
+        ]
+      ]
+    },
+    hurt: {
+      w: 16,
+      h: 16,
+      pal: { F: '#e06a28', D: '#9c3f12' },
+      frames: [
+        [
+          '..k..........k..',
+          '..kk........kk..',
+          '..kkk......kkk..',
+          '..kDFkkkkkkFDk..',
+          '..kFFFFFFFFFFk..',
+          '..kFkFFFFFFkFk..',
+          '..kwwkFFFFkwwk..',
+          '..kwwwwFFwwwwk..',
+          '...kwwwkkwwwk...',
+          'kwwkkwwwwwk.....',
+          'kFFkFFwwwwFFk...',
+          'kFFFFFwwwwFFk...',
+          'kFFFFFFwwFFDk...',
+          '.kkkDFFFFFDDk...',
+          '....kGGkkGGk....',
+          '....kkkkkkkk....'
+        ]
+      ]
+    }
+  },
+  bear: {
+    walk: {
+      w: 16,
+      h: 16,
+      frames: [
+        [
+          '................',
+          '..kk........kk..',
+          '.kBbk......kbBk.',
+          '.kBbBkkkkkkBbBk.',
+          '..kBBBBBBBBBBk..',
+          '..kBkwBBBBkwBk..',
+          '..kBkkBBBBkkBk..',
+          '..kBBBccccBBBk..',
+          '..kBBcckkccBBk..',
+          '...kBBccccBBk...',
+          '..kBBBBBBBBBBk..',
+          '.kBBBtttttBBBBk.',
+          '.kBBBtttttBBBBk.',
+          '...kTBBBBBBTk...',
+          '...kBBk..kBBk...',
+          '...kkkk..kkkk...'
+        ],
+        [
+          '..kk........kk..',
+          '.kBbk......kbBk.',
+          '.kBbBkkkkkkBbBk.',
+          '..kBBBBBBBBBBk..',
+          '..kBkwBBBBkwBk..',
+          '..kBkkBBBBkkBk..',
+          '..kBBBccccBBBk..',
+          '..kBBcckkccBBk..',
+          '...kBBccccBBk...',
+          '..kBBBBBBBBBBk..',
+          '.kBBBtttttBBBBk.',
+          '.kBBBtttttBBBBk.',
+          '...kTBBBBBBTk...',
+          '...kTBBBBBBTk...',
+          '..kBBk....kBBk..',
+          '..kkkk....kkkk..'
+        ],
+        [
+          '................',
+          '..kk........kk..',
+          '.kBbk......kbBk.',
+          '.kBbBkkkkkkBbBk.',
+          '..kBBBBBBBBBBk..',
+          '..kBkwBBBBkwBk..',
+          '..kBkkBBBBkkBk..',
+          '..kBBBccccBBBk..',
+          '..kBBcckkccBBk..',
+          '...kBBccccBBk...',
+          '..kBBBBBBBBBBk..',
+          '.kBBBtttttBBBBk.',
+          '.kBBBtttttBBBBk.',
+          '...kTBBBBBBTk...',
+          '...kBBk..kBBk...',
+          '...kkkk..kkkk...'
+        ],
+        [
+          '..kk........kk..',
+          '.kBbk......kbBk.',
+          '.kBbBkkkkkkBbBk.',
+          '..kBBBBBBBBBBk..',
+          '..kBkwBBBBkwBk..',
+          '..kBkkBBBBkkBk..',
+          '..kBBBccccBBBk..',
+          '..kBBcckkccBBk..',
+          '...kBBccccBBk...',
+          '..kBBBBBBBBBBk..',
+          '.kBBBtttttBBBBk.',
+          '.kBBBtttttBBBBk.',
+          '...kTBBBBBBTk...',
+          '...kTBBBBBBTk...',
+          '....kBBkkBBk....',
+          '....kkkkkkkk....'
+        ]
+      ]
+    },
+    attack: {
+      w: 16,
+      h: 16,
+      frames: [
+        [
+          '................',
+          '...kk........kk.',
+          '..kBbk......kbBk',
+          '..kBbBkkkkkkBbBk',
+          '...kBBBBBBBBBBk.',
+          '...kBkwBBBBkwBk.',
+          '...kBkkBBBBkkBk.',
+          '...kBBBccccBBBk.',
+          '...kBBcckkccBBk.',
+          '....kBkppppkBk..',
+          '...kBBBBBBBBBBk.',
+          '..kBBBtttttBBBBk',
+          '..kBBBtttttBBBBk',
+          '....kTBBBBBBTk..',
+          '...kBBk....kBBk.',
+          '...kkkk....kkkk.'
+        ]
+      ]
+    },
+    hurt: {
+      w: 16,
+      h: 16,
+      frames: [
+        [
+          '................',
+          '..kk........kk..',
+          '.kBbk......kbBk.',
+          '.kBbBkkkkkkBbBk.',
+          '..kBBBBBBBBBBk..',
+          '..kBkBBBBBBkBk..',
+          '..kBBkBBBBkBBk..',
+          '..kBBBccccBBBk..',
+          '..kBBcckkccBBk..',
+          '...kBBccccBBk...',
+          '..kBBBBBBBBBBk..',
+          '.kBBBtttttBBBBk.',
+          '.kBBBtttttBBBBk.',
+          '...kTBBBBBBTk...',
+          '....kBBkkBBk....',
+          '....kkkkkkkk....'
+        ]
+      ]
+    }
+  },
+  rabbit: {
+    walk: {
+      w: 16,
+      h: 16,
+      frames: [
+        [
+          '...kk.....kk....',
+          '..kwwk...kwwk...',
+          '..kwpk...kpwk...',
+          '..kwpk...kpwk...',
+          '..kwwkkkkkwwk...',
+          '..kwwwwwwwwwk...',
+          '..kwkwwwwkwwk...',
+          '..kwwwwpwwwwk...',
+          '..kswwwkwwwsk...',
+          '...ksssssssk....',
+          '...kwwwwwwwwk...',
+          'kwwkwwwwwwwwk...',
+          'kwwkwwwwwwwsk...',
+          '.kkksswwwwssk...',
+          '...kwwk..kwwk...',
+          '...kkkk..kkkk...'
+        ],
+        [
+          '..kwwk...kwwk...',
+          '..kwpk...kpwk...',
+          '..kwpk...kpwk...',
+          '..kwwkkkkkwwk...',
+          '..kwwwwwwwwwk...',
+          '..kwkwwwwkwwk...',
+          '..kwwwwpwwwwk...',
+          '..kswwwkwwwsk...',
+          '...ksssssssk....',
+          '...kwwwwwwwwk...',
+          'kwwkwwwwwwwwk...',
+          'kwwkwwwwwwwsk...',
+          '.kkksswwwwssk...',
+          '.kkksswwwwssk...',
+          '..kwwk....kwwk..',
+          '..kkkk....kkkk..'
+        ],
+        [
+          '...kk.....kk....',
+          '..kwwk...kwwk...',
+          '..kwpk...kpwk...',
+          '..kwpk...kpwk...',
+          '..kwwkkkkkwwk...',
+          '..kwwwwwwwwwk...',
+          '..kwkwwwwkwwk...',
+          '..kwwwwpwwwwk...',
+          '..kswwwkwwwsk...',
+          '...ksssssssk....',
+          '...kwwwwwwwwk...',
+          'kwwkwwwwwwwwk...',
+          'kwwkwwwwwwwsk...',
+          '.kkksswwwwssk...',
+          '...kwwk..kwwk...',
+          '...kkkk..kkkk...'
+        ],
+        [
+          '..kwwk...kwwk...',
+          '..kwpk...kpwk...',
+          '..kwpk...kpwk...',
+          '..kwwkkkkkwwk...',
+          '..kwwwwwwwwwk...',
+          '..kwkwwwwkwwk...',
+          '..kwwwwpwwwwk...',
+          '..kswwwkwwwsk...',
+          '...ksssssssk....',
+          '...kwwwwwwwwk...',
+          'kwwkwwwwwwwwk...',
+          'kwwkwwwwwwwsk...',
+          '.kkksswwwwssk...',
+          '.kkksswwwwssk...',
+          '....kwwkkwwk....',
+          '....kkkkkkkk....'
+        ]
+      ]
+    },
+    attack: {
+      w: 16,
+      h: 16,
+      frames: [
+        [
+          '....kk.....kk...',
+          '...kwwk...kwwk..',
+          '...kwpk...kpwk..',
+          '...kwpk...kpwk..',
+          '...kwwkkkkkwwk..',
+          '...kwwwwwwwwwk..',
+          '...kwkwwwwkwwk..',
+          '...kwwwwpwwwwk..',
+          '...kswwkpkwwsk..',
+          '....ksssssssk...',
+          '....kwwwwwwwwk..',
+          '.kwwkwwwwwwwwk..',
+          '.kwwkwwwwwwwsk..',
+          '..kkksswwwwssk..',
+          '...kwwk....kwwk.',
+          '...kkkk....kkkk.'
+        ]
+      ]
+    },
+    hurt: {
+      w: 16,
+      h: 16,
+      frames: [
+        [
+          '...kk.....kk....',
+          '..kwwk...kwwk...',
+          '..kwpk...kpwk...',
+          '..kwpk...kpwk...',
+          '..kwwkkkkkwwk...',
+          '..kwkwwwkwwwk...',
+          '..kwwkwwwkwwk...',
+          '..kwwwwpwwwwk...',
+          '..kswwwkwwwsk...',
+          '...ksssssssk....',
+          '...kwwwwwwwwk...',
+          'kwwkwwwwwwwwk...',
+          'kwwkwwwwwwwsk...',
+          '.kkksswwwwssk...',
+          '....kwwkkwwk....',
+          '....kkkkkkkk....'
+        ]
+      ]
+    }
+  },
+  panda: {
+    walk: {
+      w: 16,
+      h: 16,
+      frames: [
+        [
+          '................',
+          '..kkk......kkk..',
+          '.kkkk......kkkk.',
+          '.kkkkkkkkkkkkkk.',
+          '..kwwwwwwwwwwk..',
+          '..kwkkwwwwkkwk..',
+          '..kwkkwwwwkkwk..',
+          '..kwwwwwwwwwwk..',
+          '...kwwwkkwwwk...',
+          '....kkkkkkkk....',
+          '.kkkkwwwwwwkkkk.',
+          '.kkkwwwwwwwwkkk.',
+          '..kkwwwwwwwwkk..',
+          '...kswwwwwwsk...',
+          '...kkkk..kkkk...',
+          '...kkkk..kkkk...'
+        ],
+        [
+          '..kkk......kkk..',
+          '.kkkk......kkkk.',
+          '.kkkkkkkkkkkkkk.',
+          '..kwwwwwwwwwwk..',
+          '..kwkkwwwwkkwk..',
+          '..kwkkwwwwkkwk..',
+          '..kwwwwwwwwwwk..',
+          '...kwwwkkwwwk...',
+          '....kkkkkkkk....',
+          '.kkkkwwwwwwkkkk.',
+          '.kkkwwwwwwwwkkk.',
+          '..kkwwwwwwwwkk..',
+          '...kswwwwwwsk...',
+          '...kswwwwwwsk...',
+          '..kkkk....kkkk..',
+          '..kkkk....kkkk..'
+        ],
+        [
+          '................',
+          '..kkk......kkk..',
+          '.kkkk......kkkk.',
+          '.kkkkkkkkkkkkkk.',
+          '..kwwwwwwwwwwk..',
+          '..kwkkwwwwkkwk..',
+          '..kwkkwwwwkkwk..',
+          '..kwwwwwwwwwwk..',
+          '...kwwwkkwwwk...',
+          '....kkkkkkkk....',
+          '.kkkkwwwwwwkkkk.',
+          '.kkkwwwwwwwwkkk.',
+          '..kkwwwwwwwwkk..',
+          '...kswwwwwwsk...',
+          '...kkkk..kkkk...',
+          '...kkkk..kkkk...'
+        ],
+        [
+          '..kkk......kkk..',
+          '.kkkk......kkkk.',
+          '.kkkkkkkkkkkkkk.',
+          '..kwwwwwwwwwwk..',
+          '..kwkkwwwwkkwk..',
+          '..kwkkwwwwkkwk..',
+          '..kwwwwwwwwwwk..',
+          '...kwwwkkwwwk...',
+          '....kkkkkkkk....',
+          '.kkkkwwwwwwkkkk.',
+          '.kkkwwwwwwwwkkk.',
+          '..kkwwwwwwwwkk..',
+          '...kswwwwwwsk...',
+          '...kswwwwwwsk...',
+          '....kkkkkkkk....',
+          '....kkkkkkkk....'
+        ]
+      ]
+    },
+    attack: {
+      w: 16,
+      h: 16,
+      frames: [
+        [
+          '................',
+          '...kkk......kkk.',
+          '..kkkk......kkkk',
+          '..kkkkkkkkkkkkkk',
+          '...kwwwwwwwwwwk.',
+          '...kwkkwwwwkkwk.',
+          '...kwkkwwwwkkwk.',
+          '...kwwwwwwwwwwk.',
+          '....kwwkppkwwk..',
+          '.....kkkkkkkk...',
+          '..kkkkwwwwwwkkkk',
+          '..kkkwwwwwwwwkkk',
+          '...kkwwwwwwwwkk.',
+          '....kswwwwwwsk..',
+          '...kkkk....kkkk.',
+          '...kkkk....kkkk.'
+        ]
+      ]
+    },
+    hurt: {
+      w: 16,
+      h: 16,
+      frames: [
+        [
+          '................',
+          '..kkk......kkk..',
+          '.kkkk......kkkk.',
+          '.kkkkkkkkkkkkkk.',
+          '..kwwwwwwwwwwk..',
+          '..kwkkwwwwkkwk..',
+          '..kwkkwwwwkkwk..',
+          '..kwwkwwwwkwwk..',
+          '...kwwwkkwwwk...',
+          '....kkkkkkkk....',
+          '.kkkkwwwwwwkkkk.',
+          '.kkkwwwwwwwwkkk.',
+          '..kkwwwwwwwwkk..',
+          '...kswwwwwwsk...',
+          '....kkkkkkkk....',
           '....kkkkkkkk....'
         ]
       ]
