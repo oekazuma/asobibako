@@ -110,7 +110,7 @@ export const FOREST: Stage = {
     { from: 720, to: 900, enemy: 'rat', rate: [8, 14] }
   ],
   cap: (t) => Math.min(400, Math.round(30 + (t / 720) * 370)),
-  toughness: (t) => 1 + (t / 900) * 3,
+  toughness: (t) => 1 + (t / 900) * 6.5,
   elite: (t) => (t < 240 ? 0 : 0.02),
   fury: (t) => 0.6 + (t / 900) * 1.4
 };
