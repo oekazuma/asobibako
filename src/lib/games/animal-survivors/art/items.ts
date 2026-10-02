@@ -439,5 +439,10 @@ export const ITEM_ART: Record<string, Art> = {
       ['...k...', '..krk..', '.kwrrk.', 'kRrrrRk', '.kRrRk.', '..kRk..', '...k...'],
       ['...k...', '..krk..', '.krwrk.', 'kRrrrRk', '.kRrRk.', '..kRk..', '...k...']
     ]
+  },
+  web: {
+    w: 8,
+    h: 8,
+    frames: [['..kkkk..', '.kwwswk.', 'kwswwswk', 'kwwsswwk', 'kswsswsk', 'kwswwswk', '.kwwswk.', '..kkkk..']]
   }
 };

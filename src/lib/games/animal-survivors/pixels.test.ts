@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ANIMAL_ART } from './art/animals';
+import { BOSS_ART } from './art/bosses';
 import { ENEMY_ART } from './art/enemies';
 import { FOREST_ART } from './art/forest';
 import { ITEM_ART } from './art/items';
@@ -11,6 +12,7 @@ const all: [string, Art][] = [
     Object.entries(a).map(([k, art]) => [`${id}.${k}`, art] as [string, Art])
   ),
   ...Object.entries(ENEMY_ART),
+  ...Object.entries(BOSS_ART),
   ...Object.entries(ITEM_ART),
   ['grass', FOREST_ART.grass],
   ['dirt', FOREST_ART.dirt],
@@ -31,5 +33,12 @@ describe('ドット絵の格子', () => {
   it('動物の歩きは 4 コマ、敵は 2 コマ', () => {
     for (const a of Object.values(ANIMAL_ART)) expect(a.walk.frames).toHaveLength(4);
     for (const e of Object.values(ENEMY_ART)) expect(e.frames).toHaveLength(2);
+  });
+
+  it('巨大ベアは 3 コマ、女王グモと子グモは 2 コマ', () => {
+    expect(BOSS_ART.bear.frames).toHaveLength(3);
+    expect(BOSS_ART.spiderQueen.frames).toHaveLength(2);
+    expect(BOSS_ART.spiderling.frames).toHaveLength(2);
+    expect(ITEM_ART.web).toBeDefined();
   });
 });
