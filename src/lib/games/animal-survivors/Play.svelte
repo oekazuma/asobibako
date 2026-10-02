@@ -89,12 +89,19 @@
     return pick(finger, keyVector(keys), padVector(navigator.getGamepads?.()[0]?.axes));
   }
 
+  function take() {
+    fx.take(world);
+    prompts.take();
+    world.events.length = 0;
+  }
+
   function frame(dt: number) {
+    // 3 択の経験値の袋や宝箱で育つと、出来事は step の外で積まれる。次の step が消す前に拾う
+    if (world.events.length) take();
     if (!prompts.busy && !menu && !hidden) {
       now += dt;
       step(world, direction(), dt);
-      fx.take(world);
-      prompts.take();
+      take();
       fx.update(dt);
     }
     prompts.next(stick?.id ?? null);

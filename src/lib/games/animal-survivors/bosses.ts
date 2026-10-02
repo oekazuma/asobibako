@@ -23,7 +23,7 @@ export interface Hazard {
 /** ボスが出る何秒前に WARNING を出すか */
 export const WARN_AHEAD = 3;
 
-/** 敵の枠を 1 つ用意する。空きがなければ、自分からいちばん遠いボスでない敵の枠を使う */
+/** 敵の枠を 1 つ用意する。空きがなければ、自分からいちばん遠いふつうの敵の枠を使う（ボス・ヌシ・きらきらハリネズミは消さない） */
 export function slot(w: World): number {
   const free = w.enemies.findIndex((e) => !e.alive);
   if (free >= 0) return free;
@@ -31,7 +31,7 @@ export function slot(w: World): number {
   let best = 0;
   let bd = -1;
   w.enemies.forEach((e, i) => {
-    if (e.def.boss) return;
+    if (e.def.boss || e.def.chief || e.def.metal) return;
     const d = (e.x - w.player.x) ** 2 + (e.y - w.player.y) ** 2;
     if (d > bd) {
       bd = d;

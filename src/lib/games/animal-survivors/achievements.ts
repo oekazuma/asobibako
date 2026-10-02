@@ -48,7 +48,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     id: 'bothBosses',
     name: '1 回でボスを 2 体とも倒す',
     coins: 200,
-    done: (_, run) => (run?.bosses.length ?? 0) >= 2
+    done: (_, run) => new Set(run?.bosses).size >= 2
   },
   { id: 'lv20', name: 'Lv20 になる', coins: 30, done: (_, run) => (run?.level ?? 0) >= 20 },
   { id: 'lv50', name: 'Lv50 になる', coins: 150, done: (_, run) => (run?.level ?? 0) >= 50 },

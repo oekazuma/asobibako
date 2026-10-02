@@ -8,8 +8,11 @@ import { FOREST } from './stages/forest';
 import { GRAVEYARD } from './stages/graveyard';
 import {
   addEnemy,
+  chiefOf,
   createWorld,
   damageEnemy,
+  makeEnemy,
+  MAX_ENEMIES,
   METAL_LIFE,
   spawnChiefs,
   spawnEvents,
@@ -96,6 +99,15 @@ describe('ヌシ', () => {
     expect(FOREST.chiefs.map((c) => c.at)).toEqual([120, 240, 420, 540, 720]);
   });
 
+  it('大きな体の縁に触れても痛い', () => {
+    const w = quiet();
+    w.propCd = 9999;
+    w.player.x = 7.9;
+    w.enemies[0] = makeEnemy(chiefOf(ENEMIES.croc), 37.9, 0, 999);
+    step(w, { x: 0, y: 0 }, 1 / 60);
+    expect(w.events.some((e) => e.type === 'hurt')).toBe(true);
+  });
+
   it('倒すと宝箱を落とす', () => {
     const w = quiet();
     w.stage.chiefs = [{ at: 0, enemy: 'boar', hp: 10 }];
@@ -113,6 +125,23 @@ describe('ヌシ', () => {
     w.items.push({ alive: true, kind: 'cross', x: 0, y: 4, pulled: true });
     collect(w, 1 / 60);
     expect(alive(w).map((e) => e.def.chief ?? false)).toEqual([true]);
+  });
+});
+
+describe('入れ物が埋まっているとき', () => {
+  it('新しいヌシやボスは、遠くのヌシやきらきらハリネズミの枠を使わない', () => {
+    const w = quiet();
+    for (let i = 0; i < MAX_ENEMIES; i++) addEnemy(w, ENEMIES.rat, 10 + i * 0.01, 0);
+    w.enemies[0] = makeEnemy(chiefOf(ENEMIES.croc), 5000, 0, 100);
+    w.enemies[1] = makeEnemy(ENEMIES.metal, 4000, 0, 12);
+    w.stage.chiefs = [{ at: 0, enemy: 'boar', hp: 10 }];
+    spawnChiefs(w);
+    w.metalAt = 0;
+    spawnMetal(w);
+    expect(w.enemies[0].def.id).toBe('croc');
+    expect(w.enemies[1].def.metal).toBe(true);
+    expect(w.enemies.filter((e) => e.alive && e.def.chief)).toHaveLength(2);
+    expect(w.enemies.filter((e) => e.alive && e.def.metal)).toHaveLength(2);
   });
 });
 
@@ -135,6 +164,15 @@ describe('面の主', () => {
     expect(bosses.map((e) => e.def.id)).toEqual(finale.map((b) => b.id));
     for (const e of bosses) expect(e.hp).toBe(ENEMIES[e.def.id].hp * 1.5);
     expect(w.warned).toBe(s.bosses.length);
+  });
+});
+
+describe('実績', () => {
+  it('「ボスを 2 体とも倒す」は面の主で同じボスを 2 回倒しても満ちない', () => {
+    const a = ACHIEVEMENTS.find((d) => d.id === 'bothBosses')!;
+    const run = summary(createWorld('dog', 1, VIEW));
+    expect(a.done(emptyRecords(), { ...run, bosses: ['bear', 'bear'] })).toBe(false);
+    expect(a.done(emptyRecords(), { ...run, bosses: ['bear', 'spiderQueen'] })).toBe(true);
   });
 });
 

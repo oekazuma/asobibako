@@ -1,3 +1,4 @@
+import { MAX_R } from './enemies';
 import { WEAPONS, weaponStats, type WeaponDef, type WeaponStats } from './weapons';
 import { damageEnemy, type Enemy, type World } from './world';
 import { dropFlame, growVines, updateZones } from './zones';
@@ -171,7 +172,7 @@ const near: number[] = [];
 
 /** (x, y) から r 以内の生きている敵の番号を out に入れる */
 function within(w: World, x: number, y: number, r: number, out: number[]) {
-  const found = w.grid.near(x, y, r + 10, near);
+  const found = w.grid.near(x, y, r + MAX_R, near);
   out.length = 0;
   for (const i of found) {
     const e = w.enemies[i];

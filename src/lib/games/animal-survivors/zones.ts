@@ -1,3 +1,4 @@
+import { MAX_R } from './enemies';
 import { power, type Effect } from './arms';
 import type { WeaponStats } from './weapons';
 import { damageEnemy, type World } from './world';
@@ -54,7 +55,7 @@ const near: number[] = [];
 export function updateZones(w: World): void {
   for (const f of w.effects) {
     if (!f.alive || (f.kind !== 'flame' && f.kind !== 'vine')) continue;
-    for (const i of w.grid.near(f.x, f.y, f.r + 12, near)) {
+    for (const i of w.grid.near(f.x, f.y, f.r + MAX_R, near)) {
       const e = w.enemies[i];
       const r = f.r + e.def.r;
       if (!e.alive || (e.x - f.x) ** 2 + (e.y - f.y) ** 2 >= r * r) continue;

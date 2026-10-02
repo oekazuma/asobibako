@@ -76,3 +76,6 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
     ] satisfies EnemyDef[]
   ).map((d) => [d.id, d])
 );
+
+/** いちばん大きな敵の当たり判定の半径（ヌシは 3 倍）。格子で近くを探すときに足す */
+export const MAX_R = Math.max(...Object.values(ENEMIES).map((d) => d.r)) * 3;

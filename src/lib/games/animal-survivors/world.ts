@@ -2,7 +2,7 @@ import { animal, type Animal, type AnimalId } from './animals';
 import { fire, hits, type Effect, type Shot } from './arms';
 import { moveBoss, slot, spawnBosses, updateHazards, type Hazard } from './bosses';
 import { CLEAR_COINS, collect, dropFrom, type Gem, type Item } from './drops';
-import { ENEMIES, type BossId, type EnemyDef } from './enemies';
+import { ENEMIES, MAX_R, type BossId, type EnemyDef } from './enemies';
 import { Grid } from './grid';
 import { stats, type Stats } from './passives';
 import { rng, type Rng } from './rng';
@@ -581,7 +581,7 @@ function touch(w: World) {
   const p = w.player;
   if (p.invuln > 0 || w.freeze > 0) return;
   let atk = 0;
-  for (const i of w.grid.near(p.x, p.y, 24, near)) {
+  for (const i of w.grid.near(p.x, p.y, 5 + MAX_R, near)) {
     const e = w.enemies[i];
     if (!e.alive) continue;
     const r = e.def.r + 5;
