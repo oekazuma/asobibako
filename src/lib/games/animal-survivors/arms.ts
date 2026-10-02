@@ -149,7 +149,7 @@ function nearest(w: World, x: number, y: number): Enemy | undefined {
   let best: Enemy | undefined;
   let bd = Infinity;
   for (const e of w.enemies) {
-    if (!e.alive) continue;
+    if (!e.alive || e.def.prop) continue;
     const d = (e.x - x) ** 2 + (e.y - y) ** 2;
     if (d < bd) {
       bd = d;
@@ -239,7 +239,9 @@ function launch(w: World, def: WeaponDef, s: WeaponStats, slot: number): boolean
     case 'strike': {
       const hw = w.view.w / 2;
       const hh = w.view.h / 2;
-      const seen = w.enemies.filter((e) => e.alive && Math.abs(e.x - p.x) < hw && Math.abs(e.y - p.y) < hh);
+      const seen = w.enemies.filter(
+        (e) => e.alive && !e.def.prop && Math.abs(e.x - p.x) < hw && Math.abs(e.y - p.y) < hh
+      );
       if (seen.length === 0) return false;
       for (let i = 0; i < s.amount && seen.length > 0; i++) {
         const t = seen.splice(Math.floor(w.rand() * seen.length), 1)[0];

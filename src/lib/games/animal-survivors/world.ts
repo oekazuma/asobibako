@@ -76,7 +76,9 @@ export type GameEvent =
   | { type: 'coin'; value: number }
   | { type: 'revive' }
   | { type: 'evolve'; id: string }
-  | { type: 'swarm'; text: string };
+  | { type: 'swarm'; text: string }
+  | { type: 'cross' }
+  | { type: 'freeze' };
 
 export interface World {
   rand: Rng;
@@ -127,6 +129,10 @@ export interface World {
   dealt: Record<string, { damage: number; kills: number }>;
   /** 次に出すステージの出来事の番号 */
   eventNext: number;
+  /** 時計で敵が止まっている残り秒 */
+  freeze: number;
+  /** 次にランタンを足すまでの秒 */
+  propCd: number;
   /** 次に出すボスの番号と、予告を出したボスの数 */
   bossNext: number;
   warned: number;
@@ -200,6 +206,8 @@ export function createWorld(id: AnimalId, seed: number, view: { w: number; h: nu
     drainLeft: s.maxHp * DRAIN,
     dealt: {},
     eventNext: 0,
+    freeze: 0,
+    propCd: 2,
     bossNext: 0,
     warned: 0,
     over: null,
@@ -263,7 +271,7 @@ export function damageEnemy(
     w.drainLeft -= amt;
     w.player.hp = Math.min(w.stats.maxHp, w.player.hp + amt);
   }
-  if (source) (w.dealt[source] ??= { damage: 0, kills: 0 }).damage += Math.max(0, Math.min(dmg, e.hp));
+  if (source && !e.def.prop) (w.dealt[source] ??= { damage: 0, kills: 0 }).damage += Math.max(0, Math.min(dmg, e.hp));
   e.hp -= dmg;
   e.flash = 0.12;
   e.kx += kx * (1 - e.def.heavy);
@@ -271,6 +279,11 @@ export function damageEnemy(
   w.events.push({ type: 'hit', x: e.x, y: e.y - e.def.r, dmg, crit });
   if (e.hp > 0) return;
   e.alive = false;
+  if (e.def.prop) {
+    w.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.def.id });
+    dropFrom(w, e);
+    return;
+  }
   w.kills += 1;
   if (source) w.dealt[source].kills += 1;
   w.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.def.id });
@@ -306,6 +319,23 @@ function spawn(w: World, base: EnemyDef) {
 }
 
 const SWARM_SPEED = 1.5;
+/** 自分の周りに置くランタンの数 */
+export const LANTERNS = 5;
+const PROP_EVERY = 3;
+
+/** ランタンを PROP_EVERY 秒ごとに 1 つ、画面の外の進む先に足す（周りに LANTERNS 個まで） */
+export function spawnProps(w: World, dt: number): void {
+  w.propCd -= dt;
+  if (w.propCd > 0) return;
+  w.propCd = PROP_EVERY;
+  let n = 0;
+  for (const e of w.enemies) if (e.alive && e.def.prop) n++;
+  if (n >= LANTERNS) return;
+  const at = spawnPoint(w);
+  const e = addEnemy(w, ENEMIES.lantern, at.x, at.y);
+  // 時刻で硬くならない
+  if (e) e.hp = 1;
+}
 
 /** 時刻になったステージの出来事を出す。群れと輪は同時に出せる数の上限とは別に出す */
 export function spawnEvents(w: World): void {
@@ -340,6 +370,10 @@ export function spawnEvents(w: World): void {
 
 function moveEnemy(w: World, i: number, dt: number) {
   const e = w.enemies[i];
+  if (e.def.prop || w.freeze > 0) {
+    e.flash -= dt;
+    return;
+  }
   if (e.drift > 0) {
     e.drift -= dt;
     if (e.drift <= 0) e.alive = false;
@@ -433,6 +467,8 @@ function separate(w: World) {
     for (const j of w.grid.near(a.x, a.y, a.def.r * 2, near)) {
       if (j === i) continue;
       const b = es[j];
+      // ランタンは押さず押されない
+      if (a.def.prop || b.def.prop) continue;
       const dx = b.x - a.x;
       const dy = b.y - a.y;
       const min = a.def.r + b.def.r;
@@ -454,7 +490,7 @@ function separate(w: World) {
 
 function touch(w: World) {
   const p = w.player;
-  if (p.invuln > 0) return;
+  if (p.invuln > 0 || w.freeze > 0) return;
   let atk = 0;
   for (const i of w.grid.near(p.x, p.y, 24, near)) {
     const e = w.enemies[i];
@@ -538,7 +574,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   w.drainLeft = Math.min(w.stats.maxHp * DRAIN, w.drainLeft + w.stats.maxHp * DRAIN * dt);
 
   let alive = 0;
-  for (const e of w.enemies) if (e.alive) alive++;
+  for (const e of w.enemies) if (e.alive && !e.def.prop) alive++;
   const cap = w.stage.cap(w.time);
   w.stage.waves.forEach((wave, i) => {
     if (alive >= cap) return;
@@ -551,12 +587,18 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   });
   spawnBosses(w);
   spawnEvents(w);
+  spawnProps(w, dt);
+  w.freeze = Math.max(0, w.freeze - dt);
 
   const far = Math.hypot(w.view.w, w.view.h) * 0.9;
   w.grid.clear();
   w.enemies.forEach((e, i) => {
     if (!e.alive) return;
     moveEnemy(w, i, dt);
+    if (e.def.prop && (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > far * far) {
+      e.alive = false;
+      return;
+    }
     if (e.drift <= 0 && (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > far * far) {
       const at = spawnPoint(w);
       e.x = at.x;
@@ -566,7 +608,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   });
   separate(w);
   touch(w);
-  updateHazards(w, dt);
+  if (w.freeze <= 0) updateHazards(w, dt);
   if (w.over) return;
 
   fire(w, dt);

@@ -1,4 +1,4 @@
-export type Move = 'chase' | 'wave' | 'snake' | 'charge' | 'leap' | 'boss';
+export type Move = 'chase' | 'wave' | 'snake' | 'charge' | 'leap' | 'boss' | 'still';
 export type BossId = 'bear' | 'spiderQueen';
 
 export interface EnemyDef {
@@ -18,6 +18,8 @@ export interface EnemyDef {
   boss?: BossId;
   /** 強化個体（金色で大きく、HP と経験値が多い） */
   elite?: boolean;
+  /** 壊せる物（ランタン）。狙われず、数えられず、品を落とす */
+  prop?: boolean;
 }
 
 const e = (
@@ -41,6 +43,7 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
     e('spiderling', '子グモ', [8, 50, 6, 4, 1], 'chase', 0),
     // ボスの HP には toughness を掛けない（出る時刻が決まっているので表の値がそのまま強さになる）
     e('bear', '巨大ベア', [700, 28, 20, 15, 0], 'boss', 1, 'bear'),
-    e('spiderQueen', '女王グモ', [900, 38, 25, 16, 0], 'boss', 1, 'spiderQueen')
+    e('spiderQueen', '女王グモ', [900, 38, 25, 16, 0], 'boss', 1, 'spiderQueen'),
+    { ...e('lantern', 'ランタン', [1, 0, 0, 6, 0], 'still', 1), prop: true }
   ].map((d) => [d.id, d])
 );

@@ -34,6 +34,11 @@ export const sounds = {
     for (const [i, f] of [392, 523, 784, 1047].entries()) tone(f, 180, 'triangle', 0.09, i * 80);
   },
   swarm: () => sweep(200, 600, 300, 0.07),
+  cross: () => {
+    noise(300, 0.1);
+    for (const [i, f] of [784, 1047, 1319, 1568].entries()) tone(f, 200, 'triangle', 0.08, i * 60);
+  },
+  freeze: () => sweep(1600, 300, 600, 0.07),
   evolve: () => {
     for (const [i, f] of [523, 659, 784, 1047, 1319].entries()) tone(f, 160, 'square', 0.06, i * 90);
   },

@@ -28,7 +28,7 @@ describe('世界', () => {
     const w = createWorld('dog', 1, VIEW);
     w.weapons = []; // 武器で倒さないように
     for (let i = 0; i < 300; i++) step(w, still, 1 / 30); // 10 秒
-    const alive = w.enemies.filter((e) => e.alive);
+    const alive = w.enemies.filter((e) => e.alive && !e.def.prop);
     expect(alive.length).toBeGreaterThanOrEqual(7);
     expect(new Set(alive.map((e) => e.def.id))).toEqual(new Set(['rat']));
   });

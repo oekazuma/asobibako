@@ -10,7 +10,7 @@ export interface Gem {
 
 export interface Item {
   alive: boolean;
-  kind: 'meat' | 'magnet' | 'chest' | 'coin' | 'purse';
+  kind: 'meat' | 'magnet' | 'chest' | 'coin' | 'purse' | 'pouch' | 'cross' | 'clock';
   x: number;
   y: number;
   pulled: boolean;
@@ -25,6 +25,41 @@ export const CHEST_COINS = 10;
 const PURSE = 50;
 const ELITE_COINS = 5;
 const COIN_CHANCE = 0.03;
+const POUCH = 10;
+/** 時計で敵が止まる秒 */
+export const FREEZE = 10;
+/** ランタンから出る品の重み。十字架と時計は運で増える */
+const LOOT: [Item['kind'], number, boolean][] = [
+  ['meat', 40, false],
+  ['pouch', 25, false],
+  ['magnet', 15, false],
+  ['cross', 10, true],
+  ['clock', 10, true]
+];
+
+/** ランタンが壊れたときの品を 1 つ置く */
+export function dropLoot(w: World, x: number, y: number): void {
+  const weight = (o: (typeof LOOT)[number]) => o[1] * (o[2] ? 1 + w.stats.luck : 1);
+  let r = w.rand() * LOOT.reduce((t, o) => t + weight(o), 0);
+  for (const o of LOOT) {
+    r -= weight(o);
+    if (r < 0) return dropItem(w, o[0], x, y);
+  }
+  dropItem(w, 'meat', x, y);
+}
+
+/** 十字架。画面の中のボスとランタン以外を倒す（経験値も落とす） */
+function clearScreen(w: World) {
+  const p = w.player;
+  for (const e of w.enemies) {
+    if (!e.alive || e.def.boss || e.def.prop) continue;
+    if (Math.abs(e.x - p.x) > w.view.w / 2 || Math.abs(e.y - p.y) > w.view.h / 2) continue;
+    e.alive = false;
+    w.kills += 1;
+    w.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.def.id });
+    dropFrom(w, e);
+  }
+}
 
 /** Lv から次の Lv へ要る経験値。5 から始めて Lv20 まで 10 ずつ、Lv40 まで 13 ずつ、そこからは 16 ずつ増える */
 export function xpNeed(level: number): number {
@@ -91,6 +126,7 @@ const BOSS_GEM_XP = 25;
 const CHEST_PICK = 10;
 
 export function dropFrom(w: World, e: Enemy): void {
+  if (e.def.prop) return dropLoot(w, e.x, e.y);
   if (e.def.boss) {
     for (let i = 0; i < BOSS_GEMS; i++) {
       const a = (i / BOSS_GEMS) * Math.PI * 2;
@@ -147,8 +183,18 @@ export function collect(w: World, dt: number): void {
     }
     if (!pull(w, it, reach, dt)) continue;
     it.alive = false;
-    if (it.kind === 'coin' || it.kind === 'purse') {
-      const value = it.kind === 'coin' ? 1 : PURSE;
+    if (it.kind === 'cross') {
+      clearScreen(w);
+      w.events.push({ type: 'cross' });
+      continue;
+    }
+    if (it.kind === 'clock') {
+      w.freeze = FREEZE;
+      w.events.push({ type: 'freeze' });
+      continue;
+    }
+    if (it.kind === 'coin' || it.kind === 'purse' || it.kind === 'pouch') {
+      const value = it.kind === 'coin' ? 1 : it.kind === 'pouch' ? POUCH : PURSE;
       w.coins += value;
       w.events.push({ type: 'coin', value });
       continue;

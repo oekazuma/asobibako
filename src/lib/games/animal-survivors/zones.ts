@@ -38,7 +38,7 @@ export function dropFlame(w: World, slot: number, s: WeaponStats, area: number):
 export function growVines(w: World, slot: number, s: WeaponStats, area: number): boolean {
   const p = w.player;
   const seen = w.enemies.filter(
-    (e) => e.alive && Math.abs(e.x - p.x) < w.view.w / 2 && Math.abs(e.y - p.y) < w.view.h / 2
+    (e) => e.alive && !e.def.prop && Math.abs(e.x - p.x) < w.view.w / 2 && Math.abs(e.y - p.y) < w.view.h / 2
   );
   if (seen.length === 0) return false;
   for (let i = 0; i < s.amount && seen.length > 0; i++) {

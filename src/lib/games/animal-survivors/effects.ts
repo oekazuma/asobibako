@@ -37,7 +37,8 @@ const BODY: Record<string, string> = {
   croc: PALETTE.L,
   spiderling: PALETTE.v,
   bear: PALETTE.B,
-  spiderQueen: PALETTE.v
+  spiderQueen: PALETTE.v,
+  lantern: PALETTE.y
 };
 
 /** 見た目と音だけの演出。World の出来事を読み、ルールには触らない */
@@ -146,6 +147,10 @@ export class Effects {
       } else if (e.type === 'warning') sounds.warning();
       else if (e.type === 'chest') sounds.chest();
       else if (e.type === 'swarm') sounds.swarm();
+      else if (e.type === 'cross') {
+        this.flash = 0.5;
+        sounds.cross();
+      } else if (e.type === 'freeze') sounds.freeze();
       else if (e.type === 'clear') sounds.clear();
       else if (e.type === 'dead') sounds.dead();
     }

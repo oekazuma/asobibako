@@ -211,8 +211,14 @@ export function draw(
     ctx.lineWidth = 4;
     ctx.strokeRect(2, 2, v.w - 4, v.h - 4);
   }
+  if (w.freeze > 0) {
+    // 時計で止まっているあいだは画面をうっすら青くし、最後の 2 秒は点滅させて終わりを知らせる
+    ctx.globalAlpha = w.freeze > 2 || Math.floor(now * 6) % 2 ? 0.22 : 0.08;
+    ctx.fillStyle = PALETTE.u;
+    ctx.fillRect(0, 0, v.w, v.h);
+  }
   if (fx.flash > 0) {
-    ctx.globalAlpha = (fx.flash / 0.25) * 0.7;
+    ctx.globalAlpha = Math.min(1, fx.flash / 0.25) * 0.7;
     ctx.fillStyle = PALETTE.w;
     ctx.fillRect(0, 0, v.w, v.h);
   }

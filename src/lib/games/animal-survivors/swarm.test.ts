@@ -31,7 +31,7 @@ describe('群れの大波', () => {
     expect(w.events.some((e) => e.type === 'swarm')).toBe(true);
     w.player.invuln = 999;
     for (let i = 0; i < 60 * 20; i++) step(w, { x: 0, y: 0 }, 1 / 60);
-    expect(w.enemies.filter((e) => e.alive)).toHaveLength(0);
+    expect(w.enemies.filter((e) => e.alive && !e.def.prop)).toHaveLength(0);
     expect(w.kills).toBe(0);
   });
 
