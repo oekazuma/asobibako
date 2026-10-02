@@ -1,6 +1,7 @@
 import { levelUp } from './choices';
 import { CHEST_COINS } from './drops';
 import { evolvable, evolve } from './evolutions';
+import { maxOf } from './passives';
 import { MAX_LEVEL } from './weapons';
 import type { World } from './world';
 
@@ -34,7 +35,7 @@ export function openChest(w: World): Reward[] {
         .filter((o) => o.level < MAX_LEVEL)
         .map((o) => ({ kind: 'weapon' as const, id: o.id, level: o.level + 1 })),
       ...w.passives
-        .filter((o) => o.level < MAX_LEVEL)
+        .filter((o) => o.level < maxOf(o.id))
         .map((o) => ({ kind: 'passive' as const, id: o.id, level: o.level + 1 }))
     ];
     const r: Reward = open.length

@@ -29,7 +29,7 @@ const run = (o: Partial<RunSummary> = {}): RunSummary => ({
 });
 
 describe('店', () => {
-  it('11 品あり、値段は基本の値段 × 次の段', () => {
+  it('16 品あり、値段は基本の値段 × 次の段', () => {
     expect(UPGRADES.map((d) => d.id)).toEqual([
       'might',
       'maxHp',
@@ -41,7 +41,12 @@ describe('店', () => {
       'crit',
       'greed',
       'reroll',
-      'revive'
+      'revive',
+      'amount',
+      'duration',
+      'luck',
+      'skip',
+      'banish'
     ]);
     const might = UPGRADES[0];
     expect(price(might, 0)).toBe(might.base);
@@ -69,7 +74,7 @@ describe('店', () => {
     expect(p.greed).toBeCloseTo(1.5);
     expect(p.rerolls).toBe(2);
     expect(p.revives).toBe(1);
-    expect(perks({})).toEqual({ boost: {}, greed: 1, rerolls: 0, revives: 0 });
+    expect(perks({})).toEqual({ boost: {}, greed: 1, rerolls: 0, revives: 0, skips: 0, banishes: 0 });
   });
 
   it('強化は動物の基本の値に足し、とくいとパッシブはその上に重なる', () => {

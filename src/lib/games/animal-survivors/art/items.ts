@@ -767,5 +767,45 @@ export const ITEM_ART: Record<string, Art> = {
         '.......d....'
       ]
     ]
+  },
+  'upgrade-skip': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '............',
+        '............',
+        '.kk...kk....',
+        '.kuk..kuk...',
+        '.kuuk.kuuk..',
+        '.kuuukkuuuk.',
+        '.kUUUkkUUUk.',
+        '.kUUk.kUUk..',
+        '.kUk..kUk...',
+        '.kk...kk....',
+        '............',
+        '............'
+      ]
+    ]
+  },
+  'upgrade-banish': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '............',
+        '.kk......kk.',
+        'krrk....krrk',
+        '.krrk..krrk.',
+        '..krrkkrrk..',
+        '...krrrrk...',
+        '...kRrrRk...',
+        '..kRrkkrRk..',
+        '.kRrk..krRk.',
+        'kRrk....krRk',
+        '.kk......kk.',
+        '............'
+      ]
+    ]
   }
 };

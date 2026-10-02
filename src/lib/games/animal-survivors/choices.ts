@@ -1,6 +1,6 @@
 import { gainXp } from './drops';
 import { EVOLUTIONS, baseOf } from './evolutions';
-import { PASSIVES, stats } from './passives';
+import { PASSIVES, maxOf, stats } from './passives';
 import { MAX_LEVEL, WEAPONS } from './weapons';
 import type { World } from './world';
 
@@ -24,15 +24,16 @@ function candidates(w: World): Choice[] {
     ['weapon', w.weapons, Object.keys(WEAPONS)],
     ['passive', w.passives, Object.keys(PASSIVES)]
   ] as const) {
-    for (const o of owned) if (o.level < MAX_LEVEL) out.push({ kind, id: o.id, level: o.level + 1 });
+    for (const o of owned)
+      if (o.level < (kind === 'passive' ? maxOf(o.id) : MAX_LEVEL)) out.push({ kind, id: o.id, level: o.level + 1 });
     if (owned.length < SLOTS)
       for (const id of all) if (!owned.some((o) => o.id === id) && fresh(kind, id)) out.push({ kind, id, level: 1 });
   }
-  return out;
+  return out.filter((c) => !w.banished.includes(`${c.kind}:${'id' in c ? c.id : ''}`));
 }
 
-/** n 枚まで重なりなく選ぶ。候補が足りなければ肉と経験値の袋で埋める（それぞれ 1 枚まで） */
-export function choices(w: World, n = 3): Choice[] {
+/** n 枚まで重なりなく選ぶ（運の確率で 1 枚増える）。候補が足りなければ肉と経験値の袋で埋める（それぞれ 1 枚まで） */
+export function choices(w: World, n = 3 + (w.stats.luck > 0 && w.rand() < w.stats.luck ? 1 : 0)): Choice[] {
   const list = candidates(w);
   for (let i = list.length - 1; i > 0; i--) {
     const j = Math.floor(w.rand() * (i + 1));

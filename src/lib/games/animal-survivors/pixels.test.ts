@@ -93,8 +93,9 @@ describe('ドット絵の格子', () => {
     expect(goldArt(ITEM_ART.bone)).toBe(g);
   });
 
-  it('新しいパッシブ 3 つのアイコンがある', () => {
-    for (const k of ['passive-twin', 'passive-tail', 'passive-clover']) expect(ITEM_ART[k]).toBeDefined();
+  it('新しいパッシブ 3 つと、飛ばす・除外のアイコンがある', () => {
+    for (const k of ['passive-twin', 'passive-tail', 'passive-clover', 'upgrade-skip', 'upgrade-banish'])
+      expect(ITEM_ART[k]).toBeDefined();
   });
 
   it('7 匹ぶんの絵がある', () => {

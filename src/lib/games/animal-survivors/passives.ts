@@ -1,6 +1,20 @@
+import { MAX_LEVEL } from './weapons';
 import type { Animal } from './animals';
 
-export type StatKey = 'maxHp' | 'might' | 'haste' | 'speed' | 'armor' | 'growth' | 'area' | 'crit' | 'regen' | 'magnet';
+export type StatKey =
+  | 'maxHp'
+  | 'might'
+  | 'haste'
+  | 'speed'
+  | 'armor'
+  | 'growth'
+  | 'area'
+  | 'crit'
+  | 'regen'
+  | 'magnet'
+  | 'amount'
+  | 'duration'
+  | 'luck';
 export type Stats = Record<StatKey, number>;
 
 export interface PassiveDef {
@@ -10,14 +24,17 @@ export interface PassiveDef {
   stat: StatKey;
   /** 1 Lv ごとに stat へ足す量 */
   per: number;
+  /** 最大の Lv。無ければ MAX_LEVEL */
+  max?: number;
 }
 
-const p = (id: string, name: string, blurb: string, stat: StatKey, per: number): PassiveDef => ({
+const p = (id: string, name: string, blurb: string, stat: StatKey, per: number, max?: number): PassiveDef => ({
   id,
   name,
   blurb,
   stat,
-  per
+  per,
+  ...(max && { max })
 });
 
 export const PASSIVES: Record<string, PassiveDef> = Object.fromEntries(
@@ -31,7 +48,11 @@ export const PASSIVES: Record<string, PassiveDef> = Object.fromEntries(
     p('roar', '大きな声', '攻撃範囲 +10%', 'area', 0.1),
     p('claw', '野生の勘', '会心率 +5%（会心は 2 倍）', 'crit', 0.05),
     p('leaf', '薬草', '毎秒 HP +0.3 回復', 'regen', 0.3),
-    p('whisker', 'ひげアンテナ', 'アイテムを拾う範囲 +25%', 'magnet', 0.25)
+    p('whisker', 'ひげアンテナ', 'アイテムを拾う範囲 +25%', 'magnet', 0.25),
+    // 弾の数は 1 つ増えるだけで強いので、本家と同じく 2 段まで
+    p('twin', 'ふたごの毛玉', '武器の弾・攻撃の数 +1', 'amount', 1, 2),
+    p('tail', 'ながいしっぽ', '炎・ツタ・羽根などの効く時間 +10%', 'duration', 0.1),
+    p('clover', '四つ葉', '運 +20%（4 択になりやすく、コインが落ちやすい）', 'luck', 0.2)
   ].map((d) => [d.id, d])
 );
 
@@ -46,10 +67,15 @@ export function stats(a: Animal, passives: { id: string; level: number }[], boos
     area: 1,
     crit: 0.05,
     regen: 0,
-    magnet: 1
+    magnet: 1,
+    amount: 0,
+    duration: 1,
+    luck: 0
   };
   for (const [k, v] of Object.entries(boost) as [StatKey, number][]) s[k] += v;
   for (const [k, v] of Object.entries(a.bonus ?? {}) as [StatKey, number][]) s[k] += v;
   for (const { id, level } of passives) s[PASSIVES[id].stat] += PASSIVES[id].per * level;
   return s;
 }
+
+export const maxOf = (id: string): number => PASSIVES[id]?.max ?? MAX_LEVEL;

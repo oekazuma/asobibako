@@ -91,6 +91,10 @@ export interface World {
   /** 残りの 3 択の引き直しと復活 */
   rerolls: number;
   revives: number;
+  skips: number;
+  banishes: number;
+  /** その回の候補から消した札（kind:id） */
+  banished: string[];
   player: Player;
   weapons: (Owned & { cd: number })[];
   passives: Owned[];
@@ -159,6 +163,9 @@ export function createWorld(id: AnimalId, seed: number, view: { w: number; h: nu
     greed: k.greed,
     rerolls: k.rerolls,
     revives: k.revives,
+    skips: k.skips,
+    banishes: k.banishes,
+    banished: [],
     player: {
       x: 0,
       y: 0,

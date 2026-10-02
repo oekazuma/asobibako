@@ -258,6 +258,8 @@ export function fire(w: World, dt: number): void {
     if (own.cd > 0) return;
     const def = WEAPONS[own.id];
     const s = weaponStats(def, own.level);
+    s.amount += Math.floor(w.stats.amount);
+    s.duration *= w.stats.duration;
     if (!launch(w, def, s, slot)) {
       own.cd = 0.25;
       return;

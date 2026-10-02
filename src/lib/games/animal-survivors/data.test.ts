@@ -37,7 +37,7 @@ describe('データの表', () => {
     ]);
     expect(s.maxHp).toBe(130);
     expect(s.speed).toBeCloseTo(1.35);
-    expect(Object.keys(PASSIVES)).toHaveLength(10);
+    expect(Object.keys(PASSIVES)).toHaveLength(13);
   });
 
   it('出現の速さは範囲の中で線形、外は 0', () => {

@@ -109,7 +109,7 @@ export function dropFrom(w: World, e: Enemy): void {
       const a = (i / ELITE_COINS) * Math.PI * 2;
       dropItem(w, 'coin', e.x + Math.cos(a) * 8, e.y + Math.sin(a) * 8);
     }
-  else if (w.rand() < COIN_CHANCE) dropItem(w, 'coin', e.x - 4, e.y);
+  else if (w.rand() < COIN_CHANCE * (1 + w.stats.luck)) dropItem(w, 'coin', e.x - 4, e.y);
 }
 
 /** 吸い寄せて、届いたら true */

@@ -27,7 +27,7 @@
   <LevelUp
     options={prompts.options}
     locked={prompts.lock.active}
-    rerolls={prompts.rerolls}
+    rerolls={prompts.tools.rerolls}
     onpick={(c) => prompts.choose(c, finger)}
     onreroll={() => prompts.reroll(finger)}
   />

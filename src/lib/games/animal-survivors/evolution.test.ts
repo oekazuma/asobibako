@@ -10,11 +10,13 @@ import { ENEMIES } from './enemies';
 const VIEW = { w: 260, h: 380 };
 
 describe('進化の表', () => {
-  it('12 組あり、武器はどれも 1 度だけ、パッシブはどれも 1 組以上で使う', () => {
+  it('12 組あり、武器はどれも 1 度だけ、数・時間・運のほかのパッシブはどれも 1 組以上で使う', () => {
     expect(EVOLUTIONS).toHaveLength(12);
     const base = Object.keys(WEAPONS).filter((id) => !WEAPONS[id].evolved);
     expect(EVOLUTIONS.map((e) => e.from).sort()).toEqual(base.sort());
-    for (const id of Object.keys(PASSIVES)) expect(EVOLUTIONS.some((e) => e.with === id)).toBe(true);
+    // 数・時間・運のパッシブは進化に使わない（武器 1 つにつき 1 組で 12 組が埋まっている）
+    const own = Object.keys(PASSIVES).filter((id) => !['twin', 'tail', 'clover'].includes(id));
+    for (const id of own) expect(EVOLUTIONS.some((e) => e.with === id)).toBe(true);
     for (const e of EVOLUTIONS) {
       expect(WEAPONS[e.to].evolved).toBe(true);
       expect(WEAPONS[e.to].kind).toBe(WEAPONS[e.from].kind);

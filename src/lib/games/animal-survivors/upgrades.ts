@@ -2,7 +2,22 @@ import type { StatKey, Stats } from './passives';
 import type { Records } from './records';
 
 export type UpgradeId =
-  'might' | 'maxHp' | 'speed' | 'armor' | 'regen' | 'magnet' | 'growth' | 'crit' | 'greed' | 'reroll' | 'revive';
+  | 'might'
+  | 'maxHp'
+  | 'speed'
+  | 'armor'
+  | 'regen'
+  | 'magnet'
+  | 'growth'
+  | 'crit'
+  | 'greed'
+  | 'reroll'
+  | 'revive'
+  | 'amount'
+  | 'duration'
+  | 'luck'
+  | 'skip'
+  | 'banish';
 
 export interface UpgradeDef {
   id: UpgradeId;
@@ -43,7 +58,12 @@ export const UPGRADES: UpgradeDef[] = [
   u('crit', '会心', '会心率 +2%', 5, 90, 'crit', 0.02, 'passive-claw'),
   u('greed', '強欲', 'コイン +10%', 5, 75, undefined, 0.1, 'upgrade-greed'),
   u('reroll', 'リロール', '3 択の引き直し +1 回', 3, 300, undefined, 1, 'upgrade-reroll'),
-  u('revive', '復活', '倒れたとき 1 回だけ HP 半分で起き上がる', 1, 1200, undefined, 1, 'upgrade-revive')
+  u('revive', '復活', '倒れたとき 1 回だけ HP 半分で起き上がる', 1, 1200, undefined, 1, 'upgrade-revive'),
+  u('amount', '数', '武器の弾・攻撃の数 +1', 1, 1800, 'amount', 1, 'passive-twin'),
+  u('duration', '時間', '効く時間 +5%', 5, 90, 'duration', 0.05, 'passive-tail'),
+  u('luck', '運', '運 +5%', 5, 90, 'luck', 0.05, 'passive-clover'),
+  u('skip', '飛ばす', '3 択を取らずに閉じる +1 回', 3, 225, undefined, 1, 'upgrade-skip'),
+  u('banish', '除外', '3 択の札をその回の候補から消す +1 回', 3, 225, undefined, 1, 'upgrade-banish')
 ];
 
 export function price(d: UpgradeDef, rank: number): number {
@@ -56,16 +76,20 @@ export interface Perks {
   greed: number;
   rerolls: number;
   revives: number;
+  skips: number;
+  banishes: number;
 }
 
 export function perks(ranks: Ranks): Perks {
-  const out: Perks = { boost: {}, greed: 1, rerolls: 0, revives: 0 };
+  const out: Perks = { boost: {}, greed: 1, rerolls: 0, revives: 0, skips: 0, banishes: 0 };
   for (const d of UPGRADES) {
     const n = ranks[d.id] ?? 0;
     if (!n) continue;
     if (d.stat) out.boost[d.stat] = (out.boost[d.stat] ?? 0) + d.per * n;
     else if (d.id === 'greed') out.greed += d.per * n;
     else if (d.id === 'reroll') out.rerolls += n;
+    else if (d.id === 'skip') out.skips += n;
+    else if (d.id === 'banish') out.banishes += n;
     else out.revives += n;
   }
   return out;

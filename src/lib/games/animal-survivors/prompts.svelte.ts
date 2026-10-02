@@ -14,8 +14,8 @@ export class Prompts {
   rewards = $state<Reward[] | null>(null);
   /** key は帯を作り直すための数。until までゲームの時間で出す（3 択で止まっているあいだに消えないように） */
   warning = $state<{ name: string; key: number; until: number } | null>(null);
-  /** 3 択の引き直しの残り。World の値は $state でないので、画面のために写しを持つ */
-  rerolls = $state(0);
+  /** 3 択の道具（引き直す・飛ばす・除外）の残り。World の値は $state でないので、画面のために写しを持つ */
+  tools = $state({ rerolls: 0, skips: 0, banishes: 0 });
   /** 群れの帯。WARNING と同じくゲームの時間で出す */
   notice = $state<{ text: string; key: number; until: number } | null>(null);
   /** WARNING から、予告したボスを全部倒すまで（ボスの曲を流す） */
@@ -25,7 +25,12 @@ export class Prompts {
 
   constructor(w: World) {
     this.#w = w;
-    this.rerolls = w.rerolls;
+    this.#sync();
+  }
+
+  #sync() {
+    const w = this.#w;
+    this.tools = { rerolls: w.rerolls, skips: w.skips, banishes: w.banishes };
   }
 
   get busy(): boolean {
@@ -66,7 +71,29 @@ export class Prompts {
     const w = this.#w;
     if (!this.options || w.rerolls <= 0) return;
     w.rerolls -= 1;
-    this.rerolls = w.rerolls;
+    this.#sync();
+    this.options = choices(w);
+    this.lock.begin(finger);
+  }
+
+  /** 何も取らずに 3 択を閉じる */
+  skip(finger: number | null): void {
+    const w = this.#w;
+    if (!this.options || w.skips <= 0) return;
+    w.skips -= 1;
+    w.pending = Math.max(0, w.pending - 1);
+    this.#sync();
+    this.options = null;
+    this.next(finger);
+  }
+
+  /** 札をその回の候補から消し、3 択を引き直す */
+  banish(c: Choice, finger: number | null): void {
+    const w = this.#w;
+    if (!this.options || w.banishes <= 0 || c.kind === 'meat' || c.kind === 'bag') return;
+    w.banishes -= 1;
+    w.banished.push(`${c.kind}:${c.id}`);
+    this.#sync();
     this.options = choices(w);
     this.lock.begin(finger);
   }
