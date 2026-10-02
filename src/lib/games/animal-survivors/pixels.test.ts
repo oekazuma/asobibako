@@ -113,6 +113,13 @@ describe('ドット絵の格子', () => {
     for (const k of ['ghost', 'skeleton', 'zombie'] as const) expect(ENEMY_ART[k].frames).toHaveLength(2);
   });
 
+  it('墓地のボス・ちびかぼちゃ・種の絵がある', () => {
+    expect(BOSS_ART.pumpkin.frames).toHaveLength(2);
+    expect(BOSS_ART.knight.frames).toHaveLength(3);
+    expect(BOSS_ART.pumpkinling.frames).toHaveLength(2);
+    expect(ITEM_ART.seed).toBeDefined();
+  });
+
   it('7 匹ぶんの絵がある', () => {
     expect(Object.keys(ANIMAL_ART).sort()).toEqual(['bear', 'cat', 'dog', 'fox', 'panda', 'rabbit', 'wolf']);
   });

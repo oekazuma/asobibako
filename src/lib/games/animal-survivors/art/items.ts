@@ -848,5 +848,10 @@ export const ITEM_ART: Record<string, Art> = {
         '...kkkk...'
       ]
     ]
+  },
+  seed: {
+    w: 8,
+    h: 8,
+    frames: [['..kkkk..', '.kwwwwk.', 'kwwqwwwk', 'kwqwwwqk', 'kwwwwqwk', '.kqwwqk.', '..kqqk..', '...kk...']]
   }
 };
