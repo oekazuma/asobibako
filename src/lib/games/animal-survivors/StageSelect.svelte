@@ -1,6 +1,7 @@
 <script lang="ts">
   import { FOREST_ART } from './art/forest';
   import { GRAVE_ART } from './art/graveyard';
+  import { SNOW_ART } from './art/snow';
   import { ENEMIES } from './enemies';
   import PixelIcon from './PixelIcon.svelte';
   import { canPlay, type Records } from './records';
@@ -10,7 +11,8 @@
 
   const LOOK = {
     forest: { tile: FOREST_ART.grass, mark: FOREST_ART.decor.tree },
-    graveyard: { tile: GRAVE_ART.grass, mark: GRAVE_ART.decor.tomb }
+    graveyard: { tile: GRAVE_ART.grass, mark: GRAVE_ART.decor.tomb },
+    snow: { tile: SNOW_ART.grass, mark: SNOW_ART.decor.pine }
   };
 </script>
 

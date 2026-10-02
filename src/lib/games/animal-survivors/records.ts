@@ -145,7 +145,8 @@ export function saveRecords(r: Records): void {
   }
 }
 
-/** 森はいつも選べ、ほかの面は森をクリアすると選べる */
+/** 面の after（先にクリアする面）をクリアしていれば選べる。知らない面は選べない */
 export function canPlay(r: Records, stage: string): boolean {
-  return stage === 'forest' || r.stages.includes('forest');
+  const s = STAGES.find((o) => o.id === stage);
+  return !!s && (!s.after || r.stages.includes(s.after));
 }

@@ -101,6 +101,13 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   { id: 'metal', name: 'きらきらハリネズミを倒す', coins: 200, done: (_, run) => run?.metal ?? false },
   { id: 'graveClear', name: '夜の墓地をクリア', coins: 300, done: (r) => r.stages.includes('graveyard') },
+  { id: 'snowClear', name: '雪山をクリア', coins: 400, done: (r) => r.stages.includes('snow') },
+  {
+    id: 'snowBosses',
+    name: '雪山の 2 体のボスを倒す',
+    coins: 300,
+    done: (r) => r.bosses.includes('yeti') && r.bosses.includes('dragon')
+  },
   {
     id: 'graveBosses',
     name: '墓地の 2 体のボスを倒す',

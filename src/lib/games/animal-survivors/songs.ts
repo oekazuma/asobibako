@@ -1,7 +1,7 @@
 import type { Song } from '$lib/music/tune';
 
 /** 画面ごとの BGM。書き方は $lib/music/tune の Song。効果音が聞こえるよう gain は小さめ */
-export const SONGS: Record<'menu' | 'field' | 'grave' | 'boss', { song: Song; bpm: number; gain: number }> = {
+export const SONGS: Record<'menu' | 'field' | 'grave' | 'snow' | 'boss', { song: Song; bpm: number; gain: number }> = {
   /** キャラ選択・店・実績・リザルト。軽く弾む */
   menu: {
     bpm: 110,
@@ -43,6 +43,21 @@ export const SONGS: Record<'menu' | 'field' | 'grave' | 'boss', { song: Song; bp
         d5 . d5 . f5 . e5 d5 | c5 . a4 . f4 . a4 . | g4 . c5 . e5 - d5 c5 | c#5 . a4 . e4 - . . |
         a#4 a4 g4 . d5 . a#4 . | a4 g4 f4 . d4 . f4 . | e4 . a4 . c#5 . e5 . | d5 - - - . . . .`,
       chords: 'Dm Dm A# A Dm Dm Gm A Dm F C A Gm Dm A Dm'
+    }
+  },
+  /** 雪山。鉄琴の音で、明るいが少し寂しい */
+  snow: {
+    bpm: 136,
+    gain: 0.55,
+    song: {
+      beats: 4,
+      lead: 'mallet',
+      style: 'drive',
+      melody: `e5 . b4 . g4 . b4 . | c5 - b4 . a4 . g4 . | a4 . c5 . e5 . d5 c5 | b4 - - - . . . . |
+        g4 . b4 . d5 . g5 . | f#5 . e5 . d5 - b4 . | c5 . e5 . a5 - g5 f#5 | g5 - - - d5 - . . |
+        e5 . e5 . g5 . f#5 e5 | d5 . b4 . g4 . b4 . | c5 . a4 . f#4 . a4 . | b4 - g4 - e4 - . . |
+        c5 e5 g5 . f#5 . e5 . | d5 . f#5 . a5 - g5 . | f#5 . d5 . b4 - a4 . | g4 - - - . . . .`,
+      chords: 'Em C Am B G D Am G Em G Am B C D D G'
     }
   },
   /** ボス。短調で速い */

@@ -1,5 +1,5 @@
 export type Move = 'chase' | 'wave' | 'snake' | 'charge' | 'leap' | 'boss' | 'still' | 'flee';
-export type BossId = 'bear' | 'spiderQueen' | 'pumpkin' | 'knight';
+export type BossId = 'bear' | 'spiderQueen' | 'pumpkin' | 'knight' | 'yeti' | 'dragon';
 
 export interface EnemyDef {
   id: string;
@@ -21,7 +21,7 @@ export interface EnemyDef {
   /** 壊せる物（ランタン）。狙われず、数えられず、品を落とす */
   prop?: boolean;
   /** ボスの動き方（bosses.ts）。巨大ベア型は突進と地ならし、女王グモ型は飛び道具と手下 */
-  ai?: 'bear' | 'queen';
+  ai?: 'bear' | 'queen' | 'yeti' | 'dragon';
   /** 女王グモ型が呼ぶ手下の id */
   minion?: string;
   /** 女王グモ型の飛び道具の絵（ITEM_ART の名前） */
@@ -74,7 +74,22 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
       },
       { ...e('knight', 'ガイコツの騎士', [1300, 30, 26, 15, 0], 'boss', 1, 'knight'), ai: 'bear' },
       { ...e('lantern', 'ランタン', [1, 0, 0, 6, 0], 'still', 1), prop: true },
-      { ...e('metal', 'きらきらハリネズミ', [12, 50, 0, 6, 0], 'flee', 0.5), metal: true }
+      { ...e('metal', 'きらきらハリネズミ', [12, 50, 0, 6, 0], 'flee', 0.5), metal: true },
+      e('penguin', 'ペンギン', [6, 40, 5, 5, 1], 'chase', 0),
+      e('snowsprite', '雪ん子', [4, 58, 4, 5, 1], 'wave', 0),
+      e('seal', 'アザラシ', [14, 34, 8, 6, 2], 'snake', 0.2),
+      e('snowman', '雪だるま', [40, 20, 10, 7, 5], 'chase', 0.6),
+      e('reindeer', 'トナカイ', [70, 26, 18, 8, 8], 'charge', 0.8),
+      e('hare', '雪ウサギ', [18, 36, 9, 6, 3], 'leap', 0.2),
+      e('polar', 'シロクマ', [120, 16, 16, 9, 10], 'chase', 0.9),
+      e('snowling', 'ちび雪だるま', [10, 46, 7, 5, 1], 'chase', 0),
+      {
+        ...e('yeti', '大雪男', [1100, 30, 26, 16, 0], 'boss', 1, 'yeti'),
+        ai: 'yeti',
+        minion: 'snowling',
+        shot: 'snowball'
+      },
+      { ...e('dragon', '氷の竜', [1500, 40, 28, 18, 0], 'boss', 1, 'dragon'), ai: 'dragon', shot: 'icicle' }
     ] satisfies EnemyDef[]
   ).map((d) => [d.id, d])
 );

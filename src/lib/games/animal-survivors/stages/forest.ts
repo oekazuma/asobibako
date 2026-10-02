@@ -36,13 +36,17 @@ export interface Stage {
   id: string;
   name: string;
   /** 地面と飾りの絵 */
-  art: 'forest' | 'graveyard';
+  art: 'forest' | 'graveyard' | 'snow';
   /** コインに掛ける倍率 */
   coin: number;
   /** 遊んでいるあいだの曲（songs.ts） */
-  song: 'field' | 'grave';
+  song: 'field' | 'grave' | 'snow';
   /** まだ選べないときに出す、選べる条件 */
   unlock?: string;
+  /** 先にクリアしておく面。無ければ最初から選べる */
+  after?: string;
+  /** 吹雪が来る秒と続く秒 */
+  storms: { at: number; len: number }[];
   /** 秒。ここまで生き延びればクリア */
   length: number;
   waves: Wave[];
@@ -80,6 +84,7 @@ export const FOREST: Stage = {
   coin: 1,
   song: 'field',
   length: 900,
+  storms: [],
   events: [
     { at: 45, kind: 'swarm', enemy: 'bat', count: 20, text: 'コウモリの大群！' },
     { at: 135, kind: 'lanterns', enemy: 'lantern', count: 8, text: 'ランタンが灯った！' },
