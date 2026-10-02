@@ -18,10 +18,18 @@ export interface StageEvent {
 }
 
 /** 面の主。その面の 2 体のボスが、体力を増やしていっしょに出る */
-export const FINALE = 780;
-export const finale = (bosses: Stage['bosses']): Stage['bosses'] => [
-  ...bosses,
-  ...bosses.map((b) => ({ at: FINALE, id: b.id, hp: 1.5, title: '面の主' }))
+export const FINALE = 810;
+/** 2 回めのボスと面の主は、攻撃の間をこの値で割る */
+const RAGE = 1.5;
+
+/** 3・6 分に 2 体を、9・12 分に同じ 2 体を攻撃を速めて出し、13:30 に面の主 */
+export const bossRun = (a: BossId, b: BossId): Stage['bosses'] => [
+  { at: 180, id: a },
+  { at: 360, id: b },
+  { at: 540, id: a, rage: RAGE },
+  { at: 720, id: b, rage: RAGE },
+  { at: FINALE, id: a, hp: 1.5, rage: RAGE, title: '面の主' },
+  { at: FINALE, id: b, hp: 1.5, rage: RAGE, title: '面の主' }
 ];
 
 export interface Stage {
@@ -38,8 +46,11 @@ export interface Stage {
   /** 秒。ここまで生き延びればクリア */
   length: number;
   waves: Wave[];
-  /** 秒と、そのときに出すボス。同じ時刻の行はいっしょに出し、WARNING は 1 回だけ出す */
-  bosses: { at: number; id: BossId; hp?: number; title?: string }[];
+  /**
+   * 秒と、そのときに出すボス。同じ時刻の行はいっしょに出し、WARNING は 1 回だけ出す。
+   * 体力は表の値にその時刻の toughness と hp を掛け、rage は攻撃の間を割る
+   */
+  bosses: { at: number; id: BossId; hp?: number; rage?: number; title?: string }[];
   /** 秒と、そのときに出すヌシ（ふつうの敵を 3 倍にしたもの）の元の敵と体力 */
   chiefs: { at: number; enemy: string; hp: number }[];
   /** 同時に出ている敵の上限 */
@@ -71,32 +82,23 @@ export const FOREST: Stage = {
   length: 900,
   events: [
     { at: 45, kind: 'swarm', enemy: 'bat', count: 20, text: 'コウモリの大群！' },
-    { at: 90, kind: 'lanterns', enemy: 'lantern', count: 8, text: 'ランタンが灯った！' },
-    { at: 150, kind: 'ring', enemy: 'rat', count: 40, text: 'ネズミに囲まれた！' },
-    { at: 195, kind: 'elites', enemy: 'snake', count: 3, text: 'ヘビの精鋭が来た！' },
-    { at: 270, kind: 'swarm', enemy: 'bat', count: 50, text: 'コウモリの大群！' },
-    { at: 345, kind: 'lanterns', enemy: 'lantern', count: 8, text: 'ランタンが灯った！' },
-    { at: 390, kind: 'swarm', enemy: 'boar', count: 12, text: 'イノシシの突進！' },
-    { at: 465, kind: 'ring', enemy: 'caterpillar', count: 40, text: 'イモムシに囲まれた！' },
-    { at: 510, kind: 'elites', enemy: 'snake', count: 4, text: 'ヘビの精鋭が来た！' },
-    { at: 570, kind: 'swarm', enemy: 'bat', count: 60, text: 'コウモリの大群！' },
-    { at: 645, kind: 'lanterns', enemy: 'lantern', count: 8, text: 'ランタンが灯った！' },
-    { at: 690, kind: 'ring', enemy: 'snake', count: 60, text: 'ヘビに囲まれた！' },
-    { at: 750, kind: 'elites', enemy: 'boar', count: 5, text: 'イノシシの精鋭が来た！' },
-    { at: 820, kind: 'swarm', enemy: 'bat', count: 80, text: 'コウモリの大群！' },
-    { at: 860, kind: 'swarm', enemy: 'boar', count: 20, text: 'イノシシの突進！' }
+    { at: 135, kind: 'lanterns', enemy: 'lantern', count: 8, text: 'ランタンが灯った！' },
+    { at: 225, kind: 'ring', enemy: 'rat', count: 40, text: 'ネズミに囲まれた！' },
+    { at: 315, kind: 'elites', enemy: 'snake', count: 3, text: 'ヘビの精鋭が来た！' },
+    { at: 405, kind: 'swarm', enemy: 'boar', count: 12, text: 'イノシシの突進！' },
+    { at: 495, kind: 'lanterns', enemy: 'lantern', count: 8, text: 'ランタンが灯った！' },
+    { at: 585, kind: 'ring', enemy: 'caterpillar', count: 40, text: 'イモムシに囲まれた！' },
+    { at: 675, kind: 'elites', enemy: 'boar', count: 4, text: 'イノシシの精鋭が来た！' },
+    { at: 765, kind: 'swarm', enemy: 'bat', count: 80, text: 'コウモリの大群！' },
+    { at: 855, kind: 'ring', enemy: 'snake', count: 60, text: 'ヘビに囲まれた！' }
   ],
   chiefs: [
-    { at: 120, enemy: 'caterpillar', hp: 400 },
-    { at: 240, enemy: 'boar', hp: 550 },
-    { at: 420, enemy: 'croc', hp: 800 },
-    { at: 540, enemy: 'boar', hp: 950 },
-    { at: 720, enemy: 'croc', hp: 1200 }
+    { at: 90, enemy: 'caterpillar', hp: 350 },
+    { at: 270, enemy: 'boar', hp: 600 },
+    { at: 450, enemy: 'croc', hp: 850 },
+    { at: 630, enemy: 'boar', hp: 1100 }
   ],
-  bosses: finale([
-    { at: 300, id: 'bear' },
-    { at: 600, id: 'spiderQueen' }
-  ]),
+  bosses: bossRun('bear', 'spiderQueen'),
   waves: [
     { from: 0, to: 300, enemy: 'rat', rate: [0.8, 3] },
     { from: 60, to: 600, enemy: 'bat', rate: [0.5, 2.5] },

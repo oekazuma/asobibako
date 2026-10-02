@@ -1,5 +1,5 @@
 import { ENEMIES } from '../enemies';
-import { FOREST, finale, type Stage } from './forest';
+import { bossRun, FOREST, type Stage } from './forest';
 
 /** 森の時刻の流れのまま、敵を墓地の顔ぶれにして 1 段強くした面 */
 const HARDER = 1.15;
@@ -19,16 +19,12 @@ export const GRAVEYARD: Stage = {
     return to ? { ...ev, enemy: to, text: ev.text.replace(ENEMIES[ev.enemy].name, ENEMIES[to].name) } : ev;
   }),
   chiefs: [
-    { at: 120, enemy: 'skeleton', hp: 460 },
-    { at: 240, enemy: 'zombie', hp: 630 },
-    { at: 420, enemy: 'ghost', hp: 920 },
-    { at: 540, enemy: 'skeleton', hp: 1090 },
-    { at: 720, enemy: 'zombie', hp: 1380 }
+    { at: 90, enemy: 'skeleton', hp: 400 },
+    { at: 270, enemy: 'zombie', hp: 690 },
+    { at: 450, enemy: 'ghost', hp: 980 },
+    { at: 630, enemy: 'skeleton', hp: 1270 }
   ],
-  bosses: finale([
-    { at: 300, id: 'pumpkin' },
-    { at: 600, id: 'knight' }
-  ]),
+  bosses: bossRun('pumpkin', 'knight'),
   waves: FOREST.waves.map((w) => ({ ...w, enemy: SWAP[w.enemy] ?? w.enemy })),
   cap: (t) => Math.min(400, Math.round(FOREST.cap(t) * 1.15)),
   toughness: (t) => FOREST.toughness(t) * HARDER,

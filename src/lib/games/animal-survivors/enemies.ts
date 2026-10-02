@@ -26,6 +26,8 @@ export interface EnemyDef {
   minion?: string;
   /** 女王グモ型の飛び道具の絵（ITEM_ART の名前） */
   shot?: string;
+  /** 2 回めのボスと面の主。攻撃の間をこの値で割る */
+  rage?: number;
   /** ヌシ（3 倍の大きさで王冠を載せたふつうの敵）。十字架で消えず、押されない */
   chief?: boolean;
   /** きらきらハリネズミ。どんな攻撃でも 1 しか減らず、逃げて、しばらくで去る */

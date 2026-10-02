@@ -54,7 +54,8 @@ export function spawnBosses(w: World): void {
     const b = list[w.bossNext++];
     const def = ENEMIES[b.id];
     const at = spawnPoint(w);
-    w.enemies[slot(w)] = makeEnemy(def, at.x, at.y, def.hp * (b.hp ?? 1));
+    const hp = def.hp * (b.hp ?? 1) * w.stage.toughness(b.at);
+    w.enemies[slot(w)] = makeEnemy(b.rage ? { ...def, rage: b.rage } : def, at.x, at.y, hp);
   }
 }
 
@@ -140,7 +141,7 @@ function bear(w: World, i: number, e: Enemy, ux: number, uy: number, dt: number)
   }
   if (e.wait <= 0) {
     e.state = 0;
-    e.cd = BEAR.every;
+    e.cd = BEAR.every / (e.def.rage ?? 1);
   }
   return e.state === 2 ? { vx: e.dx * BEAR.dashSpeed, vy: e.dy * BEAR.dashSpeed } : STILL;
 }
@@ -149,7 +150,7 @@ function bear(w: World, i: number, e: Enemy, ux: number, uy: number, dt: number)
 function queen(w: World, e: Enemy, ux: number, uy: number, d: number, dt: number) {
   e.cd -= dt;
   if (e.cd <= 0) {
-    e.cd = QUEEN.webEvery;
+    e.cd = QUEEN.webEvery / (e.def.rage ?? 1);
     const a0 = Math.atan2(uy, ux);
     for (let k = 0; k < QUEEN.webs; k++) {
       const a = a0 + (k - (QUEEN.webs - 1) / 2) * QUEEN.webSpread;
@@ -170,7 +171,7 @@ function queen(w: World, e: Enemy, ux: number, uy: number, d: number, dt: number
   }
   e.turn -= dt;
   if (e.turn <= 0) {
-    e.turn = QUEEN.broodEvery;
+    e.turn = QUEEN.broodEvery / (e.def.rage ?? 1);
     const def = ENEMIES[e.def.minion ?? 'spiderling'];
     for (let k = 0; k < QUEEN.brood; k++) {
       const free = w.enemies.findIndex((o) => !o.alive);
