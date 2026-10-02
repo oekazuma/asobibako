@@ -27,6 +27,15 @@ export function frameAt(v: number, n: number): number {
   return ((Math.floor(v) % n) + n) % n;
 }
 
+/** 仮想画面のドット v を、端末の画素の位置に丸める。カメラと絵をこの細かさで動かすと、絵の 1 ドットの幅は変わらずになめらかに動く */
+export function devicePx(v: number, scale: number): number {
+  return Math.round(v * scale);
+}
+
+/** いま描いている倍率。draw() の頭で決め、下の部品が位置を丸めるのに使う */
+let S = 1;
+const q = (v: number) => devicePx(v, S) / S;
+
 /** 座標から決まる 0..1。地面と飾りを毎フレーム同じに並べる */
 function hash(x: number, y: number) {
   let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263)) >>> 0;
@@ -45,14 +54,14 @@ function sprite(
 ) {
   ctx.drawImage(
     bake(art, frame, flip ? (white ? 'flipWhite' : 'flip') : white ? 'white' : 'normal'),
-    Math.round(x - art.w / 2),
-    Math.round(y - art.h / 2)
+    q(x - art.w / 2),
+    q(y - art.h / 2)
   );
 }
 
 function shadow(ctx: CanvasRenderingContext2D, x: number, y: number, w: number) {
-  const x0 = Math.round(x - w / 2);
-  const y0 = Math.round(y);
+  const x0 = q(x - w / 2);
+  const y0 = q(y);
   ctx.fillRect(x0 + 1, y0 - 1, w - 2, 1);
   ctx.fillRect(x0, y0, w, 1);
   ctx.fillRect(x0 + 1, y0 + 1, w - 2, 1);
@@ -109,8 +118,8 @@ function player(ctx: CanvasRenderingContext2D, w: World, now: number) {
     sprite(ctx, art, frame, p.x + dx, p.y + dy, flip, true);
   sprite(ctx, art, frame, p.x, p.y, flip);
   if (p.hp < w.stats.maxHp) {
-    const x = Math.round(p.x - 8);
-    const y = Math.round(p.y + 10);
+    const x = q(p.x - 8);
+    const y = q(p.y + 10);
     ctx.fillStyle = PALETTE.k;
     ctx.fillRect(x - 1, y - 1, 18, 4);
     ctx.fillStyle = PALETTE.R;
@@ -141,13 +150,12 @@ function pickups(ctx: CanvasRenderingContext2D, w: World, now: number) {
     if (!g.alive) continue;
     sprite(ctx, ITEM_ART[`gem${gemTier(g.value)}`], frameAt(now * 3 + g.x * 0.1, 2), g.x, g.y);
   }
-  for (const it of w.items)
-    if (it.alive) sprite(ctx, ITEM_ART[it.kind], 0, it.x, it.y + Math.round(Math.sin(now * 4) * 1.5));
+  for (const it of w.items) if (it.alive) sprite(ctx, ITEM_ART[it.kind], 0, it.x, it.y + Math.sin(now * 4) * 1.5);
 }
 
 function rotated(ctx: CanvasRenderingContext2D, art: Art, x: number, y: number, angle: number, size = 1) {
   ctx.save();
-  ctx.translate(Math.round(x), Math.round(y));
+  ctx.translate(q(x), q(y));
   ctx.rotate(angle);
   ctx.drawImage(bake(art), (-art.w * size) / 2, (-art.h * size) / 2, art.w * size, art.h * size);
   ctx.restore();
@@ -222,7 +230,7 @@ function effects(ctx: CanvasRenderingContext2D, w: World) {
   ctx.globalAlpha = 1;
 }
 
-/** 仮想画面と同じ大きさの canvas に描く。呼ぶ側がそれをぼかさずに拡大する */
+/** 端末の画素の canvas に、仮想画面の scale 倍で描く */
 export function draw(
   ctx: CanvasRenderingContext2D,
   w: World,
@@ -231,27 +239,31 @@ export function draw(
   now: number,
   top: number
 ): void {
+  S = v.scale;
   ctx.imageSmoothingEnabled = false;
   const p = w.player;
-  const sx = fx.shake ? Math.round((Math.random() - 0.5) * 2 * fx.shake) : 0;
-  const sy = fx.shake ? Math.round((Math.random() - 0.5) * 2 * fx.shake) : 0;
-  const cx = Math.round(p.x - v.w / 2) + sx;
-  const cy = Math.round(p.y - v.h / 2) + sy;
-  ctx.setTransform(1, 0, 0, 1, -cx, -cy);
+  const cx = p.x - v.w / 2;
+  const cy = p.y - v.h / 2;
+  ctx.setTransform(S, 0, 0, S, -devicePx(cx, S), -devicePx(cy, S));
   ground(ctx, cx, cy, v);
   pickups(ctx, w, now);
   enemies(ctx, w, cx, cy, v);
   player(ctx, w, now);
   shots(ctx, w);
   effects(ctx, w);
-  fx.draw(ctx);
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  if (fx.edge > 0) {
-    ctx.globalAlpha = fx.edge / 0.3;
-    ctx.strokeStyle = PALETTE.u;
+  fx.draw(ctx, S);
+  ctx.setTransform(S, 0, 0, S, 0, 0);
+  // 磁石は青、被弾は赤で画面の縁を光らせる（画面を揺らすと酔うので揺らさない）
+  for (const [t, max, color] of [
+    [fx.edge, 0.3, PALETTE.u],
+    [fx.hurt, 0.25, PALETTE.r]
+  ] as const) {
+    if (t <= 0) continue;
+    ctx.globalAlpha = (t / max) * 0.8;
+    ctx.strokeStyle = color;
     ctx.lineWidth = 4;
     ctx.strokeRect(2, 2, v.w - 4, v.h - 4);
-    ctx.globalAlpha = 1;
   }
+  ctx.globalAlpha = 1;
   hud(ctx, w, v, top);
 }

@@ -77,7 +77,7 @@ function glyph(ch: string, color: string, s: number) {
   return c;
 }
 
-/** (x, y) を左上にして書き、幅を返す */
+/** (x, y) を左上にして書き、幅を返す。位置は丸めないので、呼ぶ側が描く細かさに合わせて丸めておく */
 export function text(
   ctx: CanvasRenderingContext2D,
   s: string,
@@ -87,8 +87,7 @@ export function text(
   size: 1 | 2 = 1
 ): number {
   const step = 4 * size;
-  for (let i = 0; i < s.length; i++)
-    ctx.drawImage(glyph(s[i].toUpperCase(), color, size), Math.round(x + i * step) - 1, Math.round(y) - 1);
+  for (let i = 0; i < s.length; i++) ctx.drawImage(glyph(s[i].toUpperCase(), color, size), x + i * step - 1, y - 1);
   return s.length * step - size;
 }
 

@@ -19,8 +19,6 @@
   let canvas: HTMLCanvasElement;
   let probe: HTMLElement;
   let ctx: CanvasRenderingContext2D | null = null;
-  let low: HTMLCanvasElement | null = null;
-  let lowCtx: CanvasRenderingContext2D | null = null;
   let view: ViewSize = { scale: 2, w: 260, h: 380 };
   /** HUD を書きはじめる高さ（仮想ドット）。シェルの隅のボタンの下 */
   let top = 24;
@@ -71,10 +69,6 @@
     canvas.style.width = `${canvas.width / dpr}px`;
     canvas.style.height = `${canvas.height / dpr}px`;
     ctx = canvas.getContext('2d');
-    low ??= document.createElement('canvas');
-    low.width = view.w;
-    low.height = view.h;
-    lowCtx = low.getContext('2d');
   }
 
   function direction() {
@@ -101,10 +95,7 @@
       lock.begin(stick?.id ?? null);
     }
     if (world.over && !endTimer) endTimer = setTimeout(() => onend(world), world.over === 'clear' ? 2000 : 1200);
-    if (!ctx || !lowCtx || !low) return;
-    draw(lowCtx, world, fx, view, now, top);
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(low, 0, 0, canvas.width, canvas.height);
+    if (ctx) draw(ctx, world, fx, view, now, top);
   }
 
   function keydown(event: KeyboardEvent) {

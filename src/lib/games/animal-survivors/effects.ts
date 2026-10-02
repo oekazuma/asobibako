@@ -39,9 +39,10 @@ const BODY: Record<string, string> = {
 export class Effects {
   readonly #bits: Bit[] = [];
   readonly #numbers: Floater[] = [];
-  shake = 0;
-  /** 磁石で画面の縁が光る残り時間 */
+  /** 磁石で画面の縁が青く光る残り時間 */
   edge = 0;
+  /** 被弾で画面の縁が赤く光る残り時間 */
+  hurt = 0;
   #chain = 0;
   #lastPick = -1;
   #clock = 0;
@@ -92,7 +93,7 @@ export class Effects {
         if (this.#lastPick !== this.#clock) sounds.pickup(this.#chain);
         this.#lastPick = this.#clock;
       } else if (e.type === 'hurt') {
-        this.shake = 2;
+        this.hurt = 0.25;
         sounds.hurt();
       } else if (e.type === 'levelup') {
         const p = w.player;
@@ -117,7 +118,7 @@ export class Effects {
 
   update(dt: number): void {
     this.#clock += dt;
-    this.shake = Math.max(0, this.shake - dt * 12);
+    this.hurt = Math.max(0, this.hurt - dt);
     this.edge = Math.max(0, this.edge - dt);
     for (const b of this.#bits) {
       if (b.life <= 0) continue;
@@ -134,18 +135,19 @@ export class Effects {
     while (this.#numbers.length && this.#numbers[0].age > NUMBER_LIFE) this.#numbers.shift();
   }
 
-  /** ワールド座標で描く（呼ぶ側がカメラを移してある） */
-  draw(ctx: CanvasRenderingContext2D): void {
+  /** ワールド座標で描く（呼ぶ側がカメラを移してある）。位置は端末の画素（1 / scale ドット）に丸める */
+  draw(ctx: CanvasRenderingContext2D, scale: number): void {
+    const q = (v: number) => Math.round(v * scale) / scale;
     for (const b of this.#bits) {
       if (b.life <= 0) continue;
       ctx.globalAlpha = Math.min(1, (b.life / b.max) * 2);
       ctx.fillStyle = b.color;
-      ctx.fillRect(Math.round(b.x), Math.round(b.y), b.size, b.size);
+      ctx.fillRect(q(b.x), q(b.y), b.size, b.size);
     }
     ctx.globalAlpha = 1;
     for (const n of this.#numbers) {
       ctx.globalAlpha = n.age > NUMBER_LIFE * 0.6 ? 1 - (n.age - NUMBER_LIFE * 0.6) / (NUMBER_LIFE * 0.4) : 1;
-      text(ctx, n.text, n.x - n.text.length * 2 * n.size, n.y, n.color, n.size);
+      text(ctx, n.text, q(n.x - n.text.length * 2 * n.size), q(n.y), n.color, n.size);
     }
     ctx.globalAlpha = 1;
   }
