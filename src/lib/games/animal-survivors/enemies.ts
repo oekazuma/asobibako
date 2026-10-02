@@ -1,4 +1,4 @@
-export type Move = 'chase' | 'wave' | 'snake' | 'charge' | 'boss';
+export type Move = 'chase' | 'wave' | 'snake' | 'charge' | 'leap' | 'boss';
 export type BossId = 'bear' | 'spiderQueen';
 
 export interface EnemyDef {
@@ -16,6 +16,8 @@ export interface EnemyDef {
   heavy: number;
   /** ボスなら、動き方を決める bosses.ts の id */
   boss?: BossId;
+  /** 強化個体（金色で大きく、HP と経験値が多い） */
+  elite?: boolean;
 }
 
 const e = (
@@ -34,6 +36,8 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
     e('snake', 'ヘビ', [14, 34, 8, 6, 2], 'snake', 0.2),
     e('caterpillar', 'イモムシ', [40, 20, 10, 7, 5], 'chase', 0.6),
     e('boar', 'イノシシ', [70, 26, 18, 8, 8], 'charge', 0.8),
+    e('spider', 'クモ', [18, 36, 9, 6, 3], 'leap', 0.2),
+    e('croc', 'ワニ', [120, 16, 16, 9, 10], 'chase', 0.9),
     e('spiderling', '子グモ', [8, 50, 6, 4, 1], 'chase', 0),
     // ボスの HP には toughness を掛けない（出る時刻が決まっているので表の値がそのまま強さになる）
     e('bear', '巨大ベア', [700, 28, 20, 15, 0], 'boss', 1, 'bear'),

@@ -21,6 +21,8 @@ export interface Stage {
   cap: (t: number) => number;
   /** 敵の HP に掛ける */
   toughness: (t: number) => number;
+  /** 出した敵が強化個体になる確率 */
+  elite: (t: number) => number;
   /** 敵の攻撃力に掛ける */
   fury: (t: number) => number;
 }
@@ -46,9 +48,12 @@ export const FOREST: Stage = {
     { from: 360, to: 900, enemy: 'caterpillar', rate: [0.3, 2] },
     { from: 540, to: 900, enemy: 'boar', rate: [0.2, 1.2] },
     { from: 600, to: 900, enemy: 'bat', rate: [3, 6] },
+    { from: 420, to: 900, enemy: 'spider', rate: [0.4, 2.5] },
+    { from: 480, to: 900, enemy: 'croc', rate: [0.2, 1] },
     { from: 720, to: 900, enemy: 'rat', rate: [8, 14] }
   ],
   cap: (t) => Math.min(400, Math.round(30 + (t / 720) * 370)),
   toughness: (t) => 1 + (t / 900) * 3,
+  elite: (t) => (t < 240 ? 0 : 0.02),
   fury: (t) => 0.6 + (t / 900) * 1.4
 };

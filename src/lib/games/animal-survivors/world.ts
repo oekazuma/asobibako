@@ -207,7 +207,14 @@ export function damageEnemy(w: World, i: number, dmg: number, kx: number, ky: nu
   dropFrom(w, e);
 }
 
-function spawn(w: World, def: EnemyDef) {
+/** 強化個体の表。元の表は書き換えない */
+export function eliteOf(def: EnemyDef): EnemyDef {
+  return { ...def, hp: def.hp * 8, xp: def.xp * 10, r: def.r * 1.6, heavy: Math.max(def.heavy, 0.6), elite: true };
+}
+
+function spawn(w: World, base: EnemyDef) {
+  const chance = w.stage.elite(w.time);
+  const def = chance > 0 && !base.boss && base.id !== 'spiderling' && w.rand() < chance ? eliteOf(base) : base;
   const at = spawnPoint(w);
   const hp = def.hp * w.stage.toughness(w.time);
   const free = w.enemies.find((e) => !e.alive);
@@ -234,6 +241,31 @@ function moveEnemy(w: World, i: number, dt: number) {
     const s = move === 'wave' ? Math.sin(e.t * 6 + e.phase) * 0.8 : Math.sin(e.t * 3 + e.phase) * 0.5;
     vx += -uy * s * sp;
     vy += ux * s * sp;
+  } else if (move === 'leap') {
+    // 3 秒ごとに 0.4 秒止まり、そのときの向きへ 4 倍の速さで 0.35 秒跳ぶ
+    if (e.state === 0) {
+      e.cd -= dt;
+      if (e.cd <= 0) {
+        e.state = 1;
+        e.wait = 0.4;
+      }
+    } else {
+      e.wait -= dt;
+      if (e.wait <= 0 && e.state === 1) {
+        e.state = 2;
+        e.wait = 0.35;
+        e.dx = ux;
+        e.dy = uy;
+      } else if (e.wait <= 0) {
+        e.state = 0;
+        e.cd = 3;
+      }
+    }
+    if (e.state === 1) vx = vy = 0;
+    else if (e.state === 2) {
+      vx = e.dx * sp * 4;
+      vy = e.dy * sp * 4;
+    }
   } else if (move === 'charge') {
     if (e.state === 0 && d < 60) {
       e.state = 1;

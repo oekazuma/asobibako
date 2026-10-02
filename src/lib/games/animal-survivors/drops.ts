@@ -79,6 +79,8 @@ function dropItem(w: World, kind: Item['kind'], x: number, y: number) {
 }
 
 const BOSS_GEMS = 10;
+/** 強化個体が宝箱を落とす確率 */
+const ELITE_CHEST = 0.1;
 const BOSS_GEM_XP = 25;
 /** 宝箱は吸い寄せず、ここまで近づいたら拾う */
 const CHEST_PICK = 10;
@@ -95,6 +97,7 @@ export function dropFrom(w: World, e: Enemy): void {
   dropGem(w, e.x, e.y, e.def.xp);
   if (w.rand() < 0.012) dropItem(w, 'meat', e.x + 4, e.y);
   else if (w.rand() < 0.004) dropItem(w, 'magnet', e.x + 4, e.y);
+  if (e.def.elite && w.rand() < ELITE_CHEST) dropItem(w, 'chest', e.x, e.y);
 }
 
 /** 吸い寄せて、届いたら true */
