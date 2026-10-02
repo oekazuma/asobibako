@@ -60,7 +60,11 @@ function fakeContext() {
     createBufferSource: node,
     createWaveShaper: node,
     createConvolver: node,
-    createBuffer: (_c: number, n: number) => ({ id: ++buffers, getChannelData: () => new Float32Array(n) })
+    createBuffer: (_c: number, n: number) => {
+      ctx.made += 1;
+      return { id: ++buffers, getChannelData: () => new Float32Array(n) };
+    },
+    made: 0
   };
   return { ctx: ctx as unknown as BaseAudioContext & { currentTime: number }, starts };
 }
@@ -126,5 +130,15 @@ describe('Loop', () => {
     loop.play(A, 140, 0.4);
     run(loop, fake, 0.05);
     expect(loop.step).toBeGreaterThanOrEqual(before);
+  });
+
+  it('warm した曲の音は、鳴らす前に 1 つずつ作っておく', () => {
+    const fake = fakeContext();
+    const loop = new Loop(() => fake.ctx);
+    const before = (fake.ctx as unknown as { made: number }).made;
+    loop.warm(B);
+    run(loop, fake, 1);
+    expect((fake.ctx as unknown as { made: number }).made).toBeGreaterThan(before + 3);
+    expect(fake.starts).toEqual([]);
   });
 });

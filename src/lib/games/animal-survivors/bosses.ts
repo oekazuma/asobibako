@@ -220,7 +220,7 @@ export function updateHazards(w: World, dt: number): void {
     }
     if (h.delay > 0) {
       h.delay -= dt;
-      if (h.delay <= 0 && (p.x - h.x) ** 2 + (p.y - h.y) ** 2 < h.r ** 2) hurtPlayer(w, h.dmg);
+      if (h.delay <= 0 && p.invuln <= 0 && (p.x - h.x) ** 2 + (p.y - h.y) ** 2 < h.r ** 2) hurtPlayer(w, h.dmg);
     } else {
       h.life -= dt;
       if (h.life <= 0) h.alive = false;

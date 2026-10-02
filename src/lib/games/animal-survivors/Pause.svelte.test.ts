@@ -97,4 +97,21 @@ describe('Pause', () => {
     expect(target.querySelector('.as-locked')).not.toBeNull();
     unmount(app);
   });
+
+  it('進化形の Lv は ★ で出す', () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(Pause, {
+      target,
+      props: {
+        run: { ...run, weapons: [{ id: 'woofEvo', level: 5 }] },
+        finger: null,
+        onresume: () => {},
+        onrestart: () => {},
+        onquit: () => {}
+      }
+    });
+    flushSync();
+    expect(target.querySelector('.lv')?.textContent).toBe('★');
+    unmount(app);
+  });
 });

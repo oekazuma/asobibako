@@ -18,7 +18,7 @@ export class Prompts {
   rerolls = $state(0);
   /** 群れの帯。WARNING と同じくゲームの時間で出す */
   notice = $state<{ text: string; key: number; until: number } | null>(null);
-  /** WARNING からボスを倒すまで（ボスの曲を流す） */
+  /** WARNING から、予告したボスを全部倒すまで（ボスの曲を流す） */
   boss = $state(false);
   readonly lock = new Lock();
   readonly #w: World;
@@ -38,9 +38,9 @@ export class Prompts {
     for (const e of w.events)
       if (e.type === 'warning') {
         this.warning = { name: ENEMIES[e.boss].name, key: w.time, until: w.time + WARN_AHEAD };
-        this.boss = true;
-      } else if (e.type === 'bossdown') this.boss = false;
-      else if (e.type === 'swarm' && e.text) this.notice = { text: e.text, key: w.time, until: w.time + NOTICE };
+      } else if (e.type === 'swarm' && e.text) this.notice = { text: e.text, key: w.time, until: w.time + NOTICE };
+    // 倒していないボスが残ったまま次のボスが出ることがあるので、予告した数と倒した数で決める
+    this.boss = w.warned > w.bossKills.length;
     if (this.warning && w.time >= this.warning.until) this.warning = null;
     if (this.notice && w.time >= this.notice.until) this.notice = null;
   }

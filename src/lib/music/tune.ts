@@ -110,6 +110,33 @@ const LEAD = 0.13;
 const CHORD = 0.035;
 const BASS = 0.11;
 
+const LEAD_VOICE: Record<Lead, Instrument> = {
+  box: 'box',
+  mallet: 'marimba',
+  bubble: 'drop',
+  brass: 'horn',
+  flute: 'flute',
+  chip: 'pulse'
+};
+
+/** 曲が使う楽器と高さ。初めて鳴らす音の計算が鳴らす瞬間に重ならないよう、先に作っておくために使う（旋律と drive の伴奏） */
+export function voices(song: Song): [Instrument, number][] {
+  const sc = scoreOf(song);
+  const out = new Map<string, [Instrument, number]>();
+  const add = (i: Instrument, f: number) => out.set(`${i}:${Math.round(f)}`, [i, f]);
+  for (const n of sc.notes) if (n) add(LEAD_VOICE[song.lead], hz(n.midi));
+  if (song.style === 'drive') {
+    for (const c of sc.chords) {
+      add('tri', hz(low(c[0])));
+      add('tri', hz(low(c[0]) + 12));
+    }
+    add('kick', 0);
+    add('hat', 0);
+    add('snare', 0);
+  }
+  return [...out.values()];
+}
+
 /** 8 分音符 1 つぶんを t から鳴らす。sd は 8 分音符の秒 */
 export function playStep(ctx: BaseAudioContext, out: AudioNode, sc: Score, step: number, t: number, sd: number) {
   const n = sc.notes[step];

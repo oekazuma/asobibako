@@ -58,9 +58,11 @@ describe('Prompts', () => {
     const w = createWorld('dog', 1, { w: 274, h: 394 });
     const p = new Prompts(w);
     expect(p.boss).toBe(false);
+    w.warned = 1;
     w.events = [{ type: 'warning', boss: 'bear' }];
     p.take();
     expect(p.boss).toBe(true);
+    w.bossKills = ['bear'];
     w.events = [{ type: 'bossdown', x: 0, y: 0 }];
     p.take();
     expect(p.boss).toBe(false);
@@ -77,5 +79,20 @@ describe('Prompts', () => {
     w.time = 92.1;
     p.take();
     expect(p.notice).toBeNull();
+  });
+
+  it('巨大ベアが残ったまま女王グモが出たら、片方を倒してもボスの曲のまま', () => {
+    const w = createWorld('dog', 1, { w: 274, h: 394 });
+    const p = new Prompts(w);
+    w.warned = 2;
+    w.events = [{ type: 'warning', boss: 'spiderQueen' }];
+    p.take();
+    w.bossKills = ['bear'];
+    w.events = [{ type: 'bossdown', x: 0, y: 0 }];
+    p.take();
+    expect(p.boss).toBe(true);
+    w.bossKills = ['bear', 'spiderQueen'];
+    p.take();
+    expect(p.boss).toBe(false);
   });
 });

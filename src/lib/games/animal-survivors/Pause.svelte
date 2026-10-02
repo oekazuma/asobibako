@@ -5,6 +5,7 @@
   import { clock } from './hud';
   import { Lock } from './lock.svelte';
   import PixelIcon from './PixelIcon.svelte';
+  import { WEAPONS } from './weapons';
   import type { RunSummary } from './world';
 
   let {
@@ -36,8 +37,8 @@
   }
 
   const owned = $derived([
-    ...run.weapons.map((o) => ({ ...o, key: `weapon-${o.id}` })),
-    ...run.passives.map((o) => ({ ...o, key: `passive-${o.id}` }))
+    ...run.weapons.map((o) => ({ ...o, key: `weapon-${o.id}`, star: WEAPONS[o.id]?.evolved ?? false })),
+    ...run.passives.map((o) => ({ ...o, key: `passive-${o.id}`, star: false }))
   ]);
 </script>
 
@@ -63,7 +64,9 @@
       <ul class="owned" aria-label="取った武器とパッシブ">
         {#each owned as o (o.key)}
           <li class="slot">
-            <PixelIcon art={itemArt(o.key)} size="min(8cqw, 4.6cqh, 40px)" /><span class="lv">{o.level}</span>
+            <PixelIcon art={itemArt(o.key)} size="min(8cqw, 4.6cqh, 40px)" /><span class="lv"
+              >{o.star ? '★' : o.level}</span
+            >
           </li>
         {/each}
       </ul>

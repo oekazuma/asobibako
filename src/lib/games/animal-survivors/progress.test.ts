@@ -203,15 +203,22 @@ describe('ゲームの中の積み上げ', () => {
     w.items.push({ alive: true, kind: 'coin', x: 0, y: 0, pulled: false });
     w.items.push({ alive: true, kind: 'purse', x: 0, y: 0, pulled: false });
     collect(w, 1 / 60);
-    expect(w.coins).toBeCloseTo(51 * 1.5);
+    expect(summary(w).coins).toBe(Math.floor(51 * 1.5));
     expect(w.events.filter((e) => e.type === 'coin')).toHaveLength(2);
+  });
+
+  it('強欲は合計に掛けるので、1 枚ずつ拾っても端数で減らない', () => {
+    const w = createWorld('dog', 1, VIEW, { greed: 1 });
+    for (let i = 0; i < 10; i++) w.items.push({ alive: true, kind: 'coin', x: 0, y: 0, pulled: false });
+    collect(w, 1 / 60);
+    expect(summary(w).coins).toBe(11);
   });
 
   it('宝箱を開けると 10 枚と開けた数、クリアで 100 枚', () => {
     const w = createWorld('dog', 1, VIEW);
     w.chests = 1;
     openChest(w);
-    expect([w.coins, w.opened]).toEqual([10, 1]);
+    expect([summary(w).coins, w.opened]).toEqual([10, 1]);
     w.time = w.stage.length;
     step(w, { x: 0, y: 0 }, 1 / 60);
     expect(summary(w).coins).toBe(110);

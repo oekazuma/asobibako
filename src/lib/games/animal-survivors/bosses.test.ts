@@ -90,6 +90,19 @@ describe('ボスの攻撃', () => {
     expect(w.player.hp).toBe(before - 28);
   });
 
+  it('無敵のあいだ（復活の直後など）は地ならしも当たらない', () => {
+    const w = quiet();
+    const bear = placeBoss(w, 'bear', 40);
+    bear.cd = 0;
+    bear.turn = 1;
+    w.time = 10;
+    run(w, 0.5);
+    const before = w.player.hp;
+    w.player.invuln = 2;
+    run(w, 0.7);
+    expect(w.player.hp).toBe(before);
+  });
+
   it('巨大ベアの突進は、予告の矢印を出して止まり、そのあと速く走る', () => {
     const w = quiet();
     const bear = placeBoss(w, 'bear', 200);

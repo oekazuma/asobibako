@@ -149,7 +149,7 @@ export function collect(w: World, dt: number): void {
     it.alive = false;
     if (it.kind === 'coin' || it.kind === 'purse') {
       const value = it.kind === 'coin' ? 1 : PURSE;
-      w.coins += value * w.greed;
+      w.coins += value;
       w.events.push({ type: 'coin', value });
       continue;
     }

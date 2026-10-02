@@ -111,7 +111,7 @@ export interface World {
   chests: number;
   /** その回に倒したボス */
   bossKills: BossId[];
-  /** この回のコイン。強欲を掛けた値で、端数も持つ */
+  /** この回に拾ったコインの枚数（強欲を掛ける前）。見せるときは coinsOf で掛ける */
   coins: number;
   /** この回に開けた宝箱 */
   opened: number;
@@ -506,7 +506,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
       w.kills += 1;
       w.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.def.id });
     }
-    w.coins += CLEAR_COINS * w.greed;
+    w.coins += CLEAR_COINS;
     w.over = 'clear';
     w.events.push({ type: 'clear' });
     return;
@@ -584,6 +584,11 @@ export interface RunSummary {
   dealt: { id: string; damage: number; kills: number }[];
 }
 
+/** 強欲を掛けたこの回のコイン。1 枚ずつ掛けると端数で減るので、合計に掛ける */
+export function coinsOf(w: World): number {
+  return Math.floor(w.coins * w.greed + 1e-9);
+}
+
 export function summary(w: World): RunSummary {
   return {
     animal: w.animal.id,
@@ -595,7 +600,7 @@ export function summary(w: World): RunSummary {
     weapons: w.weapons.map(({ id, level }) => ({ id, level })),
     passives: w.passives.map(({ id, level }) => ({ id, level })),
     bosses: [...w.bossKills],
-    coins: Math.floor(w.coins),
+    coins: coinsOf(w),
     opened: w.opened,
     evolved: [...w.evolvedNow],
     dealt: Object.entries(w.dealt)

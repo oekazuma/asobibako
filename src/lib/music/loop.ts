@@ -1,5 +1,6 @@
 import { bgmOut } from './synth';
-import { AHEAD, FADE, playStep, ramp, scoreOf, type Song } from './tune';
+import { note, type Instrument } from './instruments';
+import { AHEAD, FADE, playStep, ramp, scoreOf, voices, type Song } from './tune';
 
 /**
  * 曲を繰り返し流す。毎フレーム（か 100ms ごとに）tick() を呼び、AudioContext の時計で AHEAD 秒先までを予約する。
@@ -10,6 +11,8 @@ export class Loop {
   #now: { song: Song; ctx: BaseAudioContext; bus: GainNode; gain: number } | null = null;
   #step = 0;
   #next = 0;
+  /** 先に作っておく音。1 回の tick で 1 つずつ作る（まとめて作ると 1 フレームが重くなる） */
+  #warm: [Instrument, number][] = [];
   readonly #get: () => BaseAudioContext | undefined;
 
   constructor(get: () => BaseAudioContext | undefined) {
@@ -18,6 +21,11 @@ export class Loop {
 
   play(song: Song | null, bpm: number, gain: number): void {
     this.#want = song ? { song, bpm, gain } : null;
+  }
+
+  /** これから鳴らす曲の音を、今の曲を流しながら少しずつ作っておく */
+  warm(song: Song): void {
+    this.#warm.push(...voices(song));
   }
 
   stop(): void {
@@ -36,6 +44,8 @@ export class Loop {
   tick(): void {
     const ctx = this.#get();
     const want = this.#want;
+    const w = ctx && this.#warm.shift();
+    if (ctx && w) note(ctx, w[0], w[1]);
     if (!ctx || !want || (typeof document !== 'undefined' && document.hidden)) return this.#release();
     const cur = this.#now;
     if (!cur || cur.ctx !== ctx || cur.song !== want.song) {

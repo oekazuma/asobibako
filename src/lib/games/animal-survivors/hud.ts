@@ -6,7 +6,7 @@ import type { ViewSize } from './draw';
 import { text, textWidth } from './font';
 import { bake } from './pixels';
 import { WEAPONS } from './weapons';
-import type { Owned, World } from './world';
+import { coinsOf, type Owned, type World } from './world';
 
 const SLOT = 14;
 
@@ -59,7 +59,7 @@ export function hud(ctx: CanvasRenderingContext2D, w: World, v: ViewSize, top: n
   const kx = v.w - 6 - textWidth(kills);
   text(ctx, kills, kx, top, PALETTE.w);
   ctx.drawImage(bake(ITEM_ART.skull), kx - 11, top - 2);
-  const coins = String(Math.floor(w.coins));
+  const coins = String(coinsOf(w));
   const cx = v.w - 6 - textWidth(coins);
   text(ctx, coins, cx, top + 11, PALETTE.y);
   ctx.drawImage(bake(ITEM_ART.coin), cx - 10, top + 9);
