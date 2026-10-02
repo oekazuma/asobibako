@@ -48,6 +48,7 @@ export function stats(a: Animal, passives: { id: string; level: number }[]): Sta
     regen: 0,
     magnet: 1
   };
+  for (const [k, v] of Object.entries(a.bonus ?? {}) as [StatKey, number][]) s[k] += v;
   for (const { id, level } of passives) s[PASSIVES[id].stat] += PASSIVES[id].per * level;
   return s;
 }
