@@ -10,7 +10,7 @@ export interface Gem {
 
 export interface Item {
   alive: boolean;
-  kind: 'meat' | 'magnet';
+  kind: 'meat' | 'magnet' | 'chest';
   x: number;
   y: number;
   pulled: boolean;
@@ -78,7 +78,20 @@ function dropItem(w: World, kind: Item['kind'], x: number, y: number) {
   Object.assign(it, { alive: true, kind, x, y, pulled: false });
 }
 
+const BOSS_GEMS = 10;
+const BOSS_GEM_XP = 25;
+/** 宝箱は吸い寄せず、ここまで近づいたら拾う */
+const CHEST_PICK = 10;
+
 export function dropFrom(w: World, e: Enemy): void {
+  if (e.def.boss) {
+    for (let i = 0; i < BOSS_GEMS; i++) {
+      const a = (i / BOSS_GEMS) * Math.PI * 2;
+      dropGem(w, e.x + Math.cos(a) * 24, e.y + Math.sin(a) * 24, BOSS_GEM_XP);
+    }
+    dropItem(w, 'chest', e.x, e.y);
+    return;
+  }
   dropGem(w, e.x, e.y, e.def.xp);
   if (w.rand() < 0.012) dropItem(w, 'meat', e.x + 4, e.y);
   else if (w.rand() < 0.004) dropItem(w, 'magnet', e.x + 4, e.y);
@@ -108,7 +121,16 @@ export function collect(w: World, dt: number): void {
     gainXp(w, g.value);
   }
   for (const it of w.items) {
-    if (!it.alive || !pull(w, it, reach, dt)) continue;
+    if (!it.alive) continue;
+    if (it.kind === 'chest') {
+      if ((it.x - w.player.x) ** 2 + (it.y - w.player.y) ** 2 < CHEST_PICK ** 2) {
+        it.alive = false;
+        w.chests += 1;
+        w.events.push({ type: 'chest' });
+      }
+      continue;
+    }
+    if (!pull(w, it, reach, dt)) continue;
     it.alive = false;
     if (it.kind === 'meat') {
       const p = w.player;

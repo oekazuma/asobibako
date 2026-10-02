@@ -200,6 +200,7 @@ export function damageEnemy(w: World, i: number, dmg: number, kx: number, ky: nu
   e.alive = false;
   w.kills += 1;
   w.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.def.id });
+  if (e.def.boss) w.events.push({ type: 'bossdown', x: e.x, y: e.y });
   dropFrom(w, e);
 }
 

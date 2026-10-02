@@ -40,6 +40,11 @@ export function choices(w: World, n = 3): Choice[] {
 
 export function apply(w: World, c: Choice): void {
   w.pending = Math.max(0, w.pending - 1);
+  levelUp(w, c);
+}
+
+/** 3 択の 1 枚と同じものを当てる。宝箱も使う */
+export function levelUp(w: World, c: Choice): void {
   const p = w.player;
   if (c.kind === 'weapon') {
     const own = w.weapons.find((o) => o.id === c.id);

@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { chestSize, openChest } from './chest';
+import { MAX_LEVEL, WEAPONS } from './weapons';
+import { PASSIVES } from './passives';
 import { ENEMIES } from './enemies';
 import { createWorld, makeEnemy, MAX_ENEMIES, step, type World } from './world';
 
@@ -145,5 +148,79 @@ describe('ボスの攻撃', () => {
     bear.alive = false;
     run(w, 0.1);
     expect(w.hazards.some((h) => h.alive)).toBe(false);
+  });
+});
+
+describe('倒したときと宝箱', () => {
+  it('ボスを倒すと bossdown が出て、赤い玉 10 個と宝箱が落ちる', () => {
+    const w = quiet();
+    w.weapons = [{ id: 'woof', level: 1, cd: 0 }];
+    // 近くで倒すと赤い玉がすぐ吸い寄せられるので、取得範囲（32）より遠くで倒す
+    const bear = makeEnemy({ ...ENEMIES.bear, speed: 0 }, 150, 0, 1);
+    w.enemies.push(bear);
+    w.time = 10;
+    expect(run(w, 1.2)).toContain('bossdown');
+    expect(w.gems.filter((g) => g.alive && g.value === 25)).toHaveLength(10);
+    expect(w.items.filter((it) => it.alive && it.kind === 'chest')).toHaveLength(1);
+  });
+
+  it('宝箱は吸い寄せられず、歩いて取ると止まる', () => {
+    const w = quiet();
+    w.items.push({ alive: true, kind: 'chest', x: 30, y: 0, pulled: false });
+    w.time = 10;
+    run(w, 0.5);
+    expect(w.items[0].x).toBe(30);
+    const events = run(w, 1, { x: 1, y: 0 });
+    expect(events).toContain('chest');
+    expect(w.chests).toBe(1);
+    const t = w.time;
+    run(w, 0.5);
+    expect(w.time).toBe(t);
+  });
+
+  it('宝箱の大きさは 6 割が 1、3 割が 3、1 割が 5', () => {
+    expect(chestSize(0)).toBe(1);
+    expect(chestSize(0.59)).toBe(1);
+    expect(chestSize(0.6)).toBe(3);
+    expect(chestSize(0.89)).toBe(3);
+    expect(chestSize(0.95)).toBe(5);
+  });
+
+  it('宝箱は Lv5 を超えて上げず、上げるものが無ければ肉と袋になる', () => {
+    const w = quiet();
+    w.weapons = Object.keys(WEAPONS)
+      .slice(0, 6)
+      .map((id) => ({ id, level: MAX_LEVEL, cd: 0 }));
+    w.passives = [{ id: 'heart', level: 4 }];
+    w.chests = 1;
+    w.rand = () => 0.99; // 5 つ
+    const got = openChest(w);
+    expect(got).toHaveLength(5);
+    expect(got[0]).toEqual({ kind: 'passive', id: 'heart', level: 5 });
+    expect(got.slice(1).map((r) => r.kind)).toEqual(['meat', 'bag', 'bag', 'bag']);
+    expect(w.passives[0].level).toBe(5);
+    expect(w.chests).toBe(0);
+    expect(Object.keys(PASSIVES)).toContain('heart');
+  });
+
+  it('宝箱を開けるあいだは 3 択を出さず、袋で上がった Lv は宝箱のあとに 3 択になる', () => {
+    const w = quiet();
+    w.chests = 1;
+    w.pending = 1;
+    const t = w.time;
+    step(w, still, 1 / 60);
+    expect(w.time).toBe(t);
+    openChest(w);
+    expect(w.chests).toBe(0);
+    expect(w.pending).toBeGreaterThanOrEqual(1);
+  });
+
+  it('15:00 のクリアではボスも倒れ、宝箱は落とさない', () => {
+    const w = quiet();
+    w.enemies.push(makeEnemy(ENEMIES.bear, 100, 0, 2400));
+    w.time = 899.99;
+    run(w, 0.05);
+    expect(w.over).toBe('clear');
+    expect(w.items.some((it) => it.alive && it.kind === 'chest')).toBe(false);
   });
 });
