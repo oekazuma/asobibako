@@ -859,5 +859,51 @@ export const ITEM_ART: Record<string, Art> = {
     w: 10,
     h: 7,
     frames: [['.k..kk..k.', 'kykkyykkyk', 'kyykyykyyk', 'kyyyyyyyyk', 'kyryyuyryk', 'kYYYYYYYYk', '.kkkkkkkk.']]
+  },
+  /** 大雪男の雪玉。転がるほど大きく描く */
+  snowball: {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '...kkkkkk...',
+        '..kwwwwiik..',
+        '.kwwwwiiiik.',
+        'kwwwwiiiiiik',
+        'kwwwwiiiiiik',
+        'kwwiiiiiiiIk',
+        'kwiiiiiiiIIk',
+        'kiiiiiiiIIIk',
+        'kiiiiiiIIIIk',
+        '.kiiiiIIIIk.',
+        '..kiiIIIIk..',
+        '...kkkkkk...'
+      ]
+    ]
+  },
+  /** 氷の竜の氷の柱 */
+  icicle: {
+    w: 10,
+    h: 16,
+    frames: [
+      [
+        '..kkkkkk..',
+        '.kIIIIIIk.',
+        '.kwjjjJJk.',
+        '.kwjjjJJk.',
+        '.kwwjjJJk.',
+        '..kwjjJk..',
+        '..kwjjJk..',
+        '..kwjjJk..',
+        '..kwwjJk..',
+        '...kwjk...',
+        '...kwjk...',
+        '...kwjk...',
+        '...kwjk...',
+        '...kwjk...',
+        '...kwjk...',
+        '....kk....'
+      ]
+    ]
   }
 };
