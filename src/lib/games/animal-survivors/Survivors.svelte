@@ -33,7 +33,7 @@
   function over(w: World) {
     run = summary(w);
     const r = loadRecords();
-    fresh = record(r, run);
+    fresh = record(r, run).flatMap((a) => (a.animal ? [a.animal] : []));
     saveRecords(r);
     unlocked = r.unlocked;
   }

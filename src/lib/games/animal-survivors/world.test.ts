@@ -95,7 +95,9 @@ describe('世界', () => {
       xp: 12450,
       weapons: [{ id: 'paw', level: 1 }],
       passives: [],
-      bosses: []
+      bosses: [],
+      coins: 0,
+      opened: 0
     });
   });
 });

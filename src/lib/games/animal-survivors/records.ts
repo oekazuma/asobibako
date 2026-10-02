@@ -1,3 +1,4 @@
+import { ACHIEVEMENTS, grant, type AchievementDef } from './achievements';
 import { ANIMALS, type AnimalId } from './animals';
 import type { BossId } from './enemies';
 import { UPGRADES, type Ranks } from './upgrades';
@@ -26,14 +27,6 @@ export interface Records {
 export const RECORDS_KEY = 'asobibako:animal-survivors';
 const STARTERS: AnimalId[] = ['dog', 'cat', 'wolf'];
 const BOSSES: BossId[] = ['bear', 'spiderQueen'];
-
-/** 動物ごとの解放の条件 */
-const UNLOCK: Partial<Record<AnimalId, (r: Records) => boolean>> = {
-  fox: (r) => r.best >= 300,
-  bear: (r) => r.bosses.includes('bear'),
-  rabbit: (r) => r.kills >= 3000,
-  panda: (r) => r.clears >= 1
-};
 
 export function emptyRecords(): Records {
   return {
@@ -73,7 +66,10 @@ export function parseRecords(text: string | null): Records {
     unlocked: ids.filter((id) => STARTERS.includes(id) || unlocked.includes(id)),
     coins: Math.floor(num(raw.coins)),
     ranks: ranksOf(raw.ranks),
-    achieved: Array.isArray(raw.achieved) ? raw.achieved.filter((v): v is string => typeof v === 'string') : [],
+    achieved: list(
+      raw.achieved,
+      ACHIEVEMENTS.map((a) => a.id)
+    ),
     clearedBy: list(raw.clearedBy, ids),
     chests: Math.floor(num(raw.chests))
   };
@@ -90,15 +86,18 @@ function ranksOf(v: unknown): Ranks {
   return out;
 }
 
-/** 1 回の結果で記録を更新し、新しく解放した動物を ANIMALS の順で返す。解放は取り消さない */
-export function record(r: Records, run: RunSummary): AnimalId[] {
+/** 1 回の結果で記録を足し、その回に達成した実績を返す。解放は取り消さない */
+export function record(r: Records, run: RunSummary): AchievementDef[] {
   r.best = Math.max(r.best, run.time);
   r.kills += run.kills;
   for (const b of run.bosses) if (!r.bosses.includes(b)) r.bosses.push(b);
-  if (run.cleared) r.clears += 1;
-  const fresh = ANIMALS.map((a) => a.id).filter((id) => !r.unlocked.includes(id) && UNLOCK[id]?.(r));
-  r.unlocked.push(...fresh);
-  return fresh;
+  if (run.cleared) {
+    r.clears += 1;
+    if (!r.clearedBy.includes(run.animal)) r.clearedBy.push(run.animal);
+  }
+  r.chests += run.opened;
+  r.coins += run.coins;
+  return grant(r, run);
 }
 
 /** 保存が使えない端末（プライベートブラウズなど）では空の記録を返す */

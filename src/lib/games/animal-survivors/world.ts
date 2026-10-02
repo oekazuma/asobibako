@@ -96,6 +96,10 @@ export interface World {
   chests: number;
   /** その回に倒したボス */
   bossKills: BossId[];
+  /** この回のコイン。強欲を掛けた値で、端数も持つ */
+  coins: number;
+  /** この回に開けた宝箱 */
+  opened: number;
   /** 次に出すボスの番号と、予告を出したボスの数 */
   bossNext: number;
   warned: number;
@@ -150,6 +154,8 @@ export function createWorld(id: AnimalId, seed: number, view: { w: number; h: nu
     pending: 0,
     chests: 0,
     bossKills: [],
+    coins: 0,
+    opened: 0,
     bossNext: 0,
     warned: 0,
     over: null,
@@ -448,6 +454,8 @@ export interface RunSummary {
   weapons: Owned[];
   passives: Owned[];
   bosses: BossId[];
+  coins: number;
+  opened: number;
 }
 
 export function summary(w: World): RunSummary {
@@ -460,6 +468,8 @@ export function summary(w: World): RunSummary {
     xp: w.xpTotal,
     weapons: w.weapons.map(({ id, level }) => ({ id, level })),
     passives: w.passives.map(({ id, level }) => ({ id, level })),
-    bosses: [...w.bossKills]
+    bosses: [...w.bossKills],
+    coins: Math.floor(w.coins),
+    opened: w.opened
   };
 }

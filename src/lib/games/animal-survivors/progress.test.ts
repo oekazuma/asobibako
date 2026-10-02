@@ -3,6 +3,24 @@ import { animal } from './animals';
 import { stats } from './passives';
 import { emptyRecords, parseRecords } from './records';
 import { UPGRADES, buy, perks, price } from './upgrades';
+import { ACHIEVEMENTS, grant } from './achievements';
+import { record } from './records';
+import type { RunSummary } from './world';
+
+const run = (o: Partial<RunSummary> = {}): RunSummary => ({
+  animal: 'dog',
+  cleared: false,
+  time: 30,
+  level: 1,
+  kills: 0,
+  xp: 0,
+  weapons: [],
+  passives: [],
+  bosses: [],
+  coins: 0,
+  opened: 0,
+  ...o
+});
 
 describe('店', () => {
   it('11 品あり、値段は基本の値段 × 次の段', () => {
@@ -76,5 +94,56 @@ describe('記録の拡張', () => {
     expect(r.ranks).toEqual({ might: 5, armor: 2, revive: 1 });
     expect(r.clearedBy).toEqual(['dog']);
     expect(r.chests).toBe(0);
+  });
+});
+
+describe('実績', () => {
+  it('23 個あり、id は重ならない', () => {
+    expect(ACHIEVEMENTS).toHaveLength(23);
+    expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(23);
+  });
+
+  it('1 回の結果で記録を足し、達成した実績のコインと動物を渡す。同じ実績は 2 度渡さない', () => {
+    const r = emptyRecords();
+    const got = record(r, run({ time: 320, kills: 120, coins: 40 }));
+    expect(got.map((a) => a.id)).toEqual(['survive1', 'survive5', 'run100']);
+    expect(r.coins).toBe(40 + 10 + 50 + 20);
+    expect(r.unlocked).toContain('fox');
+    expect(record(r, run({ time: 320, kills: 120 }))).toEqual([]);
+  });
+
+  it('ごほうびで 7 匹がそろうと、同じ判定の中で「7 匹がそろう」も達成する', () => {
+    const r = emptyRecords();
+    r.unlocked = ['dog', 'cat', 'wolf', 'fox', 'bear', 'rabbit'];
+    const got = record(r, run({ time: 900, cleared: true }));
+    expect(got.map((a) => a.id)).toContain('clear');
+    expect(got.map((a) => a.id)).toContain('allAnimals');
+    expect(r.unlocked).toHaveLength(7);
+  });
+
+  it('動物ごとのクリアと宝箱の合計を数える', () => {
+    const r = emptyRecords();
+    record(r, run({ animal: 'cat', cleared: true, time: 900, opened: 4 }));
+    record(r, run({ animal: 'cat', cleared: true, time: 900, opened: 6 }));
+    expect(r.clearedBy).toEqual(['cat']);
+    expect(r.chests).toBe(10);
+    expect(r.achieved).toContain('chests10');
+  });
+
+  it('店の判定（run なし）では 1 回の実績を見ない', () => {
+    const r = emptyRecords();
+    r.ranks = { might: 5 };
+    expect(grant(r, null).map((a) => a.id)).toEqual(['firstBuy', 'oneMax']);
+  });
+
+  it('合計の実績は途中経過を持つ', () => {
+    const r = emptyRecords();
+    r.kills = 1234;
+    const total = ACHIEVEMENTS.find((a) => a.id === 'total3000')!;
+    expect(total.progress!(r)).toEqual([1234, 3000]);
+  });
+
+  it('保存の知らない実績の id は読み飛ばす', () => {
+    expect(parseRecords(JSON.stringify({ achieved: ['survive1', 'nope', 3] })).achieved).toEqual(['survive1']);
   });
 });

@@ -43,8 +43,14 @@ const run = (o: Partial<RunSummary>): RunSummary => ({
   weapons: [],
   passives: [],
   bosses: [],
+  coins: 0,
+  opened: 0,
   ...o
 });
+
+/** その回のごほうびで仲間になった動物 */
+const pets = (r: ReturnType<typeof emptyRecords>, s: RunSummary) =>
+  record(r, s).flatMap((a) => (a.animal ? [a.animal] : []));
 
 describe('記録と解放', () => {
   it('初めは犬・猫・狼だけ', () => {
@@ -53,23 +59,23 @@ describe('記録と解放', () => {
 
   it('5 分生き延びるとキツネ。一度解放したものはもう返さない', () => {
     const r = emptyRecords();
-    expect(record(r, run({ time: 299 }))).toEqual([]);
-    expect(record(r, run({ time: 300 }))).toEqual(['fox']);
+    expect(pets(r, run({ time: 299 }))).toEqual([]);
+    expect(pets(r, run({ time: 300 }))).toEqual(['fox']);
     expect(r.unlocked).toContain('fox');
-    expect(record(r, run({ time: 400 }))).toEqual([]);
+    expect(pets(r, run({ time: 400 }))).toEqual([]);
     expect(r.best).toBe(400);
   });
 
   it('同じ回で 2 匹の条件を満たせば 2 匹とも解放する', () => {
     const r = emptyRecords();
-    expect(record(r, run({ time: 310, bosses: ['bear'] }))).toEqual(['fox', 'bear']);
+    expect(pets(r, run({ time: 310, bosses: ['bear'] }))).toEqual(['fox', 'bear']);
   });
 
   it('撃破の合計 3000 でウサギ、クリアでパンダ', () => {
     const r = emptyRecords();
-    expect(record(r, run({ kills: 1500 }))).toEqual([]);
-    expect(record(r, run({ kills: 1500 }))).toEqual(['rabbit']);
-    expect(record(r, run({ time: 900, cleared: true }))).toEqual(['fox', 'panda']);
+    expect(pets(r, run({ kills: 1500 }))).toEqual([]);
+    expect(pets(r, run({ kills: 1500 }))).toEqual(['rabbit']);
+    expect(pets(r, run({ time: 900, cleared: true }))).toEqual(['fox', 'panda']);
     expect(r.clears).toBe(1);
   });
 
