@@ -1,4 +1,5 @@
-import { FOREST, type Stage } from './forest';
+import { ENEMIES } from '../enemies';
+import { FOREST, finale, type Stage } from './forest';
 
 /** 森の時刻の流れのまま、敵を墓地の顔ぶれにして 1 段強くした面 */
 const HARDER = 1.15;
@@ -13,20 +14,21 @@ export const GRAVEYARD: Stage = {
   song: 'grave',
   unlock: '森をクリアすると行ける',
   length: 900,
-  events: [
-    { at: 90, kind: 'swarm', enemy: 'ghost', count: 30, text: 'おばけの大群！' },
-    { at: 180, kind: 'ring', enemy: 'skeleton', count: 40, text: 'ガイコツに囲まれた！' },
-    { at: 270, kind: 'swarm', enemy: 'bat', count: 50, text: 'コウモリの大群！' },
-    { at: 390, kind: 'ring', enemy: 'zombie', count: 30, text: 'ゾンビに囲まれた！' },
-    { at: 480, kind: 'swarm', enemy: 'ghost', count: 60, text: 'おばけの大群！' },
-    { at: 660, kind: 'swarm', enemy: 'bat', count: 80, text: 'コウモリの大群！' },
-    { at: 750, kind: 'ring', enemy: 'skeleton', count: 60, text: 'ガイコツに囲まれた！' },
-    { at: 840, kind: 'ring', enemy: 'zombie', count: 40, text: 'ゾンビに囲まれた！' }
+  events: FOREST.events.map((ev) => {
+    const to = SWAP[ev.enemy];
+    return to ? { ...ev, enemy: to, text: ev.text.replace(ENEMIES[ev.enemy].name, ENEMIES[to].name) } : ev;
+  }),
+  chiefs: [
+    { at: 120, enemy: 'skeleton', hp: 460 },
+    { at: 240, enemy: 'zombie', hp: 630 },
+    { at: 420, enemy: 'ghost', hp: 920 },
+    { at: 540, enemy: 'skeleton', hp: 1090 },
+    { at: 720, enemy: 'zombie', hp: 1380 }
   ],
-  bosses: [
+  bosses: finale([
     { at: 300, id: 'pumpkin' },
     { at: 600, id: 'knight' }
-  ],
+  ]),
   waves: FOREST.waves.map((w) => ({ ...w, enemy: SWAP[w.enemy] ?? w.enemy })),
   cap: (t) => Math.min(400, Math.round(FOREST.cap(t) * 1.15)),
   toughness: (t) => FOREST.toughness(t) * HARDER,

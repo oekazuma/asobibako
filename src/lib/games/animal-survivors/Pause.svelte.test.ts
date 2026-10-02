@@ -20,6 +20,7 @@ const run: RunSummary = {
   evolved: [],
   stage: 'forest',
   form: 0,
+  metal: false,
   dealt: []
 };
 

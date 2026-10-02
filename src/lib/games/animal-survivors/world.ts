@@ -1,6 +1,6 @@
 import { animal, type Animal, type AnimalId } from './animals';
 import { fire, hits, type Effect, type Shot } from './arms';
-import { moveBoss, spawnBosses, updateHazards, type Hazard } from './bosses';
+import { moveBoss, slot, spawnBosses, updateHazards, type Hazard } from './bosses';
 import { CLEAR_COINS, collect, dropFrom, type Gem, type Item } from './drops';
 import { ENEMIES, type BossId, type EnemyDef } from './enemies';
 import { Grid } from './grid';
@@ -71,7 +71,7 @@ export type GameEvent =
   | { type: 'levelup' }
   | { type: 'clear' }
   | { type: 'dead' }
-  | { type: 'warning'; boss: BossId }
+  | { type: 'warning'; boss: BossId; title?: string }
   | { type: 'bossdown'; x: number; y: number }
   | { type: 'chest' }
   | { type: 'coin'; value: number }
@@ -137,6 +137,12 @@ export interface World {
   freeze: number;
   /** 次にランタンを足すまでの秒 */
   propCd: number;
+  /** 次に出すヌシの番号 */
+  chiefNext: number;
+  /** きらきらハリネズミが出る時刻。出ない回と、もう出たあとは -1 */
+  metalAt: number;
+  /** この回にきらきらハリネズミを倒した */
+  metalWon: boolean;
   /** 次に出すボスの番号と、予告を出したボスの数 */
   bossNext: number;
   warned: number;
@@ -158,6 +164,17 @@ const BEAR_DASH_ATK = 30;
 const REVIVE_INVULN = 2;
 const REVIVE_REACH = 80;
 const REVIVE_PUSH = 400;
+
+export const METAL_CHANCE = 0.3;
+/** きらきらハリネズミが去るまでの秒 */
+export const METAL_LIFE = 20;
+const METAL_HP = 12;
+
+/** 出るかと時刻は別の乱数で決める（同じ種の回の流れを変えないため） */
+function metalTime(seed: number): number {
+  const r = rng(seed + 0x2545f491);
+  return r() < METAL_CHANCE ? 180 + r() * 540 : -1;
+}
 
 export function createWorld(
   id: AnimalId,
@@ -220,6 +237,9 @@ export function createWorld(
     eventNext: 0,
     freeze: 0,
     propCd: 2,
+    chiefNext: 0,
+    metalAt: metalTime(seed),
+    metalWon: false,
     bossNext: 0,
     warned: 0,
     over: null,
@@ -283,6 +303,7 @@ export function damageEnemy(
     w.drainLeft -= amt;
     w.player.hp = Math.min(w.stats.maxHp, w.player.hp + amt);
   }
+  if (e.def.metal) dmg = 1;
   if (source && !e.def.prop) (w.dealt[source] ??= { damage: 0, kills: 0 }).damage += Math.max(0, Math.min(dmg, e.hp));
   e.hp -= dmg;
   e.flash = 0.12;
@@ -297,6 +318,7 @@ export function damageEnemy(
     return;
   }
   w.kills += 1;
+  if (e.def.metal) w.metalWon = true;
   if (source) w.dealt[source].kills += 1;
   w.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.def.id });
   if (e.def.boss) {
@@ -309,6 +331,36 @@ export function damageEnemy(
 /** 強化個体の表。元の表は書き換えない */
 export function eliteOf(def: EnemyDef): EnemyDef {
   return { ...def, hp: def.hp * 8, xp: def.xp * 5, r: def.r * 1.6, heavy: Math.max(def.heavy, 0.6), elite: true };
+}
+
+/** ヌシの表。元の表は書き換えない */
+export function chiefOf(def: EnemyDef): EnemyDef {
+  return { ...def, name: `ヌシ${def.name}`, xp: def.xp * 20, r: def.r * 3, heavy: 1, chief: true };
+}
+
+/** ボスと同じく、入れ物が埋まっていても遠くの敵の枠を使って必ず出す */
+function place(w: World, def: EnemyDef, hp: number): Enemy {
+  const at = spawnPoint(w);
+  const i = slot(w);
+  w.enemies[i] = makeEnemy(def, at.x, at.y, hp);
+  return w.enemies[i];
+}
+
+export function spawnChiefs(w: World): void {
+  const list = w.stage.chiefs;
+  while (w.chiefNext < list.length && w.time >= list[w.chiefNext].at) {
+    const c = list[w.chiefNext++];
+    const def = chiefOf(ENEMIES[c.enemy]);
+    place(w, def, c.hp);
+    w.events.push({ type: 'swarm', text: `${def.name}が現れた！` });
+  }
+}
+
+export function spawnMetal(w: World): void {
+  if (w.metalAt < 0 || w.time < w.metalAt) return;
+  w.metalAt = -1;
+  place(w, ENEMIES.metal, METAL_HP);
+  w.events.push({ type: 'swarm', text: 'なにかがキラッと光った…' });
 }
 
 /** 入れ物に敵を 1 体置く。体力はそのときの toughness を掛ける。400 体を使い切っていれば null */
@@ -357,10 +409,23 @@ export function spawnEvents(w: World): void {
     const def = ENEMIES[ev.enemy];
     const p = w.player;
     const r = Math.hypot(w.view.w, w.view.h) / 2 + 24;
-    if (ev.kind === 'ring') {
+    if (ev.kind === 'ring' || ev.kind === 'lanterns') {
+      // ランタンは画面の中に灯す
+      const rr = ev.kind === 'lanterns' ? Math.min(w.view.w, w.view.h) * 0.3 : r;
       for (let i = 0; i < ev.count; i++) {
         const a = (i / ev.count) * Math.PI * 2;
-        if (!addEnemy(w, def, p.x + Math.cos(a) * r, p.y + Math.sin(a) * r)) break;
+        const e = addEnemy(w, def, p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr);
+        if (!e) break;
+        if (def.prop) e.hp = 1;
+      }
+    } else if (ev.kind === 'elites') {
+      const a = w.rand() * Math.PI * 2;
+      const strong = eliteOf(def);
+      for (let i = 0; i < ev.count; i++) {
+        const side = (i / Math.max(1, ev.count - 1) - 0.5) * 60;
+        const x = p.x + Math.cos(a) * r - Math.sin(a) * side;
+        const y = p.y + Math.sin(a) * r + Math.cos(a) * side;
+        if (!addEnemy(w, strong, x, y)) break;
       }
     } else {
       // 画面の外の片側に、進む向きと直角に帯になって並び、反対側へ抜ける
@@ -408,7 +473,14 @@ function moveEnemy(w: World, i: number, dt: number) {
   let vx = ux * sp;
   let vy = uy * sp;
   const move = e.def.move;
-  if (move === 'boss') ({ vx, vy } = moveBoss(w, i, dt));
+  if (move === 'flee') {
+    if (e.t >= METAL_LIFE) {
+      e.alive = false;
+      return;
+    }
+    vx = -vx;
+    vy = -vy;
+  } else if (move === 'boss') ({ vx, vy } = moveBoss(w, i, dt));
   else if (move === 'wave' || move === 'snake') {
     const s = move === 'wave' ? Math.sin(e.t * 6 + e.phase) * 0.8 : Math.sin(e.t * 3 + e.phase) * 0.5;
     vx += -uy * s * sp;
@@ -491,8 +563,10 @@ function separate(w: World) {
       if (d2 >= min * min) continue;
       const d = Math.sqrt(d2) || 0.01;
       // ボスは押されず、相手だけが重なりの分だけ下がる
-      const ka = a.def.boss ? 0 : b.def.boss ? 1 : 0.5;
-      const kb = b.def.boss ? 0 : a.def.boss ? 1 : 0.5;
+      const fa = a.def.boss || a.def.chief;
+      const fb = b.def.boss || b.def.chief;
+      const ka = fa ? 0 : fb ? 1 : 0.5;
+      const kb = fb ? 0 : fa ? 1 : 0.5;
       const over = (min - d) / d;
       a.x -= dx * over * ka;
       a.y -= dy * over * ka;
@@ -601,6 +675,8 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
     }
   });
   spawnBosses(w);
+  spawnChiefs(w);
+  spawnMetal(w);
   spawnEvents(w);
   spawnProps(w, dt);
   w.freeze = Math.max(0, w.freeze - dt);
@@ -649,6 +725,8 @@ export interface RunSummary {
   stage: string;
   /** いちばん育った段階 */
   form: 0 | 1 | 2;
+  /** きらきらハリネズミを倒した */
+  metal: boolean;
 }
 
 /** 強欲を掛けたこの回のコイン。1 枚ずつ掛けると端数で減るので、合計に掛ける */
@@ -674,6 +752,7 @@ export function summary(w: World): RunSummary {
       .map(([id, d]) => ({ id, damage: Math.round(d.damage), kills: d.kills }))
       .sort((a, b) => b.damage - a.damage),
     stage: w.stage.id,
-    form: w.form
+    form: w.form,
+    metal: w.metalWon
   };
 }

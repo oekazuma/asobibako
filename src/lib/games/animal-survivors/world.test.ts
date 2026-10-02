@@ -101,7 +101,8 @@ describe('世界', () => {
       evolved: [],
       dealt: [],
       stage: 'forest',
-      form: 0
+      form: 0,
+      metal: false
     });
   });
 });

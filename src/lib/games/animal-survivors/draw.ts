@@ -55,11 +55,11 @@ function sprite(
   y: number,
   flip = false,
   white = false,
-  gold = false
+  gold = false,
+  // 強化個体は 2 倍、ヌシは 3 倍で描く（整数倍ならドットの粒がそろう）
+  k = gold ? 2 : 1
 ) {
   const mode = white ? (flip ? 'flipWhite' : 'white') : gold ? (flip ? 'flipGold' : 'gold') : flip ? 'flip' : 'normal';
-  // 強化個体は 2 倍で描く（整数倍ならドットの粒がそろう）
-  const k = gold ? 2 : 1;
   ctx.drawImage(bake(art, frame, mode), q(x - (art.w * k) / 2), q(y - (art.h * k) / 2), art.w * k, art.h * k);
 }
 
@@ -160,25 +160,66 @@ function player(ctx: CanvasRenderingContext2D, w: World, now: number) {
 const ART: Record<string, Art> = { ...ENEMY_ART, ...BOSS_ART };
 
 const order: Enemy[] = [];
+const sizeOf = (e: Enemy) => (e.def.chief ? 3 : e.def.elite ? 2 : 1);
 
-function enemies(ctx: CanvasRenderingContext2D, w: World, cx: number, cy: number, v: ViewSize) {
+/** 絵のいちばん上の行の、塗った範囲のまん中（王冠を頭に載せる位置） */
+const heads = new Map<Art, { top: number; x: number }>();
+function headOf(art: Art) {
+  let h = heads.get(art);
+  if (!h) {
+    const rows = art.frames[0];
+    const top = Math.max(
+      0,
+      rows.findIndex((r) => /[^.]/.test(r))
+    );
+    const xs = [...rows[top]].flatMap((c, i) => (c === '.' ? [] : [i]));
+    h = { top, x: (xs[0] + xs[xs.length - 1] + 1) / 2 };
+    heads.set(art, h);
+  }
+  return h;
+}
+
+function crown(ctx: CanvasRenderingContext2D, e: Enemy, art: Art, flip: boolean) {
+  const c = ITEM_ART.crown;
+  const h = headOf(art);
+  const x = e.x + (h.x - art.w / 2) * 3 * (flip ? -1 : 1);
+  const y = e.y - (art.h * 3) / 2 + (h.top - 5) * 3;
+  ctx.drawImage(bake(c), q(x - (c.w * 3) / 2), q(y), c.w * 3, c.h * 3);
+}
+
+/** きらきらハリネズミのまわりで、光の点が順にまたたく */
+function sparkle(ctx: CanvasRenderingContext2D, e: Enemy, now: number) {
+  for (let i = 0; i < 3; i++) {
+    const t = (now * 1.5 + i / 3) % 1;
+    const a = i * 2.1 + Math.floor(now * 1.5 + i / 3) * 1.3;
+    const x = q(e.x + Math.cos(a) * 11);
+    const y = q(e.y + Math.sin(a) * 9);
+    const s = t < 0.5 ? 1 : 0;
+    ctx.fillStyle = PALETTE.y;
+    ctx.fillRect(x - 1 - s, y, 3 + 2 * s, 1);
+    ctx.fillRect(x, y - 1 - s, 1, 3 + 2 * s);
+    ctx.fillStyle = PALETTE.w;
+    ctx.fillRect(x, y, 1, 1);
+  }
+}
+
+function enemies(ctx: CanvasRenderingContext2D, w: World, cx: number, cy: number, v: ViewSize, now: number) {
   order.length = 0;
   for (const e of w.enemies)
-    if (e.alive && e.x > cx - 32 && e.x < cx + v.w + 32 && e.y > cy - 32 && e.y < cy + v.h + 32) order.push(e);
+    if (e.alive && e.x > cx - 48 && e.x < cx + v.w + 48 && e.y > cy - 48 && e.y < cy + v.h + 48) order.push(e);
   order.sort((a, b) => a.y - b.y);
   ctx.fillStyle = 'rgb(0 0 0 / 0.25)';
   for (const e of order)
-    shadow(
-      ctx,
-      e.x,
-      e.y + (ART[e.def.id].h * (e.def.elite ? 2 : 1)) / 2 - 1,
-      Math.round(e.def.r * (e.def.boss ? 2.2 : 1.8))
-    );
+    shadow(ctx, e.x, e.y + (ART[e.def.id].h * sizeOf(e)) / 2 - 1, Math.round(e.def.r * (e.def.boss ? 2.2 : 1.8)));
   for (const e of order) {
     const art = ART[e.def.id];
     // 巨大ベアは地ならしの予告のあいだ、両手を上げたコマにする
     const frame = e.def.ai === 'bear' && e.state === 3 ? 2 : frameAt(e.t * (e.def.boss ? 4 : 6), 2);
-    sprite(ctx, art, frame, e.x, e.y, !e.def.prop && w.player.x < e.x, e.flash > 0, e.def.elite);
+    // 敵は自分のほうを向く。逃げるきらきらハリネズミだけは反対を向く
+    const flip = !e.def.prop && w.player.x < e.x !== Boolean(e.def.metal);
+    sprite(ctx, art, frame, e.x, e.y, flip, e.flash > 0, e.def.elite, sizeOf(e));
+    if (e.def.chief) crown(ctx, e, art, flip);
+    if (e.def.metal) sparkle(ctx, e, now);
   }
 }
 
@@ -217,7 +258,7 @@ export function draw(
   hazardsBelow(ctx, w, q, now);
   zonesBelow(ctx, w, q, now);
   pickups(ctx, w, now);
-  enemies(ctx, w, cx, cy, v);
+  enemies(ctx, w, cx, cy, v, now);
   player(ctx, w, now);
   shots(ctx, w, q);
   swipes(ctx, w, q);

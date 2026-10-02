@@ -99,6 +99,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     done: (r) => r.evolved.length >= EVOLUTIONS.length,
     progress: (r) => [r.evolved.length, EVOLUTIONS.length]
   },
+  { id: 'metal', name: 'きらきらハリネズミを倒す', coins: 200, done: (_, run) => run?.metal ?? false },
   { id: 'graveClear', name: '夜の墓地をクリア', coins: 300, done: (r) => r.stages.includes('graveyard') },
   {
     id: 'graveBosses',

@@ -24,7 +24,7 @@ export interface Hazard {
 export const WARN_AHEAD = 3;
 
 /** 敵の枠を 1 つ用意する。空きがなければ、自分からいちばん遠いボスでない敵の枠を使う */
-function slot(w: World): number {
+export function slot(w: World): number {
   const free = w.enemies.findIndex((e) => !e.alive);
   if (free >= 0) return free;
   if (w.enemies.length < MAX_ENEMIES) return w.enemies.length;
@@ -41,18 +41,21 @@ function slot(w: World): number {
   return best;
 }
 
+/** 同じ時刻のボスは WARNING を 1 回だけ出し、いっしょに出す */
 export function spawnBosses(w: World): void {
-  const next = w.stage.bosses[w.bossNext];
-  if (!next) return;
-  if (w.warned === w.bossNext && w.time >= next.at - WARN_AHEAD) {
+  const list = w.stage.bosses;
+  while (w.warned < list.length && w.time >= list[w.warned].at - WARN_AHEAD) {
+    const b = list[w.warned];
+    if (list[w.warned - 1]?.at !== b.at)
+      w.events.push({ type: 'warning', boss: b.id, ...(b.title && { title: b.title }) });
     w.warned += 1;
-    w.events.push({ type: 'warning', boss: next.id });
   }
-  if (w.time < next.at) return;
-  w.bossNext += 1;
-  const def = ENEMIES[next.id];
-  const at = spawnPoint(w);
-  w.enemies[slot(w)] = makeEnemy(def, at.x, at.y, def.hp);
+  while (w.bossNext < list.length && w.time >= list[w.bossNext].at) {
+    const b = list[w.bossNext++];
+    const def = ENEMIES[b.id];
+    const at = spawnPoint(w);
+    w.enemies[slot(w)] = makeEnemy(def, at.x, at.y, def.hp * (b.hp ?? 1));
+  }
 }
 
 const BEAR = {

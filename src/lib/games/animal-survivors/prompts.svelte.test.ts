@@ -92,6 +92,14 @@ describe('Prompts', () => {
     expect(p.notice?.text).toBe('わんぱく犬は 勇者の犬に育った！');
   });
 
+  it('面の主の WARNING はボスの名前ではなく「面の主」', () => {
+    const w = createWorld('dog', 1, { w: 274, h: 394 });
+    const p = new Prompts(w);
+    w.events = [{ type: 'warning', boss: 'bear', title: '面の主' }];
+    p.take();
+    expect(p.warning?.name).toBe('面の主');
+  });
+
   it('巨大ベアが残ったまま女王グモが出たら、片方を倒してもボスの曲のまま', () => {
     const w = createWorld('dog', 1, { w: 274, h: 394 });
     const p = new Prompts(w);

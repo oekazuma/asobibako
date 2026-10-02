@@ -1,4 +1,4 @@
-export type Move = 'chase' | 'wave' | 'snake' | 'charge' | 'leap' | 'boss' | 'still';
+export type Move = 'chase' | 'wave' | 'snake' | 'charge' | 'leap' | 'boss' | 'still' | 'flee';
 export type BossId = 'bear' | 'spiderQueen' | 'pumpkin' | 'knight';
 
 export interface EnemyDef {
@@ -26,6 +26,10 @@ export interface EnemyDef {
   minion?: string;
   /** 女王グモ型の飛び道具の絵（ITEM_ART の名前） */
   shot?: string;
+  /** ヌシ（3 倍の大きさで王冠を載せたふつうの敵）。十字架で消えず、押されない */
+  chief?: boolean;
+  /** きらきらハリネズミ。どんな攻撃でも 1 しか減らず、逃げて、しばらくで去る */
+  metal?: boolean;
 }
 
 const e = (
@@ -67,7 +71,8 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
         shot: 'seed'
       },
       { ...e('knight', 'ガイコツの騎士', [1300, 30, 26, 15, 0], 'boss', 1, 'knight'), ai: 'bear' },
-      { ...e('lantern', 'ランタン', [1, 0, 0, 6, 0], 'still', 1), prop: true }
+      { ...e('lantern', 'ランタン', [1, 0, 0, 6, 0], 'still', 1), prop: true },
+      { ...e('metal', 'きらきらハリネズミ', [12, 50, 0, 6, 0], 'flee', 0.5), metal: true }
     ] satisfies EnemyDef[]
   ).map((d) => [d.id, d])
 );

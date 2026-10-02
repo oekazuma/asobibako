@@ -1,4 +1,4 @@
-import type { Enemy, World } from './world';
+import { damageEnemy, type Enemy, type World } from './world';
 import { stats } from './passives';
 
 export interface Gem {
@@ -53,8 +53,12 @@ export function dropLoot(w: World, x: number, y: number): void {
 function clearScreen(w: World) {
   const p = w.player;
   for (const e of w.enemies) {
-    if (!e.alive || e.def.boss || e.def.prop) continue;
+    if (!e.alive || e.def.boss || e.def.prop || e.def.chief) continue;
     if (Math.abs(e.x - p.x) > w.view.w / 2 || Math.abs(e.y - p.y) > w.view.h / 2) continue;
+    if (e.def.metal) {
+      damageEnemy(w, w.enemies.indexOf(e), 1, 0, 0);
+      continue;
+    }
     e.alive = false;
     w.kills += 1;
     w.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.def.id });
@@ -134,6 +138,8 @@ const BOSS_GEMS = 10;
 /** 強化個体が宝箱を落とす確率 */
 const ELITE_CHEST = 0.1;
 const BOSS_GEM_XP = 25;
+/** Lv10 前後で 3 つほど上がる */
+const METAL_XP = 300;
 /** 宝箱は吸い寄せず、ここまで近づいたら拾う */
 const CHEST_PICK = 10;
 
@@ -148,7 +154,14 @@ export function dropFrom(w: World, e: Enemy): void {
     dropItem(w, 'chest', e.x, e.y);
     return;
   }
+  if (e.def.metal) {
+    dropGem(w, e.x, e.y, METAL_XP);
+    dropItem(w, 'purse', e.x - 8, e.y);
+    dropItem(w, 'purse', e.x + 8, e.y);
+    return;
+  }
   dropGem(w, e.x, e.y, e.def.xp);
+  if (e.def.chief) dropItem(w, 'chest', e.x + 10, e.y);
   if (w.rand() < 0.012) dropItem(w, 'meat', e.x + 4, e.y);
   else if (w.rand() < 0.004) dropItem(w, 'magnet', e.x + 4, e.y);
   if (e.def.elite && w.rand() < ELITE_CHEST) dropItem(w, 'chest', e.x, e.y);

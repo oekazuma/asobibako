@@ -27,6 +27,7 @@ const run = (o: Partial<RunSummary> = {}): RunSummary => ({
   dealt: [],
   stage: 'forest',
   form: 0,
+  metal: false,
   ...o
 });
 
@@ -111,9 +112,9 @@ describe('記録の拡張', () => {
 });
 
 describe('実績', () => {
-  it('27 個あり、id は重ならない', () => {
-    expect(ACHIEVEMENTS).toHaveLength(27);
-    expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(27);
+  it('28 個あり、id は重ならない', () => {
+    expect(ACHIEVEMENTS).toHaveLength(28);
+    expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(28);
   });
 
   it('1 回の結果で記録を足し、達成した実績のコインと動物を渡す。同じ実績は 2 度渡さない', () => {
