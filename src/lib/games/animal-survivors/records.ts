@@ -1,6 +1,7 @@
 import { ACHIEVEMENTS, grant, type AchievementDef } from './achievements';
 import { addBook, emptyBook, parseBook, type Book } from './book';
 import { ANIMALS, type AnimalId } from './animals';
+import { makeDaily, MODS, todayKey, type Daily, type ModId } from './daily';
 import { WEAPONS } from './weapons';
 import { STAGES } from './stages';
 import { ENEMIES, type BossId } from './enemies';
@@ -37,6 +38,10 @@ export interface Records {
   book: Book;
   /** 面ごとの、延長戦をいちばん長く生き延びた秒 */
   overtime: Record<string, number>;
+  /** 今日のお題。その日に初めてキャラ選択を開いたときに作る（同じ日に仲間が増えても変えない） */
+  daily: Daily | null;
+  /** お題をクリアした日の数 */
+  dailyDays: number;
 }
 
 export const RECORDS_KEY = 'asobibako:animal-survivors';
@@ -61,7 +66,9 @@ export function emptyRecords(): Records {
     stage: 'forest',
     finales: [],
     book: emptyBook(),
-    overtime: {}
+    overtime: {},
+    daily: null,
+    dailyDays: 0
   };
 }
 
@@ -114,8 +121,31 @@ export function parseRecords(text: string | null): Records {
     stage: typeof raw.stage === 'string' && STAGE_IDS.includes(raw.stage) ? raw.stage : 'forest',
     finales: list(raw.finales, STAGE_IDS),
     book: parseBook(raw.book, list(raw.bosses, BOSSES), unlockedIds, STARTERS),
-    overtime: overtimeOf(raw.overtime)
+    overtime: overtimeOf(raw.overtime),
+    daily: dailyOf(raw.daily, ids),
+    dailyDays: Math.floor(num(raw.dailyDays))
   };
+}
+
+function dailyOf(v: unknown, ids: AnimalId[]): Daily | null {
+  if (!v || typeof v !== 'object') return null;
+  const d = v as Record<string, unknown>;
+  const mods = Array.isArray(d.mods) ? d.mods : [];
+  const ok =
+    typeof d.date === 'string' &&
+    ids.includes(d.animal as AnimalId) &&
+    STAGE_IDS.includes(d.stage as string) &&
+    mods.length === 2 &&
+    mods.every((m) => typeof m === 'string' && m in MODS);
+  return ok
+    ? {
+        date: d.date as string,
+        animal: d.animal as AnimalId,
+        stage: d.stage as string,
+        mods: mods as ModId[],
+        cleared: d.cleared === true
+      }
+    : null;
 }
 
 function overtimeOf(v: unknown): Record<string, number> {
@@ -155,6 +185,13 @@ export function record(r: Records, run: RunSummary): AchievementDef[] {
   if (run.finale && !r.finales.includes(run.stage)) r.finales.push(run.stage);
   for (const id of run.evolved) if (!r.evolved.includes(id)) r.evolved.push(id);
   if (run.overtime) r.overtime[run.stage] = Math.max(r.overtime[run.stage] ?? 0, run.overtime.secs);
+  const d = r.daily;
+  if (run.cleared && run.daily && d && d.date === run.daily.date && !d.cleared) {
+    d.cleared = true;
+    r.dailyDays += 1;
+    r.coins += run.daily.bonus;
+    run.daily.paid = true;
+  }
   run.bookCoins = addBook(r, run);
   r.coins += run.bookCoins;
   return grant(r, run);
@@ -181,4 +218,16 @@ export function saveRecords(r: Records): void {
 export function canPlay(r: Records, stage: string): boolean {
   const s = STAGES.find((o) => o.id === stage);
   return !!s && (!s.after || r.stages.includes(s.after));
+}
+
+/** 今日のお題。日付が変わっていたら、仲間と選べる面から作り直す */
+export function ensureDaily(r: Records, now: Date): Daily {
+  const date = todayKey(now);
+  if (r.daily?.date !== date)
+    r.daily = makeDaily(
+      date,
+      r.unlocked,
+      STAGES.filter((s) => canPlay(r, s.id)).map((s) => s.id)
+    );
+  return r.daily;
 }

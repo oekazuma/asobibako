@@ -5,7 +5,9 @@ import { dailyBonus, makeDaily, MODS, todayKey, type ModId } from './daily';
 import { dropLoot } from './drops';
 import { FOREST } from './stages/forest';
 import { UPGRADES } from './upgrades';
-import { createWorld, summary } from './world';
+import { overtimeRun, startOvertime } from './overtime';
+import { emptyRecords, ensureDaily, parseRecords, record } from './records';
+import { createWorld, summary, type World } from './world';
 
 const VIEW = { w: 274, h: 394 };
 const MAX = Object.fromEntries(UPGRADES.map((d) => [d.id, d.max]));
@@ -104,5 +106,90 @@ describe('しばり', () => {
     expect(summary(withMods(['tough'])).daily).toEqual({ date: '2026-10-03', bonus: 500 });
     expect(summary(createWorld('dog', 1, VIEW)).daily).toBeUndefined();
     expect(createWorld('dog', 1, VIEW).mods).toEqual([]);
+  });
+});
+
+const DAY = new Date(2026, 9, 3, 10);
+const NEXT = new Date(2026, 9, 4, 10);
+
+/** その日のお題でクリアした回 */
+function clearedRun(r: ReturnType<typeof emptyRecords>): World {
+  const d = r.daily!;
+  const w = createWorld(d.animal, 1, VIEW, {}, d.stage, { date: d.date, bonus: dailyBonus(d), mods: d.mods });
+  w.over = 'clear';
+  return w;
+}
+
+describe('お題の記録', () => {
+  it('同じ日に仲間が増えてもお題は同じで、次の日は作り直す', () => {
+    const r = emptyRecords();
+    const d = ensureDaily(r, DAY);
+    expect(d.date).toBe('2026-10-03');
+    expect(['dog', 'cat', 'wolf']).toContain(d.animal);
+    expect(d.stage).toBe('forest');
+    r.unlocked.push('fox');
+    r.stages.push('forest');
+    expect(ensureDaily(r, DAY)).toBe(d);
+    expect(ensureDaily(r, NEXT).date).toBe('2026-10-04');
+  });
+
+  it('その日に初めてクリアした回だけごほうびが入り、2 回めは入らない', () => {
+    const r = emptyRecords();
+    ensureDaily(r, DAY);
+    const w = clearedRun(r);
+    const first = summary(w);
+    const before = r.coins;
+    record(r, first);
+    expect(first.daily?.paid).toBe(true);
+    expect(r.daily!.cleared).toBe(true);
+    expect(r.dailyDays).toBe(1);
+    expect(r.coins - before - first.coins).toBeGreaterThanOrEqual(dailyBonus(r.daily!));
+    const again = summary(clearedRun(r));
+    const mid = r.coins;
+    record(r, again);
+    expect(again.daily?.paid).toBeUndefined();
+    expect(r.coins - mid).toBe(again.coins + (again.bookCoins ?? 0));
+    expect(r.dailyDays).toBe(1);
+  });
+
+  it('倒れた回、延長戦の 2 回めの記録、前の日のお題の回では入らない', () => {
+    const r = emptyRecords();
+    ensureDaily(r, DAY);
+    const dead = clearedRun(r);
+    dead.over = 'dead';
+    record(r, summary(dead));
+    expect(r.daily!.cleared).toBe(false);
+    const w = clearedRun(r);
+    record(r, summary(w));
+    startOvertime(w);
+    w.over = 'dead';
+    const ot = overtimeRun(w);
+    record(r, ot);
+    expect(ot.daily?.paid).toBeUndefined();
+    expect(r.dailyDays).toBe(1);
+    const old = clearedRun(r);
+    ensureDaily(r, NEXT);
+    const run = summary(old);
+    record(r, run);
+    expect(run.daily?.paid).toBeUndefined();
+    expect(r.daily!.cleared).toBe(false);
+  });
+
+  it('壊れたお題は捨て、正しいお題は読み戻す', () => {
+    const good = { date: '2026-10-03', animal: 'cat', stage: 'forest', mods: ['tough', 'growth'], cleared: true };
+    expect(parseRecords(JSON.stringify({ daily: good, dailyDays: 3 })).daily).toEqual(good);
+    expect(parseRecords(JSON.stringify({ daily: good, dailyDays: 3 })).dailyDays).toBe(3);
+    for (const bad of [{ ...good, mods: ['nope', 'tough'] }, { ...good, stage: 'moon' }, { ...good, animal: 7 }, 'x'])
+      expect(parseRecords(JSON.stringify({ daily: bad })).daily).toBeNull();
+    expect(emptyRecords().daily).toBeNull();
+  });
+
+  it('お題を 1 日と 7 日クリアすると実績', () => {
+    const r = emptyRecords();
+    ensureDaily(r, DAY);
+    expect(record(r, summary(clearedRun(r))).map((a) => a.id)).toContain('daily1');
+    r.dailyDays = 6;
+    ensureDaily(r, NEXT);
+    expect(record(r, summary(clearedRun(r))).map((a) => a.id)).toContain('daily7');
   });
 });

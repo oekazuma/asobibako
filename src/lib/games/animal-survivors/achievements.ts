@@ -153,6 +153,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     coins: 300,
     done: (r) => r.bosses.includes('yeti') && r.bosses.includes('dragon')
   },
+  { id: 'daily1', name: '今日のお題をクリア', coins: 100, done: (r) => r.dailyDays >= 1 },
+  { id: 'daily7', name: '今日のお題を 7 日クリア', coins: 500, done: (r) => r.dailyDays >= 7 },
   { id: 'overtime5', name: '延長戦で 5 分生き延びる', coins: 300, done: (r) => longest(r) >= 300 },
   { id: 'overtime10', name: '延長戦で 10 分生き延びる', coins: 600, done: (r) => longest(r) >= 600 },
   {
