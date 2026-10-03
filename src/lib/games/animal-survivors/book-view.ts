@@ -2,6 +2,7 @@ import { ACHIEVEMENTS } from './achievements';
 import { animal, type AnimalId } from './animals';
 import { ARCANA, openArcana } from './arcana';
 import { ANIMAL_ART } from './art/animals';
+import { ARCANA_ART } from './art/arcana';
 import { BOSS_ART } from './art/bosses';
 import { ENEMY_ART } from './art/enemies';
 import { goldArt } from './art/evolved';
@@ -46,7 +47,7 @@ export function entries(r: Records, tab: Tab): Entry[] {
     const open = openArcana(r.achieved);
     return ARCANA.map((a) => ({
       key: a.id,
-      art: ITEM_ART.chest,
+      art: ARCANA_ART[a.id],
       name: a.name,
       known: open.includes(a.id),
       detail: [a.good, ...(a.bad ? [`ただし ${a.bad}`] : [])],

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ANIMAL_ART } from './art/animals';
 import { CAULDRON_ART } from './art/cauldron';
+import { ARCANA_ART } from './art/arcana';
 import { BOSS_ART } from './art/bosses';
 import { ENEMY_ART } from './art/enemies';
 import { FOREST_ART } from './art/forest';
@@ -19,6 +20,7 @@ const all: [string, Art][] = [
   ...Object.entries(BOSS_ART),
   ...Object.entries(ITEM_ART),
   ['cauldron', CAULDRON_ART],
+  ...Object.entries(ARCANA_ART),
   ['grass', FOREST_ART.grass],
   ['dirt', FOREST_ART.dirt],
   ...Object.entries(FOREST_ART.decor),

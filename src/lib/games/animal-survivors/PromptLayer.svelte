@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ArcanaPick from './ArcanaPick.svelte';
   import BossIntro from './BossIntro.svelte';
   import BossWarning from './BossWarning.svelte';
   import ChestOpen from './ChestOpen.svelte';
@@ -43,6 +44,8 @@
       onanswer(go);
     }}
   />
+{:else if prompts.cards}
+  <ArcanaPick cards={prompts.cards} locked={prompts.lock.active} onpick={(id) => prompts.pickCard(id, finger)} />
 {:else if prompts.rewards}
   <!-- 宝箱を続けて開けたときに、見せた数を最初から数え直す -->
   {#key prompts.rewards}

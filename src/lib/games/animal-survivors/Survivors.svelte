@@ -6,6 +6,7 @@
   import { Settle } from '$lib/settle.svelte';
   import type { AchievementDef } from './achievements';
   import type { AnimalId } from './animals';
+  import { openArcana, type ArcanaId } from './arcana';
   import Cauldron from './Cauldron.svelte';
   import type { Heat } from './cauldron';
   import CharSelect from './CharSelect.svelte';
@@ -31,7 +32,7 @@
     'select'
   );
   /** これから遊ぶ動物と面（お題の回はしばりも）。「もう一度」とやり直しは同じ組で始める */
-  let pick = $state<{ animal: AnimalId; stage: string; challenge?: Challenge; heat?: Heat }>({
+  let pick = $state<{ animal: AnimalId; stage: string; challenge?: Challenge; heat?: Heat; arcana?: ArcanaId[] }>({
     animal: 'dog',
     stage: 'forest'
   });
@@ -61,7 +62,7 @@
   /** 釜で選んだ強さで賭けを引いて始める。足りなければ payHeat が払える強さまで下げる */
   function begin(h: number) {
     const r = loadRecords();
-    pick = { ...pick, heat: payHeat(r, h) };
+    pick = { ...pick, heat: payHeat(r, h), arcana: openArcana(r.achieved) };
     saveRecords(r);
     records = r;
     start(pick.stage);

@@ -4,8 +4,6 @@
   import { BoardInput } from '$lib/board-input';
   import { animate } from '$lib/loop';
   import type { AnimalId } from './animals';
-  import type { Heat } from './cauldron';
-  import type { Challenge } from './daily';
   import { draw, fitCanvas, type ViewSize } from './draw';
   import { Effects } from './effects';
   import { MOVE_KEYS, steer } from './input';
@@ -16,7 +14,7 @@
   import { Prompts } from './prompts.svelte';
   import Stick from './Stick.svelte';
   import type { Ranks } from './upgrades';
-  import { createWorld, step, summary, type World } from './world';
+  import { createWorld, step, summary, type Options, type World } from './world';
 
   let {
     pick,
@@ -26,7 +24,7 @@
     onrestart,
     onmusic
   }: {
-    pick: { animal: AnimalId; stage: string; challenge?: Challenge; heat?: Heat };
+    pick: Options & { animal: AnimalId; stage: string };
     ranks: Ranks;
     onover: (w: World) => void;
     onend: () => void;
