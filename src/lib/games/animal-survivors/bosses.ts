@@ -59,6 +59,7 @@ export function spawnBosses(w: World): void {
       w.events.push({ type: 'warning', boss: b.id, ...(b.title && { title: b.title }) });
     w.warned += 1;
   }
+  const fresh: number[] = [];
   while (w.bossNext < list.length && w.time >= list[w.bossNext].at) {
     const b = list[w.bossNext++];
     const def = ENEMIES[b.id];
@@ -72,8 +73,12 @@ export function spawnBosses(w: World): void {
       hp
     );
     e.born = w.time;
-    w.enemies[slot(w)] = e;
+    const i = slot(w);
+    w.enemies[i] = e;
+    fresh.push(i);
   }
+  // 延長戦のボスは 1 分ごとに出るので、止めて見せると遊べない
+  if (fresh.length && !w.overtime) w.events.push({ type: 'bossIntro', ids: fresh });
 }
 
 const BEAR = {

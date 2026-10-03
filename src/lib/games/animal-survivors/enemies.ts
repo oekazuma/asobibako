@@ -16,6 +16,8 @@ export interface EnemyDef {
   heavy: number;
   /** ボスなら、動き方を決める bosses.ts の id */
   boss?: BossId;
+  /** ボスの二つ名（登場の札に出す） */
+  epithet?: string;
   /** 強化個体（金色で大きく、HP と経験値が多い） */
   elite?: boolean;
   /** 壊せる物（ランタン）。狙われず、数えられず、品を落とす */
@@ -57,9 +59,10 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
       e('croc', 'ワニ', [120, 16, 16, 9, 10], 'chase', 0.9),
       e('spiderling', '子グモ', [8, 50, 6, 4, 1], 'chase', 0),
       // ボスの体力はこの値に、出る時刻の硬さと行の倍率を掛ける（bosses.ts の spawnBosses）
-      { ...e('bear', '巨大ベア', [700, 28, 20, 15, 0], 'boss', 1, 'bear'), ai: 'bear' },
+      { ...e('bear', '巨大ベア', [700, 28, 20, 15, 0], 'boss', 1, 'bear'), ai: 'bear', epithet: '森の暴れん坊' },
       {
         ...e('spiderQueen', '女王グモ', [900, 38, 25, 16, 0], 'boss', 1, 'spiderQueen'),
+        epithet: '糸を操る女王',
         ai: 'queen',
         minion: 'spiderling',
         shot: 'web'
@@ -70,11 +73,16 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
       e('pumpkinling', 'ちびかぼちゃ', [10, 46, 7, 5, 1], 'chase', 0),
       {
         ...e('pumpkin', 'かぼちゃ大王', [800, 36, 26, 16, 0], 'boss', 1, 'pumpkin'),
+        epithet: '墓場のいたずら王',
         ai: 'queen',
         minion: 'pumpkinling',
         shot: 'seed'
       },
-      { ...e('knight', 'ガイコツの騎士', [1300, 30, 26, 15, 0], 'boss', 1, 'knight'), ai: 'bear' },
+      {
+        ...e('knight', 'ガイコツの騎士', [1300, 30, 26, 15, 0], 'boss', 1, 'knight'),
+        ai: 'bear',
+        epithet: '眠らない剣士'
+      },
       { ...e('lantern', 'ランタン', [1, 0, 0, 6, 0], 'still', 1), prop: true },
       { ...e('metal', 'きらきらハリネズミ', [12, 50, 0, 6, 0], 'flee', 0.5), metal: true },
       e('penguin', 'ペンギン', [6, 40, 5, 5, 1], 'chase', 0),
@@ -87,11 +95,17 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
       e('snowling', 'ちび雪だるま', [10, 46, 7, 5, 1], 'chase', 0),
       {
         ...e('yeti', '大雪男', [1100, 30, 26, 16, 0], 'boss', 1, 'yeti'),
+        epithet: '吹雪の大食らい',
         ai: 'yeti',
         minion: 'snowling',
         shot: 'snowball'
       },
-      { ...e('dragon', '氷の竜', [1200, 40, 28, 18, 0], 'boss', 1, 'dragon'), ai: 'dragon', shot: 'icicle' }
+      {
+        ...e('dragon', '氷の竜', [1200, 40, 28, 18, 0], 'boss', 1, 'dragon'),
+        ai: 'dragon',
+        shot: 'icicle',
+        epithet: '凍てつく空の主'
+      }
     ] satisfies EnemyDef[]
   ).map((d) => [d.id, d])
 );

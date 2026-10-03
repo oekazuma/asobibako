@@ -101,7 +101,7 @@ describe('ヌシ', () => {
     expect(e.def.xp).toBe(ENEMIES.caterpillar.xp * 20);
     expect(e.def.heavy).toBe(1);
     expect(e.hp).toBe(450);
-    expect(w.events).toContainEqual({ type: 'swarm', text: 'ヌシイモムシが現れた！' });
+    expect(w.events).toContainEqual({ type: 'chief', i: expect.any(Number), name: 'ヌシイモムシ' });
   });
 
   it('墓地のヌシも面の表の敵で出る', () => {

@@ -92,7 +92,7 @@
       take();
       fx.update(dt);
     }
-    prompts.next(stick?.id ?? null);
+    prompts.next(stick?.id ?? null, dt);
     if (later.due(world, prompts.busy)) pause();
     if (world.over && !ended) {
       ended = true;

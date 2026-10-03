@@ -89,7 +89,10 @@ export type GameEvent =
   | { type: 'freeze' }
   | { type: 'grow'; form: 1 | 2 }
   | { type: 'rush' }
-  | { type: 'special'; id: string };
+  | { type: 'special'; id: string }
+  /** ボスが出た（入れ物の番号）。面の主の 2 体は 1 つにまとめる */
+  | { type: 'bossIntro'; ids: number[] }
+  | { type: 'chief'; i: number; name: string };
 
 export interface World {
   rand: Rng;
@@ -424,8 +427,8 @@ export function spawnChiefs(w: World): void {
   while (w.chiefNext < list.length && w.time >= list[w.chiefNext].at) {
     const c = list[w.chiefNext++];
     const def = chiefOf(ENEMIES[c.enemy]);
-    place(w, def, c.hp);
-    w.events.push({ type: 'swarm', text: `${def.name}が現れた！` });
+    const e = place(w, def, c.hp);
+    w.events.push({ type: 'chief', i: w.enemies.indexOf(e), name: def.name });
   }
 }
 
