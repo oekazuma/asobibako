@@ -180,7 +180,13 @@ describe('お題の記録', () => {
     const good = { date: '2026-10-03', animal: 'cat', stage: 'forest', mods: ['tough', 'growth'], cleared: true };
     expect(parseRecords(JSON.stringify({ daily: good, dailyDays: 3 })).daily).toEqual(good);
     expect(parseRecords(JSON.stringify({ daily: good, dailyDays: 3 })).dailyDays).toBe(3);
-    for (const bad of [{ ...good, mods: ['nope', 'tough'] }, { ...good, stage: 'moon' }, { ...good, animal: 7 }, 'x'])
+    for (const bad of [
+      { ...good, mods: ['tough', 'tough'] },
+      { ...good, mods: ['nope', 'tough'] },
+      { ...good, stage: 'moon' },
+      { ...good, animal: 7 },
+      'x'
+    ])
       expect(parseRecords(JSON.stringify({ daily: bad })).daily).toBeNull();
     expect(emptyRecords().daily).toBeNull();
   });

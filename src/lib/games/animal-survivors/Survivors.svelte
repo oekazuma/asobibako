@@ -75,8 +75,18 @@
     screen = 'stage';
   }
 
+  // 机に置いたまま日付をまたぐことがあるので、お題を見せる前と始める前に今日のお題か確かめる
+  function openDaily() {
+    reload();
+    screen = 'daily';
+  }
+
   function daily() {
+    const shown = records.daily?.date;
+    reload();
     const d = records.daily!;
+    // 画面に出ていたのが前の日のお題なら、始めずに今日のお題を見せる
+    if (d.date !== shown) return;
     pick = { animal: d.animal, stage: d.stage, challenge: { date: d.date, bonus: dailyBonus(d), mods: d.mods } };
     start(d.stage);
   }
@@ -116,7 +126,12 @@
 </script>
 
 {#if screen === 'select'}
-  <CharSelect {records} onpick={choose} onquit={() => onquit?.()} onopen={(s) => (screen = s)} />
+  <CharSelect
+    {records}
+    onpick={choose}
+    onquit={() => onquit?.()}
+    onopen={(s) => (s === 'daily' ? openDaily() : (screen = s))}
+  />
 {:else if screen === 'daily' && records.daily}
   <Daily daily={records.daily} onstart={daily} onback={() => (screen = 'select')} />
 {:else if screen === 'stage'}
