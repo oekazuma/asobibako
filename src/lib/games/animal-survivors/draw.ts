@@ -14,6 +14,7 @@ import { growFrame } from './grow';
 import type { Prompts } from './prompts.svelte';
 import { chiefArrows, confetti, treasureArrow } from './draw-events';
 import { blizzard } from './draw-storm';
+import { drawLava } from './draw-volcano';
 import { EAGLE } from './bosses-forest';
 import { airborne, YETI } from './bosses-snow';
 import { gemTier } from './drops';
@@ -132,8 +133,8 @@ const GROUNDS = {
   volcano: {
     art: VOLCANO_ART,
     decor: [
-      [0.6, null],
-      [0.74, 'crack'],
+      [0.66, null],
+      [0.7, 'crack'],
       [0.84, 'basalt'],
       [0.91, 'ember'],
       [0.96, 'smoke'],
@@ -362,6 +363,7 @@ export function draw(
   const cy = eye.y - v.h / 2;
   ctx.setTransform(S, 0, 0, S, -devicePx(cx, S), -devicePx(cy, S));
   ground(ctx, w, cx, cy, v);
+  drawLava(ctx, w, now);
   hazardsBelow(ctx, w, q, now);
   zonesBelow(ctx, w, q, now);
   pickups(ctx, w, now);

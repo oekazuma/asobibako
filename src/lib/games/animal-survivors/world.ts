@@ -14,6 +14,7 @@ import { stats, type Stats } from './passives';
 import { rng, type Rng } from './rng';
 import { stageOf } from './stages';
 import { startEvent, stepEvents } from './events';
+import { quietEarth, stepEruption, updateLava, type Eruption, type Lava } from './eruption';
 import { calm, STORM_PUSH, stepStorm, windFactor, type Storm } from './storm';
 import { spawnRate, type Stage } from './stages/forest';
 import { perks, type Ranks } from './upgrades';
@@ -164,6 +165,11 @@ export interface World {
   rush: number;
   /** 雪山の吹雪 */
   storm: Storm;
+  eruption: Eruption;
+  /** 噴火の割れ目と溶岩の池 */
+  lava: Lava[];
+  /** 溶岩の池で倒した数 */
+  lavaKills: number;
   /** 宝の地図の宝箱（無ければ null） */
   treasure: Item | null;
   /** 流れ星の残り秒と、次の予告までの秒 */
@@ -311,6 +317,9 @@ export function createWorld(
     freeze: 0,
     rush: 0,
     storm: calm(),
+    eruption: quietEarth(),
+    lava: [],
+    lavaKills: 0,
     treasure: null,
     meteors: { left: 0, next: 0 },
     festival: 0,
@@ -817,7 +826,10 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   spawnProps(w, dt);
   w.freeze = Math.max(0, w.freeze - dt);
   w.rush = Math.max(0, w.rush - dt);
-  if (w.freeze <= 0) stepEvents(w, dt);
+  if (w.freeze <= 0) {
+    stepEvents(w, dt);
+    stepEruption(w, dt);
+  }
 
   const far = Math.hypot(w.view.w, w.view.h) * 0.9;
   w.grid.clear();
@@ -837,7 +849,10 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   });
   separate(w);
   touch(w);
-  if (w.freeze <= 0) updateHazards(w, dt);
+  if (w.freeze <= 0) {
+    updateHazards(w, dt);
+    updateLava(w, dt);
+  }
   if (w.over) return;
 
   fire(w, dt);
