@@ -1,3 +1,4 @@
+import { arcanaOffer, takeArcana, type ArcanaId } from './arcana';
 import { openChest, type Reward } from './chest';
 import { WARN_AHEAD } from './bosses';
 import { apply, choices, isFiller, type Choice } from './choices';
@@ -23,6 +24,8 @@ const ease = (k: number) => k * k * (3 - 2 * k);
 
 export class Prompts {
   options = $state<Choice[] | null>(null);
+  /** 選ぶ札の候補 */
+  cards = $state<ArcanaId[] | null>(null);
   rewards = $state<Reward[] | null>(null);
   /** key は帯を作り直すための数。until までゲームの時間で出す（3 択で止まっているあいだに消えないように） */
   warning = $state<{ name: string; key: number; until: number } | null>(null);
@@ -57,7 +60,14 @@ export class Prompts {
   }
 
   get busy(): boolean {
-    return this.options !== null || this.rewards !== null || this.asking || this.intro !== null || this.evolve !== null;
+    return (
+      this.options !== null ||
+      this.rewards !== null ||
+      this.cards !== null ||
+      this.asking ||
+      this.intro !== null ||
+      this.evolve !== null
+    );
   }
 
   /** 育つ演出を見せているとき（宝箱・3 択・ボスの登場のあいだは待っている） */
@@ -119,10 +129,26 @@ export class Prompts {
     }
     // 3 択の経験値の袋で育つと、出来事を拾う前にここへ来る。次の 3 択より演出を先にする
     if (this.busy || w.over || w.events.some((e) => e.type === 'grow')) return;
+    if (w.arcanaPending > 0) {
+      const offer = arcanaOffer(w);
+      if (offer.length) {
+        this.cards = offer;
+        this.lock.begin(finger);
+        return;
+      }
+      w.arcanaPending = 0;
+    }
     if (w.chests > 0) this.rewards = openChest(w);
     else if (w.pending > 0) this.options = choices(w);
     else return;
     this.lock.begin(finger);
+  }
+
+  pickCard(id: ArcanaId, finger: number | null): void {
+    takeArcana(this.#w, id);
+    this.#w.arcanaPending = Math.max(0, this.#w.arcanaPending - 1);
+    this.cards = null;
+    this.next(finger);
   }
 
   choose(c: Choice, finger: number | null): void {

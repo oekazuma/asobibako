@@ -25,9 +25,9 @@ export const RAGE = 1.5;
 /** 2・4 分に 2 体を、6・8 分に同じ 2 体を攻撃を速めて出し、9 分に面の主 */
 export const bossRun = (a: BossId, b: BossId, title: string): Stage['bosses'] => [
   { at: 120, id: a, hp: 0.6 },
-  { at: 240, id: b, hp: 0.6 },
+  { at: 240, id: b, hp: 0.6, arcana: true },
   { at: 360, id: a, rage: RAGE },
-  { at: 480, id: b, rage: RAGE },
+  { at: 480, id: b, rage: RAGE, arcana: true },
   { at: FINALE, id: a, hp: 1.5, rage: RAGE, title },
   { at: FINALE, id: b, hp: 1.5, rage: RAGE, title }
 ];
@@ -54,7 +54,7 @@ export interface Stage {
    * 秒と、そのときに出すボス。同じ時刻の行はいっしょに出し、WARNING は 1 回だけ出す。
    * 体力は表の値にその時刻の toughness と hp を掛け、rage は攻撃の間を割る
    */
-  bosses: { at: number; id: BossId; hp?: number; rage?: number; title?: string }[];
+  bosses: { at: number; id: BossId; hp?: number; rage?: number; title?: string; arcana?: true }[];
   /** 秒と、そのときに出すヌシ（ふつうの敵を 3 倍にしたもの）の元の敵と体力 */
   chiefs: { at: number; enemy: string; hp: number }[];
   /** 同時に出ている敵の上限 */
@@ -112,9 +112,9 @@ export const FOREST: Stage = {
   // 1 面だけは 6 体のボスが順に出る（墓地と雪山は 2 体が攻撃を速めてまた出る bossRun）
   bosses: [
     { at: 120, id: 'bear', hp: 0.6 },
-    { at: 240, id: 'spiderQueen', hp: 0.8 },
+    { at: 240, id: 'spiderQueen', hp: 0.8, arcana: true },
     { at: 360, id: 'bigBoar' },
-    { at: 480, id: 'bigEagle' },
+    { at: 480, id: 'bigEagle', arcana: true },
     { at: FINALE, id: 'oldTree', hp: 1, rage: RAGE, title: '森の主' },
     { at: FINALE, id: 'bigSnake', hp: 1, rage: RAGE, title: '森の主' }
   ],

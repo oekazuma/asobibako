@@ -1,5 +1,5 @@
 import { countKill, damageEnemy, type Enemy, type World } from './world';
-import { has, healRate, hpScaleOf } from './arcana';
+import { has, healRate, hpScaleOf, MAX_ARCANA } from './arcana';
 import { stats } from './passives';
 import { trySpecial } from './specials';
 
@@ -196,6 +196,7 @@ export function dropFrom(w: World, e: Enemy): void {
     }
     dropItem(w, 'purse', e.x + 12, e.y);
     dropItem(w, 'chest', e.x, e.y);
+    if (e.def.arcana && w.arcanaPool.length && w.arcana.length + w.arcanaPending < MAX_ARCANA) w.arcanaPending += 1;
     return;
   }
   if (e.def.metal) {
