@@ -48,7 +48,7 @@ describe('延長戦の画面', () => {
     document.body.innerHTML = '';
   });
 
-  it('15:00 の選ぶ画面は「生存成功！」ときまりと 2 つのボタンで、答えを返す', () => {
+  it('10:00 の選ぶ画面は「生存成功！」ときまりと 2 つのボタンで、答えを返す', () => {
     const got: boolean[] = [];
     const { target, app, button } = show(OvertimeAsk, { locked: false, onanswer: (go: boolean) => got.push(go) });
     expect(target.querySelector('h2')?.textContent).toBe('生存成功！');

@@ -5,6 +5,7 @@ import { ENEMY_ART } from './art/enemies';
 import { goldArt } from './art/evolved';
 import { ITEM_ART } from './art/items';
 import { BOOK } from './book';
+import { COIN_RATE, POUCH, PURSE } from './drops';
 import { ENEMIES } from './enemies';
 import type { Art } from './pixels';
 import type { Records } from './records';
@@ -22,8 +23,8 @@ export interface Entry {
 
 const ITEMS: Record<string, [string, string, Art]> = {
   meat: ['肉', 'HP を 30 回復', ITEM_ART.meat],
-  pouch: ['コインの小袋', 'コイン 10 枚', ITEM_ART.pouch],
-  purse: ['コインの大袋', 'コイン 50 枚。ボスときらきらハリネズミが落とす', ITEM_ART.purse],
+  pouch: ['コインの小袋', `コイン ${POUCH * COIN_RATE} 枚`, ITEM_ART.pouch],
+  purse: ['コインの大袋', `コイン ${PURSE * COIN_RATE} 枚。ボスときらきらハリネズミが落とす`, ITEM_ART.purse],
   magnet: ['磁石', '経験値の玉を全部引き寄せる', ITEM_ART.magnet],
   goldMagnet: ['金の磁石', 'コインを全部引き寄せ、コインラッシュが始まる', goldArt(ITEM_ART.magnet)],
   cross: ['十字架', '画面の中の敵を倒す', ITEM_ART.cross],

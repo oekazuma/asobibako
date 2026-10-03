@@ -71,6 +71,6 @@ describe('延長戦のコインの数字', () => {
     w.items.push({ alive: true, kind: 'pouch', x: w.player.x, y: w.player.y, pulled: true });
     collect(w, 1 / 60);
     const coin = w.events.find((e) => e.type === 'coin');
-    expect(coin).toMatchObject({ value: 20 });
+    expect(coin).toMatchObject({ value: 30 });
   });
 });

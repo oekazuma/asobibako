@@ -4,7 +4,8 @@ import { FINALE, FOREST } from './stages/forest';
 import { GRAVEYARD } from './stages/graveyard';
 import { SNOW } from './stages/snow';
 import { ACHIEVEMENTS } from './achievements';
-import { overtimeCoins } from './drops';
+import { collect, overtimeCoins } from './drops';
+import { entries } from './book-view';
 import { emptyRecords, parseRecords, record } from './records';
 import { coinsOf, createWorld, step, summary } from './world';
 
@@ -110,3 +111,24 @@ describe('10 分の面のコインと実績', () => {
 function achievedCoins(r: ReturnType<typeof emptyRecords>) {
   return ACHIEVEMENTS.filter((a) => r.achieved.includes(a.id)).reduce((t, a) => t + a.coins, 0);
 }
+
+describe('10 分の面のコインの見せ方', () => {
+  it.each([
+    ['pouch', 15],
+    ['purse', 75]
+  ] as const)('%s を拾うと浮かぶ数と HUD のコインの増え方が同じ', (kind, coins) => {
+    const w = createWorld('dog', 1, { w: 274, h: 394 });
+    w.stage = { ...w.stage, waves: [], bosses: [], events: [], chiefs: [] };
+    w.items.push({ alive: true, kind, x: w.player.x, y: w.player.y, pulled: false });
+    const before = coinsOf(w);
+    collect(w, 1 / 60);
+    expect(coinsOf(w) - before).toBe(coins);
+    expect(w.events).toContainEqual({ type: 'coin', value: coins });
+  });
+
+  it('図鑑の小袋と大袋は実際に入る枚数を書く', () => {
+    const items = entries(emptyRecords(), 'items');
+    expect(items.find((e) => e.key === 'pouch')!.detail.join()).toContain('コイン 15 枚');
+    expect(items.find((e) => e.key === 'purse')!.detail.join()).toContain('コイン 75 枚');
+  });
+});

@@ -65,9 +65,12 @@ describe('世界', () => {
     }
   });
 
-  it('900 秒でクリアになり、HP 0 でゲームオーバーになる', () => {
+  it('600 秒でクリアになり、HP 0 でゲームオーバーになる', () => {
     const a = createWorld('dog', 1, VIEW);
-    a.time = 899.99;
+    a.time = 599.9;
+    step(a, still, 0.02);
+    expect(a.over).toBe(null);
+    a.time = 599.99;
     step(a, still, 0.02);
     expect(a.over).toBe('clear');
     const b = createWorld('dog', 1, VIEW);

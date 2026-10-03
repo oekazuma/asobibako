@@ -246,7 +246,7 @@ describe('倒したときと宝箱', () => {
     expect(w.pending).toBeGreaterThanOrEqual(1);
   });
 
-  it('15:00 のクリアではボスも倒れ、宝箱は落とさない', () => {
+  it('10:00 のクリアではボスも倒れ、宝箱は落とさない', () => {
     const w = quiet();
     w.enemies.push(makeEnemy(ENEMIES.bear, 100, 0, 2400));
     w.time = 599.99;

@@ -29,14 +29,14 @@ const MEAT_HEAL = 30;
 const MEAT_CHANCE = 0.003;
 export const CLEAR_COINS = 100;
 export const CHEST_COINS = 10;
-/** 拾うコインに掛ける倍率。1 回が 10 分なので、1 回でもらえるコインを 15 分だったころと同じくらいにする */
+/** 拾うコインに掛ける倍率。1 回が 10 分と短いので、店を進められる量にする */
 export const COIN_RATE = 1.5;
 /** 延長戦のコインの倍率が 1 分ごとに上がる幅 */
 export const OVERTIME_STEP = 0.5;
-const PURSE = 50;
+export const PURSE = 50;
 const ELITE_COINS = 5;
 const COIN_CHANCE = 0.03;
-const POUCH = 10;
+export const POUCH = 10;
 /** 時計で敵が止まる秒 */
 export const FREEZE = 10;
 /** ランタンから出る品の重み。十字架と時計は運で増える */
@@ -283,8 +283,8 @@ export function collect(w: World, dt: number): void {
     if (it.kind === 'coin' || it.kind === 'purse' || it.kind === 'pouch') {
       const value = it.kind === 'coin' ? (w.festival > 0 ? 2 : 1) : it.kind === 'pouch' ? POUCH : PURSE;
       addCoins(w, value);
-      // 浮かぶ数字は延長戦の倍率を掛けた、実際に入った枚数で見せる
-      w.events.push({ type: 'coin', value: Math.round(value * overtimeRate(w)) });
+      // 浮かぶ数字は倍率を掛けた、実際に入った枚数で見せる
+      w.events.push({ type: 'coin', value: Math.round(value * COIN_RATE * overtimeRate(w)) });
       continue;
     }
     if (it.kind === 'meat') {
