@@ -1,5 +1,6 @@
 import { ACHIEVEMENTS, grant, type AchievementDef } from './achievements';
 import { addBook, emptyBook, parseBook, type Book } from './book';
+import { betOf, maxHeat, snap, type Heat } from './cauldron';
 import { ANIMALS, type AnimalId } from './animals';
 import { makeDaily, MODS, todayKey, type Daily, type ModId } from './daily';
 import { WEAPONS } from './weapons';
@@ -42,6 +43,10 @@ export interface Records {
   daily: Daily | null;
   /** お題をクリアした日の数 */
   dailyDays: number;
+  /** ステージごとにクリアしたいちばん高い釜の強さ */
+  heat: Record<string, number>;
+  /** 最後に選んだ釜の強さ */
+  heatLast: number;
 }
 
 export const RECORDS_KEY = 'asobibako:animal-survivors';
@@ -68,7 +73,9 @@ export function emptyRecords(): Records {
     book: emptyBook(),
     overtime: {},
     daily: null,
-    dailyDays: 0
+    dailyDays: 0,
+    heat: {},
+    heatLast: 2
   };
 }
 
@@ -123,7 +130,9 @@ export function parseRecords(text: string | null): Records {
     book: parseBook(raw.book, list(raw.bosses, BOSSES), unlockedIds, STARTERS),
     overtime: overtimeOf(raw.overtime),
     daily: dailyOf(raw.daily, ids),
-    dailyDays: Math.floor(num(raw.dailyDays))
+    dailyDays: Math.floor(num(raw.dailyDays)),
+    heat: heatOf(raw.heat),
+    heatLast: isNum(raw.heatLast) ? snap(raw.heatLast) : 2
   };
 }
 
@@ -147,6 +156,18 @@ function dailyOf(v: unknown, ids: AnimalId[]): Daily | null {
         cleared: d.cleared === true
       }
     : null;
+}
+
+const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+function heatOf(v: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!v || typeof v !== 'object') return out;
+  for (const id of STAGE_IDS) {
+    const h = (v as Record<string, unknown>)[id];
+    if (isNum(h)) out[id] = snap(h);
+  }
+  return out;
 }
 
 function overtimeOf(v: unknown): Record<string, number> {
@@ -177,6 +198,8 @@ export function record(r: Records, run: RunSummary): AchievementDef[] {
   for (const b of run.bosses) if (!r.bosses.includes(b)) r.bosses.push(b);
   if (run.cleared) {
     r.clears += 1;
+    r.coins += run.heat.bet;
+    r.heat[run.stage] = Math.max(r.heat[run.stage] ?? 0, run.heat.level);
     if (!r.clearedBy.includes(run.animal)) r.clearedBy.push(run.animal);
   }
   r.chests += run.opened;
@@ -196,6 +219,15 @@ export function record(r: Records, run: RunSummary): AchievementDef[] {
   run.bookCoins = addBook(r, run);
   r.coins += run.bookCoins;
   return grant(r, run);
+}
+
+/** はじめるときに賭けを引く。足りなければ払える強さまで下げる */
+export function payHeat(r: Records, h: number): Heat {
+  const level = snap(h) <= 2 ? snap(h) : Math.min(snap(h), maxHeat(r.coins));
+  const bet = betOf(level);
+  r.coins -= bet;
+  r.heatLast = level;
+  return { level, bet };
 }
 
 /** 保存が使えない端末（プライベートブラウズなど）では空の記録を返す */

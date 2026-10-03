@@ -162,7 +162,9 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     name: '墓地の 2 体のボスを倒す',
     coins: 200,
     done: (r) => r.bosses.includes('pumpkin') && r.bosses.includes('knight')
-  }
+  },
+  { id: 'heat5', name: '釜 5.0 以上でクリア', coins: 300, done: (r) => Object.values(r.heat).some((v) => v >= 5) },
+  { id: 'heat9', name: '釜 9.0 でクリア', coins: 1000, done: (r) => Object.values(r.heat).some((v) => v >= 9) }
 ];
 
 /**
