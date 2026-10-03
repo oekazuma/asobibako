@@ -697,7 +697,7 @@ export function hurtPlayer(w: World, raw: number): void {
     p.hp = Math.round(w.stats.maxHp / 2);
     p.invuln = REVIVE_INVULN;
     for (const e of w.enemies) {
-      // ボス・ヌシ・ランタン・ハリネズミは押し合いでも押されないので、押しのけからも外す
+      // ボス・ヌシ・ランタンは動かないもの、ハリネズミは逃げ回るもの。どれも復活で飛ばすと流れが崩れるので外す
       if (!e.alive || e.def.boss || e.def.chief || e.def.prop || e.def.metal) continue;
       const dx = e.x - p.x;
       const dy = e.y - p.y;
