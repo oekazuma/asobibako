@@ -6,6 +6,8 @@ function unit(x: number, y: number): Vec {
   return len === 0 ? ZERO : { x: x / len, y: y / len };
 }
 
+export const MOVE_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+
 /** KeyboardEvent.code の集合から。WASD と矢印キーは同じ向き */
 export function keyVector(keys: ReadonlySet<string>): Vec {
   const has = (...k: string[]) => k.some((c) => keys.has(c));

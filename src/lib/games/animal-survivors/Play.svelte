@@ -6,7 +6,7 @@
   import type { AnimalId } from './animals';
   import { draw, viewSize, type ViewSize } from './draw';
   import { Effects } from './effects';
-  import { keyVector, padVector, pick, stickVector } from './input';
+  import { MOVE_KEYS, keyVector, padVector, pick, stickVector } from './input';
   import { PendingPause, canPause } from './pause';
   import Pause from './Pause.svelte';
   import PromptLayer from './PromptLayer.svelte';
@@ -23,7 +23,6 @@
     onrestart,
     onmusic
   }: {
-    /** 遊ぶ動物と面 */
     choice: { animal: AnimalId; stage: string };
     ranks: Ranks;
     onover: (w: World) => void;
@@ -31,8 +30,6 @@
     onrestart: () => void;
     onmusic: (m: { song: 'field' | 'boss'; quiet: boolean }) => void;
   } = $props();
-
-  const MOVE_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
 
   let canvas: HTMLCanvasElement;
   let probe: HTMLElement;
@@ -137,9 +134,7 @@
   function keydown(event: KeyboardEvent) {
     if (event.code === 'Escape' || event.code === 'KeyP') {
       event.preventDefault();
-      if (menu) menu = false;
-      else pause();
-      return;
+      return menu ? (menu = false) : pause();
     }
     if (!MOVE_KEYS.has(event.code)) return;
     event.preventDefault();
@@ -198,8 +193,7 @@
 
   canvas {
     position: absolute;
-    top: 0;
-    left: 0;
+    inset: 0 auto auto 0;
     image-rendering: pixelated;
   }
 </style>
