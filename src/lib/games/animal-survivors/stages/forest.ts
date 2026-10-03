@@ -20,7 +20,7 @@ export interface StageEvent {
 /** 面の主。その面の 2 体のボスが、体力を増やしていっしょに出る */
 export const FINALE = 810;
 /** 2 回めのボスと面の主は、攻撃の間をこの値で割る */
-const RAGE = 1.5;
+export const RAGE = 1.5;
 
 /** 3・6 分に 2 体を、9・12 分に同じ 2 体を攻撃を速めて出し、13:30 に面の主 */
 export const bossRun = (a: BossId, b: BossId): Stage['bosses'] => [

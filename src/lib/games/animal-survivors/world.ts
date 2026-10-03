@@ -3,7 +3,7 @@ import type { RunBook } from './book';
 import { fire, hits, type Effect, type Shot } from './arms';
 import { moveBoss, slot, spawnBosses, updateHazards, type Hazard } from './bosses';
 import { airborne } from './bosses-snow';
-import { CLEAR_COINS, collect, dropFrom, type Gem, type Item } from './drops';
+import { CLEAR_COINS, collect, dropFrom, overtimeCoins, type Gem, type Item } from './drops';
 import { ENEMIES, MAX_R, type BossId, type EnemyDef } from './enemies';
 import { Grid } from './grid';
 import { stats, type Stats } from './passives';
@@ -173,6 +173,16 @@ export interface World {
   bossNext: number;
   warned: number;
   over: null | 'dead' | 'clear';
+  /**
+   * 延長戦（無ければ null）。from は延長戦に入った秒、base は 2 回めの記録で差を取るための始めた時の値、
+   * coins は倍率を掛けて貯めた延長戦のコイン（強欲を掛ける前）、retreat は自分で終えた
+   */
+  overtime: null | {
+    from: number;
+    base: { kills: number; opened: number; killsBy: Record<string, number>; bossTimes: number };
+    coins: number;
+    retreat: boolean;
+  };
   /** 仮想画面の大きさ（px）。出現と回し直しの距離に使う */
   view: { w: number; h: number };
   events: GameEvent[];
@@ -280,6 +290,7 @@ export function createWorld(
     bossNext: 0,
     warned: 0,
     over: null,
+    overtime: null,
     view,
     events: [],
     spawnAcc: stage.waves.map(() => 0),
@@ -799,11 +810,13 @@ export interface RunSummary {
   book: RunBook;
   /** record() が入れる、この回に図鑑へ新しく載ったぶんのコイン */
   bookCoins?: number;
+  /** 延長戦の秒とそのぶんのコイン（倒れて半分になったか）。best は記録した面の最高 */
+  overtime?: { secs: number; coins: number; halved: boolean; best?: number };
 }
 
 /** 強欲を掛けたこの回のコイン。1 枚ずつ掛けると端数で減るので、合計に掛ける */
 export function coinsOf(w: World): number {
-  return Math.floor(w.coins * w.greed * w.stage.coin + 1e-9);
+  return Math.floor(w.coins * w.greed * w.stage.coin + 1e-9) + overtimeCoins(w);
 }
 
 export function summary(w: World): RunSummary {
@@ -834,6 +847,13 @@ export function summary(w: World): RunSummary {
       bosses: w.bossTimes.map((b) => ({ ...b })),
       forms: Array.from({ length: w.form + 1 }, (_, f) => `${w.animal.id}:${f}`),
       items: [...w.picked]
-    }
+    },
+    ...(w.overtime && {
+      overtime: {
+        secs: Math.floor(w.time - w.overtime.from),
+        coins: overtimeCoins(w),
+        halved: w.over === 'dead' && !w.overtime.retreat
+      }
+    })
   };
 }

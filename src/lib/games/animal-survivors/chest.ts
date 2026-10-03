@@ -1,5 +1,5 @@
 import { levelUp } from './choices';
-import { CHEST_COINS } from './drops';
+import { addCoins, CHEST_COINS } from './drops';
 import { evolvable, evolve } from './evolutions';
 import { maxOf } from './passives';
 import { MAX_LEVEL } from './weapons';
@@ -20,7 +20,7 @@ export function chestSize(r: number): 1 | 3 | 5 {
 export function openChest(w: World): Reward[] {
   w.chests = Math.max(0, w.chests - 1);
   w.opened += 1;
-  w.coins += CHEST_COINS;
+  addCoins(w, CHEST_COINS);
   const out: Reward[] = [];
   let n = chestSize(w.rand());
   const e = evolvable(w);

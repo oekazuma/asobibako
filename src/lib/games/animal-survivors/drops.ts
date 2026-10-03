@@ -28,6 +28,8 @@ const MEAT_HEAL = 30;
 const MEAT_CHANCE = 0.003;
 export const CLEAR_COINS = 100;
 export const CHEST_COINS = 10;
+/** 延長戦のコインの倍率が 1 分ごとに上がる幅 */
+export const OVERTIME_STEP = 0.5;
 const PURSE = 50;
 const ELITE_COINS = 5;
 const COIN_CHANCE = 0.03;
@@ -51,6 +53,25 @@ const RUSH_COIN = 0.1;
 const ELITE_GOLD = 0.05;
 
 /** ランタンが壊れたときの品を 1 つ置く */
+/** 延長戦に入ってからの分ごとに上がるコインの倍率。延長戦でなければ 1 */
+export function overtimeRate(w: World): number {
+  return w.overtime ? 1 + OVERTIME_STEP * Math.floor((w.time - w.overtime.from) / 60) : 1;
+}
+
+/** コインはすべてここを通す。延長戦のあいだは倍率を掛けて延長戦のぶんに貯める */
+export function addCoins(w: World, n: number): void {
+  if (w.overtime) w.overtime.coins += n * overtimeRate(w);
+  else w.coins += n;
+}
+
+/** 延長戦のぶんのコイン。倒れたら半分、自分で終えたら全部 */
+export function overtimeCoins(w: World): number {
+  const o = w.overtime;
+  if (!o) return 0;
+  const keep = w.over === 'dead' && !o.retreat ? 0.5 : 1;
+  return Math.floor(o.coins * w.greed * w.stage.coin * keep + 1e-9);
+}
+
 export function dropLoot(w: World, x: number, y: number): void {
   const weight = (o: (typeof LOOT)[number]) => o[1] * (o[2] ? 1 + w.stats.luck : 1);
   let r = w.rand() * LOOT.reduce((t, o) => t + weight(o), 0);
@@ -253,7 +274,7 @@ export function collect(w: World, dt: number): void {
     }
     if (it.kind === 'coin' || it.kind === 'purse' || it.kind === 'pouch') {
       const value = it.kind === 'coin' ? (w.festival > 0 ? 2 : 1) : it.kind === 'pouch' ? POUCH : PURSE;
-      w.coins += value;
+      addCoins(w, value);
       w.events.push({ type: 'coin', value });
       continue;
     }

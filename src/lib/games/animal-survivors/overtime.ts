@@ -1,0 +1,62 @@
+import { overtimeCoins } from './drops';
+import { RAGE, type Stage } from './stages/forest';
+import { summary, type RunSummary, type World } from './world';
+
+/** 延長戦に入ってから 1 分ごとに、硬さと攻撃の強さに足す割合 */
+export const RAMP = 0.1;
+/** 延長戦のボスは 1 分ごと。誰も届かない長さまで行を用意しておく */
+const BOSS_EVERY = 60;
+const BOSS_ROWS = 60;
+
+/** 15:00 のクリアのあとに続ける。面の表は写してから変える（元の表は次の回も使う） */
+export function startOvertime(w: World): void {
+  const s = w.stage;
+  const from = s.length;
+  const ramp = (f: (t: number) => number) => (t: number) => f(t) * (1 + (RAMP * Math.max(0, t - from)) / 60);
+  const [a, b] = s.bosses;
+  const bosses: Stage['bosses'] = Array.from({ length: BOSS_ROWS }, (_, k) => ({
+    at: from + BOSS_EVERY * (k + 1),
+    id: k % 2 === 0 ? a.id : b.id,
+    hp: 1.5,
+    rage: RAGE
+  }));
+  // 15:00 までのボスはもう出ている。時刻を飛ばしたときに 16:00 の前にまとめて出さない
+  w.warned = w.bossNext = s.bosses.length;
+  w.stage = {
+    ...s,
+    length: Infinity,
+    // 15:00 までで終わる行は、終わる直前の速さのまま続ける
+    waves: s.waves.map((v) => (v.to >= from ? { ...v, from, to: Infinity, rate: [v.rate[1], v.rate[1]] } : v)),
+    bosses: [...s.bosses, ...bosses],
+    toughness: ramp(s.toughness),
+    fury: ramp(s.fury)
+  };
+  w.overtime = {
+    from,
+    base: { kills: w.kills, opened: w.opened, killsBy: { ...w.killsBy }, bossTimes: w.bossTimes.length },
+    coins: 0,
+    retreat: false
+  };
+  w.over = null;
+}
+
+/** 延長戦の終わりに記録へ渡す、延長戦に入ってからの差。クリアは 15:00 で記録してある */
+export function overtimeRun(w: World): RunSummary {
+  const s = summary(w);
+  const base = w.overtime!.base;
+  const kills: Record<string, number> = {};
+  for (const [id, n] of Object.entries(w.killsBy)) {
+    const d = n - (base.killsBy[id] ?? 0);
+    if (d > 0) kills[id] = d;
+  }
+  return {
+    ...s,
+    cleared: false,
+    finale: false,
+    metal: false,
+    kills: w.kills - base.kills,
+    opened: w.opened - base.opened,
+    coins: overtimeCoins(w),
+    book: { ...s.book, kills, bosses: s.book.bosses.slice(base.bossTimes) }
+  };
+}
