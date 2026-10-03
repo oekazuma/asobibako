@@ -2,7 +2,7 @@ import type { Art } from '../pixels';
 import { GROWN } from './grown';
 
 export type Pose = { walk: Art; attack: Art; hurt: Art };
-type AnimalId = 'dog' | 'cat' | 'wolf' | 'fox' | 'bear' | 'rabbit' | 'panda';
+type AnimalId = 'dog' | 'cat' | 'wolf' | 'fox' | 'bear' | 'rabbit' | 'panda' | 'tiger' | 'drake';
 
 /** 右向き。左向きは描くときに反転する。歩きは体を 1 ドット上下させ、足の形を入れ替えている */
 const BASE: Record<AnimalId, Pose> = {
@@ -904,6 +904,265 @@ const BASE: Record<AnimalId, Pose> = {
           '...kswwwwwwsk...',
           '....kkkkkkkk....',
           '....kkkkkkkk....'
+        ]
+      ]
+    }
+  },
+  tiger: {
+    walk: {
+      w: 16,
+      h: 16,
+      frames: [
+        [
+          '...kookkkkkook..',
+          '..kowokoookowok.',
+          '..kowookkkoowok.',
+          '..koooooooooook.',
+          '...koooooooook..',
+          '....kowkowkok...',
+          '....kokppwkok...',
+          '...kopwwwwwpok..',
+          '....kkowwwokk...',
+          'kk.kkoowwook....',
+          'kkkookokwokok...',
+          'kkkookokwokok...',
+          '..koooooooook...',
+          '...kkOOOOOOk....',
+          '....kOOkkOOk....',
+          '.....kk..kk.....'
+        ],
+        [
+          '..kowokoookowok.',
+          '..kowookkkoowok.',
+          '..koooooooooook.',
+          '...koooooooook..',
+          '....kowkowkok...',
+          '....kokppwkok...',
+          '...kopwwwwwpok..',
+          '....kkowwwokk...',
+          'kk.kkoowwook....',
+          'kkkookokwokok...',
+          'kkkookokwokok...',
+          '..koooooooook...',
+          '...koOOOOOOok...',
+          '...kookkkkook...',
+          '...kOOk..kOOk...',
+          '....kk....kk....'
+        ],
+        [
+          '...kookkkkkook..',
+          '..kowokoookowok.',
+          '..kowookkkoowok.',
+          '..koooooooooook.',
+          '...koooooooook..',
+          '....kowkowkok...',
+          '....kokppwkok...',
+          '...kopwwwwwpok..',
+          '....kkowwwokk...',
+          'kk.kkoowwook....',
+          'kkkookokwokok...',
+          'kkkookokwokok...',
+          '..koooooooook...',
+          '...kkOOOOOOk....',
+          '....kOOkkOOk....',
+          '.....kk..kk.....'
+        ],
+        [
+          '..kowokoookowok.',
+          '..kowookkkoowok.',
+          '..koooooooooook.',
+          '...koooooooook..',
+          '....kowkowkok...',
+          '....kokppwkok...',
+          '...kopwwwwwpok..',
+          '....kkowwwokk...',
+          'kk.kkoowwook....',
+          'kkkookokwokok...',
+          'kkkookokwokok...',
+          '..koooooooook...',
+          '...kkOOOOOOk....',
+          '.....kooook.....',
+          '.....kOOOOk.....',
+          '......kkkk......'
+        ]
+      ],
+      pal: { O: '#b4612a' }
+    },
+    attack: {
+      w: 16,
+      h: 16,
+      frames: [
+        [
+          '...kookkkkkook..',
+          '..kowokoookowok.',
+          '..kowookkkoowok.',
+          '..koooooooooook.',
+          '...koooooooook..',
+          '....kowkowkok...',
+          '....kokppwkok...',
+          '...kopwRRRwpok..',
+          '....kkoRRRokk...',
+          'kk.kkoowwook....',
+          'kkkookokwokok...',
+          'kkkookokwokok...',
+          '..koooooooook...',
+          '...kkOOOOOOk....',
+          '....kOOkkOOk....',
+          '.....kk..kk.....'
+        ]
+      ],
+      pal: { O: '#b4612a' }
+    },
+    hurt: {
+      w: 16,
+      h: 16,
+      frames: [
+        [
+          '...kookkkkkook..',
+          '..kowokoookowok.',
+          '..kowookkkoowok.',
+          '..koooooooooook.',
+          '...koooooooouk..',
+          '....koooooook...',
+          '....kkkppwkkk...',
+          '...koowwwwwook..',
+          '....kkowwwokk...',
+          'kk.kkoowwook....',
+          'kkkookokwokok...',
+          'kkkookokwokok...',
+          '..koooooooook...',
+          '...kkOOOOOOk....',
+          '....kOOkkOOk....',
+          '.....kk..kk.....'
+        ]
+      ],
+      pal: { O: '#b4612a' }
+    }
+  },
+  drake: {
+    walk: {
+      w: 16,
+      h: 16,
+      frames: [
+        [
+          '....kcckkkcck...',
+          '....kccrrrcck...',
+          '....krrrrrrrk...',
+          '...krrrrrrrrrk..',
+          '...krrrrrrrrrk..',
+          '...krrwkrwkrrk..',
+          '...krrkRRckrrk..',
+          '...krpcccccprk..',
+          '....kkrcccrkk...',
+          '....krrccrrk....',
+          'kkkkrrroorrrk...',
+          'RRRrrrrccrrrk...',
+          'RRRrrrroorrrk...',
+          'kkkkkRRRRRRk....',
+          '....kRRkkRRk....',
+          '.....kk..kk.....'
+        ],
+        [
+          '....kccrrrcck...',
+          '....krrrrrrrk...',
+          '...krrrrrrrrrk..',
+          '...krrrrrrrrrk..',
+          '...krrwkrwkrrk..',
+          '...krrkRRckrrk..',
+          '...krpcccccprk..',
+          '....kkrcccrkk...',
+          '....krrccrrk....',
+          'kkkkrrroorrrk...',
+          'RRRrrrrccrrrk...',
+          'RRRrrrroorrrk...',
+          'kkkkrRRRRRRrk...',
+          '...krrkkkkrrk...',
+          '...kRRk..kRRk...',
+          '....kk....kk....'
+        ],
+        [
+          '....kcckkkcck...',
+          '....kccrrrcck...',
+          '....krrrrrrrk...',
+          '...krrrrrrrrrk..',
+          '...krrrrrrrrrk..',
+          '...krrwkrwkrrk..',
+          '...krrkRRckrrk..',
+          '...krpcccccprk..',
+          '....kkrcccrkk...',
+          '....krrccrrk....',
+          'kkkkrrroorrrk...',
+          'RRRrrrrccrrrk...',
+          'RRRrrrroorrrk...',
+          'kkkkkRRRRRRk....',
+          '....kRRkkRRk....',
+          '.....kk..kk.....'
+        ],
+        [
+          '....kccrrrcck...',
+          '....krrrrrrrk...',
+          '...krrrrrrrrrk..',
+          '...krrrrrrrrrk..',
+          '...krrwkrwkrrk..',
+          '...krrkRRckrrk..',
+          '...krpcccccprk..',
+          '....kkrcccrkk...',
+          '....krrccrrk....',
+          'kkkkrrroorrrk...',
+          'RRRrrrrccrrrk...',
+          'RRRrrrroorrrk...',
+          'kkkkkRRRRRRk....',
+          '.....krrrrk.....',
+          '.....kRRRRk.....',
+          '......kkkk......'
+        ]
+      ]
+    },
+    attack: {
+      w: 16,
+      h: 16,
+      frames: [
+        [
+          '....kcckkkcck...',
+          '....kccrrrcck...',
+          '....krrrrrrrk...',
+          '...krrrrrrrrrk..',
+          '...krrrrrrrrrk..',
+          '...krrwkrwkrrk..',
+          '...krrkRRckrrk..',
+          '...krpcRRRcprk..',
+          '....kkrRRRrkk...',
+          '....krrccrrk....',
+          'kkkkrrroorrrk...',
+          'RRRrrrrccrrrk...',
+          'RRRrrrroorrrk...',
+          'kkkkkRRRRRRk....',
+          '....kRRkkRRk....',
+          '.....kk..kk.....'
+        ]
+      ]
+    },
+    hurt: {
+      w: 16,
+      h: 16,
+      frames: [
+        [
+          '....kcckkkcck...',
+          '....kccrrrcck...',
+          '....krrrrrrrk...',
+          '...krrrrrrrrrk..',
+          '...krrrrrrrruk..',
+          '...krrrrrrrrrk..',
+          '...krkkRRckkrk..',
+          '...krrcccccrrk..',
+          '....kkrcccrkk...',
+          '....krrccrrk....',
+          'kkkkrrroorrrk...',
+          'RRRrrrrccrrrk...',
+          'RRRrrrroorrrk...',
+          'kkkkkRRRRRRk....',
+          '....kRRkkRRk....',
+          '.....kk..kk.....'
         ]
       ]
     }

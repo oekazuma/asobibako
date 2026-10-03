@@ -905,5 +905,46 @@ export const ITEM_ART: Record<string, Art> = {
         '..kkkkkk..'
       ]
     ]
-  }
+  },
+  'weapon-tigerClaw': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '....k..k..k.',
+        '...kykkykkyk',
+        '..kyykyykyyk',
+        '..kyykyykyyk',
+        '..kywkywkyw.',
+        '.kyykyykyyk.',
+        '.kYYkYYkYYk.',
+        '.kywkywkyw..',
+        'kyykyykyyk..',
+        'kYYkYYkYYk..',
+        'kykkykkyk...',
+        '.k..k..k....'
+      ]
+    ]
+  },
+  'weapon-breath': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '........kk..',
+        '......kkrrk.',
+        '.....koorrk.',
+        '....koooorrk',
+        '..kkyoooorrk',
+        '.kyyyoooorrk',
+        '.kyyyoooorrk',
+        '..kkyoooorrk',
+        '....koooorrk',
+        '.....koorrk.',
+        '......kkrrk.',
+        '........kk..'
+      ]
+    ]
+  },
+  ember: { w: 6, h: 6, frames: [['...o..', '..oo..', '.oyyo.', '.oyyo.', '.ryyr.', '..rr..']] }
 };

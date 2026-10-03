@@ -137,6 +137,16 @@ describe('ドット絵の格子', () => {
   });
 
   it('7 匹ぶんの絵がある', () => {
-    expect(Object.keys(ANIMAL_ART).sort()).toEqual(['bear', 'cat', 'dog', 'fox', 'panda', 'rabbit', 'wolf']);
+    expect(Object.keys(ANIMAL_ART).sort()).toEqual([
+      'bear',
+      'cat',
+      'dog',
+      'drake',
+      'fox',
+      'panda',
+      'rabbit',
+      'tiger',
+      'wolf'
+    ]);
   });
 });
