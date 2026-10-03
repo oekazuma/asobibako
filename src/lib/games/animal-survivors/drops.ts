@@ -16,6 +16,8 @@ export interface Item {
   x: number;
   y: number;
   pulled: boolean;
+  /** 宝の地図の宝箱だけが持つ、消えるまでの秒 */
+  life?: number;
 }
 
 export const MAX_GEMS = 400;
@@ -207,8 +209,9 @@ export function collect(w: World, dt: number): void {
   for (const g of w.gems) {
     if (!g.alive || !pull(w, g, reach, dt)) continue;
     g.alive = false;
-    w.events.push({ type: 'pickup', value: g.value });
-    gainXp(w, g.value);
+    const v = g.value * (w.festival > 0 ? 2 : 1);
+    w.events.push({ type: 'pickup', value: v });
+    gainXp(w, v);
   }
   for (const it of w.items) {
     if (!it.alive) continue;
@@ -239,7 +242,7 @@ export function collect(w: World, dt: number): void {
       continue;
     }
     if (it.kind === 'coin' || it.kind === 'purse' || it.kind === 'pouch') {
-      const value = it.kind === 'coin' ? 1 : it.kind === 'pouch' ? POUCH : PURSE;
+      const value = it.kind === 'coin' ? (w.festival > 0 ? 2 : 1) : it.kind === 'pouch' ? POUCH : PURSE;
       w.coins += value;
       w.events.push({ type: 'coin', value });
       continue;

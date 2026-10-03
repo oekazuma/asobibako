@@ -1,10 +1,11 @@
 import { breathe, dragon, rolled, yeti } from './bosses-snow';
 import { ENEMIES } from './enemies';
-import { hurtPlayer, makeEnemy, MAX_ENEMIES, spawnPoint, type Enemy, type World } from './world';
+import { dropGem } from './drops';
+import { damageEnemy, hurtPlayer, makeEnemy, MAX_ENEMIES, spawnPoint, type Enemy, type World } from './world';
 
 export interface Hazard {
   alive: boolean;
-  kind: 'slam' | 'dash' | 'web' | 'ball' | 'pounce' | 'pillar' | 'breath';
+  kind: 'slam' | 'dash' | 'web' | 'ball' | 'pounce' | 'pillar' | 'breath' | 'meteor';
   /** 予告の持ち主（ボスの enemies の番号）。web は -1 */
   owner: number;
   x: number;
@@ -223,6 +224,21 @@ export function moveBoss(w: World, i: number, dt: number): { vx: number; vy: num
   return queen(w, e, dx / d, dy / d, d, dt);
 }
 
+const METEOR_HIT = 60;
+const METEOR_XP = 12;
+
+/** 流れ星が落ちる。円の中の自分と敵に当て、跡に大きな経験値の玉を残す */
+function land(w: World, h: Hazard) {
+  const p = w.player;
+  if (p.invuln <= 0 && (p.x - h.x) ** 2 + (p.y - h.y) ** 2 < h.r ** 2) hurtPlayer(w, h.dmg);
+  const tough = w.stage.toughness(w.time);
+  w.enemies.forEach((e, i) => {
+    if (e.alive && !e.def.prop && (e.x - h.x) ** 2 + (e.y - h.y) ** 2 < (h.r + e.def.r) ** 2)
+      damageEnemy(w, i, METEOR_HIT * tough, 0, 0);
+  });
+  dropGem(w, h.x, h.y, Math.round(METEOR_XP * tough));
+}
+
 export function updateHazards(w: World, dt: number): void {
   const p = w.player;
   for (const h of w.hazards) {
@@ -243,6 +259,13 @@ export function updateHazards(w: World, dt: number): void {
     const owner = w.enemies[h.owner];
     if (h.kind === 'breath') {
       breathe(w, h, dt);
+      continue;
+    }
+    if (h.kind === 'meteor') {
+      if (h.delay > 0) {
+        h.delay -= dt;
+        if (h.delay <= 0) land(w, h);
+      } else if ((h.life -= dt) <= 0) h.alive = false;
       continue;
     }
     // 予告のあいだに持ち主が倒れたら、予告ごと消す

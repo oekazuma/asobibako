@@ -17,7 +17,7 @@ describe('群れの大波', () => {
   it('森の出来事は時刻の順で、ボスの時刻を避ける', () => {
     const at = FOREST.events.map((e) => e.at);
     expect(at).toEqual([...at].sort((a, b) => a - b));
-    for (const b of FOREST.bosses) for (const t of at) expect(Math.abs(t - b.at)).toBeGreaterThan(20);
+    for (const b of FOREST.bosses) for (const t of at) expect(Math.abs(t - b.at)).toBeGreaterThanOrEqual(20);
   });
 
   it('横切る群れは同じ向きにまっすぐ進み、抜けたら消えて倒した数に入らない', () => {

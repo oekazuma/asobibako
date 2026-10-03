@@ -8,6 +8,7 @@ import { Grid } from './grid';
 import { stats, type Stats } from './passives';
 import { rng, type Rng } from './rng';
 import { stageOf } from './stages';
+import { startEvent, stepEvents } from './events';
 import { calm, STORM_PUSH, stepStorm, windFactor, type Storm } from './storm';
 import { spawnRate, type Stage } from './stages/forest';
 import { perks, type Ranks } from './upgrades';
@@ -143,6 +144,12 @@ export interface World {
   rush: number;
   /** 雪山の吹雪 */
   storm: Storm;
+  /** 宝の地図の宝箱（無ければ null） */
+  treasure: Item | null;
+  /** 流れ星の残り秒と、次の予告までの秒 */
+  meteors: { left: number; next: number };
+  /** お祭りの残り秒 */
+  festival: number;
   /** 次にランタンを足すまでの秒 */
   propCd: number;
   /** 次に出すヌシの番号 */
@@ -248,6 +255,9 @@ export function createWorld(
     freeze: 0,
     rush: 0,
     storm: calm(),
+    treasure: null,
+    meteors: { left: 0, next: 0 },
+    festival: 0,
     propCd: 2,
     chiefNext: 0,
     metalAt: metalTime(seed),
@@ -420,6 +430,11 @@ export function spawnEvents(w: World): void {
   const list = w.stage.events;
   while (w.eventNext < list.length && list[w.eventNext].at <= w.time) {
     const ev = list[w.eventNext++];
+    if (ev.kind === 'treasure' || ev.kind === 'meteor' || ev.kind === 'festival') {
+      startEvent(w, ev);
+      w.events.push({ type: 'swarm', text: ev.text });
+      continue;
+    }
     const def = ENEMIES[ev.enemy];
     const p = w.player;
     const r = Math.hypot(w.view.w, w.view.h) / 2 + 24;
@@ -691,7 +706,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   const cap = w.stage.cap(w.time);
   w.stage.waves.forEach((wave, i) => {
     if (alive >= cap) return;
-    w.spawnAcc[i] += spawnRate(wave, w.time) * dt;
+    w.spawnAcc[i] += spawnRate(wave, w.time) * dt * (w.festival > 0 ? 2 : 1);
     while (w.spawnAcc[i] >= 1 && alive < cap) {
       w.spawnAcc[i] -= 1;
       spawn(w, ENEMIES[wave.enemy]);
@@ -705,6 +720,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   spawnProps(w, dt);
   w.freeze = Math.max(0, w.freeze - dt);
   w.rush = Math.max(0, w.rush - dt);
+  if (w.freeze <= 0) stepEvents(w, dt);
 
   const far = Math.hypot(w.view.w, w.view.h) * 0.9;
   w.grid.clear();

@@ -46,7 +46,7 @@ describe('1 分ごとの出来事', () => {
         last = ev.at;
         for (const t of [...s.bosses.map((b) => b.at), ...s.chiefs.map((c) => c.at)])
           expect(Math.abs(ev.at - t)).toBeGreaterThanOrEqual(15);
-        expect(ENEMIES[ev.enemy]).toBeDefined();
+        if (ev.enemy) expect(ENEMIES[ev.enemy]).toBeDefined();
       }
       const all = [
         0,

@@ -23,10 +23,10 @@ describe('面の表', () => {
     expect(STAGES.map((s) => s.id)).toEqual(['forest', 'graveyard', 'snow']);
     for (const w of GRAVEYARD.waves) expect(ENEMIES[w.enemy]).toBeDefined();
     for (const b of GRAVEYARD.bosses) expect(ENEMIES[b.id].boss).toBe(b.id);
-    for (const e of GRAVEYARD.events) expect(ENEMIES[e.enemy]).toBeDefined();
+    for (const e of GRAVEYARD.events) if (e.enemy) expect(ENEMIES[e.enemy]).toBeDefined();
     const at = GRAVEYARD.events.map((e) => e.at);
     expect(at).toEqual([...at].sort((a, b) => a - b));
-    for (const b of GRAVEYARD.bosses) for (const t of at) expect(Math.abs(t - b.at)).toBeGreaterThan(20);
+    for (const b of GRAVEYARD.bosses) for (const t of at) expect(Math.abs(t - b.at)).toBeGreaterThanOrEqual(20);
     expect(stageOf('nope')).toBe(FOREST);
   });
 

@@ -11,7 +11,7 @@ export interface Wave {
 
 export interface StageEvent {
   at: number;
-  kind: 'swarm' | 'ring' | 'elites' | 'lanterns';
+  kind: 'swarm' | 'ring' | 'elites' | 'lanterns' | 'treasure' | 'meteor' | 'festival';
   enemy: string;
   count: number;
   text: string;
@@ -87,13 +87,19 @@ export const FOREST: Stage = {
   storms: [],
   events: [
     { at: 45, kind: 'swarm', enemy: 'bat', count: 20, text: 'コウモリの大群！' },
+    { at: 70, kind: 'meteor', enemy: '', count: 0, text: '流れ星が降ってくる！' },
     { at: 135, kind: 'lanterns', enemy: 'lantern', count: 8, text: 'ランタンが灯った！' },
     { at: 225, kind: 'ring', enemy: 'rat', count: 40, text: 'ネズミに囲まれた！' },
+    { at: 250, kind: 'treasure', enemy: '', count: 0, text: '宝の地図を見つけた！' },
     { at: 315, kind: 'elites', enemy: 'snake', count: 3, text: 'ヘビの精鋭が来た！' },
     { at: 405, kind: 'swarm', enemy: 'boar', count: 12, text: 'イノシシの突進！' },
+    { at: 430, kind: 'festival', enemy: '', count: 0, text: 'お祭りだ！ 経験値とコイン 2 倍' },
     { at: 495, kind: 'lanterns', enemy: 'lantern', count: 8, text: 'ランタンが灯った！' },
+    { at: 520, kind: 'meteor', enemy: '', count: 0, text: '流れ星が降ってくる！' },
     { at: 585, kind: 'ring', enemy: 'caterpillar', count: 40, text: 'イモムシに囲まれた！' },
+    { at: 610, kind: 'festival', enemy: '', count: 0, text: 'お祭りだ！ 経験値とコイン 2 倍' },
     { at: 675, kind: 'elites', enemy: 'boar', count: 4, text: 'イノシシの精鋭が来た！' },
+    { at: 700, kind: 'treasure', enemy: '', count: 0, text: '宝の地図を見つけた！' },
     { at: 765, kind: 'swarm', enemy: 'bat', count: 80, text: 'コウモリの大群！' },
     { at: 855, kind: 'ring', enemy: 'snake', count: 60, text: 'ヘビに囲まれた！' }
   ],

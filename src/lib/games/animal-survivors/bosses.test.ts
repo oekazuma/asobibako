@@ -13,7 +13,7 @@ const still = { x: 0, y: 0 };
 function quiet(id: 'dog' | 'wolf' = 'dog'): World {
   const w = createWorld(id, 4, VIEW);
   w.weapons = [];
-  w.stage = { ...w.stage, waves: [] };
+  w.stage = { ...w.stage, waves: [], events: [] };
   w.spawnAcc = [];
   w.player.hp = w.stats.maxHp = 1e6;
   return w;

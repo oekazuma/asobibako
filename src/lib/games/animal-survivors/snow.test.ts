@@ -21,7 +21,7 @@ describe('雪山の面の表', () => {
   it('敵とボスはすべて敵の表にあり、森の敵は 1 体も出ない', () => {
     const ids = [
       ...SNOW.waves.map((w) => w.enemy),
-      ...SNOW.events.map((e) => e.enemy),
+      ...SNOW.events.flatMap((e) => (e.enemy ? [e.enemy] : [])),
       ...SNOW.chiefs.map((c) => c.enemy),
       ...SNOW.bosses.map((b) => b.id)
     ];
