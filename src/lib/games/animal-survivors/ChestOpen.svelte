@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { itemArt } from './art/evolved';
   import { ITEM_ART } from './art/items';
+  import { reward } from './rewards';
   import type { Reward } from './chest';
   import { PASSIVES } from './passives';
   import PixelIcon from './PixelIcon.svelte';
@@ -34,6 +35,7 @@
         evo: false
       };
     if (r.kind === 'meat') return { key: 'meat', art: ITEM_ART.meat, name: '肉', text: 'HP を 30% 回復', evo: false };
+    if (r.kind !== 'bag') return { key: r.kind, ...reward(r.kind) };
     return { key: 'bag', art: ITEM_ART.chest, name: '経験値の袋', text: '経験値 +25', evo: false };
   }
 

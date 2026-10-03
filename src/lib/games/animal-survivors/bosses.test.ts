@@ -209,15 +209,15 @@ describe('倒したときと宝箱', () => {
     expect(w.time).toBe(t);
   });
 
-  it('宝箱の大きさは 6 割が 1、3 割が 3、1 割が 5', () => {
+  it('宝箱の大きさは 8.5 割が 1、1.3 割が 3、0.2 割が 5', () => {
     expect(chestSize(0)).toBe(1);
-    expect(chestSize(0.59)).toBe(1);
-    expect(chestSize(0.6)).toBe(3);
-    expect(chestSize(0.89)).toBe(3);
-    expect(chestSize(0.95)).toBe(5);
+    expect(chestSize(0.84)).toBe(1);
+    expect(chestSize(0.85)).toBe(3);
+    expect(chestSize(0.97)).toBe(3);
+    expect(chestSize(0.99)).toBe(5);
   });
 
-  it('宝箱は Lv5 を超えて上げず、上げるものが無ければ肉と袋になる', () => {
+  it('宝箱は Lv5 を超えて上げず、上げるものが無ければごほうびになる', () => {
     const w = quiet();
     w.weapons = Object.keys(WEAPONS)
       .slice(0, 6)
@@ -228,7 +228,7 @@ describe('倒したときと宝箱', () => {
     const got = openChest(w);
     expect(got).toHaveLength(5);
     expect(got[0]).toEqual({ kind: 'passive', id: 'heart', level: 5 });
-    expect(got.slice(1).map((r) => r.kind)).toEqual(['meat', 'bag', 'bag', 'bag']);
+    for (const r of got.slice(1)) expect(['power', 'vigor', 'gold']).toContain(r.kind);
     expect(w.passives[0].level).toBe(5);
     expect(w.chests).toBe(0);
     expect(Object.keys(PASSIVES)).toContain('heart');

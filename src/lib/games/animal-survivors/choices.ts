@@ -1,5 +1,5 @@
 import { hpScale } from './daily';
-import { gainXp, noMeat, pick } from './drops';
+import { addCoins, gainXp, noMeat, pick } from './drops';
 import { trySpecial } from './specials';
 import { EVOLUTIONS, baseOf } from './evolutions';
 import { PASSIVES, maxOf, stats } from './passives';
@@ -10,7 +10,20 @@ export type Choice =
   | { kind: 'weapon'; id: string; level: number; evo?: boolean }
   | { kind: 'passive'; id: string; level: number; evo?: boolean }
   | { kind: 'meat' }
-  | { kind: 'bag' };
+  | { kind: 'bag' }
+  /** 全部埋まったあとのごほうび。攻撃 +5%・最大 HP +10 と全回復・コイン +20 */
+  | { kind: 'power' }
+  | { kind: 'vigor' }
+  | { kind: 'gold' };
+
+/** 全部埋まったあとの 3 択と、宝箱で上げるものがないときの中身 */
+export const REWARDS = [{ kind: 'power' }, { kind: 'vigor' }, { kind: 'gold' }] as const;
+export const POWER = 0.05;
+export const VIGOR = 10;
+export const GOLD = 20;
+
+/** 武器・パッシブでない札（除外できない） */
+export const isFiller = (c: Choice) => c.kind !== 'weapon' && c.kind !== 'passive';
 
 /** 武器とパッシブ、それぞれ持てる数 */
 export const SLOTS = 6;
@@ -38,6 +51,7 @@ function candidates(w: World): Choice[] {
 /** n 枚まで重なりなく選ぶ（運の確率で 1 枚増える）。候補が足りなければ肉と経験値の袋で埋める（それぞれ 1 枚まで） */
 export function choices(w: World, n = 3 + (w.stats.luck > 0 && w.rand() < w.stats.luck ? 1 : 0)): Choice[] {
   const list = candidates(w);
+  if (list.length === 0) return REWARDS.map((c) => ({ ...c }));
   for (let i = list.length - 1; i > 0; i--) {
     const j = Math.floor(w.rand() * (i + 1));
     [list[i], list[j]] = [list[j], list[i]];
@@ -74,6 +88,14 @@ export function levelUp(w: World, c: Choice): void {
     p.hp += Math.max(0, w.stats.maxHp - before);
   } else if (c.kind === 'meat') {
     p.hp = Math.min(w.stats.maxHp, p.hp + w.stats.maxHp * 0.3);
+  } else if (c.kind === 'power' || c.kind === 'vigor') {
+    // その回だけの強化は World.boost に足す（パッシブや育ちで stats を作り直しても残る）
+    if (c.kind === 'power') w.boost = { ...w.boost, might: (w.boost.might ?? 0) + POWER };
+    else w.boost = { ...w.boost, maxHp: (w.boost.maxHp ?? 0) + VIGOR / hpScale(w.mods) };
+    w.stats = stats(w.animal, w.passives, w.boost, w.form, hpScale(w.mods));
+    if (c.kind === 'vigor') p.hp = w.stats.maxHp;
+  } else if (c.kind === 'gold') {
+    addCoins(w, GOLD);
   } else {
     pick(w, 'bag');
     gainXp(w, BAG_XP);

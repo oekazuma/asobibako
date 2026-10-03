@@ -9,24 +9,26 @@ const VIEW = { w: 260, h: 380 };
 const fresh = () => createWorld('dog', 2, VIEW);
 
 describe('経験値', () => {
-  it('必要量は 5 から 10 ずつ、Lv20 から 13 ずつ増える', () => {
+  it('必要量は 5 から 12 ずつ、Lv10 から 24 ずつ、Lv20 から 38 ずつ増える', () => {
     expect(xpNeed(1)).toBe(5);
-    expect(xpNeed(2)).toBe(15);
-    expect(xpNeed(20)).toBe(195);
-    expect(xpNeed(21)).toBe(208);
+    expect(xpNeed(2)).toBe(17);
+    expect(xpNeed(10)).toBe(113);
+    expect(xpNeed(11)).toBe(137);
+    expect(xpNeed(20)).toBe(353);
+    expect(xpNeed(21)).toBe(391);
   });
 
-  it('Lv30 から 24 ずつ、Lv40 から 30 ずつ増え、後半はレベルが上がりにくい', () => {
-    expect(xpNeed(29)).toBe(312);
-    expect(xpNeed(30)).toBe(325);
-    expect(xpNeed(31)).toBe(349);
-    expect(xpNeed(40)).toBe(565);
-    expect(xpNeed(41)).toBe(595);
+  it('Lv30 から 50 ずつ、Lv40 から 60 ずつ増え、後半はレベルが上がりにくい', () => {
+    expect(xpNeed(29)).toBe(695);
+    expect(xpNeed(30)).toBe(733);
+    expect(xpNeed(31)).toBe(783);
+    expect(xpNeed(40)).toBe(1233);
+    expect(xpNeed(41)).toBe(1293);
   });
 
   it('一度に 2 つ上がれば 3 択が 2 回たまる', () => {
     const w = fresh();
-    gainXp(w, 20);
+    gainXp(w, 22);
     expect(w.level).toBe(3);
     expect(w.pending).toBe(2);
     expect(w.events.filter((e) => e.type === 'levelup')).toHaveLength(2);
@@ -73,7 +75,7 @@ describe('3 択', () => {
       }
   });
 
-  it('全部 Lv5 なら肉と袋だけになり、選び続けても止まる', () => {
+  it('全部 Lv5 ならごほうびの 3 枚だけになり、選び続けても止まる', () => {
     const w = fresh();
     w.weapons = Object.keys(WEAPONS)
       .slice(0, SLOTS)
@@ -82,9 +84,9 @@ describe('3 択', () => {
       .slice(0, SLOTS)
       .map((id) => ({ id, level: MAX_LEVEL }));
     w.pending = 1;
-    expect(choices(w).map((c) => c.kind)).toEqual(['meat', 'bag']);
+    expect(choices(w).map((c) => c.kind)).toEqual(['power', 'vigor', 'gold']);
     let guard = 0;
-    while (w.pending > 0 && guard++ < 1000) apply(w, { kind: 'bag' });
+    while (w.pending > 0 && guard++ < 1000) apply(w, { kind: 'gold' });
     expect(w.pending).toBe(0);
   });
 

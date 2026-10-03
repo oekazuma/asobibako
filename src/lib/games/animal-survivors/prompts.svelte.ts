@@ -1,6 +1,6 @@
 import { openChest, type Reward } from './chest';
 import { WARN_AHEAD } from './bosses';
-import { apply, choices, type Choice } from './choices';
+import { apply, choices, isFiller, type Choice } from './choices';
 import { ENEMIES } from './enemies';
 import { Lock } from './lock.svelte';
 import { sounds } from './sounds';
@@ -158,7 +158,7 @@ export class Prompts {
   /** 札をその回の候補から消し、3 択を引き直す */
   banish(c: Choice, finger: number | null): void {
     const w = this.#w;
-    if (!this.options || w.banishes <= 0 || c.kind === 'meat' || c.kind === 'bag') return;
+    if (!this.options || w.banishes <= 0 || isFiller(c)) return;
     w.banishes -= 1;
     w.banished.push(`${c.kind}:${c.id}`);
     this.#sync();

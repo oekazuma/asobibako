@@ -1,7 +1,8 @@
 <script lang="ts">
   import { itemArt } from './art/evolved';
   import { ITEM_ART } from './art/items';
-  import type { Choice } from './choices';
+  import { reward } from './rewards';
+  import { isFiller, type Choice } from './choices';
   import { PASSIVES } from './passives';
   import PixelIcon from './PixelIcon.svelte';
   import { WEAPONS, upText } from './weapons';
@@ -28,7 +29,7 @@
 
   function choose(c: Choice) {
     if (!banishing) return onpick(c);
-    if (c.kind === 'meat' || c.kind === 'bag') return;
+    if (isFiller(c)) return;
     banishing = false;
     onbanish(c);
   }
@@ -56,6 +57,7 @@
       };
     }
     if (c.kind === 'meat') return { art: ITEM_ART.meat, name: '肉', tag: '', text: 'HP を 30% 回復', evo: false };
+    if (c.kind !== 'bag') return reward(c.kind);
     return { art: ITEM_ART.chest, name: '経験値の袋', tag: '', text: '経験値 +25', evo: false };
   }
 

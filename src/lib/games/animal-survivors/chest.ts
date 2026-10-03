@@ -1,5 +1,5 @@
-import { levelUp } from './choices';
-import { addCoins, CHEST_COINS, noMeat } from './drops';
+import { levelUp, REWARDS } from './choices';
+import { addCoins, CHEST_COINS } from './drops';
 import { evolvable, evolve } from './evolutions';
 import { maxOf } from './passives';
 import { MAX_LEVEL } from './weapons';
@@ -9,11 +9,12 @@ export type Reward =
   | { kind: 'weapon' | 'passive'; id: string; level: number }
   | { kind: 'meat' }
   | { kind: 'bag' }
+  | { kind: 'power' | 'vigor' | 'gold' }
   | { kind: 'evolve'; from: string; id: string };
 
-/** 上がる数。6 割が 1、3 割が 3、1 割が 5 */
+/** 上がる数。8.5 割が 1、1.3 割が 3、0.2 割が 5 */
 export function chestSize(r: number): 1 | 3 | 5 {
-  return r < 0.6 ? 1 : r < 0.9 ? 3 : 5;
+  return r < 0.85 ? 1 : r < 0.98 ? 3 : 5;
 }
 
 /** 宝箱を 1 つ開けて、持っている Lv5 未満のものを 1 Lv ずつ上げる。上げるものが無くなったら肉、そのあとは経験値の袋 */
@@ -40,9 +41,7 @@ export function openChest(w: World): Reward[] {
     ];
     const r: Reward = open.length
       ? open[Math.floor(w.rand() * open.length)]
-      : noMeat(w) || out.some((o) => o.kind === 'meat')
-        ? { kind: 'bag' }
-        : { kind: 'meat' };
+      : { ...REWARDS[Math.floor(w.rand() * REWARDS.length)] };
     levelUp(w, r);
     out.push(r);
   }
