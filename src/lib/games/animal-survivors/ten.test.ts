@@ -30,9 +30,9 @@ describe('10 分の面', () => {
     for (const w of FOREST.waves) expect(w.to).toBeLessThanOrEqual(600);
   });
 
-  it('10:00 の敵の硬さと攻撃は、15 分だったときの 15:00 と同じ', () => {
-    expect(FOREST.toughness(600)).toBeCloseTo(7.5);
-    expect(FOREST.fury(600)).toBeCloseTo(2.6);
+  it('敵の硬さと攻撃は、同じ時刻なら 15 分だったときと同じくらい', () => {
+    expect(FOREST.toughness(600)).toBeCloseTo(5.2);
+    expect(FOREST.fury(600)).toBeCloseTo(1.9);
     expect(FOREST.cap(480)).toBe(400);
     expect(FOREST.elite(150)).toBe(0);
     expect(FOREST.elite(170)).toBeGreaterThan(0);

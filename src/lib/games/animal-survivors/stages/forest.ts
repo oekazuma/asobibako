@@ -25,7 +25,7 @@ export const RAGE = 1.5;
 /** 2・4 分に 2 体を、6・8 分に同じ 2 体を攻撃を速めて出し、9 分に面の主 */
 export const bossRun = (a: BossId, b: BossId): Stage['bosses'] => [
   { at: 120, id: a, hp: 0.6 },
-  { at: 240, id: b, hp: 0.8 },
+  { at: 240, id: b, hp: 0.6 },
   { at: 360, id: a, rage: RAGE },
   { at: 480, id: b, rage: RAGE },
   { at: FINALE, id: a, hp: 1.5, rage: RAGE, title: '面の主' },
@@ -115,8 +115,8 @@ export const FOREST: Stage = {
     { at: 240, id: 'spiderQueen', hp: 0.8 },
     { at: 360, id: 'bigBoar' },
     { at: 480, id: 'bigEagle' },
-    { at: FINALE, id: 'oldTree', hp: 1.5, rage: RAGE, title: '面の主' },
-    { at: FINALE, id: 'bigSnake', hp: 1.5, rage: RAGE, title: '面の主' }
+    { at: FINALE, id: 'oldTree', hp: 1, rage: RAGE, title: '面の主' },
+    { at: FINALE, id: 'bigSnake', hp: 1, rage: RAGE, title: '面の主' }
   ],
   waves: [
     { from: 0, to: 200, enemy: 'rat', rate: [0.8, 3] },
@@ -131,7 +131,7 @@ export const FOREST: Stage = {
     { from: 480, to: 600, enemy: 'rat', rate: [8, 14] }
   ],
   cap: (t) => Math.min(400, Math.round(30 + (t / 480) * 370)),
-  toughness: (t) => 1 + (t / 600) * 6.5,
+  toughness: (t) => 1 + (t / 600) * 4.2,
   elite: (t) => (t < 160 ? 0 : 0.02),
-  fury: (t) => 0.6 + (t / 600) * 2
+  fury: (t) => 0.6 + (t / 600) * 1.3
 };

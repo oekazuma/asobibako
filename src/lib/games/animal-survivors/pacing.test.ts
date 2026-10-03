@@ -204,7 +204,7 @@ describe('ボスの流れ', () => {
 });
 
 describe('面の主', () => {
-  it.each([FOREST, GRAVEYARD])('$name は 9:00 に 2 体のボスが体力 1.5 倍でいっしょに出る', (s) => {
+  it.each([FOREST, GRAVEYARD])('$name は 9:00 に 2 体のボスが面の主としていっしょに出る', (s) => {
     const w = createWorld('dog', 1, VIEW, {}, s.id);
     w.stage = { ...w.stage, waves: [], events: [], chiefs: [] };
     w.metalAt = -1;
@@ -214,6 +214,8 @@ describe('面の主', () => {
     expect(finale.map((b) => b.id)).toEqual(
       s === FOREST ? ['oldTree', 'bigSnake'] : [...new Set(s.bosses.filter((b) => b.at < FINALE).map((b) => b.id))]
     );
+    // 墓地はそれまでのボスを 1.5 倍に、1 面の新しい 2 体は表の体力のまま
+    expect(finale.map((b) => b.hp)).toEqual(s === FOREST ? [1, 1] : [1.5, 1.5]);
     w.bossNext = w.warned = s.bosses.findIndex((b) => b.at === FINALE);
     w.time = FINALE - 3;
     spawnBosses(w);
@@ -224,7 +226,10 @@ describe('面の主', () => {
     spawnBosses(w);
     const bosses = alive(w).filter((e) => e.def.boss);
     expect(bosses.map((e) => e.def.id)).toEqual(finale.map((b) => b.id));
-    for (const e of bosses) expect(e.hp).toBeCloseTo(ENEMIES[e.def.id].hp * 1.5 * s.toughness(FINALE) * BOSS_HP);
+    for (const e of bosses)
+      expect(e.hp).toBeCloseTo(
+        ENEMIES[e.def.id].hp * finale.find((b) => b.id === e.def.id)!.hp! * s.toughness(FINALE) * BOSS_HP
+      );
     expect(w.warned).toBe(s.bosses.length);
   });
 });

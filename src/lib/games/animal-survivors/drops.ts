@@ -106,9 +106,9 @@ function clearScreen(w: World) {
 export function xpNeed(level: number): number {
   if (level < 10) return 5 + (level - 1) * 10;
   if (level < 20) return 95 + (level - 10) * 22;
-  if (level < 30) return 315 + (level - 20) * 38;
-  if (level < 40) return 695 + (level - 30) * 50;
-  return 1195 + (level - 40) * 60;
+  if (level < 30) return 315 + (level - 20) * 40;
+  if (level < 40) return 720 + (level - 30) * 60;
+  return 1320 + (level - 40) * 72;
 }
 
 /** 描く色。1〜4 は青、5〜19 は緑、20 以上は赤 */
@@ -180,7 +180,7 @@ export const noMeat = (w: World) => w.mods.includes('noMeat');
 
 const BOSS_GEMS = 10;
 /** 強化個体が宝箱を落とす確率 */
-const ELITE_CHEST = 0.1;
+const ELITE_CHEST = 0.06;
 const BOSS_GEM_XP = 25;
 /** Lv10 前後で 3 つほど上がる */
 const METAL_XP = 300;
