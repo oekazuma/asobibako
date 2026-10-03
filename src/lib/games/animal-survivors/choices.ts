@@ -19,7 +19,7 @@ function candidates(w: World): Choice[] {
   // 進化した武器の元の武器と、進化形そのものは新しい武器として出さない
   const had = new Set(w.weapons.map((o) => baseOf(o.id)));
   const fresh = (kind: 'weapon' | 'passive', id: string) =>
-    kind === 'passive' || (!WEAPONS[id].evolved && !had.has(id));
+    kind === 'passive' || (!WEAPONS[id].evolved && !WEAPONS[id].exclusive && !had.has(id));
   for (const [kind, owned, all] of [
     ['weapon', w.weapons, Object.keys(WEAPONS)],
     ['passive', w.passives, Object.keys(PASSIVES)]

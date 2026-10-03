@@ -106,6 +106,30 @@ export function swipes(ctx: CanvasRenderingContext2D, w: World, q: Snap): void {
         ctx.lineTo(q(ox + uy * 8 + ux * 6), q(oy - ux * 8 + uy * 6));
         ctx.stroke();
       }
+    } else if (f.kind === 'cone') {
+      // 炎は根もとから先へ伸び、外が赤、内が黄色
+      const reach = f.r * Math.min(1, t * 2.5);
+      const gold = isGold(w, f.slot);
+      for (const [k, color, alpha] of [
+        [1, gold ? PALETTE.Y : PALETTE.r, 0.55],
+        [0.72, PALETTE.o, 0.6],
+        [0.42, PALETTE.y, 0.7]
+      ] as const) {
+        ctx.globalAlpha = alpha * (1 - t * 0.7);
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(q(f.x), q(f.y));
+        ctx.arc(q(f.x), q(f.y), reach * k, f.angle - 0.52, f.angle + 0.52);
+        ctx.closePath();
+        ctx.fill();
+      }
+      const ember = bake(ITEM_ART.ember);
+      for (let n = 0; n < 5; n++) {
+        const a = f.angle + (((n * 37) % 10) / 10 - 0.5) * 0.9;
+        const d = reach * (0.35 + ((n * 53) % 7) / 10);
+        ctx.globalAlpha = 1 - t;
+        ctx.drawImage(ember, q(f.x + Math.cos(a) * d - 3), q(f.y + Math.sin(a) * d - 3));
+      }
     } else if (f.kind === 'swipe') {
       ctx.globalAlpha = 0.75 * (1 - t);
       ctx.strokeStyle = line;

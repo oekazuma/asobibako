@@ -1,5 +1,5 @@
 export type WeaponKind =
-  'shot' | 'swipe' | 'ring' | 'boomerang' | 'orbit' | 'strike' | 'homing' | 'nova' | 'trail' | 'snare';
+  'shot' | 'swipe' | 'ring' | 'boomerang' | 'orbit' | 'strike' | 'homing' | 'nova' | 'trail' | 'snare' | 'cone';
 
 export interface WeaponStats {
   damage: number;
@@ -26,11 +26,14 @@ export interface WeaponDef {
   size?: number;
   /** 進化形。3 択と宝箱の候補に出ず、それ以上は上がらない */
   evolved?: boolean;
+  /** その動物だけの武器。ほかの動物の 3 択に出ず、ふつうの進化も無い */
+  exclusive?: boolean;
   /** 当たるたびに戻す HP。1 秒に戻せる量には上限がある（world.ts の DRAIN） */
   drain?: number;
 }
 
 export const MAX_LEVEL = 5;
+const EXCLUSIVE = ['tigerClaw', 'breath'];
 
 const w = (
   id: string,
@@ -162,6 +165,22 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
       [6, 3, 2, 1, 0, 99, 2.5, 0],
       [{ amount: 1 }, { damage: 3 }, { duration: 1, area: 0.3 }, { amount: 2 }]
     ),
+    w(
+      'tigerClaw',
+      'トラの爪',
+      '前と後ろを大きく 2 回裂く重い爪',
+      'swipe',
+      [16, 1.1, 2, 1.35, 0, 99, 0.18, 60],
+      [{ damage: 4 }, { area: 0.2 }, { cooldown: -0.15 }, { damage: 6 }]
+    ),
+    w(
+      'breath',
+      '竜の息',
+      'いちばん近い敵の向きへ扇形の炎を吐き、中の敵をまとめて焼く',
+      'cone',
+      [18, 1.4, 1, 1, 0, 99, 0.35, 20],
+      [{ damage: 4 }, { area: 0.25 }, { cooldown: -0.2 }, { amount: 1, damage: 6 }]
+    ),
     evo('woofEvo', 'ホネのあられ', '骨を 4 本ずつ投げ、敵を貫く', 'shot', [18, 0.5, 4, 1.2, 220, 3, 1.4, 50]),
     evo(
       'pawEvo',
@@ -195,7 +214,7 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
       drain: 0.5
     }),
     evo('vineEvo', '森の守り', '広く長く絡むツタで足止めする', 'snare', [14, 2, 6, 1.6, 0, 99, 4, 0])
-  ].map((d) => [d.id, d])
+  ].map((d) => [d.id, EXCLUSIVE.includes(d.id) ? { ...d, exclusive: true } : d])
 );
 
 const LABEL: Record<keyof WeaponStats, string> = {

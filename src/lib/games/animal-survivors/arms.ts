@@ -28,7 +28,7 @@ export interface Shot {
 export interface Effect {
   alive: boolean;
   slot: number;
-  kind: 'swipe' | 'ring' | 'bolt' | 'burst' | 'flame' | 'vine';
+  kind: 'swipe' | 'ring' | 'bolt' | 'burst' | 'flame' | 'vine' | 'cone';
   x: number;
   y: number;
   age: number;
@@ -45,6 +45,7 @@ const SIZE = {
   shot: 4,
   acorn: 3,
   swipe: 26,
+  cone: 80,
   ring: 56,
   boomerang: 6,
   orbit: 30,
@@ -54,6 +55,9 @@ const SIZE = {
   feather: 5
 };
 const SWIPE_HALF = (55 * Math.PI) / 180;
+/** 竜の息の扇の半分の角度と、2 つめからの扇をずらす角度 */
+const CONE_HALF = (30 * Math.PI) / 180;
+const CONE_STEP = (40 * Math.PI) / 180;
 const SPREAD = (12 * Math.PI) / 180;
 const FAN = (25 * Math.PI) / 180;
 /** 同じ敵へ続けて当てるまでの間（秒） */
@@ -232,6 +236,23 @@ function launch(w: World, def: WeaponDef, s: WeaponStats, slot: number): boolean
           let da = Math.atan2(e.y - (p.y - 6), e.x - p.x) - a;
           da = Math.atan2(Math.sin(da), Math.cos(da));
           if (Math.abs(da) < SWIPE_HALF) strike(w, j, s.damage, p.x, p.y, s.knockback, slot);
+        }
+      }
+      return true;
+    case 'cone':
+      for (let i = 0; i < s.amount; i++) {
+        // 2 つめからは左右へ交互にずらして重ねる
+        const a = aim + Math.ceil(i / 2) * (i % 2 ? 1 : -1) * CONE_STEP;
+        const r = SIZE.cone * area;
+        effect(w, slot, 'cone', p.x, p.y - 6, r, s.duration, a, 0, 0);
+        for (const j of within(w, p.x, p.y - 6, r, targets)) {
+          const e = w.enemies[j];
+          const dx = e.x - p.x;
+          const dy = e.y - (p.y - 6);
+          let da = Math.atan2(dy, dx) - a;
+          da = Math.atan2(Math.sin(da), Math.cos(da));
+          if (Math.hypot(dx, dy) <= e.def.r || Math.abs(da) < CONE_HALF)
+            strike(w, j, s.damage, p.x, p.y, s.knockback, slot);
         }
       }
       return true;
