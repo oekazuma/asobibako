@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { BOOK } from './book';
   import { entries, type Entry, type Tab } from './book-view';
   import PixelIcon from './PixelIcon.svelte';
   import type { Records } from './records';
@@ -10,7 +9,8 @@
     ['enemies', '敵'],
     ['bosses', 'ボス'],
     ['forms', '動物'],
-    ['items', '品']
+    ['items', '品'],
+    ['arcana', '札']
   ];
   let tab = $state<Tab>('enemies');
   let open = $state<Entry | null>(null);
@@ -33,7 +33,7 @@
         >
       {/each}
     </div>
-    <p class="count">{known} / {BOOK[tab].length}</p>
+    <p class="count">{known} / {list.length}</p>
     <div class="grid">
       {#each list as e (e.key)}
         <button
@@ -53,7 +53,7 @@
         {#if open.known}
           {#each open.detail as line (line)}<span>{line}</span>{/each}
         {:else}
-          <span>まだ載っていない</span>
+          <span>{open.hint ?? 'まだ載っていない'}</span>
         {/if}
       {:else}
         <span>札を押すと、くわしく見られる</span>

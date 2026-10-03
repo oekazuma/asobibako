@@ -1,10 +1,14 @@
 <script lang="ts">
   import type { AchievementDef } from './achievements';
+  import { arcanaOf } from './arcana';
 
   let { a }: { a: AchievementDef } = $props();
 </script>
 
-<p class="trophy"><b>実績達成！</b><span>{a.name}</span><span class="coins">+{a.coins}</span></p>
+<p class="trophy">
+  <b>実績達成！</b><span>{a.name}</span><span class="coins">+{a.coins}</span>
+  {#if arcanaOf(a.id)}<span class="coins">NEW! {arcanaOf(a.id)?.name}の札</span>{/if}
+</p>
 
 <style>
   .trophy {

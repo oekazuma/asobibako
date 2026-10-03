@@ -1,4 +1,6 @@
+import { ACHIEVEMENTS } from './achievements';
 import { animal, type AnimalId } from './animals';
+import { ARCANA, openArcana } from './arcana';
 import { ANIMAL_ART } from './art/animals';
 import { BOSS_ART } from './art/bosses';
 import { ENEMY_ART } from './art/enemies';
@@ -10,7 +12,7 @@ import { ENEMIES } from './enemies';
 import type { Art } from './pixels';
 import type { Records } from './records';
 
-export type Tab = keyof typeof BOOK;
+export type Tab = keyof typeof BOOK | 'arcana';
 
 export interface Entry {
   key: string;
@@ -19,6 +21,8 @@ export interface Entry {
   known: boolean;
   /** 札を押したときに出す記録の行 */
   detail: string[];
+  /** まだ載っていないときに出す、載せ方 */
+  hint?: string;
 }
 
 const ITEMS: Record<string, [string, string, Art]> = {
@@ -38,6 +42,17 @@ const art = (id: string): Art => (ENEMY_ART as Record<string, Art>)[id] ?? (BOSS
 
 export function entries(r: Records, tab: Tab): Entry[] {
   const b = r.book;
+  if (tab === 'arcana') {
+    const open = openArcana(r.achieved);
+    return ARCANA.map((a) => ({
+      key: a.id,
+      art: ITEM_ART.chest,
+      name: a.name,
+      known: open.includes(a.id),
+      detail: [a.good, ...(a.bad ? [`ただし ${a.bad}`] : [])],
+      ...(a.unlock && { hint: `「${ACHIEVEMENTS.find((d) => d.id === a.unlock)?.name}」で開く` })
+    }));
+  }
   if (tab === 'enemies')
     return BOOK.enemies.map((id) => ({
       key: id,
