@@ -58,9 +58,7 @@
         <span class="body">
           {#if open}
             <span class="name"
-              >{a.name}<span class="style">{a.style}</span><span class="tier" aria-label="強さの段 {a.tier}"
-                >{'★'.repeat(a.tier)}</span
-              ></span
+              >{a.name}<span class="style">{a.style}</span><span class="tier">{'★'.repeat(a.tier)}</span></span
             >
             {#each [['HP', a.hp / top.hp], ['速さ', a.speed / top.speed], ['攻撃', a.might / top.might]] as const as [label, ratio] (label)}
               <span class="stat"><span class="label">{label}</span><span class="bar" style:--r={ratio}></span></span>
@@ -71,8 +69,7 @@
             </span>
             {#if a.perk}<span class="perk">とくい: {a.perk}</span>{/if}
           {:else}
-            <span class="name">？？？<span class="tier" aria-label="強さの段 {a.tier}">{'★'.repeat(a.tier)}</span></span
-            >
+            <span class="name">？？？<span class="tier">{'★'.repeat(a.tier)}</span></span>
             <span class="unlock">{a.unlock}</span>
           {/if}
         </span>
