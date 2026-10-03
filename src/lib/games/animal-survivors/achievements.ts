@@ -25,6 +25,7 @@ const filled = (r: Records, kind: keyof typeof BOOK) => {
 
 /** ふつうの進化形だけを数える（専用進化形は別の表） */
 const evolvedCount = (r: Records) => r.evolved.filter((id) => EVOLUTIONS.some((e) => e.to === id)).length;
+const longest = (r: Records) => Math.max(0, ...Object.values(r.overtime));
 const maxed = (r: Records) => UPGRADES.filter((d) => (r.ranks[d.id] ?? 0) >= d.max).length;
 const lv5 = (run: RunSummary | null) => run?.weapons.filter((o) => o.level >= MAX_LEVEL).length ?? 0;
 
@@ -152,6 +153,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     coins: 300,
     done: (r) => r.bosses.includes('yeti') && r.bosses.includes('dragon')
   },
+  { id: 'overtime5', name: '延長戦で 5 分生き延びる', coins: 300, done: (r) => longest(r) >= 300 },
+  { id: 'overtime10', name: '延長戦で 10 分生き延びる', coins: 600, done: (r) => longest(r) >= 600 },
   {
     id: 'graveBosses',
     name: '墓地の 2 体のボスを倒す',

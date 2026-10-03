@@ -35,6 +35,8 @@ export interface Records {
   finales: string[];
   /** 図鑑 */
   book: Book;
+  /** 面ごとの、延長戦をいちばん長く生き延びた秒 */
+  overtime: Record<string, number>;
 }
 
 export const RECORDS_KEY = 'asobibako:animal-survivors';
@@ -58,7 +60,8 @@ export function emptyRecords(): Records {
     stages: [],
     stage: 'forest',
     finales: [],
-    book: emptyBook()
+    book: emptyBook(),
+    overtime: {}
   };
 }
 
@@ -110,8 +113,19 @@ export function parseRecords(text: string | null): Records {
     stages: stagesOf(raw),
     stage: typeof raw.stage === 'string' && STAGE_IDS.includes(raw.stage) ? raw.stage : 'forest',
     finales: list(raw.finales, STAGE_IDS),
-    book: parseBook(raw.book, list(raw.bosses, BOSSES), unlockedIds, STARTERS)
+    book: parseBook(raw.book, list(raw.bosses, BOSSES), unlockedIds, STARTERS),
+    overtime: overtimeOf(raw.overtime)
   };
+}
+
+function overtimeOf(v: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!v || typeof v !== 'object') return out;
+  for (const id of STAGE_IDS) {
+    const n = Math.floor(num((v as Record<string, unknown>)[id]));
+    if (n > 0) out[id] = n;
+  }
+  return out;
 }
 
 /** 知らない品と数でない段は読み飛ばし、段は 0〜最大の整数にする */
@@ -140,6 +154,7 @@ export function record(r: Records, run: RunSummary): AchievementDef[] {
   r.stage = run.stage;
   if (run.finale && !r.finales.includes(run.stage)) r.finales.push(run.stage);
   for (const id of run.evolved) if (!r.evolved.includes(id)) r.evolved.push(id);
+  if (run.overtime) r.overtime[run.stage] = Math.max(r.overtime[run.stage] ?? 0, run.overtime.secs);
   run.bookCoins = addBook(r, run);
   r.coins += run.bookCoins;
   return grant(r, run);

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { openChest } from './chest';
 import { CHEST_COINS, collect, overtimeCoins, overtimeRate } from './drops';
 import { overtimeRun, startOvertime } from './overtime';
+import { emptyRecords, parseRecords, record } from './records';
 import { FOREST } from './stages/forest';
 import { coinsOf, createWorld, step, summary, type World } from './world';
 
@@ -143,5 +144,49 @@ describe('延長戦の 2 回めの記録', () => {
     expect(r.book.kills).toEqual({ rat: 7, bat: 3 });
     expect(r.book.bosses).toEqual([{ id: 'spiderQueen', secs: 50 }]);
     expect(r.overtime).toEqual({ secs: 100, coins: 4, halved: true });
+  });
+});
+
+describe('延長戦の記録', () => {
+  it('15:00 と延長戦の 2 回の記録で、クリアは 1 回、倒した数とコインは合計どおり', () => {
+    const w = cleared();
+    w.kills = 500;
+    const r = emptyRecords();
+    record(r, summary(w));
+    const first = r.coins;
+    startOvertime(w);
+    w.kills += 40;
+    w.time = 1100;
+    w.overtime!.coins = 20;
+    w.over = 'dead';
+    record(r, overtimeRun(w));
+    expect(r.clears).toBe(1);
+    expect(r.kills).toBe(540);
+    expect(r.coins - first).toBeGreaterThanOrEqual(10);
+    expect(r.overtime).toEqual({ forest: 200 });
+  });
+
+  it('面ごとの最高は長いほうを残し、壊れた値は捨てる', () => {
+    const r = parseRecords(JSON.stringify({ overtime: { forest: 120, snow: 'x', nope: 50, graveyard: -3 } }));
+    expect(r.overtime).toEqual({ forest: 120 });
+    const w = cleared();
+    startOvertime(w);
+    w.time = 960;
+    w.over = 'dead';
+    record(r, overtimeRun(w));
+    expect(r.overtime.forest).toBe(120);
+    expect(emptyRecords().overtime).toEqual({});
+  });
+
+  it('延長戦で 5 分と 10 分生き延びると実績', () => {
+    const w = cleared();
+    startOvertime(w);
+    const r = emptyRecords();
+    w.time = 900 + 300;
+    w.over = 'dead';
+    expect(record(r, overtimeRun(w)).map((a) => a.id)).toContain('overtime5');
+    expect(r.achieved).not.toContain('overtime10');
+    w.time = 900 + 600;
+    expect(record(r, overtimeRun(w)).map((a) => a.id)).toContain('overtime10');
   });
 });
