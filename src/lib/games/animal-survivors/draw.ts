@@ -172,8 +172,13 @@ function growBurst(ctx: CanvasRenderingContext2D, p: { x: number; y: number }, k
   ctx.globalAlpha = 1;
 }
 
+/** 被弾の無敵で点滅して消えるコマか。育つ演出のあいだは無敵の時計が止まるので消さない */
+export function blinks(invuln: number, moment: boolean): boolean {
+  return !moment && invuln > 0 && Math.floor(invuln / 0.08) % 2 === 1;
+}
+
 /** form と white は育つ演出のときだけ渡す（入れ替わる姿と白い影） */
-function player(ctx: CanvasRenderingContext2D, w: World, now: number, form = w.form, white = false) {
+function player(ctx: CanvasRenderingContext2D, w: World, now: number, form = w.form, white = false, moment = false) {
   const p = w.player;
   const a = ANIMAL_ART[w.animal.id].forms[form];
   ctx.fillStyle = 'rgb(0 0 0 / 0.25)';
@@ -182,7 +187,7 @@ function player(ctx: CanvasRenderingContext2D, w: World, now: number, form = w.f
     sprite(ctx, a.walk, 0, p.x, p.y - (a.walk.h - 16) / 2, p.facing < 0, true);
     return;
   }
-  if (p.invuln > 0 && Math.floor(p.invuln / 0.08) % 2 === 1) return;
+  if (blinks(p.invuln, moment)) return;
   const [art, frame] =
     p.hurt > 0 ? [a.hurt, 0] : p.attack > 0 ? [a.attack, 0] : p.moving ? [a.walk, frameAt(now * 10, 4)] : [a.walk, 0];
   const flip = p.facing < 0;
@@ -336,14 +341,14 @@ export function draw(
   zonesBelow(ctx, w, q, now);
   pickups(ctx, w, now);
   enemies(ctx, w, cx, cy, v, now);
-  const ev = prompts?.evolve;
-  const grow = ev ? growFrame(ev.t, prompts.still) : null;
+  const ev = prompts?.growing ? prompts.evolve : null;
+  const grow = ev ? growFrame(ev.t, prompts!.still) : null;
   if (grow?.dark) {
     // 育つ演出のあいだは、まわりを暗くして自分だけを照らす
     ctx.fillStyle = `rgb(12 6 24 / ${grow.dark})`;
     ctx.fillRect(cx, cy, v.w, v.h);
   }
-  if (ev && grow) player(ctx, w, now, grow.form === 'old' ? ((ev.form - 1) as 0 | 1) : ev.form, grow.white);
+  if (ev && grow) player(ctx, w, now, grow.form === 'old' ? ((ev.form - 1) as 0 | 1) : ev.form, grow.white, true);
   else player(ctx, w, now);
   shots(ctx, w, q);
   swipes(ctx, w, q);

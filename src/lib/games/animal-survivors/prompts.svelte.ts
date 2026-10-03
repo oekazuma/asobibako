@@ -3,6 +3,7 @@ import { WARN_AHEAD } from './bosses';
 import { apply, choices, type Choice } from './choices';
 import { ENEMIES } from './enemies';
 import { Lock } from './lock.svelte';
+import { sounds } from './sounds';
 import type { World } from './world';
 
 /** ゲームを止めて重ねる画面（宝箱・3 択）と、WARNING の帯の出し入れ。宝箱は 3 択より先に開ける */
@@ -58,6 +59,11 @@ export class Prompts {
     return this.options !== null || this.rewards !== null || this.asking || this.intro !== null || this.evolve !== null;
   }
 
+  /** 育つ演出を見せているとき（宝箱・3 択・ボスの登場のあいだは待っている） */
+  get growing(): boolean {
+    return !!this.evolve && !this.options && !this.rewards && !this.intro;
+  }
+
   /** 動きを減らす設定 */
   get still(): boolean {
     return this.#still;
@@ -107,11 +113,14 @@ export class Prompts {
     }
     // 経験値の袋や宝箱で育ったときは、開いている画面を閉じてから見せる
     if (this.evolve && !this.options && !this.rewards) {
+      // 音は待っていた演出が始まるときに鳴らす（出来事のときに鳴らすと、宝箱やボスの登場と重なる）
+      if (this.evolve.t === 0) sounds.grow();
       this.evolve.t += left;
       if (this.evolve.t < (this.#still ? INTRO_STILL : GROW)) return;
       this.evolve = null;
     }
-    if (this.busy || w.over) return;
+    // 3 択の経験値の袋で育つと、出来事を拾う前にここへ来る。次の 3 択より演出を先にする
+    if (this.busy || w.over || w.events.some((e) => e.type === 'grow')) return;
     if (w.chests > 0) this.rewards = openChest(w);
     else if (w.pending > 0) this.options = choices(w);
     else return;

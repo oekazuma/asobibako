@@ -23,7 +23,7 @@
     <p class="chief" role="status"><span>ヌシ出現！</span>{prompts.chief.text}</p>
   {/key}
 {/if}
-{#if prompts.evolve && (prompts.still || prompts.evolve.t >= SWAP + 0.1)}
+{#if prompts.evolve && prompts.growing && (prompts.still || prompts.evolve.t >= SWAP + 0.1)}
   <GrowPlate from={prompts.evolve.from} to={prompts.evolve.to} />
 {/if}
 {#if prompts.intro && prompts.named}

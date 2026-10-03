@@ -89,6 +89,8 @@ export class Effects {
     let hit = false;
     let coin = false;
     let kill = false;
+    // 育つ演出のあいだは効果の時計が止まるので、同じフレームの光と粒は止まったまま演出を覆う。演出が光を出す
+    const growing = w.events.some((e) => e.type === 'grow');
     for (const e of w.events) {
       if (e.type === 'hit') {
         hit = true;
@@ -120,17 +122,15 @@ export class Effects {
       } else if (e.type === 'hurt') {
         this.hurt = 0.25;
         sounds.hurt();
-      } else if (e.type === 'levelup') {
+      } else if (e.type === 'levelup' && growing) sounds.levelup();
+      else if (e.type === 'levelup') {
         const p = w.player;
         for (let i = 0; i < 28; i++) {
           const a = (i / 28) * Math.PI * 2;
           this.#bit(p.x, p.y, Math.cos(a) * 90, Math.sin(a) * 90, 0.5, i % 2 ? PALETTE.y : PALETTE.w);
         }
         sounds.levelup();
-      } else if (e.type === 'grow') {
-        // 光は育つ演出（draw の growFrame）が出すので、ここでは音だけ
-        sounds.grow();
-      } else if (e.type === 'special') {
+      } else if (e.type === 'special' && !growing) {
         this.flash = 0.45;
         const p = w.player;
         for (let i = 0; i < 64; i++) {

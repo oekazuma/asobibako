@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { blinks } from './draw';
 import { gainXp, xpNeed } from './drops';
+import { Effects } from './effects';
 import { growFrame } from './grow';
 import { GROW, Prompts } from './prompts.svelte';
 import { createWorld, type World } from './world';
@@ -20,6 +22,8 @@ describe('育つ瞬間', () => {
     const p = new Prompts(w, false);
     gainXp(w, 5);
     p.take();
+    // Play は出来事を拾ったあとに消す
+    w.events.length = 0;
     expect(p.evolve).toMatchObject({ from: '子犬', to: 'わんぱく犬', form: 1 });
     expect(p.busy).toBe(true);
     p.next(null, 0.5);
@@ -134,5 +138,55 @@ describe('見せる姿', () => {
   it('動きを減らす設定では、白い影もはじける光も出さない', () => {
     for (const t of [0, 0.5, 1.41, 2])
       expect(growFrame(t, true)).toEqual({ form: 'new', white: false, dark: 0, burst: 0 });
+  });
+});
+
+describe('育つ演出と重なるもの', () => {
+  it('同じフレームの専用進化とレベルアップの光は出さない（止まったまま演出を覆うため）', () => {
+    const w = createWorld('dog', 1, VIEW);
+    const fx = new Effects();
+    w.events.push({ type: 'levelup' }, { type: 'grow', form: 2 }, { type: 'special', id: 'woofSp' });
+    fx.take(w);
+    expect(fx.flash).toBe(0);
+    w.events = [{ type: 'special', id: 'woofSp' }];
+    fx.take(w);
+    expect(fx.flash).toBeGreaterThan(0);
+  });
+
+  it('演出のあいだは被弾の点滅で姿を消さない', () => {
+    expect(blinks(0.12, false)).toBe(true);
+    expect(blinks(0.12, true)).toBe(false);
+  });
+
+  it('3 択の経験値の袋で育ったら、次の 3 択より演出が先', () => {
+    const w = nearGrow();
+    const p = new Prompts(w, false);
+    w.pending = 1;
+    p.next(null, 0);
+    expect(p.options).not.toBeNull();
+    w.xp = xpNeed(9) - 1;
+    p.choose({ kind: 'bag' }, null);
+    expect(p.options).toBeNull();
+    p.take();
+    w.events.length = 0;
+    expect(p.evolve).not.toBeNull();
+    p.next(null, GROW + 0.1);
+    expect(p.evolve).toBeNull();
+    expect(p.options).not.toBeNull();
+    p.stop();
+  });
+
+  it('宝箱の画面のあいだ、待っている演出は見せない（growing が false）', () => {
+    const w = nearGrow();
+    const p = new Prompts(w, false);
+    w.chests = 1;
+    p.next(null, 0);
+    gainXp(w, 5);
+    p.take();
+    expect(p.evolve).not.toBeNull();
+    expect(p.growing).toBe(false);
+    p.close(null);
+    expect(p.growing).toBe(true);
+    p.stop();
   });
 });
