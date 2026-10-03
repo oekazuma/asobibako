@@ -173,7 +173,7 @@ export const ANIMALS: Animal[] = [
     style: '最強',
     tier: 4,
     blurb: '火の羽根を投げて戻す。倒れても一度だけよみがえる',
-    hp: 110,
+    hp: 125,
     speed: 1.25,
     might: 1.3,
     weapon: 'fireFeather',

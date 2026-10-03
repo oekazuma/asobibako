@@ -204,8 +204,8 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
         '火の羽根',
         'まわりへ羽根を投げて戻す。折り返すところに小さな炎を残す',
         'boomerang',
-        [14, 1.5, 2, 1, 160, 99, 1.4, 40],
-        [{ damage: 3 }, { amount: 1 }, { area: 0.25 }, { damage: 4, amount: 1 }]
+        [19, 1.3, 2, 1, 160, 99, 1.4, 40],
+        [{ damage: 5 }, { amount: 1 }, { area: 0.25 }, { damage: 7, amount: 1 }]
       ),
       flameTurn: true
     },
@@ -286,7 +286,7 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
         '火の鳥の翼',
         '羽根を 5 枚ずつ投げ、折り返すところに大きな炎を残す',
         'boomerang',
-        [40, 1.0, 5, 1.6, 200, 99, 1.6, 60]
+        [56, 0.9, 5, 1.6, 200, 99, 1.6, 60]
       ),
       flameTurn: true
     },
