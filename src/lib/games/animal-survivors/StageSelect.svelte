@@ -3,6 +3,7 @@
   import { GRAVE_ART } from './art/graveyard';
   import { SNOW_ART } from './art/snow';
   import { ENEMIES } from './enemies';
+  import { clock } from './hud';
   import PixelIcon from './PixelIcon.svelte';
   import { canPlay, type Records } from './records';
   import { STAGES } from './stages';
@@ -39,6 +40,7 @@
             <span class="info">ボス: {[...new Set(s.bosses.map((b) => ENEMIES[b.id].name))].join('・')}</span>
             <span class="info">コイン ×{s.coin}</span>
             {#if s.id !== 'forest'}<span class="info hard">敵が強い</span>{/if}
+            {#if records.overtime[s.id]}<span class="info">延長 {clock(records.overtime[s.id])}</span>{/if}
           {:else}
             <span class="info">{s.unlock}</span>
           {/if}

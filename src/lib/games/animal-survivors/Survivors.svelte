@@ -16,6 +16,7 @@
   import { SONGS } from './songs';
   import Trophies from './Trophies.svelte';
   import Book from './Book.svelte';
+  import { overtimeRun } from './overtime';
   import { summary, type RunSummary, type World } from './world';
   import './retro.css';
 
@@ -48,11 +49,16 @@
     screen = 'play';
   }
 
-  // リザルトを待たずに記録する。決着からリザルトまでの間に ✕ で抜けたり終わらされたりしても、その回を落とさない
+  // リザルトを待たずに記録する。決着からリザルトまでの間に ✕ で抜けたり終わらされたりしても、その回を落とさない。
+  // 延長戦は 15:00 で 1 回記録してあるので、終わりには延長戦の差だけを記録し、見せるのは 2 回の合計
   function over(w: World) {
-    run = summary(w);
     const r = loadRecords();
-    got = record(r, run);
+    const part = w.overtime ? overtimeRun(w) : summary(w);
+    const now = record(r, part);
+    const first = w.overtime ? run : null;
+    run = { ...summary(w), bookCoins: (first?.bookCoins ?? 0) + (part.bookCoins ?? 0) };
+    if (run.overtime) run.overtime.best = r.overtime[run.stage];
+    got = first ? [...got, ...now] : now;
     saveRecords(r);
     records = r;
   }

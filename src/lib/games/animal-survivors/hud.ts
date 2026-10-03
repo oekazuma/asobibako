@@ -1,7 +1,7 @@
 import { itemArt } from './art/evolved';
 import { ITEM_ART } from './art/items';
 import { PALETTE } from './art/palette';
-import { xpNeed } from './drops';
+import { overtimeRate, xpNeed } from './drops';
 import type { ViewSize } from './draw';
 import { text, textWidth } from './font';
 import { bake } from './pixels';
@@ -64,6 +64,10 @@ export function hud(ctx: CanvasRenderingContext2D, w: World, v: ViewSize, top: n
   const cx = v.w - 6 - textWidth(coins);
   text(ctx, coins, cx, top + 11, PALETTE.y);
   ctx.drawImage(bake(ITEM_ART.coin), cx - 10, top + 9);
+  if (w.overtime) {
+    const rate = `x${overtimeRate(w)}`;
+    text(ctx, rate, cx - 14 - textWidth(rate), top + 11, PALETTE.o);
+  }
 
   const hp = Math.ceil(w.player.hp);
   bar(ctx, 6, top + 12, 80, 4, w.player.hp / w.stats.maxHp, PALETTE.r, PALETTE.R);

@@ -36,6 +36,8 @@
     lock.begin(finger);
   }
 
+  /** 延長戦では自分で終えるとコインを全部もらえるので、やめるを引き上げると呼ぶ */
+  const quit = $derived(run.overtime ? '引き上げる' : 'やめる');
   const owned = $derived([
     ...run.weapons.map((o) => ({ ...o, key: `weapon-${o.id}`, star: WEAPONS[o.id]?.evolved ?? false })),
     ...run.passives.map((o) => ({ ...o, key: `passive-${o.id}`, star: false }))
@@ -47,13 +49,16 @@
 <div class="veil">
   {#if asking}
     <section class="as-panel" class:as-locked={lock.active} aria-label="確かめ">
-      <h2 class="as-title">{asking === 'quit' ? 'やめる？' : 'やり直す？'}</h2>
+      <h2 class="as-title">{asking === 'quit' ? `${quit}？` : 'やり直す？'}</h2>
       <p class="note">
-        {asking === 'quit' ? '本当にやめますか？' : '本当に最初からやり直しますか？'}<br
-        />ここまでのコインと記録は残ります
+        {asking === 'quit'
+          ? `本当に${run.overtime ? '引き上げますか' : 'やめますか'}？`
+          : '本当に最初からやり直しますか？'}<br />{run.overtime
+          ? '延長戦のコインは全部もらえます'
+          : 'ここまでのコインと記録は残ります'}
       </p>
       <button class="as-card danger" onclick={asking === 'quit' ? onquit : onrestart}
-        >{asking === 'quit' ? 'やめる' : 'やり直す'}</button
+        >{asking === 'quit' ? quit : 'やり直す'}</button
       >
       <button class="as-card" onclick={() => (asking = null)}>つづける</button>
     </section>
@@ -73,7 +78,7 @@
       <button class="as-card" onclick={onresume}>つづける</button>
       <button class="as-card" onclick={toggleMute}>音 {audio.muted ? 'オフ' : 'オン'}</button>
       <button class="as-card" onclick={() => ask('restart')}>最初からやり直す</button>
-      <button class="as-card" onclick={() => ask('quit')}>やめる</button>
+      <button class="as-card" onclick={() => ask('quit')}>{quit}</button>
     </section>
   {/if}
 </div>

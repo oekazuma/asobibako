@@ -30,13 +30,15 @@
     ['生存時間', clock(run.time)],
     ['レベル', `Lv.${run.level}`],
     ['撃破数', run.kills.toLocaleString('ja-JP')],
-    ['獲得経験値', Math.round(run.xp).toLocaleString('ja-JP')]
+    ['獲得経験値', Math.round(run.xp).toLocaleString('ja-JP')],
+    ...(run.overtime ? [['延長戦', clock(run.overtime.secs)]] : [])
   ]);
+  const title = $derived(run.overtime ? '延長戦 終了' : run.cleared ? '生存成功！' : 'GAME OVER');
 </script>
 
 <div class="as-screen">
   <section class="as-panel" class:as-locked={locked} aria-label="結果">
-    <h2 class="as-title" class:over={!run.cleared}>{run.cleared ? '生存成功！' : 'GAME OVER'}</h2>
+    <h2 class="as-title" class:over={!run.cleared && !run.overtime}>{title}</h2>
     {#each got as a (a.id)}
       {#if a.animal}
         <p class="new">
@@ -52,6 +54,13 @@
       )}）
       {#if run.bookCoins}<span class="book">図鑑 +{run.bookCoins}</span>{/if}
     </p>
+    {#if run.overtime}
+      <p class="ot">
+        延長戦 +{run.overtime.coins}{run.overtime.halved ? '（倒れたので半分）' : ''}<br />この面の最高 {clock(
+          run.overtime.best ?? run.overtime.secs
+        )}
+      </p>
+    {/if}
     {#each got as a (a.id)}
       <Trophy {a} />
     {/each}
@@ -116,6 +125,13 @@
 
   .book {
     color: #ffd84a;
+  }
+
+  .ot {
+    margin: 0;
+    text-align: center;
+    color: #ffd84a;
+    font-size: min(4cqw, 2.4cqh, 20px);
   }
 
   .coins b {

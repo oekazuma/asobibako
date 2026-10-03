@@ -31,6 +31,17 @@ export function viewSize(cssW: number, cssH: number, dpr: number): ViewSize {
   return { scale, w: Math.ceil((cssW * dpr) / scale), h: Math.ceil((cssH * dpr) / scale) };
 }
 
+/** 盤面そのものの大きさ（CSS の px）から仮想画面を決め、canvas を端末の画素の大きさに合わせる */
+export function fitCanvas(canvas: HTMLCanvasElement, cssW: number, cssH: number): ViewSize {
+  const dpr = devicePixelRatio || 1;
+  const view = viewSize(cssW, cssH, dpr);
+  canvas.width = view.w * view.scale;
+  canvas.height = view.h * view.scale;
+  canvas.style.width = `${canvas.width / dpr}px`;
+  canvas.style.height = `${canvas.height / dpr}px`;
+  return view;
+}
+
 /** v の整数部を n で割った余り。座標から作るコマ番号は負になりうるので、0..n-1 に入れる */
 export function frameAt(v: number, n: number): number {
   return ((Math.floor(v) % n) + n) % n;

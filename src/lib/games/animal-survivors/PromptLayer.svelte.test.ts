@@ -17,7 +17,7 @@ describe('PromptLayer', () => {
     const prompts = new Prompts(w);
     prompts.next(null);
     const target = document.body.appendChild(document.createElement('div'));
-    const app = mount(PromptLayer, { target, props: { prompts, finger: null } });
+    const app = mount(PromptLayer, { target, props: { prompts, finger: null, onanswer: () => {} } });
     flushSync();
     const reroll = () => [...target.querySelectorAll('button')].find((b) => b.textContent?.includes('引き直す'));
     expect(reroll()?.textContent).toContain('引き直す 2');
@@ -37,7 +37,7 @@ describe('PromptLayer', () => {
     const prompts = new Prompts(w);
     prompts.next(null);
     const target = document.body.appendChild(document.createElement('div'));
-    const app = mount(PromptLayer, { target, props: { prompts, finger: null } });
+    const app = mount(PromptLayer, { target, props: { prompts, finger: null, onanswer: () => {} } });
     flushSync();
     const button = (text: string) => [...target.querySelectorAll('button')].find((b) => b.textContent?.includes(text));
     button('除外')!.click();

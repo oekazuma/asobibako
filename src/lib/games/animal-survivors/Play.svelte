@@ -4,9 +4,10 @@
   import { BoardInput } from '$lib/board-input';
   import { animate } from '$lib/loop';
   import type { AnimalId } from './animals';
-  import { draw, viewSize, type ViewSize } from './draw';
+  import { draw, fitCanvas, type ViewSize } from './draw';
   import { Effects } from './effects';
-  import { MOVE_KEYS, keyVector, padVector, pick, stickVector } from './input';
+  import { MOVE_KEYS, steer } from './input';
+  import { startOvertime } from './overtime';
   import { PendingPause, canPause } from './pause';
   import Pause from './Pause.svelte';
   import PromptLayer from './PromptLayer.svelte';
@@ -69,21 +70,10 @@
 
   function resize() {
     const [w, h] = input.px(1, 1);
-    const dpr = devicePixelRatio || 1;
-    view = viewSize(w, h, dpr);
+    view = fitCanvas(canvas, w, h);
     world.view = { w: view.w, h: view.h };
-    top = Math.ceil((probe.offsetHeight * dpr) / view.scale);
-    canvas.width = view.w * view.scale;
-    canvas.height = view.h * view.scale;
-    canvas.style.width = `${canvas.width / dpr}px`;
-    canvas.style.height = `${canvas.height / dpr}px`;
+    top = Math.ceil((probe.offsetHeight * (devicePixelRatio || 1)) / view.scale);
     ctx = canvas.getContext('2d');
-  }
-
-  function direction() {
-    const [w, h] = input.px(1, 1);
-    const finger = stick ? stickVector(stick.dx * w, stick.dy * h, 0.12 * w) : { x: 0, y: 0 };
-    return pick(finger, keyVector(keys), padVector(navigator.getGamepads?.()[0]?.axes));
   }
 
   function take() {
@@ -97,7 +87,7 @@
     if (world.events.length) take();
     if (!prompts.busy && !menu && !hidden) {
       now += dt;
-      step(world, direction(), dt);
+      step(world, steer(stick, input.px(1, 1), keys), dt);
       take();
       fx.update(dt);
     }
@@ -106,7 +96,8 @@
     if (world.over && !ended) {
       ended = true;
       onover(world);
-      endTimer = setTimeout(onend, world.over === 'clear' ? 2000 : 1200);
+      // 15:00 のクリアは延長戦へ進むかを聞く。記録はその前に onover で済ませてある
+      endTimer = setTimeout(world.over === 'clear' ? () => prompts.ask(stick?.id ?? null) : onend, 1200);
     }
     if (ctx) draw(ctx, world, fx, view, now, top);
   }
@@ -121,10 +112,17 @@
     keys.clear();
   }
 
-  /** やめるとやり直すは倒れたときと同じに記録する（コインを失わないため） */
+  function answer(go: boolean) {
+    if (!go) return onend();
+    startOvertime(world);
+    ended = false;
+  }
+
+  /** やめるとやり直すは倒れたときと同じに記録する（コインを失わないため）。延長戦では自分で終えたのでコインを半分にしない */
   function leave(again: boolean) {
     if (ended) return;
     ended = true;
+    if (world.overtime) world.overtime.retreat = true;
     world.over = 'dead';
     onover(world);
     if (again) onrestart();
@@ -180,7 +178,7 @@
     onquit={() => leave(false)}
   />
 {/if}
-<PromptLayer {prompts} finger={stick?.id ?? null} />
+<PromptLayer {prompts} finger={stick?.id ?? null} onanswer={answer} />
 
 <style>
   .board {

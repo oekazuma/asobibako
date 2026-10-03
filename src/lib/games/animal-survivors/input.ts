@@ -33,6 +33,12 @@ export function padVector(axes: readonly number[] | undefined): Vec {
   return { x: x * k, y: y * k };
 }
 
+/** 指のスティック（盤面に対する 0..1 のずれ）・キー・パッドから進む向き。w と h は盤面の CSS の px */
+export function steer(stick: { dx: number; dy: number } | null, [w, h]: number[], keys: ReadonlySet<string>): Vec {
+  const finger = stick ? stickVector(stick.dx * w, stick.dy * h, 0.12 * w) : ZERO;
+  return pick(finger, keyVector(keys), padVector(navigator.getGamepads?.()[0]?.axes));
+}
+
 /** 先に 0 でないものを使う。呼ぶ側は指・キー・パッドの順に渡す */
 export function pick(...vs: Vec[]): Vec {
   return vs.find((v) => v.x !== 0 || v.y !== 0) ?? ZERO;

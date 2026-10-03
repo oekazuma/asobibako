@@ -20,6 +20,8 @@ export class Prompts {
   notice = $state<{ text: string; key: number; until: number } | null>(null);
   /** WARNING から、予告したボスを全部倒すまで（ボスの曲を流す） */
   boss = $state(false);
+  /** 15:00 のクリアのあとの「延長戦へ・おわる」。答えは画面が受け取って閉じる */
+  asking = $state(false);
   readonly lock = new Lock();
   readonly #w: World;
 
@@ -34,7 +36,7 @@ export class Prompts {
   }
 
   get busy(): boolean {
-    return this.options !== null || this.rewards !== null;
+    return this.options !== null || this.rewards !== null || this.asking;
   }
 
   /** step のすぐあとに呼び、出来事から WARNING を拾い、ボスが出る時刻を過ぎたら消す */
@@ -103,6 +105,15 @@ export class Prompts {
     this.#sync();
     this.options = choices(w);
     this.lock.begin(finger);
+  }
+
+  ask(finger: number | null): void {
+    this.asking = true;
+    this.lock.begin(finger);
+  }
+
+  answered(): void {
+    this.asking = false;
   }
 
   close(finger: number | null): void {

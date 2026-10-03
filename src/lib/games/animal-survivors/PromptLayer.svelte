@@ -2,10 +2,12 @@
   import BossWarning from './BossWarning.svelte';
   import ChestOpen from './ChestOpen.svelte';
   import LevelUp from './LevelUp.svelte';
+  import OvertimeAsk from './OvertimeAsk.svelte';
   import type { Prompts } from './prompts.svelte';
 
-  /** finger は画面に残っている移動の指（出た直後の合成 click を捨てるため） */
-  let { prompts, finger }: { prompts: Prompts; finger: number | null } = $props();
+  /** finger は画面に残っている移動の指（出た直後の合成 click を捨てるため）。onanswer は延長戦へ進むか */
+  let { prompts, finger, onanswer }: { prompts: Prompts; finger: number | null; onanswer: (go: boolean) => void } =
+    $props();
 </script>
 
 {#if prompts.notice}
@@ -18,7 +20,15 @@
     <BossWarning name={prompts.warning.name} />
   {/key}
 {/if}
-{#if prompts.rewards}
+{#if prompts.asking}
+  <OvertimeAsk
+    locked={prompts.lock.active}
+    onanswer={(go) => {
+      prompts.answered();
+      onanswer(go);
+    }}
+  />
+{:else if prompts.rewards}
   <!-- 宝箱を続けて開けたときに、見せた数を最初から数え直す -->
   {#key prompts.rewards}
     <ChestOpen rewards={prompts.rewards} locked={prompts.lock.active} onclose={() => prompts.close(finger)} />
