@@ -127,7 +127,7 @@ describe('延長戦のコイン', () => {
 });
 
 describe('延長戦の 2 回めの記録', () => {
-  it('倒した数・宝箱・図鑑は延長戦の差だけで、クリアは数えない', () => {
+  it('宝箱・図鑑は延長戦の差だけ、倒した数は回の合計と 15:00 までの数で、クリアは数えない', () => {
     const w = cleared();
     w.killsBy = { rat: 50 };
     w.kills = 50;
@@ -145,7 +145,8 @@ describe('延長戦の 2 回めの記録', () => {
     const r = overtimeRun(w);
     expect(r.cleared).toBe(false);
     expect(r.finale).toBe(false);
-    expect(r.kills).toBe(10);
+    expect(r.kills).toBe(60);
+    expect(r.killsBefore).toBe(50);
     expect(r.opened).toBe(1);
     expect(r.coins).toBe(4);
     expect(r.book.kills).toEqual({ rat: 7, bat: 3 });

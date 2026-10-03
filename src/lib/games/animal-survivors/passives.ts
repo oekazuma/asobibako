@@ -64,7 +64,9 @@ export function stats(
   a: Animal,
   passives: { id: string; level: number }[],
   boost: Partial<Stats> = {},
-  form = 0
+  form = 0,
+  /** 最大 HP に最後に掛ける倍率（お題の HP 半分） */
+  hpScale = 1
 ): Stats {
   const s: Stats = {
     maxHp: a.hp,
@@ -86,6 +88,7 @@ export function stats(
   for (const { id, level } of passives) s[PASSIVES[id].stat] += PASSIVES[id].per * level;
   s.might += GROW_MIGHT * form;
   s.maxHp += GROW_HP * form;
+  s.maxHp *= hpScale;
   return s;
 }
 

@@ -173,7 +173,7 @@ function ranksOf(v: unknown): Ranks {
 /** 1 回の結果で記録を足し、その回に達成した実績を返す。解放は取り消さない */
 export function record(r: Records, run: RunSummary): AchievementDef[] {
   r.best = Math.max(r.best, run.time);
-  r.kills += run.kills;
+  r.kills += run.kills - (run.killsBefore ?? 0);
   for (const b of run.bosses) if (!r.bosses.includes(b)) r.bosses.push(b);
   if (run.cleared) {
     r.clears += 1;

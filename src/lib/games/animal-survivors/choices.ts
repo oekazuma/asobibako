@@ -1,3 +1,4 @@
+import { hpScale } from './daily';
 import { gainXp, noMeat, pick } from './drops';
 import { trySpecial } from './specials';
 import { EVOLUTIONS, baseOf } from './evolutions';
@@ -69,7 +70,7 @@ export function levelUp(w: World, c: Choice): void {
     if (own) own.level = c.level;
     else w.passives.push({ id: c.id, level: 1 });
     const before = w.stats.maxHp;
-    w.stats = stats(w.animal, w.passives, w.boost, w.form);
+    w.stats = stats(w.animal, w.passives, w.boost, w.form, hpScale(w.mods));
     p.hp += Math.max(0, w.stats.maxHp - before);
   } else if (c.kind === 'meat') {
     p.hp = Math.min(w.stats.maxHp, p.hp + w.stats.maxHp * 0.3);

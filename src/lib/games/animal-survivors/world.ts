@@ -3,7 +3,7 @@ import type { RunBook } from './book';
 import { fire, hits, type Effect, type Shot } from './arms';
 import { moveBoss, slot, spawnBosses, updateHazards, type Hazard } from './bosses';
 import { airborne } from './bosses-snow';
-import { modPerks, modStage, type Challenge, type ModId } from './daily';
+import { hpScale, modPerks, modStage, type Challenge, type ModId } from './daily';
 import { CLEAR_COINS, collect, dropFrom, overtimeCoins, type Gem, type Item } from './drops';
 import { ENEMIES, MAX_R, type BossId, type EnemyDef } from './enemies';
 import { Grid } from './grid';
@@ -233,8 +233,8 @@ export function createWorld(
   const mods = challenge?.mods ?? [];
   const stage = modStage(stageOf(stageId), mods);
   const a = animal(id);
-  const k = modPerks(perks(mods.includes('noShop') ? {} : ranks), a, mods);
-  const s = stats(a, [], k.boost);
+  const k = modPerks(perks(mods.includes('noShop') ? {} : ranks), mods);
+  const s = stats(a, [], k.boost, 0, hpScale(mods));
   return {
     rand: rng(seed),
     time: 0,
@@ -697,7 +697,8 @@ export function hurtPlayer(w: World, raw: number): void {
     p.hp = Math.round(w.stats.maxHp / 2);
     p.invuln = REVIVE_INVULN;
     for (const e of w.enemies) {
-      if (!e.alive || e.def.boss) continue;
+      // ボス・ヌシ・ランタン・ハリネズミは押し合いでも押されないので、押しのけからも外す
+      if (!e.alive || e.def.boss || e.def.chief || e.def.prop || e.def.metal) continue;
       const dx = e.x - p.x;
       const dy = e.y - p.y;
       const d = Math.hypot(dx, dy) || 1;
@@ -828,6 +829,8 @@ export interface RunSummary {
   bookCoins?: number;
   /** お題の回の日付とごほうび。paid は record() が、このときごほうびを入れたら立てる */
   daily?: { date: string; bonus: number; paid?: boolean };
+  /** 延長戦の 2 回めの記録で、15:00 の記録に入れた倒した数（kills はその回の合計なので、記録には差を足す） */
+  killsBefore?: number;
   /** 延長戦の秒とそのぶんのコイン（倒れて半分になったか）。best は記録した面の最高 */
   overtime?: { secs: number; coins: number; halved: boolean; best?: number };
 }

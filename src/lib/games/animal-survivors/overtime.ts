@@ -54,7 +54,9 @@ export function overtimeRun(w: World): RunSummary {
     cleared: false,
     finale: false,
     metal: false,
-    kills: w.kills - base.kills,
+    // 「1 回で N 体」の実績は回の合計を見るので、倒した数は合計のまま渡し、記録には差だけを足させる
+    kills: w.kills,
+    killsBefore: base.kills,
     opened: w.opened - base.opened,
     coins: overtimeCoins(w),
     book: { ...s.book, kills, bosses: s.book.bosses.slice(base.bossTimes) }

@@ -1,4 +1,5 @@
 import { countKill, damageEnemy, type Enemy, type World } from './world';
+import { hpScale } from './daily';
 import { stats } from './passives';
 import { trySpecial } from './specials';
 
@@ -130,7 +131,7 @@ export function gainXp(w: World, value: number): void {
 
 function grow(w: World): void {
   w.form = Math.min(2, w.form + 1) as World['form'];
-  w.stats = stats(w.animal, w.passives, w.boost, w.form);
+  w.stats = stats(w.animal, w.passives, w.boost, w.form, hpScale(w.mods));
   w.player.hp = w.stats.maxHp;
   w.events.push({ type: 'grow', form: w.form as 1 | 2 });
   trySpecial(w);
@@ -279,7 +280,8 @@ export function collect(w: World, dt: number): void {
     if (it.kind === 'coin' || it.kind === 'purse' || it.kind === 'pouch') {
       const value = it.kind === 'coin' ? (w.festival > 0 ? 2 : 1) : it.kind === 'pouch' ? POUCH : PURSE;
       addCoins(w, value);
-      w.events.push({ type: 'coin', value });
+      // 浮かぶ数字は延長戦の倍率を掛けた、実際に入った枚数で見せる
+      w.events.push({ type: 'coin', value: Math.round(value * overtimeRate(w)) });
       continue;
     }
     if (it.kind === 'meat') {

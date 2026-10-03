@@ -1,4 +1,4 @@
-import type { Animal, AnimalId } from './animals';
+import type { AnimalId } from './animals';
 import type { Stats } from './passives';
 import { rng } from './rng';
 import { stageOf } from './stages';
@@ -86,11 +86,13 @@ export function modStage(s: Stage, mods: ModId[]): Stage {
   };
 }
 
+/** HP 半分のしばりの最大 HP の倍率。育つ・パッシブで増えるぶんも半分にするので stats() の最後に掛ける */
+export const hpScale = (mods: ModId[]) => (mods.includes('halfHp') ? 0.5 : 1);
+
 /** 自分にかかるしばり。店の強化なしは呼ぶ側が店の段を空にしてから perks を作る */
-export function modPerks(k: Perks, a: Animal, mods: ModId[]): Perks {
+export function modPerks(k: Perks, mods: ModId[]): Perks {
   const boost: Partial<Stats> = { ...k.boost };
   const add = (key: keyof Stats, v: number) => (boost[key] = (boost[key] ?? 0) + v);
-  if (mods.includes('halfHp')) add('maxHp', -(a.hp + (boost.maxHp ?? 0)) / 2);
   if (mods.includes('growth')) add('growth', 1);
   if (mods.includes('might')) add('might', 0.3);
   const tools = mods.includes('noTools') ? { rerolls: 0, skips: 0, banishes: 0 } : {};
