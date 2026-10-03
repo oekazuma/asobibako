@@ -1,9 +1,15 @@
 import { flushSync, mount, unmount } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import DamageTable from './DamageTable.svelte';
+import Pause from './Pause.svelte';
+import { emptyRecords } from './records';
+import StageSelect from './StageSelect.svelte';
 import GrowPlate from './GrowPlate.svelte';
 import PromptLayer from './PromptLayer.svelte';
 import { Prompts } from './prompts.svelte';
-import { createWorld } from './world';
+import { createWorld, summary } from './world';
+
+vi.mock('$lib/audio.svelte', () => ({ audio: { muted: false }, toggleMute: () => {} }));
 
 describe('演出の小さい直し', () => {
   afterEach(() => {
@@ -33,5 +39,39 @@ describe('演出の小さい直し', () => {
     flushSync();
     expect(target.textContent).toContain('攻撃 +20%・最大 HP +40');
     unmount(app);
+  });
+});
+
+describe('画面の小さい直し', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('面を選ぶ画面に音のボタンがある', () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(StageSelect, { target, props: { records: emptyRecords(), onpick: () => {}, onback: () => {} } });
+    flushSync();
+    expect(target.querySelector('button[aria-label="ミュート"]')).not.toBeNull();
+    unmount(app);
+  });
+
+  it('一時停止とリザルトの武器の表で、専用進化形は★でなく王冠', () => {
+    const w = createWorld('dog', 1, { w: 260, h: 380 });
+    w.weapons = [{ id: 'woofSp', level: 1, cd: 0 }];
+    w.dealt = { woofSp: { damage: 100, kills: 3 } };
+    const run = summary(w);
+    for (const [c, props] of [
+      [Pause, { run, finger: null, onresume: () => {}, onrestart: () => {}, onquit: () => {} }],
+      [DamageTable, { run }]
+    ] as const) {
+      const target = document.body.appendChild(document.createElement('div'));
+      // @ts-expect-error 2 つの部品を同じ形で並べて mount する
+      const app = mount(c, { target, props });
+      flushSync();
+      expect(target.querySelector('.crown')).not.toBeNull();
+      expect(target.textContent).not.toContain('★');
+      unmount(app);
+      target.remove();
+    }
   });
 });

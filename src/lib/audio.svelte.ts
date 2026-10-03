@@ -1,6 +1,7 @@
 export const MUTED_KEY = 'asobibako:muted';
 
 let ctx: AudioContext | undefined;
+let out: GainNode | undefined;
 
 export const audio = $state({ muted: read() });
 
@@ -19,6 +20,17 @@ export function toggleMute(): void {
   } catch {
     // プライベートブラウズでは保存できないが、音は鳴らせる
   }
+  if (out) out.gain.value = audio.muted ? 0 : 1;
+}
+
+/** 効果音の出口。先の時刻に予約した音もミュートで止まるよう、音量をここでまとめて 0 にする */
+function exit(c: AudioContext): AudioNode {
+  if (!out) {
+    out = c.createGain();
+    out.gain.value = audio.muted ? 0 : 1;
+    out.connect(c.destination);
+  }
+  return out;
 }
 
 /** iOS は操作イベントの中で resume() しないと無音のままになる */
@@ -54,7 +66,7 @@ export function tone(freq: number, ms: number, type: OscillatorType = 'triangle'
   osc.frequency.setValueAtTime(freq, at);
   amp.gain.setValueAtTime(gain, at);
   amp.gain.exponentialRampToValueAtTime(0.0001, at + ms / 1000);
-  osc.connect(amp).connect(ctx.destination);
+  osc.connect(amp).connect(exit(ctx));
   osc.start(at);
   osc.stop(at + ms / 1000);
 }
@@ -69,7 +81,7 @@ export function sweep(from: number, to: number, ms: number, gain = 0.12) {
   osc.frequency.exponentialRampToValueAtTime(to, at + ms / 1000);
   amp.gain.setValueAtTime(gain, at);
   amp.gain.exponentialRampToValueAtTime(0.0001, at + ms / 1000);
-  osc.connect(amp).connect(ctx.destination);
+  osc.connect(amp).connect(exit(ctx));
   osc.start(at);
   osc.stop(at + ms / 1000);
 }
@@ -85,7 +97,7 @@ export function noise(ms: number, gain = 0.3) {
   const amp = ctx.createGain();
   src.buffer = buffer;
   amp.gain.value = gain;
-  src.connect(amp).connect(ctx.destination);
+  src.connect(amp).connect(exit(ctx));
   src.start();
 }
 

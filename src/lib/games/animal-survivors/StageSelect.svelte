@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { audio, toggleMute } from '$lib/audio.svelte';
+  import Icon from '$lib/components/Icon.svelte';
   import { FOREST_ART } from './art/forest';
   import { GRAVE_ART } from './art/graveyard';
   import { SNOW_ART } from './art/snow';
@@ -19,6 +21,9 @@
 
 <div class="as-screen">
   <button class="round corner" onclick={onback} aria-label="キャラクター選択へ戻る">✕</button>
+  <button class="round corner mute" onclick={toggleMute} aria-label="ミュート" aria-pressed={audio.muted}>
+    <Icon name={audio.muted ? 'mute' : 'speaker'} size="26px" />
+  </button>
   <section class="as-panel" aria-label="面を選ぶ">
     <h2 class="as-title">面を選ぶ</h2>
     {#each STAGES as s (s.id)}
@@ -56,6 +61,11 @@
     top: max(12px, env(safe-area-inset-top));
     left: max(12px, env(safe-area-inset-left));
     z-index: 5;
+  }
+
+  .mute {
+    right: max(12px, env(safe-area-inset-right));
+    left: auto;
   }
 
   .look {

@@ -2,6 +2,7 @@
   import { onDestroy } from 'svelte';
   import { audio, toggleMute } from '$lib/audio.svelte';
   import { itemArt } from './art/evolved';
+  import { ITEM_ART } from './art/items';
   import { clock } from './hud';
   import { Lock } from './lock.svelte';
   import PixelIcon from './PixelIcon.svelte';
@@ -39,8 +40,13 @@
   /** 延長戦では自分で終えるとコインを全部もらえるので、やめるを引き上げると呼ぶ */
   const quit = $derived(run.overtime ? '引き上げる' : 'やめる');
   const owned = $derived([
-    ...run.weapons.map((o) => ({ ...o, key: `weapon-${o.id}`, star: WEAPONS[o.id]?.evolved ?? false })),
-    ...run.passives.map((o) => ({ ...o, key: `passive-${o.id}`, star: false }))
+    ...run.weapons.map((o) => ({
+      ...o,
+      key: `weapon-${o.id}`,
+      star: WEAPONS[o.id]?.evolved ?? false,
+      crown: WEAPONS[o.id]?.special ?? false
+    })),
+    ...run.passives.map((o) => ({ ...o, key: `passive-${o.id}`, star: false, crown: false }))
   ]);
 </script>
 
@@ -70,7 +76,8 @@
         {#each owned as o (o.key)}
           <li class="slot">
             <PixelIcon art={itemArt(o.key)} size="min(8cqw, 4.6cqh, 40px)" /><span class="lv"
-              >{o.star ? '★' : o.level}</span
+              >{#if o.crown}<span class="crown"><PixelIcon art={ITEM_ART.crown} size="min(3.4cqw, 2cqh, 16px)" /></span
+                >{:else}{o.star ? '★' : o.level}{/if}</span
             >
           </li>
         {/each}

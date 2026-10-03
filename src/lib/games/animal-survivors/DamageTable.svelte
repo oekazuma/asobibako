@@ -1,5 +1,6 @@
 <script lang="ts">
   import { itemArt } from './art/evolved';
+  import { ITEM_ART } from './art/items';
   import PixelIcon from './PixelIcon.svelte';
   import { MAX_LEVEL, WEAPONS } from './weapons';
   import type { RunSummary } from './world';
@@ -20,7 +21,11 @@
     <div class="row" role="row" style:--r={d.damage / top}>
       <span class="name" role="cell">
         <PixelIcon art={itemArt(`weapon-${d.id}`)} size="min(6cqw, 3.6cqh, 32px)" />
-        {WEAPONS[d.id].name}<small>{WEAPONS[d.id].evolved ? '★' : `Lv${level(d.id)}`}</small>
+        {WEAPONS[d.id].name}<small
+          >{#if WEAPONS[d.id].special}<span class="crown"
+              ><PixelIcon art={ITEM_ART.crown} size="min(3.4cqw, 2cqh, 16px)" /></span
+            >{:else}{WEAPONS[d.id].evolved ? '★' : `Lv${level(d.id)}`}{/if}</small
+        >
       </span>
       <span role="cell">{n(d.damage)}</span>
       <span role="cell">{n(d.kills)}</span>
