@@ -39,12 +39,10 @@ export function maxHeat(coins: number): number {
 export function heatStage(s: Stage, h: number): Stage {
   if (h === 2) return s;
   const hp = hpMul(h);
-  const atk = atkMul(h);
   return {
     ...s,
     coin: s.coin * coinMul(h),
     toughness: (t) => s.toughness(t) * hp,
-    fury: (t) => s.fury(t) * atk,
     chiefs: s.chiefs.map((c) => ({ ...c, hp: c.hp * hp }))
   };
 }

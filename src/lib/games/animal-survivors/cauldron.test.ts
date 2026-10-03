@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { atkMul, betOf, chestOdds, coinMul, heatLabel, heatStage, hpMul, maxHeat, PLAIN, snap } from './cauldron';
 import { chestSize } from './chest';
 import { FOREST } from './stages/forest';
-import { coinsOf, createWorld, summary } from './world';
+import { coinsOf, createWorld, hurtPlayer, summary } from './world';
 
 const VIEW = { w: 274, h: 394 };
 
@@ -51,10 +51,11 @@ describe('釜の強さ', () => {
     expect(betOf(snap(h + 0.1))).toBeGreaterThan(300);
   });
 
-  it('写した表は体力・ヌシ・攻撃・コインに掛かり、元の表は変わらない', () => {
+  it('写した表は体力・ヌシ・コインに掛かり、元の表は変わらない', () => {
     const s = heatStage(FOREST, 9);
     expect(s.toughness(300)).toBeCloseTo(FOREST.toughness(300) * hpMul(9));
-    expect(s.fury(300)).toBeCloseTo(FOREST.fury(300) * atkMul(9));
+    // 攻撃は自分が受けるところで掛けるので、表の fury には掛けない（二重にしない）
+    expect(s.fury(300)).toBe(FOREST.fury(300));
     expect(s.chiefs[0].hp).toBeCloseTo(FOREST.chiefs[0].hp * hpMul(9));
     expect(s.coin).toBeCloseTo(FOREST.coin * coinMul(9));
     expect(FOREST.toughness(300)).toBeCloseTo(1 + (300 / 600) * 4.2);
@@ -76,5 +77,27 @@ describe('釜の強さ', () => {
     expect(chestSize(0.51, odds)).toBe(3);
     expect(chestSize(0.9, odds)).toBe(5);
     expect(chestSize(0.9)).toBe(3);
+  });
+});
+
+describe('釜の攻撃の倍率', () => {
+  const hit = (level: number, raw: number) => {
+    const w = createWorld('dog', 1, VIEW, {}, 'forest', undefined, { level, bet: 0 });
+    w.stats.armor = 0;
+    const hp = w.player.hp;
+    hurtPlayer(w, raw);
+    return hp - w.player.hp;
+  };
+
+  it('ボスの攻撃も含めて、受けるダメージ全部に掛かる', () => {
+    expect(hit(2, 20)).toBe(20);
+    expect(hit(9, 20)).toBe(Math.round(20 * atkMul(9)));
+    expect(hit(0, 20)).toBe(Math.round(20 * atkMul(0)));
+  });
+
+  it('2.0 では倍率がちょうど 1', () => {
+    expect(atkMul(2)).toBe(1);
+    expect(hpMul(2)).toBe(1);
+    expect(coinMul(2)).toBe(1);
   });
 });
