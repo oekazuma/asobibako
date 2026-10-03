@@ -5,7 +5,7 @@ export const CRACK_WARN = 1.2;
 export const POOL_LIFE = 6;
 export const POOL_TICK = 0.5;
 /** 池が自分に当たる強さと、敵に当たる強さ（敵には時刻の硬さを掛ける） */
-export const POOL_DMG = 8;
+export const POOL_DMG = 12;
 const POOL_HIT = 6;
 /** 噴火とボスの池が重なっても描く数と当たりの計算を増やしすぎない */
 export const MAX_LAVA = 24;

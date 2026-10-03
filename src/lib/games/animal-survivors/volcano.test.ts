@@ -16,12 +16,12 @@ describe('火山の表', () => {
     expect(canPlay({ ...emptyRecords(), stages: ['forest', 'graveyard', 'snow'] }, 'volcano')).toBe(true);
   });
 
-  it('時刻は森と同じで、森より 1.3 倍強く、コインは 2.5 倍', () => {
+  it('時刻は森と同じで、森より 1.4 倍強く、コインは 2.5 倍', () => {
     expect(VOLCANO.length).toBe(FOREST.length);
     expect(VOLCANO.bosses.map((b) => b.at)).toEqual(SNOW.bosses.map((b) => b.at));
     expect(VOLCANO.events.map((e) => e.at)).toEqual(FOREST.events.map((e) => e.at));
-    expect(VOLCANO.toughness(300)).toBeCloseTo(FOREST.toughness(300) * 1.3);
-    expect(VOLCANO.fury(300)).toBeCloseTo(FOREST.fury(300) * 1.3);
+    expect(VOLCANO.toughness(300)).toBeCloseTo(FOREST.toughness(300) * 1.4);
+    expect(VOLCANO.fury(300)).toBeCloseTo(FOREST.fury(300) * 1.4);
     expect(VOLCANO.coin).toBe(2.5);
     expect(VOLCANO.eruptions.map((e) => e.at)).toEqual([95, 215, 335, 455]);
   });
