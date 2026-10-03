@@ -47,6 +47,8 @@ export interface Records {
   heat: Record<string, number>;
   /** 最後に選んだ釜の強さ */
   heatLast: number;
+  /** 溶岩の池で倒した数の合計 */
+  lavaKills: number;
 }
 
 export const RECORDS_KEY = 'asobibako:animal-survivors';
@@ -75,7 +77,8 @@ export function emptyRecords(): Records {
     daily: null,
     dailyDays: 0,
     heat: {},
-    heatLast: 2
+    heatLast: 2,
+    lavaKills: 0
   };
 }
 
@@ -132,7 +135,8 @@ export function parseRecords(text: string | null): Records {
     daily: dailyOf(raw.daily, ids),
     dailyDays: Math.floor(num(raw.dailyDays)),
     heat: heatOf(raw.heat),
-    heatLast: isNum(raw.heatLast) ? snap(raw.heatLast) : 2
+    heatLast: isNum(raw.heatLast) ? snap(raw.heatLast) : 2,
+    lavaKills: Math.floor(num(raw.lavaKills))
   };
 }
 
@@ -203,6 +207,7 @@ export function record(r: Records, run: RunSummary): AchievementDef[] {
     if (!r.clearedBy.includes(run.animal)) r.clearedBy.push(run.animal);
   }
   r.chests += run.opened;
+  r.lavaKills += run.lavaKills ?? 0;
   r.coins += run.coins;
   if (run.cleared && !r.stages.includes(run.stage)) r.stages.push(run.stage);
   r.stage = run.stage;

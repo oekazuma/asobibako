@@ -211,7 +211,7 @@ export interface World {
    */
   overtime: null | {
     from: number;
-    base: { kills: number; opened: number; killsBy: Record<string, number>; bossTimes: number };
+    base: { kills: number; opened: number; killsBy: Record<string, number>; bossTimes: number; lavaKills: number };
     coins: number;
     retreat: boolean;
   };
@@ -897,6 +897,8 @@ export interface RunSummary {
   overtime?: { secs: number; coins: number; halved: boolean; best?: number };
   heat: Heat;
   arcana?: ArcanaId[];
+  /** 溶岩の池で倒した数 */
+  lavaKills?: number;
 }
 
 /** 強欲を掛けたこの回のコイン。1 枚ずつ掛けると端数で減るので、合計に掛ける */
@@ -909,6 +911,7 @@ export function summary(w: World): RunSummary {
     animal: w.animal.id,
     heat: w.heat,
     arcana: [...w.arcana],
+    lavaKills: w.lavaKills,
     cleared: w.over === 'clear',
     time: w.time,
     level: w.level,

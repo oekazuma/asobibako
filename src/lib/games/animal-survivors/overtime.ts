@@ -34,7 +34,13 @@ export function startOvertime(w: World): void {
   };
   w.overtime = {
     from,
-    base: { kills: w.kills, opened: w.opened, killsBy: { ...w.killsBy }, bossTimes: w.bossTimes.length },
+    base: {
+      kills: w.kills,
+      opened: w.opened,
+      killsBy: { ...w.killsBy },
+      bossTimes: w.bossTimes.length,
+      lavaKills: w.lavaKills
+    },
     coins: 0,
     retreat: false
   };
@@ -59,6 +65,7 @@ export function overtimeRun(w: World): RunSummary {
     kills: w.kills,
     killsBefore: base.kills,
     opened: w.opened - base.opened,
+    lavaKills: w.lavaKills - base.lavaKills,
     coins: overtimeCoins(w),
     book: { ...s.book, kills, bosses: s.book.bosses.slice(base.bossTimes) }
   };

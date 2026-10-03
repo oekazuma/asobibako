@@ -149,6 +149,19 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'snowClear', name: '雪山をクリア', coins: 400, animal: 'drake', done: (r) => r.stages.includes('snow') },
   { id: 'volcanoClear', name: '火山をクリア', coins: 600, done: (r) => r.stages.includes('volcano') },
   {
+    id: 'volcanoBosses',
+    name: '溶岩の巨人と不死鳥を倒す',
+    coins: 400,
+    done: (r) => r.bosses.includes('lavaGiant') && r.bosses.includes('phoenix')
+  },
+  {
+    id: 'lava300',
+    name: '溶岩の池で敵を 300 体倒す',
+    coins: 300,
+    done: (r) => r.lavaKills >= 300,
+    progress: (r) => [r.lavaKills, 300]
+  },
+  {
     id: 'snowBosses',
     name: '雪山の 2 体のボスを倒す',
     coins: 300,

@@ -93,6 +93,7 @@ describe('世界', () => {
       animal: 'cat',
       heat: { level: 2, bet: 0 },
       arcana: [],
+      lavaKills: 0,
       cleared: false,
       time: 763.4,
       level: 18,
