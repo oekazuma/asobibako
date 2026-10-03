@@ -48,6 +48,8 @@ export interface Enemy {
   born: number;
   /** 大ヘビの頭が通った道（x, y の並び）。体の節がこの上に並ぶ */
   trail?: number[];
+  /** 大ヘビの頭が最後に受けた一撃（時刻と武器）。範囲の一撃が頭と節にまとめて当たっても 1 回にする */
+  bitten?: string;
 }
 
 export interface Player {
@@ -369,6 +371,11 @@ export function damageEnemy(
     e.flash = 0.12;
     if (w.enemies[e.turn]?.alive) damageEnemy(w, e.turn, dmg, 0, 0, crit, source);
     return;
+  }
+  if (e.def.ai === 'snake' && source) {
+    const key = `${w.time}|${source}`;
+    if (e.bitten === key) return;
+    e.bitten = key;
   }
   const heal = source ? (WEAPONS[source]?.drain ?? 0) : 0;
   if (heal > 0 && w.drainLeft > 0) {

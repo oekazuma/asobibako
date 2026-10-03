@@ -102,11 +102,11 @@ function clearScreen(w: World) {
 
 /** Lv から次の Lv へ要る経験値。5 から始めて Lv20 まで 10 ずつ、Lv30 まで 13 ずつ、Lv40 まで 24 ずつ、そこからは 30 ずつ増える（後半に強くなりすぎないように） */
 export function xpNeed(level: number): number {
-  if (level < 10) return 5 + (level - 1) * 12;
-  if (level < 20) return 113 + (level - 10) * 24;
-  if (level < 30) return 353 + (level - 20) * 38;
-  if (level < 40) return 733 + (level - 30) * 50;
-  return 1233 + (level - 40) * 60;
+  if (level < 10) return 5 + (level - 1) * 10;
+  if (level < 20) return 95 + (level - 10) * 22;
+  if (level < 30) return 315 + (level - 20) * 38;
+  if (level < 40) return 695 + (level - 30) * 50;
+  return 1195 + (level - 40) * 60;
 }
 
 /** 描く色。1〜4 は青、5〜19 は緑、20 以上は赤 */

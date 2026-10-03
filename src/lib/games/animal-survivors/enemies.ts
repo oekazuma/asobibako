@@ -64,19 +64,19 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
       // ボスの体力はこの値に、出る時刻の硬さと行の倍率を掛ける（bosses.ts の spawnBosses）
       { ...e('bear', '巨大ベア', [700, 28, 20, 15, 0], 'boss', 1, 'bear'), ai: 'bear', epithet: '森の暴れん坊' },
       {
-        ...e('spiderQueen', '女王グモ', [900, 38, 25, 16, 0], 'boss', 1, 'spiderQueen'),
+        ...e('spiderQueen', '女王グモ', [550, 38, 25, 16, 0], 'boss', 1, 'spiderQueen'),
         epithet: '糸を操る女王',
         ai: 'queen',
         minion: 'spiderling',
         shot: 'web'
       },
       {
-        ...e('bigBoar', '大イノシシ', [1100, 30, 24, 17, 0], 'boss', 1, 'bigBoar'),
+        ...e('bigBoar', '大イノシシ', [1400, 30, 24, 17, 0], 'boss', 1, 'bigBoar'),
         ai: 'boar',
         epithet: '地鳴りの突進王'
       },
       {
-        ...e('bigEagle', '大ワシ', [1000, 40, 24, 18, 0], 'boss', 1, 'bigEagle'),
+        ...e('bigEagle', '大ワシ', [1400, 40, 24, 18, 0], 'boss', 1, 'bigEagle'),
         ai: 'eagle',
         epithet: '空からの狩人'
       },
@@ -86,7 +86,7 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
         minion: 'ghost',
         epithet: '森の古木'
       },
-      { ...e('bigSnake', '大ヘビ', [1400, 34, 24, 12, 0], 'boss', 1, 'bigSnake'), ai: 'snake', epithet: '森のぬし' },
+      { ...e('bigSnake', '大ヘビ', [2200, 34, 24, 12, 0], 'boss', 1, 'bigSnake'), ai: 'snake', epithet: '森のぬし' },
       { ...e('snakeSeg', '大ヘビの体', [1, 0, 18, 7, 0], 'still', 1), part: true },
       e('ghost', 'おばけ', [8, 52, 6, 6, 1], 'wave', 0),
       e('skeleton', 'ガイコツ', [26, 36, 11, 7, 3], 'chase', 0.3),

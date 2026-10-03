@@ -26,7 +26,7 @@ export interface Hazard {
 }
 
 /** ボスの体力に掛ける面の硬さを弱める（そのままだと序盤のボスに 2 分かかる） */
-export const BOSS_HP = 0.7;
+export const BOSS_HP = 1.2;
 /** 糸の玉と冷たい息で遅くなる秒 */
 export const SLOWED = 1;
 
@@ -96,7 +96,7 @@ export function spawnBosses(w: World): void {
 }
 
 const BEAR = {
-  every: 4,
+  every: 3.2,
   dashWarn: 0.7,
   dashTime: 0.9,
   dashSpeed: 210,
@@ -107,8 +107,8 @@ const BEAR = {
 };
 const QUEEN = {
   keep: 110,
-  webEvery: 3,
-  webs: 5,
+  webEvery: 2.4,
+  webs: 7,
   webSpread: (15 * Math.PI) / 180,
   webSpeed: 90,
   webLife: 3,

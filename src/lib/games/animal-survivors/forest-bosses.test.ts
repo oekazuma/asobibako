@@ -169,6 +169,19 @@ describe('大ヘビ', () => {
     expect(w.kills).toBe(0);
   });
 
+  it('同じ武器の同じ一撃が体の節にいくつ当たっても、頭の体力は 1 回分しか減らない', () => {
+    const { w, e } = withBoss('bigSnake', 200, 0);
+    const hp = e.hp;
+    w.enemies.forEach((o, j) => {
+      if (o.alive && o.def.part) damageEnemy(w, j, 10, 0, 0, false, 'woof');
+    });
+    expect(e.hp).toBe(hp - 10);
+    step(w, still, 1 / 60);
+    const j = w.enemies.findIndex((o) => o.alive && o.def.part);
+    damageEnemy(w, j, 10, 0, 0, false, 'woof');
+    expect(e.hp).toBe(hp - 20);
+  });
+
   it('体の節に触れると痛い', () => {
     const { w } = withBoss('bigSnake', 200, 0);
     w.player.invuln = 1;

@@ -9,21 +9,21 @@ const VIEW = { w: 260, h: 380 };
 const fresh = () => createWorld('dog', 2, VIEW);
 
 describe('経験値', () => {
-  it('必要量は 5 から 12 ずつ、Lv10 から 24 ずつ、Lv20 から 38 ずつ増える', () => {
+  it('必要量は 5 から 10 ずつ、Lv10 から 22 ずつ、Lv20 から 38 ずつ増える', () => {
     expect(xpNeed(1)).toBe(5);
-    expect(xpNeed(2)).toBe(17);
-    expect(xpNeed(10)).toBe(113);
-    expect(xpNeed(11)).toBe(137);
-    expect(xpNeed(20)).toBe(353);
-    expect(xpNeed(21)).toBe(391);
+    expect(xpNeed(2)).toBe(15);
+    expect(xpNeed(10)).toBe(95);
+    expect(xpNeed(11)).toBe(117);
+    expect(xpNeed(20)).toBe(315);
+    expect(xpNeed(21)).toBe(353);
   });
 
   it('Lv30 から 50 ずつ、Lv40 から 60 ずつ増え、後半はレベルが上がりにくい', () => {
-    expect(xpNeed(29)).toBe(695);
-    expect(xpNeed(30)).toBe(733);
-    expect(xpNeed(31)).toBe(783);
-    expect(xpNeed(40)).toBe(1233);
-    expect(xpNeed(41)).toBe(1293);
+    expect(xpNeed(29)).toBe(657);
+    expect(xpNeed(30)).toBe(695);
+    expect(xpNeed(31)).toBe(745);
+    expect(xpNeed(40)).toBe(1195);
+    expect(xpNeed(41)).toBe(1255);
   });
 
   it('一度に 2 つ上がれば 3 択が 2 回たまる', () => {
