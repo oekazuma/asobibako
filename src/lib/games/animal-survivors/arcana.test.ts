@@ -83,14 +83,17 @@ describe('札の効き方', () => {
     const hp = w.player.hp;
     takeArcana(w, 'spring');
     expect(w.player.hp).toBe(hp + 30);
-    expect(w.stats.regen).toBeGreaterThan(0);
+    expect(w.stats.regen).toBeCloseTo(1);
   });
 
-  it('敵を増やす札は面の表を写して掛け算にする', () => {
+  it('群れの呼び声は敵の出る数と攻撃を、欲ばりの壺は敵の体力を、面の表を写して増やす', () => {
     const w = world();
     takeArcana(w, 'greedy');
     takeArcana(w, 'horde');
-    expect(w.stage.waves[0].rate[1]).toBeCloseTo(FOREST.waves[0].rate[1] * 1.3 * 1.5);
+    expect(w.stage.waves[0].rate[1]).toBeCloseTo(FOREST.waves[0].rate[1] * 1.6);
+    expect(w.stage.fury(300)).toBeCloseTo(FOREST.fury(300) * 1.3);
+    expect(w.stage.toughness(300)).toBeCloseTo(FOREST.toughness(300) * 1.15);
+    expect(w.greed).toBeCloseTo(1.5);
     expect(FOREST.waves[0].rate[1]).toBe(createWorld('dog', 1, VIEW).stage.waves[0].rate[1]);
   });
 
@@ -117,11 +120,11 @@ describe('札の効き方', () => {
     expect(desperate(createWorld('dog', 1, VIEW))).toBe(1);
   });
 
-  it('血の契約は 20 体倒すたびに HP 1 回復し、少しずつの回復はしない', () => {
+  it('血の契約は 10 体倒すたびに HP 1 回復し、少しずつの回復はしない', () => {
     const w = world();
     takeArcana(w, 'blood');
     w.player.hp = 10;
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 10; i++) {
       w.enemies.push(makeEnemy(ENEMIES.rat, 500 + i, 500, 1));
       damageEnemy(w, w.enemies.length - 1, 99, 0, 0);
     }

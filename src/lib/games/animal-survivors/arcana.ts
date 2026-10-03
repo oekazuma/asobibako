@@ -42,7 +42,7 @@ export const ARCANA: ArcanaDef[] = [
   { id: 'gamble', name: 'いちかばちか', good: '攻撃 +50%', bad: '最大 HP 半分', trade: true },
   { id: 'armor', name: '重いよろい', good: '防御 +4', bad: '速さ −20%', trade: true },
   { id: 'cursed', name: '宝の呪い', good: '宝箱の中身がいつも 3 つ以上', bad: '肉が出ない', trade: true },
-  { id: 'greedy', name: '欲ばりの壺', good: 'コイン 1.5 倍', bad: '敵の出る数 1.3 倍', trade: true },
+  { id: 'greedy', name: '欲ばりの壺', good: 'コイン 1.5 倍', bad: '敵の体力 1.15 倍', trade: true },
   { id: 'glass', name: 'ガラスの大砲', good: '攻撃の間 −40%', bad: '防御 −3', trade: true, unlock: 'weapons5' },
   {
     id: 'last',
@@ -55,15 +55,15 @@ export const ARCANA: ArcanaDef[] = [
   {
     id: 'horde',
     name: '群れの呼び声',
-    good: '経験値 1.5 倍',
-    bad: '敵の出る数 1.5 倍',
+    good: '敵が多いぶん経験値とコインが増える',
+    bad: '敵の出る数 1.6 倍、ふつうの敵の攻撃 1.3 倍',
     trade: true,
     unlock: 'run3000'
   },
   {
     id: 'blood',
     name: '血の契約',
-    good: '敵を 20 体倒すたびに HP 1 回復',
+    good: '敵を 10 体倒すたびに HP 1 回復',
     bad: '肉が出ない、少しずつの回復なし',
     trade: true,
     unlock: 'daily7'
@@ -71,7 +71,7 @@ export const ARCANA: ArcanaDef[] = [
 ];
 
 export const MAX_ARCANA = 3;
-const BLOOD_EVERY = 20;
+const BLOOD_EVERY = 10;
 const SPRING_HP = 30;
 
 export const arcanaDef = (id: ArcanaId) => ARCANA.find((a) => a.id === id)!;
@@ -121,12 +121,12 @@ const ADD: Partial<Record<ArcanaId, (w: World) => Partial<Record<keyof World['st
   clover: () => ({ luck: 0.3 }),
   shadow: () => ({ amount: 1 }),
   sand: () => ({ duration: 0.3, haste: 0.1 }),
-  spring: () => ({ maxHp: SPRING_HP, regen: 0.5 }),
+  spring: () => ({ maxHp: SPRING_HP, regen: 1 }),
   eye: () => ({ crit: 0.15 }),
   gamble: (w) => ({ might: w.animal.might * 0.5 }),
   armor: (w) => ({ armor: 4, speed: -w.animal.speed * 0.2 }),
   glass: () => ({ haste: 0.4, armor: -3 }),
-  horde: () => ({ growth: 0.5 })
+  horde: () => ({})
 };
 
 export function takeArcana(w: World, id: ArcanaId): void {
@@ -137,7 +137,14 @@ export function takeArcana(w: World, id: ArcanaId): void {
   for (const [k, v] of Object.entries(add) as [keyof World['stats'], number][]) boost[k] = (boost[k] ?? 0) + v;
   w.boost = boost;
   if (id === 'greedy') w.greed *= 1.5;
-  if (id === 'greedy' || id === 'horde') w.stage = swarmStage(w.stage, id === 'greedy' ? 1.3 : 1.5);
+  if (id === 'horde') {
+    const s = swarmStage(w.stage, 1.6);
+    w.stage = { ...s, fury: (t) => s.fury(t) * 1.3 };
+  }
+  if (id === 'greedy') {
+    const s = w.stage;
+    w.stage = { ...s, toughness: (t) => s.toughness(t) * 1.15 };
+  }
   w.stats = stats(w.animal, w.passives, w.boost, w.form, hpScaleOf(w));
   if (id === 'spring') w.player.hp += SPRING_HP;
   w.player.hp = Math.min(w.player.hp, w.stats.maxHp);
