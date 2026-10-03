@@ -55,11 +55,15 @@ describe('延長戦を始める', () => {
     const w = cleared();
     startOvertime(w);
     const warned: string[] = [];
-    for (let i = 0; i < 125 * 30; i++) {
-      w.pending = 0;
-      w.chests = 0;
-      step(w, still, 1 / 30);
-      for (const e of w.events) if (e.type === 'warning') warned.push(`${e.boss}@${Math.round(w.time)}`);
+    // 1 フレームずつ 2 分進めると遅いので、それぞれのボスの少し前へ時刻を飛ばす
+    for (const at of [950, 1010]) {
+      w.time = at;
+      for (let i = 0; i < 15 * 30; i++) {
+        w.pending = 0;
+        w.chests = 0;
+        step(w, still, 1 / 30);
+        for (const e of w.events) if (e.type === 'warning') warned.push(`${e.boss}@${Math.round(w.time)}`);
+      }
     }
     expect(warned).toEqual(['bear@957', 'spiderQueen@1017']);
     const bosses = w.enemies.filter((e) => e.alive && e.def.boss).map((e) => e.def.id);
