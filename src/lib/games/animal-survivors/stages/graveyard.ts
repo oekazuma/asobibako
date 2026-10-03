@@ -17,6 +17,7 @@ export const GRAVEYARD: Stage = {
   unlock: '森をクリアすると行ける',
   after: 'forest',
   storms: [],
+  eruptions: [],
   length: 600,
   events: FOREST.events.map((ev) => {
     const to = SWAP[ev.enemy];

@@ -1,3 +1,4 @@
+import { VOLCANO_BOSS_ART } from './bosses-volcano';
 import type { Art } from '../pixels';
 import { FOREST_BOSS_ART } from './bosses-forest';
 
@@ -670,4 +671,4 @@ const BASE: Record<
   }
 };
 
-export const BOSS_ART = { ...BASE, ...FOREST_BOSS_ART };
+export const BOSS_ART = { ...BASE, ...FOREST_BOSS_ART, ...VOLCANO_BOSS_ART };

@@ -19,8 +19,8 @@ function quiet(): World {
 }
 
 describe('面の表', () => {
-  it('森と墓地が並び、墓地の敵とボスはどれも敵の表にある（雪山が続く）', () => {
-    expect(STAGES.map((s) => s.id)).toEqual(['forest', 'graveyard', 'snow']);
+  it('森と墓地が並び、墓地の敵とボスはどれも敵の表にある（雪山と火山が続く）', () => {
+    expect(STAGES.map((s) => s.id)).toEqual(['forest', 'graveyard', 'snow', 'volcano']);
     for (const w of GRAVEYARD.waves) expect(ENEMIES[w.enemy]).toBeDefined();
     for (const b of GRAVEYARD.bosses) expect(ENEMIES[b.id].boss).toBe(b.id);
     for (const e of GRAVEYARD.events) if (e.enemy) expect(ENEMIES[e.enemy]).toBeDefined();

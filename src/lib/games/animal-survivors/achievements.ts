@@ -147,6 +147,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     done: (r) => r.stages.includes('graveyard')
   },
   { id: 'snowClear', name: '雪山をクリア', coins: 400, animal: 'drake', done: (r) => r.stages.includes('snow') },
+  { id: 'volcanoClear', name: '火山をクリア', coins: 600, done: (r) => r.stages.includes('volcano') },
   {
     id: 'snowBosses',
     name: '雪山の 2 体のボスを倒す',

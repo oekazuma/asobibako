@@ -6,6 +6,7 @@ import { GRAVE_ART } from './art/graveyard';
 import { goldArt } from './art/evolved';
 import { ITEM_ART } from './art/items';
 import { SNOW_ART } from './art/snow';
+import { VOLCANO_ART } from './art/volcano';
 import { PALETTE } from './art/palette';
 import { shots, swipes, zonesBelow } from './draw-arms';
 import { bossBars, hazardsAbove, hazardsBelow, introDust, introEdge } from './draw-boss';
@@ -127,6 +128,18 @@ const GROUNDS = {
       [1, 'pine']
     ],
     shadowed: ['pine', 'rock']
+  },
+  volcano: {
+    art: VOLCANO_ART,
+    decor: [
+      [0.6, null],
+      [0.74, 'crack'],
+      [0.84, 'basalt'],
+      [0.91, 'ember'],
+      [0.96, 'smoke'],
+      [1, 'spire']
+    ],
+    shadowed: ['spire', 'basalt', 'smoke']
   }
 } as const;
 

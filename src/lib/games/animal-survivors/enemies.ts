@@ -1,6 +1,17 @@
 export type Move = 'chase' | 'wave' | 'snake' | 'charge' | 'leap' | 'boss' | 'still' | 'flee';
 export type BossId =
-  'bear' | 'spiderQueen' | 'pumpkin' | 'knight' | 'yeti' | 'dragon' | 'bigBoar' | 'bigEagle' | 'oldTree' | 'bigSnake';
+  | 'bear'
+  | 'spiderQueen'
+  | 'pumpkin'
+  | 'knight'
+  | 'yeti'
+  | 'dragon'
+  | 'bigBoar'
+  | 'bigEagle'
+  | 'oldTree'
+  | 'bigSnake'
+  | 'lavaGiant'
+  | 'phoenix';
 
 export interface EnemyDef {
   id: string;
@@ -24,7 +35,7 @@ export interface EnemyDef {
   /** 壊せる物（ランタン）。狙われず、数えられず、品を落とす */
   prop?: boolean;
   /** ボスの動き方（bosses.ts）。巨大ベア型は突進と地ならし、女王グモ型は飛び道具と手下 */
-  ai?: 'bear' | 'queen' | 'yeti' | 'dragon' | 'boar' | 'eagle' | 'tree' | 'snake';
+  ai?: 'bear' | 'queen' | 'yeti' | 'dragon' | 'boar' | 'eagle' | 'tree' | 'snake' | 'giant' | 'phoenix';
   /** 女王グモ型が呼ぶ手下の id */
   minion?: string;
   /** 女王グモ型の飛び道具の絵（ITEM_ART の名前） */
@@ -128,6 +139,24 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
         ai: 'dragon',
         shot: 'icicle',
         epithet: '凍てつく空の主'
+      },
+      e('lizard', 'トカゲ', [6, 40, 5, 5, 1], 'chase', 0),
+      e('fireball', '火の玉', [4, 58, 4, 5, 1], 'wave', 0),
+      e('lavasnake', '溶岩ヘビ', [14, 34, 8, 6, 2], 'snake', 0.2),
+      e('rockworm', '岩ムシ', [40, 20, 10, 7, 5], 'chase', 0.6),
+      e('fireboar', '火イノシシ', [70, 26, 18, 8, 8], 'charge', 0.8),
+      e('flamespider', '炎グモ', [18, 36, 9, 6, 3], 'leap', 0.2),
+      e('rockcroc', '岩ワニ', [120, 16, 16, 9, 10], 'chase', 0.9),
+      {
+        ...e('lavaGiant', '溶岩の巨人', [1300, 24, 28, 18, 0], 'boss', 1, 'lavaGiant'),
+        ai: 'giant',
+        shot: 'rock',
+        epithet: '煮えたぎる大地'
+      },
+      {
+        ...e('phoenix', '不死鳥', [1100, 42, 26, 17, 0], 'boss', 1, 'phoenix'),
+        ai: 'phoenix',
+        epithet: '炎よりよみがえる鳥'
       }
     ] satisfies EnemyDef[]
   ).map((d) => [d.id, d])

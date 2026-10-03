@@ -1,7 +1,10 @@
 import type { Song } from '$lib/music/tune';
 
 /** 画面ごとの BGM。書き方は $lib/music/tune の Song。効果音が聞こえるよう gain は小さめ */
-export const SONGS: Record<'menu' | 'field' | 'grave' | 'snow' | 'boss', { song: Song; bpm: number; gain: number }> = {
+export const SONGS: Record<
+  'menu' | 'field' | 'grave' | 'snow' | 'volcano' | 'boss',
+  { song: Song; bpm: number; gain: number }
+> = {
   /** キャラ選択・店・実績・リザルト。軽く弾む */
   menu: {
     bpm: 110,
@@ -58,6 +61,21 @@ export const SONGS: Record<'menu' | 'field' | 'grave' | 'snow' | 'boss', { song:
         e5 . e5 . g5 . f#5 e5 | d5 . b4 . g4 . b4 . | c5 . a4 . f#4 . a4 . | b4 - g4 - e4 - . . |
         c5 e5 g5 . f#5 . e5 . | d5 . f#5 . a5 - g5 . | f#5 . d5 . b4 - a4 . | g4 - - - . . . .`,
       chords: 'Em C Am B G D Am G Em G Am B C D D G'
+    }
+  },
+  /** 火山。低い音で急かす短調の 8 ビート */
+  volcano: {
+    bpm: 148,
+    gain: 0.55,
+    song: {
+      beats: 4,
+      lead: 'chip',
+      style: 'drive',
+      melody: `e4 . e4 f4 e4 . b3 . | e4 . g4 . f4 e4 d4 . | c4 . e4 . a4 - g4 f4 | e4 - - - b3 - . . |
+        e4 . e4 f4 g4 . e4 . | a4 . g4 . f4 - e4 . | d4 . f4 . a4 . c5 . | b4 - - - . . . . |
+        e5 . d5 . c5 . b4 . | c5 . b4 . a4 - g4 . | f4 . a4 . c5 - b4 a4 | g#4 - b4 - e5 - . . |
+        e4 . f4 . g4 . a4 . | b4 . c5 . b4 . a4 . | g#4 . a4 . b4 - d5 . | e5 - - - . . . .`,
+      chords: 'Em Em Am Em Em Am Dm G C Am F E Em G E E'
     }
   },
   /** ボス。短調で速い */
