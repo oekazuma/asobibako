@@ -25,9 +25,9 @@ describe('復活の押しのけ', () => {
 });
 
 describe('延長戦と体数の実績', () => {
-  it('15:00 までと延長戦を合わせて 3000 体で「1 回で 3000 体倒す」、撃破の合計は二重にしない', () => {
+  it('10:00 までと延長戦を合わせて 3000 体で「1 回で 3000 体倒す」、撃破の合計は二重にしない', () => {
     const w = createWorld('dog', 1, VIEW);
-    w.time = 900 - 1e-6;
+    w.time = 600 - 1e-6;
     w.weapons = [];
     w.player.hp = w.stats.maxHp = 1e9;
     w.kills = 2500;
@@ -62,11 +62,11 @@ describe('お題の HP 半分', () => {
 describe('延長戦のコインの数字', () => {
   it('浮かぶ数字は倍率を掛けた数', () => {
     const w = createWorld('dog', 1, VIEW);
-    w.time = 900 - 1e-6;
+    w.time = 600 - 1e-6;
     w.weapons = [];
     step(w, still, 1 / 60);
     startOvertime(w);
-    w.time = 1030;
+    w.time = 730;
     w.events.length = 0;
     w.items.push({ alive: true, kind: 'pouch', x: w.player.x, y: w.player.y, pulled: true });
     collect(w, 1 / 60);

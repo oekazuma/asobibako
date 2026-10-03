@@ -222,7 +222,7 @@ const METAL_HP = 12;
 /** 出るかと時刻は別の乱数で決める（同じ種の回の流れを変えないため） */
 function metalTime(seed: number): number {
   const r = rng(seed + 0x2545f491);
-  return r() < METAL_CHANCE ? 180 + r() * 540 : -1;
+  return r() < METAL_CHANCE ? 120 + r() * 360 : -1;
 }
 
 export function createWorld(

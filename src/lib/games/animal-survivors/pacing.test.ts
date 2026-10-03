@@ -37,7 +37,7 @@ const alive = (w: World) => w.enemies.filter((e) => e.alive);
 
 describe('1 分ごとの出来事', () => {
   it.each([FOREST, GRAVEYARD])(
-    '$name は出来事・ヌシ・ボスのどれかが 50 秒より空かずに起き、出来事はボスとヌシの時刻を避ける',
+    '$name は出来事・ヌシ・ボスのどれかが 34 秒より空かずに起き、出来事はボスとヌシの時刻を避ける',
     (s) => {
       expect(s.events.length).toBeGreaterThanOrEqual(10);
       let last = 0;
@@ -45,7 +45,7 @@ describe('1 分ごとの出来事', () => {
         expect(ev.at).toBeGreaterThan(last);
         last = ev.at;
         for (const t of [...s.bosses.map((b) => b.at), ...s.chiefs.map((c) => c.at)])
-          expect(Math.abs(ev.at - t)).toBeGreaterThanOrEqual(15);
+          expect(Math.abs(ev.at - t)).toBeGreaterThanOrEqual(10);
         if (ev.enemy) expect(ENEMIES[ev.enemy]).toBeDefined();
       }
       const all = [
@@ -56,7 +56,7 @@ describe('1 分ごとの出来事', () => {
         s.length
       ];
       const sorted = [...new Set(all)].sort((a, b) => a - b);
-      for (let i = 1; i < sorted.length; i++) expect(sorted[i] - sorted[i - 1]).toBeLessThanOrEqual(50);
+      for (let i = 1; i < sorted.length; i++) expect(sorted[i] - sorted[i - 1]).toBeLessThanOrEqual(34);
     }
   );
 
@@ -106,7 +106,7 @@ describe('ヌシ', () => {
 
   it('墓地のヌシも面の表の敵で出る', () => {
     expect(GRAVEYARD.chiefs.map((c) => c.enemy).every((id) => ['zombie', 'skeleton', 'ghost'].includes(id))).toBe(true);
-    expect(FOREST.chiefs.map((c) => c.at)).toEqual([90, 270, 450, 630]);
+    expect(FOREST.chiefs.map((c) => c.at)).toEqual([60, 180, 300, 420]);
   });
 
   it('大きな体の縁に触れても痛い', () => {
@@ -156,9 +156,9 @@ describe('入れ物が埋まっているとき', () => {
 });
 
 describe('ボスの流れ', () => {
-  it.each([GRAVEYARD])('$name は 3・6 分に 2 体が出て、9・12 分に 2 回めが攻撃を速めて出る', (s) => {
+  it.each([GRAVEYARD])('$name は 2・4 分に 2 体が出て、6・8 分に 2 回めが攻撃を速めて出る', (s) => {
     const main = s.bosses.filter((b) => !b.title);
-    expect(main.map((b) => b.at)).toEqual([180, 360, 540, 720]);
+    expect(main.map((b) => b.at)).toEqual([120, 240, 360, 480]);
     expect(main[2].id).toBe(main[0].id);
     expect(main[3].id).toBe(main[1].id);
     expect(main[0].rage ?? 1).toBe(1);
@@ -170,10 +170,10 @@ describe('ボスの流れ', () => {
     const w = createWorld('dog', 1, VIEW);
     w.stage = { ...w.stage, waves: [], events: [], chiefs: [] };
     w.metalAt = -1;
-    w.time = 180;
+    w.time = 120;
     spawnBosses(w);
     const [e] = alive(w).filter((o) => o.def.boss);
-    expect(e.hp).toBeCloseTo(ENEMIES.bear.hp * 0.6 * FOREST.toughness(180) * BOSS_HP);
+    expect(e.hp).toBeCloseTo(ENEMIES.bear.hp * 0.6 * FOREST.toughness(120) * BOSS_HP);
   });
 
   it('体力のバーが満タンから減るよう、表の体力も出たときの体力にそろえる', () => {
@@ -204,12 +204,12 @@ describe('ボスの流れ', () => {
 });
 
 describe('面の主', () => {
-  it.each([FOREST, GRAVEYARD])('$name は 13:30 に 2 体のボスが体力 1.5 倍でいっしょに出る', (s) => {
+  it.each([FOREST, GRAVEYARD])('$name は 9:00 に 2 体のボスが体力 1.5 倍でいっしょに出る', (s) => {
     const w = createWorld('dog', 1, VIEW, {}, s.id);
     w.stage = { ...w.stage, waves: [], events: [], chiefs: [] };
     w.metalAt = -1;
     const finale = s.bosses.filter((b) => b.at === FINALE);
-    expect(FINALE).toBe(810);
+    expect(FINALE).toBe(540);
     // 墓地はそれまでの 2 体、1 面は新しい 2 体（大木のおばけと大ヘビ）
     expect(finale.map((b) => b.id)).toEqual(
       s === FOREST ? ['oldTree', 'bigSnake'] : [...new Set(s.bosses.filter((b) => b.at < FINALE).map((b) => b.id))]
@@ -239,14 +239,14 @@ describe('実績', () => {
 });
 
 describe('きらきらハリネズミ', () => {
-  it('種で 3 割ほどの回に、3〜12 分のどこかで出る', () => {
+  it('種で 3 割ほどの回に、2〜8 分のどこかで出る', () => {
     let n = 0;
     for (let seed = 1; seed <= 1000; seed++) {
       const w = createWorld('dog', seed, VIEW);
       if (w.metalAt < 0) continue;
       n++;
-      expect(w.metalAt).toBeGreaterThanOrEqual(180);
-      expect(w.metalAt).toBeLessThanOrEqual(720);
+      expect(w.metalAt).toBeGreaterThanOrEqual(120);
+      expect(w.metalAt).toBeLessThanOrEqual(480);
     }
     expect(n).toBeGreaterThanOrEqual(250);
     expect(n).toBeLessThanOrEqual(350);

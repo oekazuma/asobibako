@@ -24,7 +24,7 @@ export const SNOW: Stage = {
   song: 'snow',
   unlock: '夜の墓地をクリアすると行ける',
   after: 'graveyard',
-  length: 900,
+  length: 600,
   events: FOREST.events.map((ev) => {
     const to = SWAP[ev.enemy];
     return to ? { ...ev, enemy: to, text: ev.text.replace(ENEMIES[ev.enemy].name, ENEMIES[to].name) } : ev;
@@ -32,10 +32,10 @@ export const SNOW: Stage = {
   chiefs: FOREST.chiefs.map((c, i) => ({ ...c, enemy: CHIEFS[i], hp: Math.round(c.hp * HARDER) })),
   bosses: bossRun('yeti', 'dragon'),
   storms: [
-    { at: 150, len: 20 },
-    { at: 330, len: 20 },
-    { at: 510, len: 20 },
-    { at: 690, len: 20 }
+    { at: 95, len: 20 },
+    { at: 215, len: 20 },
+    { at: 335, len: 20 },
+    { at: 455, len: 20 }
   ],
   waves: FOREST.waves.map((w) => ({ ...w, enemy: SWAP[w.enemy] ?? w.enemy })),
   cap: (t) => Math.min(400, Math.round(FOREST.cap(t) * 1.15)),

@@ -43,9 +43,9 @@ describe('データの表', () => {
   it('出現の速さは範囲の中で線形、外は 0', () => {
     const w = FOREST.waves[0];
     expect(spawnRate(w, 0)).toBeCloseTo(0.8);
-    expect(spawnRate(w, 150)).toBeCloseTo(1.9);
-    expect(spawnRate(w, 300)).toBe(0);
+    expect(spawnRate(w, 100)).toBeCloseTo(1.9);
+    expect(spawnRate(w, 200)).toBe(0);
     expect(FOREST.cap(0)).toBe(30);
-    expect(FOREST.cap(720)).toBe(400);
+    expect(FOREST.cap(480)).toBe(400);
   });
 });

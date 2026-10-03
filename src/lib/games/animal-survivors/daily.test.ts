@@ -55,7 +55,7 @@ describe('しばり', () => {
     const s = withMods(['swarm', 'bossHp']);
     expect(s.stage.waves[0].rate[1]).toBeCloseTo(FOREST.waves[0].rate[1] * 1.4);
     expect(s.stage.bosses[0].hp).toBeCloseTo((FOREST.bosses[0].hp ?? 1) * 1.6);
-    expect(FOREST.toughness(300)).toBeCloseTo(1 + (300 / 900) * 6.5);
+    expect(FOREST.toughness(300)).toBeCloseTo(1 + (300 / 600) * 6.5);
     expect(FOREST.bosses[0].hp).toBe(0.6);
     expect(createWorld('dog', 1, VIEW).stage).toBe(FOREST);
   });

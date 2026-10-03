@@ -12,14 +12,14 @@ import { coinsOf, createWorld, step, summary, type World } from './world';
 const VIEW = { w: 274, h: 394 };
 const still = { x: 0, y: 0 };
 
-/** 15:00 でクリアしたところ。武器を外し、倒れないようにしてある */
+/** 10:00 でクリアしたところ。武器を外し、倒れないようにしてある */
 function cleared(): World {
   const w = createWorld('dog', 3, VIEW);
   w.weapons = [];
   w.metalAt = -1;
   w.propCd = 1e9;
   w.player.hp = w.stats.maxHp = 1e9;
-  w.time = 900 - 1e-6;
+  w.time = 600 - 1e-6;
   step(w, still, 1 / 60);
   return w;
 }
@@ -38,25 +38,25 @@ function coinAt(w: World) {
 }
 
 describe('延長戦を始める', () => {
-  it('15:00 を過ぎても止まらず敵が出続け、面の表の元は変わらない', () => {
+  it('10:00 を過ぎても止まらず敵が出続け、面の表の元は変わらない', () => {
     const w = cleared();
     expect(w.over).toBe('clear');
     startOvertime(w);
     expect(w.over).toBeNull();
     run(w, 10);
     expect(w.over).toBeNull();
-    expect(w.time).toBeGreaterThan(909);
+    expect(w.time).toBeGreaterThan(609);
     expect(w.enemies.filter((e) => e.alive && !e.def.prop).length).toBeGreaterThan(20);
-    expect(FOREST.length).toBe(900);
+    expect(FOREST.length).toBe(600);
     expect(FOREST.bosses).toHaveLength(6);
   });
 
-  it('16:00 と 17:00 に面の 2 体が交互に出て、3 秒前に WARNING が出る', () => {
+  it('11:00 と 12:00 に面の 2 体が交互に出て、3 秒前に WARNING が出る', () => {
     const w = cleared();
     startOvertime(w);
     const warned: string[] = [];
     // 1 フレームずつ 2 分進めると遅いので、それぞれのボスの少し前へ時刻を飛ばす
-    for (const at of [950, 1010]) {
+    for (const at of [650, 710]) {
       w.time = at;
       for (let i = 0; i < 15 * 30; i++) {
         w.pending = 0;
@@ -65,17 +65,17 @@ describe('延長戦を始める', () => {
         for (const e of w.events) if (e.type === 'warning') warned.push(`${e.boss}@${Math.round(w.time)}`);
       }
     }
-    expect(warned).toEqual(['bear@957', 'spiderQueen@1017']);
+    expect(warned).toEqual(['bear@657', 'spiderQueen@717']);
     const bosses = w.enemies.filter((e) => e.alive && e.def.boss).map((e) => e.def.id);
     expect(bosses).toEqual(expect.arrayContaining(['bear', 'spiderQueen']));
   });
 
-  it('延長戦では硬さと攻撃の強さの伸びが強まる（15:00 では同じ）', () => {
+  it('延長戦では硬さと攻撃の強さの伸びが強まる（10:00 では同じ）', () => {
     const w = cleared();
     startOvertime(w);
-    expect(w.stage.toughness(900)).toBeCloseTo(FOREST.toughness(900));
-    expect(w.stage.toughness(1200)).toBeGreaterThan(FOREST.toughness(1200));
-    expect(w.stage.fury(1200)).toBeGreaterThan(FOREST.fury(1200));
+    expect(w.stage.toughness(600)).toBeCloseTo(FOREST.toughness(600));
+    expect(w.stage.toughness(900)).toBeGreaterThan(FOREST.toughness(900));
+    expect(w.stage.fury(900)).toBeGreaterThan(FOREST.fury(900));
   });
 });
 
@@ -84,19 +84,19 @@ describe('延長戦のコイン', () => {
     const w = cleared();
     expect(overtimeRate(w)).toBe(1);
     startOvertime(w);
-    w.time = 930;
+    w.time = 630;
     expect(overtimeRate(w)).toBe(1);
-    w.time = 960;
+    w.time = 660;
     expect(overtimeRate(w)).toBe(1.5);
-    w.time = 1030;
+    w.time = 730;
     expect(overtimeRate(w)).toBe(2);
   });
 
-  it('拾ったコインと宝箱のコインは倍率を掛けて延長戦のぶんに入り、15:00 までのコインは変わらない', () => {
+  it('拾ったコインと宝箱のコインは倍率を掛けて延長戦のぶんに入り、10:00 までのコインは変わらない', () => {
     const w = cleared();
     const before = w.coins;
     startOvertime(w);
-    w.time = 1030;
+    w.time = 730;
     coinAt(w);
     w.chests = 1;
     openChest(w);
@@ -115,7 +115,7 @@ describe('延長戦のコイン', () => {
     expect(overtimeCoins(w)).toBe(11);
   });
 
-  it('画面と記録のコインは 15:00 までと延長戦のぶんの合計', () => {
+  it('画面と記録のコインは 10:00 までと延長戦のぶんの合計', () => {
     const w = cleared();
     const before = coinsOf(w);
     startOvertime(w);
@@ -127,7 +127,7 @@ describe('延長戦のコイン', () => {
 });
 
 describe('延長戦の 2 回めの記録', () => {
-  it('宝箱・図鑑は延長戦の差だけ、倒した数は回の合計と 15:00 までの数で、クリアは数えない', () => {
+  it('宝箱・図鑑は延長戦の差だけ、倒した数は回の合計と 10:00 までの数で、クリアは数えない', () => {
     const w = cleared();
     w.killsBy = { rat: 50 };
     w.kills = 50;
@@ -139,7 +139,7 @@ describe('延長戦の 2 回めの記録', () => {
     w.kills += 10;
     w.opened += 1;
     w.bossTimes.push({ id: 'spiderQueen', secs: 50 });
-    w.time = 1000;
+    w.time = 700;
     w.overtime!.coins = 8;
     w.over = 'dead';
     const r = overtimeRun(w);
@@ -156,7 +156,7 @@ describe('延長戦の 2 回めの記録', () => {
 });
 
 describe('延長戦の記録', () => {
-  it('15:00 と延長戦の 2 回の記録で、クリアは 1 回、倒した数とコインは合計どおり', () => {
+  it('10:00 と延長戦の 2 回の記録で、クリアは 1 回、倒した数とコインは合計どおり', () => {
     const w = cleared();
     w.kills = 500;
     const r = emptyRecords();
@@ -164,7 +164,7 @@ describe('延長戦の記録', () => {
     const first = r.coins;
     startOvertime(w);
     w.kills += 40;
-    w.time = 1100;
+    w.time = 800;
     w.overtime!.coins = 20;
     w.over = 'dead';
     record(r, overtimeRun(w));
@@ -179,7 +179,7 @@ describe('延長戦の記録', () => {
     expect(r.overtime).toEqual({ forest: 120 });
     const w = cleared();
     startOvertime(w);
-    w.time = 960;
+    w.time = 660;
     w.over = 'dead';
     record(r, overtimeRun(w));
     expect(r.overtime.forest).toBe(120);
@@ -190,24 +190,24 @@ describe('延長戦の記録', () => {
     const w = cleared();
     startOvertime(w);
     const r = emptyRecords();
-    w.time = 900 + 300;
+    w.time = 600 + 300;
     w.over = 'dead';
     expect(record(r, overtimeRun(w)).map((a) => a.id)).toContain('overtime5');
     expect(r.achieved).not.toContain('overtime10');
-    w.time = 900 + 600;
+    w.time = 600 + 600;
     expect(record(r, overtimeRun(w)).map((a) => a.id)).toContain('overtime10');
   });
 });
 
 describe('延長戦の曲', () => {
-  it('15:00 の一掃で消えたボスがいても、延長戦のあいだボス戦の曲のままにならない', () => {
+  it('10:00 の一掃で消えたボスがいても、延長戦のあいだボス戦の曲のままにならない', () => {
     const w = createWorld('dog', 3, VIEW);
     w.weapons = [];
     w.metalAt = -1;
     w.player.hp = w.stats.maxHp = 1e9;
-    w.time = 900 - 1e-6;
+    w.time = 600 - 1e-6;
     w.warned = w.bossNext = w.stage.bosses.length;
-    // 6 体のうち 5 体は倒し、面の主の 1 体が 15:00 まで残った
+    // 6 体のうち 5 体は倒し、面の主の 1 体が 10:00 まで残った
     w.bossKills = ['bear', 'spiderQueen', 'bear', 'spiderQueen', 'bear'];
     w.enemies[0] = makeEnemy(ENEMIES.bear, 30, 0, 9999);
     const p = new Prompts(w);

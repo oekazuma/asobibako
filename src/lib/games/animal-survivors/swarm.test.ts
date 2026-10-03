@@ -17,7 +17,7 @@ describe('群れの大波', () => {
   it('森の出来事は時刻の順で、ボスの時刻を避ける', () => {
     const at = FOREST.events.map((e) => e.at);
     expect(at).toEqual([...at].sort((a, b) => a - b));
-    for (const b of FOREST.bosses) for (const t of at) expect(Math.abs(t - b.at)).toBeGreaterThanOrEqual(20);
+    for (const b of FOREST.bosses) for (const t of at) expect(Math.abs(t - b.at)).toBeGreaterThanOrEqual(13);
   });
 
   it('横切る群れは同じ向きにまっすぐ進み、抜けたら消えて倒した数に入らない', () => {
@@ -68,9 +68,9 @@ describe('群れの大波', () => {
 
   it('体力はそのときの toughness を掛ける', () => {
     const w = quiet();
-    w.stage = { ...w.stage, events: [{ at: 600, kind: 'ring', enemy: 'rat', count: 1, text: '' }] };
-    w.time = 600;
+    w.stage = { ...w.stage, events: [{ at: 400, kind: 'ring', enemy: 'rat', count: 1, text: '' }] };
+    w.time = 400;
     spawnEvents(w);
-    expect(w.enemies[0].hp).toBeCloseTo(ENEMIES.rat.hp * w.stage.toughness(600));
+    expect(w.enemies[0].hp).toBeCloseTo(ENEMIES.rat.hp * w.stage.toughness(400));
   });
 });

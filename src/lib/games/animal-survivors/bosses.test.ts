@@ -29,22 +29,22 @@ const run = (w: World, seconds: number, input = still) => {
 };
 
 describe('ボスの出かた', () => {
-  it('3 分の 3 秒前に予告が出て、3 分に巨大ベアが画面の外に出る', () => {
+  it('2 分の 3 秒前に予告が出て、2 分に巨大ベアが画面の外に出る', () => {
     const w = quiet();
-    w.time = 176;
+    w.time = 116;
     expect(run(w, 1.5)).toContain('warning');
     expect(w.enemies.some((e) => e.alive && e.def.boss)).toBe(false);
     run(w, 2.6);
     const bear = w.enemies.find((e) => e.alive && e.def.boss === 'bear')!;
     expect(bear).toBeDefined();
-    expect(bear.hp).toBeCloseTo(ENEMIES.bear.hp * 0.6 * w.stage.toughness(180) * BOSS_HP);
+    expect(bear.hp).toBeCloseTo(ENEMIES.bear.hp * 0.6 * w.stage.toughness(120) * BOSS_HP);
   });
 
-  it('6 分には女王グモが出る（倒していない巨大ベアは残る）', () => {
+  it('4 分には女王グモが出る（倒していない巨大ベアは残る）', () => {
     const w = quiet();
-    w.time = 176;
+    w.time = 116;
     run(w, 5);
-    w.time = 358;
+    w.time = 238;
     run(w, 3);
     const bosses = w.enemies.filter((e) => e.alive && e.def.boss).map((e) => e.def.boss);
     expect(bosses.sort()).toEqual(['bear', 'spiderQueen']);
@@ -53,7 +53,7 @@ describe('ボスの出かた', () => {
   it('敵の枠が埋まっていてもボスは出る', () => {
     const w = quiet();
     for (let i = 0; i < MAX_ENEMIES; i++) w.enemies.push(makeEnemy({ ...ENEMIES.rat, speed: 0 }, 2000 + i, 0, 6));
-    w.time = 179.99;
+    w.time = 119.99;
     run(w, 0.1);
     expect(w.enemies).toHaveLength(MAX_ENEMIES);
     expect(w.enemies.some((e) => e.alive && e.def.boss === 'bear')).toBe(true);
@@ -249,7 +249,7 @@ describe('倒したときと宝箱', () => {
   it('15:00 のクリアではボスも倒れ、宝箱は落とさない', () => {
     const w = quiet();
     w.enemies.push(makeEnemy(ENEMIES.bear, 100, 0, 2400));
-    w.time = 899.99;
+    w.time = 599.99;
     run(w, 0.05);
     expect(w.over).toBe('clear');
     expect(w.items.some((it) => it.alive && it.kind === 'chest')).toBe(false);

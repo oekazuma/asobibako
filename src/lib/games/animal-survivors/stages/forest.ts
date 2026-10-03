@@ -18,16 +18,16 @@ export interface StageEvent {
 }
 
 /** 面の主。その面の 2 体のボスが、体力を増やしていっしょに出る */
-export const FINALE = 810;
+export const FINALE = 540;
 /** 2 回めのボスと面の主は、攻撃の間をこの値で割る */
 export const RAGE = 1.5;
 
-/** 3・6 分に 2 体を、9・12 分に同じ 2 体を攻撃を速めて出し、13:30 に面の主 */
+/** 2・4 分に 2 体を、6・8 分に同じ 2 体を攻撃を速めて出し、9 分に面の主 */
 export const bossRun = (a: BossId, b: BossId): Stage['bosses'] => [
-  { at: 180, id: a, hp: 0.6 },
-  { at: 360, id: b, hp: 0.8 },
-  { at: 540, id: a, rage: RAGE },
-  { at: 720, id: b, rage: RAGE },
+  { at: 120, id: a, hp: 0.6 },
+  { at: 240, id: b, hp: 0.8 },
+  { at: 360, id: a, rage: RAGE },
+  { at: 480, id: b, rage: RAGE },
   { at: FINALE, id: a, hp: 1.5, rage: RAGE, title: '面の主' },
   { at: FINALE, id: b, hp: 1.5, rage: RAGE, title: '面の主' }
 ];
@@ -83,55 +83,55 @@ export const FOREST: Stage = {
   art: 'forest',
   coin: 1,
   song: 'field',
-  length: 900,
+  length: 600,
   storms: [],
   events: [
-    { at: 45, kind: 'swarm', enemy: 'bat', count: 20, text: 'コウモリの大群！' },
-    { at: 70, kind: 'meteor', enemy: '', count: 0, text: '流れ星が降ってくる！' },
-    { at: 135, kind: 'lanterns', enemy: 'lantern', count: 8, text: 'ランタンが灯った！' },
-    { at: 225, kind: 'ring', enemy: 'rat', count: 40, text: 'ネズミに囲まれた！' },
-    { at: 250, kind: 'treasure', enemy: '', count: 0, text: '宝の地図を見つけた！' },
-    { at: 315, kind: 'elites', enemy: 'snake', count: 3, text: 'ヘビの精鋭が来た！' },
-    { at: 405, kind: 'swarm', enemy: 'boar', count: 12, text: 'イノシシの突進！' },
-    { at: 430, kind: 'festival', enemy: '', count: 0, text: 'お祭りだ！ 経験値とコイン 2 倍' },
-    { at: 495, kind: 'lanterns', enemy: 'lantern', count: 8, text: 'ランタンが灯った！' },
-    { at: 520, kind: 'meteor', enemy: '', count: 0, text: '流れ星が降ってくる！' },
-    { at: 585, kind: 'ring', enemy: 'caterpillar', count: 40, text: 'イモムシに囲まれた！' },
-    { at: 610, kind: 'festival', enemy: '', count: 0, text: 'お祭りだ！ 経験値とコイン 2 倍' },
-    { at: 675, kind: 'elites', enemy: 'boar', count: 4, text: 'イノシシの精鋭が来た！' },
-    { at: 700, kind: 'treasure', enemy: '', count: 0, text: '宝の地図を見つけた！' },
-    { at: 765, kind: 'swarm', enemy: 'bat', count: 80, text: 'コウモリの大群！' },
-    { at: 855, kind: 'ring', enemy: 'snake', count: 60, text: 'ヘビに囲まれた！' }
+    { at: 30, kind: 'swarm', enemy: 'bat', count: 20, text: 'コウモリの大群！' },
+    { at: 47, kind: 'meteor', enemy: '', count: 0, text: '流れ星が降ってくる！' },
+    { at: 90, kind: 'lanterns', enemy: 'lantern', count: 8, text: 'ランタンが灯った！' },
+    { at: 150, kind: 'ring', enemy: 'rat', count: 40, text: 'ネズミに囲まれた！' },
+    { at: 167, kind: 'treasure', enemy: '', count: 0, text: '宝の地図を見つけた！' },
+    { at: 210, kind: 'elites', enemy: 'snake', count: 3, text: 'ヘビの精鋭が来た！' },
+    { at: 270, kind: 'swarm', enemy: 'boar', count: 12, text: 'イノシシの突進！' },
+    { at: 287, kind: 'festival', enemy: '', count: 0, text: 'お祭りだ！ 経験値とコイン 2 倍' },
+    { at: 330, kind: 'lanterns', enemy: 'lantern', count: 8, text: 'ランタンが灯った！' },
+    { at: 347, kind: 'meteor', enemy: '', count: 0, text: '流れ星が降ってくる！' },
+    { at: 390, kind: 'ring', enemy: 'caterpillar', count: 40, text: 'イモムシに囲まれた！' },
+    { at: 407, kind: 'festival', enemy: '', count: 0, text: 'お祭りだ！ 経験値とコイン 2 倍' },
+    { at: 450, kind: 'elites', enemy: 'boar', count: 4, text: 'イノシシの精鋭が来た！' },
+    { at: 467, kind: 'treasure', enemy: '', count: 0, text: '宝の地図を見つけた！' },
+    { at: 510, kind: 'swarm', enemy: 'bat', count: 80, text: 'コウモリの大群！' },
+    { at: 570, kind: 'ring', enemy: 'snake', count: 60, text: 'ヘビに囲まれた！' }
   ],
   chiefs: [
-    { at: 90, enemy: 'caterpillar', hp: 350 },
-    { at: 270, enemy: 'boar', hp: 600 },
-    { at: 450, enemy: 'croc', hp: 850 },
-    { at: 630, enemy: 'boar', hp: 1100 }
+    { at: 60, enemy: 'caterpillar', hp: 350 },
+    { at: 180, enemy: 'boar', hp: 600 },
+    { at: 300, enemy: 'croc', hp: 850 },
+    { at: 420, enemy: 'boar', hp: 1100 }
   ],
   // 1 面だけは 6 体のボスが順に出る（墓地と雪山は 2 体が攻撃を速めてまた出る bossRun）
   bosses: [
-    { at: 180, id: 'bear', hp: 0.6 },
-    { at: 360, id: 'spiderQueen', hp: 0.8 },
-    { at: 540, id: 'bigBoar' },
-    { at: 720, id: 'bigEagle' },
+    { at: 120, id: 'bear', hp: 0.6 },
+    { at: 240, id: 'spiderQueen', hp: 0.8 },
+    { at: 360, id: 'bigBoar' },
+    { at: 480, id: 'bigEagle' },
     { at: FINALE, id: 'oldTree', hp: 1.5, rage: RAGE, title: '面の主' },
     { at: FINALE, id: 'bigSnake', hp: 1.5, rage: RAGE, title: '面の主' }
   ],
   waves: [
-    { from: 0, to: 300, enemy: 'rat', rate: [0.8, 3] },
-    { from: 60, to: 600, enemy: 'bat', rate: [0.5, 2.5] },
-    { from: 180, to: 900, enemy: 'snake', rate: [0.5, 3] },
-    { from: 300, to: 900, enemy: 'rat', rate: [3, 6] },
-    { from: 360, to: 900, enemy: 'caterpillar', rate: [0.3, 2] },
-    { from: 540, to: 900, enemy: 'boar', rate: [0.2, 1.2] },
-    { from: 600, to: 900, enemy: 'bat', rate: [3, 6] },
-    { from: 420, to: 900, enemy: 'spider', rate: [0.4, 2.5] },
-    { from: 480, to: 900, enemy: 'croc', rate: [0.2, 1] },
-    { from: 720, to: 900, enemy: 'rat', rate: [8, 14] }
+    { from: 0, to: 200, enemy: 'rat', rate: [0.8, 3] },
+    { from: 40, to: 400, enemy: 'bat', rate: [0.5, 2.5] },
+    { from: 120, to: 600, enemy: 'snake', rate: [0.5, 3] },
+    { from: 200, to: 600, enemy: 'rat', rate: [3, 6] },
+    { from: 240, to: 600, enemy: 'caterpillar', rate: [0.3, 2] },
+    { from: 360, to: 600, enemy: 'boar', rate: [0.2, 1.2] },
+    { from: 400, to: 600, enemy: 'bat', rate: [3, 6] },
+    { from: 280, to: 600, enemy: 'spider', rate: [0.4, 2.5] },
+    { from: 320, to: 600, enemy: 'croc', rate: [0.2, 1] },
+    { from: 480, to: 600, enemy: 'rat', rate: [8, 14] }
   ],
-  cap: (t) => Math.min(400, Math.round(30 + (t / 720) * 370)),
-  toughness: (t) => 1 + (t / 900) * 6.5,
-  elite: (t) => (t < 240 ? 0 : 0.02),
-  fury: (t) => 0.6 + (t / 900) * 2
+  cap: (t) => Math.min(400, Math.round(30 + (t / 480) * 370)),
+  toughness: (t) => 1 + (t / 600) * 6.5,
+  elite: (t) => (t < 160 ? 0 : 0.02),
+  fury: (t) => 0.6 + (t / 600) * 2
 };

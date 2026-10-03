@@ -34,7 +34,7 @@ function bossAppears(at: number, still = false) {
 
 describe('ボスの登場', () => {
   it('ボスが出ると登場が始まり、終わるまで busy', () => {
-    const { w, p } = bossAppears(180);
+    const { w, p } = bossAppears(120);
     expect(p.intro?.name).toBe('巨大ベア');
     expect(p.intro?.epithet).toBe('森の暴れん坊');
     expect(p.warning).toBeNull();
@@ -49,7 +49,7 @@ describe('ボスの登場', () => {
   });
 
   it('登場のあいだは 3 択が開かず、終わってから開く', () => {
-    const { w, p } = bossAppears(180);
+    const { w, p } = bossAppears(120);
     w.pending = 1;
     p.next(null, 0.5);
     expect(p.options).toBeNull();
@@ -59,7 +59,7 @@ describe('ボスの登場', () => {
   });
 
   it('登場のあいだに置いた移動の指は、終わって 3 択が開くときに押し間違いの防ぎに入る', () => {
-    const { w, p } = bossAppears(180);
+    const { w, p } = bossAppears(120);
     w.pending = 1;
     p.next(7, INTRO + 0.1);
     expect(p.options).not.toBeNull();
@@ -68,7 +68,7 @@ describe('ボスの登場', () => {
   });
 
   it('カメラは 0 秒で自分、0.6〜1.8 秒でボス、終わりは自分へ戻る', () => {
-    const { w, p } = bossAppears(180);
+    const { w, p } = bossAppears(120);
     const boss = w.enemies.find((e) => e.alive && e.def.boss)!;
     expect(p.focus(w)).toEqual({ x: w.player.x, y: w.player.y });
     p.next(null, 1.2);
@@ -82,7 +82,7 @@ describe('ボスの登場', () => {
   });
 
   it('動きを減らす設定ではカメラを動かさず、札だけを短く出す', () => {
-    const { w, p } = bossAppears(180, true);
+    const { w, p } = bossAppears(120, true);
     expect(p.intro).not.toBeNull();
     p.next(null, 1);
     expect(p.focus(w)).toBeNull();
@@ -104,14 +104,14 @@ describe('ボスの登場', () => {
   });
 
   it('延長戦のボスでは登場が起きない', () => {
-    const w = before(900);
-    w.time = 900 - 1e-6;
+    const w = before(600);
+    w.time = 600 - 1e-6;
     step(w, still, 1 / 60);
     startOvertime(w);
-    w.time = 959.99;
+    w.time = 659.99;
     const p = new Prompts(w, false);
     spawnBosses(w);
-    w.time = 960.01;
+    w.time = 660.01;
     spawnBosses(w);
     p.take();
     expect(w.enemies.some((e) => e.alive && e.def.boss)).toBe(true);

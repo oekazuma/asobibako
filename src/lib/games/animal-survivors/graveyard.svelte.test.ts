@@ -26,7 +26,7 @@ describe('面の表', () => {
     for (const e of GRAVEYARD.events) if (e.enemy) expect(ENEMIES[e.enemy]).toBeDefined();
     const at = GRAVEYARD.events.map((e) => e.at);
     expect(at).toEqual([...at].sort((a, b) => a - b));
-    for (const b of GRAVEYARD.bosses) for (const t of at) expect(Math.abs(t - b.at)).toBeGreaterThanOrEqual(20);
+    for (const b of GRAVEYARD.bosses) for (const t of at) expect(Math.abs(t - b.at)).toBeGreaterThanOrEqual(13);
     expect(stageOf('nope')).toBe(FOREST);
   });
 
@@ -70,7 +70,7 @@ describe('墓地のボス', () => {
 });
 
 describe('墓地のボスの WARNING と曲', () => {
-  it('3 分の前にガイコツの騎士の WARNING が出てボスの曲になり、倒すと戻る', () => {
+  it('2 分の前にガイコツの騎士の WARNING が出てボスの曲になり、倒すと戻る', () => {
     const w = createWorld('dog', 1, VIEW, {}, 'graveyard');
     w.stage = { ...w.stage, waves: [], events: [] };
     w.spawnAcc = [];
@@ -78,7 +78,7 @@ describe('墓地のボスの WARNING と曲', () => {
     w.propCd = 9999;
     w.player.invuln = 9999;
     const p = new Prompts(w);
-    w.time = 176;
+    w.time = 116;
     let warned = '';
     for (let i = 0; i < 60 * 5; i++) {
       step(w, { x: 0, y: 0 }, 1 / 60);

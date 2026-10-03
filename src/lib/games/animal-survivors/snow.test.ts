@@ -53,7 +53,7 @@ describe('雪山の面の表', () => {
   });
 
   it('雪山だけ吹雪の表があり、ボスとヌシの時刻にかからない', () => {
-    expect(SNOW.storms.map((s) => s.at)).toEqual([150, 330, 510, 690]);
+    expect(SNOW.storms.map((s) => s.at)).toEqual([95, 215, 335, 455]);
     for (const s of STAGES) if (s.id !== 'snow') expect(s.storms).toEqual([]);
     for (const st of SNOW.storms)
       for (const t of [...SNOW.bosses.map((b) => b.at), ...SNOW.chiefs.map((c) => c.at)])

@@ -124,17 +124,17 @@ describe('クモ・ワニ・強化個体', () => {
     expect(x0 - spider.x).toBeGreaterThan(30);
   });
 
-  it('クモは 7 分から、ワニは 8 分から出る', () => {
+  it('クモは 4:40 から、ワニは 5:20 から出る', () => {
     const wave = (id: string) => FOREST.waves.find((v) => v.enemy === id)!;
-    expect(spawnRate(wave('spider'), 419)).toBe(0);
-    expect(spawnRate(wave('spider'), 420)).toBeGreaterThan(0);
-    expect(spawnRate(wave('croc'), 479)).toBe(0);
-    expect(spawnRate(wave('croc'), 480)).toBeGreaterThan(0);
+    expect(spawnRate(wave('spider'), 279)).toBe(0);
+    expect(spawnRate(wave('spider'), 280)).toBeGreaterThan(0);
+    expect(spawnRate(wave('croc'), 319)).toBe(0);
+    expect(spawnRate(wave('croc'), 320)).toBeGreaterThan(0);
   });
 
-  it('強化個体は 4 分から 2%', () => {
-    expect(FOREST.elite(239)).toBe(0);
-    expect(FOREST.elite(240)).toBeCloseTo(0.02);
+  it('強化個体は 2:40 から 2%', () => {
+    expect(FOREST.elite(159)).toBe(0);
+    expect(FOREST.elite(160)).toBeCloseTo(0.02);
   });
 
   it('強化個体は表を写して強くし、元の表は変えない', () => {

@@ -30,24 +30,24 @@ function quiet(kind?: string): World {
 }
 
 describe('新しい出来事の表', () => {
-  it('森に 6 行が表の時刻で入り、ボスとヌシから 20 秒以上離れている', () => {
+  it('森に 6 行が表の時刻で入り、ボスとヌシから 13 秒以上離れている', () => {
     const rows = FOREST.events.filter((e) => NEW.includes(e.kind));
     expect(rows.map((e) => [e.kind, e.at])).toEqual([
-      ['meteor', 70],
-      ['treasure', 250],
-      ['festival', 430],
-      ['meteor', 520],
-      ['festival', 610],
-      ['treasure', 700]
+      ['meteor', 47],
+      ['treasure', 167],
+      ['festival', 287],
+      ['meteor', 347],
+      ['festival', 407],
+      ['treasure', 467]
     ]);
     for (const e of rows)
       for (const t of [...FOREST.bosses.map((b) => b.at), ...FOREST.chiefs.map((c) => c.at)])
-        expect(Math.abs(e.at - t)).toBeGreaterThanOrEqual(20);
+        expect(Math.abs(e.at - t)).toBeGreaterThanOrEqual(13);
   });
 
   it('墓地と雪山にも同じ時刻で入っている', () => {
     for (const s of [GRAVEYARD, SNOW])
-      expect(s.events.filter((e) => NEW.includes(e.kind)).map((e) => e.at)).toEqual([70, 250, 430, 520, 610, 700]);
+      expect(s.events.filter((e) => NEW.includes(e.kind)).map((e) => e.at)).toEqual([47, 167, 287, 347, 407, 467]);
   });
 });
 

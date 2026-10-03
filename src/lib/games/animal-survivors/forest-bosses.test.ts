@@ -39,12 +39,12 @@ function run(w: World, secs: number, dt = 1 / 30) {
 }
 
 describe('1 面のボスの並び', () => {
-  it('3:00 巨大ベア・6:00 女王グモ・9:00 大イノシシ・12:00 大ワシ、面の主は大木のおばけと大ヘビ', () => {
+  it('2:00 巨大ベア・4:00 女王グモ・6:00 大イノシシ・8:00 大ワシ、面の主は大木のおばけと大ヘビ', () => {
     expect(FOREST.bosses.map((b) => [b.at, b.id, b.title ?? ''])).toEqual([
-      [180, 'bear', ''],
-      [360, 'spiderQueen', ''],
-      [540, 'bigBoar', ''],
-      [720, 'bigEagle', ''],
+      [120, 'bear', ''],
+      [240, 'spiderQueen', ''],
+      [360, 'bigBoar', ''],
+      [480, 'bigEagle', ''],
       [FINALE, 'oldTree', '面の主'],
       [FINALE, 'bigSnake', '面の主']
     ]);
@@ -65,7 +65,7 @@ describe('1 面のボスの並び', () => {
 
   it('延長戦は 1 面の 6 体を順に出す', () => {
     const w = createWorld('dog', 1, VIEW);
-    w.time = 900 - 1e-6;
+    w.time = 600 - 1e-6;
     w.weapons = [];
     step(w, still, 1 / 60);
     startOvertime(w);
