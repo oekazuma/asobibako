@@ -34,6 +34,19 @@ export function hazardsBelow(ctx: CanvasRenderingContext2D, w: World, q: Snap, n
       ctx.stroke();
       continue;
     }
+    if (h.kind === 'meteor' && h.delay > 0) {
+      const t = 1 - h.delay / 1.2;
+      ctx.fillStyle = 'rgb(255 216 74 / 0.25)';
+      ctx.beginPath();
+      ctx.ellipse(q(h.x), q(h.y), h.r * t, h.r * t * 0.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = Math.floor(now * 8) % 2 ? 'rgb(255 216 74 / 0.9)' : 'rgb(224 154 28 / 0.9)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(q(h.x), q(h.y), h.r, h.r * 0.6, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      continue;
+    }
     if (h.kind === 'breath' && h.delay > 0) {
       ctx.globalAlpha = Math.floor(now * 8) % 2 ? 0.35 : 0.2;
       ctx.fillStyle = PALETTE.u;
@@ -116,6 +129,20 @@ export function hazardsAbove(ctx: CanvasRenderingContext2D, w: World, q: Snap): 
       ctx.fillStyle = PALETTE.j;
       fan(ctx, h, q);
       ctx.fill();
+      ctx.globalAlpha = 1;
+    } else if (h.kind === 'meteor' && h.delay > 0 && h.delay < 0.35) {
+      // 落ちる直前の 0.35 秒だけ、左上から斜めに降らせる
+      const k = h.delay / 0.35;
+      const m = ITEM_ART.meteor;
+      ctx.drawImage(bake(m), q(h.x - m.w / 2 - k * 60), q(h.y - m.h / 2 - k * 90));
+    } else if (h.kind === 'meteor' && h.delay <= 0) {
+      const t = 1 - h.life / 0.3;
+      ctx.globalAlpha = 0.85 * (1 - t);
+      ctx.strokeStyle = PALETTE.y;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(q(h.x), q(h.y), h.r * (0.5 + t), h.r * (0.5 + t) * 0.6, 0, 0, Math.PI * 2);
+      ctx.stroke();
       ctx.globalAlpha = 1;
     } else if (h.kind === 'ball') {
       const r = Math.round(h.r);

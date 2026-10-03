@@ -9,6 +9,7 @@ import { SNOW_ART } from './art/snow';
 import { PALETTE } from './art/palette';
 import { shots, swipes, zonesBelow } from './draw-arms';
 import { bossBars, hazardsAbove, hazardsBelow } from './draw-boss';
+import { confetti, treasureArrow } from './draw-events';
 import { blizzard } from './draw-storm';
 import { airborne, YETI } from './bosses-snow';
 import { gemTier } from './drops';
@@ -326,6 +327,8 @@ export function draw(
   }
   ctx.globalAlpha = 1;
   blizzard(ctx, w, v.w, v.h, now);
+  confetti(ctx, w, v.w, v.h, now);
   hud(ctx, w, v, top);
+  treasureArrow(ctx, w, v.w, v.h, top);
   bossBars(ctx, w, v, top);
 }
