@@ -4,6 +4,7 @@
   import { BoardInput } from '$lib/board-input';
   import { animate } from '$lib/loop';
   import type { AnimalId } from './animals';
+  import type { Challenge } from './daily';
   import { draw, fitCanvas, type ViewSize } from './draw';
   import { Effects } from './effects';
   import { MOVE_KEYS, steer } from './input';
@@ -24,7 +25,7 @@
     onrestart,
     onmusic
   }: {
-    choice: { animal: AnimalId; stage: string };
+    choice: { animal: AnimalId; stage: string; challenge?: Challenge };
     ranks: Ranks;
     onover: (w: World) => void;
     onend: () => void;
@@ -39,7 +40,7 @@
   /** HUD を書きはじめる高さ（仮想ドット）。シェルの隅のボタンの下 */
   let top = 24;
   // svelte-ignore state_referenced_locally
-  const world = createWorld(choice.animal, Date.now() % 2 ** 31, { w: view.w, h: view.h }, ranks, choice.stage);
+  const world = createWorld(choice.animal, Date.now() % 2 ** 31, view, ranks, choice.stage, choice.challenge);
   const fx = new Effects();
   const keys = new SvelteSet<string>();
   const prompts = new Prompts(world);

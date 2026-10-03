@@ -5,6 +5,7 @@
   import { ACHIEVEMENTS } from './achievements';
   import { ANIMALS, type AnimalId } from './animals';
   import { ANIMAL_ART } from './art/animals';
+  import DailyCard from './DailyCard.svelte';
   import { ITEM_ART } from './art/items';
   import PixelIcon from './PixelIcon.svelte';
   import type { Records } from './records';
@@ -14,16 +15,12 @@
     records,
     onpick,
     onquit,
-    onshop,
-    ontrophies,
-    onbook
+    onopen
   }: {
     records: Records;
     onpick: (id: AnimalId) => void;
     onquit: () => void;
-    onshop: () => void;
-    ontrophies: () => void;
-    onbook: () => void;
+    onopen: (screen: 'daily' | 'shop' | 'trophies' | 'book') => void;
   } = $props();
 
   const top = {
@@ -46,6 +43,7 @@
   </button>
   <section class="as-panel" aria-label="キャラクター選択">
     <h2 class="as-title">キャラクターを選ぶ</h2>
+    {#if records.daily}<DailyCard daily={records.daily} onopen={() => onopen('daily')} />{/if}
     {#each ANIMALS as a (a.id)}
       {@const open = records.unlocked.includes(a.id)}
       {@const weapon = WEAPONS[a.weapon]}
@@ -78,13 +76,15 @@
       </button>
     {/each}
     <div class="links">
-      <button class="as-card link" onclick={onshop}>
+      <button class="as-card link" onclick={() => onopen('shop')}>
         <PixelIcon art={ITEM_ART.coin} size="min(5cqw, 3cqh, 26px)" />パワーアップ（{records.coins.toLocaleString(
           'ja-JP'
         )}）
       </button>
-      <button class="as-card link" onclick={ontrophies}>実績 {records.achieved.length} / {ACHIEVEMENTS.length}</button>
-      <button class="as-card link" style:grid-column="span 2" onclick={onbook}>図鑑</button>
+      <button class="as-card link" onclick={() => onopen('trophies')}
+        >実績 {records.achieved.length} / {ACHIEVEMENTS.length}</button
+      >
+      <button class="as-card link" style:grid-column="span 2" onclick={() => onopen('book')}>図鑑</button>
     </div>
   </section>
 </div>

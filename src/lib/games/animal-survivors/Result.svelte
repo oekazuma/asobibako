@@ -53,6 +53,7 @@
         'ja-JP'
       )}）
       {#if run.bookCoins}<span class="book">図鑑 +{run.bookCoins}</span>{/if}
+      {#if run.daily?.paid}<span class="book">お題クリア +{run.daily.bonus}</span>{/if}
     </p>
     {#if run.overtime}
       <p class="ot">
