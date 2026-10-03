@@ -317,7 +317,7 @@ function enemies(
   for (const e of order) {
     const art = ART[e.def.id];
     // 巨大ベアは地ならしの予告のあいだ、大雪男は宙にいるあいだ、両手を上げたコマにする
-    const up = (e.def.ai === 'bear' && e.state === 3) || airborne(e);
+    const up = ((e.def.ai === 'bear' || e.def.ai === 'giant') && e.state === 3) || airborne(e);
     const frame = up ? 2 : frameAt((e.def.boss ? e.t + lively : e.t) * (e.def.boss ? 4 : 6), 2);
     // 敵は自分のほうを向く。逃げるきらきらハリネズミだけは反対を向く
     const flip = !e.def.prop && w.player.x < e.x !== Boolean(e.def.metal);

@@ -1,3 +1,5 @@
+import { giant } from './bosses-volcano';
+import { addLava } from './eruption';
 import { boar, eagle, snake, spawnSegments, tree } from './bosses-forest';
 import { breathe, dragon, rolled, yeti } from './bosses-snow';
 import { ENEMIES } from './enemies';
@@ -24,6 +26,8 @@ export interface Hazard {
   tick?: number;
   /** 予告の長さ（出したときの delay）。描くときの満ち方に使う */
   warn?: number;
+  /** 当たったところに残す溶岩の池の半径（溶岩の巨人） */
+  lava?: number;
   dmg: number;
 }
 
@@ -129,7 +133,8 @@ const STILL = { vx: 0, vy: 0 };
 
 export function hazard(w: World, h: Omit<Hazard, 'alive'>) {
   const free = w.hazards.find((o) => !o.alive);
-  const full = { ...h, warn: h.warn ?? h.delay, alive: true };
+  // 使い回す予告に前の溶岩の池が残らないよう、無い欄も書く
+  const full = { lava: 0, ...h, warn: h.warn ?? h.delay, alive: true };
   if (free) Object.assign(free, full);
   else w.hazards.push(full);
 }
@@ -255,6 +260,7 @@ export function moveBoss(w: World, i: number, dt: number): { vx: number; vy: num
   if (e.def.ai === 'eagle') return eagle(w, i, e, dx / d, dy / d, d, dt);
   if (e.def.ai === 'tree') return tree(w, i, e, dx / d, dy / d, dt);
   if (e.def.ai === 'snake') return snake(w, i, e, dx / d, dy / d, dt);
+  if (e.def.ai === 'giant') return giant(w, i, e, dx / d, dy / d, dt);
   return queen(w, e, dx / d, dy / d, d, dt);
 }
 
@@ -320,6 +326,7 @@ export function updateHazards(w: World, dt: number): void {
     }
     if (h.delay > 0) {
       h.delay -= dt;
+      if (h.delay <= 0 && h.lava) addLava(w, h.x, h.y, h.lava, 0);
       if (h.delay <= 0 && p.invuln <= 0 && (p.x - h.x) ** 2 + (p.y - h.y) ** 2 < h.r ** 2) hurtPlayer(w, h.dmg);
     } else {
       h.life -= dt;
