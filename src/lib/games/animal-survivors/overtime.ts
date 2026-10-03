@@ -3,7 +3,7 @@ import { RAGE, type Stage } from './stages/forest';
 import { summary, type RunSummary, type World } from './world';
 
 /** 延長戦に入ってから 1 分ごとに、硬さと攻撃の強さに足す割合 */
-export const RAMP = 0.1;
+export const RAMP = 0.6;
 /** 延長戦のボスは 1 分ごと。誰も届かない長さまで行を用意しておく */
 const BOSS_EVERY = 60;
 const BOSS_ROWS = 60;
