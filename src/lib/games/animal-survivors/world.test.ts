@@ -91,6 +91,7 @@ describe('世界', () => {
     w.over = 'dead';
     expect(summary(w)).toEqual({
       animal: 'cat',
+      heat: { level: 2, bet: 0 },
       cleared: false,
       time: 763.4,
       level: 18,

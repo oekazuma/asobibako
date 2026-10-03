@@ -1,3 +1,4 @@
+import { PLAIN } from './cauldron';
 import { flushSync, mount, unmount, type Component } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OvertimeAsk from './OvertimeAsk.svelte';
@@ -12,6 +13,7 @@ vi.mock('$lib/audio.svelte', () => ({ audio: { muted: false }, toggleMute: () =>
 
 const run: RunSummary = {
   animal: 'dog',
+  heat: PLAIN,
   cleared: false,
   time: 1105,
   level: 40,

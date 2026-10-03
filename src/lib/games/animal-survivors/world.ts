@@ -4,6 +4,7 @@ import { fire, hits, type Effect, type Shot } from './arms';
 import { moveBoss, slot, spawnBosses, updateHazards, type Hazard } from './bosses';
 import { BOAR } from './bosses-forest';
 import { airborne } from './bosses-snow';
+import { heatStage, PLAIN, type Heat } from './cauldron';
 import { hpScale, modPerks, modStage, type Challenge, type ModId } from './daily';
 import { CLEAR_COINS, COIN_RATE, collect, dropFrom, overtimeCoins, type Gem, type Item } from './drops';
 import { ENEMIES, MAX_R, type BossId, type EnemyDef } from './enemies';
@@ -101,6 +102,8 @@ export interface World {
   rand: Rng;
   time: number;
   stage: Stage;
+  /** 釜の強さと賭けたコイン */
+  heat: Heat;
   animal: Animal;
   /** 育った段階。0 が 1 段階め */
   form: 0 | 1 | 2;
@@ -231,10 +234,11 @@ export function createWorld(
   view: { w: number; h: number },
   ranks: Ranks = {},
   stageId = 'forest',
-  challenge?: Challenge
+  challenge?: Challenge,
+  heat: Heat = PLAIN
 ): World {
   const mods = challenge?.mods ?? [];
-  const stage = modStage(stageOf(stageId), mods);
+  const stage = heatStage(modStage(stageOf(stageId), mods), heat.level);
   const a = animal(id);
   const k = modPerks(perks(mods.includes('noShop') ? {} : ranks), mods);
   const s = stats(a, [], k.boost, 0, hpScale(mods));
@@ -242,6 +246,7 @@ export function createWorld(
     rand: rng(seed),
     time: 0,
     stage,
+    heat,
     animal: a,
     form: 0,
     stats: s,
@@ -853,6 +858,7 @@ export interface RunSummary {
   killsBefore?: number;
   /** 延長戦の秒とそのぶんのコイン（倒れて半分になったか）。best は記録した面の最高 */
   overtime?: { secs: number; coins: number; halved: boolean; best?: number };
+  heat: Heat;
 }
 
 /** 強欲を掛けたこの回のコイン。1 枚ずつ掛けると端数で減るので、合計に掛ける */
@@ -863,6 +869,7 @@ export function coinsOf(w: World): number {
 export function summary(w: World): RunSummary {
   return {
     animal: w.animal.id,
+    heat: w.heat,
     cleared: w.over === 'clear',
     time: w.time,
     level: w.level,

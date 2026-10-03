@@ -1,3 +1,4 @@
+import { PLAIN } from './cauldron';
 import { describe, expect, it } from 'vitest';
 import { animal } from './animals';
 import { stats } from './passives';
@@ -13,6 +14,7 @@ import { ENEMIES } from './enemies';
 
 const run = (o: Partial<RunSummary> = {}): RunSummary => ({
   animal: 'dog',
+  heat: PLAIN,
   cleared: false,
   time: 30,
   level: 1,

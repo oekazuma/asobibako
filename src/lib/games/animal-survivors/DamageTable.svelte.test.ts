@@ -1,3 +1,4 @@
+import { PLAIN } from './cauldron';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import DamageTable from './DamageTable.svelte';
@@ -5,6 +6,7 @@ import type { RunSummary } from './world';
 
 const run: RunSummary = {
   animal: 'dog',
+  heat: PLAIN,
   cleared: false,
   time: 300,
   level: 10,
