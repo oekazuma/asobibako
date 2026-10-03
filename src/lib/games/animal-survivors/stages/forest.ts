@@ -112,7 +112,7 @@ export const FOREST: Stage = {
     { at: 300, enemy: 'croc', hp: 850 },
     { at: 420, enemy: 'boar', hp: 1100 }
   ],
-  // 1 面だけは 6 体のボスが順に出る（墓地と雪山は 2 体が攻撃を速めてまた出る bossRun）
+  // 1 面だけは 6 体のボスが順に出る（墓地・雪山・火山は 2 体が攻撃を速めてまた出る bossRun）
   bosses: [
     { at: 120, id: 'bear', hp: 0.6 },
     { at: 240, id: 'spiderQueen', hp: 0.8, arcana: true },

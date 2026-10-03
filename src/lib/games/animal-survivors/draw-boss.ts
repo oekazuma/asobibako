@@ -6,7 +6,7 @@ import { bake } from './pixels';
 import { BOAR, TREE } from './bosses-forest';
 import { DRAGON } from './bosses-snow';
 import { METEOR_IMPACT, METEOR_WARN } from './events';
-import type { Hazard } from './bosses';
+import { RING_DY, type Hazard } from './bosses';
 import type { World } from './world';
 
 type Snap = (v: number) => number;
@@ -27,12 +27,12 @@ export function hazardsBelow(ctx: CanvasRenderingContext2D, w: World, q: Snap, n
       const t = 1 - h.delay / DRAGON.pillarWarn;
       ctx.fillStyle = 'rgb(111 168 217 / 0.3)';
       ctx.beginPath();
-      ctx.ellipse(q(h.x), q(h.y + 8), h.r * t, h.r * t * 0.6, 0, 0, Math.PI * 2);
+      ctx.ellipse(q(h.x), q(h.y + RING_DY), h.r * t, h.r * t * 0.6, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = 'rgb(42 100 200 / 0.8)';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.ellipse(q(h.x), q(h.y + 8), h.r, h.r * 0.6, 0, 0, Math.PI * 2);
+      ctx.ellipse(q(h.x), q(h.y + RING_DY), h.r, h.r * 0.6, 0, 0, Math.PI * 2);
       ctx.stroke();
       continue;
     }
@@ -48,12 +48,12 @@ export function hazardsBelow(ctx: CanvasRenderingContext2D, w: World, q: Snap, n
       const t = 1 - h.delay / TREE.warn;
       ctx.fillStyle = 'rgb(110 74 48 / 0.3)';
       ctx.beginPath();
-      ctx.ellipse(q(h.x), q(h.y + 8), h.r * t, h.r * t * 0.6, 0, 0, Math.PI * 2);
+      ctx.ellipse(q(h.x), q(h.y + RING_DY), h.r * t, h.r * t * 0.6, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = Math.floor(now * 8) % 2 ? 'rgb(110 74 48 / 0.9)' : 'rgb(216 70 60 / 0.8)';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.ellipse(q(h.x), q(h.y + 8), h.r, h.r * 0.6, 0, 0, Math.PI * 2);
+      ctx.ellipse(q(h.x), q(h.y + RING_DY), h.r, h.r * 0.6, 0, 0, Math.PI * 2);
       ctx.stroke();
       continue;
     }
@@ -87,12 +87,12 @@ export function hazardsBelow(ctx: CanvasRenderingContext2D, w: World, q: Snap, n
       const t = Math.max(0, 1 - h.delay / (h.warn || 1));
       ctx.fillStyle = 'rgb(216 70 60 / 0.25)';
       ctx.beginPath();
-      ctx.ellipse(q(h.x), q(h.y + 8), h.r * t, h.r * t * 0.6, 0, 0, Math.PI * 2);
+      ctx.ellipse(q(h.x), q(h.y + RING_DY), h.r * t, h.r * t * 0.6, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = 'rgb(216 70 60 / 0.75)';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.ellipse(q(h.x), q(h.y + 8), h.r, h.r * 0.6, 0, 0, Math.PI * 2);
+      ctx.ellipse(q(h.x), q(h.y + RING_DY), h.r, h.r * 0.6, 0, 0, Math.PI * 2);
       ctx.stroke();
     } else if (h.kind === 'dash') {
       const owner = w.enemies[h.owner];
@@ -164,9 +164,9 @@ export function hazardsAbove(ctx: CanvasRenderingContext2D, w: World, q: Snap): 
       for (const dx of [-8, 0, 8]) {
         const tall = (dx === 0 ? 18 : 12) * k;
         ctx.beginPath();
-        ctx.moveTo(q(h.x + dx - 4), q(h.y + 8));
+        ctx.moveTo(q(h.x + dx - 4), q(h.y + RING_DY));
         ctx.lineTo(q(h.x + dx), q(h.y + 8 - tall));
-        ctx.lineTo(q(h.x + dx + 4), q(h.y + 8));
+        ctx.lineTo(q(h.x + dx + 4), q(h.y + RING_DY));
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -209,7 +209,15 @@ export function hazardsAbove(ctx: CanvasRenderingContext2D, w: World, q: Snap): 
       ] as const) {
         ctx.strokeStyle = color;
         ctx.beginPath();
-        ctx.ellipse(q(h.x), q(h.y + 8), h.r * (0.6 + t * 0.6) * k, h.r * (0.6 + t * 0.6) * k * 0.6, 0, 0, Math.PI * 2);
+        ctx.ellipse(
+          q(h.x),
+          q(h.y + RING_DY),
+          h.r * (0.6 + t * 0.6) * k,
+          h.r * (0.6 + t * 0.6) * k * 0.6,
+          0,
+          0,
+          Math.PI * 2
+        );
         ctx.stroke();
       }
       ctx.globalAlpha = 1;

@@ -261,7 +261,7 @@ function crown(ctx: CanvasRenderingContext2D, e: Enemy, art: Art, flip: boolean)
   ctx.drawImage(bake(c), q(x - (c.w * 3) / 2), q(y), c.w * 3, c.h * 3);
 }
 
-/** 宙にいる大雪男と空にいる大ワシが、飛び立ってからの割合 0..1 */
+/** 宙にいる大雪男と、空にいる大ワシ・不死鳥が、飛び立ってからの割合 0..1 */
 const soaring = (e: Enemy) => e.def.ai === 'eagle' || e.def.ai === 'phoenix';
 const flight = (e: Enemy) =>
   1 - Math.max(0, e.wait) / (e.def.ai === 'phoenix' ? PHOENIX.warn : soaring(e) ? EAGLE.warn : YETI.pounceWarn);
@@ -321,7 +321,7 @@ function enemies(
   }
   for (const e of order) {
     const art = ART[e.def.id];
-    // 巨大ベアは地ならしの予告のあいだ、大雪男は宙にいるあいだ、両手を上げたコマにする
+    // 巨大ベアと溶岩の巨人は地ならしの予告のあいだ、宙にいるボスは上げたコマにする（よみがえっている不死鳥は羽ばたく）
     const up = ((e.def.ai === 'bear' || e.def.ai === 'giant') && e.state === 3) || (airborne(e) && e.state !== 5);
     const frame = up ? 2 : frameAt((e.def.boss ? e.t + lively : e.t) * (e.def.boss ? 4 : 6), 2);
     // 敵は自分のほうを向く。逃げるきらきらハリネズミだけは反対を向く

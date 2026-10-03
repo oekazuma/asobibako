@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { airborne } from './bosses-snow';
+import { RING_DY } from './bosses';
 import { GIANT, PHOENIX } from './bosses-volcano';
 import { ENEMIES } from './enemies';
 import { createWorld, damageEnemy, makeEnemy, step, type World } from './world';
@@ -92,5 +93,20 @@ describe('不死鳥', () => {
     step(w, { x: 0, y: 0 }, 1 / 60);
     expect(w.enemies[i].alive).toBe(false);
     expect(w.swept).toBe(1);
+  });
+});
+
+describe('ボスの池の位置', () => {
+  it('地ならしと岩の池は、予告の輪を描いたところ（足もと）に出る', () => {
+    const w = quiet();
+    w.enemies.push(makeEnemy(ENEMIES.lavaGiant, 60, 0, ENEMIES.lavaGiant.hp));
+    let at: { x: number; y: number } | null = null;
+    for (let i = 0; i < 60 * 6 && !w.lava.some((l) => l.life > 0); i++) {
+      const h = w.hazards.find((o) => o.alive && o.kind === 'slam' && o.delay > 0 && o.delay <= 1 / 60);
+      if (h) at = { x: h.x, y: h.y };
+      step(w, { x: 0, y: 0 }, 1 / 60);
+    }
+    expect(at).not.toBeNull();
+    expect(w.lava.some((l) => l.x === at!.x && l.y === at!.y + RING_DY)).toBe(true);
   });
 });

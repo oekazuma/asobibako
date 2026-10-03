@@ -131,6 +131,9 @@ const QUEEN = {
 };
 const STILL = { vx: 0, vy: 0 };
 
+/** 地面の予告の輪は、当たりの中心より少し下（足もと）に描く。輪から残す溶岩の池も同じ所に置く */
+export const RING_DY = 8;
+
 export function hazard(w: World, h: Omit<Hazard, 'alive'>) {
   const free = w.hazards.find((o) => !o.alive);
   // 使い回す予告に前の溶岩の池が残らないよう、無い欄も書く
@@ -327,7 +330,7 @@ export function updateHazards(w: World, dt: number): void {
     }
     if (h.delay > 0) {
       h.delay -= dt;
-      if (h.delay <= 0 && h.lava) addLava(w, h.x, h.y, h.lava, 0);
+      if (h.delay <= 0 && h.lava) addLava(w, h.x, h.y + RING_DY, h.lava, 0);
       if (h.delay <= 0 && p.invuln <= 0 && (p.x - h.x) ** 2 + (p.y - h.y) ** 2 < h.r ** 2) hurtPlayer(w, h.dmg);
     } else {
       h.life -= dt;

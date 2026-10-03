@@ -150,7 +150,6 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
       {
         ...e('lavaGiant', '溶岩の巨人', [1300, 24, 28, 18, 0], 'boss', 1, 'lavaGiant'),
         ai: 'giant',
-        shot: 'rock',
         epithet: '煮えたぎる大地'
       },
       {
