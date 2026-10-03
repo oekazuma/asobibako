@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { ANIMALS } from './animals';
   import { itemArt } from './art/evolved';
   import { EVOLUTIONS } from './evolutions';
   import { PASSIVES } from './passives';
@@ -9,8 +10,8 @@
   const size = 'min(7cqw, 4cqh, 36px)';
 </script>
 
-<h3 class="head">進化 {evolved.length} / {EVOLUTIONS.length}</h3>
-<ul>
+<h3 class="head">進化 {EVOLUTIONS.filter((e) => evolved.includes(e.to)).length} / {EVOLUTIONS.length}</h3>
+<ul class="pairs">
   {#each EVOLUTIONS as e (e.to)}
     {@const got = evolved.includes(e.to)}
     <li class:got>
@@ -22,6 +23,18 @@
       <span class="name"
         >{got ? WEAPONS[e.to].name : '？？？'}<small>{WEAPONS[e.from].name}・{PASSIVES[e.with].name}</small></span
       >
+    </li>
+  {/each}
+</ul>
+<h3 class="head">専用進化 {ANIMALS.filter((a) => evolved.includes(a.special)).length} / {ANIMALS.length}</h3>
+<ul class="specials">
+  {#each ANIMALS as a (a.id)}
+    {@const got = evolved.includes(a.special)}
+    <li class:got>
+      <PixelIcon art={itemArt(`weapon-${a.weapon}`)} {size} />
+      <span class="plus">=</span>
+      <span class:hidden={!got}><PixelIcon art={itemArt(`weapon-${a.special}`)} {size} /></span>
+      <span class="name">{got ? WEAPONS[a.special].name : '？？？'}<small>{a.forms[2]}</small></span>
     </li>
   {/each}
 </ul>

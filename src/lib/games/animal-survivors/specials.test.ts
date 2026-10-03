@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { ACHIEVEMENTS } from './achievements';
 import { ANIMALS, animal } from './animals';
 import { apply, choices, levelUp } from './choices';
 import { gainXp, xpNeed } from './drops';
@@ -111,6 +112,14 @@ describe('専用進化', () => {
     expect(r.evolved).toContain('woofSp');
     expect(parseRecords(JSON.stringify(r)).evolved).toContain('woofSp');
     expect(animal('dog').special).toBe('woofSp');
+  });
+
+  it('専用進化形は「12 種すべて進化」に数えない', () => {
+    const a = ACHIEVEMENTS.find((d) => d.id === 'evolveAll')!;
+    const r = emptyRecords();
+    r.evolved = ANIMALS.map((x) => x.special).concat(['woofEvo', 'pawEvo', 'howlEvo']);
+    expect(a.done(r, null)).toBe(false);
+    expect(a.progress?.(r)).toEqual([3, 12]);
   });
 
   it('ねこまたの百裂ひっかきは上下左右の敵に当たる', () => {

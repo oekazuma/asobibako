@@ -80,7 +80,13 @@ export function parseRecords(text: string | null): Records {
     // 壊れた保存は空の記録として読む
   }
   const ids = ANIMALS.map((a) => a.id);
-  const unlocked = list(raw.unlocked, ids);
+  const achieved = list(
+    raw.achieved,
+    ACHIEVEMENTS.map((a) => a.id)
+  );
+  // 実績のごほうびの動物はあとから付け替えることがあり、達成済みの実績は二度と動物を渡さないので、読むたびに足す
+  const owed = ACHIEVEMENTS.flatMap((a) => (a.animal && achieved.includes(a.id) ? [a.animal] : []));
+  const unlocked = [...list(raw.unlocked, ids), ...owed];
   return {
     best: num(raw.best),
     kills: num(raw.kills),
@@ -89,10 +95,7 @@ export function parseRecords(text: string | null): Records {
     unlocked: ids.filter((id) => STARTERS.includes(id) || unlocked.includes(id)),
     coins: Math.floor(num(raw.coins)),
     ranks: ranksOf(raw.ranks),
-    achieved: list(
-      raw.achieved,
-      ACHIEVEMENTS.map((a) => a.id)
-    ),
+    achieved,
     clearedBy: list(raw.clearedBy, ids),
     chests: Math.floor(num(raw.chests)),
     evolved: list(

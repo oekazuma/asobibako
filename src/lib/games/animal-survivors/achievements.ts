@@ -16,6 +16,8 @@ export interface AchievementDef {
   progress?: (r: Records) => [number, number];
 }
 
+/** ふつうの進化形だけを数える（専用進化形は別の表） */
+const evolvedCount = (r: Records) => r.evolved.filter((id) => EVOLUTIONS.some((e) => e.to === id)).length;
 const maxed = (r: Records) => UPGRADES.filter((d) => (r.ranks[d.id] ?? 0) >= d.max).length;
 const lv5 = (run: RunSummary | null) => run?.weapons.filter((o) => o.level >= MAX_LEVEL).length ?? 0;
 
@@ -111,8 +113,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     id: 'evolveAll',
     name: '12 種すべて進化',
     coins: 500,
-    done: (r) => r.evolved.length >= EVOLUTIONS.length,
-    progress: (r) => [r.evolved.length, EVOLUTIONS.length]
+    done: (r) => evolvedCount(r) >= EVOLUTIONS.length,
+    progress: (r) => [evolvedCount(r), EVOLUTIONS.length]
   },
   { id: 'metal', name: 'きらきらハリネズミを倒す', coins: 200, done: (_, run) => run?.metal ?? false },
   {

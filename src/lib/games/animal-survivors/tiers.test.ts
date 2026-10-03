@@ -75,6 +75,12 @@ describe('解放の条件', () => {
     expect(r.finales).toEqual(['forest']);
   });
 
+  it('達成済みの実績に後から付いた動物は、読み込んだときに仲間になる', () => {
+    const r = parseRecords(JSON.stringify({ achieved: ['snowClear', 'graveClear'] }));
+    expect(r.unlocked).toContain('drake');
+    expect(r.unlocked).toContain('panda');
+  });
+
   it('古い記録で仲間になっていた動物は残り、知らない id は捨て、finales が無くても読める', () => {
     const r = parseRecords(JSON.stringify({ unlocked: ['fox', 'panda', 'nope'] }));
     expect(r.unlocked.sort()).toEqual(['cat', 'dog', 'fox', 'panda', 'wolf']);
