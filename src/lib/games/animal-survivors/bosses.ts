@@ -50,6 +50,9 @@ export function slot(w: World): number {
   return best;
 }
 
+/** 同じ時刻に並べて出すボスどうしの間（ドット） */
+const PAIR_GAP = 56;
+
 /** 同じ時刻のボスは WARNING を 1 回だけ出し、いっしょに出す */
 export function spawnBosses(w: World): void {
   const list = w.stage.bosses;
@@ -60,10 +63,19 @@ export function spawnBosses(w: World): void {
     w.warned += 1;
   }
   const fresh: number[] = [];
+  let base = { x: 0, y: 0 };
+  let k = 0;
   while (w.bossNext < list.length && w.time >= list[w.bossNext].at) {
     const b = list[w.bossNext++];
     const def = ENEMIES[b.id];
-    const at = spawnPoint(w);
+    // 同じ時刻のボスは同じ場所の左右に並べて出す（別々の向きだと登場のカメラに 2 体が入らない）
+    k = list[w.bossNext - 2]?.at === b.at ? k + 1 : 0;
+    if (k === 0) base = spawnPoint(w);
+    const dx = base.x - w.player.x;
+    const dy = base.y - w.player.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const side = k === 0 ? 0 : (k % 2 ? 1 : -1) * Math.ceil(k / 2) * PAIR_GAP;
+    const at = { x: base.x - (dy / len) * side, y: base.y + (dx / len) * side };
     const hp = def.hp * (b.hp ?? 1) * w.stage.toughness(b.at) * BOSS_HP;
     // 体力のバーは def.hp を満タンとして描くので、表も出たときの体力にそろえる
     const e = makeEnemy(

@@ -4,8 +4,8 @@
 
 <div class="plate" role="alert">
   <span class="epithet">{epithet}</span>
-  <!-- 面の主は 2 体の名前が並ぶので、iPhone の幅に収まるよう字を小さくする -->
-  <strong class:long={name.length > 6}>{name}</strong>
+  <!-- 面の主は 2 体の名前を 2 行に並べ、iPhone の幅に収まるよう字を小さくする -->
+  <strong class:long={name.includes('\n') || name.length > 6}>{name}</strong>
 </div>
 
 <style>
@@ -37,6 +37,9 @@
   }
 
   strong {
+    white-space: pre;
+    text-align: center;
+    line-height: 1.15;
     font-size: min(9cqw, 5.4cqh, 54px);
     letter-spacing: 0.06em;
     text-shadow:

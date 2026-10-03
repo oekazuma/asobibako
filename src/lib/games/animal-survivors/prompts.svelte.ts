@@ -71,7 +71,7 @@ export class Prompts {
         const defs = e.ids.map((i) => w.enemies[i].def);
         this.intro =
           defs.length > 1
-            ? { ids: e.ids, t: 0, epithet: '面の主', name: defs.map((d) => d.name).join('・') }
+            ? { ids: e.ids, t: 0, epithet: '面の主', name: defs.map((d) => d.name).join('\n') }
             : { ids: e.ids, t: 0, epithet: defs[0].epithet ?? '', name: defs[0].name };
       } else if (e.type === 'grow') {
         const [from, to] = [w.animal.forms[e.form - 1], w.animal.forms[e.form]];

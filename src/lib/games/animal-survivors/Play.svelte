@@ -56,7 +56,7 @@
 
   const input = new BoardInput({
     down: (event, x, y) => {
-      if (!stick && !prompts.busy) stick = { id: event.pointerId, x, y, dx: 0, dy: 0 };
+      if (!stick && (!prompts.busy || prompts.intro)) stick = { id: event.pointerId, x, y, dx: 0, dy: 0 };
     },
     move: (event, x, y) => {
       if (stick?.id !== event.pointerId) return;

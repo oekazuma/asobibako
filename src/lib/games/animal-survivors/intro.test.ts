@@ -58,6 +58,15 @@ describe('ボスの登場', () => {
     p.stop();
   });
 
+  it('登場のあいだに置いた移動の指は、終わって 3 択が開くときに押し間違いの防ぎに入る', () => {
+    const { w, p } = bossAppears(180);
+    w.pending = 1;
+    p.next(7, INTRO + 0.1);
+    expect(p.options).not.toBeNull();
+    expect(p.lock.active).toBe(true);
+    p.stop();
+  });
+
   it('カメラは 0 秒で自分、0.6〜1.8 秒でボス、終わりは自分へ戻る', () => {
     const { w, p } = bossAppears(180);
     const boss = w.enemies.find((e) => e.alive && e.def.boss)!;
@@ -86,7 +95,8 @@ describe('ボスの登場', () => {
     const { w, p } = bossAppears(FINALE);
     expect(p.intro?.ids).toHaveLength(2);
     expect(p.intro?.epithet).toBe('面の主');
-    expect(p.intro?.name).toBe('巨大ベア・女王グモ');
+    // 2 体の名前は長くなるので、札では 2 行に分ける
+    expect(p.intro?.name).toBe('巨大ベア\n女王グモ');
     const [a, b] = p.intro!.ids.map((i) => w.enemies[i]);
     p.next(null, 1.2);
     expect(p.focus(w)!.x).toBeCloseTo((a.x + b.x) / 2);
@@ -113,6 +123,27 @@ describe('ボスの登場', () => {
     const bosses = Object.values(ENEMIES).filter((d) => d.boss);
     expect(bosses).toHaveLength(6);
     for (const d of bosses) expect(d.epithet?.length).toBeGreaterThan(0);
+  });
+});
+
+describe('面の主の出る場所', () => {
+  it('同じ時刻の 2 体は近くに並んで出て、カメラの寄る先から 2 体とも画面に入る', () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      const w = before(FINALE);
+      w.rand = createWorld('dog', seed, VIEW).rand;
+      const p = new Prompts(w, false);
+      step(w, still, 1 / 30);
+      p.take();
+      const [a, b] = p.intro!.ids.map((i) => w.enemies[i]);
+      expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeLessThan(100);
+      p.next(null, 1.2);
+      const f = p.focus(w)!;
+      for (const e of [a, b]) {
+        expect(Math.abs(e.x - f.x)).toBeLessThan(VIEW.w / 2);
+        expect(Math.abs(e.y - f.y)).toBeLessThan(VIEW.h / 2);
+      }
+      p.stop();
+    }
   });
 });
 
