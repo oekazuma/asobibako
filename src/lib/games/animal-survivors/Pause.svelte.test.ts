@@ -21,6 +21,7 @@ const run: RunSummary = {
   stage: 'forest',
   form: 0,
   metal: false,
+  finale: false,
   dealt: []
 };
 

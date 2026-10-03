@@ -30,6 +30,8 @@ export interface Records {
   stages: string[];
   /** 前に遊んだ面 */
   stage: string;
+  /** 面の主を 2 体とも倒した面 */
+  finales: string[];
 }
 
 export const RECORDS_KEY = 'asobibako:animal-survivors';
@@ -51,7 +53,8 @@ export function emptyRecords(): Records {
     chests: 0,
     evolved: [],
     stages: [],
-    stage: 'forest'
+    stage: 'forest',
+    finales: []
   };
 }
 
@@ -97,7 +100,8 @@ export function parseRecords(text: string | null): Records {
       EVOLUTIONS.map((e) => e.to)
     ),
     stages: stagesOf(raw),
-    stage: typeof raw.stage === 'string' && STAGE_IDS.includes(raw.stage) ? raw.stage : 'forest'
+    stage: typeof raw.stage === 'string' && STAGE_IDS.includes(raw.stage) ? raw.stage : 'forest',
+    finales: list(raw.finales, STAGE_IDS)
   };
 }
 
@@ -125,6 +129,7 @@ export function record(r: Records, run: RunSummary): AchievementDef[] {
   r.coins += run.coins;
   if (run.cleared && !r.stages.includes(run.stage)) r.stages.push(run.stage);
   r.stage = run.stage;
+  if (run.finale && !r.finales.includes(run.stage)) r.finales.push(run.stage);
   for (const id of run.evolved) if (!r.evolved.includes(id)) r.evolved.push(id);
   return grant(r, run);
 }

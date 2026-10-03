@@ -150,6 +150,8 @@ export interface World {
   metalAt: number;
   /** この回にきらきらハリネズミを倒した */
   metalWon: boolean;
+  /** この回に倒した面の主の数 */
+  finaleKills: number;
   /** 次に出すボスの番号と、予告を出したボスの数 */
   bossNext: number;
   warned: number;
@@ -249,6 +251,7 @@ export function createWorld(
     chiefNext: 0,
     metalAt: metalTime(seed),
     metalWon: false,
+    finaleKills: 0,
     bossNext: 0,
     warned: 0,
     over: null,
@@ -332,6 +335,7 @@ export function damageEnemy(
   w.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.def.id });
   if (e.def.boss) {
     w.bossKills.push(e.def.boss);
+    if (e.def.finale) w.finaleKills += 1;
     w.events.push({ type: 'bossdown', x: e.x, y: e.y });
   }
   dropFrom(w, e);
@@ -747,6 +751,8 @@ export interface RunSummary {
   form: 0 | 1 | 2;
   /** きらきらハリネズミを倒した */
   metal: boolean;
+  /** 面の主を 2 体とも倒した */
+  finale: boolean;
 }
 
 /** 強欲を掛けたこの回のコイン。1 枚ずつ掛けると端数で減るので、合計に掛ける */
@@ -773,6 +779,7 @@ export function summary(w: World): RunSummary {
       .sort((a, b) => b.damage - a.damage),
     stage: w.stage.id,
     form: w.form,
-    metal: w.metalWon
+    metal: w.metalWon,
+    finale: w.finaleKills >= 2
   };
 }

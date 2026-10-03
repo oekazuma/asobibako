@@ -26,6 +26,8 @@ export interface EnemyDef {
   minion?: string;
   /** 女王グモ型の飛び道具の絵（ITEM_ART の名前） */
   shot?: string;
+  /** 面の主の行で出たボス。2 体とも倒すとその面の面の主を倒したことになる */
+  finale?: boolean;
   /** 2 回めのボスと面の主。攻撃の間をこの値で割る */
   rage?: number;
   /** ヌシ（3 倍の大きさで王冠を載せたふつうの敵）。十字架で消えず、押されない */

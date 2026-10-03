@@ -21,9 +21,9 @@ const lv5 = (run: RunSummary | null) => run?.weapons.filter((o) => o.level >= MA
 
 export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'survive1', name: '1 分生き延びる', coins: 10, done: (r) => r.best >= 60 },
-  { id: 'survive5', name: '5 分生き延びる', coins: 50, animal: 'fox', done: (r) => r.best >= 300 },
+  { id: 'survive5', name: '5 分生き延びる', coins: 50, done: (r) => r.best >= 300 },
   { id: 'survive10', name: '10 分生き延びる', coins: 100, done: (r) => r.best >= 600 },
-  { id: 'clear', name: '15 分生き延びてクリア', coins: 200, animal: 'panda', done: (r) => r.clears >= 1 },
+  { id: 'clear', name: '15 分生き延びてクリア', coins: 200, animal: 'fox', done: (r) => r.clears >= 1 },
   { id: 'run100', name: '1 回で 100 体倒す', coins: 20, done: (_, run) => (run?.kills ?? 0) >= 100 },
   { id: 'run1000', name: '1 回で 1000 体倒す', coins: 100, done: (_, run) => (run?.kills ?? 0) >= 1000 },
   { id: 'run3000', name: '1 回で 3000 体倒す', coins: 200, done: (_, run) => (run?.kills ?? 0) >= 3000 },
@@ -31,7 +31,6 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     id: 'total3000',
     name: '合計 3000 体倒す',
     coins: 100,
-    animal: 'rabbit',
     done: (r) => r.kills >= 3000,
     progress: (r) => [r.kills, 3000]
   },
@@ -42,7 +41,23 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     done: (r) => r.kills >= 30000,
     progress: (r) => [r.kills, 30000]
   },
-  { id: 'bear', name: '巨大ベアを倒す', coins: 100, animal: 'bear', done: (r) => r.bosses.includes('bear') },
+  { id: 'bear', name: '巨大ベアを倒す', coins: 100, done: (r) => r.bosses.includes('bear') },
+  {
+    id: 'forestFinale',
+    name: '森の面の主を倒す',
+    coins: 300,
+    animal: 'bear',
+    done: (r) => r.finales.includes('forest')
+  },
+  {
+    id: 'total20000',
+    name: '合計 20000 体倒す',
+    coins: 200,
+    animal: 'rabbit',
+    done: (r) => r.kills >= 20000,
+    progress: (r) => [r.kills, 20000]
+  },
+  { id: 'yeti', name: '大雪男を倒す', coins: 200, animal: 'tiger', done: (r) => r.bosses.includes('yeti') },
   { id: 'queen', name: '女王グモを倒す', coins: 150, done: (r) => r.bosses.includes('spiderQueen') },
   {
     id: 'bothBosses',
@@ -56,7 +71,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'weapons5', name: '武器 3 つを Lv5 にする', coins: 150, done: (_, run) => lv5(run) >= 3 },
   {
     id: 'allAnimals',
-    name: '7 匹がそろう',
+    name: '9 匹がそろう',
     coins: 200,
     done: (r) => r.unlocked.length >= ANIMALS.length,
     progress: (r) => [r.unlocked.length, ANIMALS.length]
@@ -100,8 +115,14 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     progress: (r) => [r.evolved.length, EVOLUTIONS.length]
   },
   { id: 'metal', name: 'きらきらハリネズミを倒す', coins: 200, done: (_, run) => run?.metal ?? false },
-  { id: 'graveClear', name: '夜の墓地をクリア', coins: 300, done: (r) => r.stages.includes('graveyard') },
-  { id: 'snowClear', name: '雪山をクリア', coins: 400, done: (r) => r.stages.includes('snow') },
+  {
+    id: 'graveClear',
+    name: '夜の墓地をクリア',
+    coins: 300,
+    animal: 'panda',
+    done: (r) => r.stages.includes('graveyard')
+  },
+  { id: 'snowClear', name: '雪山をクリア', coins: 400, animal: 'drake', done: (r) => r.stages.includes('snow') },
   {
     id: 'snowBosses',
     name: '雪山の 2 体のボスを倒す',

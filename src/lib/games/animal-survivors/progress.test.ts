@@ -28,6 +28,7 @@ const run = (o: Partial<RunSummary> = {}): RunSummary => ({
   stage: 'forest',
   form: 0,
   metal: false,
+  finale: false,
   ...o
 });
 
@@ -82,7 +83,7 @@ describe('店', () => {
 
   it('強化は動物の基本の値に足し、とくいとパッシブはその上に重なる', () => {
     const s = stats(animal('fox'), [{ id: 'fang', level: 1 }], { might: 0.1, crit: 0.04 });
-    expect(s.might).toBeCloseTo(1 + 0.1 + 0.1);
+    expect(s.might).toBeCloseTo(1.05 + 0.1 + 0.1);
     expect(s.crit).toBeCloseTo(0.05 + 0.1 + 0.04);
   });
 });
@@ -112,9 +113,9 @@ describe('記録の拡張', () => {
 });
 
 describe('実績', () => {
-  it('30 個あり、id は重ならない', () => {
-    expect(ACHIEVEMENTS).toHaveLength(30);
-    expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(30);
+  it('33 個あり、id は重ならない', () => {
+    expect(ACHIEVEMENTS).toHaveLength(33);
+    expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(33);
   });
 
   it('1 回の結果で記録を足し、達成した実績のコインと動物を渡す。同じ実績は 2 度渡さない', () => {
@@ -122,23 +123,23 @@ describe('実績', () => {
     const got = record(r, run({ time: 320, kills: 120, coins: 40 }));
     expect(got.map((a) => a.id)).toEqual(['survive1', 'survive5', 'run100']);
     expect(r.coins).toBe(40 + 10 + 50 + 20);
-    expect(r.unlocked).toContain('fox');
+    expect(r.unlocked).not.toContain('fox');
     expect(record(r, run({ time: 320, kills: 120 }))).toEqual([]);
   });
 
-  it('ごほうびで 7 匹がそろうと、同じ判定の中で「7 匹がそろう」も達成する', () => {
+  it('ごほうびで 9 匹がそろうと、同じ判定の中で「9 匹がそろう」も達成する', () => {
     const r = emptyRecords();
-    r.unlocked = ['dog', 'cat', 'wolf', 'fox', 'bear', 'rabbit'];
-    const got = record(r, run({ time: 900, cleared: true }));
-    expect(got.map((a) => a.id)).toContain('clear');
+    r.unlocked = ['dog', 'cat', 'wolf', 'fox', 'bear', 'rabbit', 'panda', 'tiger'];
+    const got = record(r, run({ time: 900, cleared: true, stage: 'snow' }));
+    expect(got.map((a) => a.id)).toContain('snowClear');
     expect(got.map((a) => a.id)).toContain('allAnimals');
-    expect(r.unlocked).toHaveLength(7);
+    expect(r.unlocked).toHaveLength(9);
   });
 
   it('もう仲間の動物は、実績を後から達成しても新しく仲間になったことにしない', () => {
     const r = parseRecords(JSON.stringify({ best: 400, unlocked: ['fox'] }));
-    const got = record(r, run({ time: 30 }));
-    expect(got.map((a) => a.id)).toContain('survive5');
+    const got = record(r, run({ time: 900, cleared: true }));
+    expect(got.map((a) => a.id)).toContain('clear');
     expect(got.flatMap((a) => (a.animal ? [a.animal] : []))).toEqual([]);
   });
 

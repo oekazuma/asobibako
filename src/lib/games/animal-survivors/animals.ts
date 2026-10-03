@@ -1,12 +1,14 @@
 import type { Stats } from './passives';
 
-export type AnimalId = 'dog' | 'cat' | 'wolf' | 'fox' | 'bear' | 'rabbit' | 'panda';
+export type AnimalId = 'dog' | 'cat' | 'wolf' | 'fox' | 'bear' | 'rabbit' | 'panda' | 'tiger' | 'drake';
 
 export interface Animal {
   id: AnimalId;
   name: string;
   /** キャラ選択に出す型の名前 */
   style: string;
+  /** 強さの段。1 基本・2 中・3 強・4 最強。段が上ほど解放が重く、強い */
+  tier: 1 | 2 | 3 | 4;
   blurb: string;
   hp: number;
   /** 基本の速さ（60 px/秒）に掛ける */
@@ -34,7 +36,8 @@ export const ANIMALS: Animal[] = [
     hp: 100,
     speed: 1,
     might: 1,
-    weapon: 'woof'
+    weapon: 'woof',
+    tier: 1
   },
   {
     id: 'cat',
@@ -45,7 +48,8 @@ export const ANIMALS: Animal[] = [
     hp: 90,
     speed: 1.25,
     might: 0.9,
-    weapon: 'paw'
+    weapon: 'paw',
+    tier: 1
   },
   {
     id: 'wolf',
@@ -56,7 +60,8 @@ export const ANIMALS: Animal[] = [
     hp: 110,
     speed: 1,
     might: 1.2,
-    weapon: 'howl'
+    weapon: 'howl',
+    tier: 1
   },
   {
     id: 'fox',
@@ -64,13 +69,14 @@ export const ANIMALS: Animal[] = [
     name: 'キツネ',
     style: 'テクニック型',
     blurb: '狐火を足もとに残し、会心の一撃をねらう',
-    hp: 85,
+    hp: 90,
     speed: 1.15,
-    might: 1,
+    might: 1.05,
     weapon: 'flame',
     bonus: { crit: 0.1 },
     perk: '会心率 +10%',
-    unlock: '5 分生き延びると仲間になる'
+    unlock: '森をクリアすると仲間になる',
+    tier: 2
   },
   {
     id: 'bear',
@@ -78,13 +84,14 @@ export const ANIMALS: Animal[] = [
     name: 'クマ',
     style: 'タンク型',
     blurb: '遅いが打たれ強い。大きな爪でなぎ払う',
-    hp: 150,
+    hp: 155,
     speed: 0.85,
-    might: 1.15,
+    might: 1.2,
     weapon: 'claw',
     bonus: { armor: 2 },
     perk: '受けるダメージ -2',
-    unlock: '巨大ベアを倒すと仲間になる'
+    unlock: '森の面の主を倒すと仲間になる',
+    tier: 2
   },
   {
     id: 'rabbit',
@@ -92,13 +99,14 @@ export const ANIMALS: Animal[] = [
     name: 'ウサギ',
     style: '逃げ足型',
     blurb: 'とても速いが打たれ弱い。駆け抜けて吹き飛ばす',
-    hp: 75,
+    hp: 80,
     speed: 1.35,
-    might: 0.85,
+    might: 0.9,
     weapon: 'dash',
     bonus: { magnet: 0.5 },
     perk: 'アイテムを拾う範囲 +50%',
-    unlock: 'これまでに合計 3000 体倒すと仲間になる'
+    unlock: 'これまでに合計 20000 体倒すと仲間になる',
+    tier: 2
   },
   {
     id: 'panda',
@@ -106,13 +114,44 @@ export const ANIMALS: Animal[] = [
     name: 'パンダ',
     style: '回復型',
     blurb: 'ゆっくりだがしぶとい。ツタで敵を足止めする',
-    hp: 130,
+    hp: 150,
     speed: 0.9,
-    might: 1,
+    might: 1.15,
     weapon: 'vine',
-    bonus: { regen: 0.5 },
-    perk: '毎秒 HP +0.5 回復',
-    unlock: '15 分生き延びてクリアすると仲間になる'
+    bonus: { regen: 1 },
+    perk: '毎秒 HP +1 回復',
+    unlock: '夜の墓地をクリアすると仲間になる',
+    tier: 3
+  },
+  {
+    id: 'tiger',
+    forms: ['子トラ', '白虎', '雷虎'],
+    name: 'トラ',
+    style: '強打型',
+    tier: 3,
+    blurb: '速くて一撃が重い。前と後ろを大きく引き裂く',
+    hp: 120,
+    speed: 1.2,
+    might: 1.35,
+    weapon: 'tigerClaw',
+    bonus: { crit: 0.1 },
+    perk: '会心率 +10%',
+    unlock: '雪山の大雪男を倒すと仲間になる'
+  },
+  {
+    id: 'drake',
+    forms: ['竜の子', '若竜', '竜王'],
+    name: '竜の子',
+    style: '最強',
+    tier: 4,
+    blurb: '炎の息で前の敵をまとめて焼く。育つと翼が生える',
+    hp: 140,
+    speed: 1.1,
+    might: 1.5,
+    weapon: 'breath',
+    bonus: { armor: 1, regen: 0.3, amount: 1 },
+    perk: '受けるダメージ -1・毎秒 HP +0.3・弾 +1',
+    unlock: '雪山をクリアすると仲間になる'
   }
 ];
 

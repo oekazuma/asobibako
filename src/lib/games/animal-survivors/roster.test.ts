@@ -7,25 +7,38 @@ import { stats } from './passives';
 import { WEAPONS } from './weapons';
 
 describe('動物', () => {
-  it('7 匹いて、最初の武器はどれも表にある', () => {
-    expect(ANIMALS.map((a) => a.id)).toEqual(['dog', 'cat', 'wolf', 'fox', 'bear', 'rabbit', 'panda']);
+  it('9 匹いて、最初の武器はどれも表にある', () => {
+    expect(ANIMALS.map((a) => a.id)).toEqual([
+      'dog',
+      'cat',
+      'wolf',
+      'fox',
+      'bear',
+      'rabbit',
+      'panda',
+      'tiger',
+      'drake'
+    ]);
     for (const a of ANIMALS) expect(WEAPONS[a.weapon]).toBeDefined();
   });
 
-  it('新しい 4 匹は表どおりで、特別な強みが stats に入る', () => {
-    expect(animal('fox')).toMatchObject({ hp: 85, speed: 1.15, might: 1, weapon: 'flame' });
-    expect(animal('bear')).toMatchObject({ hp: 150, speed: 0.85, might: 1.15, weapon: 'claw' });
-    expect(animal('rabbit')).toMatchObject({ hp: 75, speed: 1.35, might: 0.85, weapon: 'dash' });
-    expect(animal('panda')).toMatchObject({ hp: 130, speed: 0.9, might: 1, weapon: 'vine' });
+  it('解放する 6 匹は表どおりで、特別な強みが stats に入る', () => {
+    expect(animal('fox')).toMatchObject({ hp: 90, speed: 1.15, might: 1.05, weapon: 'flame' });
+    expect(animal('bear')).toMatchObject({ hp: 155, speed: 0.85, might: 1.2, weapon: 'claw' });
+    expect(animal('rabbit')).toMatchObject({ hp: 80, speed: 1.35, might: 0.9, weapon: 'dash' });
+    expect(animal('panda')).toMatchObject({ hp: 150, speed: 0.9, might: 1.15, weapon: 'vine' });
+    expect(animal('tiger')).toMatchObject({ hp: 120, speed: 1.2, might: 1.35, weapon: 'tigerClaw' });
+    expect(animal('drake')).toMatchObject({ hp: 140, speed: 1.1, might: 1.5, weapon: 'breath' });
     expect(stats(animal('fox'), []).crit).toBeCloseTo(0.15);
     expect(stats(animal('bear'), []).armor).toBe(2);
     expect(stats(animal('rabbit'), []).magnet).toBeCloseTo(1.5);
-    expect(stats(animal('panda'), []).regen).toBeCloseTo(0.5);
+    expect(stats(animal('panda'), []).regen).toBeCloseTo(1);
+    expect(stats(animal('drake'), [])).toMatchObject({ armor: 1, amount: 1 });
     expect(stats(animal('dog'), []).crit).toBeCloseTo(0.05);
   });
 
-  it('新しい 4 匹には解放の条件と強みの文がある', () => {
-    for (const id of ['fox', 'bear', 'rabbit', 'panda'] as const) {
+  it('解放する 6 匹には解放の条件と強みの文がある', () => {
+    for (const id of ['fox', 'bear', 'rabbit', 'panda', 'tiger', 'drake'] as const) {
       expect(animal(id).unlock).toBeTruthy();
       expect(animal(id).perk).toBeTruthy();
     }
@@ -50,6 +63,7 @@ const run = (o: Partial<RunSummary>): RunSummary => ({
   stage: 'forest',
   form: 0,
   metal: false,
+  finale: false,
   ...o
 });
 
@@ -62,26 +76,24 @@ describe('記録と解放', () => {
     expect(emptyRecords().unlocked).toEqual(['dog', 'cat', 'wolf']);
   });
 
-  it('5 分生き延びるとキツネ。一度解放したものはもう返さない', () => {
+  it('森をクリアするとキツネ。一度解放したものはもう返さない', () => {
     const r = emptyRecords();
-    expect(pets(r, run({ time: 299 }))).toEqual([]);
-    expect(pets(r, run({ time: 300 }))).toEqual(['fox']);
+    expect(pets(r, run({ time: 600 }))).toEqual([]);
+    expect(pets(r, run({ time: 900, cleared: true }))).toEqual(['fox']);
     expect(r.unlocked).toContain('fox');
-    expect(pets(r, run({ time: 400 }))).toEqual([]);
-    expect(r.best).toBe(400);
+    expect(pets(r, run({ time: 900, cleared: true }))).toEqual([]);
+    expect(r.clears).toBe(2);
   });
 
   it('同じ回で 2 匹の条件を満たせば 2 匹とも解放する', () => {
     const r = emptyRecords();
-    expect(pets(r, run({ time: 310, bosses: ['bear'] }))).toEqual(['fox', 'bear']);
+    expect(pets(r, run({ time: 900, cleared: true, finale: true }))).toEqual(['fox', 'bear']);
   });
 
-  it('撃破の合計 3000 でウサギ、クリアでパンダ', () => {
+  it('撃破の合計 20000 でウサギ', () => {
     const r = emptyRecords();
-    expect(pets(r, run({ kills: 1500 }))).toEqual([]);
-    expect(pets(r, run({ kills: 1500 }))).toEqual(['rabbit']);
-    expect(pets(r, run({ time: 900, cleared: true }))).toEqual(['fox', 'panda']);
-    expect(r.clears).toBe(1);
+    expect(pets(r, run({ kills: 10000 }))).toEqual([]);
+    expect(pets(r, run({ kills: 10000 }))).toEqual(['rabbit']);
   });
 
   it('壊れた保存や型の違う値は空の記録として読む', () => {

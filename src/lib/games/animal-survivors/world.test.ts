@@ -102,7 +102,8 @@ describe('世界', () => {
       dealt: [],
       stage: 'forest',
       form: 0,
-      metal: false
+      metal: false,
+      finale: false
     });
   });
 });
