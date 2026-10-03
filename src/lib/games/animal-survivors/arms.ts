@@ -3,7 +3,7 @@ import { airborne } from './bosses-snow';
 import { MAX_R } from './enemies';
 import { WEAPONS, weaponStats, type WeaponDef, type WeaponStats } from './weapons';
 import { damageEnemy, type Enemy, type World } from './world';
-import { dropFlame, growVines, scorch, updateZones } from './zones';
+import { dropFlame, flameAt, growVines, scorch, updateZones } from './zones';
 
 export interface Shot {
   alive: boolean;
@@ -24,6 +24,8 @@ export interface Shot {
   /** orbit は自分の周りの角度、ほかは描くときの向き */
   angle: number;
   speed: number;
+  /** ブーメランが折り返した（火の羽根はそこで炎を 1 回置く） */
+  turned: boolean;
 }
 
 export interface Effect {
@@ -93,7 +95,8 @@ const newShot = (): Shot => ({
   knock: 0,
   hits: [],
   angle: 0,
-  speed: 0
+  speed: 0,
+  turned: false
 });
 
 const newEffect = (): Effect => ({
@@ -116,6 +119,7 @@ function shoot(w: World, slot: number, kind: Shot['kind'], s: WeaponStats, angle
   const p = w.player;
   Object.assign(o, {
     alive: true,
+    turned: false,
     slot,
     kind,
     x: p.x,
@@ -317,6 +321,10 @@ function moveShot(w: World, o: Shot, dt: number) {
   if (o.kind === 'boomerang') {
     // 毎秒 speed × 1.6 で減速するので、1 / 1.6 秒で止まって折り返す
     const back = o.age > 1 / 1.6;
+    if (back && !o.turned) {
+      o.turned = true;
+      flameTurn(w, o);
+    }
     if (!back) {
       const k = Math.max(0, 1 - (1.6 * dt * o.speed) / Math.hypot(o.vx, o.vy));
       o.vx *= k;
@@ -403,4 +411,17 @@ export function hits(w: World, dt: number): void {
     }
   }
   updateZones(w);
+}
+
+/** 火の羽根は折り返すところに炎を置く。炎は羽根の 4 割の強さで、専用進化形は大きく長く焼く */
+function flameTurn(w: World, o: Shot): void {
+  const own = w.weapons[o.slot];
+  const def = own && WEAPONS[own.id];
+  if (!def?.flameTurn) return;
+  const s = weaponStats(def, own.level);
+  flameAt(w, o.slot, o.x, o.y + 4, def.special ? 1.4 : 0.8, {
+    ...s,
+    damage: s.damage * 0.4,
+    duration: def.special ? 2 : 1.4
+  });
 }

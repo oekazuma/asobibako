@@ -31,6 +31,11 @@ function zone(w: World, slot: number, kind: 'flame' | 'vine', x: number, y: numb
   else w.effects.push(z);
 }
 
+/** 決まった場所に炎を置く。scale は炎の大きさの倍率 */
+export function flameAt(w: World, slot: number, x: number, y: number, scale: number, s: WeaponStats): void {
+  zone(w, slot, 'flame', x, y, FLAME_R * scale, s);
+}
+
 /** 自分の足もとに炎を置く */
 export function dropFlame(w: World, slot: number, s: WeaponStats, area: number): void {
   zone(w, slot, 'flame', w.player.x, w.player.y + 4, FLAME_R * area, s);
