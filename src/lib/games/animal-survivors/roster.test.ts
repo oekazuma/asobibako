@@ -103,7 +103,8 @@ describe('記録と解放', () => {
     expect(parseRecords(JSON.stringify({ best: 'x', kills: 50, unlocked: ['fox', 'nope'] }))).toEqual({
       ...emptyRecords(),
       kills: 50,
-      unlocked: ['dog', 'cat', 'wolf', 'fox']
+      unlocked: ['dog', 'cat', 'wolf', 'fox'],
+      book: { ...emptyRecords().book, forms: ['fox:0'] }
     });
   });
 

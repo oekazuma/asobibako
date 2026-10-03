@@ -1,4 +1,5 @@
 import { ACHIEVEMENTS, grant, type AchievementDef } from './achievements';
+import { addBook, emptyBook, parseBook, type Book } from './book';
 import { ANIMALS, type AnimalId } from './animals';
 import { WEAPONS } from './weapons';
 import { STAGES } from './stages';
@@ -32,6 +33,8 @@ export interface Records {
   stage: string;
   /** 面の主を 2 体とも倒した面 */
   finales: string[];
+  /** 図鑑 */
+  book: Book;
 }
 
 export const RECORDS_KEY = 'asobibako:animal-survivors';
@@ -54,7 +57,8 @@ export function emptyRecords(): Records {
     evolved: [],
     stages: [],
     stage: 'forest',
-    finales: []
+    finales: [],
+    book: emptyBook()
   };
 }
 
@@ -87,12 +91,13 @@ export function parseRecords(text: string | null): Records {
   // 実績のごほうびの動物はあとから付け替えることがあり、達成済みの実績は二度と動物を渡さないので、読むたびに足す
   const owed = ACHIEVEMENTS.flatMap((a) => (a.animal && achieved.includes(a.id) ? [a.animal] : []));
   const unlocked = [...list(raw.unlocked, ids), ...owed];
+  const unlockedIds = ids.filter((id) => STARTERS.includes(id) || unlocked.includes(id));
   return {
     best: num(raw.best),
     kills: num(raw.kills),
     bosses: list(raw.bosses, BOSSES),
     clears: num(raw.clears),
-    unlocked: ids.filter((id) => STARTERS.includes(id) || unlocked.includes(id)),
+    unlocked: unlockedIds,
     coins: Math.floor(num(raw.coins)),
     ranks: ranksOf(raw.ranks),
     achieved,
@@ -104,7 +109,8 @@ export function parseRecords(text: string | null): Records {
     ),
     stages: stagesOf(raw),
     stage: typeof raw.stage === 'string' && STAGE_IDS.includes(raw.stage) ? raw.stage : 'forest',
-    finales: list(raw.finales, STAGE_IDS)
+    finales: list(raw.finales, STAGE_IDS),
+    book: parseBook(raw.book, list(raw.bosses, BOSSES), unlockedIds, STARTERS)
   };
 }
 
@@ -134,6 +140,8 @@ export function record(r: Records, run: RunSummary): AchievementDef[] {
   r.stage = run.stage;
   if (run.finale && !r.finales.includes(run.stage)) r.finales.push(run.stage);
   for (const id of run.evolved) if (!r.evolved.includes(id)) r.evolved.push(id);
+  run.bookCoins = addBook(r, run);
+  r.coins += run.bookCoins;
   return grant(r, run);
 }
 

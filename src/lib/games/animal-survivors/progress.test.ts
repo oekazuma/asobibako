@@ -114,9 +114,9 @@ describe('記録の拡張', () => {
 });
 
 describe('実績', () => {
-  it('33 個あり、id は重ならない', () => {
-    expect(ACHIEVEMENTS).toHaveLength(33);
-    expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(33);
+  it('37 個あり、id は重ならない', () => {
+    expect(ACHIEVEMENTS).toHaveLength(37);
+    expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(37);
   });
 
   it('1 回の結果で記録を足し、達成した実績のコインと動物を渡す。同じ実績は 2 度渡さない', () => {

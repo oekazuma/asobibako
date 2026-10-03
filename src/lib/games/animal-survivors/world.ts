@@ -797,6 +797,8 @@ export interface RunSummary {
   /** 面の主を 2 体とも倒した */
   finale: boolean;
   book: RunBook;
+  /** record() が入れる、この回に図鑑へ新しく載ったぶんのコイン */
+  bookCoins?: number;
 }
 
 /** 強欲を掛けたこの回のコイン。1 枚ずつ掛けると端数で減るので、合計に掛ける */

@@ -1,4 +1,5 @@
 import { ANIMALS, type AnimalId } from './animals';
+import { BOOK } from './book';
 import { EVOLUTIONS } from './evolutions';
 import type { Records } from './records';
 import { UPGRADES } from './upgrades';
@@ -15,6 +16,12 @@ export interface AchievementDef {
   /** 合計の実績の [今, 目標] */
   progress?: (r: Records) => [number, number];
 }
+
+/** 図鑑の種類ごとの載った数 */
+const filled = (r: Records, kind: keyof typeof BOOK) => {
+  const v = r.book[kind];
+  return Array.isArray(v) ? v.length : Object.keys(v).length;
+};
 
 /** ふつうの進化形だけを数える（専用進化形は別の表） */
 const evolvedCount = (r: Records) => r.evolved.filter((id) => EVOLUTIONS.some((e) => e.to === id)).length;
@@ -116,6 +123,20 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     done: (r) => evolvedCount(r) >= EVOLUTIONS.length,
     progress: (r) => [evolvedCount(r), EVOLUTIONS.length]
   },
+  ...(
+    [
+      ['bookEnemies', '敵の図鑑をそろえる', 'enemies'],
+      ['bookBosses', 'ボスの図鑑をそろえる', 'bosses'],
+      ['bookForms', '動物の姿の図鑑をそろえる', 'forms'],
+      ['bookItems', '品の図鑑をそろえる', 'items']
+    ] as const
+  ).map(([id, name, kind]) => ({
+    id,
+    name,
+    coins: 300,
+    done: (r: Records) => filled(r, kind) >= BOOK[kind].length,
+    progress: (r: Records): [number, number] => [filled(r, kind), BOOK[kind].length]
+  })),
   { id: 'metal', name: 'きらきらハリネズミを倒す', coins: 200, done: (_, run) => run?.metal ?? false },
   {
     id: 'graveClear',
