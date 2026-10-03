@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { openChest } from './chest';
 import { CHEST_COINS, collect, overtimeCoins, overtimeRate } from './drops';
 import { overtimeRun, startOvertime } from './overtime';
+import { Prompts } from './prompts.svelte';
 import { emptyRecords, parseRecords, record } from './records';
+import { ENEMIES } from './enemies';
+import { makeEnemy } from './world';
 import { FOREST } from './stages/forest';
 import { coinsOf, createWorld, step, summary, type World } from './world';
 
@@ -188,5 +191,27 @@ describe('延長戦の記録', () => {
     expect(r.achieved).not.toContain('overtime10');
     w.time = 900 + 600;
     expect(record(r, overtimeRun(w)).map((a) => a.id)).toContain('overtime10');
+  });
+});
+
+describe('延長戦の曲', () => {
+  it('15:00 の一掃で消えたボスがいても、延長戦のあいだボス戦の曲のままにならない', () => {
+    const w = createWorld('dog', 3, VIEW);
+    w.weapons = [];
+    w.metalAt = -1;
+    w.player.hp = w.stats.maxHp = 1e9;
+    w.time = 900 - 1e-6;
+    w.warned = w.bossNext = w.stage.bosses.length;
+    // 6 体のうち 5 体は倒し、面の主の 1 体が 15:00 まで残った
+    w.bossKills = ['bear', 'spiderQueen', 'bear', 'spiderQueen', 'bear'];
+    w.enemies[0] = makeEnemy(ENEMIES.bear, 30, 0, 9999);
+    const p = new Prompts(w);
+    step(w, still, 1 / 60);
+    expect(w.over).toBe('clear');
+    startOvertime(w);
+    step(w, still, 1 / 60);
+    p.take();
+    expect(p.boss).toBe(false);
+    p.stop();
   });
 });

@@ -52,7 +52,6 @@ const RUSH_COIN = 0.1;
 /** 強化個体が金の磁石を落とす確率（強い相手ほどごほうびを大きくする） */
 const ELITE_GOLD = 0.05;
 
-/** ランタンが壊れたときの品を 1 つ置く */
 /** 延長戦に入ってからの分ごとに上がるコインの倍率。延長戦でなければ 1 */
 export function overtimeRate(w: World): number {
   return w.overtime ? 1 + OVERTIME_STEP * Math.floor((w.time - w.overtime.from) / 60) : 1;
@@ -72,6 +71,7 @@ export function overtimeCoins(w: World): number {
   return Math.floor(o.coins * w.greed * w.stage.coin * keep + 1e-9);
 }
 
+/** ランタンが壊れたときの品を 1 つ置く */
 export function dropLoot(w: World, x: number, y: number): void {
   const weight = (o: (typeof LOOT)[number]) => o[1] * (o[2] ? 1 + w.stats.luck : 1);
   let r = w.rand() * LOOT.reduce((t, o) => t + weight(o), 0);

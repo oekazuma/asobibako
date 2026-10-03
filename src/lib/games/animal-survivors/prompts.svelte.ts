@@ -54,7 +54,7 @@ export class Prompts {
         this.notice = { text: `${from}は ${to}に育った！`, key: w.time, until: w.time + NOTICE };
       }
     // 倒していないボスが残ったまま次のボスが出ることがあるので、予告した数と倒した数で決める
-    this.boss = w.warned > w.bossKills.length;
+    this.boss = w.warned > w.bossKills.length + w.swept;
     if (this.warning && w.time >= this.warning.until) this.warning = null;
     if (this.notice && w.time >= this.notice.until) this.notice = null;
   }

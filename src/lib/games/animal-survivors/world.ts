@@ -172,6 +172,8 @@ export interface World {
   /** 次に出すボスの番号と、予告を出したボスの数 */
   bossNext: number;
   warned: number;
+  /** 15:00 の一掃で倒さずに消えたボスの数（延長戦でボス戦の曲を止めるときに、倒した数に足す） */
+  swept: number;
   over: null | 'dead' | 'clear';
   /**
    * 延長戦（無ければ null）。from は延長戦に入った秒、base は 2 回めの記録で差を取るための始めた時の値、
@@ -289,6 +291,7 @@ export function createWorld(
     picked: [],
     bossNext: 0,
     warned: 0,
+    swept: 0,
     over: null,
     overtime: null,
     view,
@@ -706,6 +709,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
     for (const e of w.enemies) {
       if (!e.alive) continue;
       e.alive = false;
+      if (e.def.boss) w.swept += 1;
       w.kills += 1;
       w.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.def.id });
     }
