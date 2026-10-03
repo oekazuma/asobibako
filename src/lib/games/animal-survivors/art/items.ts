@@ -946,5 +946,44 @@ export const ITEM_ART: Record<string, Art> = {
       ]
     ]
   },
-  ember: { w: 6, h: 6, frames: [['...o..', '..oo..', '.oyyo.', '.oyyo.', '.ryyr.', '..rr..']] }
+  ember: { w: 6, h: 6, frames: [['...o..', '..oo..', '.oyyo.', '.oyyo.', '.ryyr.', '..rr..']] },
+  /** 流れ星。落ちる前に斜め上から降らせる */
+  meteor: {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '.k..........',
+        'krkk........',
+        '.krrk.......',
+        '..kook.k....',
+        '...kookyk...',
+        '....kooykkk.',
+        '...kyyywyyyk',
+        '....kywwwyk.',
+        '.....kyyyk..',
+        '....kyykyyk.',
+        '....kyk.kyk.',
+        '.....k...k..'
+      ]
+    ]
+  },
+  /** 宝の地図の矢印。右向きで、宝箱の向きへ回して描く */
+  arrow: {
+    w: 9,
+    h: 9,
+    frames: [
+      [
+        '....k....',
+        '...kyk...',
+        '.kkkyyk..',
+        'kyyyyyyk.',
+        'kyyyywyyk',
+        'kyyyyyyk.',
+        '.kkkyyk..',
+        '...kyk...',
+        '....k....'
+      ]
+    ]
+  }
 };
