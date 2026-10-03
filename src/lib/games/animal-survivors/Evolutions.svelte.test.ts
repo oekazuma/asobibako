@@ -17,12 +17,12 @@ describe('Evolutions', () => {
     unmount(app);
   });
 
-  it('専用進化形は数に入れず、9 匹の専用進化の表に出す', () => {
+  it('専用進化形は数に入れず、10 匹の専用進化の表に出す', () => {
     const target = document.body.appendChild(document.createElement('div'));
     const app = mount(Evolutions, { target, props: { evolved: ['woofEvo', 'woofSp'] } });
     flushSync();
     expect(target.querySelector('.head')?.textContent).toContain('進化 1 / 12');
-    expect(target.querySelectorAll('.specials li')).toHaveLength(9);
+    expect(target.querySelectorAll('.specials li')).toHaveLength(10);
     expect(target.textContent).toContain('勇者のホネ');
     expect(target.textContent).not.toContain('竜王の業火');
     unmount(app);

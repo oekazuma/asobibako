@@ -37,7 +37,7 @@ export interface WeaponDef {
 }
 
 export const MAX_LEVEL = 5;
-const EXCLUSIVE = ['tigerClaw', 'breath'];
+const EXCLUSIVE = ['tigerClaw', 'breath', 'fireFeather'];
 
 const w = (
   id: string,
@@ -196,6 +196,14 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
       [18, 1.4, 1, 1, 0, 99, 0.35, 20],
       [{ damage: 4 }, { area: 0.25 }, { cooldown: -0.2 }, { amount: 1, damage: 6 }]
     ),
+    w(
+      'fireFeather',
+      '火の羽根',
+      'まわりへ羽根を投げて戻す。折り返すところに小さな炎を残す',
+      'boomerang',
+      [14, 1.5, 2, 1, 160, 99, 1.4, 40],
+      [{ damage: 3 }, { amount: 1 }, { area: 0.25 }, { damage: 4, amount: 1 }]
+    ),
     evo('woofEvo', 'ホネのあられ', '骨を 4 本ずつ投げ、敵を貫く', 'shot', [18, 0.5, 4, 1.2, 220, 3, 1.4, 50]),
     evo(
       'pawEvo',
@@ -266,6 +274,14 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
       }
     ),
     sp('vineSp', 'vine', '達人の竹林', '広い竹林で足止めして削る', 'snare', [21, 1.6, 9, 2, 0, 99, 5, 0]),
+    sp(
+      'fireFeatherSp',
+      'fireFeather',
+      '火の鳥の翼',
+      '羽根を 5 枚ずつ投げ、折り返すところに大きな炎を残す',
+      'boomerang',
+      [40, 1.0, 5, 1.6, 200, 99, 1.6, 60]
+    ),
     sp('tigerClawSp', 'tigerClaw', '雷虎の牙', '4 方向を雷の爪で裂く', 'swipe', [48, 0.6, 4, 1.8, 0, 99, 0.2, 90]),
     sp(
       'breathSp',

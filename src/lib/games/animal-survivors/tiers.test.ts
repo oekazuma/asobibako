@@ -14,20 +14,21 @@ const joined = (r: ReturnType<typeof emptyRecords>, o: Partial<RunSummary>) =>
   record(r, run(o)).flatMap((a) => (a.animal ? [a.animal] : []));
 
 describe('キャラの段', () => {
-  it('9 匹で、基本 3・中 3・強 2・最強 1', () => {
-    expect(ANIMALS).toHaveLength(9);
+  it('10 匹で、基本 3・中 3・強 2・最強 2', () => {
+    expect(ANIMALS).toHaveLength(10);
     const by = (t: number) => ANIMALS.filter((a) => a.tier === t).map((a) => a.id);
     expect(by(1)).toEqual(['dog', 'cat', 'wolf']);
     expect(by(2).sort()).toEqual(['bear', 'fox', 'rabbit']);
     expect(by(3).sort()).toEqual(['panda', 'tiger']);
-    expect(by(4)).toEqual(['drake']);
+    expect(by(4)).toEqual(['drake', 'chick']);
     expect(emptyRecords().unlocked).toEqual(['dog', 'cat', 'wolf']);
   });
 
   it('段が上がるほど攻撃と体力の合計が大きい', () => {
     const power = (t: number) => {
       const list = ANIMALS.filter((a) => a.tier === t);
-      return list.reduce((s, a) => s + a.might * a.hp, 0) / list.length;
+      // よみがえりは、もう一度 HP の半分で立ち上がれるぶんとして数える
+      return list.reduce((s, a) => s + a.might * a.hp * (1 + 0.5 * (a.rebirths ?? 0)), 0) / list.length;
     };
     expect(power(2)).toBeGreaterThan(power(1));
     expect(power(3)).toBeGreaterThan(power(2));

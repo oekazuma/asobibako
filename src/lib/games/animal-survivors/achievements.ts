@@ -81,7 +81,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'weapons5', name: '武器 3 つを Lv5 にする', coins: 150, done: (_, run) => lv5(run) >= 3 },
   {
     id: 'allAnimals',
-    name: '9 匹がそろう',
+    name: '10 匹がそろう',
     coins: 200,
     done: (r) => r.unlocked.length >= ANIMALS.length,
     progress: (r) => [r.unlocked.length, ANIMALS.length]
@@ -147,7 +147,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     done: (r) => r.stages.includes('graveyard')
   },
   { id: 'snowClear', name: '雪山をクリア', coins: 400, animal: 'drake', done: (r) => r.stages.includes('snow') },
-  { id: 'volcanoClear', name: '火山をクリア', coins: 600, done: (r) => r.stages.includes('volcano') },
+  { id: 'volcanoClear', name: '火山をクリア', coins: 600, animal: 'chick', done: (r) => r.stages.includes('volcano') },
   {
     id: 'volcanoBosses',
     name: '溶岩の巨人と不死鳥を倒す',

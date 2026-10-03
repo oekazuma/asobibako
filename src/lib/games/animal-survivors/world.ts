@@ -126,6 +126,8 @@ export interface World {
   /** 残りの 3 択の引き直しと復活 */
   rerolls: number;
   revives: number;
+  /** 動物のよみがえりの残り（火の鳥のひな） */
+  rebirths: number;
   skips: number;
   banishes: number;
   /** その回の候補から消した札（kind:id） */
@@ -229,6 +231,7 @@ export const BASE_SPEED = 60;
 /** 糸の玉に当たったときの速さの倍率 */
 export const SLOW = 0.85;
 const BEAR_DASH_ATK = 30;
+const REBIRTH_INVULN = 2;
 const REVIVE_INVULN = 2;
 const REVIVE_REACH = 80;
 const REVIVE_PUSH = 400;
@@ -280,6 +283,7 @@ export function createWorld(
     greed: k.greed,
     rerolls: k.rerolls,
     revives: k.revives,
+    rebirths: a.rebirths ?? 0,
     skips: k.skips,
     banishes: k.banishes,
     banished: [],
@@ -747,6 +751,14 @@ export function hurtPlayer(w: World, raw: number): void {
   p.hurt = 0.3;
   w.events.push({ type: 'hurt', dmg });
   if (p.hp > 0) return;
+  if (w.rebirths > 0) {
+    // 動物の強みなので店の復活より先に使い、まわりの敵は押し返さない
+    w.rebirths -= 1;
+    p.hp = Math.round(w.stats.maxHp / 2);
+    p.invuln = REBIRTH_INVULN;
+    w.events.push({ type: 'swarm', text: 'よみがえった！' }, { type: 'revive' });
+    return;
+  }
   if (w.revives > 0) {
     w.revives -= 1;
     p.hp = Math.round(w.stats.maxHp / 2);

@@ -926,6 +926,26 @@ export const ITEM_ART: Record<string, Art> = {
       ]
     ]
   },
+  'weapon-fireFeather': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '............',
+        '........kkk.',
+        '.......kyyyk',
+        '......kyooyk',
+        '.....kyoork.',
+        '....kyoork..',
+        '...kyoork...',
+        '..kroork....',
+        '..krrrk.....',
+        '.kRrkk......',
+        'kRkk........',
+        '.k..........'
+      ]
+    ]
+  },
   'weapon-breath': {
     w: 12,
     h: 12,

@@ -8,7 +8,7 @@ import { stats } from './passives';
 import { WEAPONS } from './weapons';
 
 describe('動物', () => {
-  it('9 匹いて、最初の武器はどれも表にある', () => {
+  it('10 匹いて、最初の武器はどれも表にある', () => {
     expect(ANIMALS.map((a) => a.id)).toEqual([
       'dog',
       'cat',
@@ -18,7 +18,8 @@ describe('動物', () => {
       'rabbit',
       'panda',
       'tiger',
-      'drake'
+      'drake',
+      'chick'
     ]);
     for (const a of ANIMALS) expect(WEAPONS[a.weapon]).toBeDefined();
   });

@@ -140,10 +140,11 @@ describe('ドット絵の格子', () => {
     expect(ITEM_ART.seed).toBeDefined();
   });
 
-  it('7 匹ぶんの絵がある', () => {
+  it('10 匹ぶんの絵がある', () => {
     expect(Object.keys(ANIMAL_ART).sort()).toEqual([
       'bear',
       'cat',
+      'chick',
       'dog',
       'drake',
       'fox',

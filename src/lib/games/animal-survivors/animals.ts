@@ -1,6 +1,6 @@
 import type { Stats } from './passives';
 
-export type AnimalId = 'dog' | 'cat' | 'wolf' | 'fox' | 'bear' | 'rabbit' | 'panda' | 'tiger' | 'drake';
+export type AnimalId = 'dog' | 'cat' | 'wolf' | 'fox' | 'bear' | 'rabbit' | 'panda' | 'tiger' | 'drake' | 'chick';
 
 export interface Animal {
   id: AnimalId;
@@ -22,6 +22,8 @@ export interface Animal {
   bonus?: Partial<Stats>;
   /** 特別な強みの文（キャラ選択の「とくい」） */
   perk?: string;
+  /** 倒れても、その場でよみがえれる回数（店の復活とは別に、先に使う） */
+  rebirths?: number;
   /** 育つ 3 段階の名前 */
   forms: [string, string, string];
   /** 解放の条件の文。最初から選べる動物には無い */
@@ -163,6 +165,22 @@ export const ANIMALS: Animal[] = [
     bonus: { armor: 1, regen: 0.3 },
     perk: '受けるダメージ -1・毎秒 HP +0.3',
     unlock: '雪山をクリアすると仲間になる'
+  },
+  {
+    id: 'chick',
+    forms: ['火の鳥のひな', '炎の若鳥', '火の鳥'],
+    name: '火の鳥のひな',
+    style: '最強',
+    tier: 4,
+    blurb: '火の羽根を投げて戻す。倒れても一度だけよみがえる',
+    hp: 110,
+    speed: 1.25,
+    might: 1.3,
+    weapon: 'fireFeather',
+    special: 'fireFeatherSp',
+    rebirths: 1,
+    perk: '一度だけ、倒れてもその場でよみがえる',
+    unlock: '火山をクリアすると仲間になる'
   }
 ];
 

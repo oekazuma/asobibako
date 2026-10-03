@@ -59,11 +59,11 @@ describe('Book', () => {
     unmount(app);
   });
 
-  it('動物は 27 の姿、品は 9 つで、もどるを押せる', () => {
+  it('動物は 30 の姿、品は 9 つで、もどるを押せる', () => {
     const { app, tab, cards, back, target } = show((r) => (r.book.forms = ['dog:0', 'dog:1']));
     tab('動物').click();
     flushSync();
-    expect(cards()).toHaveLength(27);
+    expect(cards()).toHaveLength(30);
     expect(cards()[1].getAttribute('aria-label')).toBe('わんぱく犬');
     tab('品').click();
     flushSync();
