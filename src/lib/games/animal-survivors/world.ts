@@ -83,7 +83,8 @@ export type GameEvent =
   | { type: 'cross' }
   | { type: 'freeze' }
   | { type: 'grow'; form: 1 | 2 }
-  | { type: 'rush' };
+  | { type: 'rush' }
+  | { type: 'special'; id: string };
 
 export interface World {
   rand: Rng;

@@ -71,8 +71,7 @@
             </span>
             {#if a.perk}<span class="perk">とくい: {a.perk}</span>{/if}
           {:else}
-            <span class="name"
-              >？？？<span class="tier" aria-label="強さの段 {a.tier}">{'★'.repeat(a.tier)}</span></span
+            <span class="name">？？？<span class="tier" aria-label="強さの段 {a.tier}">{'★'.repeat(a.tier)}</span></span
             >
             <span class="unlock">{a.unlock}</span>
           {/if}

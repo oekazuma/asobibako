@@ -92,6 +92,14 @@ describe('Prompts', () => {
     expect(p.notice?.text).toBe('わんぱく犬は 勇者の犬に育った！');
   });
 
+  it('専用進化で「勇者の犬の 専用進化！」の帯を出す', () => {
+    const w = createWorld('dog', 1, { w: 274, h: 394 });
+    const p = new Prompts(w);
+    w.events = [{ type: 'special', id: 'woofSp' }];
+    p.take();
+    expect(p.notice?.text).toBe('勇者の犬の 専用進化！');
+  });
+
   it('金の磁石で「コインラッシュ！」の帯を出す', () => {
     const w = createWorld('dog', 1, { w: 274, h: 394 });
     const p = new Prompts(w);

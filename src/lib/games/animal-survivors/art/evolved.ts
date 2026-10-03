@@ -28,6 +28,14 @@ function star(art: Art): Art {
   return { ...art, frames, pal: { ...art.pal, '*': '#ffffff' } };
 }
 
+/** 専用進化形の印。右上の 3×3 に赤い王冠を置く（ふつうの進化形の白い星と見分ける） */
+function crown(art: Art): Art {
+  const w = art.w;
+  const rows = ['^k^', '^^^', 'kkk'];
+  const frames = art.frames.map((f) => f.map((row, y) => (y > 2 ? row : row.slice(0, w - 3) + rows[y])));
+  return { ...art, frames, pal: { ...art.pal, '^': '#ff5a4a' } };
+}
+
 const made = new Map<string, Art>();
 
 /** ITEM_ART を引く。進化形のアイコン（weapon-<id>Evo）は元の武器の絵から作って控える */
@@ -37,6 +45,9 @@ export function itemArt(key: string): Art {
   let a = made.get(key);
   if (!a && key.startsWith('weapon-') && key.endsWith('Evo')) {
     a = star(goldArt(ITEM_ART[key.slice(0, -3)]));
+    made.set(key, a);
+  } else if (!a && key.startsWith('weapon-') && key.endsWith('Sp')) {
+    a = crown(goldArt(ITEM_ART[key.slice(0, -2)]));
     made.set(key, a);
   }
   if (!a) throw new Error(`絵が無い: ${key}`);

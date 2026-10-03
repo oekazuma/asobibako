@@ -1,4 +1,5 @@
 import { gainXp } from './drops';
+import { trySpecial } from './specials';
 import { EVOLUTIONS, baseOf } from './evolutions';
 import { PASSIVES, maxOf, stats } from './passives';
 import { MAX_LEVEL, WEAPONS } from './weapons';
@@ -73,4 +74,5 @@ export function levelUp(w: World, c: Choice): void {
   } else {
     gainXp(w, BAG_XP);
   }
+  trySpecial(w);
 }

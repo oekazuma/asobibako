@@ -1,6 +1,6 @@
 import { ACHIEVEMENTS, grant, type AchievementDef } from './achievements';
 import { ANIMALS, type AnimalId } from './animals';
-import { EVOLUTIONS } from './evolutions';
+import { WEAPONS } from './weapons';
 import { STAGES } from './stages';
 import { ENEMIES, type BossId } from './enemies';
 import { UPGRADES, type Ranks } from './upgrades';
@@ -97,7 +97,7 @@ export function parseRecords(text: string | null): Records {
     chests: Math.floor(num(raw.chests)),
     evolved: list(
       raw.evolved,
-      EVOLUTIONS.map((e) => e.to)
+      Object.keys(WEAPONS).filter((id) => WEAPONS[id].evolved)
     ),
     stages: stagesOf(raw),
     stage: typeof raw.stage === 'string' && STAGE_IDS.includes(raw.stage) ? raw.stage : 'forest',

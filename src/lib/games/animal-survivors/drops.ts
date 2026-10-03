@@ -1,5 +1,6 @@
 import { damageEnemy, type Enemy, type World } from './world';
 import { stats } from './passives';
+import { trySpecial } from './specials';
 
 export interface Gem {
   alive: boolean;
@@ -109,6 +110,7 @@ function grow(w: World): void {
   w.stats = stats(w.animal, w.passives, w.boost, w.form);
   w.player.hp = w.stats.maxHp;
   w.events.push({ type: 'grow', form: w.form as 1 | 2 });
+  trySpecial(w);
 }
 
 /** 玉が MAX_GEMS 個あれば、新しく作らずに自分からいちばん遠い玉へ値を足す（経験値を消さずに数を抑える） */

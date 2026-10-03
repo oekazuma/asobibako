@@ -35,6 +35,11 @@ export function dropFlame(w: World, slot: number, s: WeaponStats, area: number):
   zone(w, slot, 'flame', w.player.x, w.player.y + 4, FLAME_R * area, s);
 }
 
+/** 竜王の業火の焼け跡。扇の中に、ダメージの 4 分の 1 で 2.5 秒焼く炎を置く */
+export function scorch(w: World, slot: number, x: number, y: number, s: WeaponStats): void {
+  zone(w, slot, 'flame', x, y, FLAME_R, { ...s, damage: s.damage / 4, duration: 2.5 });
+}
+
 /** 画面の中のでたらめな敵の足もとにツタを生やす。敵がいなければ false */
 export function growVines(w: World, slot: number, s: WeaponStats, area: number): boolean {
   const p = w.player;

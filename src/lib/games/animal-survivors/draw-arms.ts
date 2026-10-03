@@ -55,7 +55,8 @@ export function shots(ctx: CanvasRenderingContext2D, w: World, q: Snap): void {
     else if (weapon === 'acorn') rotated(ctx, q, ITEM_ART.acorn, o.x, o.y, o.age * 10, 1, gold);
     else if (o.kind === 'shot') rotated(ctx, q, ITEM_ART.bone, o.x, o.y, o.age * 14, 1, gold);
     else if (o.kind === 'boomerang') rotated(ctx, q, ITEM_ART.bone, o.x, o.y, o.age * 16, 1.6, gold);
-    else if (o.kind === 'homing') rotated(ctx, q, ITEM_ART.fish, o.x, o.y, o.angle, 1, gold);
+    else if (o.kind === 'homing')
+      rotated(ctx, q, weapon === 'flame' ? ITEM_ART.flame : ITEM_ART.fish, o.x, o.y, o.angle, 1, gold);
     else rotated(ctx, q, ITEM_ART.feather, o.x, o.y, o.angle + Math.PI / 2, 1, gold);
   }
 }

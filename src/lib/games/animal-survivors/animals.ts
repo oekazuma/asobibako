@@ -16,6 +16,8 @@ export interface Animal {
   /** 武器のダメージに掛ける */
   might: number;
   weapon: string;
+  /** 専用進化形の武器 id（3 段階めに育ち、最初の武器が Lv5 になると入れ替わる） */
+  special: string;
   /** 特別な強み。stats() の基本値に足す */
   bonus?: Partial<Stats>;
   /** 特別な強みの文（キャラ選択の「とくい」） */
@@ -37,6 +39,7 @@ export const ANIMALS: Animal[] = [
     speed: 1,
     might: 1,
     weapon: 'woof',
+    special: 'woofSp',
     tier: 1
   },
   {
@@ -49,6 +52,7 @@ export const ANIMALS: Animal[] = [
     speed: 1.25,
     might: 0.9,
     weapon: 'paw',
+    special: 'pawSp',
     tier: 1
   },
   {
@@ -61,6 +65,7 @@ export const ANIMALS: Animal[] = [
     speed: 1,
     might: 1.2,
     weapon: 'howl',
+    special: 'howlSp',
     tier: 1
   },
   {
@@ -73,6 +78,7 @@ export const ANIMALS: Animal[] = [
     speed: 1.15,
     might: 1.05,
     weapon: 'flame',
+    special: 'flameSp',
     bonus: { crit: 0.1 },
     perk: '会心率 +10%',
     unlock: '森をクリアすると仲間になる',
@@ -88,6 +94,7 @@ export const ANIMALS: Animal[] = [
     speed: 0.85,
     might: 1.2,
     weapon: 'claw',
+    special: 'clawSp',
     bonus: { armor: 2 },
     perk: '受けるダメージ -2',
     unlock: '森の面の主を倒すと仲間になる',
@@ -103,6 +110,7 @@ export const ANIMALS: Animal[] = [
     speed: 1.35,
     might: 0.9,
     weapon: 'dash',
+    special: 'dashSp',
     bonus: { magnet: 0.5 },
     perk: 'アイテムを拾う範囲 +50%',
     unlock: 'これまでに合計 20000 体倒すと仲間になる',
@@ -118,6 +126,7 @@ export const ANIMALS: Animal[] = [
     speed: 0.9,
     might: 1.15,
     weapon: 'vine',
+    special: 'vineSp',
     bonus: { regen: 1 },
     perk: '毎秒 HP +1 回復',
     unlock: '夜の墓地をクリアすると仲間になる',
@@ -134,6 +143,7 @@ export const ANIMALS: Animal[] = [
     speed: 1.2,
     might: 1.35,
     weapon: 'tigerClaw',
+    special: 'tigerClawSp',
     bonus: { crit: 0.1 },
     perk: '会心率 +10%',
     unlock: '雪山の大雪男を倒すと仲間になる'
@@ -149,6 +159,7 @@ export const ANIMALS: Animal[] = [
     speed: 1.1,
     might: 1.5,
     weapon: 'breath',
+    special: 'breathSp',
     bonus: { armor: 1, regen: 0.3, amount: 1 },
     perk: '受けるダメージ -1・毎秒 HP +0.3・弾 +1',
     unlock: '雪山をクリアすると仲間になる'

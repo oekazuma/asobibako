@@ -43,7 +43,8 @@ function slots(ctx: CanvasRenderingContext2D, owned: Owned[], prefix: string, x:
     const o = owned[i];
     if (!o) continue;
     ctx.drawImage(bake(itemArt(`${prefix}-${o.id}`)), sx, y);
-    const lv = prefix === 'weapon' && WEAPONS[o.id]?.evolved ? '*' : String(o.level);
+    const def = prefix === 'weapon' ? WEAPONS[o.id] : undefined;
+    const lv = def?.special ? '^' : def?.evolved ? '*' : String(o.level);
     text(ctx, lv, sx + SLOT - 5, y + SLOT - 6, PALETTE.y);
   }
 }

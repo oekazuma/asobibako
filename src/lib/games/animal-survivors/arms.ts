@@ -2,7 +2,7 @@ import { airborne } from './bosses-snow';
 import { MAX_R } from './enemies';
 import { WEAPONS, weaponStats, type WeaponDef, type WeaponStats } from './weapons';
 import { damageEnemy, type Enemy, type World } from './world';
-import { dropFlame, growVines, updateZones } from './zones';
+import { dropFlame, growVines, scorch, updateZones } from './zones';
 
 export interface Shot {
   alive: boolean;
@@ -228,7 +228,8 @@ function launch(w: World, def: WeaponDef, s: WeaponStats, slot: number): boolean
       return true;
     case 'swipe':
       for (let i = 0; i < s.amount; i++) {
-        const a = aim + (i % 2) * Math.PI;
+        // 4 つ以上は全方向へ等しく散らし、それより少なければ前と後ろを交互に裂く
+        const a = s.amount > 3 ? aim + (i / s.amount) * Math.PI * 2 : aim + (i % 2) * Math.PI;
         const r = SIZE.swipe * area;
         effect(w, slot, 'swipe', p.x, p.y - 6, r, s.duration, a, 0, 0);
         for (const j of within(w, p.x, p.y - 6, r, targets)) {
@@ -254,6 +255,8 @@ function launch(w: World, def: WeaponDef, s: WeaponStats, slot: number): boolean
           if (Math.hypot(dx, dy) <= e.def.r || Math.abs(da) < CONE_HALF)
             strike(w, j, s.damage, p.x, p.y, s.knockback, slot);
         }
+        if (def.special)
+          for (const k of [0.5, 0.85]) scorch(w, slot, p.x + Math.cos(a) * r * k, p.y - 6 + Math.sin(a) * r * k, s);
       }
       return true;
     case 'ring':

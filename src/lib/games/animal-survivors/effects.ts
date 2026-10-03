@@ -136,6 +136,23 @@ export class Effects {
           this.#bit(p.x, p.y, Math.cos(a) * v, Math.sin(a) * v, 0.7, [PALETTE.y, PALETTE.w, PALETTE.Y][i % 3], 3);
         }
         sounds.evolve();
+      } else if (e.type === 'special') {
+        this.flash = 0.45;
+        const p = w.player;
+        for (let i = 0; i < 64; i++) {
+          const a = (i / 64) * Math.PI * 2;
+          const v = i % 2 ? 180 : 110;
+          this.#bit(
+            p.x,
+            p.y,
+            Math.cos(a) * v,
+            Math.sin(a) * v,
+            0.8,
+            [PALETTE.y, PALETTE.w, PALETTE.r, PALETTE.v][i % 4],
+            3
+          );
+        }
+        sounds.evolve();
       } else if (e.type === 'rush') {
         this.flash = 0.3;
         const p = w.player;

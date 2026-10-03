@@ -26,6 +26,10 @@ export interface WeaponDef {
   size?: number;
   /** 進化形。3 択と宝箱の候補に出ず、それ以上は上がらない */
   evolved?: boolean;
+  /** 動物の専用進化形。3 段階めに育ち最初の武器が Lv5 になると、その武器（ふつうの進化形も）と入れ替わる */
+  special?: boolean;
+  /** 専用進化形の元の武器 */
+  from?: string;
   /** その動物だけの武器。ほかの動物の 3 択に出ず、ふつうの進化も無い */
   exclusive?: boolean;
   /** 当たるたびに戻す HP。1 秒に戻せる量には上限がある（world.ts の DRAIN） */
@@ -65,6 +69,17 @@ const evo = (
   evolved: true,
   ...(extra.drain && { drain: extra.drain })
 });
+
+/** 段が上の動物ほど強い専用進化形。ダメージはふつうの進化形のおよそ 1.2・1.35・1.5・1.7 倍 */
+const sp = (
+  id: string,
+  from: string,
+  name: string,
+  blurb: string,
+  kind: WeaponKind,
+  stats: number[],
+  extra: { drain?: number; size?: number } = {}
+): WeaponDef => ({ ...evo(id, name, blurb, kind, stats, extra), special: true, from });
 
 export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
   [
@@ -213,7 +228,53 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
     evo('flameEvo', '燃える心臓', '太く長く残る炎で焼き、当たると少し回復', 'trail', [12, 0.2, 1, 1.8, 0, 99, 4, 0], {
       drain: 0.5
     }),
-    evo('vineEvo', '森の守り', '広く長く絡むツタで足止めする', 'snare', [14, 2, 6, 1.6, 0, 99, 4, 0])
+    evo('vineEvo', '森の守り', '広く長く絡むツタで足止めする', 'snare', [14, 2, 6, 1.6, 0, 99, 4, 0]),
+    sp('woofSp', 'woof', '勇者のホネ', '骨を 6 本ずつ、敵を貫いて投げる', 'shot', [22, 0.45, 6, 1.3, 240, 99, 1.4, 60]),
+    sp(
+      'pawSp',
+      'paw',
+      'ねこまたの百裂ひっかき',
+      '全方向を連続で引っかき、当たると少し回復',
+      'swipe',
+      [24, 0.3, 6, 1.7, 0, 99, 0.15, 70],
+      {
+        drain: 1
+      }
+    ),
+    sp('howlSp', 'howl', '月の大狼の咆哮', '画面を覆う輪で強く吹き飛ばす', 'ring', [34, 1.6, 1, 3.2, 0, 99, 0.7, 200]),
+    sp('flameSp', 'flame', '九尾の狐火', '9 つの火の玉が敵を追う', 'homing', [30, 0.9, 9, 1.4, 160, 1, 2.5, 30]),
+    sp(
+      'clawSp',
+      'claw',
+      '横綱の張り手',
+      '巨大な張り手で遠くまで吹き飛ばし、当たると少し回復',
+      'swipe',
+      [32, 0.4, 2, 2.2, 0, 99, 0.15, 260],
+      {
+        drain: 1
+      }
+    ),
+    sp(
+      'dashSp',
+      'dash',
+      '月の兎の流星',
+      '分身が流れ星のように何本も駆け抜ける',
+      'shot',
+      [54, 0.9, 5, 1.5, 380, 99, 0.6, 220],
+      {
+        size: 10
+      }
+    ),
+    sp('vineSp', 'vine', '達人の竹林', '広い竹林で足止めして削る', 'snare', [21, 1.6, 9, 2, 0, 99, 5, 0]),
+    sp('tigerClawSp', 'tigerClaw', '雷虎の牙', '4 方向を雷の爪で裂く', 'swipe', [40, 0.6, 4, 1.8, 0, 99, 0.2, 90]),
+    sp(
+      'breathSp',
+      'breath',
+      '竜王の業火',
+      '大きな扇の炎を 3 つ吐き、焼け跡が残る',
+      'cone',
+      [48, 0.9, 3, 1.6, 0, 99, 0.45, 40]
+    )
   ].map((d) => [d.id, EXCLUSIVE.includes(d.id) ? { ...d, exclusive: true } : d])
 );
 

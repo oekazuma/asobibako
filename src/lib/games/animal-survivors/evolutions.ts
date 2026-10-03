@@ -1,4 +1,5 @@
-import { MAX_LEVEL } from './weapons';
+import { trySpecial } from './specials';
+import { MAX_LEVEL, WEAPONS } from './weapons';
 import type { World } from './world';
 
 export interface Evolution {
@@ -25,7 +26,7 @@ export const EVOLUTIONS: Evolution[] = [
 
 /** 進化形の id を元の武器の id にする（描き分けと、元の武器を 3 択に出さないため）。元の武器はそのまま */
 export function baseOf(id: string): string {
-  return EVOLUTIONS.find((e) => e.to === id)?.from ?? id;
+  return WEAPONS[id]?.from ?? EVOLUTIONS.find((e) => e.to === id)?.from ?? id;
 }
 
 /** 今の宝箱で進化できる組。持っている順の最初の 1 つ */
@@ -45,4 +46,5 @@ export function evolve(w: World, e: Evolution): void {
   own.cd = 0;
   w.evolvedNow.push(e.to);
   w.events.push({ type: 'evolve', id: e.to });
+  trySpecial(w);
 }
