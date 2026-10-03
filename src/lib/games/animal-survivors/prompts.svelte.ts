@@ -14,6 +14,8 @@ const GO = 0.6;
 const BACK = 1.8;
 /** 動きを減らす設定では、カメラを動かさず札だけをこの秒出す */
 const INTRO_STILL = 1.2;
+/** 育つ演出で止める秒（白い影の入れ替わり・はじける光・札）。動きを減らす設定では札だけを INTRO_STILL 秒 */
+export const GROW = 2.6;
 
 const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 const ease = (k: number) => k * k * (3 - 2 * k);
@@ -33,6 +35,8 @@ export class Prompts {
   asking = $state(false);
   /** ボスの登場。t は端末の時間で進める（ゲームの時計は止まっている） */
   intro = $state<{ ids: number[]; t: number; epithet: string; name: string } | null>(null);
+  /** 育つ演出。t は端末の時間で進める */
+  evolve = $state<{ from: string; to: string; form: 1 | 2; t: number } | null>(null);
   /** ヌシの帯 */
   chief = $state<{ text: string; key: number; until: number } | null>(null);
   readonly #still: boolean;
@@ -51,7 +55,12 @@ export class Prompts {
   }
 
   get busy(): boolean {
-    return this.options !== null || this.rewards !== null || this.asking || this.intro !== null;
+    return this.options !== null || this.rewards !== null || this.asking || this.intro !== null || this.evolve !== null;
+  }
+
+  /** 動きを減らす設定 */
+  get still(): boolean {
+    return this.#still;
   }
 
   /** step のすぐあとに呼び、出来事から WARNING を拾い、ボスが出る時刻を過ぎたら消す */
@@ -73,9 +82,10 @@ export class Prompts {
           defs.length > 1
             ? { ids: e.ids, t: 0, epithet: '面の主', name: defs.map((d) => d.name).join('\n') }
             : { ids: e.ids, t: 0, epithet: defs[0].epithet ?? '', name: defs[0].name };
-      } else if (e.type === 'grow') {
-        const [from, to] = [w.animal.forms[e.form - 1], w.animal.forms[e.form]];
-        this.notice = { text: `${from}は ${to}に育った！`, key: w.time, until: w.time + NOTICE };
+      } else if (e.type === 'grow' && !w.over) {
+        // 1 フレームで 2 段育ったときは、まだ始まっていない演出を最後の姿までにのばす
+        const from = this.evolve?.t === 0 ? this.evolve.from : w.animal.forms[e.form - 1];
+        this.evolve = { from, to: w.animal.forms[e.form], form: e.form, t: 0 };
       }
     // 倒していないボスが残ったまま次のボスが出ることがあるので、予告した数と倒した数で決める
     this.boss = w.warned > w.bossKills.length + w.swept;
@@ -87,10 +97,19 @@ export class Prompts {
   /** 毎フレーム呼ぶ。finger は画面に残っている移動の指（出た直後の合成 click を捨てるため）。dt は端末の秒 */
   next(finger: number | null, dt = 0): void {
     const w = this.#w;
+    let left = dt;
     if (this.intro) {
       this.intro.t += dt;
       if (this.intro.t < (this.#still ? INTRO_STILL : INTRO)) return;
       this.intro = null;
+      // 登場が終わったフレームの時間は、続く育つ演出に回さない（はじめから見せる）
+      left = 0;
+    }
+    // 経験値の袋や宝箱で育ったときは、開いている画面を閉じてから見せる
+    if (this.evolve && !this.options && !this.rewards) {
+      this.evolve.t += left;
+      if (this.evolve.t < (this.#still ? INTRO_STILL : GROW)) return;
+      this.evolve = null;
     }
     if (this.busy || w.over) return;
     if (w.chests > 0) this.rewards = openChest(w);

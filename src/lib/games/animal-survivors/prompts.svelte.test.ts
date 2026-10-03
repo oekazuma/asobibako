@@ -81,15 +81,17 @@ describe('Prompts', () => {
     expect(p.notice).toBeNull();
   });
 
-  it('育ったら「子犬は わんぱく犬に育った！」の帯を出す', () => {
+  it('育ったら「子犬 → わんぱく犬」の演出を始め、次は「わんぱく犬 → 勇者の犬」', () => {
     const w = createWorld('dog', 1, { w: 274, h: 394 });
-    const p = new Prompts(w);
+    const p = new Prompts(w, false);
     w.events = [{ type: 'grow', form: 1 }];
     p.take();
-    expect(p.notice?.text).toBe('子犬は わんぱく犬に育った！');
+    expect(p.evolve).toMatchObject({ from: '子犬', to: 'わんぱく犬' });
+    p.next(null, 3);
     w.events = [{ type: 'grow', form: 2 }];
     p.take();
-    expect(p.notice?.text).toBe('わんぱく犬は 勇者の犬に育った！');
+    expect(p.evolve).toMatchObject({ from: 'わんぱく犬', to: '勇者の犬' });
+    p.stop();
   });
 
   it('専用進化で「勇者の犬の 専用進化！」の帯を出す', () => {
