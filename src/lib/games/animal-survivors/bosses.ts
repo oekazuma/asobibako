@@ -224,8 +224,8 @@ export function moveBoss(w: World, i: number, dt: number): { vx: number; vy: num
   return queen(w, e, dx / d, dy / d, d, dt);
 }
 
-const METEOR_HIT = 60;
-const METEOR_XP = 12;
+const METEOR_HIT = 30;
+const METEOR_XP = 2;
 
 /** 流れ星が落ちる。円の中の自分と敵に当て、跡に大きな経験値の玉を残す */
 function land(w: World, h: Hazard) {
