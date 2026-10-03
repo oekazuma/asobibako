@@ -19,8 +19,10 @@ export function treasureArrow(ctx: CanvasRenderingContext2D, w: World, vw: numbe
   if (Math.abs(dx) < vw / 2 - 8 && Math.abs(dy) < vh / 2 - 8) return;
   const left = 14;
   const right = vw - 14;
-  const up = top + 34;
-  const down = vh - 46;
+  // 上はボスの体力バー（1 本 10 ドット）の下、下は持ちものの欄の上
+  const bars = w.enemies.filter((e) => e.alive && e.def.boss).length;
+  const up = top + 26 + 10 * bars;
+  const down = vh - 52;
   const cx = vw / 2;
   const cy = vh / 2;
   // 自分（画面のまん中）から宝箱の向きへ伸ばし、内側の枠に当たった所に置く

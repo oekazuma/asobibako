@@ -4,6 +4,7 @@ import type { ViewSize } from './draw';
 import { text } from './font';
 import { bake } from './pixels';
 import { DRAGON } from './bosses-snow';
+import { METEOR_IMPACT, METEOR_WARN } from './events';
 import type { Hazard } from './bosses';
 import type { World } from './world';
 
@@ -35,7 +36,7 @@ export function hazardsBelow(ctx: CanvasRenderingContext2D, w: World, q: Snap, n
       continue;
     }
     if (h.kind === 'meteor' && h.delay > 0) {
-      const t = 1 - h.delay / 1.2;
+      const t = 1 - h.delay / METEOR_WARN;
       ctx.fillStyle = 'rgb(255 216 74 / 0.25)';
       ctx.beginPath();
       ctx.ellipse(q(h.x), q(h.y), h.r * t, h.r * t * 0.6, 0, 0, Math.PI * 2);
@@ -136,7 +137,7 @@ export function hazardsAbove(ctx: CanvasRenderingContext2D, w: World, q: Snap): 
       const m = ITEM_ART.meteor;
       ctx.drawImage(bake(m), q(h.x - m.w / 2 - k * 60), q(h.y - m.h / 2 - k * 90));
     } else if (h.kind === 'meteor' && h.delay <= 0) {
-      const t = 1 - h.life / 0.3;
+      const t = 1 - h.life / METEOR_IMPACT;
       ctx.globalAlpha = 0.85 * (1 - t);
       ctx.strokeStyle = PALETTE.y;
       ctx.lineWidth = 3;

@@ -13,7 +13,9 @@ export const FESTIVAL = 20;
 const TREASURE_NEAR = 350;
 const TREASURE_FAR = 450;
 const METEOR_REACH = 120;
-const METEOR_WARN = 1.2;
+export const METEOR_WARN = 1.2;
+/** 流れ星が落ちたあと、衝撃の輪を見せる秒 */
+export const METEOR_IMPACT = 0.3;
 const METEOR_R = 22;
 const METEOR_DMG = 20;
 
@@ -65,7 +67,7 @@ export function stepEvents(w: World, dt: number): void {
         vy: 0,
         r: METEOR_R,
         delay: METEOR_WARN,
-        life: 0.3,
+        life: METEOR_IMPACT,
         dmg: METEOR_DMG * w.stage.fury(w.time)
       });
     }

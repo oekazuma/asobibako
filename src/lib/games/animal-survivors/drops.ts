@@ -146,6 +146,7 @@ function dropItem(w: World, kind: Item['kind'], x: number, y: number, pulled = f
   const it =
     w.items.find((o) => !o.alive) ?? (w.items[w.items.length] = { alive: false, kind, x: 0, y: 0, pulled: false });
   Object.assign(it, { alive: true, kind, x, y, pulled });
+  delete it.life;
 }
 
 const BOSS_GEMS = 10;
@@ -218,6 +219,8 @@ export function collect(w: World, dt: number): void {
     if (it.kind === 'chest') {
       if ((it.x - w.player.x) ** 2 + (it.y - w.player.y) ** 2 < CHEST_PICK ** 2) {
         it.alive = false;
+        // 時計で止まっていると stepEvents が回らないので、宝の地図の宝箱はここで手放す
+        if (it === w.treasure) w.treasure = null;
         w.chests += 1;
         w.events.push({ type: 'chest' });
       }

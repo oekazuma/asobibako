@@ -7,7 +7,7 @@ import { Prompts } from './prompts.svelte';
 import { FOREST } from './stages/forest';
 import { GRAVEYARD } from './stages/graveyard';
 import { SNOW } from './stages/snow';
-import { createWorld, makeEnemy, spawnEvents, step, type World } from './world';
+import { createWorld, damageEnemy, eliteOf, makeEnemy, spawnEvents, step, type World } from './world';
 
 const VIEW = { w: 274, h: 394 };
 const still = { x: 0, y: 0 };
@@ -83,6 +83,22 @@ describe('宝の地図', () => {
     w.chests = 0;
     step(w, still, 1 / 60);
     expect(w.treasure).toBeNull();
+  });
+
+  it('時計で止まっているあいだに拾っても、空いた場所に入った品を宝の地図の宝箱と取り違えない', () => {
+    const w = quiet('treasure');
+    spawnEvents(w);
+    const t = w.treasure!;
+    w.freeze = 10;
+    w.player.x = t.x;
+    w.player.y = t.y;
+    step(w, still, 1 / 60);
+    expect(w.chests).toBe(1);
+    expect(w.treasure).toBeNull();
+    w.chests = 0;
+    w.enemies[0] = makeEnemy(eliteOf(ENEMIES.rat), 0, 0, 1);
+    damageEnemy(w, 0, 9, 0, 0);
+    for (const o of w.items) expect(o.life).toBeUndefined();
   });
 
   it('ほかの宝箱は寿命を持たず消えない', () => {
