@@ -54,7 +54,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'bear', name: '巨大ベアを倒す', coins: 100, done: (r) => r.bosses.includes('bear') },
   {
     id: 'forestFinale',
-    name: '森の面の主を倒す',
+    name: '森の主を倒す',
     coins: 300,
     animal: 'bear',
     done: (r) => r.finales.includes('forest')

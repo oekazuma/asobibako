@@ -57,7 +57,7 @@
     </p>
     {#if run.overtime}
       <p class="ot">
-        延長戦 +{run.overtime.coins}{run.overtime.halved ? '（倒れたので半分）' : ''}<br />この面の最高 {clock(
+        延長戦 +{run.overtime.coins}{run.overtime.halved ? '（倒れたので半分）' : ''}<br />このステージの最高 {clock(
           run.overtime.best ?? run.overtime.secs
         )}
       </p>

@@ -4,6 +4,7 @@ import { FINALE, FOREST } from './stages/forest';
 import { GRAVEYARD } from './stages/graveyard';
 import { SNOW } from './stages/snow';
 import { ACHIEVEMENTS } from './achievements';
+import { animal } from './animals';
 import { collect, overtimeCoins } from './drops';
 import { entries } from './book-view';
 import { emptyRecords, parseRecords, record } from './records';
@@ -130,5 +131,18 @@ describe('10 分の面のコインの見せ方', () => {
     const items = entries(emptyRecords(), 'items');
     expect(items.find((e) => e.key === 'pouch')!.detail.join()).toContain('コイン 15 枚');
     expect(items.find((e) => e.key === 'purse')!.detail.join()).toContain('コイン 75 枚');
+  });
+});
+
+describe('ステージの主の呼び方', () => {
+  it('9:00 の 2 体はステージの名前で「森の主」「墓地の主」「雪山の主」と呼ぶ', () => {
+    for (const [s, title] of [
+      [FOREST, '森の主'],
+      [GRAVEYARD, '墓地の主'],
+      [SNOW, '雪山の主']
+    ] as const)
+      expect(s.bosses.filter((b) => b.at === FINALE).map((b) => b.title)).toEqual([title, title]);
+    expect(ACHIEVEMENTS.find((a) => a.id === 'forestFinale')?.name).toBe('森の主を倒す');
+    expect(animal('bear').unlock).toBe('森の主を倒すと仲間になる');
   });
 });

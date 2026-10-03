@@ -110,7 +110,7 @@ describe('延長戦の画面', () => {
     expect(target.textContent).toContain('03:25');
     expect(target.textContent).toContain('延長戦 +40');
     expect(target.textContent).toContain('倒れたので半分');
-    expect(target.textContent).toContain('この面の最高 04:10');
+    expect(target.textContent).toContain('このステージの最高 04:10');
     unmount(app);
   });
 

@@ -23,7 +23,7 @@ export const GRAVEYARD: Stage = {
     return to ? { ...ev, enemy: to, text: ev.text.replace(ENEMIES[ev.enemy].name, ENEMIES[to].name) } : ev;
   }),
   chiefs: FOREST.chiefs.map((c, i) => ({ ...c, enemy: CHIEFS[i], hp: Math.round(c.hp * HARDER) })),
-  bosses: bossRun('knight', 'pumpkin'),
+  bosses: bossRun('knight', 'pumpkin', '墓地の主'),
   waves: FOREST.waves.map((w) => ({ ...w, enemy: SWAP[w.enemy] ?? w.enemy })),
   cap: (t) => Math.min(400, Math.round(FOREST.cap(t) * 1.15)),
   toughness: (t) => FOREST.toughness(t) * HARDER,

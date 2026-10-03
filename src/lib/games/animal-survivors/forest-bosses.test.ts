@@ -45,8 +45,8 @@ describe('1 面のボスの並び', () => {
       [240, 'spiderQueen', ''],
       [360, 'bigBoar', ''],
       [480, 'bigEagle', ''],
-      [FINALE, 'oldTree', '面の主'],
-      [FINALE, 'bigSnake', '面の主']
+      [FINALE, 'oldTree', '森の主'],
+      [FINALE, 'bigSnake', '森の主']
     ]);
   });
 

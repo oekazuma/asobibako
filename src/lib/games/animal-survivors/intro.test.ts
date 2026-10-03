@@ -91,10 +91,10 @@ describe('ボスの登場', () => {
     p.stop();
   });
 
-  it('面の主は 2 体で 1 回、札は「面の主」と 2 体の名前で、カメラは 2 体のあいだ', () => {
+  it('面の主は 2 体で 1 回、札は「森の主」と 2 体の名前で、カメラは 2 体のあいだ', () => {
     const { w, p } = bossAppears(FINALE);
     expect(p.intro?.ids).toHaveLength(2);
-    expect(p.intro?.epithet).toBe('面の主');
+    expect(p.intro?.epithet).toBe('森の主');
     // 2 体の名前は長くなるので、札では 2 行に分ける
     expect(p.intro?.name).toBe('大木のおばけ\n大ヘビ');
     const [a, b] = p.intro!.ids.map((i) => w.enemies[i]);

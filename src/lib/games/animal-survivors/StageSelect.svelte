@@ -4,7 +4,6 @@
   import { FOREST_ART } from './art/forest';
   import { GRAVE_ART } from './art/graveyard';
   import { SNOW_ART } from './art/snow';
-  import { ENEMIES } from './enemies';
   import { clock } from './hud';
   import PixelIcon from './PixelIcon.svelte';
   import { canPlay, type Records } from './records';
@@ -24,8 +23,8 @@
   <button class="round corner mute" onclick={toggleMute} aria-label="ミュート" aria-pressed={audio.muted}>
     <Icon name={audio.muted ? 'mute' : 'speaker'} size="26px" />
   </button>
-  <section class="as-panel" aria-label="面を選ぶ">
-    <h2 class="as-title">面を選ぶ</h2>
+  <section class="as-panel" aria-label="ステージを選ぶ">
+    <h2 class="as-title">ステージを選ぶ</h2>
     {#each STAGES as s (s.id)}
       {@const open = canPlay(records, s.id)}
       <button
@@ -42,7 +41,6 @@
         <span class="body">
           <span class="name">{s.name}</span>
           {#if open}
-            <span class="info">ボス: {[...new Set(s.bosses.map((b) => ENEMIES[b.id].name))].join('・')}</span>
             <span class="info">コイン ×{s.coin}</span>
             {#if s.id !== 'forest'}<span class="info hard">敵が強い</span>{/if}
             {#if records.overtime[s.id]}<span class="info">延長 {clock(records.overtime[s.id])}</span>{/if}

@@ -23,13 +23,13 @@ export const FINALE = 540;
 export const RAGE = 1.5;
 
 /** 2・4 分に 2 体を、6・8 分に同じ 2 体を攻撃を速めて出し、9 分に面の主 */
-export const bossRun = (a: BossId, b: BossId): Stage['bosses'] => [
+export const bossRun = (a: BossId, b: BossId, title: string): Stage['bosses'] => [
   { at: 120, id: a, hp: 0.6 },
   { at: 240, id: b, hp: 0.6 },
   { at: 360, id: a, rage: RAGE },
   { at: 480, id: b, rage: RAGE },
-  { at: FINALE, id: a, hp: 1.5, rage: RAGE, title: '面の主' },
-  { at: FINALE, id: b, hp: 1.5, rage: RAGE, title: '面の主' }
+  { at: FINALE, id: a, hp: 1.5, rage: RAGE, title },
+  { at: FINALE, id: b, hp: 1.5, rage: RAGE, title }
 ];
 
 export interface Stage {
@@ -115,8 +115,8 @@ export const FOREST: Stage = {
     { at: 240, id: 'spiderQueen', hp: 0.8 },
     { at: 360, id: 'bigBoar' },
     { at: 480, id: 'bigEagle' },
-    { at: FINALE, id: 'oldTree', hp: 1, rage: RAGE, title: '面の主' },
-    { at: FINALE, id: 'bigSnake', hp: 1, rage: RAGE, title: '面の主' }
+    { at: FINALE, id: 'oldTree', hp: 1, rage: RAGE, title: '森の主' },
+    { at: FINALE, id: 'bigSnake', hp: 1, rage: RAGE, title: '森の主' }
   ],
   waves: [
     { from: 0, to: 200, enemy: 'rat', rate: [0.8, 3] },

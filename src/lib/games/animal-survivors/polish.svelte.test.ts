@@ -47,7 +47,18 @@ describe('画面の小さい直し', () => {
     document.body.innerHTML = '';
   });
 
-  it('面を選ぶ画面に音のボタンがある', () => {
+  it('ステージを選ぶ画面はボスの名前を出さない', () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const records = { ...emptyRecords(), stages: ['forest', 'graveyard'] };
+    const app = mount(StageSelect, { target, props: { records, onpick: () => {}, onback: () => {} } });
+    flushSync();
+    expect(target.textContent).toContain('ステージを選ぶ');
+    for (const name of ['ボス', '巨大ベア', '女王グモ', 'ガイコツの騎士', 'かぼちゃ大王'])
+      expect(target.textContent).not.toContain(name);
+    unmount(app);
+  });
+
+  it('ステージを選ぶ画面に音のボタンがある', () => {
     const target = document.body.appendChild(document.createElement('div'));
     const app = mount(StageSelect, { target, props: { records: emptyRecords(), onpick: () => {}, onback: () => {} } });
     flushSync();

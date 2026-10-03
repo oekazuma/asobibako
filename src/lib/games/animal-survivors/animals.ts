@@ -97,7 +97,7 @@ export const ANIMALS: Animal[] = [
     special: 'clawSp',
     bonus: { armor: 2 },
     perk: '受けるダメージ -2',
-    unlock: '森の面の主を倒すと仲間になる',
+    unlock: '森の主を倒すと仲間になる',
     tier: 2
   },
   {

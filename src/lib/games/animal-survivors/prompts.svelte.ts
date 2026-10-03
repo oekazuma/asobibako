@@ -85,10 +85,7 @@ export class Prompts {
         // WARNING の帯は札と重なるので、ボスが出たら消す
         this.warning = null;
         const defs = e.ids.map((i) => w.enemies[i].def);
-        this.intro =
-          defs.length > 1
-            ? { ids: e.ids, t: 0, epithet: '面の主', name: defs.map((d) => d.name).join('\n') }
-            : { ids: e.ids, t: 0, epithet: defs[0].epithet ?? '', name: defs[0].name };
+        this.intro = { ids: e.ids, t: 0, epithet: defs[0].epithet ?? '', name: defs.map((d) => d.name).join('\n') };
       } else if (e.type === 'grow' && !w.over) {
         // 1 フレームで 2 段育ったときは、まだ始まっていない演出を最後の姿までにのばす
         const fromForm = this.evolve?.t === 0 ? this.evolve.fromForm : ((e.form - 1) as 0 | 1);

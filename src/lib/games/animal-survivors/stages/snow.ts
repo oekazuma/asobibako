@@ -30,7 +30,7 @@ export const SNOW: Stage = {
     return to ? { ...ev, enemy: to, text: ev.text.replace(ENEMIES[ev.enemy].name, ENEMIES[to].name) } : ev;
   }),
   chiefs: FOREST.chiefs.map((c, i) => ({ ...c, enemy: CHIEFS[i], hp: Math.round(c.hp * HARDER) })),
-  bosses: bossRun('yeti', 'dragon'),
+  bosses: bossRun('yeti', 'dragon', '雪山の主'),
   storms: [
     { at: 95, len: 20 },
     { at: 215, len: 20 },

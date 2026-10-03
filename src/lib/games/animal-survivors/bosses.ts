@@ -82,7 +82,7 @@ export function spawnBosses(w: World): void {
     const hp = def.hp * (b.hp ?? 1) * w.stage.toughness(b.at) * BOSS_HP;
     // 体力のバーは def.hp を満タンとして描くので、表も出たときの体力にそろえる
     const e = makeEnemy(
-      { ...def, hp, ...(b.rage && { rage: b.rage }), ...(b.title && { finale: true }) },
+      { ...def, hp, ...(b.rage && { rage: b.rage }), ...(b.title && { finale: true, epithet: b.title }) },
       at.x,
       at.y,
       hp

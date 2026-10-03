@@ -110,12 +110,12 @@ describe('Prompts', () => {
     expect(p.notice?.text).toBe('コインラッシュ！');
   });
 
-  it('面の主の WARNING はボスの名前ではなく「面の主」', () => {
+  it('面の主の WARNING はボスの名前ではなく行の title', () => {
     const w = createWorld('dog', 1, { w: 274, h: 394 });
     const p = new Prompts(w);
-    w.events = [{ type: 'warning', boss: 'bear', title: '面の主' }];
+    w.events = [{ type: 'warning', boss: 'bear', title: '森の主' }];
     p.take();
-    expect(p.warning?.name).toBe('面の主');
+    expect(p.warning?.name).toBe('森の主');
   });
 
   it('巨大ベアが残ったまま女王グモが出たら、片方を倒してもボスの曲のまま', () => {

@@ -220,7 +220,7 @@ describe('面の主', () => {
     w.time = FINALE - 3;
     spawnBosses(w);
     expect(w.events.filter((e) => e.type === 'warning')).toEqual([
-      { type: 'warning', boss: finale[0].id, title: '面の主' }
+      { type: 'warning', boss: finale[0].id, title: s === FOREST ? '森の主' : '墓地の主' }
     ]);
     w.time = FINALE;
     spawnBosses(w);
