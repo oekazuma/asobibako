@@ -182,7 +182,10 @@ function within(w: World, x: number, y: number, r: number, out: number[]) {
   for (const i of found) {
     const e = w.enemies[i];
     const rr = r + e.def.r;
-    if (e.alive && !airborne(e) && (e.x - x) ** 2 + (e.y - y) ** 2 < rr * rr) out.push(i);
+    if (!e.alive || airborne(e) || (e.x - x) ** 2 + (e.y - y) ** 2 >= rr * rr) continue;
+    // 大ヘビの節は頭として 1 回だけ数える（武器ごとの当たり直しの間を頭 1 体で見る）
+    const k = e.def.part ? e.turn : i;
+    if (!out.includes(k)) out.push(k);
   }
   return out;
 }

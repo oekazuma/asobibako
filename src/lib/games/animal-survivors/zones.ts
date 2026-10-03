@@ -1,3 +1,4 @@
+import { airborne } from './bosses-snow';
 import { MAX_R } from './enemies';
 import { power, type Effect } from './arms';
 import type { WeaponStats } from './weapons';
@@ -60,10 +61,14 @@ const near: number[] = [];
 export function updateZones(w: World): void {
   for (const f of w.effects) {
     if (!f.alive || (f.kind !== 'flame' && f.kind !== 'vine')) continue;
-    for (const i of w.grid.near(f.x, f.y, f.r + MAX_R, near)) {
+    for (const j of w.grid.near(f.x, f.y, f.r + MAX_R, near)) {
+      const s = w.enemies[j];
+      const r = f.r + s.def.r;
+      if (!s.alive || (s.x - f.x) ** 2 + (s.y - f.y) ** 2 >= r * r) continue;
+      // 大ヘビの節が炎の中にあれば頭に当てる（当てる間は頭 1 体で見る）
+      const i = s.def.part ? s.turn : j;
       const e = w.enemies[i];
-      const r = f.r + e.def.r;
-      if (!e.alive || (e.x - f.x) ** 2 + (e.y - f.y) ** 2 >= r * r) continue;
+      if (!e.alive || airborne(e)) continue;
       if (f.kind === 'vine') e.root = ROOT;
       if (w.time - e.hit[f.slot] < ZONE_TICK) continue;
       e.hit[f.slot] = w.time;

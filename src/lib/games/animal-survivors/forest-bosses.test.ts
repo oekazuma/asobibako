@@ -7,6 +7,9 @@ import { startOvertime } from './overtime';
 import { FINALE, FOREST } from './stages/forest';
 import { GRAVEYARD } from './stages/graveyard';
 import { SNOW } from './stages/snow';
+import { hazardsBelow } from './draw-boss';
+import { scorch, updateZones } from './zones';
+import { weaponStats, WEAPONS } from './weapons';
 import { createWorld, damageEnemy, step, type Enemy, type World } from './world';
 
 const VIEW = { w: 274, h: 394 };
@@ -169,17 +172,33 @@ describe('大ヘビ', () => {
     expect(w.kills).toBe(0);
   });
 
-  it('同じ武器の同じ一撃が体の節にいくつ当たっても、頭の体力は 1 回分しか減らない', () => {
+  it('輪の武器が体の節にいくつ当たっても、1 体の敵と同じ 1 回ぶんしか減らない', () => {
+    const drop = (id: string) => {
+      const { w, e } = withBoss(id, 40, 0);
+      w.player.x = id === 'bigSnake' ? 40 - (SNAKE.segments * SNAKE.gap) / 2 : 0;
+      w.player.y = 0;
+      w.stats = { ...w.stats, crit: 0 };
+      w.weapons = [{ id: 'howl', level: 1, cd: 0 }];
+      e.cd = 99;
+      const hp = e.hp;
+      run(w, 0.9);
+      return hp - e.hp;
+    };
+    expect(drop('bigSnake')).toBeCloseTo(drop('bigBoar'));
+  });
+
+  it('炎の中に節がいくつあっても、炎が当たる間ごとに頭へ 1 回', () => {
     const { w, e } = withBoss('bigSnake', 200, 0);
-    const hp = e.hp;
-    w.enemies.forEach((o, j) => {
-      if (o.alive && o.def.part) damageEnemy(w, j, 10, 0, 0, false, 'woof');
-    });
-    expect(e.hp).toBe(hp - 10);
+    w.weapons = [{ id: 'woof', level: 1, cd: 99 }];
+    w.stats = { ...w.stats, crit: 0 };
+    // 当たりの格子は step で作られる
+    e.cd = 99;
     step(w, still, 1 / 60);
-    const j = w.enemies.findIndex((o) => o.alive && o.def.part);
-    damageEnemy(w, j, 10, 0, 0, false, 'woof');
-    expect(e.hp).toBe(hp - 20);
+    const s = w.enemies.filter((o) => o.alive && o.def.part).sort((a, b) => a.state - b.state)[4];
+    scorch(w, 0, s.x, s.y, { ...weaponStats(WEAPONS.woof, 1), damage: 40 });
+    const hp = e.hp;
+    updateZones(w);
+    expect(hp - e.hp).toBeCloseTo(10 * w.stats.might);
   });
 
   it('体の節に触れると痛い', () => {
@@ -206,5 +225,25 @@ describe('大ヘビ', () => {
     damageEnemy(w, i, e.hp + 1, 0, 0);
     expect(segs(w)).toHaveLength(0);
     expect(w.kills).toBe(1);
+  });
+});
+
+describe('予告の描き方', () => {
+  it('大ワシの影の予告（1.2 秒）も、負の半径を描かない', () => {
+    const { w } = withBoss('bigEagle');
+    step(w, still, 1 / 30);
+    const ctx = new Proxy(
+      {},
+      {
+        get: (_, k) =>
+          k === 'ellipse' || k === 'arc'
+            ? (...a: number[]) => {
+                if (a[2] < 0 || (k === 'ellipse' && a[3] < 0)) throw new Error('負の半径');
+              }
+            : () => {},
+        set: () => true
+      }
+    ) as CanvasRenderingContext2D;
+    expect(() => hazardsBelow(ctx, w, (v) => v, 0)).not.toThrow();
   });
 });

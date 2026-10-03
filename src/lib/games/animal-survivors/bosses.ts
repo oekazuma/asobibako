@@ -22,6 +22,8 @@ export interface Hazard {
   art?: string;
   /** breath の次に当てるまでの秒 */
   tick?: number;
+  /** 予告の長さ（出したときの delay）。描くときの満ち方に使う */
+  warn?: number;
   dmg: number;
 }
 
@@ -121,8 +123,9 @@ const STILL = { vx: 0, vy: 0 };
 
 export function hazard(w: World, h: Omit<Hazard, 'alive'>) {
   const free = w.hazards.find((o) => !o.alive);
-  if (free) Object.assign(free, h, { alive: true });
-  else w.hazards.push({ ...h, alive: true });
+  const full = { ...h, warn: h.warn ?? h.delay, alive: true };
+  if (free) Object.assign(free, full);
+  else w.hazards.push(full);
 }
 
 /** 巨大ベア。state 0 追う・1 突進の予告・2 突進・3 地ならしの予告 */

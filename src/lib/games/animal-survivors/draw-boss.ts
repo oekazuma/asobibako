@@ -84,7 +84,7 @@ export function hazardsBelow(ctx: CanvasRenderingContext2D, w: World, q: Snap, n
       continue;
     }
     if ((h.kind === 'slam' || h.kind === 'pounce') && h.delay > 0) {
-      const t = 1 - h.delay / 1;
+      const t = Math.max(0, 1 - h.delay / (h.warn || 1));
       ctx.fillStyle = 'rgb(216 70 60 / 0.25)';
       ctx.beginPath();
       ctx.ellipse(q(h.x), q(h.y + 8), h.r * t, h.r * t * 0.6, 0, 0, Math.PI * 2);
@@ -101,7 +101,7 @@ export function hazardsBelow(ctx: CanvasRenderingContext2D, w: World, q: Snap, n
       ctx.translate(q(owner.x), q(owner.y + 6));
       ctx.rotate(a);
       // 枠は点滅させ、中は突進が近づくほど先まで赤く満ちる
-      const fill = Math.min(1, 1 - h.delay / 0.7);
+      const fill = Math.min(1, Math.max(0, 1 - h.delay / (h.warn || 0.7)));
       const arrow = () => {
         ctx.beginPath();
         ctx.moveTo(0, -5);

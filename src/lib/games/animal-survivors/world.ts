@@ -48,8 +48,6 @@ export interface Enemy {
   born: number;
   /** 大ヘビの頭が通った道（x, y の並び）。体の節がこの上に並ぶ */
   trail?: number[];
-  /** 大ヘビの頭が最後に受けた一撃（時刻と武器）。範囲の一撃が頭と節にまとめて当たっても 1 回にする */
-  bitten?: string;
 }
 
 export interface Player {
@@ -371,11 +369,6 @@ export function damageEnemy(
     e.flash = 0.12;
     if (w.enemies[e.turn]?.alive) damageEnemy(w, e.turn, dmg, 0, 0, crit, source);
     return;
-  }
-  if (e.def.ai === 'snake' && source) {
-    const key = `${w.time}|${source}`;
-    if (e.bitten === key) return;
-    e.bitten = key;
   }
   const heal = source ? (WEAPONS[source]?.drain ?? 0) : 0;
   if (heal > 0 && w.drainLeft > 0) {
@@ -748,6 +741,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
     for (const e of w.enemies) {
       if (!e.alive) continue;
       e.alive = false;
+      if (e.def.part) continue;
       if (e.def.boss) w.swept += 1;
       w.kills += 1;
       w.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.def.id });
@@ -782,7 +776,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   w.drainLeft = Math.min(w.stats.maxHp * DRAIN, w.drainLeft + w.stats.maxHp * DRAIN * dt);
 
   let alive = 0;
-  for (const e of w.enemies) if (e.alive && !e.def.prop) alive++;
+  for (const e of w.enemies) if (e.alive && !e.def.prop && !e.def.part) alive++;
   const cap = w.stage.cap(w.time);
   w.stage.waves.forEach((wave, i) => {
     if (alive >= cap) return;
