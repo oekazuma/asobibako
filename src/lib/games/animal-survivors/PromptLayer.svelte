@@ -2,6 +2,8 @@
   import BossIntro from './BossIntro.svelte';
   import BossWarning from './BossWarning.svelte';
   import ChestOpen from './ChestOpen.svelte';
+  import GrowPlate from './GrowPlate.svelte';
+  import { SWAP } from './grow';
   import LevelUp from './LevelUp.svelte';
   import OvertimeAsk from './OvertimeAsk.svelte';
   import type { Prompts } from './prompts.svelte';
@@ -20,6 +22,9 @@
   {#key prompts.chief.key}
     <p class="chief" role="status"><span>ヌシ出現！</span>{prompts.chief.text}</p>
   {/key}
+{/if}
+{#if prompts.evolve && (prompts.still || prompts.evolve.t >= SWAP + 0.1)}
+  <GrowPlate from={prompts.evolve.from} to={prompts.evolve.to} />
 {/if}
 {#if prompts.intro && prompts.named}
   <BossIntro epithet={prompts.intro.epithet} name={prompts.intro.name} />

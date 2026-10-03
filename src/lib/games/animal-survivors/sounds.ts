@@ -45,6 +45,12 @@ export const sounds = {
     for (const [i, f] of [784, 1047, 1319, 1568].entries()) tone(f, 200, 'triangle', 0.08, i * 60);
   },
   freeze: () => sweep(1600, 300, 600, 0.07),
+  /** 育つ演出。1.4 秒かけて上がっていき、はじけて、新しい姿の音 */
+  grow: () => {
+    for (let i = 0; i < 14; i++) tone(262 * 2 ** (i / 6), 90, 'square', 0.045, 1400 * (1 - ((14 - i) / 14) ** 1.6));
+    tone(110, 260, 'sawtooth', 0.08, 1400);
+    for (const [i, f] of [523, 659, 784, 1047, 1319].entries()) tone(f, 160, 'square', 0.06, 1450 + i * 90);
+  },
   evolve: () => {
     for (const [i, f] of [523, 659, 784, 1047, 1319].entries()) tone(f, 160, 'square', 0.06, i * 90);
   },

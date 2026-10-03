@@ -128,14 +128,8 @@ export class Effects {
         }
         sounds.levelup();
       } else if (e.type === 'grow') {
-        this.flash = 0.35;
-        const p = w.player;
-        for (let i = 0; i < 48; i++) {
-          const a = (i / 48) * Math.PI * 2;
-          const v = i % 2 ? 160 : 100;
-          this.#bit(p.x, p.y, Math.cos(a) * v, Math.sin(a) * v, 0.7, [PALETTE.y, PALETTE.w, PALETTE.Y][i % 3], 3);
-        }
-        sounds.evolve();
+        // 光は育つ演出（draw の growFrame）が出すので、ここでは音だけ
+        sounds.grow();
       } else if (e.type === 'special') {
         this.flash = 0.45;
         const p = w.player;
