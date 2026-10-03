@@ -21,7 +21,9 @@ export const rolled = (life: number) =>
   YETI.ballR[0] + (YETI.ballR[1] - YETI.ballR[0]) * Math.min(1, 1 - life / YETI.ballLife);
 
 /** 飛びかかって宙にいるあいだ（大雪男）と空にいるあいだ（大ワシ）は、武器も体当たりも当たらない */
-export const airborne = (e: Enemy) => (e.def.ai === 'yeti' || e.def.ai === 'eagle') && e.state === 4;
+export const airborne = (e: Enemy) =>
+  ((e.def.ai === 'yeti' || e.def.ai === 'eagle' || e.def.ai === 'phoenix') && e.state === 4) ||
+  (e.def.ai === 'phoenix' && e.state === 5);
 
 /** 大雪男。state 0 追う・4 飛びかかって宙にいる。雪玉と飛びかかりを交互に使う */
 export function yeti(w: World, i: number, e: Enemy, ux: number, uy: number, dt: number) {

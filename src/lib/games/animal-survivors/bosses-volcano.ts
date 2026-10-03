@@ -1,4 +1,4 @@
-import { hazard } from './bosses';
+import { circle, hazard } from './bosses';
 import type { Enemy, World } from './world';
 
 /** 溶岩の巨人。地ならしの輪と、自分のまわりへ投げる岩。どちらも当たったところに溶岩の池を残す */
@@ -70,4 +70,94 @@ export function giant(w: World, i: number, e: Enemy, ux: number, uy: number, dt:
   }
   e.cd = GIANT.every / (e.def.rage ?? 1);
   return walk;
+}
+
+/** 不死鳥。大ワシと同じく空へ上がって急降下し、それと交互に自分のまわりへ火の羽根を降らせる */
+export const PHOENIX = {
+  keep: 120,
+  every: 4,
+  warn: 1.2,
+  r: 40,
+  dmg: 30,
+  feathers: 5,
+  featherWarn: 1,
+  featherR: 16,
+  featherDmg: 14,
+  rebirth: 1.5
+};
+/** state 0 回り込む・4 空にいて急降下を待つ・5 よみがえっている */
+const REBORN = 5;
+
+export function phoenix(w: World, i: number, e: Enemy, ux: number, uy: number, d: number, dt: number) {
+  if (e.state === REBORN) {
+    e.wait -= dt;
+    e.flash = Math.floor(e.wait * 10) % 2 ? 0.1 : 0;
+    if (e.wait <= 0) {
+      e.state = 0;
+      e.cd = PHOENIX.every / (e.def.rage ?? 1);
+    }
+    return STILL;
+  }
+  if (e.state === 4) {
+    e.wait -= dt;
+    if (e.wait > 0) return STILL;
+    e.x = e.dx;
+    e.y = e.dy;
+    e.state = 0;
+    e.cd = PHOENIX.every / (e.def.rage ?? 1);
+    return STILL;
+  }
+  e.cd -= dt;
+  if (e.cd > 0) return circle(e, ux, uy, d, PHOENIX.keep);
+  const p = w.player;
+  const dive = e.turn % 2 === 0;
+  e.turn += 1;
+  if (!dive) {
+    for (let k = 0; k < PHOENIX.feathers; k++) {
+      const a = (k / PHOENIX.feathers) * Math.PI * 2 + w.rand();
+      const r = k === 0 ? 0 : 24 + w.rand() * 30;
+      hazard(w, {
+        kind: 'slam',
+        owner: i,
+        x: p.x + Math.cos(a) * r,
+        y: p.y + Math.sin(a) * r,
+        vx: 0,
+        vy: 0,
+        r: PHOENIX.featherR,
+        delay: PHOENIX.featherWarn,
+        life: 0.3,
+        dmg: PHOENIX.featherDmg
+      });
+    }
+    e.cd = PHOENIX.every / (e.def.rage ?? 1);
+    return circle(e, ux, uy, d, PHOENIX.keep);
+  }
+  e.state = 4;
+  e.wait = PHOENIX.warn;
+  e.dx = p.x;
+  e.dy = p.y;
+  hazard(w, {
+    kind: 'pounce',
+    owner: i,
+    x: p.x,
+    y: p.y,
+    vx: 0,
+    vy: 0,
+    r: PHOENIX.r,
+    delay: PHOENIX.warn,
+    life: 0.3,
+    dmg: PHOENIX.dmg
+  });
+  return STILL;
+}
+
+/** 体力が尽きた不死鳥を一度だけ体力半分で戻す。戻したら true（倒れない） */
+export function rebirth(w: World, e: Enemy): boolean {
+  if (e.def.ai !== 'phoenix' || e.reborn) return false;
+  e.reborn = true;
+  e.hp = e.def.hp / 2;
+  e.state = REBORN;
+  e.wait = PHOENIX.rebirth;
+  w.events.push({ type: 'swarm', text: '不死鳥がよみがえった！' });
+  return true;
 }

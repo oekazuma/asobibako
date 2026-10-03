@@ -6,6 +6,7 @@ import { BOAR } from './bosses-forest';
 import { airborne } from './bosses-snow';
 import { bloodPact, healRate, regenRate, type ArcanaId } from './arcana';
 import { atkMul, heatStage, PLAIN, type Heat } from './cauldron';
+import { rebirth } from './bosses-volcano';
 import { hpScale, modPerks, modStage, type Challenge, type ModId } from './daily';
 import { CLEAR_COINS, COIN_RATE, collect, dropFrom, overtimeCoins, type Gem, type Item } from './drops';
 import { ENEMIES, MAX_R, type BossId, type EnemyDef } from './enemies';
@@ -47,6 +48,8 @@ export interface Enemy {
   hit: Float64Array;
   /** まっすぐ飛ぶ残りの秒（群れ）。0 になったら消え、倒した数には入らない */
   drift: number;
+  /** 不死鳥が一度よみがえった */
+  reborn: boolean;
   /** 出た時刻（ボスときらきらハリネズミを倒すまでの秒に使う） */
   born: number;
   /** 大ヘビの頭が通った道（x, y の並び）。体の節がこの上に並ぶ */
@@ -368,6 +371,7 @@ export function makeEnemy(def: EnemyDef, x: number, y: number, hp: number): Enem
     root: 0,
     hit: new Float64Array(6).fill(-1),
     drift: 0,
+    reborn: false,
     born: 0
   };
 }
@@ -414,7 +418,7 @@ export function damageEnemy(
   e.kx += kx * (1 - e.def.heavy);
   e.ky += ky * (1 - e.def.heavy);
   w.events.push({ type: 'hit', x: e.x, y: e.y - e.def.r, dmg, crit });
-  if (e.hp > 0) return;
+  if (e.hp > 0 || rebirth(w, e)) return;
   e.alive = false;
   if (e.def.prop) {
     w.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.def.id });

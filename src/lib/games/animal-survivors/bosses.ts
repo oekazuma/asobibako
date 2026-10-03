@@ -1,4 +1,4 @@
-import { giant } from './bosses-volcano';
+import { giant, phoenix } from './bosses-volcano';
 import { addLava } from './eruption';
 import { boar, eagle, snake, spawnSegments, tree } from './bosses-forest';
 import { breathe, dragon, rolled, yeti } from './bosses-snow';
@@ -261,6 +261,7 @@ export function moveBoss(w: World, i: number, dt: number): { vx: number; vy: num
   if (e.def.ai === 'tree') return tree(w, i, e, dx / d, dy / d, dt);
   if (e.def.ai === 'snake') return snake(w, i, e, dx / d, dy / d, dt);
   if (e.def.ai === 'giant') return giant(w, i, e, dx / d, dy / d, dt);
+  if (e.def.ai === 'phoenix') return phoenix(w, i, e, dx / d, dy / d, d, dt);
   return queen(w, e, dx / d, dy / d, d, dt);
 }
 

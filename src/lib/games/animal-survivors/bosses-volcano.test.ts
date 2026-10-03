@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { GIANT } from './bosses-volcano';
+import { airborne } from './bosses-snow';
+import { GIANT, PHOENIX } from './bosses-volcano';
 import { ENEMIES } from './enemies';
-import { createWorld, makeEnemy, step, type World } from './world';
+import { createWorld, damageEnemy, makeEnemy, step, type World } from './world';
 
 const VIEW = { w: 274, h: 394 };
 function quiet(): World {
@@ -41,5 +42,55 @@ describe('溶岩の巨人', () => {
     w.enemies[w.enemies.length - 1].alive = false;
     for (let i = 0; i < 60 * 2; i++) step(w, { x: 0, y: 0 }, 1 / 60);
     expect(w.lava.filter((l) => l.life > 0)).toHaveLength(0);
+  });
+});
+
+describe('不死鳥', () => {
+  const add = (w: World) => {
+    w.enemies.push(makeEnemy({ ...ENEMIES.phoenix }, 80, 0, ENEMIES.phoenix.hp));
+    return w.enemies.length - 1;
+  };
+
+  it('空に上がって急降下の予告を出し、火の羽根の予告も降らせる', () => {
+    const w = quiet();
+    const i = add(w);
+    let flew = false;
+    const kinds = new Set<string>();
+    for (let k = 0; k < 60 * 12; k++) {
+      step(w, { x: 0, y: 0 }, 1 / 60);
+      flew ||= airborne(w.enemies[i]);
+      for (const h of w.hazards) if (h.alive) kinds.add(`${h.kind}:${h.r}`);
+    }
+    expect(flew).toBe(true);
+    expect(kinds).toContain(`pounce:${PHOENIX.r}`);
+    expect(kinds).toContain(`slam:${PHOENIX.featherR}`);
+  });
+
+  it('一度だけ体力半分でよみがえり、そのあいだは当たらず、2 度めで倒れて 1 回だけ数える', () => {
+    const w = quiet();
+    const i = add(w);
+    const e = w.enemies[i];
+    const kills = w.kills;
+    damageEnemy(w, i, 1e9, 0, 0);
+    expect(e.alive).toBe(true);
+    expect(e.hp).toBeCloseTo(ENEMIES.phoenix.hp / 2);
+    expect(w.bossKills).toEqual([]);
+    expect(w.kills).toBe(kills);
+    expect(w.events.some((ev) => ev.type === 'swarm' && ev.text === '不死鳥がよみがえった！')).toBe(true);
+    expect(airborne(e)).toBe(true);
+    for (let k = 0; k < 60 * 2; k++) step(w, { x: 0, y: 0 }, 1 / 60);
+    expect(airborne(e)).toBe(false);
+    damageEnemy(w, i, 1e9, 0, 0);
+    expect(e.alive).toBe(false);
+    expect(w.bossKills).toEqual(['phoenix']);
+  });
+
+  it('クリアの一掃ではよみがえらずに消える', () => {
+    const w = quiet();
+    const i = add(w);
+    w.time = w.stage.length - 1e-6;
+    step(w, { x: 0, y: 0 }, 1 / 60);
+    expect(w.enemies[i].alive).toBe(false);
+    expect(w.swept).toBe(1);
   });
 });
