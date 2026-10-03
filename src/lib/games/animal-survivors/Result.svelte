@@ -50,6 +50,7 @@
       <PixelIcon art={ITEM_ART.coin} size="min(5cqw, 3cqh, 26px)" /><b>+{run.coins}</b> コイン（もちもの {total.toLocaleString(
         'ja-JP'
       )}）
+      {#if run.bookCoins}<span class="book">図鑑 +{run.bookCoins}</span>{/if}
     </p>
     {#each got as a (a.id)}
       <Trophy {a} />
@@ -105,11 +106,16 @@
 
   .coins {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     align-items: center;
     justify-content: center;
     margin: 0;
     font-size: min(4.2cqw, 2.5cqh, 22px);
+  }
+
+  .book {
+    color: #ffd84a;
   }
 
   .coins b {

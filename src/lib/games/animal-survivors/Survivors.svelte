@@ -15,13 +15,14 @@
   import { stageOf } from './stages';
   import { SONGS } from './songs';
   import Trophies from './Trophies.svelte';
+  import Book from './Book.svelte';
   import { summary, type RunSummary, type World } from './world';
   import './retro.css';
 
   // 15 分の 1 回が面ひとつなので、シェルの level と onfinish は使わない（リザルトはこのゲームが持つ）
   let { onquit }: SoloProps = $props();
 
-  let screen = $state<'select' | 'stage' | 'shop' | 'trophies' | 'play' | 'result'>('select');
+  let screen = $state<'select' | 'stage' | 'shop' | 'trophies' | 'book' | 'play' | 'result'>('select');
   /** これから遊ぶ動物と面。「もう一度」とやり直しは同じ組で始める */
   let pick = $state<{ animal: AnimalId; stage: string }>({ animal: 'dog', stage: 'forest' });
   let run = $state<RunSummary | null>(null);
@@ -94,11 +95,14 @@
     onquit={() => onquit?.()}
     onshop={() => (screen = 'shop')}
     ontrophies={() => (screen = 'trophies')}
+    onbook={() => (screen = 'book')}
   />
 {:else if screen === 'stage'}
   <StageSelect {records} onpick={start} onback={() => (screen = 'select')} />
 {:else if screen === 'shop'}
   <Shop onback={back} />
+{:else if screen === 'book'}
+  <Book {records} onback={back} />
 {:else if screen === 'trophies'}
   <Trophies onback={back} />
 {:else if screen === 'play'}

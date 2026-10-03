@@ -15,13 +15,15 @@
     onpick,
     onquit,
     onshop,
-    ontrophies
+    ontrophies,
+    onbook
   }: {
     records: Records;
     onpick: (id: AnimalId) => void;
     onquit: () => void;
     onshop: () => void;
     ontrophies: () => void;
+    onbook: () => void;
   } = $props();
 
   const top = {
@@ -82,6 +84,7 @@
         )}）
       </button>
       <button class="as-card link" onclick={ontrophies}>実績 {records.achieved.length} / {ACHIEVEMENTS.length}</button>
+      <button class="as-card link" style:grid-column="span 2" onclick={onbook}>図鑑</button>
     </div>
   </section>
 </div>
