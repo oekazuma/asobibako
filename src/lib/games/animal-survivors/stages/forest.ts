@@ -109,7 +109,15 @@ export const FOREST: Stage = {
     { at: 450, enemy: 'croc', hp: 850 },
     { at: 630, enemy: 'boar', hp: 1100 }
   ],
-  bosses: bossRun('bear', 'spiderQueen'),
+  // 1 面だけは 6 体のボスが順に出る（墓地と雪山は 2 体が攻撃を速めてまた出る bossRun）
+  bosses: [
+    { at: 180, id: 'bear', hp: 0.6 },
+    { at: 360, id: 'spiderQueen', hp: 0.8 },
+    { at: 540, id: 'bigBoar' },
+    { at: 720, id: 'bigEagle' },
+    { at: FINALE, id: 'oldTree', hp: 1.5, rage: RAGE, title: '面の主' },
+    { at: FINALE, id: 'bigSnake', hp: 1.5, rage: RAGE, title: '面の主' }
+  ],
   waves: [
     { from: 0, to: 300, enemy: 'rat', rate: [0.8, 3] },
     { from: 60, to: 600, enemy: 'bat', rate: [0.5, 2.5] },

@@ -1,5 +1,6 @@
 export type Move = 'chase' | 'wave' | 'snake' | 'charge' | 'leap' | 'boss' | 'still' | 'flee';
-export type BossId = 'bear' | 'spiderQueen' | 'pumpkin' | 'knight' | 'yeti' | 'dragon';
+export type BossId =
+  'bear' | 'spiderQueen' | 'pumpkin' | 'knight' | 'yeti' | 'dragon' | 'bigBoar' | 'bigEagle' | 'oldTree' | 'bigSnake';
 
 export interface EnemyDef {
   id: string;
@@ -23,7 +24,7 @@ export interface EnemyDef {
   /** 壊せる物（ランタン）。狙われず、数えられず、品を落とす */
   prop?: boolean;
   /** ボスの動き方（bosses.ts）。巨大ベア型は突進と地ならし、女王グモ型は飛び道具と手下 */
-  ai?: 'bear' | 'queen' | 'yeti' | 'dragon';
+  ai?: 'bear' | 'queen' | 'yeti' | 'dragon' | 'boar' | 'eagle' | 'tree' | 'snake';
   /** 女王グモ型が呼ぶ手下の id */
   minion?: string;
   /** 女王グモ型の飛び道具の絵（ITEM_ART の名前） */
@@ -36,6 +37,8 @@ export interface EnemyDef {
   chief?: boolean;
   /** きらきらハリネズミ。どんな攻撃でも 1 しか減らず、逃げて、しばらくで去る */
   metal?: boolean;
+  /** 大ヘビの体の節。頭について動き、当たった分は頭の体力を減らし、自分は倒れない。数にも図鑑にも入らない */
+  part?: boolean;
 }
 
 const e = (
@@ -67,6 +70,24 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
         minion: 'spiderling',
         shot: 'web'
       },
+      {
+        ...e('bigBoar', '大イノシシ', [1100, 30, 24, 17, 0], 'boss', 1, 'bigBoar'),
+        ai: 'boar',
+        epithet: '地鳴りの突進王'
+      },
+      {
+        ...e('bigEagle', '大ワシ', [1000, 40, 24, 18, 0], 'boss', 1, 'bigEagle'),
+        ai: 'eagle',
+        epithet: '空からの狩人'
+      },
+      {
+        ...e('oldTree', '大木のおばけ', [1500, 12, 26, 20, 0], 'boss', 1, 'oldTree'),
+        ai: 'tree',
+        minion: 'ghost',
+        epithet: '森の古木'
+      },
+      { ...e('bigSnake', '大ヘビ', [1400, 34, 24, 12, 0], 'boss', 1, 'bigSnake'), ai: 'snake', epithet: '森のぬし' },
+      { ...e('snakeSeg', '大ヘビの体', [1, 0, 18, 7, 0], 'still', 1), part: true },
       e('ghost', 'おばけ', [8, 52, 6, 6, 1], 'wave', 0),
       e('skeleton', 'ガイコツ', [26, 36, 11, 7, 3], 'chase', 0.3),
       e('zombie', 'ゾンビ', [80, 18, 16, 8, 8], 'chase', 0.7),

@@ -87,7 +87,7 @@ export function dropLoot(w: World, x: number, y: number): void {
 function clearScreen(w: World) {
   const p = w.player;
   for (const e of w.enemies) {
-    if (!e.alive || e.def.boss || e.def.prop || e.def.chief) continue;
+    if (!e.alive || e.def.boss || e.def.prop || e.def.chief || e.def.part) continue;
     if (Math.abs(e.x - p.x) > w.view.w / 2 || Math.abs(e.y - p.y) > w.view.h / 2) continue;
     if (e.def.metal) {
       damageEnemy(w, w.enemies.indexOf(e), 1, 0, 0);

@@ -1,3 +1,4 @@
+import { boar, eagle, snake, spawnSegments, tree } from './bosses-forest';
 import { breathe, dragon, rolled, yeti } from './bosses-snow';
 import { ENEMIES } from './enemies';
 import { dropGem } from './drops';
@@ -5,7 +6,7 @@ import { damageEnemy, hurtPlayer, makeEnemy, MAX_ENEMIES, spawnPoint, type Enemy
 
 export interface Hazard {
   alive: boolean;
-  kind: 'slam' | 'dash' | 'web' | 'ball' | 'pounce' | 'pillar' | 'breath' | 'meteor';
+  kind: 'slam' | 'dash' | 'web' | 'ball' | 'pounce' | 'pillar' | 'breath' | 'meteor' | 'mud' | 'feather' | 'root';
   /** 予告の持ち主（ボスの enemies の番号）。web は -1 */
   owner: number;
   x: number;
@@ -40,7 +41,7 @@ export function slot(w: World): number {
   let best = 0;
   let bd = -1;
   w.enemies.forEach((e, i) => {
-    if (e.def.boss || e.def.chief || e.def.metal) return;
+    if (e.def.boss || e.def.chief || e.def.metal || e.def.part) return;
     const d = (e.x - w.player.x) ** 2 + (e.y - w.player.y) ** 2;
     if (d > bd) {
       bd = d;
@@ -87,6 +88,7 @@ export function spawnBosses(w: World): void {
     e.born = w.time;
     const i = slot(w);
     w.enemies[i] = e;
+    if (def.ai === 'snake') spawnSegments(w, i);
     fresh.push(i);
   }
   // 延長戦のボスは 1 分ごとに出るので、止めて見せると遊べない
@@ -240,6 +242,10 @@ export function moveBoss(w: World, i: number, dt: number): { vx: number; vy: num
   if (e.def.ai === 'bear') return bear(w, i, e, dx / d, dy / d, dt);
   if (e.def.ai === 'yeti') return yeti(w, i, e, dx / d, dy / d, dt);
   if (e.def.ai === 'dragon') return dragon(w, i, e, dx / d, dy / d, d, dt);
+  if (e.def.ai === 'boar') return boar(w, i, e, dx / d, dy / d, dt);
+  if (e.def.ai === 'eagle') return eagle(w, i, e, dx / d, dy / d, d, dt);
+  if (e.def.ai === 'tree') return tree(w, i, e, dx / d, dy / d, dt);
+  if (e.def.ai === 'snake') return snake(w, i, e, dx / d, dy / d, dt);
   return queen(w, e, dx / d, dy / d, d, dt);
 }
 
@@ -262,7 +268,13 @@ export function updateHazards(w: World, dt: number): void {
   const p = w.player;
   for (const h of w.hazards) {
     if (!h.alive) continue;
-    if (h.kind === 'web' || h.kind === 'ball') {
+    if (h.kind === 'mud') {
+      // 大イノシシの土ぼこり。痛くはないが、中にいると遅くなる
+      if ((h.x - p.x) ** 2 + (h.y - p.y) ** 2 < h.r ** 2) p.slow = Math.max(p.slow, SLOWED * 0.3);
+      if ((h.life -= dt) <= 0) h.alive = false;
+      continue;
+    }
+    if (h.kind === 'web' || h.kind === 'ball' || h.kind === 'feather') {
       h.x += h.vx * dt;
       h.y += h.vy * dt;
       h.life -= dt;

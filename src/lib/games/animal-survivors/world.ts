@@ -2,6 +2,7 @@ import { animal, type Animal, type AnimalId } from './animals';
 import type { RunBook } from './book';
 import { fire, hits, type Effect, type Shot } from './arms';
 import { moveBoss, slot, spawnBosses, updateHazards, type Hazard } from './bosses';
+import { BOAR } from './bosses-forest';
 import { airborne } from './bosses-snow';
 import { hpScale, modPerks, modStage, type Challenge, type ModId } from './daily';
 import { CLEAR_COINS, collect, dropFrom, overtimeCoins, type Gem, type Item } from './drops';
@@ -45,6 +46,8 @@ export interface Enemy {
   drift: number;
   /** 出た時刻（ボスときらきらハリネズミを倒すまでの秒に使う） */
   born: number;
+  /** 大ヘビの頭が通った道（x, y の並び）。体の節がこの上に並ぶ */
+  trail?: number[];
 }
 
 export interface Player {
@@ -361,6 +364,12 @@ export function damageEnemy(
 ): void {
   const e = w.enemies[i];
   if (!e.alive || airborne(e)) return;
+  if (e.def.part) {
+    // 大ヘビの体の節。光るのは節で、体力は頭から減らす
+    e.flash = 0.12;
+    if (w.enemies[e.turn]?.alive) damageEnemy(w, e.turn, dmg, 0, 0, crit, source);
+    return;
+  }
   const heal = source ? (WEAPONS[source]?.drain ?? 0) : 0;
   if (heal > 0 && w.drainLeft > 0) {
     const amt = Math.min(heal, w.drainLeft);
@@ -385,6 +394,7 @@ export function damageEnemy(
   if (e.def.metal) w.metalWon = true;
   if (source) w.dealt[source].kills += 1;
   w.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.def.id });
+  if (e.def.ai === 'snake') for (const s of w.enemies) if (s.alive && s.def.part && s.turn === i) s.alive = false;
   if (e.def.boss) {
     w.bossKills.push(e.def.boss);
     if (e.def.finale) w.finaleKills += 1;
@@ -528,6 +538,12 @@ export function spawnEvents(w: World): void {
 
 function moveEnemy(w: World, i: number, dt: number) {
   const e = w.enemies[i];
+  if (e.def.part) {
+    // 節は大ヘビの頭が動かす
+    e.t += dt;
+    e.flash -= dt;
+    return;
+  }
   if (e.def.prop || w.freeze > 0) {
     // ランタンは灯りだけ揺らす。止まっているあいだの吹き飛ばしはためない（切れた瞬間にまとめて飛ぶ）
     if (e.def.prop) e.t += dt;
@@ -641,7 +657,7 @@ function separate(w: World) {
       if (j === i) continue;
       const b = es[j];
       // ランタンと宙にいる大雪男は押さず押されない
-      if (a.def.prop || b.def.prop || airborne(a) || airborne(b)) continue;
+      if (a.def.prop || b.def.prop || a.def.part || b.def.part || airborne(a) || airborne(b)) continue;
       const dx = b.x - a.x;
       const dy = b.y - a.y;
       const min = a.def.r + b.def.r;
@@ -672,12 +688,15 @@ function touch(w: World) {
     if (!e.alive || airborne(e)) continue;
     const r = e.def.r + 5;
     if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 >= r * r) continue;
-    // ボスは時間で強くならない。突進中の巨大ベアは強く当たる
-    const base = e.def.boss
-      ? e.def.ai === 'bear' && e.state === 2
-        ? BEAR_DASH_ATK
-        : e.def.atk
-      : e.def.atk * w.stage.fury(w.time);
+    // ボス（と大ヘビの体）は時間で強くならない。突進中の巨大ベアと大イノシシは強く当たる
+    const base =
+      e.def.boss || e.def.part
+        ? e.state === 2 && e.def.ai === 'bear'
+          ? BEAR_DASH_ATK
+          : e.state === 2 && e.def.ai === 'boar'
+            ? BOAR.dashAtk
+            : e.def.atk
+        : e.def.atk * w.stage.fury(w.time);
     atk = Math.max(atk, base);
   }
   if (atk > 0) hurtPlayer(w, atk);
@@ -785,7 +804,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
       e.alive = false;
       return;
     }
-    if (e.drift <= 0 && (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > far * far) {
+    if (e.drift <= 0 && !e.def.part && (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > far * far) {
       const at = spawnPoint(w);
       e.x = at.x;
       e.y = at.y;

@@ -96,7 +96,7 @@ describe('ボスの登場', () => {
     expect(p.intro?.ids).toHaveLength(2);
     expect(p.intro?.epithet).toBe('面の主');
     // 2 体の名前は長くなるので、札では 2 行に分ける
-    expect(p.intro?.name).toBe('巨大ベア\n女王グモ');
+    expect(p.intro?.name).toBe('大木のおばけ\n大ヘビ');
     const [a, b] = p.intro!.ids.map((i) => w.enemies[i]);
     p.next(null, 1.2);
     expect(p.focus(w)!.x).toBeCloseTo((a.x + b.x) / 2);
@@ -119,9 +119,9 @@ describe('ボスの登場', () => {
     p.stop();
   });
 
-  it('6 体のボスに二つ名がある', () => {
+  it('10 体のボスに二つ名がある', () => {
     const bosses = Object.values(ENEMIES).filter((d) => d.boss);
-    expect(bosses).toHaveLength(6);
+    expect(bosses).toHaveLength(10);
     for (const d of bosses) expect(d.epithet?.length).toBeGreaterThan(0);
   });
 });

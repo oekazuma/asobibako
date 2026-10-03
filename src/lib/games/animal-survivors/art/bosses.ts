@@ -1,7 +1,8 @@
 import type { Art } from '../pixels';
+import { FOREST_BOSS_ART } from './bosses-forest';
 
 /** 右向き（描くときに自分の側を向くよう反転する）。巨大ベアの 3 コマ目は両手を上げた地ならし */
-export const BOSS_ART: Record<
+const BASE: Record<
   'bear' | 'spiderQueen' | 'spiderling' | 'pumpkin' | 'knight' | 'pumpkinling' | 'yeti' | 'dragon',
   Art
 > = {
@@ -668,3 +669,5 @@ export const BOSS_ART: Record<
     ]
   }
 };
+
+export const BOSS_ART = { ...BASE, ...FOREST_BOSS_ART };

@@ -4,7 +4,7 @@ import { ENEMIES } from './enemies';
 /** 図鑑に載せるもの。敵は面のふつうの敵とボスの手下、ボスはボスときらきらハリネズミ */
 export const BOOK = {
   enemies: Object.values(ENEMIES)
-    .filter((d) => !d.prop && !d.boss && !d.metal)
+    .filter((d) => !d.prop && !d.boss && !d.metal && !d.part)
     .map((d) => d.id),
   bosses: [...Object.values(ENEMIES).flatMap((d) => (d.boss ? [d.boss as string] : [])), 'metal'],
   forms: ANIMALS.flatMap((a) => [0, 1, 2].map((f) => `${a.id}:${f}`)),

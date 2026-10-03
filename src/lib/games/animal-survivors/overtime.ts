@@ -13,10 +13,11 @@ export function startOvertime(w: World): void {
   const s = w.stage;
   const from = s.length;
   const ramp = (f: (t: number) => number) => (t: number) => f(t) * (1 + (RAMP * Math.max(0, t - from)) / 60);
-  const [a, b] = s.bosses;
+  // その面のボスを出た順に繰り返す（1 面は 6 体、墓地と雪山は 2 体）
+  const ids = [...new Set(s.bosses.map((r) => r.id))];
   const bosses: Stage['bosses'] = Array.from({ length: BOSS_ROWS }, (_, k) => ({
     at: from + BOSS_EVERY * (k + 1),
-    id: k % 2 === 0 ? a.id : b.id,
+    id: ids[k % ids.length],
     hp: 1.5,
     rage: RAGE
   }));

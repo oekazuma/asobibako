@@ -156,7 +156,7 @@ describe('入れ物が埋まっているとき', () => {
 });
 
 describe('ボスの流れ', () => {
-  it.each([FOREST, GRAVEYARD])('$name は 3・6 分に 2 体が出て、9・12 分に 2 回めが攻撃を速めて出る', (s) => {
+  it.each([GRAVEYARD])('$name は 3・6 分に 2 体が出て、9・12 分に 2 回めが攻撃を速めて出る', (s) => {
     const main = s.bosses.filter((b) => !b.title);
     expect(main.map((b) => b.at)).toEqual([180, 360, 540, 720]);
     expect(main[2].id).toBe(main[0].id);
@@ -210,7 +210,10 @@ describe('面の主', () => {
     w.metalAt = -1;
     const finale = s.bosses.filter((b) => b.at === FINALE);
     expect(FINALE).toBe(810);
-    expect(finale.map((b) => b.id)).toEqual([...new Set(s.bosses.filter((b) => b.at < FINALE).map((b) => b.id))]);
+    // 墓地はそれまでの 2 体、1 面は新しい 2 体（大木のおばけと大ヘビ）
+    expect(finale.map((b) => b.id)).toEqual(
+      s === FOREST ? ['oldTree', 'bigSnake'] : [...new Set(s.bosses.filter((b) => b.at < FINALE).map((b) => b.id))]
+    );
     w.bossNext = w.warned = s.bosses.findIndex((b) => b.at === FINALE);
     w.time = FINALE - 3;
     spawnBosses(w);
