@@ -4,7 +4,7 @@ import { fire, hits, type Effect, type Shot } from './arms';
 import { moveBoss, slot, spawnBosses, updateHazards, type Hazard } from './bosses';
 import { BOAR } from './bosses-forest';
 import { airborne } from './bosses-snow';
-import { bloodPact, regenRate, type ArcanaId } from './arcana';
+import { bloodPact, healRate, regenRate, type ArcanaId } from './arcana';
 import { atkMul, heatStage, PLAIN, type Heat } from './cauldron';
 import { hpScale, modPerks, modStage, type Challenge, type ModId } from './daily';
 import { CLEAR_COINS, COIN_RATE, collect, dropFrom, overtimeCoins, type Gem, type Item } from './drops';
@@ -396,7 +396,7 @@ export function damageEnemy(
   if (heal > 0 && w.drainLeft > 0) {
     const amt = Math.min(heal, w.drainLeft);
     w.drainLeft -= amt;
-    w.player.hp = Math.min(w.stats.maxHp, w.player.hp + amt);
+    w.player.hp = Math.min(w.stats.maxHp, w.player.hp + amt * healRate(w));
   }
   if (e.def.metal) dmg = 1;
   if (source && !e.def.prop) (w.dealt[source] ??= { damage: 0, kills: 0 }).damage += Math.max(0, Math.min(dmg, e.hp));

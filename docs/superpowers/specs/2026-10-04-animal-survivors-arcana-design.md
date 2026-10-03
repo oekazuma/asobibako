@@ -52,7 +52,7 @@
 ## 3. 記録と図鑑
 
 - 図鑑に「札」のタブを足す。開いた札は名前と効果、まだの札は影と開く実績の名前を出す。図鑑のコインは出さない。
-- 実績の表の行に、開く札（`arcana`）の欄を足す。リザルトの実績の札に「NEW! ○○の札」を出す。
+- 札の表の行が開く実績の id（`unlock`）を持ち、`arcanaOf()` が実績から札を引く。リザルトの実績の札に「NEW! ○○の札」を出す。
 
 ## 4. 画面と絵
 
@@ -68,7 +68,7 @@
 | `drops.ts`・`chest.ts`                                     | 肉が出ない・宝箱の中身                                           |
 | `stages/forest.ts`                                         | ボスの行に札を出す印（4:00 と 8:00）                             |
 | `prompts.svelte.ts`                                        | 札を選ぶ画面の出し入れ（はじめと、ボスのあと。宝箱より先）       |
-| `achievements.ts`・`book.ts`・`book-view.ts`               | 開く札の欄、図鑑の札のタブ                                       |
+| `book-view.ts`・`Book.svelte`・`Trophy.svelte`             | 図鑑の札のタブ、実績の札の「NEW!」                               |
 | `ArcanaPick.svelte`（新）・`Pause.svelte`・`Result.svelte` | 画面                                                             |
 
 ## 6. 確かめ方

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ARCANA, arcanaOffer, desperate, healRate, openArcana, regenRate, takeArcana } from './arcana';
+import { apply } from './choices';
 import { openChest } from './chest';
 import { noMeat } from './drops';
 import { FOREST } from './stages/forest';
@@ -137,5 +138,27 @@ describe('札の効き方', () => {
     const w = world();
     takeArcana(w, 'eye');
     expect(summary(w).arcana).toEqual(['eye']);
+  });
+});
+
+describe('札の文どおりに効く', () => {
+  it('背水の陣は 3 択の肉と吸収の回復も半分にする', () => {
+    const w = world();
+    takeArcana(w, 'last');
+    w.player.hp = 10;
+    apply(w, { kind: 'meat' });
+    expect(w.player.hp).toBeCloseTo(10 + w.stats.maxHp * 0.3 * 0.5);
+    w.player.hp = 10;
+    w.enemies.push(makeEnemy(ENEMIES.rat, 500, 500, 100));
+    damageEnemy(w, w.enemies.length - 1, 5, 0, 0, false, 'pawEvo');
+    expect(w.player.hp).toBeCloseTo(10.5);
+  });
+
+  it('命の泉はいちかばちかを持っていても最大 HP を 30 増やす', () => {
+    const w = world();
+    takeArcana(w, 'gamble');
+    const max = w.stats.maxHp;
+    takeArcana(w, 'spring');
+    expect(w.stats.maxHp).toBeCloseTo(max + 30);
   });
 });

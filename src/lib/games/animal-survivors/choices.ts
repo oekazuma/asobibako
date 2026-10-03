@@ -1,4 +1,4 @@
-import { hpScaleOf } from './arcana';
+import { healRate, hpScaleOf } from './arcana';
 import { addCoins, COIN_RATE, gainXp, noMeat, pick } from './drops';
 import { trySpecial } from './specials';
 import { EVOLUTIONS, baseOf } from './evolutions';
@@ -87,7 +87,7 @@ export function levelUp(w: World, c: Choice): void {
     w.stats = stats(w.animal, w.passives, w.boost, w.form, hpScaleOf(w));
     p.hp += Math.max(0, w.stats.maxHp - before);
   } else if (c.kind === 'meat') {
-    p.hp = Math.min(w.stats.maxHp, p.hp + w.stats.maxHp * 0.3);
+    p.hp = Math.min(w.stats.maxHp, p.hp + w.stats.maxHp * 0.3 * healRate(w));
   } else if (c.kind === 'power' || c.kind === 'vigor') {
     // その回だけの強化は World.boost に足す（パッシブや育ちで stats を作り直しても残る）
     if (c.kind === 'power') w.boost = { ...w.boost, might: (w.boost.might ?? 0) + POWER };

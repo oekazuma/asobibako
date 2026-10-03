@@ -101,7 +101,7 @@ export function arcanaOffer(w: World): ArcanaId[] {
 export const hpScaleOf = (w: World) => hpScale(w.mods) * (has(w, 'gamble') ? 0.5 : 1);
 /** 少しずつの回復に掛ける */
 export const regenRate = (w: World) => (has(w, 'blood') ? 0 : has(w, 'last') ? 0.5 : 1);
-/** 肉の回復に掛ける */
+/** 肉と吸収の回復に掛ける */
 export const healRate = (w: World) => (has(w, 'last') ? 0.5 : 1);
 /** 背水の陣。HP が減るほど攻撃に掛ける倍率が上がる */
 export function desperate(w: World): number {
@@ -121,12 +121,12 @@ const ADD: Partial<Record<ArcanaId, (w: World) => Partial<Record<keyof World['st
   clover: () => ({ luck: 0.3 }),
   shadow: () => ({ amount: 1 }),
   sand: () => ({ duration: 0.3, haste: 0.1 }),
-  spring: () => ({ maxHp: SPRING_HP, regen: 1 }),
+  // いちかばちかを先に持っていても +30 になるよう、最後に掛ける倍率で割っておく
+  spring: (w) => ({ maxHp: SPRING_HP / hpScaleOf(w), regen: 1 }),
   eye: () => ({ crit: 0.15 }),
   gamble: (w) => ({ might: w.animal.might * 0.5 }),
   armor: (w) => ({ armor: 4, speed: -w.animal.speed * 0.2 }),
-  glass: () => ({ haste: 0.4, armor: -3 }),
-  horde: () => ({})
+  glass: () => ({ haste: 0.4, armor: -3 })
 };
 
 export function takeArcana(w: World, id: ArcanaId): void {
@@ -136,12 +136,12 @@ export function takeArcana(w: World, id: ArcanaId): void {
   const boost = { ...w.boost };
   for (const [k, v] of Object.entries(add) as [keyof World['stats'], number][]) boost[k] = (boost[k] ?? 0) + v;
   w.boost = boost;
-  if (id === 'greedy') w.greed *= 1.5;
   if (id === 'horde') {
     const s = swarmStage(w.stage, 1.6);
     w.stage = { ...s, fury: (t) => s.fury(t) * 1.3 };
   }
   if (id === 'greedy') {
+    w.greed *= 1.5;
     const s = w.stage;
     w.stage = { ...s, toughness: (t) => s.toughness(t) * 1.15 };
   }
