@@ -1,3 +1,4 @@
+import { has } from './arcana';
 import { chestOdds } from './cauldron';
 import { levelUp, REWARDS } from './choices';
 import { addCoins, CHEST_COINS } from './drops';
@@ -25,6 +26,7 @@ export function openChest(w: World): Reward[] {
   addCoins(w, CHEST_COINS);
   const out: Reward[] = [];
   let n = chestSize(w.rand(), chestOdds(w.heat.level));
+  if (has(w, 'cursed')) n = Math.max(3, n) as 3 | 5;
   const e = evolvable(w);
   if (e) {
     evolve(w, e);

@@ -78,9 +78,11 @@ describe('今日のお題の画面', () => {
 
   it('リザルトは、その日の初クリアでごほうびを入れた回だけ「お題クリア」を出す', () => {
     const w = createWorld('cat', 1, { w: 260, h: 380 }, {}, 'forest', {
-      date: daily.date,
-      bonus: 500,
-      mods: daily.mods
+      challenge: {
+        date: daily.date,
+        bonus: 500,
+        mods: daily.mods
+      }
     });
     w.over = 'clear';
     const props = { got: [], total: 0, locked: false, onagain: () => {}, onselect: () => {} };

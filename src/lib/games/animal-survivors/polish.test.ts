@@ -47,7 +47,7 @@ describe('延長戦と体数の実績', () => {
 describe('お題の HP 半分', () => {
   it('育つ・パッシブで増えるぶんも半分', () => {
     const plain = createWorld('dog', 1, VIEW);
-    const half = createWorld('dog', 1, VIEW, {}, 'forest', { date: 'x', bonus: 0, mods: ['halfHp'] });
+    const half = createWorld('dog', 1, VIEW, {}, 'forest', { challenge: { date: 'x', bonus: 0, mods: ['halfHp'] } });
     for (const w of [plain, half]) {
       w.level = 9;
       w.xp = xpNeed(9) - 1;

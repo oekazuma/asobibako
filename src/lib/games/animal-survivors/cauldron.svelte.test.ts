@@ -52,7 +52,7 @@ describe('釜の画面', () => {
   });
 
   it('リザルトに賭けが戻ったか戻らないかを出す', () => {
-    const w = createWorld('dog', 1, { w: 260, h: 380 }, {}, 'forest', undefined, { level: 4.5, bet: 320 });
+    const w = createWorld('dog', 1, { w: 260, h: 380 }, {}, 'forest', { heat: { level: 4.5, bet: 320 } });
     w.over = 'dead';
     const target = document.body.appendChild(document.createElement('div'));
     const props = { run: summary(w), got: [], total: 0, locked: false, onagain: () => {}, onselect: () => {} };
@@ -63,7 +63,7 @@ describe('釜の画面', () => {
   });
 
   it('延長戦で倒れた回は、10:00 のクリアで戻った賭けを「戻った」と出す', () => {
-    const w = createWorld('dog', 1, { w: 260, h: 380 }, {}, 'forest', undefined, { level: 4.5, bet: 320 });
+    const w = createWorld('dog', 1, { w: 260, h: 380 }, {}, 'forest', { heat: { level: 4.5, bet: 320 } });
     w.over = 'dead';
     const run = { ...summary(w), overtime: { secs: 30, coins: 0, halved: true } };
     const target = document.body.appendChild(document.createElement('div'));

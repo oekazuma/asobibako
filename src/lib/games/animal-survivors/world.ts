@@ -4,6 +4,7 @@ import { fire, hits, type Effect, type Shot } from './arms';
 import { moveBoss, slot, spawnBosses, updateHazards, type Hazard } from './bosses';
 import { BOAR } from './bosses-forest';
 import { airborne } from './bosses-snow';
+import { bloodPact, regenRate, type ArcanaId } from './arcana';
 import { atkMul, heatStage, PLAIN, type Heat } from './cauldron';
 import { hpScale, modPerks, modStage, type Challenge, type ModId } from './daily';
 import { CLEAR_COINS, COIN_RATE, collect, dropFrom, overtimeCoins, type Gem, type Item } from './drops';
@@ -104,6 +105,12 @@ export interface World {
   stage: Stage;
   /** 釜の強さと賭けたコイン */
   heat: Heat;
+  /** 持っている札 */
+  arcana: ArcanaId[];
+  /** 開いている札（候補はここから引く。空ならその回は札を出さない） */
+  arcanaPool: ArcanaId[];
+  /** 選ぶのを待っている札の数 */
+  arcanaPending: number;
   animal: Animal;
   /** 育った段階。0 が 1 段階め */
   form: 0 | 1 | 2;
@@ -228,15 +235,22 @@ function metalTime(seed: number): number {
   return r() < METAL_CHANCE ? 120 + r() * 360 : -1;
 }
 
+/** createWorld の後ろの引数。Survivors の選んだ組をそのまま渡せる形 */
+export interface Options {
+  challenge?: Challenge;
+  heat?: Heat;
+  arcana?: ArcanaId[];
+}
+
 export function createWorld(
   id: AnimalId,
   seed: number,
   view: { w: number; h: number },
   ranks: Ranks = {},
   stageId = 'forest',
-  challenge?: Challenge,
-  heat: Heat = PLAIN
+  opts: Options = {}
 ): World {
+  const { challenge, heat = PLAIN, arcana = [] } = opts;
   const mods = challenge?.mods ?? [];
   const stage = heatStage(modStage(stageOf(stageId), mods), heat.level);
   const a = animal(id);
@@ -247,6 +261,9 @@ export function createWorld(
     time: 0,
     stage,
     heat,
+    arcana: [],
+    arcanaPool: arcana,
+    arcanaPending: arcana.length && !challenge ? 1 : 0,
     animal: a,
     form: 0,
     stats: s,
@@ -411,6 +428,7 @@ export function damageEnemy(
 /** 倒した数と図鑑の分を数える。十字架でまとめて倒したときも通す */
 export function countKill(w: World, e: Enemy): void {
   w.kills += 1;
+  bloodPact(w);
   const id = e.def.id;
   w.killsBy[id] = (w.killsBy[id] ?? 0) + 1;
   if (e.def.elite && !w.elitesDown.includes(id)) w.elitesDown.push(id);
@@ -777,7 +795,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   p.hurt -= dt;
   p.attack -= dt;
   p.slow -= dt;
-  p.hp = Math.min(w.stats.maxHp, p.hp + w.stats.regen * dt);
+  p.hp = Math.min(w.stats.maxHp, p.hp + w.stats.regen * regenRate(w) * dt);
   w.drainLeft = Math.min(w.stats.maxHp * DRAIN, w.drainLeft + w.stats.maxHp * DRAIN * dt);
 
   let alive = 0;
@@ -859,6 +877,7 @@ export interface RunSummary {
   /** 延長戦の秒とそのぶんのコイン（倒れて半分になったか）。best は記録した面の最高 */
   overtime?: { secs: number; coins: number; halved: boolean; best?: number };
   heat: Heat;
+  arcana?: ArcanaId[];
 }
 
 /** 強欲を掛けたこの回のコイン。1 枚ずつ掛けると端数で減るので、合計に掛ける */
@@ -870,6 +889,7 @@ export function summary(w: World): RunSummary {
   return {
     animal: w.animal.id,
     heat: w.heat,
+    arcana: [...w.arcana],
     cleared: w.over === 'clear',
     time: w.time,
     level: w.level,

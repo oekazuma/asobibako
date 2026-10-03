@@ -41,7 +41,7 @@
   /** HUD を書きはじめる高さ（仮想ドット）。シェルの隅のボタンの下 */
   let top = 24;
   // svelte-ignore state_referenced_locally
-  const world = createWorld(pick.animal, Date.now() % 2 ** 31, view, ranks, pick.stage, pick.challenge, pick.heat);
+  const world = createWorld(pick.animal, Date.now() % 2 ** 31, view, ranks, pick.stage, pick);
   const fx = new Effects();
   const keys = new SvelteSet<string>();
   const prompts = new Prompts(world);

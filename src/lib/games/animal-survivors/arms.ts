@@ -1,3 +1,4 @@
+import { desperate } from './arcana';
 import { airborne } from './bosses-snow';
 import { MAX_R } from './enemies';
 import { WEAPONS, weaponStats, type WeaponDef, type WeaponStats } from './weapons';
@@ -65,7 +66,7 @@ const REHIT = { boomerang: 0.35, orbit: 0.4 };
 
 export function power(w: World, base: number): { dmg: number; crit: boolean } {
   const crit = w.rand() < w.stats.crit;
-  return { dmg: base * w.stats.might * (crit ? 2 : 1), crit };
+  return { dmg: base * w.stats.might * desperate(w) * (crit ? 2 : 1), crit };
 }
 
 function revive<T extends { alive: boolean }>(list: T[], make: () => T): T {

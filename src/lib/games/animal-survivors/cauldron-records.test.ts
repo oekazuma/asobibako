@@ -6,7 +6,7 @@ import { createWorld, summary } from './world';
 
 const VIEW = { w: 274, h: 394 };
 const runAt = (level: number, cleared: boolean) => {
-  const w = createWorld('dog', 1, VIEW, {}, 'forest', undefined, { level, bet: betOf(level) });
+  const w = createWorld('dog', 1, VIEW, {}, 'forest', { heat: { level, bet: betOf(level) } });
   w.time = cleared ? 600 : 200;
   w.over = cleared ? 'clear' : 'dead';
   return summary(w);

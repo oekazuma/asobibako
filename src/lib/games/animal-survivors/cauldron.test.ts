@@ -63,7 +63,7 @@ describe('釜の強さ', () => {
 
   it('createWorld は強さを持ち、コインに倍率が掛かり、まとめに入る', () => {
     const heat = { level: 4.5, bet: betOf(4.5) };
-    const w = createWorld('dog', 1, VIEW, {}, 'forest', undefined, heat);
+    const w = createWorld('dog', 1, VIEW, {}, 'forest', { heat });
     expect(w.heat).toEqual(heat);
     w.coins = 100;
     expect(coinsOf(w)).toBe(Math.floor(100 * 1.5 * coinMul(4.5) + 1e-9));
@@ -82,7 +82,7 @@ describe('釜の強さ', () => {
 
 describe('釜の攻撃の倍率', () => {
   const hit = (level: number, raw: number) => {
-    const w = createWorld('dog', 1, VIEW, {}, 'forest', undefined, { level, bet: 0 });
+    const w = createWorld('dog', 1, VIEW, {}, 'forest', { heat: { level, bet: 0 } });
     w.stats.armor = 0;
     const hp = w.player.hp;
     hurtPlayer(w, raw);

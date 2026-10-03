@@ -92,6 +92,7 @@ describe('世界', () => {
     expect(summary(w)).toEqual({
       animal: 'cat',
       heat: { level: 2, bet: 0 },
+      arcana: [],
       cleared: false,
       time: 763.4,
       level: 18,

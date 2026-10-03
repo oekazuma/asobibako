@@ -72,16 +72,24 @@ export function dailyBonus(d: Pick<Daily, 'stage' | 'mods'>): number {
   return Math.max(200, Math.round((sum * stageOf(d.stage).coin) / 10) * 10);
 }
 
+/** 敵の出る数を k 倍にした面の表の写し */
+export function swarmStage(s: Stage, k: number): Stage {
+  if (k === 1) return s;
+  return {
+    ...s,
+    waves: s.waves.map((v) => ({ ...v, rate: [v.rate[0] * k, v.rate[1] * k] })),
+    cap: (t) => Math.min(400, Math.round(s.cap(t) * k))
+  };
+}
+
 /** 面の表を変えるしばり。元の表は次の回も使うので写してから変える */
 export function modStage(s: Stage, mods: ModId[]): Stage {
   if (!mods.some((id) => id === 'tough' || id === 'fury' || id === 'swarm' || id === 'bossHp')) return s;
   const k = (id: ModId, v: number) => (mods.includes(id) ? v : 1);
   return {
-    ...s,
+    ...swarmStage(s, k('swarm', 1.4)),
     toughness: (t) => s.toughness(t) * k('tough', 1.5),
     fury: (t) => s.fury(t) * k('fury', 1.4),
-    waves: s.waves.map((v) => ({ ...v, rate: [v.rate[0] * k('swarm', 1.4), v.rate[1] * k('swarm', 1.4)] })),
-    cap: (t) => Math.min(400, Math.round(s.cap(t) * k('swarm', 1.4))),
     bosses: s.bosses.map((b) => ({ ...b, hp: (b.hp ?? 1) * k('bossHp', 1.6) }))
   };
 }

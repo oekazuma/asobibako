@@ -12,7 +12,7 @@ import { createWorld, summary, type World } from './world';
 const VIEW = { w: 274, h: 394 };
 const MAX = Object.fromEntries(UPGRADES.map((d) => [d.id, d.max]));
 const withMods = (mods: ModId[], ranks = {}, stage = 'forest') =>
-  createWorld('dog', 1, VIEW, ranks, stage, { date: '2026-10-03', bonus: 500, mods });
+  createWorld('dog', 1, VIEW, ranks, stage, { challenge: { date: '2026-10-03', bonus: 500, mods } });
 
 describe('お題の作り方', () => {
   it('日付は端末の日付の YYYY-MM-DD', () => {
@@ -116,7 +116,9 @@ const NEXT = new Date(2026, 9, 4, 10);
 /** その日のお題でクリアした回 */
 function clearedRun(r: ReturnType<typeof emptyRecords>): World {
   const d = r.daily!;
-  const w = createWorld(d.animal, 1, VIEW, {}, d.stage, { date: d.date, bonus: dailyBonus(d), mods: d.mods });
+  const w = createWorld(d.animal, 1, VIEW, {}, d.stage, {
+    challenge: { date: d.date, bonus: dailyBonus(d), mods: d.mods }
+  });
   w.over = 'clear';
   return w;
 }

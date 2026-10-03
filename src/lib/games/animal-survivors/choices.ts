@@ -1,4 +1,4 @@
-import { hpScale } from './daily';
+import { hpScaleOf } from './arcana';
 import { addCoins, COIN_RATE, gainXp, noMeat, pick } from './drops';
 import { trySpecial } from './specials';
 import { EVOLUTIONS, baseOf } from './evolutions';
@@ -84,15 +84,15 @@ export function levelUp(w: World, c: Choice): void {
     if (own) own.level = c.level;
     else w.passives.push({ id: c.id, level: 1 });
     const before = w.stats.maxHp;
-    w.stats = stats(w.animal, w.passives, w.boost, w.form, hpScale(w.mods));
+    w.stats = stats(w.animal, w.passives, w.boost, w.form, hpScaleOf(w));
     p.hp += Math.max(0, w.stats.maxHp - before);
   } else if (c.kind === 'meat') {
     p.hp = Math.min(w.stats.maxHp, p.hp + w.stats.maxHp * 0.3);
   } else if (c.kind === 'power' || c.kind === 'vigor') {
     // その回だけの強化は World.boost に足す（パッシブや育ちで stats を作り直しても残る）
     if (c.kind === 'power') w.boost = { ...w.boost, might: (w.boost.might ?? 0) + POWER };
-    else w.boost = { ...w.boost, maxHp: (w.boost.maxHp ?? 0) + VIGOR / hpScale(w.mods) };
-    w.stats = stats(w.animal, w.passives, w.boost, w.form, hpScale(w.mods));
+    else w.boost = { ...w.boost, maxHp: (w.boost.maxHp ?? 0) + VIGOR / hpScaleOf(w) };
+    w.stats = stats(w.animal, w.passives, w.boost, w.form, hpScaleOf(w));
     if (c.kind === 'vigor') p.hp = w.stats.maxHp;
   } else if (c.kind === 'gold') {
     // 札に書いた枚数がそのまま入るよう、拾ったコインの倍率（COIN_RATE）の分を割っておく

@@ -1,5 +1,5 @@
 import { countKill, damageEnemy, type Enemy, type World } from './world';
-import { hpScale } from './daily';
+import { has, healRate, hpScaleOf } from './arcana';
 import { stats } from './passives';
 import { trySpecial } from './specials';
 
@@ -134,7 +134,7 @@ export function gainXp(w: World, value: number): void {
 
 function grow(w: World): void {
   w.form = Math.min(2, w.form + 1) as World['form'];
-  w.stats = stats(w.animal, w.passives, w.boost, w.form, hpScale(w.mods));
+  w.stats = stats(w.animal, w.passives, w.boost, w.form, hpScaleOf(w));
   w.player.hp = w.stats.maxHp;
   w.events.push({ type: 'grow', form: w.form as 1 | 2 });
   trySpecial(w);
@@ -176,7 +176,7 @@ function dropItem(w: World, kind: Item['kind'], x: number, y: number, pulled = f
 }
 
 /** 肉が出ないしばりの回 */
-export const noMeat = (w: World) => w.mods.includes('noMeat');
+export const noMeat = (w: World) => w.mods.includes('noMeat') || has(w, 'cursed') || has(w, 'blood');
 
 const BOSS_GEMS = 10;
 /** 強化個体が宝箱を落とす確率 */
@@ -290,7 +290,7 @@ export function collect(w: World, dt: number): void {
     if (it.kind === 'meat') {
       const p = w.player;
       const before = p.hp;
-      p.hp = Math.min(w.stats.maxHp, p.hp + MEAT_HEAL);
+      p.hp = Math.min(w.stats.maxHp, p.hp + MEAT_HEAL * healRate(w));
       w.events.push({ type: 'heal', amount: Math.round(p.hp - before) });
     } else {
       for (const g of w.gems) g.pulled ||= g.alive;
