@@ -1,5 +1,5 @@
 import { levelUp } from './choices';
-import { addCoins, CHEST_COINS } from './drops';
+import { addCoins, CHEST_COINS, noMeat } from './drops';
 import { evolvable, evolve } from './evolutions';
 import { maxOf } from './passives';
 import { MAX_LEVEL } from './weapons';
@@ -40,7 +40,7 @@ export function openChest(w: World): Reward[] {
     ];
     const r: Reward = open.length
       ? open[Math.floor(w.rand() * open.length)]
-      : out.some((o) => o.kind === 'meat')
+      : noMeat(w) || out.some((o) => o.kind === 'meat')
         ? { kind: 'bag' }
         : { kind: 'meat' };
     levelUp(w, r);

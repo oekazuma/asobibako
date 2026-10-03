@@ -164,11 +164,15 @@ export function dropGem(w: World, x: number, y: number, value: number): void {
 }
 
 function dropItem(w: World, kind: Item['kind'], x: number, y: number, pulled = false) {
+  if (kind === 'meat' && noMeat(w)) return;
   const it =
     w.items.find((o) => !o.alive) ?? (w.items[w.items.length] = { alive: false, kind, x: 0, y: 0, pulled: false });
   Object.assign(it, { alive: true, kind, x, y, pulled });
   delete it.life;
 }
+
+/** 肉が出ないしばりの回 */
+export const noMeat = (w: World) => w.mods.includes('noMeat');
 
 const BOSS_GEMS = 10;
 /** 強化個体が宝箱を落とす確率 */

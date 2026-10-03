@@ -1,4 +1,4 @@
-import { gainXp, pick } from './drops';
+import { gainXp, noMeat, pick } from './drops';
 import { trySpecial } from './specials';
 import { EVOLUTIONS, baseOf } from './evolutions';
 import { PASSIVES, maxOf, stats } from './passives';
@@ -20,7 +20,8 @@ function candidates(w: World): Choice[] {
   // 進化した武器の元の武器と、進化形そのものは新しい武器として出さない
   const had = new Set(w.weapons.map((o) => baseOf(o.id)));
   const fresh = (kind: 'weapon' | 'passive', id: string) =>
-    kind === 'passive' || (!WEAPONS[id].evolved && !WEAPONS[id].exclusive && !had.has(id));
+    kind === 'passive' ||
+    (!WEAPONS[id].evolved && !WEAPONS[id].exclusive && !had.has(id) && !w.mods.includes('oneWeapon'));
   for (const [kind, owned, all] of [
     ['weapon', w.weapons, Object.keys(WEAPONS)],
     ['passive', w.passives, Object.keys(PASSIVES)]
@@ -41,7 +42,8 @@ export function choices(w: World, n = 3 + (w.stats.luck > 0 && w.rand() < w.stat
     [list[i], list[j]] = [list[j], list[i]];
   }
   const out = list.slice(0, n);
-  for (const filler of [{ kind: 'meat' }, { kind: 'bag' }] as const) if (out.length < n) out.push(filler);
+  const fillers = noMeat(w) ? ([{ kind: 'bag' }] as const) : ([{ kind: 'meat' }, { kind: 'bag' }] as const);
+  for (const filler of fillers) if (out.length < n) out.push(filler);
   for (const c of out) {
     if (c.kind === 'passive') c.evo = EVOLUTIONS.some((e) => e.with === c.id && w.weapons.some((o) => o.id === e.from));
     else if (c.kind === 'weapon')

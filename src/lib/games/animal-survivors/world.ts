@@ -3,6 +3,7 @@ import type { RunBook } from './book';
 import { fire, hits, type Effect, type Shot } from './arms';
 import { moveBoss, slot, spawnBosses, updateHazards, type Hazard } from './bosses';
 import { airborne } from './bosses-snow';
+import { modPerks, modStage, type Challenge, type ModId } from './daily';
 import { CLEAR_COINS, collect, dropFrom, overtimeCoins, type Gem, type Item } from './drops';
 import { ENEMIES, MAX_R, type BossId, type EnemyDef } from './enemies';
 import { Grid } from './grid';
@@ -172,6 +173,10 @@ export interface World {
   /** 次に出すボスの番号と、予告を出したボスの数 */
   bossNext: number;
   warned: number;
+  /** お題のしばり。お題でない回は空 */
+  mods: ModId[];
+  /** お題の回の日付とごほうび（お題でない回は null） */
+  daily: { date: string; bonus: number } | null;
   /** 15:00 の一掃で倒さずに消えたボスの数（延長戦でボス戦の曲を止めるときに、倒した数に足す） */
   swept: number;
   over: null | 'dead' | 'clear';
@@ -219,11 +224,13 @@ export function createWorld(
   seed: number,
   view: { w: number; h: number },
   ranks: Ranks = {},
-  stageId = 'forest'
+  stageId = 'forest',
+  challenge?: Challenge
 ): World {
-  const stage = stageOf(stageId);
+  const mods = challenge?.mods ?? [];
+  const stage = modStage(stageOf(stageId), mods);
   const a = animal(id);
-  const k = perks(ranks);
+  const k = modPerks(perks(mods.includes('noShop') ? {} : ranks), a, mods);
   const s = stats(a, [], k.boost);
   return {
     rand: rng(seed),
@@ -292,6 +299,8 @@ export function createWorld(
     bossNext: 0,
     warned: 0,
     swept: 0,
+    mods,
+    daily: challenge ? { date: challenge.date, bonus: challenge.bonus } : null,
     over: null,
     overtime: null,
     view,
@@ -814,6 +823,8 @@ export interface RunSummary {
   book: RunBook;
   /** record() が入れる、この回に図鑑へ新しく載ったぶんのコイン */
   bookCoins?: number;
+  /** お題の回の日付とごほうび。paid は record() が、このときごほうびを入れたら立てる */
+  daily?: { date: string; bonus: number; paid?: boolean };
   /** 延長戦の秒とそのぶんのコイン（倒れて半分になったか）。best は記録した面の最高 */
   overtime?: { secs: number; coins: number; halved: boolean; best?: number };
 }
@@ -852,6 +863,7 @@ export function summary(w: World): RunSummary {
       forms: Array.from({ length: w.form + 1 }, (_, f) => `${w.animal.id}:${f}`),
       items: [...w.picked]
     },
+    ...(w.daily && { daily: { ...w.daily } }),
     ...(w.overtime && {
       overtime: {
         secs: Math.floor(w.time - w.overtime.from),
