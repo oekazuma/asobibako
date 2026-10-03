@@ -15,7 +15,8 @@
 
 {#if prompts.notice}
   {#key prompts.notice.key}
-    <p class="notice" role="status">{prompts.notice.text}</p>
+    <!-- ヌシの帯と重ならないよう、そのあいだは下にずらす -->
+    <p class="notice" class:below={prompts.chief} role="status">{prompts.notice.text}</p>
   {/key}
 {/if}
 {#if prompts.chief}
@@ -24,7 +25,7 @@
   {/key}
 {/if}
 {#if prompts.evolve && prompts.growing && (prompts.still || prompts.evolve.t >= SWAP + 0.1)}
-  <GrowPlate from={prompts.evolve.from} to={prompts.evolve.to} />
+  <GrowPlate from={prompts.evolve.from} to={prompts.evolve.to} steps={prompts.evolve.form - prompts.evolve.fromForm} />
 {/if}
 {#if prompts.intro && prompts.named}
   <BossIntro epithet={prompts.intro.epithet} name={prompts.intro.name} />
@@ -78,6 +79,10 @@
     translate: -50% 0;
     pointer-events: none;
     animation: slide 300ms steps(3);
+  }
+
+  .notice.below {
+    top: 31%;
   }
 
   .chief {

@@ -88,6 +88,8 @@ describe('育つ瞬間', () => {
     w.events.push({ type: 'grow', form: 1 }, { type: 'grow', form: 2 });
     p.take();
     expect(p.evolve).toMatchObject({ from: '子犬', to: w.animal.forms[2], form: 2 });
+    // 白い影は最初の姿（子犬）と最後の姿で入れ替える
+    expect(p.evolve?.fromForm).toBe(0);
     p.stop();
   });
 

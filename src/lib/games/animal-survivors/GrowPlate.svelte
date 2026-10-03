@@ -1,10 +1,13 @@
 <script lang="ts">
-  let { from, to }: { from: string; to: string } = $props();
+  import { GROW_HP, GROW_MIGHT } from './passives';
+
+  /** steps は一度に育った段の数 */
+  let { from, to, steps }: { from: string; to: string; steps: number } = $props();
 </script>
 
 <div class="plate" role="status">
   <strong>{from} → {to}</strong>
-  <span>攻撃 +10%・最大 HP +20・HP 全快</span>
+  <span>攻撃 +{Math.round(GROW_MIGHT * steps * 100)}%・最大 HP +{GROW_HP * steps}・HP 全快</span>
 </div>
 
 <style>

@@ -37,7 +37,8 @@ export class Prompts {
   /** ボスの登場。t は端末の時間で進める（ゲームの時計は止まっている） */
   intro = $state<{ ids: number[]; t: number; epithet: string; name: string } | null>(null);
   /** 育つ演出。t は端末の時間で進める */
-  evolve = $state<{ from: string; to: string; form: 1 | 2; t: number } | null>(null);
+  /** fromForm は育つ前の段階（1 フレームで 2 段育つと form より 2 つ前） */
+  evolve = $state<{ from: string; to: string; fromForm: 0 | 1; form: 1 | 2; t: number } | null>(null);
   /** ヌシの帯 */
   chief = $state<{ text: string; key: number; until: number } | null>(null);
   readonly #still: boolean;
@@ -90,8 +91,8 @@ export class Prompts {
             : { ids: e.ids, t: 0, epithet: defs[0].epithet ?? '', name: defs[0].name };
       } else if (e.type === 'grow' && !w.over) {
         // 1 フレームで 2 段育ったときは、まだ始まっていない演出を最後の姿までにのばす
-        const from = this.evolve?.t === 0 ? this.evolve.from : w.animal.forms[e.form - 1];
-        this.evolve = { from, to: w.animal.forms[e.form], form: e.form, t: 0 };
+        const fromForm = this.evolve?.t === 0 ? this.evolve.fromForm : ((e.form - 1) as 0 | 1);
+        this.evolve = { from: w.animal.forms[fromForm], to: w.animal.forms[e.form], fromForm, form: e.form, t: 0 };
       }
     // 倒していないボスが残ったまま次のボスが出ることがあるので、予告した数と倒した数で決める
     this.boss = w.warned > w.bossKills.length + w.swept;

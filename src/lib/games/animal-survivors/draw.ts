@@ -275,7 +275,16 @@ function sparkle(ctx: CanvasRenderingContext2D, e: Enemy, now: number) {
   }
 }
 
-function enemies(ctx: CanvasRenderingContext2D, w: World, cx: number, cy: number, v: ViewSize, now: number) {
+/** lively はボスの登場の時間。そのあいだはゲームの時計が止まるが、札に映るボスの歩く絵だけは動かす */
+function enemies(
+  ctx: CanvasRenderingContext2D,
+  w: World,
+  cx: number,
+  cy: number,
+  v: ViewSize,
+  now: number,
+  lively = 0
+) {
   order.length = 0;
   for (const e of w.enemies) {
     if (!e.alive) continue;
@@ -292,7 +301,7 @@ function enemies(ctx: CanvasRenderingContext2D, w: World, cx: number, cy: number
     const art = ART[e.def.id];
     // 巨大ベアは地ならしの予告のあいだ、大雪男は宙にいるあいだ、両手を上げたコマにする
     const up = (e.def.ai === 'bear' && e.state === 3) || airborne(e);
-    const frame = up ? 2 : frameAt(e.t * (e.def.boss ? 4 : 6), 2);
+    const frame = up ? 2 : frameAt((e.def.boss ? e.t + lively : e.t) * (e.def.boss ? 4 : 6), 2);
     // 敵は自分のほうを向く。逃げるきらきらハリネズミだけは反対を向く
     const flip = !e.def.prop && w.player.x < e.x !== Boolean(e.def.metal);
     const at = airborne(e) ? leap(e) : e;
@@ -340,22 +349,24 @@ export function draw(
   hazardsBelow(ctx, w, q, now);
   zonesBelow(ctx, w, q, now);
   pickups(ctx, w, now);
-  enemies(ctx, w, cx, cy, v, now);
+  enemies(ctx, w, cx, cy, v, now, prompts?.intro?.t ?? 0);
   const ev = prompts?.growing ? prompts.evolve : null;
   const grow = ev ? growFrame(ev.t, prompts!.still) : null;
-  if (grow?.dark) {
-    // 育つ演出のあいだは、まわりを暗くして自分だけを照らす
-    ctx.fillStyle = `rgb(12 6 24 / ${grow.dark})`;
-    ctx.fillRect(cx, cy, v.w, v.h);
-  }
-  if (ev && grow) player(ctx, w, now, grow.form === 'old' ? ((ev.form - 1) as 0 | 1) : ev.form, grow.white, true);
-  else player(ctx, w, now);
+  if (!grow) player(ctx, w, now);
   shots(ctx, w, q);
   swipes(ctx, w, q);
   hazardsAbove(ctx, w, q);
   if (prompts?.intro) introDust(ctx, w, prompts.intro);
-  if (grow?.burst) growBurst(ctx, p, grow.burst);
   fx.draw(ctx, S);
+  if (ev && grow) {
+    // 育つ演出のあいだは、弾や予告も含めてまわりを暗くし、自分だけを照らす
+    if (grow.dark) {
+      ctx.fillStyle = `rgb(12 6 24 / ${grow.dark})`;
+      ctx.fillRect(cx, cy, v.w, v.h);
+    }
+    player(ctx, w, now, grow.form === 'old' ? ev.fromForm : ev.form, grow.white, true);
+    if (grow.burst) growBurst(ctx, p, grow.burst);
+  }
   ctx.setTransform(S, 0, 0, S, 0, 0);
   // 磁石は青、被弾は赤で画面の縁を光らせる（画面を揺らすと酔うので揺らさない）
   for (const [t, max, color] of [
@@ -390,7 +401,10 @@ export function draw(
   blizzard(ctx, w, v.w, v.h, now);
   confetti(ctx, w, v.w, v.h, now);
   hud(ctx, w, v, top);
-  treasureArrow(ctx, w, v.w, v.h, top);
-  chiefArrows(ctx, w, v.w, v.h, top);
+  // ボスの登場のあいだはカメラが自分から離れるので、自分から測る矢印の向きが合わない
+  if (!prompts?.intro) {
+    treasureArrow(ctx, w, v.w, v.h, top);
+    chiefArrows(ctx, w, v.w, v.h, top);
+  }
   bossBars(ctx, w, v, top);
 }
