@@ -23,6 +23,7 @@ const run: RunSummary = {
   form: 0,
   metal: false,
   finale: false,
+  book: { kills: {}, elites: [], chiefs: [], bosses: [], forms: [], items: [] },
   dealt: [
     { id: 'woofEvo', damage: 1200, kills: 40 },
     { id: 'paw', damage: 300, kills: 10 },

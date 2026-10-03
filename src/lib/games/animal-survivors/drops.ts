@@ -1,4 +1,4 @@
-import { damageEnemy, type Enemy, type World } from './world';
+import { countKill, damageEnemy, type Enemy, type World } from './world';
 import { stats } from './passives';
 import { trySpecial } from './specials';
 
@@ -72,7 +72,7 @@ function clearScreen(w: World) {
       continue;
     }
     e.alive = false;
-    w.kills += 1;
+    countKill(w, e);
     w.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.def.id });
     dropFrom(w, e);
   }
@@ -190,6 +190,11 @@ export function dropFrom(w: World, e: Enemy): void {
   else if (w.rand() < COIN_CHANCE * (1 + w.stats.luck)) dropItem(w, 'coin', e.x - 4, e.y, w.rush > 0);
 }
 
+/** 図鑑に載せる、その回に拾った品 */
+export function pick(w: World, kind: string): void {
+  if (!w.picked.includes(kind)) w.picked.push(kind);
+}
+
 /** 吸い寄せて、届いたら true */
 function pull(w: World, o: { x: number; y: number; pulled: boolean }, reach: number, dt: number): boolean {
   const p = w.player;
@@ -219,6 +224,7 @@ export function collect(w: World, dt: number): void {
     if (it.kind === 'chest') {
       if ((it.x - w.player.x) ** 2 + (it.y - w.player.y) ** 2 < CHEST_PICK ** 2) {
         it.alive = false;
+        pick(w, 'chest');
         // 時計で止まっていると stepEvents が回らないので、宝の地図の宝箱はここで手放す
         if (it === w.treasure) w.treasure = null;
         w.chests += 1;
@@ -228,6 +234,7 @@ export function collect(w: World, dt: number): void {
     }
     if (!pull(w, it, reach, dt)) continue;
     it.alive = false;
+    if (it.kind !== 'coin') pick(w, it.kind);
     if (it.kind === 'cross') {
       clearScreen(w);
       w.events.push({ type: 'cross' });

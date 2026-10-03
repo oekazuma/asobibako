@@ -22,6 +22,7 @@ const run: RunSummary = {
   form: 0,
   metal: false,
   finale: false,
+  book: { kills: {}, elites: [], chiefs: [], bosses: [], forms: [], items: [] },
   dealt: []
 };
 

@@ -1,4 +1,5 @@
 import { animal, type Animal, type AnimalId } from './animals';
+import type { RunBook } from './book';
 import { fire, hits, type Effect, type Shot } from './arms';
 import { moveBoss, slot, spawnBosses, updateHazards, type Hazard } from './bosses';
 import { airborne } from './bosses-snow';
@@ -41,6 +42,8 @@ export interface Enemy {
   hit: Float64Array;
   /** まっすぐ飛ぶ残りの秒（群れ）。0 になったら消え、倒した数には入らない */
   drift: number;
+  /** 出た時刻（ボスときらきらハリネズミを倒すまでの秒に使う） */
+  born: number;
 }
 
 export interface Player {
@@ -160,6 +163,12 @@ export interface World {
   metalWon: boolean;
   /** この回に倒した面の主の数 */
   finaleKills: number;
+  /** 図鑑に足す、この回に倒した敵の数（元の敵の id ごと）・強化個体とヌシ・ボスを倒すまでの秒・拾った品 */
+  killsBy: Record<string, number>;
+  elitesDown: string[];
+  chiefsDown: string[];
+  bossTimes: { id: string; secs: number }[];
+  picked: string[];
   /** 次に出すボスの番号と、予告を出したボスの数 */
   bossNext: number;
   warned: number;
@@ -263,6 +272,11 @@ export function createWorld(
     metalAt: metalTime(seed),
     metalWon: false,
     finaleKills: 0,
+    killsBy: {},
+    elitesDown: [],
+    chiefsDown: [],
+    bossTimes: [],
+    picked: [],
     bossNext: 0,
     warned: 0,
     over: null,
@@ -293,7 +307,8 @@ export function makeEnemy(def: EnemyDef, x: number, y: number, hp: number): Enem
     turn: 0,
     root: 0,
     hit: new Float64Array(6).fill(-1),
-    drift: 0
+    drift: 0,
+    born: 0
   };
 }
 
@@ -340,7 +355,7 @@ export function damageEnemy(
     dropFrom(w, e);
     return;
   }
-  w.kills += 1;
+  countKill(w, e);
   if (e.def.metal) w.metalWon = true;
   if (source) w.dealt[source].kills += 1;
   w.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.def.id });
@@ -350,6 +365,16 @@ export function damageEnemy(
     w.events.push({ type: 'bossdown', x: e.x, y: e.y });
   }
   dropFrom(w, e);
+}
+
+/** 倒した数と図鑑の分を数える。十字架でまとめて倒したときも通す */
+export function countKill(w: World, e: Enemy): void {
+  w.kills += 1;
+  const id = e.def.id;
+  w.killsBy[id] = (w.killsBy[id] ?? 0) + 1;
+  if (e.def.elite && !w.elitesDown.includes(id)) w.elitesDown.push(id);
+  if (e.def.chief && !w.chiefsDown.includes(id)) w.chiefsDown.push(id);
+  if (e.def.boss || e.def.metal) w.bossTimes.push({ id: e.def.boss ?? 'metal', secs: w.time - e.born });
 }
 
 /** 強化個体の表。元の表は書き換えない */
@@ -367,6 +392,7 @@ function place(w: World, def: EnemyDef, hp: number): Enemy {
   const at = spawnPoint(w);
   const i = slot(w);
   w.enemies[i] = makeEnemy(def, at.x, at.y, hp);
+  w.enemies[i].born = w.time;
   return w.enemies[i];
 }
 
@@ -770,6 +796,7 @@ export interface RunSummary {
   metal: boolean;
   /** 面の主を 2 体とも倒した */
   finale: boolean;
+  book: RunBook;
 }
 
 /** 強欲を掛けたこの回のコイン。1 枚ずつ掛けると端数で減るので、合計に掛ける */
@@ -797,6 +824,14 @@ export function summary(w: World): RunSummary {
     stage: w.stage.id,
     form: w.form,
     metal: w.metalWon,
-    finale: w.finaleKills >= 2
+    finale: w.finaleKills >= 2,
+    book: {
+      kills: { ...w.killsBy },
+      elites: [...w.elitesDown],
+      chiefs: [...w.chiefsDown],
+      bosses: w.bossTimes.map((b) => ({ ...b })),
+      forms: Array.from({ length: w.form + 1 }, (_, f) => `${w.animal.id}:${f}`),
+      items: [...w.picked]
+    }
   };
 }

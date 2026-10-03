@@ -103,7 +103,8 @@ describe('世界', () => {
       stage: 'forest',
       form: 0,
       metal: false,
-      finale: false
+      finale: false,
+      book: { kills: {}, elites: [], chiefs: [], bosses: [], forms: ['cat:0'], items: [] }
     });
   });
 });

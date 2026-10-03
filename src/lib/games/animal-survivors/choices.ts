@@ -1,4 +1,4 @@
-import { gainXp } from './drops';
+import { gainXp, pick } from './drops';
 import { trySpecial } from './specials';
 import { EVOLUTIONS, baseOf } from './evolutions';
 import { PASSIVES, maxOf, stats } from './passives';
@@ -72,6 +72,7 @@ export function levelUp(w: World, c: Choice): void {
   } else if (c.kind === 'meat') {
     p.hp = Math.min(w.stats.maxHp, p.hp + w.stats.maxHp * 0.3);
   } else {
+    pick(w, 'bag');
     gainXp(w, BAG_XP);
   }
   trySpecial(w);
