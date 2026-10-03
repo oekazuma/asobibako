@@ -185,7 +185,7 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
       'トラの爪',
       '前と後ろを大きく 2 回裂く重い爪',
       'swipe',
-      [16, 1.1, 2, 1.35, 0, 99, 0.18, 60],
+      [20, 0.8, 2, 1.6, 0, 99, 0.18, 60],
       [{ damage: 4 }, { area: 0.2 }, { cooldown: -0.15 }, { damage: 6 }]
     ),
     w(
@@ -266,7 +266,7 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
       }
     ),
     sp('vineSp', 'vine', '達人の竹林', '広い竹林で足止めして削る', 'snare', [21, 1.6, 9, 2, 0, 99, 5, 0]),
-    sp('tigerClawSp', 'tigerClaw', '雷虎の牙', '4 方向を雷の爪で裂く', 'swipe', [40, 0.6, 4, 1.8, 0, 99, 0.2, 90]),
+    sp('tigerClawSp', 'tigerClaw', '雷虎の牙', '4 方向を雷の爪で裂く', 'swipe', [48, 0.6, 4, 1.8, 0, 99, 0.2, 90]),
     sp(
       'breathSp',
       'breath',

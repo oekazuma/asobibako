@@ -27,13 +27,13 @@ describe('動物', () => {
     expect(animal('bear')).toMatchObject({ hp: 155, speed: 0.85, might: 1.2, weapon: 'claw' });
     expect(animal('rabbit')).toMatchObject({ hp: 80, speed: 1.35, might: 0.9, weapon: 'dash' });
     expect(animal('panda')).toMatchObject({ hp: 150, speed: 0.9, might: 1.15, weapon: 'vine' });
-    expect(animal('tiger')).toMatchObject({ hp: 120, speed: 1.2, might: 1.35, weapon: 'tigerClaw' });
-    expect(animal('drake')).toMatchObject({ hp: 140, speed: 1.1, might: 1.5, weapon: 'breath' });
+    expect(animal('tiger')).toMatchObject({ hp: 135, speed: 1.2, might: 1.35, weapon: 'tigerClaw' });
+    expect(animal('drake')).toMatchObject({ hp: 140, speed: 1.1, might: 1.35, weapon: 'breath' });
     expect(stats(animal('fox'), []).crit).toBeCloseTo(0.15);
     expect(stats(animal('bear'), []).armor).toBe(2);
     expect(stats(animal('rabbit'), []).magnet).toBeCloseTo(1.5);
     expect(stats(animal('panda'), []).regen).toBeCloseTo(1);
-    expect(stats(animal('drake'), [])).toMatchObject({ armor: 1, amount: 1 });
+    expect(stats(animal('drake'), [])).toMatchObject({ armor: 1, regen: 0.3 });
     expect(stats(animal('dog'), []).crit).toBeCloseTo(0.05);
   });
 

@@ -139,7 +139,7 @@ export const ANIMALS: Animal[] = [
     style: '強打型',
     tier: 3,
     blurb: '速くて一撃が重い。前と後ろを大きく引き裂く',
-    hp: 120,
+    hp: 135,
     speed: 1.2,
     might: 1.35,
     weapon: 'tigerClaw',
@@ -157,11 +157,11 @@ export const ANIMALS: Animal[] = [
     blurb: '炎の息で前の敵をまとめて焼く。育つと翼が生える',
     hp: 140,
     speed: 1.1,
-    might: 1.5,
+    might: 1.35,
     weapon: 'breath',
     special: 'breathSp',
-    bonus: { armor: 1, regen: 0.3, amount: 1 },
-    perk: '受けるダメージ -1・毎秒 HP +0.3・弾 +1',
+    bonus: { armor: 1, regen: 0.3 },
+    perk: '受けるダメージ -1・毎秒 HP +0.3',
     unlock: '雪山をクリアすると仲間になる'
   }
 ];
