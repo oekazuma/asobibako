@@ -6,11 +6,13 @@
   import { Settle } from '$lib/settle.svelte';
   import type { AchievementDef } from './achievements';
   import type { AnimalId } from './animals';
+  import Cauldron from './Cauldron.svelte';
+  import type { Heat } from './cauldron';
   import CharSelect from './CharSelect.svelte';
   import Daily from './Daily.svelte';
   import { dailyBonus, type Challenge } from './daily';
   import Play from './Play.svelte';
-  import { emptyRecords, ensureDaily, loadRecords, record, saveRecords } from './records';
+  import { emptyRecords, ensureDaily, loadRecords, payHeat, record, saveRecords } from './records';
   import Result from './Result.svelte';
   import Shop from './Shop.svelte';
   import StageSelect from './StageSelect.svelte';
@@ -25,9 +27,14 @@
   // 10 分の 1 回が面ひとつなので、シェルの level と onfinish は使わない（リザルトはこのゲームが持つ）
   let { onquit }: SoloProps = $props();
 
-  let screen = $state<'select' | 'stage' | 'shop' | 'trophies' | 'book' | 'daily' | 'play' | 'result'>('select');
+  let screen = $state<'select' | 'stage' | 'cauldron' | 'shop' | 'trophies' | 'book' | 'daily' | 'play' | 'result'>(
+    'select'
+  );
   /** これから遊ぶ動物と面（お題の回はしばりも）。「もう一度」とやり直しは同じ組で始める */
-  let pick = $state<{ animal: AnimalId; stage: string; challenge?: Challenge }>({ animal: 'dog', stage: 'forest' });
+  let pick = $state<{ animal: AnimalId; stage: string; challenge?: Challenge; heat?: Heat }>({
+    animal: 'dog',
+    stage: 'forest'
+  });
   let run = $state<RunSummary | null>(null);
   let records = $state(emptyRecords());
   /** この回に達成した実績 */
@@ -50,6 +57,18 @@
     round += 1;
     screen = 'play';
   }
+
+  /** 釜で選んだ強さで賭けを引いて始める。足りなければ payHeat が払える強さまで下げる */
+  function begin(h: number) {
+    const r = loadRecords();
+    pick = { ...pick, heat: payHeat(r, h) };
+    saveRecords(r);
+    records = r;
+    start(pick.stage);
+  }
+
+  /** お題の回は釜を通らず 2.0 のまま */
+  const again = () => (pick.challenge ? start(pick.stage) : begin(pick.heat?.level ?? 2));
 
   // リザルトを待たずに記録する。決着からリザルトまでの間に ✕ で抜けたり終わらされたりしても、その回を落とさない。
   // 延長戦はクリアで 1 回記録してあるので、終わりには延長戦の差だけを記録し、見せるのは 2 回の合計
@@ -135,7 +154,22 @@
 {:else if screen === 'daily' && records.daily}
   <Daily daily={records.daily} onstart={daily} onback={() => (screen = 'select')} />
 {:else if screen === 'stage'}
-  <StageSelect {records} onpick={start} onback={() => (screen = 'select')} />
+  <StageSelect
+    {records}
+    onpick={(id) => {
+      pick = { ...pick, stage: id };
+      screen = 'cauldron';
+    }}
+    onback={() => (screen = 'select')}
+  />
+{:else if screen === 'cauldron'}
+  <Cauldron
+    coins={records.coins}
+    start={records.heatLast}
+    stage={pick.stage}
+    onstart={begin}
+    onback={() => (screen = 'stage')}
+  />
 {:else if screen === 'shop'}
   <Shop onback={back} />
 {:else if screen === 'book'}
@@ -144,15 +178,8 @@
   <Trophies onback={back} />
 {:else if screen === 'play'}
   {#key round}
-    <Play
-      choice={pick}
-      ranks={records.ranks}
-      onover={over}
-      onend={end}
-      onrestart={() => start(pick.stage)}
-      onmusic={(m) => (field = m)}
-    />
+    <Play {pick} ranks={records.ranks} onover={over} onend={end} onrestart={again} onmusic={(m) => (field = m)} />
   {/key}
 {:else if run}
-  <Result {run} {got} total={records.coins} locked={settle.active} onagain={() => start(pick.stage)} onselect={back} />
+  <Result {run} {got} total={records.coins} locked={settle.active} onagain={again} onselect={back} />
 {/if}

@@ -2,6 +2,7 @@
   import type { AchievementDef } from './achievements';
   import { animal } from './animals';
   import { ANIMAL_ART } from './art/animals';
+  import { heatLabel } from './cauldron';
   import { ITEM_ART } from './art/items';
   import DamageTable from './DamageTable.svelte';
   import { clock } from './hud';
@@ -55,6 +56,14 @@
       {#if run.bookCoins}<span class="book">図鑑 +{run.bookCoins}</span>{/if}
       {#if run.daily?.paid}<span class="book">お題クリア +{run.daily.bonus}</span>{/if}
     </p>
+    {#if run.heat.level !== 2}
+      <!-- 延長戦の回は 10:00 のクリアで賭けが戻っている -->
+      <p class="ot">
+        釜 {heatLabel(run.heat.level)}{#if run.heat.bet > 0}{run.cleared || run.overtime
+            ? ` クリア 賭けた ${run.heat.bet} が戻った`
+            : ` 賭けた ${run.heat.bet} は戻らない`}{/if}
+      </p>
+    {/if}
     {#if run.overtime}
       <p class="ot">
         延長戦 +{run.overtime.coins}{run.overtime.halved ? '（倒れたので半分）' : ''}<br />このステージの最高 {clock(

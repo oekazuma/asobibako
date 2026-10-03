@@ -4,6 +4,7 @@
   import { FOREST_ART } from './art/forest';
   import { GRAVE_ART } from './art/graveyard';
   import { SNOW_ART } from './art/snow';
+  import { heatLabel } from './cauldron';
   import { clock } from './hud';
   import PixelIcon from './PixelIcon.svelte';
   import { canPlay, type Records } from './records';
@@ -44,6 +45,7 @@
             <span class="info">コイン ×{s.coin}</span>
             {#if s.id !== 'forest'}<span class="info hard">敵が強い</span>{/if}
             {#if records.overtime[s.id]}<span class="info">延長 {clock(records.overtime[s.id])}</span>{/if}
+            {#if records.heat[s.id] !== undefined}<span class="info">釜 {heatLabel(records.heat[s.id])}</span>{/if}
           {:else}
             <span class="info">{s.unlock}</span>
           {/if}
