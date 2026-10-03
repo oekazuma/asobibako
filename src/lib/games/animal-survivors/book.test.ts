@@ -159,6 +159,12 @@ describe('図鑑を記録に足す', () => {
     expect(addBook(r, run({ bosses: [{ id: 'bear', secs: 40 }], forms: ['fox:0'] }))).toBe(0);
   });
 
+  it('図鑑のある記録で、あとから仲間になった動物の 1 段階めはただで載らず、遊んだときにコインが出る', () => {
+    const r = parseRecords(JSON.stringify({ unlocked: ['fox'], book: { forms: ['dog:0'] } }));
+    expect(r.book.forms).toEqual(['dog:0']);
+    expect(addBook(r, run({ forms: ['fox:0'] }))).toBe(30);
+  });
+
   it('壊れた値と知らない id は捨てる', () => {
     const r = parseRecords(
       JSON.stringify({

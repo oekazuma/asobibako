@@ -60,7 +60,7 @@ const counts = (v: unknown, known: string[]) => {
 };
 
 /**
- * 保存から読む。図鑑より前の記録でも分かるもの（倒したボス、解放した動物の 1 段階め）は載せる。
+ * 保存から読む。図鑑より前の記録（`book` が無い）でも分かるもの（倒したボス、解放した動物の 1 段階め）は載せる。
  * そのときはコインを渡さない（読んだだけでコインが増えないように）
  */
 export function parseBook(raw: unknown, bosses: string[], unlocked: string[], starters: string[]): Book {
@@ -74,8 +74,9 @@ export function parseBook(raw: unknown, bosses: string[], unlocked: string[], st
     forms: ids(b.forms, BOOK.forms),
     items: ids(b.items, BOOK.items)
   };
-  for (const id of bosses) book.bosses[id] ||= 1;
-  for (const id of unlocked) if (!starters.includes(id) && !book.forms.includes(`${id}:0`)) book.forms.push(`${id}:0`);
+  if (raw !== undefined) return book;
+  for (const id of bosses) book.bosses[id] = 1;
+  for (const id of unlocked) if (!starters.includes(id)) book.forms.push(`${id}:0`);
   return book;
 }
 
