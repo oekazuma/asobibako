@@ -8,15 +8,20 @@ const CONFETTI = 40;
 const COLORS = [PALETTE.r, PALETTE.y, PALETTE.u, PALETTE.p, PALETTE.l];
 
 /**
- * 宝の地図の宝箱が画面の外にあるとき、画面の端に向きの矢印と残り秒を出す。
+ * 画面の外のものへの向きの矢印を画面の端に描き、置いた位置を返す（画面の中なら描かずに null）。
  * 仮想画面の座標で、HUD（上）と持ちもの（下）にかからない内側に置く
  */
-export function treasureArrow(ctx: CanvasRenderingContext2D, w: World, vw: number, vh: number, top: number): void {
-  const t = w.treasure;
-  if (!t?.alive) return;
-  const dx = t.x - w.player.x;
-  const dy = t.y - w.player.y;
-  if (Math.abs(dx) < vw / 2 - 8 && Math.abs(dy) < vh / 2 - 8) return;
+function edgeArrow(
+  ctx: CanvasRenderingContext2D,
+  w: World,
+  to: { x: number; y: number },
+  vw: number,
+  vh: number,
+  top: number
+): { x: number; y: number } | null {
+  const dx = to.x - w.player.x;
+  const dy = to.y - w.player.y;
+  if (Math.abs(dx) < vw / 2 - 8 && Math.abs(dy) < vh / 2 - 8) return null;
   const left = 14;
   const right = vw - 14;
   // 上はボスの体力バー（1 本 10 ドット）の下、下は持ちものの欄の上
@@ -38,8 +43,27 @@ export function treasureArrow(ctx: CanvasRenderingContext2D, w: World, vw: numbe
   ctx.rotate(Math.atan2(dy, dx));
   ctx.drawImage(bake(a), -Math.floor(a.w / 2), -Math.floor(a.h / 2));
   ctx.restore();
+  return { x, y };
+}
+
+/** 宝の地図の宝箱が画面の外にあるとき、矢印と残り秒を出す */
+export function treasureArrow(ctx: CanvasRenderingContext2D, w: World, vw: number, vh: number, top: number): void {
+  const t = w.treasure;
+  if (!t?.alive) return;
+  const at = edgeArrow(ctx, w, t, vw, vh, top);
+  if (!at) return;
   const s = String(Math.ceil(t.life ?? 0));
-  text(ctx, s, x - Math.round(textWidth(s) / 2), y + 7, PALETTE.y);
+  text(ctx, s, at.x - Math.round(textWidth(s) / 2), at.y + 7, PALETTE.y);
+}
+
+/** 画面の外のヌシへの矢印。宝箱の矢印と見分けるよう、残り秒の代わりに王冠を添える */
+export function chiefArrows(ctx: CanvasRenderingContext2D, w: World, vw: number, vh: number, top: number): void {
+  const c = ITEM_ART.crown;
+  for (const e of w.enemies) {
+    if (!e.alive || !e.def.chief) continue;
+    const at = edgeArrow(ctx, w, e, vw, vh, top);
+    if (at) ctx.drawImage(bake(c), at.x - Math.floor(c.w / 2), at.y + 6);
+  }
 }
 
 /** お祭りのあいだ、画面の左右と上の縁に紙ふぶきを降らせる */

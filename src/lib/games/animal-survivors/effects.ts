@@ -195,6 +195,16 @@ export class Effects {
           this.#bit(p.x, p.y, Math.cos(a) * 140, Math.sin(a) * 140, 0.6, i % 2 ? PALETTE.r : PALETTE.w, 3);
         }
         sounds.revive();
+      } else if (e.type === 'bossIntro') sounds.rumble();
+      else if (e.type === 'chief') {
+        // 王冠の上にきらめきを散らす
+        const c = w.enemies[e.i];
+        for (let i = 0; i < 18; i++) {
+          const a = -Math.PI / 2 + (Math.random() - 0.5) * 2;
+          const v = 30 + Math.random() * 50;
+          this.#bit(c.x, c.y - c.def.r, Math.cos(a) * v, Math.sin(a) * v, 0.7, i % 2 ? PALETTE.y : PALETTE.w, 2);
+        }
+        sounds.swarm();
       } else if (e.type === 'warning') sounds.warning();
       else if (e.type === 'chest') sounds.chest();
       else if (e.type === 'swarm') sounds.swarm();

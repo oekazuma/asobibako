@@ -167,6 +167,36 @@ export function hazardsAbove(ctx: CanvasRenderingContext2D, w: World, q: Snap): 
 }
 
 /** HUD の HP の棒の下に、いるボスの数だけ HP の棒を並べる */
+/**
+ * ボスの登場のあいだ、足もとに広がる土ぼこりの輪と、画面の縁の赤い光（画面は揺らさない）。
+ * 輪は世界の座標、縁は仮想画面の座標で描くので、呼ぶ側が変換を切り替えてから呼ぶ
+ */
+export function introDust(ctx: CanvasRenderingContext2D, w: World, intro: { ids: number[]; t: number }): void {
+  const k = (intro.t - 0.6) / 1.2;
+  if (k < 0 || k > 1) return;
+  ctx.globalAlpha = 1 - k;
+  ctx.strokeStyle = PALETTE.c;
+  ctx.lineWidth = 3;
+  for (const i of intro.ids) {
+    const e = w.enemies[i];
+    const r = e.def.r + 6 + k * 50;
+    ctx.beginPath();
+    ctx.ellipse(e.x, e.y + e.def.r * 0.6, r, r * 0.45, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+export function introEdge(ctx: CanvasRenderingContext2D, v: ViewSize, intro: { t: number }): void {
+  const k = (intro.t - 0.6) / 1.2;
+  if (k < 0 || k > 1) return;
+  ctx.globalAlpha = Math.sin(k * Math.PI) * 0.7;
+  ctx.strokeStyle = PALETTE.r;
+  ctx.lineWidth = 4;
+  ctx.strokeRect(2, 2, v.w - 4, v.h - 4);
+  ctx.globalAlpha = 1;
+}
+
 export function bossBars(ctx: CanvasRenderingContext2D, w: World, v: ViewSize, top: number): void {
   let y = top + 22;
   for (const e of w.enemies) {

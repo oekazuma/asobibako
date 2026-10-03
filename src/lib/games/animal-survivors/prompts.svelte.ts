@@ -66,6 +66,8 @@ export class Prompts {
       else if (e.type === 'rush') this.notice = { text: 'コインラッシュ！', key: w.time, until: w.time + NOTICE };
       else if (e.type === 'chief') this.chief = { text: e.name, key: w.time, until: w.time + NOTICE };
       else if (e.type === 'bossIntro') {
+        // WARNING の帯は札と重なるので、ボスが出たら消す
+        this.warning = null;
         const defs = e.ids.map((i) => w.enemies[i].def);
         this.intro =
           defs.length > 1
@@ -147,6 +149,12 @@ export class Prompts {
   close(finger: number | null): void {
     this.rewards = null;
     this.next(finger);
+  }
+
+  /** 名前の札を出すとき。カメラがボスに着いてから戻りはじめるまで（動きを減らす設定ではずっと） */
+  get named(): boolean {
+    const o = this.intro;
+    return !!o && (this.#still || (o.t >= GO - 0.1 && o.t < BACK + 0.2));
   }
 
   /** カメラの寄る先。登場でなければ null（自分を映す） */

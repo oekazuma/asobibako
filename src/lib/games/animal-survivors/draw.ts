@@ -8,8 +8,9 @@ import { ITEM_ART } from './art/items';
 import { SNOW_ART } from './art/snow';
 import { PALETTE } from './art/palette';
 import { shots, swipes, zonesBelow } from './draw-arms';
-import { bossBars, hazardsAbove, hazardsBelow } from './draw-boss';
-import { confetti, treasureArrow } from './draw-events';
+import { bossBars, hazardsAbove, hazardsBelow, introDust, introEdge } from './draw-boss';
+import type { Prompts } from './prompts.svelte';
+import { chiefArrows, confetti, treasureArrow } from './draw-events';
 import { blizzard } from './draw-storm';
 import { airborne, YETI } from './bosses-snow';
 import { gemTier } from './drops';
@@ -295,13 +296,16 @@ export function draw(
   fx: Effects,
   v: ViewSize,
   now: number,
-  top: number
+  top: number,
+  prompts?: Prompts
 ): void {
   S = v.scale;
   ctx.imageSmoothingEnabled = false;
   const p = w.player;
-  const cx = p.x - v.w / 2;
-  const cy = p.y - v.h / 2;
+  // ボスの登場のあいだはカメラを寄る先へ動かす
+  const eye = prompts?.focus(w) ?? p;
+  const cx = eye.x - v.w / 2;
+  const cy = eye.y - v.h / 2;
   ctx.setTransform(S, 0, 0, S, -devicePx(cx, S), -devicePx(cy, S));
   ground(ctx, w, cx, cy, v);
   hazardsBelow(ctx, w, q, now);
@@ -312,6 +316,7 @@ export function draw(
   shots(ctx, w, q);
   swipes(ctx, w, q);
   hazardsAbove(ctx, w, q);
+  if (prompts?.intro) introDust(ctx, w, prompts.intro);
   fx.draw(ctx, S);
   ctx.setTransform(S, 0, 0, S, 0, 0);
   // 磁石は青、被弾は赤で画面の縁を光らせる（画面を揺らすと酔うので揺らさない）
@@ -337,9 +342,11 @@ export function draw(
     ctx.fillRect(0, 0, v.w, v.h);
   }
   ctx.globalAlpha = 1;
+  if (prompts?.intro) introEdge(ctx, v, prompts.intro);
   blizzard(ctx, w, v.w, v.h, now);
   confetti(ctx, w, v.w, v.h, now);
   hud(ctx, w, v, top);
   treasureArrow(ctx, w, v.w, v.h, top);
+  chiefArrows(ctx, w, v.w, v.h, top);
   bossBars(ctx, w, v, top);
 }

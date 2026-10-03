@@ -37,6 +37,7 @@ describe('ボスの登場', () => {
     const { w, p } = bossAppears(180);
     expect(p.intro?.name).toBe('巨大ベア');
     expect(p.intro?.epithet).toBe('森の暴れん坊');
+    expect(p.warning).toBeNull();
     expect(p.busy).toBe(true);
     p.next(null, INTRO - 0.1);
     expect(p.busy).toBe(true);

@@ -22,6 +22,12 @@ export const sounds = {
   warning: () => {
     for (let i = 0; i < 3; i++) tone(220, 300, 'square', 0.07, i * 500);
   },
+  /** ボスの登場の地響き。低い音と土の音 */
+  rumble: () => {
+    noise(700, 0.12);
+    tone(55, 700, 'square', 0.09);
+    tone(41, 900, 'square', 0.07, 150);
+  },
   bossdown: () => {
     noise(400, 0.12);
     for (const [i, f] of [392, 523, 659, 784, 1047].entries()) tone(f, 220, 'square', 0.05, 200 + i * 110);

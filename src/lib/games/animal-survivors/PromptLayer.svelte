@@ -1,4 +1,5 @@
 <script lang="ts">
+  import BossIntro from './BossIntro.svelte';
   import BossWarning from './BossWarning.svelte';
   import ChestOpen from './ChestOpen.svelte';
   import LevelUp from './LevelUp.svelte';
@@ -14,6 +15,14 @@
   {#key prompts.notice.key}
     <p class="notice" role="status">{prompts.notice.text}</p>
   {/key}
+{/if}
+{#if prompts.chief}
+  {#key prompts.chief.key}
+    <p class="chief" role="status"><span>ヌシ出現！</span>{prompts.chief.text}</p>
+  {/key}
+{/if}
+{#if prompts.intro && prompts.named}
+  <BossIntro epithet={prompts.intro.epithet} name={prompts.intro.name} />
 {/if}
 {#if prompts.warning}
   {#key prompts.warning.key}
@@ -66,6 +75,32 @@
     animation: slide 300ms steps(3);
   }
 
+  .chief {
+    position: absolute;
+    top: 16%;
+    left: 50%;
+    z-index: 3;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    padding: 6px 28px;
+    border: 4px solid #24151f;
+    background: #ffd84a;
+    box-shadow: 0 0 0 3px #fff3d6;
+    color: #24151f;
+    font-weight: 900;
+    font-size: min(7cqw, 4.2cqh, 40px);
+    white-space: nowrap;
+    translate: -50% 0;
+    pointer-events: none;
+    animation: slide 300ms steps(3);
+  }
+
+  .chief span {
+    color: #8e2430;
+    font-size: 0.5em;
+  }
+
   @keyframes slide {
     from {
       translate: -50% -40px;
@@ -74,7 +109,8 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .notice {
+    .notice,
+    .chief {
       animation: none;
     }
   }

@@ -100,7 +100,7 @@
       // 15:00 のクリアは延長戦へ進むかを聞く。記録はその前に onover で済ませてある
       endTimer = setTimeout(world.over === 'clear' ? () => prompts.ask(stick?.id ?? null) : onend, 1200);
     }
-    if (ctx) draw(ctx, world, fx, view, now, top);
+    if (ctx) draw(ctx, world, fx, view, now, top, prompts);
   }
 
   $effect(() => onmusic({ song: prompts.boss ? 'boss' : 'field', quiet: menu }));
