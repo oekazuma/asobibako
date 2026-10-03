@@ -5,7 +5,7 @@ import { moveBoss, slot, spawnBosses, updateHazards, type Hazard } from './bosse
 import { BOAR } from './bosses-forest';
 import { airborne } from './bosses-snow';
 import { hpScale, modPerks, modStage, type Challenge, type ModId } from './daily';
-import { CLEAR_COINS, collect, dropFrom, overtimeCoins, type Gem, type Item } from './drops';
+import { CLEAR_COINS, COIN_RATE, collect, dropFrom, overtimeCoins, type Gem, type Item } from './drops';
 import { ENEMIES, MAX_R, type BossId, type EnemyDef } from './enemies';
 import { Grid } from './grid';
 import { stats, type Stats } from './passives';
@@ -183,7 +183,7 @@ export interface World {
   mods: ModId[];
   /** お題の回の日付とごほうび（お題でない回は null） */
   daily: { date: string; bonus: number } | null;
-  /** 15:00 の一掃で倒さずに消えたボスの数（延長戦でボス戦の曲を止めるときに、倒した数に足す） */
+  /** クリアの一掃で倒さずに消えたボスの数（延長戦でボス戦の曲を止めるときに、倒した数に足す） */
   swept: number;
   over: null | 'dead' | 'clear';
   /**
@@ -849,7 +849,7 @@ export interface RunSummary {
   bookCoins?: number;
   /** お題の回の日付とごほうび。paid は record() が、このときごほうびを入れたら立てる */
   daily?: { date: string; bonus: number; paid?: boolean };
-  /** 延長戦の 2 回めの記録で、15:00 の記録に入れた倒した数（kills はその回の合計なので、記録には差を足す） */
+  /** 延長戦の 2 回めの記録で、クリアの記録に入れた倒した数（kills はその回の合計なので、記録には差を足す） */
   killsBefore?: number;
   /** 延長戦の秒とそのぶんのコイン（倒れて半分になったか）。best は記録した面の最高 */
   overtime?: { secs: number; coins: number; halved: boolean; best?: number };
@@ -857,7 +857,7 @@ export interface RunSummary {
 
 /** 強欲を掛けたこの回のコイン。1 枚ずつ掛けると端数で減るので、合計に掛ける */
 export function coinsOf(w: World): number {
-  return Math.floor(w.coins * w.greed * w.stage.coin + 1e-9) + overtimeCoins(w);
+  return Math.floor(w.coins * w.greed * w.stage.coin * COIN_RATE + 1e-9) + overtimeCoins(w);
 }
 
 export function summary(w: World): RunSummary {

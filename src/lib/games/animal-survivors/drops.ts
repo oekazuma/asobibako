@@ -25,10 +25,12 @@ export const MAX_GEMS = 400;
 const PICK = 8;
 const PULL_SPEED = 220;
 const MEAT_HEAL = 30;
-/** 15 分で 1 万体ほど倒すので、肉が画面にあふれない割合にする */
+/** 1 回で何千体も倒すので、肉が画面にあふれない割合にする */
 const MEAT_CHANCE = 0.003;
 export const CLEAR_COINS = 100;
 export const CHEST_COINS = 10;
+/** 拾うコインに掛ける倍率。1 回が 10 分なので、1 回でもらえるコインを 15 分だったころと同じくらいにする */
+export const COIN_RATE = 1.5;
 /** 延長戦のコインの倍率が 1 分ごとに上がる幅 */
 export const OVERTIME_STEP = 0.5;
 const PURSE = 50;
@@ -69,7 +71,7 @@ export function overtimeCoins(w: World): number {
   const o = w.overtime;
   if (!o) return 0;
   const keep = w.over === 'dead' && !o.retreat ? 0.5 : 1;
-  return Math.floor(o.coins * w.greed * w.stage.coin * keep + 1e-9);
+  return Math.floor(o.coins * w.greed * w.stage.coin * COIN_RATE * keep + 1e-9);
 }
 
 /** ランタンが壊れたときの品を 1 つ置く */

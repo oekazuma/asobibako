@@ -8,7 +8,7 @@ export const RAMP = 0.6;
 const BOSS_EVERY = 60;
 const BOSS_ROWS = 60;
 
-/** 15:00 のクリアのあとに続ける。面の表は写してから変える（元の表は次の回も使う） */
+/** クリアのあとに続ける。面の表は写してから変える（元の表は次の回も使う） */
 export function startOvertime(w: World): void {
   const s = w.stage;
   const from = s.length;
@@ -21,12 +21,12 @@ export function startOvertime(w: World): void {
     hp: 1.5,
     rage: RAGE
   }));
-  // 15:00 までのボスはもう出ている。時刻を飛ばしたときに 16:00 の前にまとめて出さない
+  // クリアまでのボスはもう出ている。時刻を飛ばしたときに延長戦の 1 体めの前にまとめて出さない
   w.warned = w.bossNext = s.bosses.length;
   w.stage = {
     ...s,
     length: Infinity,
-    // 15:00 までで終わる行は、終わる直前の速さのまま続ける
+    // クリアの時刻で終わる行は、終わる直前の速さのまま続ける
     waves: s.waves.map((v) => (v.to >= from ? { ...v, from, to: Infinity, rate: [v.rate[1], v.rate[1]] } : v)),
     bosses: [...s.bosses, ...bosses],
     toughness: ramp(s.toughness),
@@ -41,7 +41,7 @@ export function startOvertime(w: World): void {
   w.over = null;
 }
 
-/** 延長戦の終わりに記録へ渡す、延長戦に入ってからの差。クリアは 15:00 で記録してある */
+/** 延長戦の終わりに記録へ渡す、延長戦に入ってからの差。クリアはクリアの時刻で記録してある */
 export function overtimeRun(w: World): RunSummary {
   const s = summary(w);
   const base = w.overtime!.base;

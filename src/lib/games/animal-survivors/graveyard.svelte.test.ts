@@ -39,7 +39,8 @@ describe('面の表', () => {
     expect(w.stage).toBe(GRAVEYARD);
     expect(w.spawnAcc).toHaveLength(GRAVEYARD.waves.length);
     w.coins = 10;
-    expect(coinsOf(w)).toBe(15);
+    // 面の 1.5 倍と、10 分の面の拾ったコインの 1.5 倍
+    expect(coinsOf(w)).toBe(22);
   });
 });
 

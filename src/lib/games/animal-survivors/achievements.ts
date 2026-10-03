@@ -31,9 +31,9 @@ const lv5 = (run: RunSummary | null) => run?.weapons.filter((o) => o.level >= MA
 
 export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'survive1', name: '1 分生き延びる', coins: 10, done: (r) => r.best >= 60 },
-  { id: 'survive5', name: '5 分生き延びる', coins: 50, done: (r) => r.best >= 300 },
-  { id: 'survive10', name: '10 分生き延びる', coins: 100, done: (r) => r.best >= 600 },
-  { id: 'clear', name: '15 分生き延びてクリア', coins: 200, animal: 'fox', done: (r) => r.clears >= 1 },
+  { id: 'survive5', name: '3 分生き延びる', coins: 50, done: (r) => r.best >= 180 },
+  { id: 'survive10', name: '6 分生き延びる', coins: 100, done: (r) => r.best >= 360 },
+  { id: 'clear', name: '10 分生き延びてクリア', coins: 200, animal: 'fox', done: (r) => r.clears >= 1 },
   { id: 'run100', name: '1 回で 100 体倒す', coins: 20, done: (_, run) => (run?.kills ?? 0) >= 100 },
   { id: 'run1000', name: '1 回で 1000 体倒す', coins: 100, done: (_, run) => (run?.kills ?? 0) >= 1000 },
   { id: 'run3000', name: '1 回で 3000 体倒す', coins: 200, done: (_, run) => (run?.kills ?? 0) >= 3000 },

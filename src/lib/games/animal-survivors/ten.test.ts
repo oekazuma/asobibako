@@ -3,7 +3,10 @@ import { startOvertime } from './overtime';
 import { FINALE, FOREST } from './stages/forest';
 import { GRAVEYARD } from './stages/graveyard';
 import { SNOW } from './stages/snow';
-import { createWorld, step } from './world';
+import { ACHIEVEMENTS } from './achievements';
+import { overtimeCoins } from './drops';
+import { emptyRecords, parseRecords, record } from './records';
+import { coinsOf, createWorld, step, summary } from './world';
 
 const VIEW = { w: 274, h: 394 };
 
@@ -57,3 +60,53 @@ describe('10 分の面', () => {
     }
   });
 });
+
+describe('10 分の面のコインと実績', () => {
+  it('拾ったコインと延長戦のコインは 1.5 倍で数える（遊ぶ時間が 3 分の 2 になるぶん）', () => {
+    const w = createWorld('dog', 1, VIEW);
+    w.coins = 10;
+    expect(coinsOf(w)).toBe(15);
+    w.weapons = [];
+    w.player.hp = w.stats.maxHp = 1e9;
+    w.time = 600 - 1e-6;
+    step(w, { x: 0, y: 0 }, 1 / 60);
+    startOvertime(w);
+    w.overtime!.coins = 10;
+    expect(overtimeCoins(w)).toBe(15);
+  });
+
+  it('図鑑とお題のごほうびには 1.5 倍を掛けない', () => {
+    const r = emptyRecords();
+    const w = createWorld('dog', 1, VIEW);
+    const run = summary(w);
+    run.book.kills = { rat: 1 };
+    const before = r.coins;
+    record(r, run);
+    expect(r.coins - before - run.coins).toBe((run.bookCoins ?? 0) + achievedCoins(r));
+    // 倒したネズミ（10）と犬の 1 段階め（30）。図鑑のコインは 1.5 倍にしない
+    expect(run.bookCoins).toBe(40);
+  });
+
+  it('生き延びる実績は 1・3・6 分、クリアは 10 分', () => {
+    const byId = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.id, a]));
+    expect(byId.survive5.name).toBe('3 分生き延びる');
+    expect(byId.survive10.name).toBe('6 分生き延びる');
+    expect(byId.clear.name).toBe('10 分生き延びてクリア');
+    const r = emptyRecords();
+    r.best = 180;
+    expect(byId.survive5.done(r, null)).toBe(true);
+    r.best = 359;
+    expect(byId.survive10.done(r, null)).toBe(false);
+  });
+
+  it('15 分で遊んだころの記録もそのまま読める', () => {
+    const r = parseRecords(JSON.stringify({ best: 900, clears: 3, overtime: { forest: 400 } }));
+    expect(r.best).toBe(900);
+    expect(r.overtime.forest).toBe(400);
+  });
+});
+
+/** その記録で達成済みの実績のコインの合計 */
+function achievedCoins(r: ReturnType<typeof emptyRecords>) {
+  return ACHIEVEMENTS.filter((a) => r.achieved.includes(a.id)).reduce((t, a) => t + a.coins, 0);
+}

@@ -1,5 +1,5 @@
 import { hpScale } from './daily';
-import { addCoins, gainXp, noMeat, pick } from './drops';
+import { addCoins, COIN_RATE, gainXp, noMeat, pick } from './drops';
 import { trySpecial } from './specials';
 import { EVOLUTIONS, baseOf } from './evolutions';
 import { PASSIVES, maxOf, stats } from './passives';
@@ -95,7 +95,8 @@ export function levelUp(w: World, c: Choice): void {
     w.stats = stats(w.animal, w.passives, w.boost, w.form, hpScale(w.mods));
     if (c.kind === 'vigor') p.hp = w.stats.maxHp;
   } else if (c.kind === 'gold') {
-    addCoins(w, GOLD);
+    // 札に書いた枚数がそのまま入るよう、拾ったコインの倍率（COIN_RATE）の分を割っておく
+    addCoins(w, GOLD / COIN_RATE);
   } else {
     pick(w, 'bag');
     gainXp(w, BAG_XP);

@@ -107,12 +107,13 @@ describe('延長戦のコイン', () => {
   it('倒れると延長戦のぶんは半分、引き上げれば全部', () => {
     const w = cleared();
     startOvertime(w);
+    // コインは 1.5 倍で数える（COIN_RATE）
     w.overtime!.coins = 11;
-    expect(overtimeCoins(w)).toBe(11);
+    expect(overtimeCoins(w)).toBe(16);
     w.over = 'dead';
-    expect(overtimeCoins(w)).toBe(5);
+    expect(overtimeCoins(w)).toBe(8);
     w.overtime!.retreat = true;
-    expect(overtimeCoins(w)).toBe(11);
+    expect(overtimeCoins(w)).toBe(16);
   });
 
   it('画面と記録のコインは 10:00 までと延長戦のぶんの合計', () => {
@@ -121,8 +122,8 @@ describe('延長戦のコイン', () => {
     startOvertime(w);
     w.overtime!.coins = 10;
     w.over = 'dead';
-    expect(coinsOf(w)).toBe(before + 5);
-    expect(summary(w).overtime).toEqual({ secs: 0, coins: 5, halved: true });
+    expect(coinsOf(w)).toBe(before + 7);
+    expect(summary(w).overtime).toEqual({ secs: 0, coins: 7, halved: true });
   });
 });
 
@@ -148,10 +149,10 @@ describe('延長戦の 2 回めの記録', () => {
     expect(r.kills).toBe(60);
     expect(r.killsBefore).toBe(50);
     expect(r.opened).toBe(1);
-    expect(r.coins).toBe(4);
+    expect(r.coins).toBe(6);
     expect(r.book.kills).toEqual({ rat: 7, bat: 3 });
     expect(r.book.bosses).toEqual([{ id: 'spiderQueen', secs: 50 }]);
-    expect(r.overtime).toEqual({ secs: 100, coins: 4, halved: true });
+    expect(r.overtime).toEqual({ secs: 100, coins: 6, halved: true });
   });
 });
 

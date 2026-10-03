@@ -6,7 +6,7 @@ import { UPGRADES, buy, perks, price } from './upgrades';
 import { ACHIEVEMENTS, grant } from './achievements';
 import { canPlay, record } from './records';
 import { createWorld, damageEnemy, eliteOf, hurtPlayer, makeEnemy, step, summary, type RunSummary } from './world';
-import { collect } from './drops';
+import { collect, COIN_RATE } from './drops';
 import { openChest } from './chest';
 import { levelUp } from './choices';
 import { ENEMIES } from './enemies';
@@ -213,7 +213,7 @@ describe('ゲームの中の積み上げ', () => {
     w.items.push({ alive: true, kind: 'coin', x: 0, y: 0, pulled: false });
     w.items.push({ alive: true, kind: 'purse', x: 0, y: 0, pulled: false });
     collect(w, 1 / 60);
-    expect(summary(w).coins).toBe(Math.floor(51 * 1.5));
+    expect(summary(w).coins).toBe(Math.floor(51 * 1.5 * COIN_RATE));
     expect(w.events.filter((e) => e.type === 'coin')).toHaveLength(2);
   });
 
@@ -221,17 +221,17 @@ describe('ゲームの中の積み上げ', () => {
     const w = createWorld('dog', 1, VIEW, { greed: 1 });
     for (let i = 0; i < 10; i++) w.items.push({ alive: true, kind: 'coin', x: 0, y: 0, pulled: false });
     collect(w, 1 / 60);
-    expect(summary(w).coins).toBe(11);
+    expect(summary(w).coins).toBe(Math.floor(10 * 1.1 * COIN_RATE));
   });
 
   it('宝箱を開けると 10 枚と開けた数、クリアで 100 枚', () => {
     const w = createWorld('dog', 1, VIEW);
     w.chests = 1;
     openChest(w);
-    expect([summary(w).coins, w.opened]).toEqual([10, 1]);
+    expect([summary(w).coins, w.opened]).toEqual([10 * COIN_RATE, 1]);
     w.time = w.stage.length;
     step(w, { x: 0, y: 0 }, 1 / 60);
-    expect(summary(w).coins).toBe(110);
+    expect(summary(w).coins).toBe(110 * COIN_RATE);
   });
 
   it('復活は 1 回だけ効き、HP 半分・2 秒の無敵・周りを吹き飛ばす', () => {

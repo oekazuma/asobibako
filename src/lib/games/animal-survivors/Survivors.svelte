@@ -22,7 +22,7 @@
   import { summary, type RunSummary, type World } from './world';
   import './retro.css';
 
-  // 15 分の 1 回が面ひとつなので、シェルの level と onfinish は使わない（リザルトはこのゲームが持つ）
+  // 10 分の 1 回が面ひとつなので、シェルの level と onfinish は使わない（リザルトはこのゲームが持つ）
   let { onquit }: SoloProps = $props();
 
   let screen = $state<'select' | 'stage' | 'shop' | 'trophies' | 'book' | 'daily' | 'play' | 'result'>('select');
@@ -52,13 +52,13 @@
   }
 
   // リザルトを待たずに記録する。決着からリザルトまでの間に ✕ で抜けたり終わらされたりしても、その回を落とさない。
-  // 延長戦は 15:00 で 1 回記録してあるので、終わりには延長戦の差だけを記録し、見せるのは 2 回の合計
+  // 延長戦はクリアで 1 回記録してあるので、終わりには延長戦の差だけを記録し、見せるのは 2 回の合計
   function over(w: World) {
     const r = loadRecords();
     const part = w.overtime ? overtimeRun(w) : summary(w);
     const now = record(r, part);
     const first = w.overtime ? run : null;
-    // お題のごほうびを入れた印（paid）は record() が渡した part に立つので、15:00 の回はそのまま見せる
+    // お題のごほうびを入れた印（paid）は record() が渡した part に立つので、クリアの回はそのまま見せる
     run = {
       ...(first ? summary(w) : part),
       bookCoins: (first?.bookCoins ?? 0) + (part.bookCoins ?? 0),

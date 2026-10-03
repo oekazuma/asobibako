@@ -97,7 +97,7 @@
     if (world.over && !ended) {
       ended = true;
       onover(world);
-      // 15:00 のクリアは延長戦へ進むかを聞く。記録はその前に onover で済ませてある
+      // クリアしたら延長戦へ進むかを聞く。記録はその前に onover で済ませてある
       endTimer = setTimeout(world.over === 'clear' ? () => prompts.ask(stick?.id ?? null) : onend, 1200);
     }
     if (ctx) draw(ctx, world, fx, view, now, top, prompts);

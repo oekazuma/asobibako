@@ -32,7 +32,7 @@ export class Prompts {
   notice = $state<{ text: string; key: number; until: number } | null>(null);
   /** WARNING から、予告したボスを全部倒すまで（ボスの曲を流す） */
   boss = $state(false);
-  /** 15:00 のクリアのあとの「延長戦へ・おわる」。答えは画面が受け取って閉じる */
+  /** クリアのあとの「延長戦へ・おわる」。答えは画面が受け取って閉じる */
   asking = $state(false);
   /** ボスの登場。t は端末の時間で進める（ゲームの時計は止まっている） */
   intro = $state<{ ids: number[]; t: number; epithet: string; name: string } | null>(null);
