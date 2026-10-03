@@ -13,6 +13,7 @@ import { growFrame } from './grow';
 import type { Prompts } from './prompts.svelte';
 import { chiefArrows, confetti, treasureArrow } from './draw-events';
 import { blizzard } from './draw-storm';
+import { EAGLE } from './bosses-forest';
 import { airborne, YETI } from './bosses-snow';
 import { gemTier } from './drops';
 import type { Effects } from './effects';
@@ -245,18 +246,20 @@ function crown(ctx: CanvasRenderingContext2D, e: Enemy, art: Art, flip: boolean)
   ctx.drawImage(bake(c), q(x - (c.w * 3) / 2), q(y), c.w * 3, c.h * 3);
 }
 
-/** 宙にいる大雪男の真下の地面。飛び立った所から落ちる先へ進む（影と画面に入るかはここで見る） */
+/** 宙にいる大雪男と空にいる大ワシが、飛び立ってからの割合 0..1 */
+const flight = (e: Enemy) => 1 - Math.max(0, e.wait) / (e.def.ai === 'eagle' ? EAGLE.warn : YETI.pounceWarn);
+
+/** 宙にいるボスの真下の地面。飛び立った所から落ちる先へ進む（影と画面に入るかはここで見る） */
 function footing(e: Enemy) {
   if (!airborne(e)) return e;
-  const t = 1 - Math.max(0, e.wait) / YETI.pounceWarn;
+  const t = flight(e);
   return { x: e.x + (e.dx - e.x) * t, y: e.y + (e.dy - e.y) * t };
 }
 
-/** 宙にいる大雪男は、真下の地面から弧を描いて浮く */
+/** 宙にいるボスは、真下の地面から弧を描いて浮く。大ワシは高く舞い上がってから急降下する */
 function leap(e: Enemy) {
   const g = footing(e);
-  const t = 1 - Math.max(0, e.wait) / YETI.pounceWarn;
-  return { x: g.x, y: g.y - Math.sin(Math.PI * t) * 48 };
+  return { x: g.x, y: g.y - Math.sin(Math.PI * flight(e)) * (e.def.ai === 'eagle' ? 120 : 48) };
 }
 
 /** きらきらハリネズミのまわりで、光の点が順にまたたく */

@@ -3,6 +3,7 @@ import { PALETTE } from './art/palette';
 import type { ViewSize } from './draw';
 import { text } from './font';
 import { bake } from './pixels';
+import { BOAR, TREE } from './bosses-forest';
 import { DRAGON } from './bosses-snow';
 import { METEOR_IMPACT, METEOR_WARN } from './events';
 import type { Hazard } from './bosses';
@@ -29,6 +30,27 @@ export function hazardsBelow(ctx: CanvasRenderingContext2D, w: World, q: Snap, n
       ctx.ellipse(q(h.x), q(h.y + 8), h.r * t, h.r * t * 0.6, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = 'rgb(42 100 200 / 0.8)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(q(h.x), q(h.y + 8), h.r, h.r * 0.6, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      continue;
+    }
+    if (h.kind === 'mud') {
+      // 大イノシシの通ったあとの土ぼこり。消えるまでにだんだん薄くなる
+      ctx.fillStyle = `rgb(110 74 48 / ${0.4 * Math.min(1, h.life / BOAR.mudLife)})`;
+      ctx.beginPath();
+      ctx.ellipse(q(h.x), q(h.y + 6), h.r, h.r * 0.55, 0, 0, Math.PI * 2);
+      ctx.fill();
+      continue;
+    }
+    if (h.kind === 'root' && h.delay > 0) {
+      const t = 1 - h.delay / TREE.warn;
+      ctx.fillStyle = 'rgb(110 74 48 / 0.3)';
+      ctx.beginPath();
+      ctx.ellipse(q(h.x), q(h.y + 8), h.r * t, h.r * t * 0.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = Math.floor(now * 8) % 2 ? 'rgb(110 74 48 / 0.9)' : 'rgb(216 70 60 / 0.8)';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.ellipse(q(h.x), q(h.y + 8), h.r, h.r * 0.6, 0, 0, Math.PI * 2);
@@ -120,7 +142,36 @@ export function hazardsAbove(ctx: CanvasRenderingContext2D, w: World, q: Snap): 
   for (const h of w.hazards) {
     if (!h.alive) continue;
     if (h.kind === 'web') ctx.drawImage(bake(ITEM_ART[h.art ?? 'web']), q(h.x - 4), q(h.y - 4));
-    else if (h.kind === 'pillar' && h.delay <= 0) {
+    else if (h.kind === 'feather') {
+      // 大ワシの羽根。飛ぶ向きに寝かせた白い羽
+      const a = Math.atan2(h.vy, h.vx);
+      ctx.save();
+      ctx.translate(q(h.x), q(h.y));
+      ctx.rotate(a);
+      ctx.fillStyle = PALETTE.k;
+      ctx.fillRect(-5, -2, 10, 4);
+      ctx.fillStyle = PALETTE.w;
+      ctx.fillRect(-4, -1, 8, 2);
+      ctx.fillStyle = PALETTE.T;
+      ctx.fillRect(-4, -1, 2, 2);
+      ctx.restore();
+    } else if (h.kind === 'root' && h.delay <= 0) {
+      // 地面から根っこのとげが突き出し、しばらくで引っこむ
+      const k = Math.min(1, h.life / 0.5);
+      ctx.fillStyle = PALETTE.T;
+      ctx.strokeStyle = PALETTE.k;
+      ctx.lineWidth = 1;
+      for (const dx of [-8, 0, 8]) {
+        const tall = (dx === 0 ? 18 : 12) * k;
+        ctx.beginPath();
+        ctx.moveTo(q(h.x + dx - 4), q(h.y + 8));
+        ctx.lineTo(q(h.x + dx), q(h.y + 8 - tall));
+        ctx.lineTo(q(h.x + dx + 4), q(h.y + 8));
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+    } else if (h.kind === 'pillar' && h.delay <= 0) {
       // 地面から 0.1 秒で突き出す
       const ic = ITEM_ART.icicle;
       const rise = Math.min(1, (0.4 - h.life) / 0.1);
