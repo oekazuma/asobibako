@@ -45,7 +45,7 @@ describe('今日のお題の画面', () => {
     expect(card.textContent).toContain('森');
     expect(card.textContent).toContain('店の強化なし');
     expect(card.textContent).toContain('経験値 2 倍');
-    expect(card.textContent).toContain('+350');
+    expect(card.textContent).toContain('+500');
     card.click();
     button('パワーアップ').click();
     button('実績').click();
@@ -69,7 +69,7 @@ describe('今日のお題の画面', () => {
       onback: () => calls.push('back')
     });
     expect(target.textContent).toContain('パワーアップが効かない');
-    expect(target.textContent).toContain('350 コイン');
+    expect(target.textContent).toContain('500 コイン');
     button('挑戦する').click();
     button('もどる').click();
     expect(calls).toEqual(['start', 'back']);
@@ -79,7 +79,7 @@ describe('今日のお題の画面', () => {
   it('リザルトは、その日の初クリアでごほうびを入れた回だけ「お題クリア」を出す', () => {
     const w = createWorld('cat', 1, { w: 260, h: 380 }, {}, 'forest', {
       date: daily.date,
-      bonus: 350,
+      bonus: 500,
       mods: daily.mods
     });
     w.over = 'clear';
@@ -87,7 +87,7 @@ describe('今日のお題の画面', () => {
     const paid = summary(w);
     paid.daily!.paid = true;
     const a = show(Result, { ...props, run: paid });
-    expect(a.target.textContent).toContain('お題クリア +350');
+    expect(a.target.textContent).toContain('お題クリア +500');
     unmount(a.app);
     const b = show(Result, { ...props, run: summary(w) });
     expect(b.target.textContent).not.toContain('お題クリア');

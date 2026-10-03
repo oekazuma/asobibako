@@ -10,17 +10,17 @@ export type ModId =
 
 /** good はうれしい変化（コインを減らす）。お題の 1 つめには選ばない */
 export const MODS: Record<ModId, { name: string; text: string; coins: number; good?: boolean }> = {
-  tough: { name: '敵が硬い', text: '敵の体力 1.3 倍', coins: 200 },
+  tough: { name: '敵が硬い', text: '敵の体力 1.5 倍', coins: 200 },
   fury: { name: '敵の攻撃が痛い', text: '敵の攻撃 1.4 倍', coins: 200 },
-  swarm: { name: '敵が多い', text: '敵の出る速さ 1.4 倍', coins: 150 },
+  swarm: { name: '敵が多い', text: '敵の出る速さ 1.4 倍', coins: 50 },
   bossHp: { name: 'ボスが硬い', text: 'ボスの体力 1.6 倍', coins: 150 },
-  noShop: { name: '店の強化なし', text: 'パワーアップが効かない', coins: 300 },
+  noShop: { name: '店の強化なし', text: 'パワーアップが効かない', coins: 500 },
   noMeat: { name: '肉が出ない', text: '回復の肉が出ない', coins: 150 },
   halfHp: { name: 'HP 半分', text: '最大 HP が半分', coins: 200 },
-  oneWeapon: { name: '武器は 1 つだけ', text: '最初の武器しか持てない', coins: 300 },
+  oneWeapon: { name: '武器は 1 つだけ', text: '最初の武器しか持てない', coins: 500 },
   noTools: { name: '道具なし', text: '引き直す・飛ばす・除外が使えない', coins: 100 },
-  growth: { name: '経験値 2 倍', text: '経験値が 2 倍', coins: -150, good: true },
-  might: { name: '攻撃アップ', text: '攻撃 +30%', coins: -150, good: true }
+  growth: { name: '経験値 2 倍', text: '経験値が 2 倍', coins: -200, good: true },
+  might: { name: '攻撃アップ', text: '攻撃 +30%', coins: -200, good: true }
 };
 
 export interface Daily {
@@ -56,11 +56,13 @@ export function makeDaily(date: string, animals: AnimalId[], stages: string[]): 
   const one = <T>(list: T[]) => list[Math.floor(r() * list.length)];
   const ids = Object.keys(MODS) as ModId[];
   const first = one(ids.filter((id) => !MODS[id].good));
+  // 店の強化なしと武器 1 つだけは、どちらか 1 つでもボットのクリアが 1 割台に落ちるので重ねない
+  const heavy = (id: ModId) => id === 'noShop' || id === 'oneWeapon';
   return {
     date,
     animal: one(animals),
     stage: one(stages),
-    mods: [first, one(ids.filter((id) => id !== first))],
+    mods: [first, one(ids.filter((id) => id !== first && !(heavy(first) && heavy(id))))],
     cleared: false
   };
 }
@@ -76,7 +78,7 @@ export function modStage(s: Stage, mods: ModId[]): Stage {
   const k = (id: ModId, v: number) => (mods.includes(id) ? v : 1);
   return {
     ...s,
-    toughness: (t) => s.toughness(t) * k('tough', 1.3),
+    toughness: (t) => s.toughness(t) * k('tough', 1.5),
     fury: (t) => s.fury(t) * k('fury', 1.4),
     waves: s.waves.map((v) => ({ ...v, rate: [v.rate[0] * k('swarm', 1.4), v.rate[1] * k('swarm', 1.4)] })),
     cap: (t) => Math.min(400, Math.round(s.cap(t) * k('swarm', 1.4))),

@@ -33,15 +33,16 @@ describe('お題の作り方', () => {
       expect(d.mods).toHaveLength(2);
       expect(d.mods[0]).not.toBe(d.mods[1]);
       expect(MODS[d.mods[0]].good).toBeFalsy();
+      expect(d.mods.includes('noShop') && d.mods.includes('oneWeapon')).toBe(false);
       expect(d.cleared).toBe(false);
     }
   });
 
   it('ごほうびは (200 + しばりのコイン) × 面の倍率を 10 単位に丸め、200 を下回らない', () => {
     const d = { date: 'x', animal: 'dog' as const, cleared: false };
-    expect(dailyBonus({ ...d, stage: 'forest', mods: ['noShop', 'tough'] })).toBe(700);
-    expect(dailyBonus({ ...d, stage: 'graveyard', mods: ['swarm', 'noTools'] })).toBe(680);
-    expect(dailyBonus({ ...d, stage: 'snow', mods: ['noShop', 'oneWeapon'] })).toBe(1600);
+    expect(dailyBonus({ ...d, stage: 'forest', mods: ['noShop', 'tough'] })).toBe(900);
+    expect(dailyBonus({ ...d, stage: 'graveyard', mods: ['swarm', 'noTools'] })).toBe(530);
+    expect(dailyBonus({ ...d, stage: 'snow', mods: ['noShop', 'halfHp'] })).toBe(1800);
     expect(dailyBonus({ ...d, stage: 'forest', mods: ['noTools', 'growth'] })).toBe(200);
   });
 });
@@ -49,7 +50,7 @@ describe('お題の作り方', () => {
 describe('しばり', () => {
   it('敵が強いしばりは写した面の表で効き、元の表は変わらない', () => {
     const w = withMods(['tough', 'fury']);
-    expect(w.stage.toughness(300)).toBeCloseTo(FOREST.toughness(300) * 1.3);
+    expect(w.stage.toughness(300)).toBeCloseTo(FOREST.toughness(300) * 1.5);
     expect(w.stage.fury(300)).toBeCloseTo(FOREST.fury(300) * 1.4);
     const s = withMods(['swarm', 'bossHp']);
     expect(s.stage.waves[0].rate[1]).toBeCloseTo(FOREST.waves[0].rate[1] * 1.4);
