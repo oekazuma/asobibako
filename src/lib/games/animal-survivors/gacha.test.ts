@@ -9,6 +9,7 @@ import {
   ODDS,
   oddsTable,
   percent,
+  whyNot,
   pull,
   PULL_COINS,
   rollTicket,
@@ -174,5 +175,18 @@ describe('かくりつの表', () => {
     expect(percent(0.03 / 18)).toBe('0.167%');
     expect(percent(0.8)).toBe('80%');
     expect(percent(0)).toBe('―');
+  });
+});
+
+describe('引けない理由', () => {
+  it('引けるなら null、引けなければ券・コイン・持ち物のどれが足りないかを言う', () => {
+    const r = { ...emptyRecords(), coins: 3300, tickets: [1, 0, 0] as [number, number, number] };
+    expect(whyNot(r, 'bronze')).toBeNull();
+    expect(whyNot(r, 'coin')).toBeNull();
+    expect(whyNot(r, 'silver')).toBe('券がない');
+    expect(whyNot(r, 'ten')).toBe('コインが あと 1,200');
+    r.bag = { 'oni:0': BAG_MAX - 5 };
+    expect(whyNot(r, 'coin')).toBeNull();
+    expect(whyNot(r, 'ten')).toBe('持ち物がいっぱい');
   });
 });

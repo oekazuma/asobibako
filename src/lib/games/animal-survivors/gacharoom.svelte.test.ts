@@ -6,6 +6,7 @@ import { emptyRecords, loadRecords, RECORDS_KEY } from './records';
 
 vi.mock('$lib/audio.svelte', () => ({ audio: { muted: false }, toggleMute: () => {} }));
 
+const card = (way: string) => document.querySelector(`[data-way="${way}"]`) as HTMLButtonElement;
 const button = (text: string) =>
   [...document.querySelectorAll('button')].find((b) => b.textContent?.includes(text)) as HTMLButtonElement;
 
@@ -25,13 +26,13 @@ describe('ガチャの画面', () => {
 
   it('コインで引くと持ち物が増え、足りなければ押せない', () => {
     const app = open({ coins: 500 });
-    button('コインで引く').click();
+    card('coin').click();
     flushSync();
     const r = loadRecords();
     expect(r.coins).toBe(0);
     expect(Object.values(r.bag).reduce((a, b) => a + (b ?? 0), 0)).toBe(1);
-    expect(button('コインで引く').disabled).toBe(true);
-    expect(document.body.textContent).toContain('伝説まであと');
+    expect(card('coin').disabled).toBe(true);
+    expect(document.body.textContent).toContain('あと 49 回');
     unmount(app);
   });
 

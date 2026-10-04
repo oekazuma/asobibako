@@ -42,12 +42,16 @@ export const bagCount = (r: Records) => Object.values(r.bag).reduce((t, n) => t 
 
 const sizeOf = (way: PullWay) => (way === 'ten' ? 10 : 1);
 
-export function canPull(r: Records, way: PullWay): boolean {
-  if (bagCount(r) + sizeOf(way) > BAG_MAX) return false;
+/** 引けない理由の短い文字。引けるなら null */
+export function whyNot(r: Records, way: PullWay): string | null {
+  if (bagCount(r) + sizeOf(way) > BAG_MAX) return '持ち物がいっぱい';
   const t = WAY_TICKET[way];
-  if (t !== undefined) return r.tickets[t] > 0;
-  return r.coins >= (way === 'ten' ? TEN_COINS : PULL_COINS);
+  if (t !== undefined) return r.tickets[t] > 0 ? null : '券がない';
+  const short = (way === 'ten' ? TEN_COINS : PULL_COINS) - r.coins;
+  return short > 0 ? `コインが あと ${short.toLocaleString('ja-JP')}` : null;
 }
+
+export const canPull = (r: Records, way: PullWay) => whyNot(r, way) === null;
 
 function add(r: Records, k: GearKey, n: number) {
   const v = (r.bag[k] ?? 0) + n;
