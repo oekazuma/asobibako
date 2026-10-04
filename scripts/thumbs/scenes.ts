@@ -215,8 +215,17 @@ export const SCENES: Scene[] = [
     clip: band(290),
     play: async (s) => {
       await s.startSolo();
-      await s.press('[data-animal="dog"]');
-      await s.wait(300);
+      // キャラ → ステージ → 釜（2.0 のまま）→ 札 の順に進む
+      for (const sel of [
+        '[data-animal="dog"]',
+        '[data-go]',
+        '[data-stage="forest"]',
+        '[data-start]',
+        '[data-card] >> nth=0'
+      ]) {
+        await s.press(sel);
+        await s.wait(300);
+      }
       await s.touch(1, 'down', 384, 700);
       for (let i = 0; i < 120; i++) {
         const card = s.page.locator('[aria-label="レベルアップ"] .as-card').first();

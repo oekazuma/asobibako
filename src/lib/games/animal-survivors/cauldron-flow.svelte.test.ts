@@ -36,6 +36,8 @@ describe('釜を通る流れ', () => {
     const app = open();
     (document.querySelector('[data-animal="dog"]') as HTMLButtonElement).click();
     flushSync();
+    (document.querySelector('[data-go]') as HTMLButtonElement).click();
+    flushSync();
     (document.querySelector('[data-stage="forest"]') as HTMLButtonElement).click();
     flushSync();
     expect(document.body.textContent).toContain('まじょの釜');
@@ -57,6 +59,25 @@ describe('釜を通る流れ', () => {
     flushSync();
     expect(document.body.textContent).not.toContain('まじょの釜');
     expect(coins()).toBe(1000);
+    unmount(app);
+  });
+});
+
+describe('キャラ選択の最初の子', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+    localStorage.clear();
+  });
+
+  it('保存された記録の、最後に遊んだ動物を選んだ状態で開く', () => {
+    localStorage.setItem(
+      RECORDS_KEY,
+      JSON.stringify({ ...emptyRecords(), unlocked: ['dog', 'cat', 'wolf', 'fox'], animal: 'fox' })
+    );
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(Survivors, { target, props: { level: 1, onfinish: () => {}, onquit: () => {} } });
+    flushSync();
+    expect(document.querySelector('.detail')?.textContent).toContain('キツネ');
     unmount(app);
   });
 });

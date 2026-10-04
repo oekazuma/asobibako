@@ -33,6 +33,8 @@ export interface Records {
   stages: string[];
   /** 前に遊んだ面 */
   stage: string;
+  /** 最後に遊んだ動物（キャラ選択で選んだ状態にする） */
+  animal: AnimalId;
   /** 面の主を 2 体とも倒した面 */
   finales: string[];
   /** 図鑑 */
@@ -71,6 +73,7 @@ export function emptyRecords(): Records {
     evolved: [],
     stages: [],
     stage: 'forest',
+    animal: 'dog',
     finales: [],
     book: emptyBook(),
     overtime: {},
@@ -129,6 +132,7 @@ export function parseRecords(text: string | null): Records {
     ),
     stages: stagesOf(raw),
     stage: typeof raw.stage === 'string' && STAGE_IDS.includes(raw.stage) ? raw.stage : 'forest',
+    animal: ids.includes(raw.animal as AnimalId) ? (raw.animal as AnimalId) : 'dog',
     finales: list(raw.finales, STAGE_IDS),
     book: parseBook(raw.book, list(raw.bosses, BOSSES), unlockedIds, STARTERS),
     overtime: overtimeOf(raw.overtime),
@@ -211,6 +215,7 @@ export function record(r: Records, run: RunSummary): AchievementDef[] {
   r.coins += run.coins;
   if (run.cleared && !r.stages.includes(run.stage)) r.stages.push(run.stage);
   r.stage = run.stage;
+  r.animal = run.animal;
   if (run.finale && !r.finales.includes(run.stage)) r.finales.push(run.stage);
   for (const id of run.evolved) if (!r.evolved.includes(id)) r.evolved.push(id);
   if (run.overtime) r.overtime[run.stage] = Math.max(r.overtime[run.stage] ?? 0, run.overtime.secs);

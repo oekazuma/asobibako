@@ -88,6 +88,8 @@ describe('札の画面', () => {
     flushSync();
     (document.querySelector('[data-animal="dog"]') as HTMLButtonElement).click();
     flushSync();
+    (document.querySelector('[data-go]') as HTMLButtonElement).click();
+    flushSync();
     (document.querySelector('[data-stage="forest"]') as HTMLButtonElement).click();
     flushSync();
     (document.querySelector('[data-start]') as HTMLButtonElement).click();

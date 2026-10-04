@@ -9,7 +9,7 @@
   import { ITEM_ART } from './art/items';
   import PixelIcon from './PixelIcon.svelte';
   import type { Records } from './records';
-  import { WEAPONS } from './weapons';
+  import AnimalCard from './AnimalCard.svelte';
 
   let {
     records,
@@ -23,11 +23,12 @@
     onopen: (screen: 'daily' | 'shop' | 'trophies' | 'book') => void;
   } = $props();
 
-  const top = {
-    hp: Math.max(...ANIMALS.map((a) => a.hp)),
-    speed: Math.max(...ANIMALS.map((a) => a.speed)),
-    might: Math.max(...ANIMALS.map((a) => a.might))
-  };
+  // 記録はあとから読み直して届くので、押すまでは今の記録の「最後に遊んだ子」を選んでいることにする
+  let touched = $state<AnimalId | null>(null);
+  const chosen = $derived(
+    touched ?? (records.unlocked.includes(records.animal) ? records.animal : (records.unlocked[0] ?? 'dog'))
+  );
+  const picked = $derived(ANIMALS.find((a) => a.id === chosen)!);
   let tick = $state(0);
 
   onMount(() => {
@@ -44,37 +45,31 @@
   <section class="as-panel" aria-label="キャラクター選択">
     <h2 class="as-title">キャラクターを選ぶ</h2>
     {#if records.daily}<DailyCard daily={records.daily} onopen={() => onopen('daily')} />{/if}
-    {#each ANIMALS as a (a.id)}
-      {@const open = records.unlocked.includes(a.id)}
-      {@const weapon = WEAPONS[a.weapon]}
-      <button class="as-card" class:closed={!open} data-animal={a.id} disabled={!open} onclick={() => onpick(a.id)}>
-        <span class="face"
-          ><PixelIcon
-            art={ANIMAL_ART[a.id].forms[0].walk}
-            frame={open ? tick % 4 : 0}
-            size="min(14cqw, 8cqh, 80px)"
-          /></span
+    <div class="tiles" role="listbox" aria-label="動物">
+      {#each ANIMALS as a (a.id)}
+        {@const open = records.unlocked.includes(a.id)}
+        <button
+          class="as-card tile"
+          class:closed={!open}
+          class:on={chosen === a.id}
+          role="option"
+          aria-selected={chosen === a.id}
+          aria-label={open ? a.name : '？？？'}
+          data-animal={a.id}
+          onclick={() => (touched = a.id)}
         >
-        <span class="body">
-          {#if open}
-            <span class="name"
-              >{a.name}<span class="style">{a.style}</span><span class="tier">{'★'.repeat(a.tier)}</span></span
-            >
-            {#each [['HP', a.hp / top.hp], ['速さ', a.speed / top.speed], ['攻撃', a.might / top.might]] as const as [label, ratio] (label)}
-              <span class="stat"><span class="label">{label}</span><span class="bar" style:--r={ratio}></span></span>
-            {/each}
-            <span class="weapon">
-              <PixelIcon art={ITEM_ART[`weapon-${a.weapon}`]} size="min(5cqw, 3cqh, 26px)" />
-              <b>{weapon.name}</b>
-            </span>
-            {#if a.perk}<span class="perk">とくい: {a.perk}</span>{/if}
-          {:else}
-            <span class="name">？？？<span class="tier">{'★'.repeat(a.tier)}</span></span>
-            <span class="unlock">{a.unlock}</span>
-          {/if}
-        </span>
-      </button>
-    {/each}
+          <span class="face"
+            ><PixelIcon
+              art={ANIMAL_ART[a.id].forms[0].walk}
+              frame={open && chosen === a.id ? tick % 4 : 0}
+              size="min(11cqw, 6.4cqh, 60px)"
+            /></span
+          >
+          <span class="tier">{'★'.repeat(a.tier)}</span>
+        </button>
+      {/each}
+    </div>
+    <AnimalCard a={picked} open={records.unlocked.includes(picked.id)} {tick} onstart={() => onpick(picked.id)} />
     <div class="links">
       <button class="as-card link" onclick={() => onopen('shop')}>
         <PixelIcon art={ITEM_ART.coin} size="min(5cqw, 3cqh, 26px)" />パワーアップ（{records.coins.toLocaleString(
@@ -119,8 +114,27 @@
     font-size: min(3.8cqw, 2.2cqh, 19px);
   }
 
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: min(1.6cqw, 10px);
+  }
+
+  .tile {
+    flex-direction: column;
+    gap: 2px;
+    justify-content: center;
+    padding: min(1cqh, 8px) 0;
+  }
+
+  .tile.on {
+    background: #ffe28a;
+    box-shadow:
+      inset 0 0 0 3px #ffd84a,
+      0 4px 0 #8a6a4a;
+  }
+
   .closed {
-    cursor: default;
     background: #d9cbb0;
   }
 
@@ -134,65 +148,9 @@
     display: flex;
   }
 
-  .body {
-    display: grid;
-    flex: 1;
-    gap: 3px;
-  }
-
-  .name {
-    display: flex;
-    gap: 10px;
-    align-items: baseline;
-    font-size: min(5cqw, 2.8cqh, 26px);
-  }
-
-  .style {
-    color: #a3501c;
-    font-size: 0.55em;
-  }
-
   .tier {
-    margin-left: auto;
     color: #e09a1c;
-    font-size: 0.6em;
+    font-size: min(2.6cqw, 1.5cqh, 13px);
     letter-spacing: -0.05em;
-  }
-
-  .stat {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    font-size: min(2.8cqw, 1.6cqh, 14px);
-  }
-
-  .label {
-    width: 3.2em;
-  }
-
-  .bar {
-    flex: 1;
-    height: 0.6em;
-    border: 2px solid #24151f;
-    background: linear-gradient(90deg, #d8463c calc(var(--r) * 100%), #5d3a2a 0);
-  }
-
-  .weapon,
-  .perk,
-  .unlock {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    color: #5d3a2a;
-    font-size: min(2.9cqw, 1.7cqh, 15px);
-    font-weight: 700;
-  }
-
-  .weapon b {
-    color: #24151f;
-  }
-
-  .perk {
-    color: #2a64c8;
   }
 </style>
