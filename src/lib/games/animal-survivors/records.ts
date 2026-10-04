@@ -3,6 +3,8 @@ import { addBook, emptyBook, parseBook, type Book } from './book';
 import { betOf, maxHeat, snap, type Heat } from './cauldron';
 import { ANIMALS, type AnimalId } from './animals';
 import { makeDaily, MODS, todayKey, type Daily, type ModId } from './daily';
+import { gearRecords } from './gacha';
+import type { GearKey, Slot } from './gear';
 import { WEAPONS } from './weapons';
 import { STAGES } from './stages';
 import { ENEMIES, type BossId } from './enemies';
@@ -51,6 +53,11 @@ export interface Records {
   heatLast: number;
   /** 溶岩の池で倒した数の合計 */
   lavaKills: number;
+  /** 装備の持ち物（品とレア度の組ごとの数）・つけている品・ガチャ券（銅・銀・金）・伝説が出ていない回数 */
+  bag: Partial<Record<GearKey, number>>;
+  worn: Record<Slot, GearKey | null>;
+  tickets: [number, number, number];
+  pity: number;
 }
 
 export const RECORDS_KEY = 'asobibako:animal-survivors';
@@ -81,7 +88,11 @@ export function emptyRecords(): Records {
     dailyDays: 0,
     heat: {},
     heatLast: 2,
-    lavaKills: 0
+    lavaKills: 0,
+    bag: {},
+    worn: { head: null, body: null, charm: null },
+    tickets: [0, 0, 0],
+    pity: 0
   };
 }
 
@@ -140,7 +151,8 @@ export function parseRecords(text: string | null): Records {
     dailyDays: Math.floor(num(raw.dailyDays)),
     heat: heatOf(raw.heat),
     heatLast: isNum(raw.heatLast) ? snap(raw.heatLast) : 2,
-    lavaKills: Math.floor(num(raw.lavaKills))
+    lavaKills: Math.floor(num(raw.lavaKills)),
+    ...gearRecords(raw)
   };
 }
 
