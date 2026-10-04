@@ -251,7 +251,6 @@ export const BASE_SPEED = 60;
 /** 糸の玉に当たったときの速さの倍率 */
 export const SLOW = 0.85;
 const BEAR_DASH_ATK = 30;
-/** 起き上がったあとの無敵の秒（ひなのよみがえり・店の復活・不死鳥の羽根） */
 const REVIVE_INVULN = 2;
 const REVIVE_REACH = 80;
 const REVIVE_PUSH = 400;

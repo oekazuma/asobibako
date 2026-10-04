@@ -26,7 +26,7 @@ const ALL = ARCANA.map((a) => a.id);
 const button = (text: string) =>
   [...document.querySelectorAll('button')].find((b) => b.textContent?.includes(text)) as HTMLButtonElement;
 
-/** ゲームのループと同じ requestAnimationFrame を n 回待つ（決まった実時間を待たない） */
+/** ゲームのループを n フレーム回す。happy-dom の requestAnimationFrame はすぐ呼ぶので、ゲームの時間はほとんど進まない */
 const frames = (n: number) =>
   new Promise<void>((done) => {
     const tick = (k: number) => (k ? requestAnimationFrame(() => tick(k - 1)) : done());
@@ -118,6 +118,7 @@ describe('札の画面', () => {
     flushSync();
     await frames(10);
     flushSync();
+    expect(document.querySelector('.as-pause')).not.toBeNull();
     expect(document.querySelector('[data-card]')).toBeNull();
     unmount(again);
   });

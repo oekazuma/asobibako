@@ -27,7 +27,7 @@ export const VOLCANO: Stage = {
     const to = SWAP[ev.enemy];
     return to ? { ...ev, enemy: to, text: ev.text.replace(ENEMIES[ev.enemy].name, ENEMIES[to].name) } : ev;
   }),
-  chiefs: FOREST.chiefs.map((c) => ({ ...c, enemy: SWAP[c.enemy], hp: Math.round(c.hp * HARDER) })),
+  chiefs: FOREST.chiefs.map((c) => ({ ...c, enemy: SWAP[c.enemy] ?? c.enemy, hp: Math.round(c.hp * HARDER) })),
   bosses: bossRun('lavaGiant', 'phoenix', '火山の主'),
   storms: [],
   eruptions: [

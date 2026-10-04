@@ -26,7 +26,7 @@ function open(extra: object) {
 }
 const quick = () => document.querySelector('[data-again]') as HTMLButtonElement | null;
 
-/** ゲームのループと同じ requestAnimationFrame を n 回待つ（決まった実時間を待たない） */
+/** ゲームのループを n フレーム回す。happy-dom の requestAnimationFrame はすぐ呼ぶので、ゲームの時間はほとんど進まない */
 const frames = (n: number) =>
   new Promise<void>((done) => {
     const tick = (k: number) => (k ? requestAnimationFrame(() => tick(k - 1)) : done());
