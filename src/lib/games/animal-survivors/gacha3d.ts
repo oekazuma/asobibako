@@ -82,6 +82,19 @@ export function machine() {
   return { group, handle, inside, capsule: out.group, top: out.top, bottom: out.bottom };
 }
 
+/** 中心から放射する細い光の筋（n 本、長さ len） */
+function burst(n: number, len: number): THREE.BufferGeometry {
+  const pts: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    const w = 0.07;
+    pts.push(0, 0, 0, Math.cos(a - w) * len, Math.sin(a - w) * len, 0, Math.cos(a + w) * len, Math.sin(a + w) * len, 0);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+  return g;
+}
+
 const ease = (u: number) => 1 - (1 - Math.min(1, Math.max(0, u))) ** 3;
 
 /** 転がるカプセルの位置（台の中 → 取り出し口 → 割れながら持ち上がる）と割れ具合 */
@@ -107,6 +120,8 @@ export class GachaScene {
   readonly #beam: THREE.Mesh;
   readonly #item: THREE.Mesh;
   readonly #rays: THREE.Mesh;
+  /** 品を見せるときに機械の前へ下ろす暗い幕（品と光を目立たせる） */
+  readonly #dim: THREE.Mesh;
   #size = { w: 1, h: 1 };
   #shown: string | null = null;
 
@@ -127,13 +142,18 @@ export class GachaScene {
         depthWrite: false,
         side: THREE.DoubleSide
       });
-    this.#beam = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.34, 3, 12, 1, true), glow('#ffffff', 0));
-    this.#rays = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.9, 12, 1), glow('#ffffff', 0));
+    this.#beam = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.14, 3, 10, 1, true), glow('#ffffff', 0));
+    this.#rays = new THREE.Mesh(burst(12, 0.95), glow('#ffffff', 0));
+    this.#dim = new THREE.Mesh(
+      new THREE.PlaneGeometry(12, 12),
+      new THREE.MeshBasicMaterial({ color: '#120e20', transparent: true, opacity: 0, depthWrite: false })
+    );
+    this.#dim.position.z = 0.85;
     this.#item = new THREE.Mesh(
       new THREE.PlaneGeometry(0.42, 0.42),
       new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false })
     );
-    this.#scene.add(this.#beam, this.#rays, this.#item);
+    this.#scene.add(this.#dim, this.#beam, this.#rays, this.#item);
     this.#camera.position.set(0.35, 1.25, 4.4);
     this.#camera.lookAt(0, 0.95, 0);
   }
@@ -160,22 +180,27 @@ export class GachaScene {
     });
     const at = capsuleAt(s);
     m.capsule.position.set(at.x, at.y, at.z);
-    m.capsule.scale.setScalar(1 + at.open * 0.6);
-    m.top.position.y = at.open * 0.16;
-    m.bottom.position.y = -at.open * 0.16;
-    m.top.rotation.z = -at.open * 0.5;
+    m.capsule.scale.setScalar(1 + Math.min(1, at.open * 2) * 0.5);
+    // 割れたら上は跳ね上がり、下は落ちて、品の前から消える
+    const fly = Math.max(0, at.open * 2 - 1);
+    m.top.position.set(-fly * 0.25, at.open * 0.12 + fly * 0.5, 0);
+    m.bottom.position.set(fly * 0.2, -at.open * 0.12 - fly * 0.45, 0);
+    m.top.rotation.z = -at.open * 0.6 - fly * 1.2;
+    m.bottom.rotation.z = fly * 0.8;
+    m.capsule.visible = s.phase !== 'show';
     const lit = s.phase === 'open' || s.phase === 'show';
+    (this.#dim.material as THREE.MeshBasicMaterial).opacity = lit ? 0.75 * Math.min(1, at.open * 1.5) : 0;
     const beam = this.#beam.material as THREE.MeshBasicMaterial;
     beam.color.set(RARITY_COLOR[rarity]);
-    beam.opacity = lit ? 0.55 * at.open : 0;
+    beam.opacity = lit ? 0.25 * at.open : 0;
     this.#beam.position.set(at.x, at.y + 1.3, at.z - 0.05);
     this.#beam.rotation.y = now * 0.6;
     const rays = this.#rays.material as THREE.MeshBasicMaterial;
     rays.color.set(RARITY_COLOR[rarity]);
-    rays.opacity = s.phase === 'show' ? 0.35 + 0.15 * Math.sin(now * 3) : 0;
-    this.#rays.position.set(LIFT.x, LIFT.y + 0.35, LIFT.z - 0.1);
+    rays.opacity = s.phase === 'show' ? 0.3 + 0.1 * Math.sin(now * 3) : 0;
+    this.#rays.position.set(LIFT.x, LIFT.y + 0.35, LIFT.z + 0.05);
     this.#rays.rotation.z = now * (rarity === 2 ? 1.2 : 0.5);
-    this.#rays.scale.setScalar(rarity === 2 ? 1.4 : 1);
+    this.#rays.scale.setScalar(rarity === 2 ? 1.3 : 1);
     this.#showItem(s, now);
     this.#renderer.render(this.#scene, this.#camera);
   }
@@ -194,7 +219,10 @@ export class GachaScene {
       this.#shown = s.gear;
     }
     this.#item.visible = s.phase === 'show';
-    this.#item.position.set(LIFT.x, LIFT.y + 0.35 + Math.sin(now * 2.5) * 0.03, LIFT.z + 0.05);
+    // 出てきた瞬間に小さく弾んで大きくなる
+    const u = Math.min(1, s.t / 0.25);
+    this.#item.scale.setScalar(s.phase === 'show' ? 0.4 + 0.6 * u + Math.sin(u * Math.PI) * 0.15 : 1);
+    this.#item.position.set(LIFT.x, LIFT.y + 0.35 + Math.sin(now * 2.5) * 0.03, LIFT.z + 0.3);
   }
 
   /** ハンドルの中心の、canvas の CSS ピクセルの座標 */

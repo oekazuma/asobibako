@@ -1,7 +1,6 @@
 <script lang="ts">
   import { GEAR_ART } from './art/gear';
   import Capsule from './Capsule.svelte';
-  import Gacha3D from './Gacha3D.svelte';
   import { BAG_MAX, bagCount, canPull, PITY, PULL_COINS, TEN_COINS, TICKET_NAME, type PullWay } from './gacha';
   import type { GearKey } from './gear';
   import PixelIcon from './PixelIcon.svelte';
@@ -13,8 +12,6 @@
   /** 同じ品が 2 つ出ることがあるので、引いた順の番号を付けて並べる */
   let got = $state<{ gear: GearKey; id: number }[]>([]);
   let round = $state(0);
-  /** 1 回ずつ引いたときに開く 3D の演出の品（10 連は 2D のまま） */
-  let three = $state<GearKey | null>(null);
   const TICKETS = [0, 1, 2] as const;
   const WAYS: [PullWay, string][] = [
     ['bronze', '銅の券で引く'],
@@ -29,7 +26,6 @@
     if (!k) return;
     round += 1;
     got = k.map((gear, i) => ({ gear, id: round * 10 + i }));
-    if (way !== 'ten') three = k[0];
   }
 </script>
 
@@ -58,7 +54,6 @@
     {/if}
   {/key}
 </section>
-{#if three}<Gacha3D gear={three} onclose={() => (three = null)} />{/if}
 
 <style>
   .gacha {
