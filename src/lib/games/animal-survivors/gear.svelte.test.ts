@@ -88,17 +88,9 @@ describe('装備の画面', () => {
     unmount(app);
   });
 
-  it('コインで引くと持ち物が増え、足りなければ押せない', () => {
+  it('装備の画面にはガチャを置かない', () => {
     const app = open({ coins: 500 });
-    button('ガチャ').click();
-    flushSync();
-    button('コインで引く').click();
-    flushSync();
-    const r = loadRecords();
-    expect(r.coins).toBe(0);
-    expect(Object.values(r.bag).reduce((a, b) => a + (b ?? 0), 0)).toBe(1);
-    expect(button('コインで引く').disabled).toBe(true);
-    expect(document.body.textContent).toContain('伝説まであと');
+    expect(button('ガチャ')).toBeUndefined();
     unmount(app);
   });
 });

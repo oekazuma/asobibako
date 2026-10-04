@@ -22,6 +22,7 @@
   import Trophies from './Trophies.svelte';
   import Book from './Book.svelte';
   import Gear from './Gear.svelte';
+  import GachaRoom from './GachaRoom.svelte';
   import { wornKeys } from './gacha';
   import { overtimeRun } from './overtime';
   import { summary, type Options, type RunSummary, type World } from './world';
@@ -30,8 +31,11 @@
   // 10 分の 1 回が面ひとつなので、シェルの level と onfinish は使わない（リザルトはこのゲームが持つ）
   let { onquit }: SoloProps = $props();
 
-  type Screen = 'select' | 'stage' | 'cauldron' | 'shop' | 'trophies' | 'book' | 'gear' | 'daily' | 'play' | 'result';
+  type Screen =
+    'select' | 'stage' | 'cauldron' | 'shop' | 'trophies' | 'book' | 'gear' | 'gacha' | 'daily' | 'play' | 'result';
   let screen = $state<Screen>('select');
+  /** 記録を自分で読み直す画面 */
+  const ROOMS = { shop: Shop, gear: Gear, gacha: GachaRoom, trophies: Trophies };
   /** これから遊ぶ動物と面（お題の回はしばりも）。「もう一度」とやり直しは同じ組で始める。
    * want は釜で選んだ強さ（払えずに heat を下げても、もう一度は want で払おうとする） */
   let pick = $state<Options & { animal: AnimalId; stage: string; want?: number }>({ animal: 'dog', stage: 'forest' });
@@ -181,14 +185,11 @@
     onstart={begin}
     onback={() => (screen = 'stage')}
   />
-{:else if screen === 'shop'}
-  <Shop onback={back} />
-{:else if screen === 'gear'}
-  <Gear onback={back} />
+{:else if screen in ROOMS}
+  {@const Room = ROOMS[screen as keyof typeof ROOMS]}
+  <Room onback={back} />
 {:else if screen === 'book'}
   <Book {records} onback={back} />
-{:else if screen === 'trophies'}
-  <Trophies onback={back} />
 {:else if screen === 'play'}
   {#key round}
     <Play {pick} ranks={records.ranks} onover={over} onend={end} onrestart={again} onmusic={(m) => (field = m)} />

@@ -6,6 +6,7 @@ import { BOSS_ART } from './art/bosses';
 import { ENEMY_ART } from './art/enemies';
 import { FOREST_ART } from './art/forest';
 import { GEAR_ART } from './art/gear';
+import { MENU_ART } from './art/menu';
 import { GRAVE_ART } from './art/graveyard';
 import { ITEM_ART } from './art/items';
 import { SNOW_ART } from './art/snow';
@@ -23,6 +24,7 @@ const all: [string, Art][] = [
   ['cauldron', CAULDRON_ART],
   ...Object.entries(ARCANA_ART),
   ...Object.entries(GEAR_ART),
+  ...Object.entries(MENU_ART),
   ['grass', FOREST_ART.grass],
   ['dirt', FOREST_ART.dirt],
   ...Object.entries(FOREST_ART.decor),

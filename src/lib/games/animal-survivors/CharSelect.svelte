@@ -2,16 +2,13 @@
   import { onMount } from 'svelte';
   import { audio, toggleMute } from '$lib/audio.svelte';
   import Icon from '$lib/components/Icon.svelte';
-  import { ACHIEVEMENTS } from './achievements';
   import { animal, ANIMALS, type AnimalId } from './animals';
   import { ANIMAL_ART } from './art/animals';
   import DailyCard from './DailyCard.svelte';
-  import { ITEM_ART } from './art/items';
   import PixelIcon from './PixelIcon.svelte';
   import AnimalCard from './AnimalCard.svelte';
   import { heatLabel } from './cauldron';
-  import { wornKeys } from './gacha';
-  import GearIcon from './GearIcon.svelte';
+  import MenuLinks from './MenuLinks.svelte';
   import { canPlay, type Records } from './records';
   import { stageOf } from './stages';
 
@@ -27,7 +24,7 @@
     /** 前回と同じ動物・ステージ・釜の強さで始める */
     onrepeat: () => void;
     onquit: () => void;
-    onopen: (screen: 'daily' | 'shop' | 'trophies' | 'book' | 'gear') => void;
+    onopen: (screen: 'daily' | 'gacha' | 'shop' | 'trophies' | 'book' | 'gear') => void;
   } = $props();
 
   // 記録はあとから読み直して届くので、押すまでは今の記録の「最後に遊んだ子」を選んでいることにする
@@ -85,20 +82,7 @@
         >前回と同じではじめる<small>{last}</small></button
       >{/if}
     <AnimalCard a={picked} open={records.unlocked.includes(picked.id)} {tick} onstart={() => onpick(picked.id)} />
-    <div class="links">
-      <button class="as-card link" onclick={() => onopen('shop')}>
-        <PixelIcon art={ITEM_ART.coin} size="min(5cqw, 3cqh, 26px)" />パワーアップ（{records.coins.toLocaleString(
-          'ja-JP'
-        )}）
-      </button>
-      <button class="as-card link" onclick={() => onopen('trophies')}
-        >実績 {records.achieved.length} / {ACHIEVEMENTS.length}</button
-      >
-      <button class="as-card link" onclick={() => onopen('book')}>図鑑</button>
-      <button class="as-card link" style:white-space="nowrap" data-gear-open onclick={() => onopen('gear')}>
-        装備{#each wornKeys(records) as k (k)}<GearIcon gear={k} size="min(3cqw, 2cqh, 22px)" />{/each}
-      </button>
-    </div>
+    <MenuLinks {records} {onopen} />
   </section>
 </div>
 
@@ -119,17 +103,6 @@
 
   .as-card {
     padding-block: min(1cqh, 8px);
-  }
-
-  .links {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .link {
-    justify-content: center;
-    font-size: min(3.8cqw, 2.2cqh, 19px);
   }
 
   .again {

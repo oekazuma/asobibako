@@ -29,6 +29,15 @@ export function rollTicket(heat: number, r: number): Ticket {
   return r < b ? 0 : r < b + s ? 1 : 2;
 }
 
+/** かくりつの表。券ごとのレア度の割合と、品 1 つずつの割合（品はレア度を決めてから 18 種から同じ割合で選ぶ） */
+export function oddsTable(t: Ticket): { rarity: [number, number, number]; perItem: [number, number, number] } {
+  const rarity = ODDS[t];
+  return { rarity, perItem: rarity.map((p) => p / GEAR.length) as [number, number, number] };
+}
+
+/** 割合の文字。小数 3 けたまでで、出ないものは「―」 */
+export const percent = (p: number) => (p > 0 ? `${Number((p * 100).toFixed(3))}%` : '―');
+
 export const bagCount = (r: Records) => Object.values(r.bag).reduce((t, n) => t + (n ?? 0), 0);
 
 const sizeOf = (way: PullWay) => (way === 'ten' ? 10 : 1);

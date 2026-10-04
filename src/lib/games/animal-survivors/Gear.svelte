@@ -1,9 +1,7 @@
 <script lang="ts">
   import { ITEM_ART } from './art/items';
   import Bag from './Bag.svelte';
-  import Gacha from './Gacha.svelte';
-  import Gacha3D from './Gacha3D.svelte';
-  import { BAG_MAX, bagCount, equip, equipBest, merge, pull, sell, type PullWay } from './gacha';
+  import { BAG_MAX, bagCount, equip, equipBest, merge, sell } from './gacha';
   import { parseKey, SLOT_NAME, SLOTS, type GearKey } from './gear';
   import GearDetail from './GearDetail.svelte';
   import GearIcon from './GearIcon.svelte';
@@ -14,9 +12,6 @@
 
   let r = $state(loadRecords());
   let picked = $state<GearKey | null>(null);
-  let gacha = $state(false);
-  /** 引いたあとに開く 3D の演出の品。枠の中だと全画面に広がらないので画面の外に置く */
-  let three = $state<GearKey[] | null>(null);
   const save = () => saveRecords($state.snapshot(r));
 
   function act(what: 'equip' | 'merge' | 'sell' | 'close') {
@@ -27,13 +22,6 @@
     else sell(r, k);
     if (picked && !r.bag[picked]) picked = null;
     save();
-  }
-
-  function onpull(way: PullWay) {
-    const got = pull(r, way, Math.random);
-    if (got) save();
-    if (got) three = got;
-    return got;
   }
 </script>
 
@@ -67,8 +55,6 @@
         }}>最強をつける</button
       >
     {/if}
-    <button class="as-card toggle" onclick={() => (gacha = !gacha)}>{gacha ? 'ガチャをとじる' : 'ガチャ'}</button>
-    {#if gacha}<Gacha {r} {onpull} />{/if}
     {#if picked && r.bag[picked]}
       <GearDetail gear={picked} count={r.bag[picked] ?? 0} worn={Object.values(r.worn).includes(picked)} onact={act} />
     {/if}
@@ -76,7 +62,6 @@
     <button class="as-card back" onclick={onback}>もどる</button>
   </section>
 </div>
-{#if three}<Gacha3D gears={three} onclose={() => (three = null)} />{/if}
 
 <style>
   .purse {
@@ -118,12 +103,6 @@
 
   .none {
     color: #9aa0ae;
-  }
-
-  .toggle {
-    justify-content: center;
-    background: #ffd84a;
-    font-size: min(4.6cqw, 2.8cqh, 24px);
   }
 
   .best {

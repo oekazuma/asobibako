@@ -6,6 +6,9 @@ import {
   equip,
   equipBest,
   merge,
+  ODDS,
+  oddsTable,
+  percent,
   pull,
   PULL_COINS,
   rollTicket,
@@ -13,6 +16,7 @@ import {
   ticketOdds,
   wornKeys
 } from './gacha';
+import { GEAR } from './gear';
 import { emptyRecords, parseRecords } from './records';
 
 const fixed = (...xs: number[]) => {
@@ -154,5 +158,21 @@ describe('記録の読み', () => {
     equipBest(s);
     // 同じレア度で何もつけていなければ、表で先の品
     expect(s.worn.head).toBe('goggles:2');
+  });
+});
+
+describe('かくりつの表', () => {
+  it('レア度の割合はガチャが使う表のまま、品 1 つずつは 18 種で割る', () => {
+    for (const t of [0, 1, 2] as const) {
+      const o = oddsTable(t);
+      expect(o.rarity).toEqual(ODDS[t]);
+      for (let r = 0; r < 3; r++) expect(o.perItem[r]).toBeCloseTo(ODDS[t][r] / GEAR.length);
+    }
+  });
+
+  it('割合の文字は小数 3 けたまでで、0 は「―」', () => {
+    expect(percent(0.03 / 18)).toBe('0.167%');
+    expect(percent(0.8)).toBe('80%');
+    expect(percent(0)).toBe('―');
   });
 });
