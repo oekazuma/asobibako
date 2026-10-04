@@ -846,6 +846,12 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
       w.kills += 1;
       w.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.def.id });
     }
+    // 拾いそびれた券はクリアで持ち帰る（9:00 の主の券を拾う前に時間になることがある）
+    for (const it of w.items)
+      if (it.alive && it.kind === 'ticket') {
+        it.alive = false;
+        w.tickets[it.tier ?? 0] += 1;
+      }
     w.coins += CLEAR_COINS;
     w.over = 'clear';
     w.events.push({ type: 'clear' });

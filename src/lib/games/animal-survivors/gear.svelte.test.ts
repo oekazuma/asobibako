@@ -72,6 +72,10 @@ describe('装備の画面', () => {
     flushSync();
     button('売る').click();
     flushSync();
+    // 1 回めは確かめるだけで、もう一度押すと売る
+    expect(loadRecords().coins).toBe(0);
+    button('本当に売る').click();
+    flushSync();
     expect(loadRecords().coins).toBe(200);
     unmount(app);
   });
@@ -127,6 +131,19 @@ describe('遊ぶ回の画面', () => {
     flushSync();
     expect(document.querySelector('[data-kept]')?.textContent).toContain('銅の券');
     expect(document.querySelector('[data-lost]')?.textContent).toContain('銀の券');
+    unmount(app);
+  });
+
+  it('やめるの確かめで、拾った券は持ち帰れないと言う', () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(Pause, {
+      target,
+      props: { run: run({ lost: [1, 0, 0] }), finger: null, onresume: () => {}, onquit: () => {}, onrestart: () => {} }
+    });
+    flushSync();
+    button('やめる').click();
+    flushSync();
+    expect(document.body.textContent).toContain('拾った券は持ち帰れません');
     unmount(app);
   });
 });

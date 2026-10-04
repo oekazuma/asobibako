@@ -63,7 +63,8 @@
           ? `本当に${run.overtime ? '引き上げますか' : 'やめますか'}？`
           : '本当に最初からやり直しますか？'}<br />{run.overtime
           ? '延長戦のコインは全部もらえます'
-          : 'ここまでのコインと記録は残ります'}
+          : 'ここまでのコインと記録は残ります'}{#if !run.overtime && run.lost?.some((n) => n > 0)}<br
+          />拾った券は持ち帰れません{/if}
       </p>
       <button class="as-card danger" onclick={asking === 'quit' ? onquit : onrestart}
         >{asking === 'quit' ? quit : 'やり直す'}</button

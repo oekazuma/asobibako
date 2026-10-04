@@ -96,4 +96,11 @@ describe('装備の効き目', () => {
     expect(w.level).toBe(8);
     expect(w.form).toBe(1);
   });
+
+  it('ゴーグルの伝説は会心のダメージを 1.5 倍にする', async () => {
+    const { power } = await import('./arms');
+    const w = wear('goggles:2');
+    w.rand = () => 0;
+    expect(power(w, 100).dmg).toBeCloseTo(100 * w.stats.might * 2 * 1.5);
+  });
 });

@@ -3,7 +3,7 @@ import { collect, dropFrom } from './drops';
 import { ENEMIES } from './enemies';
 import { startOvertime, overtimeRun } from './overtime';
 import { emptyRecords, record } from './records';
-import { addEnemy, createWorld, summary } from './world';
+import { addEnemy, createWorld, step, summary } from './world';
 
 const VIEW = { w: 274, h: 394 };
 const finale = () => ENEMIES.bear;
@@ -74,5 +74,24 @@ describe('ガチャ券', () => {
     const kept = overtimeRun(w);
     expect(kept.tickets).toEqual([1, 1, 0]);
     expect(kept.lost).toEqual([0, 0, 0]);
+  });
+
+  it('ステージの主は 2 体いても確定の券は 1 枚だけ', () => {
+    const w = createWorld('dog', 1, VIEW);
+    w.loot = () => 0.3;
+    w.finaleKills = 1;
+    bossDown(w, true);
+    w.finaleKills = 2;
+    bossDown(w, true);
+    expect(w.items.filter((it) => it.alive && it.kind === 'ticket')).toHaveLength(1);
+  });
+
+  it('10:00 のクリアで、地面に残っている券も持ち帰る', () => {
+    const w = createWorld('dog', 1, VIEW);
+    w.items.push({ alive: true, kind: 'ticket', x: 300, y: 300, pulled: false, tier: 1 });
+    w.time = w.stage.length - 0.001;
+    step(w, { x: 0, y: 0 }, 0.01);
+    expect(w.over).toBe('clear');
+    expect(summary(w).tickets).toEqual([0, 1, 0]);
   });
 });

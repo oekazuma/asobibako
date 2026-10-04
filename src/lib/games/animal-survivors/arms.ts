@@ -69,7 +69,7 @@ const REHIT = { boomerang: 0.35, orbit: 0.4 };
 export function power(w: World, base: number): { dmg: number; crit: boolean } {
   const crit = w.rand() < w.stats.crit;
   const oni = w.player.hp < w.stats.maxHp / 2 ? 1 + w.fx.oni : 1;
-  return { dmg: base * w.stats.might * desperate(w) * oni * (crit ? 2 + w.fx.critDmg : 1), crit };
+  return { dmg: base * w.stats.might * desperate(w) * oni * (crit ? 2 * (1 + w.fx.critDmg) : 1), crit };
 }
 
 function revive<T extends { alive: boolean }>(list: T[], make: () => T): T {

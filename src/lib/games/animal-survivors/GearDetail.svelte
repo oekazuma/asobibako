@@ -12,6 +12,8 @@
     $props();
 
   const p = $derived(parseKey(gear)!);
+  /** 売るのは取り消せないので、同じ品で 2 回押して売る */
+  let sure = $state<GearKey | null>(null);
   const fx = $derived(fxText(p.def, p.rarity));
 </script>
 
@@ -30,7 +32,9 @@
     <button class="as-card" disabled={p.rarity === 2 || count < 3} onclick={() => onact('merge')}
       >合成（3 こで 1 段上）</button
     >
-    <button class="as-card" onclick={() => onact('sell')}>売る（{SELL[p.rarity]} コイン）</button>
+    <button class="as-card" onclick={() => (sure === gear ? onact('sell') : (sure = gear))}
+      >{sure === gear ? '本当に売る' : '売る'}（{SELL[p.rarity]} コイン）</button
+    >
     <button class="as-card" onclick={() => onact('close')}>とじる</button>
   </div>
 </section>

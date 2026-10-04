@@ -214,7 +214,8 @@ export function dropFrom(w: World, e: Enemy): void {
     }
     dropItem(w, 'purse', e.x + 12, e.y);
     dropItem(w, 'chest', e.x, e.y);
-    if (e.def.finale || w.loot() < TICKET_CHANCE) dropTicket(w, e.x - 12, e.y);
+    // ステージの主は 2 体で 1 組なので、確定の券は先に倒した 1 体だけ
+    if ((e.def.finale && w.finaleKills <= 1) || w.loot() < TICKET_CHANCE) dropTicket(w, e.x - 12, e.y);
     if (e.def.arcana && w.arcanaPool.length && w.arcana.length + w.arcanaPending < MAX_ARCANA) w.arcanaPending += 1;
     return;
   }
