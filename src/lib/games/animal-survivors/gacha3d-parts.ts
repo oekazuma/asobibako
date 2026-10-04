@@ -103,16 +103,16 @@ export function burst(n: number, len: number): THREE.BufferGeometry {
   return g;
 }
 
-/** 空から機械の頭へ落ちる、折れ曲がった稲妻の板。seed で折れ方を変える */
+/** 画面の上からガラスの球へ落ちる、折れ曲がった稲妻の板（機械の手前に置く）。seed で折れ方を変える */
 export function bolt(seed: number): THREE.BufferGeometry {
   const pts: number[] = [];
   let x = Math.sin(seed) * 0.3;
   const steps = 7;
   for (let i = 0; i < steps; i++) {
-    const y0 = 3.4 - (i / steps) * 1.25;
-    const y1 = 3.4 - ((i + 1) / steps) * 1.25;
-    const nx = i === steps - 1 ? 0 : Math.sin(seed * 3.1 + i * 2.3) * 0.22;
-    const w = 0.035;
+    const y0 = 2.7 - (i / steps) * 1.25;
+    const y1 = 2.7 - ((i + 1) / steps) * 1.25;
+    const nx = i === steps - 1 ? 0 : Math.sin(seed * 3.1 + i * 2.3) * 0.3;
+    const w = 0.06;
     pts.push(x - w, y0, 0, x + w, y0, 0, nx + w, y1, 0, x - w, y0, 0, nx + w, y1, 0, nx - w, y1, 0);
     x = nx;
   }
@@ -126,7 +126,7 @@ export function slotOf(i: number, n: number): THREE.Vector3 {
   if (n === 1) return OUTLET.clone();
   const col = i % 5;
   const row = Math.floor(i / 5);
-  return new THREE.Vector3(-0.72 + col * 0.36, 0.16 + row * 0.3, 0.95 - row * 0.12);
+  return new THREE.Vector3(-0.56 + col * 0.28, 0.1 + row * 0.26, 0.78 - row * 0.1);
 }
 
 const ease = (u: number) => 1 - (1 - Math.min(1, Math.max(0, u))) ** 3;

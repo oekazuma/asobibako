@@ -38,6 +38,9 @@ export class GachaScene {
   readonly #camera = new THREE.PerspectiveCamera(35, 1, 0.1, 30);
   readonly #hemi = new THREE.HemisphereLight('#fff3e0', '#3a3256', HEMI);
   readonly #sun = new THREE.DirectionalLight('#ffffff', SUN);
+  /** 稲妻のとき、暗くした部屋で機械を上から照らす金の明かり */
+  readonly #spot = new THREE.PointLight('#ffd84a', 0, 6);
+  readonly #bg = new THREE.Color('#2a2240');
   readonly #m = machine();
   readonly #beam = new THREE.Mesh(new THREE.CylinderGeometry(1, 1.6, 3, 10, 1, true), glow());
   readonly #rays = [new THREE.Mesh(burst(12, 0.95), glow()), new THREE.Mesh(burst(9, 1.3), glow())];
@@ -55,8 +58,10 @@ export class GachaScene {
   constructor(canvas: HTMLCanvasElement) {
     this.#renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
     this.#renderer.setPixelRatio(1);
-    this.#scene.background = new THREE.Color('#2a2240');
+    this.#scene.background = this.#bg;
     this.#sun.position.set(1.5, 3, 2.5);
+    this.#spot.position.set(0, 2.5, 1.2);
+    for (const b of this.#bolts) b.position.z = 0.7;
     this.#dim.position.z = 0.85;
     const pts = new Float32Array(SPARKS * 3);
     const g = new THREE.BufferGeometry();
@@ -72,7 +77,16 @@ export class GachaScene {
       );
       this.#items.push(p);
     }
-    this.#scene.add(this.#hemi, this.#sun, this.#m.group, this.#dim, this.#beam, ...this.#rays, ...this.#bolts);
+    this.#scene.add(
+      this.#hemi,
+      this.#sun,
+      this.#spot,
+      this.#m.group,
+      this.#dim,
+      this.#beam,
+      ...this.#rays,
+      ...this.#bolts
+    );
     this.#scene.add(this.#sparks, ...this.#items);
     this.#camera.position.set(0.35, 1.25, 4.4);
     this.#camera.lookAt(0, 0.95, 0);
@@ -111,15 +125,17 @@ export class GachaScene {
     const storm = s.phase === 'storm';
     const dark = storm ? Math.min(1, s.t / 0.3) : 0;
     this.#hemi.intensity = HEMI * (1 - 0.85 * dark);
-    this.#sun.intensity = SUN * (1 - 0.85 * dark);
+    this.#sun.intensity = SUN * (1 - 0.9 * dark);
+    this.#bg.set('#2a2240').lerp(new THREE.Color('#07050c'), dark);
+    this.#spot.intensity = storm ? Math.min(1, s.t / 0.4) * 4 : 0;
     const base = m.base.material as THREE.MeshStandardMaterial;
     base.emissive.set(RARITY_COLOR[2]);
-    base.emissiveIntensity = storm ? Math.min(1, s.t / 0.4) * 0.6 : 0;
+    base.emissiveIntensity = storm ? Math.min(1, s.t / 0.4) * 0.15 : 0;
     // 稲妻は 2 回、なめらかに強めて弱める（1 フレームごとに切り替えるとチカチカする）
-    const strike = (at: number) => (storm ? Math.max(0, 1 - Math.abs(s.t - at) / 0.2) : 0);
-    this.#bolts[0].material.opacity = strike(0.25) * 0.9;
-    this.#bolts[1].material.opacity = strike(0.6) * 0.9;
-    for (const b of this.#bolts) b.material.color.set(RARITY_COLOR[2]);
+    const strike = (at: number) => (storm ? Math.max(0, 1 - Math.abs(s.t - at) / 0.28) : 0);
+    this.#bolts[0].material.opacity = strike(0.3);
+    this.#bolts[1].material.opacity = strike(0.75);
+    for (const b of this.#bolts) b.material.color.set('#fff3b0');
   }
 
   #capsules(s: Show, now: number): void {
@@ -130,7 +146,7 @@ export class GachaScene {
       const at = capsuleAt(s, i);
       const shaking = s.phase === 'crack' && i === s.opened ? Math.sin(s.t * 40) * 0.02 : 0;
       c.group.position.set(at.x + shaking, at.y, at.z);
-      c.group.scale.setScalar(n === 1 ? 1 + Math.min(1, at.open * 2) * 0.5 : 0.9);
+      c.group.scale.setScalar(n === 1 ? 1 + Math.min(1, at.open * 2) * 0.5 : 0.7);
       // 割れたら上は跳ね上がり、下は落ちて、品の前から消える
       const fly = Math.max(0, at.open * 2 - 1);
       c.top.position.set(-fly * 0.25, at.open * 0.12 + fly * 0.5, 0);
@@ -179,7 +195,7 @@ export class GachaScene {
       if (!p.visible) return;
       const big = n === 1;
       const pop = big ? Math.min(1, s.t / 0.25) : 1;
-      const size = big ? 0.42 * (0.4 + 0.6 * pop + Math.sin(pop * Math.PI) * 0.15) : 0.26;
+      const size = big ? 0.42 * (0.4 + 0.6 * pop + Math.sin(pop * Math.PI) * 0.15) : 0.17;
       const spot = big ? LIFT : slotOf(k, n);
       p.scale.setScalar(size);
       p.position.set(spot.x, spot.y + (big ? 0.35 + Math.sin(now * 2.5) * 0.03 : 0.25), spot.z + (big ? 0.3 : 0.15));
