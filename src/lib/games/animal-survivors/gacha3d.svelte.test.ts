@@ -1,0 +1,47 @@
+import { flushSync, mount, unmount } from 'svelte';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import Gacha3D from './Gacha3D.svelte';
+
+vi.mock('$lib/audio.svelte', () => ({ audio: { muted: false }, toggleMute: () => {} }));
+
+const tick = () => new Promise((r) => setTimeout(r, 0));
+
+describe('3D のガチャの重ね', () => {
+  afterEach(() => (document.body.innerHTML = ''));
+
+  it('WebGL が作れないときは 2D で品を見せ、押すと閉じる', async () => {
+    const closed: string[] = [];
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(Gacha3D, {
+      target,
+      props: { gear: 'owl:2', onclose: () => closed.push('x'), scene: () => Promise.reject(new Error('no webgl')) }
+    });
+    await tick();
+    flushSync();
+    expect(target.textContent).toContain('知恵のふくろう');
+    (target.querySelector('[data-close]') as HTMLButtonElement).click();
+    expect(closed).toEqual(['x']);
+    unmount(app);
+  });
+
+  it('閉じると場面を捨てる', async () => {
+    const dispose = vi.fn();
+    const fake = { resize() {}, render() {}, handle: () => ({ x: 0, y: 0 }), dispose };
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(Gacha3D, { target, props: { gear: 'owl:2', onclose: () => {}, scene: async () => fake } });
+    await tick();
+    unmount(app);
+    expect(dispose).toHaveBeenCalled();
+  });
+
+  it('とばすで品を見せる', async () => {
+    const fake = { resize() {}, render() {}, handle: () => ({ x: 0, y: 0 }), dispose() {} };
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(Gacha3D, { target, props: { gear: 'owl:2', onclose: () => {}, scene: async () => fake } });
+    await tick();
+    (target.querySelector('[data-skip]') as HTMLButtonElement).click();
+    flushSync();
+    expect(target.textContent).toContain('知恵のふくろう');
+    unmount(app);
+  });
+});
