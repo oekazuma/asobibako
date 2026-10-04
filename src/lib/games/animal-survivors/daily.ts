@@ -1,4 +1,6 @@
 import type { AnimalId } from './animals';
+import type { ArcanaId } from './arcana';
+import { coinMul, type Heat } from './cauldron';
 import type { Stats } from './passives';
 import { rng } from './rng';
 import { stageOf } from './stages';
@@ -29,6 +31,9 @@ export interface Daily {
   stage: string;
   mods: ModId[];
   cleared: boolean;
+  /** 今日の釜の強さ（無い古いお題は 2.0）と、持って始める今日の札 */
+  heat?: number;
+  card?: ArcanaId;
 }
 
 /** createWorld に渡すお題の回の中身 */
@@ -36,6 +41,7 @@ export interface Challenge {
   date: string;
   bonus: number;
   mods: ModId[];
+  card?: ArcanaId;
 }
 
 /** 端末の時計の日付（その土地の日付で切り替える） */
@@ -51,25 +57,36 @@ function hash(s: string): number {
 }
 
 /** 日付から作った乱数で、候補の動物と面からお題を選ぶ。同じ日付と候補なら同じお題 */
-export function makeDaily(date: string, animals: AnimalId[], stages: string[]): Daily {
+export function makeDaily(date: string, animals: AnimalId[], stages: string[], cards: ArcanaId[] = []): Daily {
   const r = rng(hash(date));
   const one = <T>(list: T[]) => list[Math.floor(r() * list.length)];
   const ids = Object.keys(MODS) as ModId[];
   const first = one(ids.filter((id) => !MODS[id].good));
   // 店の強化なしと武器 1 つだけは、どちらか 1 つでもボットのクリアが 1 割台に落ちるので重ねない
   const heavy = (id: ModId) => id === 'noShop' || id === 'oneWeapon';
-  return {
+  const d: Daily = {
     date,
     animal: one(animals),
     stage: one(stages),
     mods: [first, one(ids.filter((id) => id !== first && !(heavy(first) && heavy(id))))],
     cleared: false
   };
+  // 釜と札は前からの引き方のあとに引く（同じ日付のお題の動物・ステージ・しばりを変えないため）
+  d.heat = 2 + 0.5 * Math.floor(r() * 3);
+  if (cards.length) d.card = one(cards);
+  return d;
 }
 
-export function dailyBonus(d: Pick<Daily, 'stage' | 'mods'>): number {
+/** お題の回に Survivors が createWorld へ渡す組。cards は開いている札（ボスで選ぶ候補） */
+export function dailyPick(d: Daily, cards: ArcanaId[]) {
+  const heat: Heat = { level: d.heat ?? 2, bet: 0 };
+  const challenge: Challenge = { date: d.date, bonus: dailyBonus(d), mods: d.mods, card: d.card };
+  return { animal: d.animal, stage: d.stage, challenge, heat, arcana: cards };
+}
+
+export function dailyBonus(d: Pick<Daily, 'stage' | 'mods' | 'heat'>): number {
   const sum = 200 + d.mods.reduce((t, id) => t + MODS[id].coins, 0);
-  return Math.max(200, Math.round((sum * stageOf(d.stage).coin) / 10) * 10);
+  return Math.max(200, Math.round((sum * stageOf(d.stage).coin * coinMul(d.heat ?? 2)) / 10) * 10);
 }
 
 /** 敵の出る数を k 倍にした面の表の写し */

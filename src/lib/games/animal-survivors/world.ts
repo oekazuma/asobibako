@@ -4,7 +4,7 @@ import { fire, hits, type Effect, type Shot } from './arms';
 import { moveBoss, slot, spawnBosses, updateHazards, type Hazard } from './bosses';
 import { BOAR } from './bosses-forest';
 import { airborne } from './bosses-snow';
-import { bloodPact, healRate, regenRate, type ArcanaId } from './arcana';
+import { bloodPact, healRate, regenRate, takeArcana, type ArcanaId } from './arcana';
 import { atkMul, heatStage, PLAIN, type Heat } from './cauldron';
 import { rebirth } from './bosses-volcano';
 import { hpScale, modPerks, modStage, type Challenge, type ModId } from './daily';
@@ -294,7 +294,7 @@ export function createWorld(
   const g = gearOf(worn);
   const boost = addBoost(k.boost, g.boost);
   const s = stats(a, [], boost, 0, hpScale(mods));
-  return {
+  const w: World = {
     rand: rng(seed),
     time: 0,
     stage,
@@ -383,6 +383,9 @@ export function createWorld(
     spawnAcc: stage.waves.map(() => 0),
     grid: new Grid()
   };
+  // お題の今日の札は、始めの 3 枚選びの代わりに持って始める
+  if (challenge?.card) takeArcana(w, challenge.card);
+  return w;
 }
 
 export function makeEnemy(def: EnemyDef, x: number, y: number, hp: number): Enemy {

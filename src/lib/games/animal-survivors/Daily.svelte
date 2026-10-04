@@ -1,6 +1,8 @@
 <script lang="ts">
   import { animal } from './animals';
   import { ANIMAL_ART } from './art/animals';
+  import ArcanaRow from './ArcanaRow.svelte';
+  import { heatLabel } from './cauldron';
   import { dailyBonus, MODS, type Daily } from './daily';
   import PixelIcon from './PixelIcon.svelte';
   import { stageOf } from './stages';
@@ -14,13 +16,14 @@
     <p class="date">{daily.date.replaceAll('-', '/')}</p>
     <div class="who">
       <PixelIcon art={ANIMAL_ART[daily.animal].forms[0].walk} size="min(18cqw, 10cqh, 96px)" />
-      <span><b>{animal(daily.animal).name}</b><br />{stageOf(daily.stage).name}</span>
+      <span><b>{animal(daily.animal).name}</b><br />{stageOf(daily.stage).name}・釜 {heatLabel(daily.heat ?? 2)}</span>
     </div>
     <ul class="mods">
       {#each daily.mods as id (id)}
         <li class:good={MODS[id].good}><b>{MODS[id].name}</b><span>{MODS[id].text}</span></li>
       {/each}
     </ul>
+    {#if daily.card}<ArcanaRow cards={[daily.card]} detail />{/if}
     <p class="prize">
       {daily.cleared ? '今日のごほうびは受け取りました' : `ごほうび ${dailyBonus(daily)} コイン`}
     </p>

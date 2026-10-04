@@ -11,7 +11,7 @@
   import { heatLabel, snap } from './cauldron';
   import CharSelect from './CharSelect.svelte';
   import Daily from './Daily.svelte';
-  import { dailyBonus } from './daily';
+  import { dailyPick } from './daily';
   import Play from './Play.svelte';
   import { emptyRecords, ensureDaily, loadRecords, payHeat, record, saveRecords } from './records';
   import Result from './Result.svelte';
@@ -116,7 +116,7 @@
     const d = records.daily!;
     // 画面に出ていたのが前の日のお題なら、始めずに今日のお題を見せる
     if (d.date !== shown) return;
-    pick = { animal: d.animal, stage: d.stage, challenge: { date: d.date, bonus: dailyBonus(d), mods: d.mods } };
+    pick = dailyPick(d, openArcana(records.achieved));
     start(d.stage);
   }
 

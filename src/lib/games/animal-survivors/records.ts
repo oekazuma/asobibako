@@ -1,4 +1,5 @@
 import { ACHIEVEMENTS, grant, type AchievementDef } from './achievements';
+import { ARCANA, openArcana, type ArcanaId } from './arcana';
 import { addBook, emptyBook, parseBook, type Book } from './book';
 import { betOf, maxHeat, snap, type Heat } from './cauldron';
 import { ANIMALS, type AnimalId } from './animals';
@@ -173,7 +174,9 @@ function dailyOf(v: unknown, ids: AnimalId[]): Daily | null {
         animal: d.animal as AnimalId,
         stage: d.stage as string,
         mods: mods as ModId[],
-        cleared: d.cleared === true
+        cleared: d.cleared === true,
+        ...(isNum(d.heat) && { heat: snap(d.heat) }),
+        ...(ARCANA.some((a) => a.id === d.card) && { card: d.card as ArcanaId })
       }
     : null;
 }
@@ -283,7 +286,8 @@ export function ensureDaily(r: Records, now: Date): Daily {
     r.daily = makeDaily(
       date,
       r.unlocked,
-      STAGES.filter((s) => canPlay(r, s.id)).map((s) => s.id)
+      STAGES.filter((s) => canPlay(r, s.id)).map((s) => s.id),
+      openArcana(r.achieved)
     );
   return r.daily;
 }

@@ -1,6 +1,8 @@
 <script lang="ts">
   import { animal } from './animals';
   import { ANIMAL_ART } from './art/animals';
+  import { arcanaDef } from './arcana';
+  import { heatLabel } from './cauldron';
   import { dailyBonus, MODS, type Daily } from './daily';
   import PixelIcon from './PixelIcon.svelte';
   import { stageOf } from './stages';
@@ -14,8 +16,9 @@
     <span class="head"
       >今日のお題<span class="prize">{daily.cleared ? 'クリア済み' : `+${dailyBonus(daily)}`}</span></span
     >
-    <span class="what">{animal(daily.animal).name}・{stageOf(daily.stage).name}</span>
+    <span class="what">{animal(daily.animal).name}・{stageOf(daily.stage).name}・釜 {heatLabel(daily.heat ?? 2)}</span>
     <span class="mods">{daily.mods.map((id) => MODS[id].name).join('・')}</span>
+    {#if daily.card}<span class="card">今日の札 {arcanaDef(daily.card).name}</span>{/if}
   </span>
 </button>
 
@@ -55,5 +58,11 @@
 
   .mods {
     color: #8e2430;
+  }
+
+  .card {
+    color: #6a3fb0;
+    font-size: min(3.2cqw, 1.9cqh, 16px);
+    font-weight: 700;
   }
 </style>

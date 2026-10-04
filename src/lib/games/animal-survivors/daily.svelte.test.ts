@@ -102,4 +102,23 @@ describe('今日のお題の画面', () => {
     expect(b.target.textContent).not.toContain('お題クリア');
     unmount(b.app);
   });
+
+  it('今日の釜と今日の札を、お題の画面とキャラ選択の札に出す', () => {
+    const d: DailyData = { ...daily, heat: 3.5, card: 'gamble' };
+    const big = show(Daily, { daily: d, onstart: () => {}, onback: () => {} });
+    expect(big.target.textContent).toContain('釜 3.5');
+    expect(big.target.textContent).toContain('いちかばちか');
+    expect(big.target.textContent).toContain('ただし 最大 HP 半分');
+    unmount(big.app);
+    const card = show(CharSelect, {
+      records: { ...emptyRecords(), daily: d },
+      onpick: () => {},
+      onquit: () => {},
+      onopen: () => {},
+      onrepeat: () => {}
+    });
+    expect(card.button('今日のお題').textContent).toContain('釜 3.5');
+    expect(card.button('今日のお題').textContent).toContain('いちかばちか');
+    unmount(card.app);
+  });
 });
