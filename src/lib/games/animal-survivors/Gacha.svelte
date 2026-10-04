@@ -5,7 +5,7 @@
   import PixelIcon from './PixelIcon.svelte';
   import type { Records } from './records';
 
-  /** 記録を書き換えて保存し、引いた品を見せるのは装備の画面。ここは引き方のボタンだけ */
+  /** 記録を書き換えて保存し、引いた品を見せるのはガチャの画面。ここは引き方のボタンだけ */
   let { r, onpull }: { r: Records; onpull: (way: PullWay) => GearKey[] | null } = $props();
 
   const TICKETS = [0, 1, 2] as const;

@@ -32,7 +32,9 @@
       {r.coins.toLocaleString('ja-JP')}<span class="count">持ち物 {bagCount(r)} / {BAG_MAX}</span>
     </p>
     <Gacha {r} {onpull} />
-    <button class="as-card toggle" onclick={() => (odds = !odds)}>{odds ? 'かくりつを とじる' : 'かくりつ'}</button>
+    <button class="as-card toggle" aria-expanded={odds} onclick={() => (odds = !odds)}
+      >{odds ? 'かくりつを とじる' : 'かくりつ'}</button
+    >
     {#if odds}<GachaOdds />{/if}
     <button class="as-card back" onclick={onback}>もどる</button>
   </section>

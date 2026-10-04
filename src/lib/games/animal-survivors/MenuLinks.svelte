@@ -33,7 +33,7 @@
         >パワーアップ<small>{records.coins.toLocaleString('ja-JP')}</small></span
       >
     </button>
-    <button class="as-card mid" data-menu="gear" data-gear-open onclick={() => onopen('gear')}>
+    <button class="as-card mid" data-menu="gear" onclick={() => onopen('gear')}>
       <PixelIcon art={MENU_ART.gear} size="min(6cqw, 3.6cqh, 32px)" /><span class="text"
         >装備<small class="worn"
           >{#each wornKeys(records) as k (k)}<GearIcon gear={k} size="min(3cqw, 2cqh, 18px)" />{/each}</small
