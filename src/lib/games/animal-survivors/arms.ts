@@ -1,4 +1,4 @@
-import { desperate } from './arcana';
+import { desperate, has } from './arcana';
 import { airborne } from './bosses-snow';
 import { MAX_R } from './enemies';
 import { WEAPONS, weaponStats, type WeaponDef, type WeaponStats } from './weapons';
@@ -289,6 +289,11 @@ function launch(w: World, def: WeaponDef, s: WeaponStats, slot: number): boolean
   }
 }
 
+/** ガラスの大砲は下限で止めたあとに掛ける（足し合わせると、鼓動と時の砂を持っているとき表示ほど縮まない） */
+export function attackWait(w: World, cooldown: number): number {
+  return cooldown * Math.max(0.35, 1 - w.stats.haste) * (has(w, 'glass') ? 0.6 : 1);
+}
+
 export function fire(w: World, dt: number): void {
   w.weapons.forEach((own, slot) => {
     own.cd -= dt;
@@ -301,7 +306,7 @@ export function fire(w: World, dt: number): void {
       own.cd = 0.25;
       return;
     }
-    const wait = s.cooldown * Math.max(0.35, 1 - w.stats.haste);
+    const wait = attackWait(w, s.cooldown);
     // 羽根は回り終えてから待ち時間を数える
     own.cd = def.kind === 'orbit' ? s.duration + wait : wait;
     // 炎は足もとに置くだけで、しかも間が短いので、攻撃の格好にすると歩く動きが見えなくなる

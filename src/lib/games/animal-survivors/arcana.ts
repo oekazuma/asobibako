@@ -126,7 +126,7 @@ const ADD: Partial<Record<ArcanaId, (w: World) => Partial<Record<keyof World['st
   eye: () => ({ crit: 0.15 }),
   gamble: (w) => ({ might: w.animal.might * 0.5 }),
   armor: (w) => ({ armor: 4, speed: -w.animal.speed * 0.2 }),
-  glass: () => ({ haste: 0.4, armor: -3 })
+  glass: () => ({ armor: -3 })
 };
 
 export function takeArcana(w: World, id: ArcanaId): void {
