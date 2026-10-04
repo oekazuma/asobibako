@@ -54,7 +54,13 @@ function candidates(w: World): Choice[] {
 }
 
 /** n 枚まで重なりなく選ぶ（運の確率で 1 枚増える）。候補が足りなければ肉と経験値の袋で埋める（それぞれ 1 枚まで） */
-export function choices(w: World, n = 3 + (w.stats.luck > 0 && w.rand() < w.stats.luck ? 1 : 0)): Choice[] {
+/** 運ととんがり帽子の割合で 4 択にする。割合が 0 なら乱数を引かない（同じ種の回の流れを変えないため） */
+function fourth(w: World): number {
+  const c = w.stats.luck + w.fx.fourth;
+  return c > 0 && w.rand() < c ? 1 : 0;
+}
+
+export function choices(w: World, n = 3 + fourth(w)): Choice[] {
   const list = candidates(w);
   if (list.length === 0) return rewardsFor(w);
   for (let i = list.length - 1; i > 0; i--) {

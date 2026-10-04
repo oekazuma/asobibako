@@ -302,7 +302,7 @@ export function updateHazards(w: World, dt: number): void {
       else if (p.invuln <= 0 && (h.x - p.x) ** 2 + (h.y - p.y) ** 2 < (h.r + 6) ** 2) {
         h.alive = false;
         if (h.kind === 'web') p.slow = SLOWED;
-        hurtPlayer(w, h.dmg);
+        hurtPlayer(w, h.dmg, 'shot');
       }
       continue;
     }
@@ -331,7 +331,7 @@ export function updateHazards(w: World, dt: number): void {
     if (h.delay > 0) {
       h.delay -= dt;
       if (h.delay <= 0 && h.lava) addLava(w, h.x, h.y + RING_DY, h.lava, 0);
-      if (h.delay <= 0 && p.invuln <= 0 && (p.x - h.x) ** 2 + (p.y - h.y) ** 2 < h.r ** 2) hurtPlayer(w, h.dmg);
+      if (h.delay <= 0 && p.invuln <= 0 && (p.x - h.x) ** 2 + (p.y - h.y) ** 2 < h.r ** 2) hurtPlayer(w, h.dmg, 'boss');
     } else {
       h.life -= dt;
       if (h.life <= 0) h.alive = false;

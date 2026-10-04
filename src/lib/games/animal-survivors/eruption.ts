@@ -82,7 +82,7 @@ export function updateLava(w: World, dt: number): void {
     l.tick -= dt;
     if (l.life <= 0 || l.tick > 0) continue;
     l.tick = POOL_TICK;
-    if (p.invuln <= 0 && (p.x - l.x) ** 2 + (p.y - l.y) ** 2 < l.r * l.r) hurtPlayer(w, POOL_DMG);
+    if (p.invuln <= 0 && (p.x - l.x) ** 2 + (p.y - l.y) ** 2 < l.r * l.r) hurtPlayer(w, POOL_DMG, 'lava');
     const hit = POOL_HIT * w.stage.toughness(w.time);
     for (let i = 0; i < w.enemies.length; i++) {
       const e = w.enemies[i];

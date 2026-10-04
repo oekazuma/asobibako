@@ -10,6 +10,7 @@ import { rebirth } from './bosses-volcano';
 import { hpScale, modPerks, modStage, type Challenge, type ModId } from './daily';
 import { CLEAR_COINS, COIN_RATE, collect, dropFrom, overtimeCoins, type Gem, type Item } from './drops';
 import { ENEMIES, MAX_R, type BossId, type EnemyDef } from './enemies';
+import { addBoost, gearOf, type GearFx, type GearKey } from './gear';
 import { Grid } from './grid';
 import { stats, type Stats } from './passives';
 import { rng, type Rng } from './rng';
@@ -121,8 +122,12 @@ export interface World {
   /** 育った段階。0 が 1 段階め */
   form: 0 | 1 | 2;
   stats: Stats;
-  /** 店の強化。パッシブを取って stats を作り直すときにも足す */
+  /** 店と装備の強化。パッシブを取って stats を作り直すときにも足す */
   boost: Partial<Stats>;
+  /** 装備の効き目 */
+  fx: GearFx;
+  /** つけている装備（リザルトと一時停止に出す） */
+  worn: GearKey[];
   /** コインに掛ける倍率 */
   greed: number;
   /** 残りの 3 択の引き直しと復活 */
@@ -256,6 +261,8 @@ export interface Options {
   arcana?: ArcanaId[];
   /** 遊び始めに帯で出す一言（釜の強さを下げたときなど） */
   note?: string;
+  /** つけている装備 */
+  gear?: GearKey[];
 }
 
 export function createWorld(
@@ -266,12 +273,16 @@ export function createWorld(
   stageId = 'forest',
   opts: Options = {}
 ): World {
-  const { challenge, heat = PLAIN, arcana = [], note } = opts;
+  const { challenge, heat = PLAIN, arcana = [], note, gear = [] } = opts;
   const mods = challenge?.mods ?? [];
   const stage = heatStage(modStage(stageOf(stageId), mods), heat.level);
   const a = animal(id);
-  const k = modPerks(perks(mods.includes('noShop') ? {} : ranks), mods);
-  const s = stats(a, [], k.boost, 0, hpScale(mods));
+  const noShop = mods.includes('noShop');
+  const k = modPerks(perks(noShop ? {} : ranks), mods);
+  const worn = noShop ? [] : gear;
+  const g = gearOf(worn);
+  const boost = addBoost(k.boost, g.boost);
+  const s = stats(a, [], boost, 0, hpScale(mods));
   return {
     rand: rng(seed),
     time: 0,
@@ -284,8 +295,10 @@ export function createWorld(
     animal: a,
     form: 0,
     stats: s,
-    boost: k.boost,
-    greed: k.greed,
+    boost,
+    fx: g.fx,
+    worn: [...worn],
+    greed: k.greed + g.greed,
     rerolls: k.rerolls,
     revives: k.revives,
     rebirths: a.rebirths ?? 0,
@@ -420,6 +433,7 @@ export function damageEnemy(
     w.drainLeft -= amt;
     w.player.hp = Math.min(w.stats.maxHp, w.player.hp + amt * healRate(w));
   }
+  if (e.def.boss || e.def.chief) dmg *= 1 + w.fx.bossDmg;
   if (e.def.metal) dmg = 1;
   if (source && !e.def.prop) (w.dealt[source] ??= { damage: 0, kills: 0 }).damage += Math.max(0, Math.min(dmg, e.hp));
   e.hp -= dmg;
@@ -728,6 +742,7 @@ function touch(w: World) {
   const p = w.player;
   if (p.invuln > 0 || w.freeze > 0) return;
   let atk = 0;
+  let boss = false;
   for (const i of w.grid.near(p.x, p.y, 5 + MAX_R, near)) {
     const e = w.enemies[i];
     if (!e.alive || airborne(e)) continue;
@@ -742,17 +757,29 @@ function touch(w: World) {
             ? BOAR.dashAtk
             : e.def.atk
         : e.def.atk * w.stage.fury(w.time);
-    atk = Math.max(atk, base);
+    if (base <= atk) continue;
+    atk = base;
+    boss = !!(e.def.boss || e.def.chief || e.def.part);
   }
-  if (atk > 0) hurtPlayer(w, atk);
+  if (atk > 0) hurtPlayer(w, atk, boss ? 'boss' : 'touch');
 }
 
 /** 自分にダメージを与え、少し無敵にする。釜の攻撃の倍率はボスの攻撃や予告にも効かせるのでここで掛け、防御を引き、最低 1 */
-export function hurtPlayer(w: World, raw: number): void {
+/** 受けたダメージの出どころ。装備のよろい・甲羅・マントが見る */
+export type Hurt = 'touch' | 'boss' | 'shot' | 'lava';
+
+export function hurtPlayer(w: World, raw: number, from: Hurt = 'touch'): void {
+  const f = w.fx;
+  const scale =
+    (from === 'boss' || from === 'shot' ? 1 - f.bossGuard : 1) *
+    (from === 'shot' ? 1 - f.shell : 1) *
+    (from === 'lava' ? 1 - f.lavaGuard : 1);
+  // 伝説のマントで溶岩が 0 になったときは、当たっていないことにする（無敵の点滅で動きが止まって見えないように）
+  if (scale <= 0) return;
   const p = w.player;
-  const dmg = Math.max(1, Math.round(raw * atkMul(w.heat.level) - w.stats.armor));
+  const dmg = Math.max(1, Math.round(raw * scale * atkMul(w.heat.level) - w.stats.armor));
   p.hp -= dmg;
-  p.invuln = 0.5;
+  p.invuln = 0.5 + f.invuln;
   p.hurt = 0.3;
   w.events.push({ type: 'hurt', dmg });
   if (p.hp > 0) return;
@@ -779,6 +806,13 @@ export function hurtPlayer(w: World, raw: number): void {
       e.ky += (dy / d) * REVIVE_PUSH;
     }
     w.events.push({ type: 'revive' });
+    return;
+  }
+  if (f.feather > 0) {
+    p.hp = Math.round(w.stats.maxHp * f.feather);
+    f.feather = 0;
+    p.invuln = REVIVE_INVULN;
+    w.events.push({ type: 'swarm', text: '不死鳥の羽根で起き上がった！' }, { type: 'revive' });
     return;
   }
   p.hp = 0;
@@ -812,8 +846,8 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   p.y += input.y * speed * dt;
   stepStorm(w, dt);
   if (w.storm.left > 0 && w.freeze <= 0) {
-    p.x += w.storm.wx * BASE_SPEED * STORM_PUSH * dt;
-    p.y += w.storm.wy * BASE_SPEED * STORM_PUSH * dt;
+    p.x += w.storm.wx * BASE_SPEED * STORM_PUSH * (1 - w.fx.wind) * dt;
+    p.y += w.storm.wy * BASE_SPEED * STORM_PUSH * (1 - w.fx.wind) * dt;
   }
   if (p.moving) {
     const len = Math.hypot(input.x, input.y);

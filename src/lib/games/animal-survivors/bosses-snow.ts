@@ -177,5 +177,5 @@ export function breathe(w: World, h: Hazard, dt: number): void {
   const p = w.player;
   if (!inFan(h, p.x, p.y)) return;
   p.slow = SLOWED;
-  if (p.invuln <= 0) hurtPlayer(w, h.dmg);
+  if (p.invuln <= 0) hurtPlayer(w, h.dmg, 'boss');
 }

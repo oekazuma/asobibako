@@ -26,7 +26,8 @@ export function openChest(w: World): Reward[] {
   w.opened += 1;
   addCoins(w, CHEST_COINS);
   const out: Reward[] = [];
-  let n = chestSize(w.rand(), chestOdds(w.heat.level));
+  const o = chestOdds(w.heat.level);
+  let n = chestSize(w.rand(), { one: Math.max(0, o.one - w.fx.chest), three: o.three });
   if (has(w, 'cursed')) n = Math.max(3, n) as 3 | 5;
   const e = evolvable(w);
   if (e) {

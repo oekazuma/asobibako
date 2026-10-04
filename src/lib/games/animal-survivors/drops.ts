@@ -76,7 +76,10 @@ export function overtimeCoins(w: World): number {
 
 /** ランタンが壊れたときの品を 1 つ置く */
 export function dropLoot(w: World, x: number, y: number): void {
-  const weight = (o: (typeof LOOT)[number]) => o[1] * (o[2] ? 1 + w.stats.luck : 1);
+  const weight = (o: (typeof LOOT)[number]) =>
+    o[1] *
+    (o[2] ? 1 + w.stats.luck + w.fx.loot : 1) *
+    (o[0] === 'goldMagnet' ? 1 + w.fx.gold : o[0] === 'magnet' ? 1 + w.fx.magnetLoot : 1);
   let r = w.rand() * LOOT.reduce((t, o) => t + weight(o), 0);
   for (const o of LOOT) {
     r -= weight(o);
@@ -128,7 +131,7 @@ export function gainXp(w: World, value: number): void {
     w.level += 1;
     w.pending += 1;
     w.events.push({ type: 'levelup' });
-    if (GROW_AT.includes(w.level)) grow(w);
+    if (GROW_AT.some((l) => l - w.fx.grow === w.level)) grow(w);
   }
 }
 
@@ -210,7 +213,7 @@ export function dropFrom(w: World, e: Enemy): void {
   if (w.rand() < MEAT_CHANCE) dropItem(w, 'meat', e.x + 4, e.y);
   else if (w.rand() < 0.004) dropItem(w, 'magnet', e.x + 4, e.y);
   if (e.def.elite && w.rand() < ELITE_CHEST) dropItem(w, 'chest', e.x, e.y);
-  if (e.def.elite && w.rand() < ELITE_GOLD) dropItem(w, 'goldMagnet', e.x, e.y + 8);
+  if (e.def.elite && w.rand() < ELITE_GOLD * (1 + w.fx.gold)) dropItem(w, 'goldMagnet', e.x, e.y + 8);
   if (w.rush > 0 && w.rand() < RUSH_COIN) dropItem(w, 'coin', e.x, e.y - 4, true);
   if (e.def.elite)
     for (let i = 0; i < ELITE_COINS; i++) {
@@ -243,7 +246,7 @@ function pull(w: World, o: { x: number; y: number; pulled: boolean }, reach: num
 export function collect(w: World, dt: number): void {
   const reach = 32 * w.stats.magnet;
   for (const g of w.gems) {
-    if (!g.alive || !pull(w, g, reach, dt)) continue;
+    if (!g.alive || !pull(w, g, reach * (1 + w.fx.gemReach), dt)) continue;
     g.alive = false;
     const v = g.value * (w.festival > 0 ? 2 : 1);
     w.events.push({ type: 'pickup', value: v });
@@ -277,7 +280,7 @@ export function collect(w: World, dt: number): void {
       continue;
     }
     if (it.kind === 'clock') {
-      w.freeze = FREEZE;
+      w.freeze = FREEZE + w.fx.freeze;
       w.events.push({ type: 'freeze' });
       continue;
     }
@@ -291,7 +294,7 @@ export function collect(w: World, dt: number): void {
     if (it.kind === 'meat') {
       const p = w.player;
       const before = p.hp;
-      p.hp = Math.min(w.stats.maxHp, p.hp + MEAT_HEAL * healRate(w));
+      p.hp = Math.min(w.stats.maxHp, p.hp + MEAT_HEAL * healRate(w) * (1 + w.fx.meat));
       w.events.push({ type: 'heal', amount: Math.round(p.hp - before) });
     } else {
       for (const g of w.gems) g.pulled ||= g.alive;
