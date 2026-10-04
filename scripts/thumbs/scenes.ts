@@ -210,7 +210,7 @@ export const SCENES: Scene[] = [
     }
   },
   {
-    // 犬で 2 分ほど大きな円をゆっくり描いて敵を引き連れ、骨と羽根が飛びかうところ。3 択は 1 枚目を選び、最後は指を離してスティックを消す
+    // 犬で 1 分 40 秒ほど大きな円をゆっくり描いて敵を引き連れ、骨と羽根が飛びかうところ（2:00 のボスの WARNING の前で止める）。3 択は 1 枚目を選び、最後は指を離してスティックを消す
     id: 'animal-survivors',
     clip: band(290),
     play: async (s) => {
@@ -227,11 +227,18 @@ export const SCENES: Scene[] = [
         await s.wait(300);
       }
       await s.touch(1, 'down', 384, 700);
-      for (let i = 0; i < 120; i++) {
+      for (let i = 0; i < 100; i++) {
         const card = s.page.locator('[aria-label="レベルアップ"] .as-card').first();
         if (await card.count()) await card.dispatchEvent('click');
         await s.touch(1, 'move', 384 + Math.cos(i * 0.25) * 80, 700 + Math.sin(i * 0.25) * 80);
         await s.wait(1000);
+      }
+      // 最後のコマに 3 択が残らないよう閉じる（出た直後の 350ms は押せないので待ってから）
+      for (let k = 0; k < 6; k++) {
+        const card = s.page.locator('[aria-label="レベルアップ"] .as-card').first();
+        if (!(await card.count())) break;
+        await s.wait(400);
+        await card.dispatchEvent('click');
       }
       await s.touch(1, 'up', 384, 700);
       await s.wait(500);
