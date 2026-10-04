@@ -66,3 +66,19 @@ export function angleDelta(cx: number, cy: number, x0: number, y0: number, x1: n
   if (d < -Math.PI) d += Math.PI * 2;
   return d;
 }
+
+/** 終わってから閉じるまで GUARD 待つ。閉じた指の合成 click が、裏の引くボタンを押してしまわないように */
+export const closing = (s: Show) => s.phase === 'done' && s.t >= GUARD;
+
+/** ハンドルの中心からこの距離（CSS px）より内側の指は回す量に数えない（中心のそばは向きが定まらず、こするだけで回ってしまう） */
+const DEAD = 20;
+/** 1 回の動きでこれより大きく回ったら数えない。指はそこまで速く回せず、中心を飛び越えた動きは向きがでたらめになる */
+const STEP = 0.5;
+
+type Pt = { x: number; y: number };
+
+export function handleDelta(h: Pt, p0: Pt, p1: Pt): number {
+  if (Math.hypot(p0.x - h.x, p0.y - h.y) < DEAD || Math.hypot(p1.x - h.x, p1.y - h.y) < DEAD) return 0;
+  const d = angleDelta(h.x, h.y, p0.x, p0.y, p1.x, p1.y);
+  return Math.abs(d) > STEP ? 0 : d;
+}

@@ -187,8 +187,9 @@ export class GachaScene {
     m.bottom.position.set(fly * 0.2, -at.open * 0.12 - fly * 0.45, 0);
     m.top.rotation.z = -at.open * 0.6 - fly * 1.2;
     m.bottom.rotation.z = fly * 0.8;
-    m.capsule.visible = s.phase !== 'show';
-    const lit = s.phase === 'open' || s.phase === 'show';
+    const after = s.phase === 'show' || s.phase === 'done';
+    m.capsule.visible = !after;
+    const lit = s.phase === 'open' || after;
     (this.#dim.material as THREE.MeshBasicMaterial).opacity = lit ? 0.75 * Math.min(1, at.open * 1.5) : 0;
     const beam = this.#beam.material as THREE.MeshBasicMaterial;
     beam.color.set(RARITY_COLOR[rarity]);
@@ -197,7 +198,7 @@ export class GachaScene {
     this.#beam.rotation.y = now * 0.6;
     const rays = this.#rays.material as THREE.MeshBasicMaterial;
     rays.color.set(RARITY_COLOR[rarity]);
-    rays.opacity = s.phase === 'show' ? 0.3 + 0.1 * Math.sin(now * 3) : 0;
+    rays.opacity = after ? 0.3 + 0.1 * Math.sin(now * 3) : 0;
     this.#rays.position.set(LIFT.x, LIFT.y + 0.35, LIFT.z + 0.05);
     this.#rays.rotation.z = now * (rarity === 2 ? 1.2 : 0.5);
     this.#rays.scale.setScalar(rarity === 2 ? 1.3 : 1);
@@ -218,7 +219,7 @@ export class GachaScene {
       mat.needsUpdate = true;
       this.#shown = s.gear;
     }
-    this.#item.visible = s.phase === 'show';
+    this.#item.visible = s.phase === 'show' || s.phase === 'done';
     // 出てきた瞬間に小さく弾んで大きくなる
     const u = Math.min(1, s.t / 0.25);
     this.#item.scale.setScalar(s.phase === 'show' ? 0.4 + 0.6 * u + Math.sin(u * Math.PI) * 0.15 : 1);
@@ -242,5 +243,7 @@ export class GachaScene {
       }
     });
     this.#renderer.dispose();
+    // dispose だけでは WebGL の場が残り、何度も開くと端末の上限に届く
+    this.#renderer.forceContextLoss();
   }
 }

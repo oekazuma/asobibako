@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { angleDelta, DROP, GUARD, makeShow, OPEN, SPIN, tap, tick, TURN, turn, skip } from './gacha-show';
+import {
+  angleDelta,
+  closing,
+  DROP,
+  GUARD,
+  handleDelta,
+  makeShow,
+  OPEN,
+  SPIN,
+  tap,
+  tick,
+  TURN,
+  turn,
+  skip
+} from './gacha-show';
 
 const run = (s: ReturnType<typeof makeShow>, secs: number) => {
   for (let t = 0; t < secs; t += 1 / 60) tick(s, 1 / 60);
@@ -69,5 +83,42 @@ describe('ガチャの段取り', () => {
     expect(angleDelta(0, 0, 1, 0, 0, 1)).toBeCloseTo(Math.PI / 2);
     expect(angleDelta(0, 0, 0, 1, 1, 0)).toBeCloseTo(-Math.PI / 2);
     expect(Math.abs(angleDelta(0, 0, -1, 0.01, -1, -0.01))).toBeLessThan(0.1);
+  });
+
+  it('終わってもすぐは閉じず、押した指の合成 click が裏のボタンに届かないぶん待ってから閉じる', () => {
+    const s = makeShow('owl:1');
+    skip(s);
+    run(s, GUARD + 0.05);
+    tap(s);
+    expect(s.phase).toBe('done');
+    expect(closing(s)).toBe(false);
+    run(s, GUARD + 0.05);
+    expect(closing(s)).toBe(true);
+  });
+
+  it('ハンドルの真ん中を上下にこすっても回り始めない', () => {
+    const s = makeShow('owl:1');
+    const h = { x: 100, y: 100 };
+    let prev = { x: 100, y: 40 };
+    for (let k = 0; k < 400; k++) {
+      const y = 40 + ((k * 8) % 120);
+      const next = { x: 100 + ((k * 7) % 5) - 2, y };
+      turn(s, handleDelta(h, prev, next));
+      prev = next;
+    }
+    expect(s.phase).toBe('ready');
+  });
+
+  it('1 回の動きで回る角度には上限があり、ふちを回せば回り始める', () => {
+    const h = { x: 0, y: 0 };
+    expect(Math.abs(handleDelta(h, { x: 60, y: 0 }, { x: -60, y: 1 }))).toBeLessThanOrEqual(0.5);
+    const s = makeShow('owl:1');
+    let prev = { x: 60, y: 0 };
+    for (let a = 0.1; a <= Math.PI * 1.6; a += 0.1) {
+      const next = { x: Math.cos(a) * 60, y: Math.sin(a) * 60 };
+      turn(s, handleDelta(h, prev, next));
+      prev = next;
+    }
+    expect(s.phase).toBe('spin');
   });
 });

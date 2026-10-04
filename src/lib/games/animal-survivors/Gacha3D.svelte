@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
+  import { capture, toBoardPoint, TURNED_QUERY } from '$lib/board-input';
   import { animate } from '$lib/loop';
   import Capsule from './Capsule.svelte';
-  import { angleDelta, makeShow, skip, tap, tick, turn, type Phase, type Show } from './gacha-show';
+  import { closing, handleDelta, makeShow, skip, tap, tick, turn, type Phase, type Show } from './gacha-show';
   import { parseKey, RARITY_NAME, type GearKey } from './gear';
 
   type SceneLike = {
@@ -24,6 +25,7 @@
   let phase = $state<Phase>('ready');
   /** WebGL が作れないときと動きを減らす設定では、3D をやめて 2D の札で見せる */
   let flat = $state(false);
+  let ready = $state(false);
   let canvas = $state<HTMLCanvasElement>();
   let three: SceneLike | null = null;
   let stop = () => {};
@@ -47,11 +49,12 @@
     scene(canvas!).then((made) => {
       if (!alive) return made.dispose();
       three = made;
+      ready = true;
       resize();
       stop = animate((dt, now) => {
         tick(show, dt);
         if (show.phase !== phase) sync();
-        if (show.phase === 'done') {
+        if (closing(show)) {
           stop();
           onclose();
           return;
@@ -73,26 +76,24 @@
     three = null;
   });
 
+  /** 横向きでは盤面ごと回っているので、画面の指の位置を canvas の向きに直す */
   const at = (e: PointerEvent) => {
-    const r = canvas!.getBoundingClientRect();
-    return { x: e.clientX - r.left, y: e.clientY - r.top };
+    const c = canvas!;
+    const turned = matchMedia?.(TURNED_QUERY).matches ?? false;
+    const [u, v] = toBoardPoint(e.clientX, e.clientY, c.getBoundingClientRect(), turned);
+    return { x: u * c.clientWidth, y: v * c.clientHeight };
   };
 
   function down(e: PointerEvent) {
     if (finger) return;
     finger = { id: e.pointerId, ...at(e), moved: 0 };
-    try {
-      canvas?.setPointerCapture(e.pointerId);
-    } catch {
-      // 合成のイベントでは捕まえられないことがある
-    }
+    capture(e);
   }
 
   function move(e: PointerEvent) {
-    if (!finger || e.pointerId !== finger.id || !three) return;
+    if (!finger || e.pointerId !== finger.id) return;
     const q = at(e);
-    const h = three.handle();
-    turn(show, angleDelta(h.x, h.y, finger.x, finger.y, q.x, q.y));
+    if (three) turn(show, handleDelta(three.handle(), finger, q));
     finger.moved += Math.hypot(q.x - finger.x, q.y - finger.y);
     finger.x = q.x;
     finger.y = q.y;
@@ -120,15 +121,16 @@
       onpointerdown={down}
       onpointermove={move}
       onpointerup={up}
-      onpointercancel={() => (finger = null)}
+      onpointercancel={(e) => e.pointerId === finger?.id && (finger = null)}
     ></canvas>
     {#if phase !== 'show' && phase !== 'done'}
       <button class="as-card skip" data-skip onclick={() => (skip(show), sync())}>とばす</button>
     {/if}
     <p class="hint">
-      {#if phase === 'ready'}ハンドルを まわしてね
+      {#if !ready}じゅんびちゅう…
+      {:else if phase === 'ready'}ハンドルを まわしてね
       {:else if phase === 'wait'}カプセルを おしてね
-      {:else if phase === 'show' && p}<b class="r{p.rarity}">{RARITY_NAME[p.rarity]}</b>
+      {:else if (phase === 'show' || phase === 'done') && p}<b class="r{p.rarity}">{RARITY_NAME[p.rarity]}</b>
         {p.def.name}<small>おして とじる</small>{/if}
     </p>
   {/if}
