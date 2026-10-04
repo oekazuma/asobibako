@@ -69,7 +69,7 @@
     start(pick.stage);
   }
 
-  /** お題の回は釜を通らず 2.0 のまま */
+  /** お題の回は釜の画面を通らず、今日の釜と札のまま同じ組で始める */
   const again = () => (pick.challenge ? start(pick.stage) : begin(pick.want ?? 2));
 
   /** キャラ選択の「前回と同じではじめる」。キャラ・ステージ・釜の画面を飛ばす */
