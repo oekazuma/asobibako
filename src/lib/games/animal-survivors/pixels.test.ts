@@ -5,6 +5,7 @@ import { ARCANA_ART } from './art/arcana';
 import { BOSS_ART } from './art/bosses';
 import { ENEMY_ART } from './art/enemies';
 import { FOREST_ART } from './art/forest';
+import { GEAR_ART } from './art/gear';
 import { GRAVE_ART } from './art/graveyard';
 import { ITEM_ART } from './art/items';
 import { SNOW_ART } from './art/snow';
@@ -21,6 +22,7 @@ const all: [string, Art][] = [
   ...Object.entries(ITEM_ART),
   ['cauldron', CAULDRON_ART],
   ...Object.entries(ARCANA_ART),
+  ...Object.entries(GEAR_ART),
   ['grass', FOREST_ART.grass],
   ['dirt', FOREST_ART.dirt],
   ...Object.entries(FOREST_ART.decor),
@@ -153,5 +155,13 @@ describe('ドット絵の格子', () => {
       'tiger',
       'wolf'
     ]);
+  });
+
+  it('装備 18 種と券 3 種の絵がある', () => {
+    for (const k of ['hachimaki', 'muffler', 'scarf', 'feather', 'ticket0', 'ticket1', 'ticket2'])
+      expect(GEAR_ART[k]).toBeDefined();
+    expect(Object.keys(GEAR_ART)).toHaveLength(21);
+    expect(GEAR_ART.owl.w).toBe(12);
+    expect(GEAR_ART.ticket2.h).toBe(8);
   });
 });
