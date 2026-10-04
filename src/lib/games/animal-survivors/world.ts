@@ -45,7 +45,7 @@ export interface Enemy {
   root: number;
   /** ボスの攻撃の数え（巨大ベアは突進と地ならしの交互、女王グモは子グモまでの秒） */
   turn: number;
-  /** 武器の枠ごとに、最後に当たった時刻 */
+  /** 武器の枠ごとに、最後に当たった時刻。後ろの ZONE_HIT からは同じ枠の炎とツタの時計 */
   hit: Float64Array;
   /** まっすぐ飛ぶ残りの秒（群れ）。0 になったら消え、倒した数には入らない */
   drift: number;
@@ -243,6 +243,8 @@ export interface World {
 }
 
 export const MAX_ENEMIES = 400;
+/** 武器の枠の数（choices の SLOTS）。火の羽根と炎のように 1 つの枠が両方を出すとき、互いの当たりを止めないよう時計を分ける */
+export const ZONE_HIT = 6;
 /** 当たって戻せる HP は 1 秒に最大 HP のこの割合まで（大群に当てて一瞬で満タンにならないように） */
 export const DRAIN = 0.03;
 export const BASE_SPEED = 60;
@@ -407,7 +409,7 @@ export function makeEnemy(def: EnemyDef, x: number, y: number, hp: number): Enem
     cd: 2,
     turn: 0,
     root: 0,
-    hit: new Float64Array(6).fill(-1),
+    hit: new Float64Array(ZONE_HIT * 2).fill(-1),
     drift: 0,
     reborn: false,
     born: 0
@@ -926,7 +928,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   });
   separate(w);
   touch(w);
-  if (w.freeze <= 0) {
+  if (w.freeze <= 0 && !w.over) {
     updateHazards(w, dt);
     updateLava(w, dt);
   }

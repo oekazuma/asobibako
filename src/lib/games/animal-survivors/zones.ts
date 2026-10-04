@@ -2,7 +2,7 @@ import { airborne } from './bosses-snow';
 import { MAX_R } from './enemies';
 import { power, type Effect } from './arms';
 import type { WeaponStats } from './weapons';
-import { damageEnemy, type World } from './world';
+import { damageEnemy, ZONE_HIT, type World } from './world';
 
 /** 炎とツタが中の敵へ当てる間（秒） */
 export const ZONE_TICK = 0.5;
@@ -76,8 +76,8 @@ export function updateZones(w: World): void {
       const e = w.enemies[i];
       if (!e.alive || airborne(e)) continue;
       if (f.kind === 'vine') e.root = ROOT;
-      if (w.time - e.hit[f.slot] < ZONE_TICK) continue;
-      e.hit[f.slot] = w.time;
+      if (w.time - e.hit[ZONE_HIT + f.slot] < ZONE_TICK) continue;
+      e.hit[ZONE_HIT + f.slot] = w.time;
       const { dmg, crit } = power(w, f.dmg);
       damageEnemy(w, i, dmg, 0, 0, crit, w.weapons[f.slot]?.id);
     }
