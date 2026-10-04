@@ -80,6 +80,14 @@ describe('装備の画面', () => {
     unmount(app);
   });
 
+  it('最強をつけるで、場所ごとにいちばん高いレア度の品をつけて保存する', () => {
+    const app = open({ bag: { 'oni:0': 1, 'goggles:2': 1, 'knight:1': 1, 'cat:0': 1 } });
+    button('最強をつける').click();
+    flushSync();
+    expect(loadRecords().worn).toEqual({ head: 'goggles:2', body: 'knight:1', charm: 'cat:0' });
+    unmount(app);
+  });
+
   it('コインで引くと持ち物が増え、足りなければ押せない', () => {
     const app = open({ coins: 500 });
     button('ガチャ').click();

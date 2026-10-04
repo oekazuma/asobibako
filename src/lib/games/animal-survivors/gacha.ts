@@ -93,6 +93,20 @@ export function equip(r: Records, key: GearKey): void {
   if (p && r.bag[key]) r.worn[p.def.slot] = key;
 }
 
+/** 場所ごとにいちばん高いレア度の品をつける。同じレア度なら今の品を残し、つけていなければ表で先の品 */
+export function equipBest(r: Records): void {
+  for (const s of SLOTS) {
+    const keys = GEAR.filter((d) => d.slot === s)
+      .flatMap((d) => ([2, 1, 0] as const).map((rarity) => keyOf(d.id, rarity)))
+      .filter((k) => r.bag[k]);
+    if (!keys.length) continue;
+    const top = Math.max(...keys.map((k) => parseKey(k)!.rarity));
+    const now = r.worn[s];
+    if (now && parseKey(now)?.rarity === top) continue;
+    r.worn[s] = keys.find((k) => parseKey(k)!.rarity === top)!;
+  }
+}
+
 export const wornKeys = (r: Records) => SLOTS.flatMap((s) => (r.worn[s] ? [r.worn[s]] : []));
 
 const count = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);

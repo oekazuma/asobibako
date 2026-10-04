@@ -4,6 +4,7 @@ import {
   bagCount,
   canPull,
   equip,
+  equipBest,
   merge,
   pull,
   PULL_COINS,
@@ -139,5 +140,19 @@ describe('記録の読み', () => {
     );
     expect(r.bag).toEqual({ 'hachimaki:1': 3 });
     expect(r.worn.head).toBe('hachimaki:1');
+  });
+
+  it('最強をつけるは場所ごとにいちばん高いレア度の品をつけ、同じレア度なら今の品を残す', () => {
+    const r = {
+      ...emptyRecords(),
+      bag: { 'oni:0': 1, 'goggles:2': 1, 'hachimaki:2': 1, 'knight:1': 2, 'shell:0': 1 },
+      worn: { head: 'hachimaki:2' as const, body: 'shell:0' as const, charm: null }
+    };
+    equipBest(r);
+    expect(r.worn).toEqual({ head: 'hachimaki:2', body: 'knight:1', charm: null });
+    const s = { ...emptyRecords(), bag: { 'oni:2': 1, 'goggles:2': 1 } };
+    equipBest(s);
+    // 同じレア度で何もつけていなければ、表で先の品
+    expect(s.worn.head).toBe('goggles:2');
   });
 });

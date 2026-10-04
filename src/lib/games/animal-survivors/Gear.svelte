@@ -2,7 +2,7 @@
   import { ITEM_ART } from './art/items';
   import Bag from './Bag.svelte';
   import Gacha from './Gacha.svelte';
-  import { BAG_MAX, bagCount, equip, merge, pull, sell, type PullWay } from './gacha';
+  import { BAG_MAX, bagCount, equip, equipBest, merge, pull, sell, type PullWay } from './gacha';
   import { parseKey, SLOT_NAME, SLOTS, type GearKey } from './gear';
   import GearDetail from './GearDetail.svelte';
   import GearIcon from './GearIcon.svelte';
@@ -54,6 +54,15 @@
         </div>
       {/each}
     </div>
+    {#if bagCount(r)}
+      <button
+        class="as-card best"
+        onclick={() => {
+          equipBest(r);
+          save();
+        }}>最強をつける</button
+      >
+    {/if}
     <button class="as-card toggle" onclick={() => (gacha = !gacha)}>{gacha ? 'ガチャをとじる' : 'ガチャ'}</button>
     {#if gacha}<Gacha {r} {onpull} />{/if}
     {#if picked && r.bag[picked]}
@@ -110,6 +119,11 @@
     justify-content: center;
     background: #ffd84a;
     font-size: min(4.6cqw, 2.8cqh, 24px);
+  }
+
+  .best {
+    justify-content: center;
+    font-size: min(4cqw, 2.4cqh, 20px);
   }
 
   .back {
