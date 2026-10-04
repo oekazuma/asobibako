@@ -29,7 +29,7 @@
   }
 
   .done {
-    background: #d9cbb0;
+    background: #e8dcc0;
   }
 
   .body {

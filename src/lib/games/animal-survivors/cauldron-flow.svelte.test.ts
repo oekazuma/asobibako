@@ -51,6 +51,37 @@ describe('釜を通る流れ', () => {
     unmount(app);
   });
 
+  it('やり直すときにコインが足りなければ、払える強さで始めて帯で知らせる', async () => {
+    const app = open();
+    (document.querySelector('[data-animal="dog"]') as HTMLButtonElement).click();
+    flushSync();
+    (document.querySelector('[data-go]') as HTMLButtonElement).click();
+    flushSync();
+    (document.querySelector('[data-stage="forest"]') as HTMLButtonElement).click();
+    flushSync();
+    for (let i = 0; i < 25; i++) (document.querySelector('[aria-label="強くする"]') as HTMLButtonElement).click();
+    flushSync();
+    (document.querySelector('[data-start]') as HTMLButtonElement).click();
+    flushSync();
+    const saved = JSON.parse(localStorage.getItem(RECORDS_KEY)!);
+    localStorage.setItem(RECORDS_KEY, JSON.stringify({ ...saved, coins: betOf(3) }));
+    (document.querySelector('.as-pause') as HTMLButtonElement).click();
+    flushSync();
+    button('最初からやり直す').click();
+    flushSync();
+    // 確かめの画面は出てから 350ms 押せない
+    await new Promise((r) => setTimeout(r, 400));
+    [...document.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'やり直す')!.click();
+    flushSync();
+    await new Promise((r) => setTimeout(r, 100));
+    flushSync();
+    // やり直す前にその回を記録するので、図鑑のコインが少し入って 3.0 より少し上まで払えることがある
+    const lowered = document.body.textContent?.match(/コインが足りないので 釜 (\d\.\d) で始めます/);
+    expect(Number(lowered?.[1])).toBeGreaterThanOrEqual(3);
+    expect(Number(lowered?.[1])).toBeLessThan(4.5);
+    unmount(app);
+  });
+
   it('お題の回は釜を通らず、賭けもしない', () => {
     const app = open();
     button('今日のお題').click();
