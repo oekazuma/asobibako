@@ -129,4 +129,15 @@ describe('記録の読み', () => {
     expect(r.tickets).toEqual([2, 0, 1]);
     expect(r.pity).toBe(12);
   });
+
+  it('形の崩れた名前は正しい名前に直して足し、直せないものは捨てる', () => {
+    const r = parseRecords(
+      JSON.stringify({
+        bag: { 'hachimaki:1.0': 2, 'hachimaki:1': 1, 'owl:': 3, 'owl:1:x': 1, 'cat:0x1': 1 },
+        worn: { head: 'hachimaki:1.0' }
+      })
+    );
+    expect(r.bag).toEqual({ 'hachimaki:1': 3 });
+    expect(r.worn.head).toBe('hachimaki:1');
+  });
 });

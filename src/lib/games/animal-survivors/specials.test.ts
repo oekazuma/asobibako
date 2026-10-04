@@ -20,7 +20,7 @@ const toLevel = (w: World, level: number) => {
 const specials = (w: World) => w.events.filter((e) => e.type === 'special');
 
 describe('専用進化', () => {
-  it('9 匹とも専用進化形があり、元の武器へ戻せて、上がらない', () => {
+  it('10 匹とも専用進化形があり、元の武器へ戻せて、上がらない', () => {
     for (const a of ANIMALS) {
       const d = WEAPONS[a.special];
       expect(d.special).toBe(true);

@@ -132,8 +132,11 @@ export const GEAR: GearDef[] = [
 export const gearDef = (id: GearId) => GEAR.find((d) => d.id === id)!;
 export const keyOf = (id: GearId, r: Rarity) => `${id}:${r}` as GearKey;
 
+/** 保存を手で直した「owl:1.0」のような名前も読む。正しい名前は keyOf で作り直す */
 export function parseKey(k: string): { def: GearDef; rarity: Rarity } | null {
-  const [id, r] = k.split(':');
+  const parts = k.split(':');
+  if (parts.length !== 2 || !/^\d+(\.0+)?$/.test(parts[1])) return null;
+  const [id, r] = parts;
   const def = GEAR.find((d) => d.id === id);
   const rarity = Number(r);
   return def && (rarity === 0 || rarity === 1 || rarity === 2) ? { def, rarity } : null;

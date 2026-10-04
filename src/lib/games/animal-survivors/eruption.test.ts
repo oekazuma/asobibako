@@ -59,16 +59,27 @@ describe('噴火', () => {
 
   it('時計の品で止まっているあいだは当たらず、割れ目も噴かない', () => {
     const w = quiet();
-    w.freeze = 5;
     addLava(w, 0, 0, 30);
+    addLava(w, w.player.x, w.player.y, 30, 0);
+    w.time = 95;
+    stepEruption(w, 1 / 30);
+    w.freeze = 5;
+    const live = () => w.lava.filter((l) => l.life > 0).length;
+    const before = { n: live(), hp: w.player.hp, left: w.eruption.left };
     for (let i = 0; i < 30 * 3; i++) step(w, { x: 0, y: 0 }, 1 / 30);
     expect(w.lava[0].warn).toBeGreaterThan(0);
+    expect(w.player.hp).toBe(before.hp);
+    expect(live()).toBe(before.n);
+    expect(w.eruption.left).toBe(before.left);
   });
 
   it('池は上限までで、あふれたら残りの短い池を置き換える', () => {
     const w = quiet();
-    for (let i = 0; i < MAX_LAVA + 5; i++) addLava(w, i * 10, 0, 10, 0);
+    for (let i = 0; i < MAX_LAVA; i++) addLava(w, i * 10, 0, 10, 0);
+    w.lava[3].life = 0.5;
+    addLava(w, 999, 0, 10, 0);
     expect(w.lava.length).toBe(MAX_LAVA);
+    expect(w.lava[3]).toMatchObject({ x: 999, life: POOL_LIFE });
   });
 
   it('噴火の時計は step の中で進むので、step を呼ばなければ減らない', () => {
@@ -77,6 +88,12 @@ describe('噴火', () => {
     stepEruption(w, 1 / 30);
     const left = w.eruption.left;
     expect(left).toBeGreaterThan(0);
+    // 3 択を待っているあいだは step が進まないので減らない
+    w.pending = 1;
+    for (let i = 0; i < 30; i++) step(w, { x: 0, y: 0 }, 1 / 30);
     expect(w.eruption.left).toBe(left);
+    w.pending = 0;
+    for (let i = 0; i < 30; i++) step(w, { x: 0, y: 0 }, 1 / 30);
+    expect(w.eruption.left).toBeCloseTo(left - 1, 1);
   });
 });

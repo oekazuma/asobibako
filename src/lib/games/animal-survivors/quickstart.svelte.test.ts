@@ -26,6 +26,13 @@ function open(extra: object) {
 }
 const quick = () => document.querySelector('[data-again]') as HTMLButtonElement | null;
 
+/** ゲームのループと同じ requestAnimationFrame を n 回待つ（決まった実時間を待たない） */
+const frames = (n: number) =>
+  new Promise<void>((done) => {
+    const tick = (k: number) => (k ? requestAnimationFrame(() => tick(k - 1)) : done());
+    tick(n);
+  });
+
 describe('前回と同じではじめる', () => {
   afterEach(() => {
     document.body.innerHTML = '';
@@ -45,7 +52,7 @@ describe('前回と同じではじめる', () => {
     quick()!.click();
     flushSync();
     expect(coins()).toBe(1000 - betOf(4.5));
-    await new Promise((r) => setTimeout(r, 200));
+    await frames(10);
     flushSync();
     expect(document.querySelectorAll('[data-card]').length).toBe(3);
     unmount(app);

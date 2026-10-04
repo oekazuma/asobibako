@@ -1,4 +1,4 @@
-import { GEAR, keyOf, parseKey, SLOTS, type GearKey, type Rarity, type Slot } from './gear';
+import { GEAR, keyOf, parseKey, SLOTS, type GearKey, type Rarity } from './gear';
 import type { Records } from './records';
 
 export type Ticket = 0 | 1 | 2;
@@ -101,12 +101,18 @@ const count = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v 
 export function gearRecords(raw: Record<string, unknown>): Pick<Records, 'bag' | 'worn' | 'tickets' | 'pity'> {
   const bag: Records['bag'] = {};
   if (raw.bag && typeof raw.bag === 'object')
-    for (const [k, v] of Object.entries(raw.bag)) if (parseKey(k) && count(v)) bag[k as GearKey] = count(v);
+    for (const [k, v] of Object.entries(raw.bag)) {
+      const p = parseKey(k);
+      if (!p || !count(v)) continue;
+      const key = keyOf(p.def.id, p.rarity);
+      bag[key] = (bag[key] ?? 0) + count(v);
+    }
   const worn: Records['worn'] = { head: null, body: null, charm: null };
   const w = raw.worn && typeof raw.worn === 'object' ? (raw.worn as Record<string, unknown>) : {};
   for (const s of SLOTS) {
-    const k = w[s];
-    if (typeof k === 'string' && bag[k as GearKey] && parseKey(k)?.def.slot === s) worn[s as Slot] = k as GearKey;
+    const p = typeof w[s] === 'string' ? parseKey(w[s]) : null;
+    const k = p && keyOf(p.def.id, p.rarity);
+    if (k && bag[k] && p.def.slot === s) worn[s] = k;
   }
   const t = Array.isArray(raw.tickets) ? raw.tickets : [];
   return { bag, worn, tickets: [count(t[0]), count(t[1]), count(t[2])], pity: Math.min(PITY - 1, count(raw.pity)) };

@@ -251,7 +251,7 @@ export const BASE_SPEED = 60;
 /** 糸の玉に当たったときの速さの倍率 */
 export const SLOW = 0.85;
 const BEAR_DASH_ATK = 30;
-const REBIRTH_INVULN = 2;
+/** 起き上がったあとの無敵の秒（ひなのよみがえり・店の復活・不死鳥の羽根） */
 const REVIVE_INVULN = 2;
 const REVIVE_REACH = 80;
 const REVIVE_PUSH = 400;
@@ -782,10 +782,10 @@ function touch(w: World) {
   if (atk > 0) hurtPlayer(w, atk, boss ? 'boss' : 'touch');
 }
 
-/** 自分にダメージを与え、少し無敵にする。釜の攻撃の倍率はボスの攻撃や予告にも効かせるのでここで掛け、防御を引き、最低 1 */
 /** 受けたダメージの出どころ。装備のよろい・甲羅・マントが見る */
 export type Hurt = 'touch' | 'boss' | 'shot' | 'lava';
 
+/** 自分にダメージを与え、少し無敵にする。釜の攻撃の倍率はボスの攻撃や予告にも効かせるのでここで掛け、防御を引き、最低 1 */
 export function hurtPlayer(w: World, raw: number, from: Hurt = 'touch'): void {
   const f = w.fx;
   const scale =
@@ -805,7 +805,7 @@ export function hurtPlayer(w: World, raw: number, from: Hurt = 'touch'): void {
     // 動物の強みなので店の復活より先に使い、まわりの敵は押し返さない
     w.rebirths -= 1;
     p.hp = Math.round(w.stats.maxHp / 2);
-    p.invuln = REBIRTH_INVULN;
+    p.invuln = REVIVE_INVULN;
     w.events.push({ type: 'swarm', text: 'よみがえった！' }, { type: 'revive' });
     return;
   }

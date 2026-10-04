@@ -38,7 +38,7 @@ export function flameAt(w: World, slot: number, x: number, y: number, scale: num
 
 /** 自分の足もとに炎を置く */
 export function dropFlame(w: World, slot: number, s: WeaponStats, area: number): void {
-  zone(w, slot, 'flame', w.player.x, w.player.y + 4, FLAME_R * area, s);
+  flameAt(w, slot, w.player.x, w.player.y + 4, area, s);
 }
 
 /** 竜王の業火の焼け跡。扇の中に、ダメージの 4 分の 1 で 2.5 秒焼く炎を置く */

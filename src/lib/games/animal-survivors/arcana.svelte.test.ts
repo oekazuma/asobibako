@@ -26,6 +26,13 @@ const ALL = ARCANA.map((a) => a.id);
 const button = (text: string) =>
   [...document.querySelectorAll('button')].find((b) => b.textContent?.includes(text)) as HTMLButtonElement;
 
+/** ゲームのループと同じ requestAnimationFrame を n 回待つ（決まった実時間を待たない） */
+const frames = (n: number) =>
+  new Promise<void>((done) => {
+    const tick = (k: number) => (k ? requestAnimationFrame(() => tick(k - 1)) : done());
+    tick(n);
+  });
+
 describe('札の画面', () => {
   afterEach(() => {
     document.body.innerHTML = '';
@@ -95,7 +102,7 @@ describe('札の画面', () => {
     (document.querySelector('[data-start]') as HTMLButtonElement).click();
     flushSync();
     // 札はゲームのループの中で出すので、何フレームか回るのを待つ
-    await new Promise((r) => setTimeout(r, 200));
+    await frames(10);
     flushSync();
     expect(document.querySelectorAll('[data-card]').length).toBe(3);
     unmount(app);
@@ -109,7 +116,7 @@ describe('札の画面', () => {
     flushSync();
     button('挑戦する').click();
     flushSync();
-    await new Promise((r) => setTimeout(r, 200));
+    await frames(10);
     flushSync();
     expect(document.querySelector('[data-card]')).toBeNull();
     unmount(again);
