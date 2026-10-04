@@ -413,15 +413,13 @@ export function hits(w: World, dt: number): void {
   updateZones(w);
 }
 
-/** 火の羽根は折り返すところに炎を置く。炎は羽根の 4 割の強さで、専用進化形は大きく長く焼く */
+/** 火の羽根は折り返すところに炎を置く。炎は投げた羽根の 4 割の強さで、範囲と効く時間の強化も受ける（専用進化形は大きく長く焼く） */
 function flameTurn(w: World, o: Shot): void {
   const own = w.weapons[o.slot];
   const def = own && WEAPONS[own.id];
   if (!def?.flameTurn) return;
   const s = weaponStats(def, own.level);
-  flameAt(w, o.slot, o.x, o.y + 4, def.special ? 1.4 : 0.8, {
-    ...s,
-    damage: s.damage * 0.4,
-    duration: def.special ? 2 : 1.4
-  });
+  const scale = (def.special ? 1.4 : 0.8) * s.area * w.stats.area;
+  const duration = (def.special ? 2 : 1.4) * w.stats.duration;
+  flameAt(w, o.slot, o.x, o.y + 4, scale, { ...s, damage: o.dmg * 0.4, duration });
 }

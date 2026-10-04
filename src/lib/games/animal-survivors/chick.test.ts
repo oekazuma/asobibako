@@ -105,3 +105,29 @@ describe('火の羽根', () => {
     expect(w.shots.some((o) => o.alive || o.age > 0)).toBe(true);
   });
 });
+
+describe('火の羽根の炎と強化', () => {
+  const firstFlame = (area: number, duration: number) => {
+    const w = createWorld('chick', 1, VIEW);
+    w.stage = { ...w.stage, waves: [], bosses: [], events: [], chiefs: [] };
+    w.propCd = 9999;
+    w.metalAt = -1;
+    w.player.invuln = 9999;
+    w.stats.area = area;
+    w.stats.duration = duration;
+    w.enemies.push(makeEnemy(ENEMIES.rat, 80, 0, 1e9));
+    for (let i = 0; i < 60 * 3; i++) {
+      step(w, { x: 0, y: 0 }, 1 / 60);
+      const f = w.effects.find((e) => e.alive && e.kind === 'flame');
+      if (f) return f;
+    }
+    throw new Error('炎が出ない');
+  };
+
+  it('範囲と効く時間の強化で、折り返しの炎も大きく長くなる', () => {
+    const base = firstFlame(1, 1);
+    const big = firstFlame(1.5, 2);
+    expect(big.r).toBeCloseTo(base.r * 1.5);
+    expect(big.life).toBeGreaterThan(base.life * 1.9);
+  });
+});
