@@ -15,8 +15,8 @@
   let r = $state(loadRecords());
   let picked = $state<GearKey | null>(null);
   let gacha = $state(false);
-  /** 1 回ずつ引いたときに開く 3D の演出の品（10 連は 2D のまま）。枠の中だと全画面に広がらないので画面の外に置く */
-  let three = $state<GearKey | null>(null);
+  /** 引いたあとに開く 3D の演出の品。枠の中だと全画面に広がらないので画面の外に置く */
+  let three = $state<GearKey[] | null>(null);
   const save = () => saveRecords($state.snapshot(r));
 
   function act(what: 'equip' | 'merge' | 'sell' | 'close') {
@@ -32,7 +32,7 @@
   function onpull(way: PullWay) {
     const got = pull(r, way, Math.random);
     if (got) save();
-    if (got && way !== 'ten') three = got[0];
+    if (got) three = got;
     return got;
   }
 </script>
@@ -76,7 +76,7 @@
     <button class="as-card back" onclick={onback}>もどる</button>
   </section>
 </div>
-{#if three}<Gacha3D gear={three} onclose={() => (three = null)} />{/if}
+{#if three}<Gacha3D gears={three} onclose={() => (three = null)} />{/if}
 
 <style>
   .purse {

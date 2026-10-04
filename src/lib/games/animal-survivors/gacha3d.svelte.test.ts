@@ -14,7 +14,7 @@ describe('3D のガチャの重ね', () => {
     const target = document.body.appendChild(document.createElement('div'));
     const app = mount(Gacha3D, {
       target,
-      props: { gear: 'owl:2', onclose: () => closed.push('x'), scene: () => Promise.reject(new Error('no webgl')) }
+      props: { gears: ['owl:2'], onclose: () => closed.push('x'), scene: () => Promise.reject(new Error('no webgl')) }
     });
     await tick();
     flushSync();
@@ -28,7 +28,7 @@ describe('3D のガチャの重ね', () => {
     const dispose = vi.fn();
     const fake = { resize() {}, render() {}, handle: () => ({ x: 0, y: 0 }), dispose };
     const target = document.body.appendChild(document.createElement('div'));
-    const app = mount(Gacha3D, { target, props: { gear: 'owl:2', onclose: () => {}, scene: async () => fake } });
+    const app = mount(Gacha3D, { target, props: { gears: ['owl:2'], onclose: () => {}, scene: async () => fake } });
     await tick();
     unmount(app);
     expect(dispose).toHaveBeenCalled();
@@ -37,11 +37,37 @@ describe('3D のガチャの重ね', () => {
   it('とばすで品を見せる', async () => {
     const fake = { resize() {}, render() {}, handle: () => ({ x: 0, y: 0 }), dispose() {} };
     const target = document.body.appendChild(document.createElement('div'));
-    const app = mount(Gacha3D, { target, props: { gear: 'owl:2', onclose: () => {}, scene: async () => fake } });
+    const app = mount(Gacha3D, { target, props: { gears: ['owl:2'], onclose: () => {}, scene: async () => fake } });
     await tick();
     (target.querySelector('[data-skip]') as HTMLButtonElement).click();
     flushSync();
     expect(target.textContent).toContain('知恵のふくろう');
+    unmount(app);
+  });
+
+  it('10 連をとばすと 10 この品を並べる', async () => {
+    const fake = { resize() {}, render() {}, handle: () => ({ x: 0, y: 0 }), dispose() {} };
+    const target = document.body.appendChild(document.createElement('div'));
+    const gears = ['owl:0', 'cat:1', 'oni:2', 'owl:0', 'owl:0', 'owl:0', 'owl:0', 'owl:0', 'owl:0', 'owl:0'] as const;
+    const app = mount(Gacha3D, { target, props: { gears: [...gears], onclose: () => {}, scene: async () => fake } });
+    await tick();
+    (target.querySelector('[data-skip]') as HTMLButtonElement).click();
+    flushSync();
+    expect(target.querySelectorAll('[data-got]').length).toBe(10);
+    expect(target.textContent).toContain('鬼のツノ');
+    unmount(app);
+  });
+
+  it('WebGL が作れない 10 連は 2D で 10 こ並べる', async () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const gears = Array.from({ length: 10 }, () => 'owl:0' as const);
+    const app = mount(Gacha3D, {
+      target,
+      props: { gears, onclose: () => {}, scene: () => Promise.reject(new Error('x')) }
+    });
+    await tick();
+    flushSync();
+    expect(target.querySelectorAll('[data-got]').length).toBe(10);
     unmount(app);
   });
 });

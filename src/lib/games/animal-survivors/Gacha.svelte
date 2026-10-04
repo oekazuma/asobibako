@@ -1,17 +1,13 @@
 <script lang="ts">
   import { GEAR_ART } from './art/gear';
-  import Capsule from './Capsule.svelte';
   import { BAG_MAX, bagCount, canPull, PITY, PULL_COINS, TEN_COINS, TICKET_NAME, type PullWay } from './gacha';
   import type { GearKey } from './gear';
   import PixelIcon from './PixelIcon.svelte';
   import type { Records } from './records';
 
-  /** 記録を書き換えて保存するのは装備の画面。ここは引いた品を見せるだけ */
+  /** 記録を書き換えて保存し、引いた品を見せるのは装備の画面。ここは引き方のボタンだけ */
   let { r, onpull }: { r: Records; onpull: (way: PullWay) => GearKey[] | null } = $props();
 
-  /** 同じ品が 2 つ出ることがあるので、引いた順の番号を付けて並べる */
-  let got = $state<{ gear: GearKey; id: number }[]>([]);
-  let round = $state(0);
   const TICKETS = [0, 1, 2] as const;
   const WAYS: [PullWay, string][] = [
     ['bronze', '銅の券で引く'],
@@ -20,13 +16,6 @@
     ['coin', `コインで引く（${PULL_COINS}）`],
     ['ten', `コインで 10 連（${TEN_COINS}）`]
   ];
-
-  function go(way: PullWay) {
-    const k = onpull(way);
-    if (!k) return;
-    round += 1;
-    got = k.map((gear, i) => ({ gear, id: round * 10 + i }));
-  }
 </script>
 
 <section class="gacha" aria-label="ガチャ">
@@ -40,19 +29,12 @@
   <p class="pity">伝説まであと {PITY - r.pity} 回</p>
   <div class="ways">
     {#each WAYS as [way, label] (way)}
-      <button class="as-card" class:wide={way === 'ten'} disabled={!canPull(r, way)} onclick={() => go(way)}
+      <button class="as-card" class:wide={way === 'ten'} disabled={!canPull(r, way)} onclick={() => onpull(way)}
         >{label}</button
       >
     {/each}
   </div>
   {#if bagCount(r) >= BAG_MAX}<p class="warn">持ち物がいっぱい。売るか合成してから引こう</p>{/if}
-  {#key round}
-    {#if got.length}
-      <div class="got" class:ten={got.length > 1}>
-        {#each got as c, i (c.id)}<Capsule gear={c.gear} delay={i * 0.25} />{/each}
-      </div>
-    {/if}
-  {/key}
 </section>
 
 <style>
@@ -111,14 +93,5 @@
     margin: 0;
     color: #f093a3;
     text-align: center;
-  }
-
-  .got {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-
-  .ten {
-    grid-template-columns: repeat(5, 1fr);
   }
 </style>

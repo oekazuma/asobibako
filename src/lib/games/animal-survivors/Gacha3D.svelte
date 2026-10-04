@@ -2,9 +2,11 @@
   import { onDestroy, onMount } from 'svelte';
   import { capture, toBoardPoint, TURNED_QUERY } from '$lib/board-input';
   import { animate } from '$lib/loop';
-  import Capsule from './Capsule.svelte';
+  import GachaHint from './GachaHint.svelte';
+  import GachaList from './GachaList.svelte';
   import { closing, handleDelta, makeShow, skip, tap, tick, turn, type Phase, type Show } from './gacha-show';
-  import { parseKey, RARITY_NAME, type GearKey } from './gear';
+  import { playGacha } from './gacha-sounds';
+  import type { GearKey } from './gear';
 
   type SceneLike = {
     resize(w: number, h: number): void;
@@ -15,13 +17,14 @@
 
   /** scene はテストで差し替える。ふだんは開くときに three を読み込む */
   let {
-    gear,
+    gears,
     onclose,
     scene = async (c: HTMLCanvasElement) => new (await import('./gacha3d')).GachaScene(c)
-  }: { gear: GearKey; onclose: () => void; scene?: (c: HTMLCanvasElement) => Promise<SceneLike> } = $props();
+  }: { gears: GearKey[]; onclose: () => void; scene?: (c: HTMLCanvasElement) => Promise<SceneLike> } = $props();
 
-  const show = $derived(makeShow(gear));
-  const p = $derived(parseKey(gear));
+  const show = $derived(makeShow(gears));
+  /** 伝説が割れた瞬間の白い閃光（CSS のアニメで薄くして消す） */
+  let flash = $state(0);
   let phase = $state<Phase>('ready');
   /** WebGL が作れないときと動きを減らす設定では、3D をやめて 2D の札で見せる */
   let flat = $state(false);
@@ -33,6 +36,13 @@
   let finger: { id: number; x: number; y: number; moved: number } | null = null;
 
   const sync = () => (phase = show.phase);
+  /** 段取りが出した出来事を音にし、伝説が割れたら閃光を出す */
+  const drain = () => {
+    for (const e of show.events.splice(0)) {
+      playGacha(e);
+      if (e === 'pop2') flash += 1;
+    }
+  };
   const toFlat = () => {
     flat = true;
     skip(show);
@@ -53,6 +63,7 @@
       resize();
       stop = animate((dt, now) => {
         tick(show, dt);
+        drain();
         if (show.phase !== phase) sync();
         if (closing(show)) {
           stop();
@@ -94,6 +105,7 @@
     if (!finger || e.pointerId !== finger.id) return;
     const q = at(e);
     if (three) turn(show, handleDelta(three.handle(), finger, q));
+    drain();
     finger.moved += Math.hypot(q.x - finger.x, q.y - finger.y);
     finger.x = q.x;
     finger.y = q.y;
@@ -104,6 +116,7 @@
     if (!finger || e.pointerId !== finger.id) return;
     // ほとんど動かさずに離したら押したことにする（回している指を離しても進まない）
     if (finger.moved < 12) tap(show);
+    drain();
     finger = null;
     sync();
   }
@@ -112,7 +125,7 @@
 <div class="gacha3d" role="dialog" aria-label="ガチャ">
   {#if flat}
     <div class="flat">
-      <Capsule {gear} delay={0} />
+      <GachaList {gears} />
       <button class="as-card" data-close onclick={onclose}>とじる</button>
     </div>
   {:else}
@@ -123,16 +136,10 @@
       onpointerup={up}
       onpointercancel={(e) => e.pointerId === finger?.id && (finger = null)}
     ></canvas>
-    {#if phase !== 'show' && phase !== 'done'}
+    {#if phase !== 'show' && phase !== 'list' && phase !== 'done'}
       <button class="as-card skip" data-skip onclick={() => (skip(show), sync())}>とばす</button>
     {/if}
-    <p class="hint">
-      {#if !ready}じゅんびちゅう…
-      {:else if phase === 'ready'}ハンドルを まわしてね
-      {:else if phase === 'wait'}カプセルを おしてね
-      {:else if (phase === 'show' || phase === 'done') && p}<b class="r{p.rarity}">{RARITY_NAME[p.rarity]}</b>
-        {p.def.name}<small>おして とじる</small>{/if}
-    </p>
+    <GachaHint {phase} {gears} {ready} {flash} />
   {/if}
 </div>
 
@@ -155,7 +162,8 @@
   .flat {
     display: grid;
     gap: 16px;
-    place-content: center;
+    align-content: center;
+    justify-items: center;
     height: 100%;
   }
 
@@ -164,34 +172,5 @@
     top: 12px;
     right: 12px;
     font-size: min(4cqw, 2.4cqh, 20px);
-  }
-
-  .hint {
-    position: absolute;
-    right: 0;
-    bottom: 10%;
-    left: 0;
-    display: grid;
-    gap: 4px;
-    justify-items: center;
-    margin: 0;
-    color: #fff8ec;
-    font-size: min(5.4cqw, 3.2cqh, 28px);
-    font-weight: 900;
-    text-shadow: 0 2px 0 #24151f;
-    pointer-events: none;
-  }
-
-  .hint small {
-    color: #d8d0e8;
-    font-size: 0.6em;
-  }
-
-  .r1 {
-    color: #5ab0ff;
-  }
-
-  .r2 {
-    color: #ffd84a;
   }
 </style>
