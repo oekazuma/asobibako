@@ -6,12 +6,12 @@
   import { Settle } from '$lib/settle.svelte';
   import type { AchievementDef } from './achievements';
   import type { AnimalId } from './animals';
-  import { openArcana, type ArcanaId } from './arcana';
+  import { openArcana } from './arcana';
   import Cauldron from './Cauldron.svelte';
-  import type { Heat } from './cauldron';
+  import { heatLabel, snap } from './cauldron';
   import CharSelect from './CharSelect.svelte';
   import Daily from './Daily.svelte';
-  import { dailyBonus, type Challenge } from './daily';
+  import { dailyBonus } from './daily';
   import Play from './Play.svelte';
   import { emptyRecords, ensureDaily, loadRecords, payHeat, record, saveRecords } from './records';
   import Result from './Result.svelte';
@@ -22,7 +22,7 @@
   import Trophies from './Trophies.svelte';
   import Book from './Book.svelte';
   import { overtimeRun } from './overtime';
-  import { summary, type RunSummary, type World } from './world';
+  import { summary, type Options, type RunSummary, type World } from './world';
   import './retro.css';
 
   // 10 分の 1 回が面ひとつなので、シェルの level と onfinish は使わない（リザルトはこのゲームが持つ）
@@ -31,11 +31,9 @@
   let screen = $state<'select' | 'stage' | 'cauldron' | 'shop' | 'trophies' | 'book' | 'daily' | 'play' | 'result'>(
     'select'
   );
-  /** これから遊ぶ動物と面（お題の回はしばりも）。「もう一度」とやり直しは同じ組で始める */
-  let pick = $state<{ animal: AnimalId; stage: string; challenge?: Challenge; heat?: Heat; arcana?: ArcanaId[] }>({
-    animal: 'dog',
-    stage: 'forest'
-  });
+  /** これから遊ぶ動物と面（お題の回はしばりも）。「もう一度」とやり直しは同じ組で始める。
+   * want は釜で選んだ強さ（払えずに heat を下げても、もう一度は want で払おうとする） */
+  let pick = $state<Options & { animal: AnimalId; stage: string; want?: number }>({ animal: 'dog', stage: 'forest' });
   let run = $state<RunSummary | null>(null);
   let records = $state(emptyRecords());
   /** この回に達成した実績 */
@@ -62,14 +60,22 @@
   /** 釜で選んだ強さで賭けを引いて始める。足りなければ payHeat が払える強さまで下げる */
   function begin(h: number) {
     const r = loadRecords();
-    pick = { ...pick, heat: payHeat(r, h), arcana: openArcana(r.achieved) };
+    const heat = payHeat(r, h);
+    const note = heat.level < snap(h) ? `コインが足りないので 釜 ${heatLabel(heat.level)} で始めます` : undefined;
+    pick = { ...pick, heat, want: snap(h), note, arcana: openArcana(r.achieved) };
     saveRecords(r);
     records = r;
     start(pick.stage);
   }
 
   /** お題の回は釜を通らず 2.0 のまま */
-  const again = () => (pick.challenge ? start(pick.stage) : begin(pick.heat?.level ?? 2));
+  const again = () => (pick.challenge ? start(pick.stage) : begin(pick.want ?? 2));
+
+  /** キャラ選択の「前回と同じではじめる」。キャラ・ステージ・釜の画面を飛ばす */
+  function repeat() {
+    pick = { animal: records.animal, stage: records.stage };
+    begin(records.heatLast);
+  }
 
   // リザルトを待たずに記録する。決着からリザルトまでの間に ✕ で抜けたり終わらされたりしても、その回を落とさない。
   // 延長戦はクリアで 1 回記録してあるので、終わりには延長戦の差だけを記録し、見せるのは 2 回の合計
@@ -149,6 +155,7 @@
   <CharSelect
     {records}
     onpick={choose}
+    onrepeat={repeat}
     onquit={() => onquit?.()}
     onopen={(s) => (s === 'daily' ? openDaily() : (screen = s))}
   />

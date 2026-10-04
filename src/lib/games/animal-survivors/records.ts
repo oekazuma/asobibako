@@ -231,12 +231,12 @@ export function record(r: Records, run: RunSummary): AchievementDef[] {
   return grant(r, run);
 }
 
-/** はじめるときに賭けを引く。足りなければ払える強さまで下げる */
+/** はじめるときに賭けを引く。足りなければ払える強さまで下げる（最後に選んだ強さには、下げる前の強さを覚える） */
 export function payHeat(r: Records, h: number): Heat {
   const level = snap(h) <= 2 ? snap(h) : Math.min(snap(h), maxHeat(r.coins));
   const bet = betOf(level);
   r.coins -= bet;
-  r.heatLast = level;
+  r.heatLast = snap(h);
   return { level, bet };
 }
 

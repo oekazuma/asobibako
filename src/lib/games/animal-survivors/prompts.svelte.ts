@@ -52,6 +52,8 @@ export class Prompts {
     this.#w = w;
     this.#still = still;
     this.#sync();
+    // step は毎フレームの出来事を消してから進むので、始めの一言は作るときに帯へ写す
+    if (w.note) this.notice = { text: w.note, key: -1, until: w.time + NOTICE * 2 };
   }
 
   #sync() {

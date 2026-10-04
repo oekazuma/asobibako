@@ -3,22 +3,27 @@
   import { audio, toggleMute } from '$lib/audio.svelte';
   import Icon from '$lib/components/Icon.svelte';
   import { ACHIEVEMENTS } from './achievements';
-  import { ANIMALS, type AnimalId } from './animals';
+  import { animal, ANIMALS, type AnimalId } from './animals';
   import { ANIMAL_ART } from './art/animals';
   import DailyCard from './DailyCard.svelte';
   import { ITEM_ART } from './art/items';
   import PixelIcon from './PixelIcon.svelte';
-  import type { Records } from './records';
   import AnimalCard from './AnimalCard.svelte';
+  import { heatLabel } from './cauldron';
+  import { canPlay, type Records } from './records';
+  import { stageOf } from './stages';
 
   let {
     records,
     onpick,
+    onrepeat,
     onquit,
     onopen
   }: {
     records: Records;
     onpick: (id: AnimalId) => void;
+    /** 前回と同じ動物・ステージ・釜の強さで始める */
+    onrepeat: () => void;
     onquit: () => void;
     onopen: (screen: 'daily' | 'shop' | 'trophies' | 'book') => void;
   } = $props();
@@ -29,6 +34,11 @@
     touched ?? (records.unlocked.includes(records.animal) ? records.animal : (records.unlocked[0] ?? 'dog'))
   );
   const picked = $derived(ANIMALS.find((a) => a.id === chosen)!);
+  const last = $derived(
+    records.best > 0 && records.unlocked.includes(records.animal) && canPlay(records, records.stage)
+      ? `${animal(records.animal).name}・${stageOf(records.stage).name}・釜 ${heatLabel(records.heatLast)}`
+      : null
+  );
   let tick = $state(0);
 
   onMount(() => {
@@ -69,6 +79,9 @@
         </button>
       {/each}
     </div>
+    {#if last}<button class="as-card again" data-again onclick={onrepeat}
+        >前回と同じではじめる<small>{last}</small></button
+      >{/if}
     <AnimalCard a={picked} open={records.unlocked.includes(picked.id)} {tick} onstart={() => onpick(picked.id)} />
     <div class="links">
       <button class="as-card link" onclick={() => onopen('shop')}>
@@ -112,6 +125,19 @@
   .link {
     justify-content: center;
     font-size: min(3.8cqw, 2.2cqh, 19px);
+  }
+
+  .again {
+    flex-direction: column;
+    gap: 2px;
+    justify-content: center;
+    background: #ffd84a;
+    font-size: min(4.4cqw, 2.5cqh, 22px);
+  }
+
+  .again small {
+    color: #5d3a2a;
+    font-size: 0.7em;
   }
 
   .tiles {

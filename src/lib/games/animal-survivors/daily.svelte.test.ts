@@ -38,7 +38,8 @@ describe('今日のお題の画面', () => {
       records,
       onpick: () => {},
       onquit: () => {},
-      onopen: (s: string) => opened.push(s)
+      onopen: (s: string) => opened.push(s),
+      onrepeat: () => {}
     });
     const card = button('今日のお題');
     expect(card.textContent).toContain('猫');
@@ -56,7 +57,13 @@ describe('今日のお題の画面', () => {
 
   it('クリアした日の札は「クリア済み」', () => {
     const records = { ...emptyRecords(), daily: { ...daily, cleared: true } };
-    const { app, button } = show(CharSelect, { records, onpick: () => {}, onquit: () => {}, onopen: () => {} });
+    const { app, button } = show(CharSelect, {
+      records,
+      onpick: () => {},
+      onquit: () => {},
+      onopen: () => {},
+      onrepeat: () => {}
+    });
     expect(button('今日のお題').textContent).toContain('クリア済み');
     unmount(app);
   });

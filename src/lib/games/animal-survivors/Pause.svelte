@@ -73,7 +73,7 @@
     <section class="as-panel" class:as-locked={lock.active} aria-label="ポーズ">
       <h2 class="as-title">ポーズ</h2>
       <p class="now"><span>{clock(run.time)}</span><span>Lv.{run.level}</span><span>コイン {run.coins}</span></p>
-      <ArcanaRow cards={run.arcana ?? []} />
+      <ArcanaRow cards={run.arcana ?? []} detail />
       <ul class="owned" aria-label="取った武器とパッシブ">
         {#each owned as o (o.key)}
           <li class="slot">

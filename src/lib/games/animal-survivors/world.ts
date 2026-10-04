@@ -109,6 +109,8 @@ export interface World {
   stage: Stage;
   /** 釜の強さと賭けたコイン */
   heat: Heat;
+  /** 遊び始めに帯で出す一言 */
+  note?: string;
   /** 持っている札 */
   arcana: ArcanaId[];
   /** 開いている札（候補はここから引く。空ならその回は札を出さない） */
@@ -252,6 +254,8 @@ export interface Options {
   challenge?: Challenge;
   heat?: Heat;
   arcana?: ArcanaId[];
+  /** 遊び始めに帯で出す一言（釜の強さを下げたときなど） */
+  note?: string;
 }
 
 export function createWorld(
@@ -262,7 +266,7 @@ export function createWorld(
   stageId = 'forest',
   opts: Options = {}
 ): World {
-  const { challenge, heat = PLAIN, arcana = [] } = opts;
+  const { challenge, heat = PLAIN, arcana = [], note } = opts;
   const mods = challenge?.mods ?? [];
   const stage = heatStage(modStage(stageOf(stageId), mods), heat.level);
   const a = animal(id);
@@ -273,6 +277,7 @@ export function createWorld(
     time: 0,
     stage,
     heat,
+    note,
     arcana: [],
     arcanaPool: arcana,
     arcanaPending: arcana.length && !challenge ? 1 : 0,
