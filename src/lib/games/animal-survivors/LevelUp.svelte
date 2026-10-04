@@ -24,6 +24,9 @@
     onbanish: (c: Choice) => void;
   } = $props();
 
+  /** 全部ごほうびのときは引き直しても同じ札しか出ず、除外もできないので、その 2 つは出さない */
+  const rerolls = $derived(options.every(isFiller) ? 0 : tools.rerolls);
+  const banishes = $derived(options.every(isFiller) ? 0 : tools.banishes);
   /** 除外を押したあと、消す札を選んでいるところ */
   let banishing = $state(false);
 
@@ -57,12 +60,12 @@
       };
     }
     if (c.kind === 'meat') return { art: ITEM_ART.meat, name: '肉', tag: '', text: 'HP を 30% 回復', evo: false };
-    if (c.kind !== 'bag') return reward(c.kind);
+    if (c.kind !== 'bag') return reward(c.kind, c.kind !== 'vigor' || c.heal !== false);
     return { art: ITEM_ART.chest, name: '経験値の袋', tag: '', text: '経験値 +25', evo: false };
   }
 
   function key(event: KeyboardEvent) {
-    if (!locked && event.key.toLowerCase() === 'r' && tools.rerolls > 0) {
+    if (!locked && event.key.toLowerCase() === 'r' && rerolls > 0) {
       event.preventDefault();
       ontool('reroll');
       return;
@@ -94,17 +97,17 @@
         </span>
       </button>
     {/each}
-    {#if tools.rerolls + tools.skips + tools.banishes > 0}
+    {#if rerolls + tools.skips + banishes > 0}
       <div class="tools">
-        {#if tools.rerolls > 0}
-          <button class="as-card tool" onclick={() => ontool('reroll')}>引き直す {tools.rerolls}</button>
+        {#if rerolls > 0}
+          <button class="as-card tool" onclick={() => ontool('reroll')}>引き直す {rerolls}</button>
         {/if}
         {#if tools.skips > 0}
           <button class="as-card tool" onclick={() => ontool('skip')}>飛ばす {tools.skips}</button>
         {/if}
-        {#if tools.banishes > 0}
+        {#if banishes > 0}
           <button class="as-card tool" class:on={banishing} onclick={() => (banishing = !banishing)}
-            >除外 {tools.banishes}</button
+            >除外 {banishes}</button
           >
         {/if}
       </div>

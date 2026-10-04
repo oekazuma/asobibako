@@ -1,6 +1,6 @@
 import { has } from './arcana';
 import { chestOdds } from './cauldron';
-import { levelUp, REWARDS } from './choices';
+import { levelUp, rewardsFor } from './choices';
 import { addCoins, CHEST_COINS } from './drops';
 import { evolvable, evolve } from './evolutions';
 import { maxOf } from './passives';
@@ -11,7 +11,8 @@ export type Reward =
   | { kind: 'weapon' | 'passive'; id: string; level: number }
   | { kind: 'meat' }
   | { kind: 'bag' }
-  | { kind: 'power' | 'vigor' | 'gold' }
+  | { kind: 'power' | 'gold' }
+  | { kind: 'vigor'; heal?: boolean }
   | { kind: 'evolve'; from: string; id: string };
 
 /** 上がる数。2.0 の釜では 8.5 割が 1、1.3 割が 3、0.2 割が 5 */
@@ -42,9 +43,7 @@ export function openChest(w: World): Reward[] {
         .filter((o) => o.level < maxOf(o.id))
         .map((o) => ({ kind: 'passive' as const, id: o.id, level: o.level + 1 }))
     ];
-    const r: Reward = open.length
-      ? open[Math.floor(w.rand() * open.length)]
-      : { ...REWARDS[Math.floor(w.rand() * REWARDS.length)] };
+    const r: Reward = open.length ? open[Math.floor(w.rand() * open.length)] : rewardsFor(w)[Math.floor(w.rand() * 3)];
     levelUp(w, r);
     out.push(r);
   }

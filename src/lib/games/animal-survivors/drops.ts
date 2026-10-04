@@ -285,7 +285,7 @@ export function collect(w: World, dt: number): void {
       const value = it.kind === 'coin' ? (w.festival > 0 ? 2 : 1) : it.kind === 'pouch' ? POUCH : PURSE;
       addCoins(w, value);
       // 浮かぶ数字は倍率を掛けた、実際に入った枚数で見せる
-      w.events.push({ type: 'coin', value: Math.round(value * COIN_RATE * overtimeRate(w)) });
+      w.events.push({ type: 'coin', value: Math.floor(value * COIN_RATE * overtimeRate(w)) });
       continue;
     }
     if (it.kind === 'meat') {

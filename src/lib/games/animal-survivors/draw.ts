@@ -297,7 +297,10 @@ function sparkle(ctx: CanvasRenderingContext2D, e: Enemy, now: number) {
   }
 }
 
-/** lively はボスの登場の時間。そのあいだはゲームの時計が止まるが、札に映るボスの歩く絵だけは動かす */
+/** 歩く絵の時計。登場の札に映っているボスだけは、ゲームの時計が止まっているあいだも lively（登場の時間）で動かす */
+export const walkClock = (e: Enemy, introduced: boolean, lively: number) =>
+  e.def.boss && introduced ? e.t + lively : e.t;
+
 function enemies(
   ctx: CanvasRenderingContext2D,
   w: World,
@@ -305,7 +308,8 @@ function enemies(
   cy: number,
   v: ViewSize,
   now: number,
-  lively = 0
+  lively = 0,
+  introduced: number[] = []
 ) {
   order.length = 0;
   for (const e of w.enemies) {
@@ -323,7 +327,8 @@ function enemies(
     const art = ART[e.def.id];
     // 巨大ベアと溶岩の巨人は地ならしの予告のあいだ、宙にいるボスは上げたコマにする（よみがえっている不死鳥は羽ばたく）
     const up = ((e.def.ai === 'bear' || e.def.ai === 'giant') && e.state === 3) || (airborne(e) && e.state !== 5);
-    const frame = up ? 2 : frameAt((e.def.boss ? e.t + lively : e.t) * (e.def.boss ? 4 : 6), 2);
+    const clock = walkClock(e, e.def.boss ? introduced.includes(w.enemies.indexOf(e)) : false, lively);
+    const frame = up ? 2 : frameAt(clock * (e.def.boss ? 4 : 6), 2);
     // 敵は自分のほうを向く。逃げるきらきらハリネズミだけは反対を向く
     const flip = !e.def.prop && w.player.x < e.x !== Boolean(e.def.metal);
     const at = airborne(e) ? leap(e) : e;
@@ -372,7 +377,7 @@ export function draw(
   hazardsBelow(ctx, w, q, now);
   zonesBelow(ctx, w, q, now);
   pickups(ctx, w, now);
-  enemies(ctx, w, cx, cy, v, now, prompts?.intro?.t ?? 0);
+  enemies(ctx, w, cx, cy, v, now, prompts?.intro?.t ?? 0, prompts?.intro?.ids);
   const ev = prompts?.growing ? prompts.evolve : null;
   const grow = ev ? growFrame(ev.t, prompts!.still) : null;
   if (!grow) player(ctx, w, now);

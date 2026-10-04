@@ -53,7 +53,7 @@ function slots(ctx: CanvasRenderingContext2D, owned: Owned[], prefix: string, x:
 export function hud(ctx: CanvasRenderingContext2D, w: World, v: ViewSize, top: number): void {
   bar(ctx, 1, 1, v.w - 2, 3, w.xp / xpNeed(w.level), PALETTE.u, PALETTE.U);
 
-  text(ctx, `LV ${w.level}`, 6, top, PALETTE.w);
+  text(ctx, `Lv ${w.level}`, 6, top, PALETTE.w);
   const t = clock(w.time);
   text(ctx, t, Math.round((v.w - textWidth(t, 2)) / 2), top - 2, PALETTE.y, 2);
   const kills = String(w.kills);

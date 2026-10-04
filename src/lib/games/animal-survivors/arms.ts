@@ -274,7 +274,7 @@ function launch(w: World, def: WeaponDef, s: WeaponStats, slot: number): boolean
       const hw = w.view.w / 2;
       const hh = w.view.h / 2;
       const seen = w.enemies.filter(
-        (e) => e.alive && !e.def.prop && Math.abs(e.x - p.x) < hw && Math.abs(e.y - p.y) < hh
+        (e) => e.alive && !e.def.prop && !airborne(e) && Math.abs(e.x - p.x) < hw && Math.abs(e.y - p.y) < hh
       );
       if (seen.length === 0) return false;
       for (let i = 0; i < s.amount && seen.length > 0; i++) {

@@ -32,6 +32,8 @@ const GLYPHS: Record<string, string> = {
   T: '111010010010010',
   U: '101101101101111',
   V: '101101101101010',
+  // 「LV」の V が U に見えるので、Lv の小文字だけ持つ
+  v: '000000101101010',
   W: '101101111111101',
   X: '101101010101101',
   Y: '101101010010010',
@@ -57,7 +59,7 @@ function glyph(ch: string, color: string, s: number) {
   const key = `${ch}|${color}|${s}`;
   let c = baked.get(key);
   if (c) return c;
-  const bits = GLYPHS[ch] ?? GLYPHS[' '];
+  const bits = glyphOf(ch);
   c = document.createElement('canvas');
   c.width = 3 * s + 2;
   c.height = 5 * s + 2;
@@ -80,6 +82,11 @@ function glyph(ch: string, color: string, s: number) {
   return c;
 }
 
+/** 字の 15 ビット。小文字は持っているものだけ小文字で、ほかは大文字で書く */
+export function glyphOf(ch: string): string {
+  return GLYPHS[ch] ?? GLYPHS[ch.toUpperCase()] ?? GLYPHS[' '];
+}
+
 /** (x, y) を左上にして書き、幅を返す。位置は丸めないので、呼ぶ側が描く細かさに合わせて丸めておく */
 export function text(
   ctx: CanvasRenderingContext2D,
@@ -90,7 +97,7 @@ export function text(
   size: 1 | 2 = 1
 ): number {
   const step = 4 * size;
-  for (let i = 0; i < s.length; i++) ctx.drawImage(glyph(s[i].toUpperCase(), color, size), x + i * step - 1, y - 1);
+  for (let i = 0; i < s.length; i++) ctx.drawImage(glyph(s[i], color, size), x + i * step - 1, y - 1);
   return s.length * step - size;
 }
 

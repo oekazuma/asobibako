@@ -11,13 +11,18 @@ export type Choice =
   | { kind: 'passive'; id: string; level: number; evo?: boolean }
   | { kind: 'meat' }
   | { kind: 'bag' }
-  /** 全部埋まったあとのごほうび。攻撃 +5%・最大 HP +10 と全回復・コイン +20 */
+  /** 全部埋まったあとのごほうび。攻撃 +5%・最大 HP +10 と全回復（heal が false なら回復なし）・コイン +20 */
   | { kind: 'power' }
-  | { kind: 'vigor' }
+  | { kind: 'vigor'; heal?: boolean }
   | { kind: 'gold' };
 
 /** 全部埋まったあとの 3 択と、宝箱で上げるものがないときの中身 */
 export const REWARDS = [{ kind: 'power' }, { kind: 'vigor' }, { kind: 'gold' }] as const;
+
+/** 肉が出ない回は全回復が肉の代わりに強すぎるので、元気のみなもとは最大 HP だけを上げる */
+export function rewardsFor(w: World): Choice[] {
+  return REWARDS.map((c) => (c.kind === 'vigor' ? { kind: 'vigor', heal: !noMeat(w) } : { ...c }));
+}
 export const POWER = 0.05;
 export const VIGOR = 10;
 export const GOLD = 20;
@@ -51,7 +56,7 @@ function candidates(w: World): Choice[] {
 /** n 枚まで重なりなく選ぶ（運の確率で 1 枚増える）。候補が足りなければ肉と経験値の袋で埋める（それぞれ 1 枚まで） */
 export function choices(w: World, n = 3 + (w.stats.luck > 0 && w.rand() < w.stats.luck ? 1 : 0)): Choice[] {
   const list = candidates(w);
-  if (list.length === 0) return REWARDS.map((c) => ({ ...c }));
+  if (list.length === 0) return rewardsFor(w);
   for (let i = list.length - 1; i > 0; i--) {
     const j = Math.floor(w.rand() * (i + 1));
     [list[i], list[j]] = [list[j], list[i]];
@@ -93,7 +98,7 @@ export function levelUp(w: World, c: Choice): void {
     if (c.kind === 'power') w.boost = { ...w.boost, might: (w.boost.might ?? 0) + POWER };
     else w.boost = { ...w.boost, maxHp: (w.boost.maxHp ?? 0) + VIGOR / hpScaleOf(w) };
     w.stats = stats(w.animal, w.passives, w.boost, w.form, hpScaleOf(w));
-    if (c.kind === 'vigor') p.hp = w.stats.maxHp;
+    if (c.kind === 'vigor' && c.heal !== false) p.hp = w.stats.maxHp;
   } else if (c.kind === 'gold') {
     // 札に書いた枚数がそのまま入るよう、拾ったコインの倍率（COIN_RATE）の分を割っておく
     addCoins(w, GOLD / COIN_RATE);
