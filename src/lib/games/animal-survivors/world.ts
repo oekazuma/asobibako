@@ -204,6 +204,10 @@ export interface World {
   chiefsDown: string[];
   bossTimes: { id: string; secs: number }[];
   picked: string[];
+  /** その回に拾ったガチャ券（銅・銀・金） */
+  tickets: [number, number, number];
+  /** 券を落とすかと券の種類の乱数（ふつうの乱数の並びを変えないため別の種） */
+  loot: Rng;
   /** 次に出すボスの番号と、予告を出したボスの数 */
   bossNext: number;
   warned: number;
@@ -220,7 +224,14 @@ export interface World {
    */
   overtime: null | {
     from: number;
-    base: { kills: number; opened: number; killsBy: Record<string, number>; bossTimes: number; lavaKills: number };
+    base: {
+      kills: number;
+      opened: number;
+      killsBy: Record<string, number>;
+      bossTimes: number;
+      lavaKills: number;
+      tickets: number[];
+    };
     coins: number;
     retreat: boolean;
   };
@@ -358,6 +369,8 @@ export function createWorld(
     chiefsDown: [],
     bossTimes: [],
     picked: [],
+    tickets: [0, 0, 0],
+    loot: rng(seed + 0x5bd1e995),
     bossNext: 0,
     warned: 0,
     swept: 0,
@@ -950,6 +963,11 @@ export interface RunSummary {
   arcana?: ArcanaId[];
   /** 溶岩の池で倒した数 */
   lavaKills?: number;
+  /** 持ち帰るガチャ券と、倒れて失ったガチャ券（銅・銀・金） */
+  tickets?: number[];
+  lost?: number[];
+  /** つけていた装備 */
+  gear?: GearKey[];
 }
 
 /** 強欲を掛けたこの回のコイン。1 枚ずつ掛けると端数で減るので、合計に掛ける */
@@ -963,6 +981,9 @@ export function summary(w: World): RunSummary {
     heat: w.heat,
     arcana: [...w.arcana],
     lavaKills: w.lavaKills,
+    tickets: w.over === 'clear' ? [...w.tickets] : [0, 0, 0],
+    lost: w.over === 'clear' ? [0, 0, 0] : [...w.tickets],
+    gear: [...w.worn],
     cleared: w.over === 'clear',
     time: w.time,
     level: w.level,

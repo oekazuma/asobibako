@@ -4,6 +4,7 @@ import { ENEMY_ART } from './art/enemies';
 import { FOREST_ART } from './art/forest';
 import { GRAVE_ART } from './art/graveyard';
 import { goldArt } from './art/evolved';
+import { GEAR_ART } from './art/gear';
 import { ITEM_ART } from './art/items';
 import { SNOW_ART } from './art/snow';
 import { VOLCANO_ART } from './art/volcano';
@@ -347,7 +348,11 @@ function pickups(ctx: CanvasRenderingContext2D, w: World, now: number) {
     if (it.alive)
       sprite(
         ctx,
-        it.kind === 'goldMagnet' ? goldArt(ITEM_ART.magnet) : ITEM_ART[it.kind],
+        it.kind === 'ticket'
+          ? GEAR_ART[`ticket${it.tier ?? 0}`]
+          : it.kind === 'goldMagnet'
+            ? goldArt(ITEM_ART.magnet)
+            : ITEM_ART[it.kind],
         it.kind === 'coin' ? frameAt(now * 6, 2) : 0,
         it.x,
         it.y + Math.sin(now * 4) * 1.5

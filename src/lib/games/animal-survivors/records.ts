@@ -224,6 +224,7 @@ export function record(r: Records, run: RunSummary): AchievementDef[] {
   }
   r.chests += run.opened;
   r.lavaKills += run.lavaKills ?? 0;
+  r.tickets = r.tickets.map((n, i) => n + (run.tickets?.[i] ?? 0)) as Records['tickets'];
   r.coins += run.coins;
   if (run.cleared && !r.stages.includes(run.stage)) r.stages.push(run.stage);
   r.stage = run.stage;

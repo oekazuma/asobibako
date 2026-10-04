@@ -39,7 +39,8 @@ export function startOvertime(w: World): void {
       opened: w.opened,
       killsBy: { ...w.killsBy },
       bossTimes: w.bossTimes.length,
-      lavaKills: w.lavaKills
+      lavaKills: w.lavaKills,
+      tickets: [...w.tickets]
     },
     coins: 0,
     retreat: false
@@ -56,8 +57,12 @@ export function overtimeRun(w: World): RunSummary {
     const d = n - (base.killsBy[id] ?? 0);
     if (d > 0) kills[id] = d;
   }
+  const got = w.tickets.map((n, i) => n - base.tickets[i]);
+  const keep = w.overtime!.retreat;
   return {
     ...s,
+    tickets: keep ? got : [0, 0, 0],
+    lost: keep ? [0, 0, 0] : got,
     cleared: false,
     finale: false,
     metal: false,

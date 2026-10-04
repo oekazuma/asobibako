@@ -88,7 +88,9 @@
     run = {
       ...(first ? summary(w) : part),
       bookCoins: (first?.bookCoins ?? 0) + (part.bookCoins ?? 0),
-      daily: first?.daily ?? part.daily
+      daily: first?.daily ?? part.daily,
+      tickets: (first?.tickets ?? [0, 0, 0]).map((n, i) => n + (part.tickets?.[i] ?? 0)),
+      lost: part.lost
     };
     if (run.overtime) run.overtime.best = r.overtime[run.stage];
     got = first ? [...got, ...now] : now;

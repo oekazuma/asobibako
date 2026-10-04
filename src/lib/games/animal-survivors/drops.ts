@@ -2,6 +2,7 @@ import { countKill, damageEnemy, type Enemy, type World } from './world';
 import { has, healRate, hpScaleOf, MAX_ARCANA } from './arcana';
 import { stats } from './passives';
 import { trySpecial } from './specials';
+import { rollTicket, TICKET_NAME, type Ticket } from './gacha';
 
 export interface Gem {
   alive: boolean;
@@ -13,12 +14,14 @@ export interface Gem {
 
 export interface Item {
   alive: boolean;
-  kind: 'meat' | 'magnet' | 'goldMagnet' | 'chest' | 'coin' | 'purse' | 'pouch' | 'cross' | 'clock';
+  kind: 'meat' | 'magnet' | 'goldMagnet' | 'chest' | 'coin' | 'purse' | 'pouch' | 'cross' | 'clock' | 'ticket';
   x: number;
   y: number;
   pulled: boolean;
   /** 宝の地図の宝箱だけが持つ、消えるまでの秒 */
   life?: number;
+  /** ガチャ券の種類 */
+  tier?: Ticket;
 }
 
 export const MAX_GEMS = 400;
@@ -83,7 +86,10 @@ export function dropLoot(w: World, x: number, y: number): void {
   let r = w.rand() * LOOT.reduce((t, o) => t + weight(o), 0);
   for (const o of LOOT) {
     r -= weight(o);
-    if (r < 0) return dropItem(w, o[0], x, y);
+    if (r < 0) {
+      dropItem(w, o[0], x, y);
+      return;
+    }
   }
   dropItem(w, 'meat', x, y);
 }
@@ -170,12 +176,21 @@ export function dropGem(w: World, x: number, y: number, value: number): void {
   Object.assign(g, { alive: true, x, y, value, pulled: false });
 }
 
-function dropItem(w: World, kind: Item['kind'], x: number, y: number, pulled = false) {
+function dropItem(w: World, kind: Item['kind'], x: number, y: number, pulled = false): Item | undefined {
   if (kind === 'meat' && noMeat(w)) return;
   const it =
     w.items.find((o) => !o.alive) ?? (w.items[w.items.length] = { alive: false, kind, x: 0, y: 0, pulled: false });
   Object.assign(it, { alive: true, kind, x, y, pulled });
   delete it.life;
+  delete it.tier;
+  return it;
+}
+
+/** ボスとヌシが券を落とす割合（ステージの主は毎回） */
+export const TICKET_CHANCE = 0.25;
+
+function dropTicket(w: World, x: number, y: number) {
+  dropItem(w, 'ticket', x, y)!.tier = rollTicket(w.heat.level, w.loot());
 }
 
 /** 肉が出ないしばりの回 */
@@ -199,6 +214,7 @@ export function dropFrom(w: World, e: Enemy): void {
     }
     dropItem(w, 'purse', e.x + 12, e.y);
     dropItem(w, 'chest', e.x, e.y);
+    if (e.def.finale || w.loot() < TICKET_CHANCE) dropTicket(w, e.x - 12, e.y);
     if (e.def.arcana && w.arcanaPool.length && w.arcana.length + w.arcanaPending < MAX_ARCANA) w.arcanaPending += 1;
     return;
   }
@@ -210,6 +226,7 @@ export function dropFrom(w: World, e: Enemy): void {
   }
   dropGem(w, e.x, e.y, e.def.xp);
   if (e.def.chief) dropItem(w, 'chest', e.x + 10, e.y);
+  if (e.def.chief && w.loot() < TICKET_CHANCE) dropTicket(w, e.x - 10, e.y);
   if (w.rand() < MEAT_CHANCE) dropItem(w, 'meat', e.x + 4, e.y);
   else if (w.rand() < 0.004) dropItem(w, 'magnet', e.x + 4, e.y);
   if (e.def.elite && w.rand() < ELITE_CHEST) dropItem(w, 'chest', e.x, e.y);
@@ -262,6 +279,14 @@ export function collect(w: World, dt: number): void {
         if (it === w.treasure) w.treasure = null;
         w.chests += 1;
         w.events.push({ type: 'chest' });
+      }
+      continue;
+    }
+    if (it.kind === 'ticket') {
+      if ((it.x - w.player.x) ** 2 + (it.y - w.player.y) ** 2 < CHEST_PICK ** 2) {
+        it.alive = false;
+        w.tickets[it.tier ?? 0] += 1;
+        w.events.push({ type: 'swarm', text: `${TICKET_NAME[it.tier ?? 0]}を拾った！` });
       }
       continue;
     }
