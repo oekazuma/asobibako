@@ -1,17 +1,33 @@
 import * as THREE from 'three';
 import { GEAR_ART } from './art/gear';
 import { pulse } from './draw-boss';
-import { cue, glowOf, OPEN_TIME, type Show } from './gacha-show';
-import { bolt, burst, capsuleAt, LIFT, machine, RARITY_COLOR, slotOf, TIER } from './gacha3d-parts';
+import { cue, glowOf, type Show } from './gacha-show';
+import {
+  beamFade,
+  bolt,
+  burst,
+  capsuleAt,
+  darkness,
+  itemScale,
+  itemShown,
+  LIFT,
+  machine,
+  openFrac,
+  RARITY_COLOR,
+  slotOf,
+  TIER
+} from './gacha3d-parts';
 import { parseKey } from './gear';
 import { bake } from './pixels';
 
-export { capsuleAt, machine, slotOf, TIER } from './gacha3d-parts';
+export { beamFade, capsuleAt, darkness, itemScale, itemShown, machine, slotOf, TIER } from './gacha3d-parts';
 
 /** 画面の何分の 1 の細かさで描くか。拡大するときはぼかさないので、ドット絵と同じ粗さになる */
 const COARSE = 3;
 const SPARKS = 60;
 const HEMI = 2.2;
+const BG = new THREE.Color('#2a2240');
+const BG_DARK = new THREE.Color('#07050c');
 const SUN = 2;
 
 const glow = (opacity = 0) =>
@@ -40,7 +56,9 @@ export class GachaScene {
   readonly #sun = new THREE.DirectionalLight('#ffffff', SUN);
   /** 稲妻のとき、暗くした部屋で機械を上から照らす金の明かり */
   readonly #spot = new THREE.PointLight('#ffd84a', 0, 6);
-  readonly #bg = new THREE.Color('#2a2240');
+  readonly #bg = BG.clone();
+  /** 金の粒が降る場所。消えていくあいだは前のカプセルの上に残す */
+  readonly #sparkAt = new THREE.Vector3();
   readonly #m = machine();
   readonly #beam = new THREE.Mesh(new THREE.CylinderGeometry(1, 1.6, 3, 10, 1, true), glow());
   readonly #rays = [new THREE.Mesh(burst(12, 0.95), glow()), new THREE.Mesh(burst(9, 1.3), glow())];
@@ -88,6 +106,9 @@ export class GachaScene {
       ...this.#bolts
     );
     this.#scene.add(this.#sparks, ...this.#items);
+    // 暗い幕より後に描く（透けるものの並べ替えに任せると、幕の下に入って暗くなることがある）
+    for (const o of [this.#beam, ...this.#rays, this.#sparks, ...this.#items]) o.renderOrder = 1;
+    this.#sparks.frustumCulled = false;
     this.#camera.position.set(0.35, 1.25, 4.4);
     this.#camera.lookAt(0, 0.95, 0);
   }
@@ -123,14 +144,14 @@ export class GachaScene {
       if (stir) g.rotation.y += 0.25;
     });
     const storm = s.phase === 'storm';
-    const dark = storm ? Math.min(1, s.t / 0.3) : 0;
+    const dark = darkness(s);
     this.#hemi.intensity = HEMI * (1 - 0.85 * dark);
     this.#sun.intensity = SUN * (1 - 0.9 * dark);
-    this.#bg.set('#2a2240').lerp(new THREE.Color('#07050c'), dark);
-    this.#spot.intensity = storm ? Math.min(1, s.t / 0.4) * 4 : 0;
+    this.#bg.copy(BG).lerp(BG_DARK, dark);
+    this.#spot.intensity = dark * 4;
     const base = m.base.material as THREE.MeshStandardMaterial;
     base.emissive.set(RARITY_COLOR[2]);
-    base.emissiveIntensity = storm ? Math.min(1, s.t / 0.4) * 0.15 : 0;
+    base.emissiveIntensity = dark * 0.15;
     // 稲妻は 2 回、なめらかに強めて弱める（1 フレームごとに切り替えるとチカチカする）
     const strike = (at: number) => (storm ? Math.max(0, 1 - Math.abs(s.t - at) / 0.28) : 0);
     this.#bolts[0].material.opacity = strike(0.3);
@@ -169,33 +190,36 @@ export class GachaScene {
     const i = opening ? s.opened : Math.min(n - 1, s.opened);
     const r = n === 1 || opening ? s.rarity[i] : (Math.max(...s.rarity) as 0 | 1 | 2);
     const tier = TIER[r];
-    const u = opening ? Math.min(1, s.t / OPEN_TIME[r]) : after ? 1 : 0;
+    const u = opening ? openFrac(s) : after ? 1 : 0;
     const lit = opening || (after && n === 1);
     const at = n === 1 ? LIFT : slotOf(i, n);
     const dim = this.#dim.material as THREE.MeshBasicMaterial;
+    // 10 連のカプセルは手前に並ぶので、幕はその後ろ（機械の前の面のすぐ手前）に下ろす
+    this.#dim.position.z = n === 1 ? 0.85 : 0.55;
     const target =
       s.phase === 'list' || s.phase === 'done' ? (n > 1 ? 0.8 : tier.dim) : lit ? tier.dim * Math.min(1, u * 1.5) : 0;
     dim.opacity += (target - dim.opacity) * 0.15;
     this.#beam.material.color.set(RARITY_COLOR[r]);
-    this.#beam.material.opacity = lit ? tier.beam * u : 0;
+    this.#beam.material.opacity = lit ? tier.beam * u * beamFade(n, u) : 0;
     this.#beam.scale.set(tier.width, 1, tier.width);
     this.#beam.position.set(at.x, at.y + 1.3, at.z - 0.05);
     this.#beam.rotation.y = now * 0.6;
     this.#rays.forEach((ray, k) => {
       ray.material.color.set(RARITY_COLOR[r]);
-      ray.material.opacity = lit && k < tier.rays && u > 0.4 ? 0.3 + 0.1 * Math.sin(now * 3) : 0;
+      const fade = Math.min(1, Math.max(0, (u - 0.4) / 0.2)) * beamFade(n, u);
+      ray.material.opacity = lit && k < tier.rays ? (0.3 + 0.1 * Math.sin(now * 3)) * fade : 0;
       ray.position.set(at.x, at.y + (n === 1 ? 0.35 : 0.3), at.z + 0.05);
       ray.rotation.z = now * (k ? -0.7 : 1.1);
       ray.scale.setScalar(n === 1 ? 1 : 0.5);
     });
-    this.#fallSparks(lit && tier.sparks > 0, at, now);
+    const sparking = lit && tier.sparks > 0;
+    if (sparking) this.#sparkAt.copy(at);
+    this.#fallSparks(sparking, this.#sparkAt, now);
     this.#items.forEach((p, k) => {
-      const shown = k < n && (k < s.opened || after || (k === s.opened && opening && u > 0.6));
-      p.visible = shown && s.phase !== 'list';
+      p.visible = itemShown(s, k);
       if (!p.visible) return;
       const big = n === 1;
-      const pop = big ? Math.min(1, s.t / 0.25) : 1;
-      const size = big ? 0.42 * (0.4 + 0.6 * pop + Math.sin(pop * Math.PI) * 0.15) : 0.17;
+      const size = big ? itemScale(s) : 0.17;
       const spot = big ? LIFT : slotOf(k, n);
       p.scale.setScalar(size);
       p.position.set(spot.x, spot.y + (big ? 0.35 + Math.sin(now * 2.5) * 0.03 : 0.25), spot.z + (big ? 0.3 : 0.15));

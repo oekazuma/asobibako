@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { DROP, OPEN_TIME, ROLL_GAP, type Show } from './gacha-show';
+import { cue, DROP, OPEN_TIME, ROLL_GAP, type Show } from './gacha-show';
 
 export const RARITY_COLOR = ['#fff8ec', '#5ab0ff', '#ffd84a'];
 const CAPSULE_COLORS = ['#d8463c', '#2a64c8', '#ffd84a', '#56a03c', '#f093a3'];
@@ -128,6 +128,34 @@ export function slotOf(i: number, n: number): THREE.Vector3 {
   const row = Math.floor(i / 5);
   return new THREE.Vector3(-0.56 + col * 0.28, 0.1 + row * 0.26, 0.78 - row * 0.1);
 }
+
+/** 暗転の深さ。稲妻のあいだ 0.3 秒で暗くし、転がり出すときに 0.3 秒で戻す（明かりを一気に戻すとチカチカする） */
+export function darkness(s: Show): number {
+  if (s.phase === 'storm') return Math.min(1, s.t / 0.3);
+  if (s.phase === 'drop' && cue(s) === 2) return Math.max(0, 1 - s.t / 0.3);
+  return 0;
+}
+
+/** 今割っているカプセルの割れ具合 0〜1 */
+export const openFrac = (s: Show) => (s.phase === 'open' ? Math.min(1, s.t / OPEN_TIME[s.rarity[s.opened]]) : 0);
+
+/** k 番めの品の板を 3D に出すか。10 連の並びは DOM が出すので、並べたあとは 3D に出し直さない */
+export function itemShown(s: Show, k: number): boolean {
+  const n = s.gears.length;
+  if (k >= n) return false;
+  const end = s.phase === 'show' || s.phase === 'list' || s.phase === 'done';
+  if (n > 1 && (s.phase === 'list' || s.phase === 'done')) return false;
+  return k < s.opened || end || (k === s.opened && openFrac(s) > 0.6);
+}
+
+/** 1 こ引きの品の大きさ。割れながら出てきて弾み、そのあとは段が変わっても縮み直さない */
+export function itemScale(s: Show): number {
+  const pop = s.phase === 'open' ? Math.min(1, Math.max(0, (openFrac(s) - 0.6) / 0.4)) : 1;
+  return 0.42 * (0.4 + 0.6 * pop + Math.sin(pop * Math.PI) * 0.15);
+}
+
+/** 10 連の光の柱は、次のカプセルへ移る前に消していく（ぱっと消すとチカチカする） */
+export const beamFade = (n: number, u: number) => (n === 1 ? 1 : Math.min(1, (1 - u) / 0.15));
 
 const ease = (u: number) => 1 - (1 - Math.min(1, Math.max(0, u))) ** 3;
 

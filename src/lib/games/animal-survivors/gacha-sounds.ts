@@ -17,7 +17,7 @@ const SOUNDS: Record<GachaEvent, () => void> = {
   crack: () => {
     noise(60, 0.12);
     tone(2400, 60, 'square', 0.04, 300);
-    noise(80, 0.14);
+    tone(3200, 90, 'square', 0.03, 380);
   },
   pop0: () => {
     noise(40, 0.08);
