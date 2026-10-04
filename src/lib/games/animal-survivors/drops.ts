@@ -41,7 +41,7 @@ const ELITE_COINS = 5;
 const COIN_CHANCE = 0.03;
 export const POUCH = 10;
 /** 時計で敵が止まる秒 */
-export const FREEZE = 10;
+export const FREEZE = 6;
 /** ランタンから出る品の重み。十字架と時計は運で増える */
 const LOOT: [Item['kind'], number, boolean][] = [
   ['meat', 20, false],

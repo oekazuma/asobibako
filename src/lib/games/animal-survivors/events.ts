@@ -46,6 +46,7 @@ export function stepEvents(w: World, dt: number): void {
   if (t) {
     t.life = (t.life ?? 0) - dt;
     if (!t.alive || t.life <= 0) {
+      if (t.alive) w.events.push({ type: 'swarm', text: '宝箱が消えてしまった…' });
       t.alive = false;
       w.treasure = null;
     }

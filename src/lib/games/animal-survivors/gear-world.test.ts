@@ -103,4 +103,13 @@ describe('装備の効き目', () => {
     w.rand = () => 0;
     expect(power(w, 100).dmg).toBeCloseTo(100 * w.stats.might * 2 * 1.5);
   });
+
+  it('砂時計の伝説は時計で止まる時間を 4 秒延ばす', async () => {
+    const { collect, FREEZE } = await import('./drops');
+    const w = wear('hourglass:2');
+    w.items.push({ alive: true, kind: 'clock', x: w.player.x, y: w.player.y, pulled: false });
+    collect(w, 1 / 60);
+    expect(w.freeze).toBe(FREEZE + 4);
+    expect(FREEZE).toBe(6);
+  });
 });

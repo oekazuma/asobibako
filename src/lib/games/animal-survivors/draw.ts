@@ -189,10 +189,16 @@ function growBurst(ctx: CanvasRenderingContext2D, p: { x: number; y: number }, k
   ctx.globalAlpha = 1;
 }
 
-/** 被弾の無敵で点滅して消えるコマか。育つ演出のあいだは無敵の時計が止まるので消さない */
-export function blinks(invuln: number, moment: boolean): boolean {
-  return !moment && invuln > 0 && Math.floor(invuln / 0.08) % 2 === 1;
-}
+/** 当たったあとの無敵のあいだの濃さ。点滅させると大群に囲まれたときずっとチカチカするので、消さずに薄く描く */
+export const HURT_ALPHA = 0.55;
+/** 育つ演出のあいだは無敵の時計が止まるので薄くしない */
+export const hurtAlpha = (invuln: number, moment: boolean) => (!moment && invuln > 0 ? HURT_ALPHA : 1);
+
+/** 攻撃を受けた敵に重ねる白の濃さ。真っ白に切り替えると、大群が一斉に点滅して見える */
+const HIT_WHITE = 0.5;
+
+/** 時計の青い膜の濃さ。最後の 2 秒はなめらかに明滅させて終わりを知らせる（2 秒の境でも飛ばない） */
+export const freezeAlpha = (left: number) => (left > 2 ? 0.22 : 0.15 + 0.07 * Math.cos((2 - left) * Math.PI * 2 * 1.5));
 
 /** form と white は育つ演出のときだけ渡す（入れ替わる姿と白い影） */
 function player(ctx: CanvasRenderingContext2D, w: World, now: number, form = w.form, white = false, moment = false) {
@@ -204,12 +210,12 @@ function player(ctx: CanvasRenderingContext2D, w: World, now: number, form = w.f
     sprite(ctx, a.walk, 0, p.x, p.y - (a.walk.h - 16) / 2, p.facing < 0, true);
     return;
   }
-  if (blinks(p.invuln, moment)) return;
   const [art, frame] =
     p.hurt > 0 ? [a.hurt, 0] : p.attack > 0 ? [a.attack, 0] : p.moving ? [a.walk, frameAt(now * 10, 4)] : [a.walk, 0];
   const flip = p.facing < 0;
   // 育って大きくなっても足もとは 1 段階めと同じ高さにそろえる
   const y = p.y - (art.h - 16) / 2;
+  ctx.globalAlpha = hurtAlpha(p.invuln, moment);
   // 白いふちで、大群の中でも自分を見失わないようにする
   for (const [dx, dy] of [
     [-1, 0],
@@ -219,6 +225,7 @@ function player(ctx: CanvasRenderingContext2D, w: World, now: number, form = w.f
   ])
     sprite(ctx, art, frame, p.x + dx, y + dy, flip, true);
   sprite(ctx, art, frame, p.x, y, flip);
+  ctx.globalAlpha = 1;
   if (p.hp < w.stats.maxHp) {
     const x = q(p.x - 8);
     const y = q(p.y + 10);
@@ -333,7 +340,12 @@ function enemies(
     // 敵は自分のほうを向く。逃げるきらきらハリネズミだけは反対を向く
     const flip = !e.def.prop && w.player.x < e.x !== Boolean(e.def.metal);
     const at = airborne(e) ? leap(e) : e;
-    sprite(ctx, art, frame, at.x, at.y, flip, e.flash > 0, e.def.elite, sizeOf(e));
+    sprite(ctx, art, frame, at.x, at.y, flip, false, e.def.elite, sizeOf(e));
+    if (e.flash > 0) {
+      ctx.globalAlpha = HIT_WHITE;
+      sprite(ctx, art, frame, at.x, at.y, flip, true, e.def.elite, sizeOf(e));
+      ctx.globalAlpha = 1;
+    }
     if (e.def.chief) crown(ctx, e, art, flip);
     if (e.def.metal) sparkle(ctx, e, now);
   }
@@ -413,13 +425,12 @@ export function draw(
     ctx.strokeRect(2, 2, v.w - 4, v.h - 4);
   }
   if (w.freeze > 0) {
-    // 時計で止まっているあいだは画面をうっすら青くし、最後の 2 秒は点滅させて終わりを知らせる
-    ctx.globalAlpha = w.freeze > 2 || Math.floor(now * 6) % 2 ? 0.22 : 0.08;
+    ctx.globalAlpha = freezeAlpha(w.freeze);
     ctx.fillStyle = PALETTE.u;
     ctx.fillRect(0, 0, v.w, v.h);
   }
   if (fx.flash > 0) {
-    ctx.globalAlpha = Math.min(1, fx.flash / 0.25) * 0.7;
+    ctx.globalAlpha = Math.min(1, fx.flash / 0.25) * 0.5;
     ctx.fillStyle = PALETTE.w;
     ctx.fillRect(0, 0, v.w, v.h);
   }
@@ -436,7 +447,7 @@ export function draw(
   hud(ctx, w, v, top);
   // ボスの登場のあいだはカメラが自分から離れるので、自分から測る矢印の向きが合わない
   if (!prompts?.intro) {
-    treasureArrow(ctx, w, v.w, v.h, top);
+    treasureArrow(ctx, w, v.w, v.h, top, now);
     chiefArrows(ctx, w, v.w, v.h, top);
   }
   bossBars(ctx, w, v, top);

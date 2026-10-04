@@ -93,7 +93,13 @@ export const FOREST: Stage = {
     { at: 47, kind: 'meteor', enemy: '', count: 0, text: '流れ星が降ってくる！' },
     { at: 90, kind: 'lanterns', enemy: 'lantern', count: 8, text: 'ランタンが灯った！' },
     { at: 150, kind: 'ring', enemy: 'rat', count: 40, text: 'ネズミに囲まれた！' },
-    { at: 167, kind: 'treasure', enemy: '', count: 0, text: '宝の地図を見つけた！' },
+    {
+      at: 167,
+      kind: 'treasure',
+      enemy: '',
+      count: 0,
+      text: '宝の地図を見つけた！\n矢印の先の宝箱を 30 秒以内に拾おう'
+    },
     { at: 210, kind: 'elites', enemy: 'snake', count: 3, text: 'ヘビの精鋭が来た！' },
     { at: 270, kind: 'swarm', enemy: 'boar', count: 12, text: 'イノシシの突進！' },
     { at: 287, kind: 'festival', enemy: '', count: 0, text: 'お祭りだ！ 経験値とコイン 2 倍' },
@@ -102,7 +108,13 @@ export const FOREST: Stage = {
     { at: 390, kind: 'ring', enemy: 'caterpillar', count: 40, text: 'イモムシに囲まれた！' },
     { at: 407, kind: 'festival', enemy: '', count: 0, text: 'お祭りだ！ 経験値とコイン 2 倍' },
     { at: 450, kind: 'elites', enemy: 'boar', count: 4, text: 'イノシシの精鋭が来た！' },
-    { at: 467, kind: 'treasure', enemy: '', count: 0, text: '宝の地図を見つけた！' },
+    {
+      at: 467,
+      kind: 'treasure',
+      enemy: '',
+      count: 0,
+      text: '宝の地図を見つけた！\n矢印の先の宝箱を 30 秒以内に拾おう'
+    },
     { at: 510, kind: 'swarm', enemy: 'bat', count: 80, text: 'コウモリの大群！' },
     { at: 570, kind: 'ring', enemy: 'snake', count: 60, text: 'ヘビに囲まれた！' }
   ],

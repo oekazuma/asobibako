@@ -60,12 +60,20 @@ describe('宝の地図', () => {
     const d = Math.hypot(t.x - w.player.x, t.y - w.player.y);
     expect(d).toBeGreaterThanOrEqual(350);
     expect(d).toBeLessThanOrEqual(450);
-    expect(w.events).toContainEqual({ type: 'swarm', text: '宝の地図を見つけた！' });
+    expect(w.events).toContainEqual({
+      type: 'swarm',
+      text: '宝の地図を見つけた！\n矢印の先の宝箱を 30 秒以内に拾おう'
+    });
     for (let i = 0; i < 60 * (TREASURE_LIFE - 1); i++) step(w, still, 1 / 60);
     expect(t.alive).toBe(true);
-    for (let i = 0; i < 60 * 2; i++) step(w, still, 1 / 60);
+    const said: string[] = [];
+    for (let i = 0; i < 60 * 2; i++) {
+      step(w, still, 1 / 60);
+      for (const e of w.events) if (e.type === 'swarm') said.push(e.text);
+    }
     expect(t.alive).toBe(false);
     expect(w.treasure).toBeNull();
+    expect(said).toEqual(['宝箱が消えてしまった…']);
   });
 
   it('たどり着けば宝箱が開き、3 択のあいだは時計が進まない', () => {
@@ -231,5 +239,18 @@ describe('お祭り', () => {
     spawnEvents(w);
     p.take();
     expect(p.notice?.text).toBe('お祭りだ！ 経験値とコイン 2 倍');
+  });
+});
+
+describe('2 行の帯', () => {
+  it('2 行の帯は 1 行の帯の倍のあいだ出す', () => {
+    const w = quiet();
+    const p = new Prompts(w, false);
+    w.events = [{ type: 'swarm', text: 'いちぎょう' }];
+    p.take();
+    const one = p.notice!.until - w.time;
+    w.events = [{ type: 'swarm', text: 'いち\nに' }];
+    p.take();
+    expect(p.notice!.until - w.time).toBeCloseTo(one * 2);
   });
 });

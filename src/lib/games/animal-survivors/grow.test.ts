@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blinks } from './draw';
+import { freezeAlpha, HURT_ALPHA, hurtAlpha } from './draw';
 import { gainXp, xpNeed } from './drops';
 import { Effects } from './effects';
 import { growFrame } from './grow';
@@ -155,9 +155,17 @@ describe('育つ演出と重なるもの', () => {
     expect(fx.flash).toBeGreaterThan(0);
   });
 
-  it('演出のあいだは被弾の点滅で姿を消さない', () => {
-    expect(blinks(0.12, false)).toBe(true);
-    expect(blinks(0.12, true)).toBe(false);
+  it('被弾の無敵のあいだは消さずに薄く描き、演出のあいだは薄くしない', () => {
+    for (let t = 0.01; t < 0.5; t += 0.01) expect(hurtAlpha(t, false)).toBe(HURT_ALPHA);
+    expect(hurtAlpha(0.12, true)).toBe(1);
+    expect(hurtAlpha(0, false)).toBe(1);
+  });
+
+  it('時計の終わりの青い膜は、フレームごとに明るさが飛ばない', () => {
+    for (let left = 2.5; left > 0; left -= 1 / 60) {
+      expect(Math.abs(freezeAlpha(left - 1 / 60) - freezeAlpha(left))).toBeLessThan(0.02);
+    }
+    expect(freezeAlpha(5)).toBeCloseTo(0.22);
   });
 
   it('3 択の経験値の袋で育ったら、次の 3 択より演出が先', () => {

@@ -78,7 +78,8 @@
     color: #24151f;
     font-weight: 900;
     font-size: min(4.6cqw, 2.8cqh, 24px);
-    white-space: nowrap;
+    text-align: center;
+    white-space: pre;
     translate: -50% 0;
     pointer-events: none;
     animation: slide 300ms steps(3);

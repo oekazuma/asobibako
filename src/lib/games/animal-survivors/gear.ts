@@ -116,7 +116,7 @@ export const GEAR: GearDef[] = [
     1,
     (v) => `ランタンから磁石が出る割合 ${v + 1} 倍`
   ),
-  g('hourglass', '砂時計', 'charm', 'duration', 0.125, 'freeze', 3, (v) => `時計で止まる時間 +${v} 秒`),
+  g('hourglass', '砂時計', 'charm', 'duration', 0.125, 'freeze', 2, (v) => `時計で止まる時間 +${v} 秒`),
   g(
     'feather',
     '不死鳥の羽根',

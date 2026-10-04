@@ -1,4 +1,5 @@
 import { ITEM_ART } from './art/items';
+import { pulse } from './draw-boss';
 import { PALETTE } from './art/palette';
 import { text, textWidth } from './font';
 import { bake } from './pixels';
@@ -46,14 +47,45 @@ function edgeArrow(
   return { x, y };
 }
 
-/** 宝の地図の宝箱が画面の外にあるとき、矢印と残り秒を出す */
-export function treasureArrow(ctx: CanvasRenderingContext2D, w: World, vw: number, vh: number, top: number): void {
+/** 宝の地図の宝箱が消えるまでの秒を、この秒より少なくなったら明滅させる */
+const HURRY = 10;
+
+/**
+ * 宝の地図の宝箱への案内。画面の外なら端の矢印に宝箱と残り秒を添え、画面の中なら宝箱の上に
+ * はずむ矢印と残り秒を出す（ふつうの宝箱と見分け、消えるまでの秒を見せる）
+ */
+export function treasureArrow(
+  ctx: CanvasRenderingContext2D,
+  w: World,
+  vw: number,
+  vh: number,
+  top: number,
+  now: number
+): void {
   const t = w.treasure;
   if (!t?.alive) return;
+  const left = t.life ?? 0;
+  const s = String(Math.ceil(left));
+  ctx.globalAlpha = left > HURRY ? 1 : 0.45 + 0.55 * pulse(now);
   const at = edgeArrow(ctx, w, t, vw, vh, top);
-  if (!at) return;
-  const s = String(Math.ceil(t.life ?? 0));
-  text(ctx, s, at.x - Math.round(textWidth(s) / 2), at.y + 7, PALETTE.y);
+  if (at) {
+    // 宝箱と秒は画面の内側へ添える（下の端では持ちものの欄にかかるので上に置く）
+    const c = ITEM_ART.chest;
+    const y = at.y > vh / 2 ? at.y - 6 - c.h - 7 : at.y + 6;
+    ctx.drawImage(bake(c), at.x - Math.floor(c.w / 2), y);
+    text(ctx, s, at.x - Math.round(textWidth(s) / 2), y + c.h + 1, PALETTE.y);
+  } else {
+    const x = Math.round(vw / 2 + t.x - w.player.x);
+    const y = Math.round(vh / 2 + t.y - w.player.y) - 18 + Math.round(Math.sin(now * 6) * 2);
+    const a = ITEM_ART.arrow;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(Math.PI / 2);
+    ctx.drawImage(bake(a), -Math.floor(a.w / 2), -Math.floor(a.h / 2));
+    ctx.restore();
+    text(ctx, s, x - Math.round(textWidth(s) / 2), y - 14, PALETTE.y);
+  }
+  ctx.globalAlpha = 1;
 }
 
 /** 画面の外のヌシへの矢印。宝箱の矢印と見分けるよう、残り秒の代わりに王冠を添える */

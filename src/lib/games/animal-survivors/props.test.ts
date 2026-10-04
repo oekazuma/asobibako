@@ -73,16 +73,16 @@ describe('ランタンの品', () => {
     expect(w.events.some((e) => e.type === 'cross')).toBe(true);
   });
 
-  it('時計で 10 秒のあいだ敵が止まり、当たっても痛くない', () => {
+  it('時計で 6 秒のあいだ敵が止まり、当たっても痛くない', () => {
     const w = quiet();
     const rat = makeEnemy(ENEMIES.rat, 3, 0, 6);
     w.enemies.push(rat);
     w.items.push({ alive: true, kind: 'clock', x: 0, y: 0, pulled: false });
     collect(w, 1 / 60);
     const hp = w.player.hp;
-    for (let i = 0; i < 60 * 9; i++) step(w, { x: 0, y: 0 }, 1 / 60);
+    for (let i = 0; i < 60 * 5.5; i++) step(w, { x: 0, y: 0 }, 1 / 60);
     expect([rat.x, w.player.hp]).toEqual([3, hp]);
-    for (let i = 0; i < 60 * 2; i++) step(w, { x: 0, y: 0 }, 1 / 60);
+    for (let i = 0; i < 60 * 1; i++) step(w, { x: 0, y: 0 }, 1 / 60);
     expect(w.player.hp).toBeLessThan(hp);
   });
 

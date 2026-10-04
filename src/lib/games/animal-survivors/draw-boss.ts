@@ -11,6 +11,9 @@ import type { World } from './world';
 
 type Snap = (v: number) => number;
 
+/** 予告の明滅（0〜1）。色を切り替えて点滅させると、攻撃の多い場面でチカチカするので、なめらかに変える */
+export const pulse = (now: number) => 0.5 + 0.5 * Math.sin(now * Math.PI * 2 * 2.5);
+
 function fan(ctx: CanvasRenderingContext2D, h: Hazard, q: Snap) {
   const a = Math.atan2(h.vy, h.vx);
   ctx.beginPath();
@@ -50,7 +53,7 @@ export function hazardsBelow(ctx: CanvasRenderingContext2D, w: World, q: Snap, n
       ctx.beginPath();
       ctx.ellipse(q(h.x), q(h.y + RING_DY), h.r * t, h.r * t * 0.6, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = Math.floor(now * 8) % 2 ? 'rgb(110 74 48 / 0.9)' : 'rgb(216 70 60 / 0.8)';
+      ctx.strokeStyle = `rgb(216 70 60 / ${0.45 + 0.45 * pulse(now)})`;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.ellipse(q(h.x), q(h.y + RING_DY), h.r, h.r * 0.6, 0, 0, Math.PI * 2);
@@ -63,7 +66,7 @@ export function hazardsBelow(ctx: CanvasRenderingContext2D, w: World, q: Snap, n
       ctx.beginPath();
       ctx.ellipse(q(h.x), q(h.y), h.r * t, h.r * t * 0.6, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = Math.floor(now * 8) % 2 ? 'rgb(255 216 74 / 0.9)' : 'rgb(224 154 28 / 0.9)';
+      ctx.strokeStyle = `rgb(255 216 74 / ${0.5 + 0.4 * pulse(now)})`;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.ellipse(q(h.x), q(h.y), h.r, h.r * 0.6, 0, 0, Math.PI * 2);
@@ -71,7 +74,7 @@ export function hazardsBelow(ctx: CanvasRenderingContext2D, w: World, q: Snap, n
       continue;
     }
     if (h.kind === 'breath' && h.delay > 0) {
-      ctx.globalAlpha = Math.floor(now * 8) % 2 ? 0.35 : 0.2;
+      ctx.globalAlpha = 0.2 + 0.15 * pulse(now);
       ctx.fillStyle = PALETTE.u;
       fan(ctx, h, q);
       ctx.fill();
@@ -100,7 +103,7 @@ export function hazardsBelow(ctx: CanvasRenderingContext2D, w: World, q: Snap, n
       ctx.save();
       ctx.translate(q(owner.x), q(owner.y + 6));
       ctx.rotate(a);
-      // 枠は点滅させ、中は突進が近づくほど先まで赤く満ちる
+      // 枠は明滅させ、中は突進が近づくほど先まで赤く満ちる
       const fill = Math.min(1, Math.max(0, 1 - h.delay / (h.warn || 0.7)));
       const arrow = () => {
         ctx.beginPath();
@@ -126,7 +129,7 @@ export function hazardsBelow(ctx: CanvasRenderingContext2D, w: World, q: Snap, n
       arrow();
       ctx.fill();
       ctx.restore();
-      ctx.globalAlpha = Math.floor(now * 8) % 2 ? 0.9 : 0.5;
+      ctx.globalAlpha = 0.5 + 0.4 * pulse(now);
       ctx.strokeStyle = PALETTE.w;
       ctx.lineWidth = 1.5;
       arrow();

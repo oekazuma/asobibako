@@ -91,7 +91,8 @@ const REBORN = 5;
 export function phoenix(w: World, i: number, e: Enemy, ux: number, uy: number, d: number, dt: number) {
   if (e.state === REBORN) {
     e.wait -= dt;
-    e.flash = Math.floor(e.wait * 10) % 2 ? 0.1 : 0;
+    // よみがえっているあいだは当たらないことを、点滅させずに白く重ねたままで見せる
+    e.flash = 0.1;
     if (e.wait <= 0) {
       e.state = 0;
       e.cd = PHOENIX.every / (e.def.rage ?? 1);

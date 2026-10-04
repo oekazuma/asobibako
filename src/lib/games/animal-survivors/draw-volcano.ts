@@ -1,3 +1,4 @@
+import { pulse } from './draw-boss';
 import { POOL_LIFE } from './eruption';
 import { bake, type Art } from './pixels';
 import type { World } from './world';
@@ -77,7 +78,13 @@ export function drawLava(ctx: CanvasRenderingContext2D, w: World, now: number): 
     if (l.life <= 0) continue;
     if (l.warn > 0) {
       const art = crackArt(Math.round(l.r));
-      ctx.drawImage(bake(art, Math.floor(now * 8) % 2), Math.round(l.x - art.w / 2), Math.round(l.y - art.h / 2));
+      // 2 コマを切り替えるとチカチカするので、光るコマを重ねる濃さを変える
+      const x = Math.round(l.x - art.w / 2);
+      const y = Math.round(l.y - art.h / 2);
+      ctx.drawImage(bake(art, 0), x, y);
+      ctx.globalAlpha = pulse(now);
+      ctx.drawImage(bake(art, 1), x, y);
+      ctx.globalAlpha = 1;
       continue;
     }
     const k = Math.min(1, (POOL_LIFE - l.life) / 0.3, l.life / 1);

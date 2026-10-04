@@ -88,7 +88,8 @@ export class Prompts {
     for (const e of w.events)
       if (e.type === 'warning') {
         this.warning = { name: e.title ?? ENEMIES[e.boss].name, key: w.time, until: w.time + WARN_AHEAD };
-      } else if (e.type === 'swarm' && e.text) this.notice = { text: e.text, key: w.time, until: w.time + NOTICE };
+      } else if (e.type === 'swarm' && e.text)
+        this.notice = { text: e.text, key: w.time, until: w.time + NOTICE * (e.text.includes('\n') ? 2 : 1) };
       else if (e.type === 'special')
         this.notice = { text: `${w.animal.forms[2]}の 専用進化！`, key: w.time, until: w.time + NOTICE };
       else if (e.type === 'rush') this.notice = { text: 'コインラッシュ！', key: w.time, until: w.time + NOTICE };
