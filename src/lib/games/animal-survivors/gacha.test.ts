@@ -187,6 +187,6 @@ describe('引けない理由', () => {
     expect(whyNot(r, 'ten')).toBe('コインが あと 1,200');
     r.bag = { 'oni:0': BAG_MAX - 5 };
     expect(whyNot(r, 'coin')).toBeNull();
-    expect(whyNot(r, 'ten')).toBe('持ち物がいっぱい');
+    expect(whyNot(r, 'ten')).toBe('持ち物に 入りきらない');
   });
 });

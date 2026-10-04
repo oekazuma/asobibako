@@ -44,7 +44,7 @@ const sizeOf = (way: PullWay) => (way === 'ten' ? 10 : 1);
 
 /** 引けない理由の短い文字。引けるなら null */
 export function whyNot(r: Records, way: PullWay): string | null {
-  if (bagCount(r) + sizeOf(way) > BAG_MAX) return '持ち物がいっぱい';
+  if (bagCount(r) + sizeOf(way) > BAG_MAX) return '持ち物に 入りきらない';
   const t = WAY_TICKET[way];
   if (t !== undefined) return r.tickets[t] > 0 ? null : '券がない';
   const short = (way === 'ten' ? TEN_COINS : PULL_COINS) - r.coins;

@@ -26,6 +26,9 @@ describe('引き方のカード', () => {
     expect(card('ten').textContent).toContain('レア以上 1 つ確定');
     expect(card('coin').disabled).toBe(false);
     expect(document.body.textContent).toContain('あと 38 回');
+    expect(card('coin').getAttribute('aria-label')).toBe('コインで引く（500）');
+    expect(card('ten').getAttribute('aria-label')).toContain('コインが あと 1,200');
+    expect(card('bronze').getAttribute('aria-label')).toBe('銅の券で引く（3 枚）');
     unmount(app);
   });
 

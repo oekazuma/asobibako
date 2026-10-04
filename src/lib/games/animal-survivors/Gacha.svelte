@@ -20,11 +20,14 @@
   /** 記録を書き換えて保存し、引いた品を見せるのはガチャの画面。ここは引き方のカードだけ */
   let { r, onpull }: { r: Records; onpull: (way: PullWay) => GearKey[] | null } = $props();
 
-  const TICKETS: [PullWay, 0 | 1 | 2][] = [
-    ['bronze', 0],
-    ['silver', 1],
-    ['gold', 2]
+  /** 引き方・券・ふちの色・地の色 */
+  const TICKETS: [PullWay, 0 | 1 | 2, string, string][] = [
+    ['bronze', 0, '#c9814a', '#6b3a22'],
+    ['silver', 1, '#bcc4ce', '#3e4a5c'],
+    ['gold', 2, '#ffd84a', '#5a4210']
   ];
+  /** 読み上げには絵が届かないので、何で引くかと押せない理由を名前に入れる */
+  const name = (what: string, why: string | null) => (why ? `${what}（${why}）` : what);
   const COIN_STACK = [0, 1, 2] as const;
   const one = $derived(whyNot(r, 'coin'));
   const ten = $derived(whyNot(r, 'ten'));
@@ -37,9 +40,17 @@
     <b>あと {PITY - r.pity} 回</b>
   </div>
   <div class="tickets">
-    {#each TICKETS as [way, t] (way)}
+    {#each TICKETS as [way, t, rim, bg] (way)}
       {@const why = whyNot(r, way)}
-      <button class="pick t{t}" data-way={way} disabled={why !== null} onclick={() => onpull(way)}>
+      <button
+        class="as-pick"
+        style:--rim={rim}
+        style:background={bg}
+        data-way={way}
+        aria-label={name(`${TICKET_NAME[t]}で引く（${r.tickets[t]} 枚）`, why)}
+        disabled={why !== null}
+        onclick={() => onpull(way)}
+      >
         <small>{TICKET_NAME[t]}</small>
         <PixelIcon art={GEAR_ART[`ticket${t}`]} size="min(13cqw, 7.5cqh, 64px)" />
         <b>×{r.tickets[t]}</b>
@@ -49,16 +60,28 @@
     {/each}
   </div>
   <div class="coins">
-    <button class="pick one" data-way="coin" disabled={one !== null} onclick={() => onpull('coin')}>
+    <button
+      class="as-pick one"
+      data-way="coin"
+      aria-label={name(`コインで引く（${PULL_COINS}）`, one)}
+      disabled={one !== null}
+      onclick={() => onpull('coin')}
+    >
       <small>1 回</small>
-      <span class="price"><PixelIcon art={ITEM_ART.coin} size="min(6cqw, 3.5cqh, 30px)" />{PULL_COINS}</span>
+      <span class="price"><PixelIcon art={ITEM_ART.coin} size="var(--coin)" />{PULL_COINS}</span>
       {#if one}<small class="why">{one}</small>{/if}
     </button>
-    <button class="pick ten" data-way="ten" disabled={ten !== null} onclick={() => onpull('ten')}>
+    <button
+      class="as-pick ten"
+      data-way="ten"
+      aria-label={name(`コインで 10 連（${TEN_COINS}、レア以上 1 つ確定）`, ten)}
+      disabled={ten !== null}
+      onclick={() => onpull('ten')}
+    >
       <small>10 連</small>
       <span class="price"
         ><span class="stack"
-          >{#each COIN_STACK as i (i)}<PixelIcon art={ITEM_ART.coin} size="min(6cqw, 3.5cqh, 30px)" />{/each}</span
+          >{#each COIN_STACK as i (i)}<PixelIcon art={ITEM_ART.coin} size="var(--coin)" />{/each}</span
         >{TEN_COINS.toLocaleString('ja-JP')}</span
       >
       <small class="sure">レア以上 1 つ確定</small>
@@ -70,6 +93,7 @@
 
 <style>
   .gacha {
+    --coin: min(6cqw, 3.5cqh, 30px);
     display: grid;
     gap: 10px;
     padding: 10px;
@@ -117,49 +141,8 @@
     grid-template-columns: 2fr 3fr;
   }
 
-  .pick {
-    display: grid;
-    gap: 4px;
-    align-content: start;
-    justify-items: center;
-    padding: 8px 4px;
-    border: 3px solid #24151f;
-    box-shadow:
-      inset 0 0 0 2px var(--rim),
-      0 4px 0 #120c20;
-    color: #fff8ec;
-    font: inherit;
-    font-weight: 800;
-    cursor: pointer;
-  }
-
-  .pick:active {
-    translate: 0 3px;
-    box-shadow: inset 0 0 0 2px var(--rim);
-  }
-
-  .pick:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
-
-  .pick b {
+  .as-pick b {
     font-size: 1.4em;
-  }
-
-  .t0 {
-    --rim: #c9814a;
-    background: #6b3a22;
-  }
-
-  .t1 {
-    --rim: #bcc4ce;
-    background: #3e4a5c;
-  }
-
-  .t2 {
-    --rim: #ffd84a;
-    background: #5a4210;
   }
 
   .one {
@@ -186,8 +169,8 @@
     display: flex;
   }
 
-  .stack > :global(*) + :global(*) {
-    margin-left: calc(min(6cqw, 3.5cqh, 30px) * -0.45);
+  .stack > :global(canvas + canvas) {
+    margin-left: calc(var(--coin) * -0.45);
   }
 
   .odds {
@@ -198,13 +181,9 @@
     color: #8e2430;
   }
 
-  .why {
-    color: #f093a3;
-  }
-
   .one .why,
   .ten .why {
-    color: #b03040;
+    color: #6e0c1c;
   }
 
   .warn {
