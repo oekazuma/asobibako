@@ -12,7 +12,7 @@ function show(records = emptyRecords()) {
   const target = document.body.appendChild(document.createElement('div'));
   const app = mount(CharSelect, {
     target,
-    props: { records, onpick: (id) => picked.push(id), onquit: () => {}, onopen: () => {}, onrepeat: () => {} }
+    props: { records, onpick: (id) => picked.push(id), onquit: () => {}, onopen: () => {} }
   });
   flushSync();
   const tile = (id: string) => target.querySelector(`[data-animal="${id}"]`) as HTMLButtonElement;

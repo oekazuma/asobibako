@@ -2,27 +2,22 @@
   import { onMount } from 'svelte';
   import { audio, toggleMute } from '$lib/audio.svelte';
   import Icon from '$lib/components/Icon.svelte';
-  import { animal, ANIMALS, type AnimalId } from './animals';
+  import { ANIMALS, type AnimalId } from './animals';
   import { ANIMAL_ART } from './art/animals';
   import DailyCard from './DailyCard.svelte';
   import PixelIcon from './PixelIcon.svelte';
   import AnimalCard from './AnimalCard.svelte';
-  import { heatLabel } from './cauldron';
   import MenuLinks from './MenuLinks.svelte';
-  import { canPlay, type Records } from './records';
-  import { stageOf } from './stages';
+  import type { Records } from './records';
 
   let {
     records,
     onpick,
-    onrepeat,
     onquit,
     onopen
   }: {
     records: Records;
     onpick: (id: AnimalId) => void;
-    /** 前回と同じ動物・ステージ・釜の強さで始める */
-    onrepeat: () => void;
     onquit: () => void;
     onopen: (screen: 'daily' | 'gacha' | 'shop' | 'trophies' | 'book' | 'gear') => void;
   } = $props();
@@ -33,11 +28,6 @@
     touched ?? (records.unlocked.includes(records.animal) ? records.animal : (records.unlocked[0] ?? 'dog'))
   );
   const picked = $derived(ANIMALS.find((a) => a.id === chosen)!);
-  const last = $derived(
-    records.best > 0 && records.unlocked.includes(records.animal) && canPlay(records, records.stage)
-      ? `${animal(records.animal).name}・${stageOf(records.stage).name}・釜 ${heatLabel(records.heatLast)}`
-      : null
-  );
   let tick = $state(0);
 
   onMount(() => {
@@ -53,7 +43,6 @@
   </button>
   <section class="as-panel" aria-label="キャラクター選択">
     <h2 class="as-title">キャラクターを選ぶ</h2>
-    {#if records.daily}<DailyCard daily={records.daily} onopen={() => onopen('daily')} />{/if}
     <div class="tiles" role="listbox" aria-label="動物">
       {#each ANIMALS as a (a.id)}
         {@const open = records.unlocked.includes(a.id)}
@@ -78,15 +67,18 @@
         </button>
       {/each}
     </div>
-    {#if last}<button class="as-card again" data-again onclick={onrepeat}
-        >前回と同じではじめる<small>{last}</small></button
-      >{/if}
     <AnimalCard a={picked} open={records.unlocked.includes(picked.id)} {tick} onstart={() => onpick(picked.id)} />
+    {#if records.daily}<DailyCard daily={records.daily} onopen={() => onopen('daily')} />{/if}
     <MenuLinks {records} {onopen} />
   </section>
 </div>
 
 <style>
+  /* 見出しを小さくして、タイルを画面の上のほうに出す */
+  .as-title {
+    font-size: min(5.6cqw, 3.4cqh, 30px);
+  }
+
   .corner {
     position: absolute;
     top: max(12px, env(safe-area-inset-top));
@@ -103,19 +95,6 @@
 
   .as-card {
     padding-block: min(1cqh, 8px);
-  }
-
-  .again {
-    flex-direction: column;
-    gap: 2px;
-    justify-content: center;
-    background: #ffd84a;
-    font-size: min(4.4cqw, 2.5cqh, 22px);
-  }
-
-  .again small {
-    color: #5d3a2a;
-    font-size: 0.7em;
   }
 
   .tiles {

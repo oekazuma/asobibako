@@ -31,21 +31,18 @@ describe('今日のお題の画面', () => {
     document.body.innerHTML = '';
   });
 
-  it('キャラ選択の札に動物・面・しばり・ごほうびを出し、押すとお題の画面を開く', () => {
+  it('キャラ選択の札に動物・面・ごほうびを出し、押すとお題の画面を開く', () => {
     const opened: string[] = [];
     const records = { ...emptyRecords(), daily };
     const { app, button } = show(CharSelect, {
       records,
       onpick: () => {},
       onquit: () => {},
-      onopen: (s: string) => opened.push(s),
-      onrepeat: () => {}
+      onopen: (s: string) => opened.push(s)
     });
     const card = button('今日のお題');
     expect(card.textContent).toContain('猫');
     expect(card.textContent).toContain('森');
-    expect(card.textContent).toContain('店の強化なし');
-    expect(card.textContent).toContain('経験値 2 倍');
     expect(card.textContent).toContain('+500');
     card.click();
     button('パワーアップ').click();
@@ -61,8 +58,7 @@ describe('今日のお題の画面', () => {
       records,
       onpick: () => {},
       onquit: () => {},
-      onopen: () => {},
-      onrepeat: () => {}
+      onopen: () => {}
     });
     expect(button('今日のお題').textContent).toContain('クリア済み');
     unmount(app);
@@ -103,7 +99,7 @@ describe('今日のお題の画面', () => {
     unmount(b.app);
   });
 
-  it('今日の釜と今日の札を、お題の画面とキャラ選択の札に出す', () => {
+  it('今日の釜と今日の札はお題の画面に出し、キャラ選択の 1 行には釜だけを出す', () => {
     const d: DailyData = { ...daily, heat: 3.5, card: 'gamble' };
     const big = show(Daily, { daily: d, onstart: () => {}, onback: () => {} });
     expect(big.target.textContent).toContain('釜 3.5');
@@ -114,11 +110,10 @@ describe('今日のお題の画面', () => {
       records: { ...emptyRecords(), daily: d },
       onpick: () => {},
       onquit: () => {},
-      onopen: () => {},
-      onrepeat: () => {}
+      onopen: () => {}
     });
     expect(card.button('今日のお題').textContent).toContain('釜 3.5');
-    expect(card.button('今日のお題').textContent).toContain('いちかばちか');
+    expect(card.button('今日のお題').textContent).not.toContain('いちかばちか');
     unmount(card.app);
   });
 });

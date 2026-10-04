@@ -77,7 +77,6 @@
 
   .big {
     padding-block: min(1.6cqh, 12px);
-    background: #ffd84a;
     font-size: min(6cqw, 3.4cqh, 30px);
   }
 

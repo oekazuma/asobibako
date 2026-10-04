@@ -1,68 +1,57 @@
 <script lang="ts">
   import { animal } from './animals';
   import { ANIMAL_ART } from './art/animals';
-  import { arcanaDef } from './arcana';
   import { heatLabel } from './cauldron';
-  import { dailyBonus, MODS, type Daily } from './daily';
+  import { dailyBonus, type Daily } from './daily';
   import PixelIcon from './PixelIcon.svelte';
   import { stageOf } from './stages';
 
+  /** しばりと今日の札は開いた先の画面で見せ、ここは 1 行にとどめて出発のボタンより目立たせない */
   let { daily, onopen }: { daily: Daily; onopen: () => void } = $props();
 </script>
 
-<button class="as-card daily" class:done={daily.cleared} onclick={onopen}>
-  <PixelIcon art={ANIMAL_ART[daily.animal].forms[0].walk} size="min(11cqw, 6.4cqh, 64px)" />
+<button class="as-card daily" class:done={daily.cleared} data-daily onclick={onopen}>
+  <PixelIcon art={ANIMAL_ART[daily.animal].forms[0].walk} size="min(7cqw, 4cqh, 36px)" />
   <span class="body">
-    <span class="head"
-      >今日のお題<span class="prize">{daily.cleared ? 'クリア済み' : `+${dailyBonus(daily)}`}</span></span
-    >
-    <span class="what">{animal(daily.animal).name}・{stageOf(daily.stage).name}・釜 {heatLabel(daily.heat ?? 2)}</span>
-    <span class="mods">{daily.mods.map((id) => MODS[id].name).join('・')}</span>
-    {#if daily.card}<span class="card">今日の札 {arcanaDef(daily.card).name}</span>{/if}
+    <b>今日のお題</b>
+    <small>{animal(daily.animal).name}・{stageOf(daily.stage).name}・釜 {heatLabel(daily.heat ?? 2)}</small>
   </span>
+  <span class="prize">{daily.cleared ? 'クリア済み' : `+${dailyBonus(daily)}`}</span>
+  <span class="arrow">›</span>
 </button>
 
 <style>
   .daily {
-    background: #ffe9a8;
+    gap: 10px;
+    padding-block: min(0.8cqh, 6px);
+    background: #efe2c6;
+    font-size: min(3.6cqw, 2.1cqh, 18px);
   }
 
   .done {
-    background: #e8dcc0;
+    background: #d9cbb0;
   }
 
   .body {
-    display: grid;
+    display: flex;
     flex: 1;
-    gap: 2px;
+    flex-wrap: wrap;
+    gap: 0 10px;
+    align-items: baseline;
   }
 
-  .head {
-    display: flex;
-    align-items: baseline;
-    font-size: min(4.4cqw, 2.5cqh, 22px);
+  small {
+    color: #5d3a2a;
+    font-size: 0.85em;
   }
 
   .prize {
-    margin-left: auto;
     color: #a3501c;
-    font-size: 0.8em;
+    white-space: nowrap;
   }
 
-  .what,
-  .mods {
-    color: #5d3a2a;
-    font-size: min(3.2cqw, 1.9cqh, 16px);
-    font-weight: 700;
-  }
-
-  .mods {
-    color: #8e2430;
-  }
-
-  .card {
-    color: #6a3fb0;
-    font-size: min(3.2cqw, 1.9cqh, 16px);
-    font-weight: 700;
+  .arrow {
+    color: #8a6a4a;
+    font-size: 1.4em;
   }
 </style>

@@ -35,9 +35,9 @@
       <span class="name">？？？<span class="tier">{'★'.repeat(a.tier)}</span></span>
       <span class="unlock">{a.unlock}</span>
     {/if}
-    <button class="as-card go" data-go disabled={!open} onclick={onstart}>この子で出発</button>
   </span>
 </div>
+<button class="as-card go" data-go disabled={!open} onclick={onstart}>この子で出発</button>
 
 <style>
   .detail {
@@ -124,9 +124,9 @@
 
   .go {
     justify-content: center;
-    margin-top: 6px;
+    padding-block: min(2cqh, 16px);
     background: #ffd84a;
-    font-size: min(4.6cqw, 2.6cqh, 24px);
+    font-size: min(6cqw, 3.4cqh, 30px);
   }
 
   .go:disabled {

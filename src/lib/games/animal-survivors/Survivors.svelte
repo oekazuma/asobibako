@@ -76,12 +76,6 @@
   /** お題の回は釜の画面を通らず、今日の釜と札のまま同じ組で始める */
   const again = () => (pick.challenge ? start(pick.stage) : begin(pick.want ?? 2));
 
-  /** キャラ選択の「前回と同じではじめる」。キャラ・ステージ・釜の画面を飛ばす */
-  function repeat() {
-    pick = { animal: records.animal, stage: records.stage };
-    begin(records.heatLast);
-  }
-
   // リザルトを待たずに記録する。決着からリザルトまでの間に ✕ で抜けたり終わらされたりしても、その回を落とさない。
   // 延長戦はクリアで 1 回記録してあるので、終わりには延長戦の差だけを記録し、見せるのは 2 回の合計
   function over(w: World) {
@@ -162,7 +156,6 @@
   <CharSelect
     {records}
     onpick={choose}
-    onrepeat={repeat}
     onquit={() => onquit?.()}
     onopen={(s) => (s === 'daily' ? openDaily() : (screen = s))}
   />

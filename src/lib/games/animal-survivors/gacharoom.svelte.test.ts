@@ -63,8 +63,7 @@ describe('キャラ選択のメニュー', () => {
         records: { ...emptyRecords(), tickets: [2, 1, 0] },
         onpick: () => {},
         onquit: () => {},
-        onopen: (s: string) => opened.push(s),
-        onrepeat: () => {}
+        onopen: (s: string) => opened.push(s)
       }
     });
     flushSync();

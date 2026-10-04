@@ -1,6 +1,5 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { betOf } from './cauldron';
 import Pause from './Pause.svelte';
 import { emptyRecords, RECORDS_KEY } from './records';
 import Survivors from './Survivors.svelte';
@@ -16,7 +15,6 @@ vi.mock('$lib/music/loop', () => ({
   }
 }));
 
-const coins = () => JSON.parse(localStorage.getItem(RECORDS_KEY)!).coins as number;
 function open(extra: object) {
   localStorage.setItem(RECORDS_KEY, JSON.stringify({ ...emptyRecords(), ...extra }));
   const target = document.body.appendChild(document.createElement('div'));
@@ -24,57 +22,28 @@ function open(extra: object) {
   flushSync();
   return app;
 }
-const quick = () => document.querySelector('[data-again]') as HTMLButtonElement | null;
 
-/** ゲームのループを n フレーム回す。happy-dom の requestAnimationFrame はすぐ呼ぶので、ゲームの時間はほとんど進まない */
-const frames = (n: number) =>
-  new Promise<void>((done) => {
-    const tick = (k: number) => (k ? requestAnimationFrame(() => tick(k - 1)) : done());
-    tick(n);
-  });
-
-describe('前回と同じではじめる', () => {
+describe('キャラ選択', () => {
   afterEach(() => {
     document.body.innerHTML = '';
     localStorage.clear();
   });
 
-  it('前回の組を出し、押すと賭けを引いて札を選ぶところまで進む', async () => {
-    const app = open({
-      best: 300,
-      coins: 1000,
-      unlocked: ['dog', 'cat', 'wolf', 'fox'],
-      animal: 'fox',
-      stage: 'forest',
-      heatLast: 4.5
-    });
-    expect(quick()?.textContent).toContain('キツネ・森・釜 4.5');
-    quick()!.click();
-    flushSync();
-    expect(coins()).toBe(1000 - betOf(4.5));
-    await frames(10);
-    flushSync();
-    expect(document.querySelectorAll('[data-card]').length).toBe(3);
+  it('前回と同じではじめるは出さず、目立つボタンは出発だけ', () => {
+    const app = open({ best: 300, coins: 1000, animal: 'dog', stage: 'forest', heatLast: 4.5 });
+    expect(document.querySelector('[data-again]')).toBeNull();
+    expect(document.body.textContent).not.toContain('前回と同じ');
+    expect(document.querySelectorAll('.as-panel [data-go]').length).toBe(1);
     unmount(app);
   });
 
-  it('コインが足りなければ下げて始め、遊び始めに帯で知らせる', async () => {
-    const app = open({ best: 300, coins: 100, animal: 'dog', stage: 'forest', heatLast: 9 });
-    quick()!.click();
-    flushSync();
-    await new Promise((r) => setTimeout(r, 100));
-    flushSync();
-    expect(document.body.textContent).toContain('コインが足りないので');
-    unmount(app);
-  });
-
-  it('初めて遊ぶときと、前回のステージが選べないときは出さない', () => {
-    let app = open({});
-    expect(quick()).toBeNull();
-    unmount(app);
-    document.body.innerHTML = '';
-    app = open({ best: 300, stage: 'snow' });
-    expect(quick()).toBeNull();
+  it('上から、子を選ぶタイル・出発・今日のお題・メニューの順に並ぶ', () => {
+    const app = open({ best: 300 });
+    const order = ['[data-animal]', '[data-go]', '[data-daily]', '[data-menu="gacha"]'].map((q) =>
+      document.querySelector(q)!
+    );
+    for (let i = 1; i < order.length; i++)
+      expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     unmount(app);
   });
 });
