@@ -2,7 +2,7 @@ import type { GameMeta } from '$lib/games';
 
 export default {
   id: 'animal-survivors',
-  name: 'Animal Survivors',
+  name: 'アニマルサバイバー',
   description: '動物を選んで、押し寄せる大群を 10 分生き延びる。攻撃は自動、レベルアップで技を選ぶ',
   players: 1,
   levels: 1,
