@@ -72,7 +72,7 @@ export function makeDaily(date: string, animals: AnimalId[], stages: string[], c
     cleared: false
   };
   // 釜と札は前からの引き方のあとに引く（同じ日付のお題の動物・ステージ・しばりを変えないため）
-  d.heat = 2 + 0.5 * Math.floor(r() * 3);
+  d.heat = 2.5 + 0.5 * Math.floor(r() * 3);
   if (cards.length) d.card = one(cards);
   return d;
 }

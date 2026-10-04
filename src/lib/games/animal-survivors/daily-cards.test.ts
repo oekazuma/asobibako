@@ -11,14 +11,14 @@ const ANIMALS = ['dog', 'cat', 'wolf'] as const;
 const STAGES = ['forest', 'graveyard'];
 
 describe('今日の釜と今日の札', () => {
-  it('同じ日付なら同じ釜と札。釜は 2.0〜3.0 の 0.5 刻み、札は開いている札から', () => {
+  it('同じ日付なら同じ釜と札。釜は 2.5〜3.5 の 0.5 刻み、札は開いている札から', () => {
     const a = makeDaily('2026-10-05', [...ANIMALS], STAGES, ['fang', 'gamble']);
     expect(makeDaily('2026-10-05', [...ANIMALS], STAGES, ['fang', 'gamble'])).toEqual(a);
     const days = Array.from({ length: 40 }, (_, i) =>
       makeDaily(`2026-12-${String(i + 1).padStart(2, '0')}`, [...ANIMALS], STAGES, ['fang', 'gamble'])
     );
     for (const d of days) {
-      expect([2, 2.5, 3]).toContain(d.heat);
+      expect([2.5, 3, 3.5]).toContain(d.heat);
       expect(['fang', 'gamble']).toContain(d.card);
     }
     expect(new Set(days.map((d) => d.heat)).size).toBeGreaterThan(2);
