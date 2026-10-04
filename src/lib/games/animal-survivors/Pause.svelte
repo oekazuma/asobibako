@@ -1,5 +1,6 @@
 <script lang="ts">
   import ArcanaRow from './ArcanaRow.svelte';
+  import GearRow from './GearRow.svelte';
   import { onDestroy } from 'svelte';
   import { audio, toggleMute } from '$lib/audio.svelte';
   import { itemArt } from './art/evolved';
@@ -74,6 +75,7 @@
       <h2 class="as-title">ポーズ</h2>
       <p class="now"><span>{clock(run.time)}</span><span>Lv.{run.level}</span><span>コイン {run.coins}</span></p>
       <ArcanaRow cards={run.arcana ?? []} detail />
+      <GearRow keys={run.gear ?? []} named />
       <ul class="owned" aria-label="取った武器とパッシブ">
         {#each owned as o (o.key)}
           <li class="slot">

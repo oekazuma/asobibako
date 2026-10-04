@@ -4,8 +4,8 @@
   import { ANIMAL_ART } from './art/animals';
   import { heatLabel } from './cauldron';
   import { ITEM_ART } from './art/items';
-  import ArcanaRow from './ArcanaRow.svelte';
   import DamageTable from './DamageTable.svelte';
+  import RunKit from './RunKit.svelte';
   import { clock } from './hud';
   import PixelIcon from './PixelIcon.svelte';
   import Trophy from './Trophy.svelte';
@@ -85,7 +85,7 @@
         <dd>{value}</dd>
       {/each}
     </dl>
-    <ArcanaRow cards={run.arcana ?? []} />
+    <RunKit {run} />
     <DamageTable {run} />
     <div class="buttons">
       <button class="as-card" onclick={onagain}>もう一度</button>

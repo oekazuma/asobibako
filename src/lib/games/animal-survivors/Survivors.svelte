@@ -21,6 +21,8 @@
   import { SONGS } from './songs';
   import Trophies from './Trophies.svelte';
   import Book from './Book.svelte';
+  import Gear from './Gear.svelte';
+  import { wornKeys } from './gacha';
   import { overtimeRun } from './overtime';
   import { summary, type Options, type RunSummary, type World } from './world';
   import './retro.css';
@@ -28,9 +30,8 @@
   // 10 分の 1 回が面ひとつなので、シェルの level と onfinish は使わない（リザルトはこのゲームが持つ）
   let { onquit }: SoloProps = $props();
 
-  let screen = $state<'select' | 'stage' | 'cauldron' | 'shop' | 'trophies' | 'book' | 'daily' | 'play' | 'result'>(
-    'select'
-  );
+  type Screen = 'select' | 'stage' | 'cauldron' | 'shop' | 'trophies' | 'book' | 'gear' | 'daily' | 'play' | 'result';
+  let screen = $state<Screen>('select');
   /** これから遊ぶ動物と面（お題の回はしばりも）。「もう一度」とやり直しは同じ組で始める。
    * want は釜で選んだ強さ（払えずに heat を下げても、もう一度は want で払おうとする） */
   let pick = $state<Options & { animal: AnimalId; stage: string; want?: number }>({ animal: 'dog', stage: 'forest' });
@@ -51,7 +52,7 @@
   });
 
   function start(stage: string) {
-    pick = { ...pick, stage };
+    pick = { ...pick, stage, gear: wornKeys(records) };
     field = { song: 'field', quiet: false };
     round += 1;
     screen = 'play';
@@ -182,6 +183,8 @@
   />
 {:else if screen === 'shop'}
   <Shop onback={back} />
+{:else if screen === 'gear'}
+  <Gear onback={back} />
 {:else if screen === 'book'}
   <Book {records} onback={back} />
 {:else if screen === 'trophies'}

@@ -10,6 +10,8 @@
   import PixelIcon from './PixelIcon.svelte';
   import AnimalCard from './AnimalCard.svelte';
   import { heatLabel } from './cauldron';
+  import { wornKeys } from './gacha';
+  import GearIcon from './GearIcon.svelte';
   import { canPlay, type Records } from './records';
   import { stageOf } from './stages';
 
@@ -25,7 +27,7 @@
     /** 前回と同じ動物・ステージ・釜の強さで始める */
     onrepeat: () => void;
     onquit: () => void;
-    onopen: (screen: 'daily' | 'shop' | 'trophies' | 'book') => void;
+    onopen: (screen: 'daily' | 'shop' | 'trophies' | 'book' | 'gear') => void;
   } = $props();
 
   // 記録はあとから読み直して届くので、押すまでは今の記録の「最後に遊んだ子」を選んでいることにする
@@ -92,7 +94,10 @@
       <button class="as-card link" onclick={() => onopen('trophies')}
         >実績 {records.achieved.length} / {ACHIEVEMENTS.length}</button
       >
-      <button class="as-card link" style:grid-column="span 2" onclick={() => onopen('book')}>図鑑</button>
+      <button class="as-card link" onclick={() => onopen('book')}>図鑑</button>
+      <button class="as-card link" style:white-space="nowrap" data-gear-open onclick={() => onopen('gear')}>
+        装備{#each wornKeys(records) as k (k)}<GearIcon gear={k} size="min(3cqw, 2cqh, 22px)" />{/each}
+      </button>
     </div>
   </section>
 </div>
@@ -118,7 +123,7 @@
 
   .links {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
 
