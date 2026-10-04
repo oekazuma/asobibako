@@ -1,6 +1,7 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import { emptyRecords } from './records';
+import { emptyRecords, record } from './records';
+import { createWorld, summary } from './world';
 import StageSelect from './StageSelect.svelte';
 
 function show(stages: string[], stage = 'forest') {
@@ -35,5 +36,34 @@ describe('StageSelect', () => {
     card('graveyard').click();
     expect(picked).toEqual(['graveyard']);
     unmount(app);
+  });
+
+  it('釜の強さは 2.0 より上でクリアしたときだけ札に出す', () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const r = {
+      ...emptyRecords(),
+      stages: ['forest', 'graveyard', 'snow'],
+      heat: { forest: 0, graveyard: 2, snow: 2.5 }
+    };
+    const app = mount(StageSelect, { target, props: { records: r, onpick: () => {}, onback: () => {} } });
+    flushSync();
+    const text = (id: string) => target.querySelector(`[data-stage="${id}"]`)!.textContent;
+    expect(text('forest')).not.toContain('釜');
+    expect(text('graveyard')).not.toContain('釜');
+    expect(text('snow')).toContain('釜 2.5');
+    unmount(app);
+  });
+
+  it('0.0 でクリアしたあとに 3.0 でクリアすると、記録は 3.0 になる', () => {
+    const r = emptyRecords();
+    const run = (level: number) => ({
+      ...summary(createWorld('dog', 1, { w: 274, h: 394 })),
+      cleared: true,
+      heat: { level, bet: 0 }
+    });
+    record(r, run(0));
+    expect(r.heat.forest).toBe(0);
+    record(r, run(3));
+    expect(r.heat.forest).toBe(3);
   });
 });
