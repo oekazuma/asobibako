@@ -25,6 +25,8 @@ describe('ガチャの画面', () => {
   });
 
   it('コインで引くと持ち物が増え、足りなければ押せない', () => {
+    // 伝説（3%）が出ると天井の回数が戻るので、ふつうが出る乱数に決める
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const app = open({ coins: 500 });
     card('coin').click();
     flushSync();
@@ -34,6 +36,7 @@ describe('ガチャの画面', () => {
     expect(card('coin').disabled).toBe(true);
     expect(document.body.textContent).toContain('あと 49 回');
     unmount(app);
+    random.mockRestore();
   });
 
   it('かくりつで、レア度ごとと品ごとの確率を見せ、券を切り替えられる', () => {

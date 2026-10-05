@@ -1,10 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Message } from '$lib/net/link';
 import { Party, type Pipe } from '$lib/net/party.svelte';
 import { CoopGuest, CoopHost } from './coop';
 import type { Hero } from './heroes';
 import { Prompts } from './prompts.svelte';
 import { ENEMIES } from './enemies';
+import { emptyRecords, loadRecords, RECORDS_KEY } from './records';
 import { createWorld, makeEnemy, step } from './world';
 
 const VIEW = { w: 260, h: 380 };
@@ -35,6 +36,21 @@ function pipes(): [Pipe, Pipe] {
     }
   });
   return [end(0), end(1)];
+}
+
+/** 記録を見るテストのための、メモリの localStorage（このファイルは DOM の無い環境で動く） */
+function memoryStorage() {
+  const m = new Map<string, string>();
+  return {
+    getItem: (k: string) => m.get(k) ?? null,
+    setItem: (k: string, v: string) => void m.set(k, v),
+    removeItem: (k: string) => void m.delete(k),
+    clear: () => m.clear(),
+    key: (i: number) => [...m.keys()][i] ?? null,
+    get length() {
+      return m.size;
+    }
+  };
 }
 
 const settle = () => new Promise((resolve) => setTimeout(resolve));
@@ -241,5 +257,36 @@ describe('協力プレイのつなぎ', () => {
     h.resume();
     await settle();
     expect(g.paused).toBeNull();
+  });
+
+  it('倒れて終わると、親と子がそれぞれ自分の記録に入れ、子は子の動物のぶんでリザルトを出す', async () => {
+    vi.stubGlobal('localStorage', memoryStorage());
+    localStorage.setItem(RECORDS_KEY, JSON.stringify(emptyRecords()));
+    const { w, h, g } = await started();
+    w.kills = 77;
+    w.time = 123;
+    w.over = 'dead';
+    h.finish(true);
+    await settle();
+    expect(h.result?.run.animal).toBe('dog');
+    expect(g.result?.run.animal).toBe('cat');
+    // 同じ localStorage を 2 台で使っているので、2 回ぶん入る
+    expect(loadRecords().kills).toBe(154);
+    vi.unstubAllGlobals();
+  });
+
+  it('クリアで延長戦を選ばなければ、子にも 10:00 のまとめでリザルトを出す', async () => {
+    vi.stubGlobal('localStorage', memoryStorage());
+    localStorage.setItem(RECORDS_KEY, JSON.stringify(emptyRecords()));
+    const { w, h, g } = await started();
+    w.time = w.stage.length;
+    w.over = 'clear';
+    h.finish(false);
+    await settle();
+    expect(g.result).toBeNull();
+    h.end();
+    await settle();
+    expect(g.result?.run.cleared).toBe(true);
+    vi.unstubAllGlobals();
   });
 });

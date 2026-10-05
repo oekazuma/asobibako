@@ -32,6 +32,8 @@
   let mine = $state<AnimalId | null>(null);
   let step = $state<'pick' | 'stage' | 'cauldron'>('pick');
   let stage = $state('forest');
+  /** 釜で選んだ強さ（もう一度も同じ強さで賭け直す） */
+  let want = 2;
   let playing = $state(false);
 
   async function linked(link: Link) {
@@ -57,6 +59,7 @@
 
   /** 釜の「はじめる」。賭けは親だけが払う */
   function begin(h: number) {
+    want = h;
     const r = loadRecords();
     const heat = payHeat(r, h);
     saveRecords(r);
@@ -94,7 +97,7 @@
 {#if playing && world}
   <!-- もう一度で World が替わったら、遊ぶ画面を作り直す（遊ぶ画面は受け取った World を進め続ける） -->
   {#key world}
-    <CoopPlay {host} {guest} {world} onend={onback} />
+    <CoopPlay {host} {guest} {world} onend={onback} onagain={host ? () => begin(want) : undefined} />
   {/key}
 {:else if host && mine && ready && step === 'stage'}
   <StageSelect

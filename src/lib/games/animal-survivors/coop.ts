@@ -1,7 +1,10 @@
 import type { Message } from '$lib/net/link';
 import type { Party } from '$lib/net/party.svelte';
 import type { AnimalId } from './animals';
+import type { AchievementDef } from './achievements';
 import { openChest, type Reward } from './chest';
+import { heroRun, recordRun, type HeroRun } from './coop-run';
+import { loadRecords, saveRecords } from './records';
 import { Prompts } from './prompts.svelte';
 import { apply, choices, isFiller, type Choice } from './choices';
 import type { GearKey } from './gear';
@@ -9,7 +12,7 @@ import { applySnap, COOP_VERSION, lerpSnap, makeSnap, type Snap } from './snap';
 import { Timeline } from './timeline';
 import type { Ranks } from './upgrades';
 import { STORM_PUSH } from './storm';
-import { addHero, BASE_SPEED, createWorld, SLOW, type GameEvent, type World } from './world';
+import { addHero, BASE_SPEED, createWorld, SLOW, type GameEvent, type RunSummary, type World } from './world';
 
 /** 親が様子を送る間（秒）と、子が自分の位置を送る間 */
 const SNAP_EVERY = 0.05;
@@ -20,6 +23,22 @@ const MOVE_EVERY = 1 / 30;
  */
 const DELAY_MS = 100;
 const MOVE_DELAY_MS = 60;
+/** 親が切れたときのために、子のぶんのまとめを送る間（秒） */
+const KEEP_EVERY = 10;
+
+/** リザルトに見せるまとめと、その回に達成した実績 */
+export interface Outcome {
+  run: RunSummary;
+  got: AchievementDef[];
+}
+
+/** 届いたまとめを記録に入れて保存する。延長戦の 2 回めは first に足して見せる */
+function store(sent: HeroRun, first: Outcome | null): Outcome {
+  const r = loadRecords();
+  const out = recordRun(r, sent, first?.run ?? null, first?.got ?? []);
+  saveRecords(r);
+  return out;
+}
 const GUEST = 2;
 /** 子の 3 択への返事 */
 const PICKS = new Set(['choose', 'reroll', 'skip', 'banish']);
@@ -54,6 +73,11 @@ export class CoopHost {
   readonly #moves = new Timeline<Move>();
   #events: GameEvent[] = [];
   #acc = 0;
+  /** 終わったときのリザルト（親の動物のぶん） */
+  result: Outcome | null = null;
+  /** 10:00 のクリアで記録したぶん（延長戦の 2 回めの記録で足す） */
+  #first: Outcome | null = null;
+  #keep = 0;
   /** 子へ送って返事を待っているもの（返事の前に同じ 3 択を送り直さない） */
   #asked: 'offer' | 'rewards' | null = null;
   #options: Choice[] = [];
@@ -149,6 +173,8 @@ export class CoopHost {
     this.#asked = null;
     this.#moves.clear();
     this.#events = [];
+    this.result = this.#first = null;
+    this.#keep = 0;
     this.#party.tell(GUEST, { t: 'start', seed, stage, animal: w.heroes[0].animal.id });
   }
 
@@ -177,10 +203,34 @@ export class CoopHost {
     }
   }
 
+  /**
+   * 決着したら呼ぶ。親の動物のぶんを記録し、子の動物のぶんのまとめを子へ送る。
+   * 10:00 のクリアで延長戦を聞く前は final を false にし、選ばなければ end を呼ぶ
+   */
+  finish(final: boolean): void {
+    const w = this.#w;
+    if (!w) return;
+    const out = store(heroRun(w, 0), this.#first);
+    if (final) this.result = out;
+    else this.#first = out;
+    if (w.heroes[1]) this.#party.tell(GUEST, { t: 'record', run: heroRun(w, 1), final } as unknown as Message);
+  }
+
+  /** 延長戦を選ばずに終える */
+  end(): void {
+    this.result = this.#first;
+    this.#party.tell(GUEST, { t: 'end' });
+  }
+
   /** step のあと。出来事をためて、決まった間ごとに様子を送る */
   after(dt: number): void {
     const w = this.#w;
     if (!w) return;
+    this.#keep += dt;
+    if (this.#keep >= KEEP_EVERY && w.heroes[1] && !w.over) {
+      this.#keep = 0;
+      this.#party.tell(GUEST, { t: 'keep', run: heroRun(w, 1) } as unknown as Message);
+    }
     this.#events.push(...w.events);
     this.#acc += dt;
     if (this.#acc < SNAP_EVERY) return;
@@ -197,6 +247,10 @@ export class CoopGuest {
   prompts: Prompts | null = null;
   paused: Pauser = null;
   mismatch = false;
+  result: Outcome | null = null;
+  #first: Outcome | null = null;
+  /** 親から最後に届いた、自分のぶんのまとめ（親が切れたときに記録する） */
+  kept: HeroRun | null = null;
   readonly #party: Party;
   readonly #snaps = new Timeline<Snap>();
   #shown: Snap | null = null;
@@ -221,7 +275,15 @@ export class CoopGuest {
         this.prompts?.stop();
         this.prompts = new Prompts(view, undefined, { send: (msg) => party.act(msg) });
         this.#snaps.clear();
-      } else if (m.t === 'pause') this.paused = m.by as Pauser;
+        this.result = this.#first = this.kept = null;
+      } else if (m.t === 'record') {
+        const out = store(m.run as HeroRun, this.#first);
+        this.kept = null;
+        if (m.final) this.result = out;
+        else this.#first = out;
+      } else if (m.t === 'end') this.result = this.#first;
+      else if (m.t === 'keep') this.kept = m.run as HeroRun;
+      else if (m.t === 'pause') this.paused = m.by as Pauser;
       else if (m.t === 'resume') this.paused = null;
       else if (m.t === 'offer') this.prompts?.offer(m.options as Choice[], m.tools as Prompts['tools']);
       else if (m.t === 'rewards') this.prompts?.openRewards(m.rewards as Reward[]);

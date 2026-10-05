@@ -17,7 +17,8 @@
     total,
     locked,
     onagain,
-    onselect
+    onselect,
+    again = true
   }: {
     run: RunSummary;
     got: AchievementDef[];
@@ -25,6 +26,8 @@
     locked: boolean;
     onagain: () => void;
     onselect: () => void;
+    /** ふたりで遊ぶ子の端末では、もう一度は親が押す */
+    again?: boolean;
   } = $props();
 
   const art = $derived(ANIMAL_ART[run.animal].forms[run.form]);
@@ -81,7 +84,9 @@
 <!-- 実績や武器の表が長くても押せるよう、スクロールする .as-screen の外の下に留める -->
 <div class="bar" class:as-locked={locked} data-bar>
   <div class="buttons">
-    <button class="as-card as-go" onclick={onagain}>もう一度</button>
+    <button class="as-card as-go" disabled={!again} onclick={onagain}
+      >{again ? 'もう一度' : 'おやを まっています'}</button
+    >
     <button class="as-card" onclick={onselect}>キャラ選択へ</button>
   </div>
 </div>
