@@ -54,6 +54,13 @@ describe('Pause', () => {
     document.body.innerHTML = '';
   });
 
+  it('音のボタンは、押すと何が起きるかを言う', () => {
+    const { app, button } = show();
+    expect(button('音を消す')).toBeDefined();
+    expect(button('音 オン')).toBeUndefined();
+    unmount(app);
+  });
+
   it('つづけるはすぐ効く', () => {
     const { app, calls, button } = show();
     button('つづける').click();

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Back from './Back.svelte';
   import { entries, type Entry, type Tab } from './book-view';
   import PixelIcon from './PixelIcon.svelte';
   import type { Records } from './records';
@@ -59,19 +60,21 @@
         <span>札を押すと、くわしく見られる</span>
       {/if}
     </div>
-    <button class="as-card back" onclick={onback}>もどる</button>
   </section>
 </div>
+<Back {onback} />
 
 <style>
   .tabs {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
     gap: 6px;
   }
 
   .tab {
     justify-content: center;
+    padding-inline: 4px;
     font-size: min(4cqw, 2.4cqh, 20px);
   }
 

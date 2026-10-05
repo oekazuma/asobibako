@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Back from './Back.svelte';
   import { grant, type AchievementDef } from './achievements';
   import { ITEM_ART } from './art/items';
   import PixelIcon from './PixelIcon.svelte';
@@ -22,16 +23,16 @@
 <div class="as-screen">
   <section class="as-panel" aria-label="パワーアップ">
     <h2 class="as-title">パワーアップ</h2>
-    <p class="purse"><PixelIcon art={ITEM_ART.coin} size="min(5cqw, 3cqh, 26px)" /> {n(r.coins)}</p>
-    {#each got as a (a.id)}
-      <Trophy {a} />
-    {/each}
+    <p class="purse stick"><PixelIcon art={ITEM_ART.coin} size="min(5cqw, 3cqh, 26px)" /> {n(r.coins)}</p>
+    <Trophy list={got} />
     <div class="grid">
       {#each UPGRADES as d (d.id)}
         {@const rank = r.ranks[d.id] ?? 0}
         {@const full = rank >= d.max}
+        {@const short = price(d, rank) - r.coins}
         <button
           class="as-card item"
+          class:full
           data-upgrade={d.id}
           disabled={full || r.coins < price(d, rank)}
           onclick={() => purchase(d.id)}
@@ -41,14 +42,17 @@
             <b>{d.name}</b>
             <span class="pips">{'■'.repeat(rank)}{'□'.repeat(d.max - rank)}</span>
             <span class="blurb">{d.blurb}</span>
-            <span class="price">{full ? 'MAX' : `${n(price(d, rank))} コイン`}</span>
+            <span class="price"
+              >{full ? 'MAX' : `${n(price(d, rank))} コイン`}{#if !full && short > 0}<small>あと {n(short)}</small
+                >{/if}</span
+            >
           </span>
         </button>
       {/each}
     </div>
-    <button class="as-card back" onclick={onback}>もどる</button>
   </section>
 </div>
+<Back {onback} />
 
 <style>
   .purse {
@@ -59,6 +63,16 @@
     margin: 0;
     color: #ffd84a;
     font-size: min(5cqw, 3cqh, 26px);
+  }
+
+  /* 一覧を下へ送っても残りのコインが見えるよう、上に留める */
+  .stick {
+    position: sticky;
+    /* sticky の位置は .as-screen の上の余白の内側から測るので、上の「もどる」の帯（Back.svelte）との差だけ上げる */
+    top: calc(max(68px, calc(env(safe-area-inset-top) + 56px)) - max(72px, calc(env(safe-area-inset-top) + 60px)));
+    z-index: 2;
+    padding: 4px 0;
+    background: #2b1d3a;
   }
 
   .grid {
@@ -88,11 +102,26 @@
   }
 
   .price {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
     color: #a3501c;
   }
 
-  .back {
-    justify-content: center;
-    font-size: min(4.6cqw, 2.8cqh, 24px);
+  .price small {
+    color: #b03040;
+  }
+
+  .full {
+    background: #ffe9a8;
+  }
+
+  .full:disabled {
+    opacity: 1;
+  }
+
+  .full .price {
+    color: #a3501c;
+    font-weight: 900;
   }
 </style>

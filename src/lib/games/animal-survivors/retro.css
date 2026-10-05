@@ -66,6 +66,10 @@
   cursor: pointer;
 }
 
+.as-card.as-go {
+  background: #ffd84a;
+}
+
 .as-card:focus-visible {
   background: #ffe28a;
   outline: none;

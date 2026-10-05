@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Back from './Back.svelte';
   import { animal } from './animals';
   import { ANIMAL_ART } from './art/animals';
   import ArcanaRow from './ArcanaRow.svelte';
@@ -28,10 +29,10 @@
       {daily.cleared ? '今日のごほうびは受け取りました' : `ごほうび ${dailyBonus(daily)} コイン`}
     </p>
     <p class="note">何度でも挑戦できます。ごほうびはその日に初めてクリアしたときだけです</p>
-    <button class="as-card go" onclick={onstart}>挑戦する</button>
-    <button class="as-card" onclick={onback}>もどる</button>
+    <button class="as-card as-go" onclick={onstart}>挑戦する</button>
   </section>
 </div>
+<Back {onback} />
 
 <style>
   .date,
@@ -89,9 +90,5 @@
   .as-card {
     justify-content: center;
     font-size: min(4.6cqw, 2.8cqh, 24px);
-  }
-
-  .go {
-    background: #ffd84a;
   }
 </style>

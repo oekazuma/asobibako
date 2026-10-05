@@ -10,10 +10,13 @@ import {
   oddsTable,
   percent,
   whyNot,
+  tidy,
+  tidyPreview,
   pull,
   PULL_COINS,
   rollTicket,
   sell,
+  SELL,
   ticketOdds,
   wornKeys
 } from './gacha';
@@ -188,5 +191,43 @@ describe('引けない理由', () => {
     r.bag = { 'oni:0': BAG_MAX - 5 };
     expect(whyNot(r, 'coin')).toBeNull();
     expect(whyNot(r, 'ten')).toBe('持ち物に 入りきらない');
+  });
+});
+
+describe('まとめて売る', () => {
+  const recs = (bag: Record<string, number>, worn: Partial<Record<'head' | 'body' | 'charm', string>> = {}) =>
+    ({ ...emptyRecords(), coins: 0, bag, worn: { head: null, body: null, charm: null, ...worn } }) as ReturnType<
+      typeof emptyRecords
+    >;
+
+  it('3 つそろった品を合成してから、場所ごとにいちばん高いレア度より低い品を売る', () => {
+    const r = recs({ 'oni:0': 4, 'hachimaki:1': 1, 'goggles:1': 1, 'knight:0': 2 });
+    const got = tidy(r);
+    // 鬼のツノ 3 つ → レア 1 つ。あたまはレアが最高なので、残った鬼のツノのふつう 1 つを売る。からだはふつうしかないので残す
+    expect(r.bag).toEqual({ 'oni:1': 1, 'hachimaki:1': 1, 'goggles:1': 1, 'knight:0': 2 });
+    expect(got).toEqual({ merged: 1, sold: 1, coins: SELL[0] });
+    expect(r.coins).toBe(SELL[0]);
+  });
+
+  it('合成で上がる品は何段でも上げ、つけていた品が合成で消えたら上がった品をつける', () => {
+    const r = recs({ 'cat:0': 9 }, { charm: 'cat:0' });
+    tidy(r);
+    expect(r.bag).toEqual({ 'cat:2': 1 });
+    expect(r.worn.charm).toBe('cat:2');
+  });
+
+  it('つけている品はレア度が低くても 1 つ残す', () => {
+    const r = recs({ 'oni:0': 2, 'hachimaki:2': 1 }, { head: 'oni:0' });
+    const got = tidy(r);
+    expect(r.bag).toEqual({ 'oni:0': 1, 'hachimaki:2': 1 });
+    expect(got.sold).toBe(1);
+  });
+
+  it('前もって見るだけなら記録を変えない', () => {
+    const r = recs({ 'oni:0': 4, 'hachimaki:1': 1 });
+    const before = JSON.stringify(r);
+    expect(tidyPreview(r)).toEqual({ merged: 1, sold: 1, coins: SELL[0] });
+    expect(JSON.stringify(r)).toBe(before);
+    expect(tidyPreview(recs({ 'oni:1': 1, 'muffler:0': 1 }))).toEqual({ merged: 0, sold: 0, coins: 0 });
   });
 });

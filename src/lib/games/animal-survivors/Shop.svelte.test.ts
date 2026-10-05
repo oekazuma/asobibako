@@ -31,9 +31,19 @@ describe('Shop', () => {
     unmount(app);
   });
 
-  it('足りない品は押せない', () => {
-    const { app, card } = show();
+  it('足りない品は押せず、あといくら足りないかを出し、最大の品は MAX', () => {
+    const r = emptyRecords();
+    r.coins = 50;
+    r.ranks.revive = 1;
+    localStorage.setItem(RECORDS_KEY, JSON.stringify(r));
+    const { app, card, target } = show();
+    const might = UPGRADES.find((d) => d.id === 'might')!;
+    expect(card('might').disabled).toBe(true);
+    expect(card('might').textContent).toContain(`あと ${(might.base - 50).toLocaleString('ja-JP')}`);
     expect(card('revive').disabled).toBe(true);
+    expect(card('revive').classList.contains('full')).toBe(true);
+    expect(card('revive').textContent).toContain('MAX');
+    expect(target.querySelector('.purse')!.classList.contains('stick')).toBe(true);
     unmount(app);
   });
 });

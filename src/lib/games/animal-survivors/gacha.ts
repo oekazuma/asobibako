@@ -120,6 +120,39 @@ export function equipBest(r: Records): void {
   }
 }
 
+/** 合成してから、場所ごとにいちばん高いレア度より低い品を売る。合成のほうが売るより得なので先に合成する */
+export function tidy(r: Records): { merged: number; sold: number; coins: number } {
+  let merged = 0;
+  for (const rarity of [0, 1] as const)
+    for (const d of GEAR) {
+      const k = keyOf(d.id, rarity);
+      const worn = r.worn[d.slot] === k;
+      while ((r.bag[k] ?? 0) >= 3) {
+        const up = merge(r, k)!;
+        merged += 1;
+        if (worn && !r.bag[k]) r.worn[d.slot] = up;
+      }
+    }
+  let sold = 0;
+  let coins = 0;
+  for (const s of SLOTS) {
+    const keys = (Object.keys(r.bag) as GearKey[]).filter((k) => parseKey(k)?.def.slot === s);
+    const top = Math.max(-1, ...keys.map((k) => parseKey(k)!.rarity));
+    for (const k of keys) {
+      if (parseKey(k)!.rarity >= top) continue;
+      const keep = r.worn[s] === k ? 1 : 0;
+      while ((r.bag[k] ?? 0) > keep) {
+        coins += sell(r, k);
+        sold += 1;
+      }
+    }
+  }
+  return { merged, sold, coins };
+}
+
+/** まとめて売る前の確かめに出す数。記録は変えない */
+export const tidyPreview = (r: Records) => tidy(JSON.parse(JSON.stringify(r)));
+
 export const wornKeys = (r: Records) => SLOTS.flatMap((s) => (r.worn[s] ? [r.worn[s]] : []));
 
 const count = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);

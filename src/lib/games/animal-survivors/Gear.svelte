@@ -1,7 +1,8 @@
 <script lang="ts">
+  import Back from './Back.svelte';
   import { ITEM_ART } from './art/items';
   import Bag from './Bag.svelte';
-  import { BAG_MAX, bagCount, equip, equipBest, merge, sell } from './gacha';
+  import { BAG_MAX, bagCount, equip, equipBest, merge, sell, tidy, tidyPreview } from './gacha';
   import { parseKey, SLOT_NAME, SLOTS, type GearKey } from './gear';
   import GearDetail from './GearDetail.svelte';
   import GearIcon from './GearIcon.svelte';
@@ -13,6 +14,9 @@
   let r = $state(loadRecords());
   let picked = $state<GearKey | null>(null);
   const save = () => saveRecords($state.snapshot(r));
+  /** まとめて売るは 1 回めに数を見せ、もう一度押すと売る */
+  let sure = $state(false);
+  const plan = $derived(tidyPreview(r));
 
   function act(what: 'equip' | 'merge' | 'sell' | 'close') {
     const k = picked;
@@ -47,21 +51,37 @@
       {/each}
     </div>
     {#if bagCount(r)}
-      <button
-        class="as-card best"
-        onclick={() => {
-          equipBest(r);
-          save();
-        }}>最強をつける</button
-      >
+      <div class="tools">
+        <button
+          class="as-card"
+          onclick={() => {
+            equipBest(r);
+            save();
+          }}>最強装備をつける</button
+        >
+        <button
+          class="as-card"
+          disabled={!plan.merged && !plan.sold}
+          onclick={() => {
+            if (!sure) return void (sure = true);
+            tidy(r);
+            sure = false;
+            picked = null;
+            save();
+          }}
+          >{#if sure}本当に売る<small
+              >{plan.merged ? `合成 ${plan.merged} 回・` : ''}{plan.sold} 個を売って +{plan.coins}</small
+            >{:else}まとめて売る<small>合成して、弱い品を売る</small>{/if}</button
+        >
+      </div>
     {/if}
     {#if picked && r.bag[picked]}
       <GearDetail gear={picked} count={r.bag[picked] ?? 0} worn={Object.values(r.worn).includes(picked)} onact={act} />
     {/if}
     <Bag bag={r.bag} worn={r.worn} onpick={(k) => (picked = k)} />
-    <button class="as-card back" onclick={onback}>もどる</button>
   </section>
 </div>
+<Back {onback} />
 
 <style>
   .purse {
@@ -105,13 +125,26 @@
     color: #9aa0ae;
   }
 
-  .best {
-    justify-content: center;
-    font-size: min(4cqw, 2.4cqh, 20px);
+  .tools {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
   }
 
-  .back {
+  .tools .as-card {
+    flex-direction: column;
+    gap: 2px;
     justify-content: center;
-    font-size: min(4.6cqw, 2.8cqh, 24px);
+    font-size: min(3.8cqw, 2.3cqh, 19px);
+  }
+
+  .tools small {
+    color: #8a6a4a;
+    font-size: 0.65em;
+  }
+
+  .tools .as-card:disabled {
+    opacity: 0.45;
+    cursor: default;
   }
 </style>

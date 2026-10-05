@@ -3,6 +3,7 @@
   import GearRow from './GearRow.svelte';
   import { onDestroy } from 'svelte';
   import { audio, toggleMute } from '$lib/audio.svelte';
+  import Icon from '$lib/components/Icon.svelte';
   import { itemArt } from './art/evolved';
   import { ITEM_ART } from './art/items';
   import { clock } from './hud';
@@ -87,8 +88,10 @@
           </li>
         {/each}
       </ul>
-      <button class="as-card" onclick={onresume}>つづける</button>
-      <button class="as-card" onclick={toggleMute}>音 {audio.muted ? 'オフ' : 'オン'}</button>
+      <button class="as-card as-go" onclick={onresume}>つづける</button>
+      <button class="as-card" onclick={toggleMute}
+        ><Icon name={audio.muted ? 'mute' : 'speaker'} size="1.2em" />{audio.muted ? '音を出す' : '音を消す'}</button
+      >
       <button class="as-card" onclick={() => ask('restart')}>最初からやり直す</button>
       <button class="as-card" onclick={() => ask('quit')}>{quit}</button>
     </section>

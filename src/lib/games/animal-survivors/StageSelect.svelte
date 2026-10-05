@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Back from './Back.svelte';
   import { audio, toggleMute } from '$lib/audio.svelte';
   import Icon from '$lib/components/Icon.svelte';
   import { FOREST_ART } from './art/forest';
@@ -22,7 +23,6 @@
 </script>
 
 <div class="as-screen">
-  <button class="round corner" onclick={onback} aria-label="キャラクター選択へ戻る">✕</button>
   <button class="round corner mute" onclick={toggleMute} aria-label="ミュート" aria-pressed={audio.muted}>
     <Icon name={audio.muted ? 'mute' : 'speaker'} size="26px" />
   </button>
@@ -56,13 +56,15 @@
     {/each}
   </section>
 </div>
+<Back {onback} />
 
 <style>
   .corner {
     position: absolute;
     top: max(12px, env(safe-area-inset-top));
     left: max(12px, env(safe-area-inset-left));
-    z-index: 5;
+    /* 上の「もどる」の帯（Back.svelte）より手前 */
+    z-index: 7;
   }
 
   .mute {

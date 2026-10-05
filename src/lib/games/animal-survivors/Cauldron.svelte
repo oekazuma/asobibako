@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Back from './Back.svelte';
   import { CAULDRON_ART } from './art/cauldron';
   import { atkMul, betOf, chestOdds, coinMul, heatLabel, hpMul, maxHeat, snap } from './cauldron';
   import { ITEM_ART } from './art/items';
@@ -23,7 +24,6 @@
 </script>
 
 <div class="as-screen">
-  <button class="round corner" onclick={onback} aria-label="ステージを選ぶ画面へ戻る">✕</button>
   <section class="as-panel" aria-label="まじょの釜">
     <h2 class="as-title">まじょの釜</h2>
     <p class="where">{stageOf(stage).name}</p>
@@ -60,18 +60,12 @@
       {#if bet > 0}賭ける {bet}（倒れると戻らない）{:else}賭けなし{/if}
     </p>
     <p class="have">もちもの {coins.toLocaleString('ja-JP')}</p>
-    <button class="as-card go" data-start onclick={() => onstart(h)}>はじめる</button>
+    <button class="as-card as-go go" data-start onclick={() => onstart(h)}>はじめる</button>
   </section>
 </div>
+<Back {onback} />
 
 <style>
-  .corner {
-    position: absolute;
-    top: max(12px, env(safe-area-inset-top));
-    left: max(12px, env(safe-area-inset-left));
-    z-index: 5;
-  }
-
   .where,
   .have {
     margin: 0;

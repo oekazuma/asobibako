@@ -82,7 +82,7 @@ describe('札の画面', () => {
 
   it('札を開く実績には「NEW! ○○の札」を出す', () => {
     const target = document.body.appendChild(document.createElement('div'));
-    const app = mount(Trophy, { target, props: { a: ACHIEVEMENTS.find((a) => a.id === 'heat5')! } });
+    const app = mount(Trophy, { target, props: { list: [ACHIEVEMENTS.find((a) => a.id === 'heat5')!] } });
     flushSync();
     expect(target.textContent).toContain('NEW! ふたつめの影の札');
     unmount(app);

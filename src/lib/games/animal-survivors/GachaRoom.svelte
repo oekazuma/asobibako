@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Back from './Back.svelte';
   import { ITEM_ART } from './art/items';
   import Gacha from './Gacha.svelte';
   import Gacha3D from './Gacha3D.svelte';
@@ -36,9 +37,9 @@
       >{odds ? 'かくりつを とじる' : 'かくりつ'}</button
     >
     {#if odds}<GachaOdds />{/if}
-    <button class="as-card back" onclick={onback}>もどる</button>
   </section>
 </div>
+<Back {onback} />
 {#if three}<Gacha3D gears={three} onclose={() => (three = null)} />{/if}
 
 <style>
@@ -58,8 +59,7 @@
     font-size: 0.6em;
   }
 
-  .toggle,
-  .back {
+  .toggle {
     justify-content: center;
     font-size: min(4.2cqw, 2.5cqh, 22px);
   }

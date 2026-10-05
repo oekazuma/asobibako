@@ -38,7 +38,7 @@
     {#if !open}<span class="unlock">{a.unlock}</span>{/if}
   </span>
 </div>
-<button class="as-card go" data-go disabled={!open} onclick={onstart}>この子で出発</button>
+<button class="as-card as-go go" data-go disabled={!open} onclick={onstart}>この子で出発</button>
 
 <style>
   .detail {
@@ -148,7 +148,6 @@
   .go {
     justify-content: center;
     padding-block: min(2cqh, 16px);
-    background: #ffd84a;
     font-size: min(6cqw, 3.4cqh, 30px);
   }
 

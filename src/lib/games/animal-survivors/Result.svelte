@@ -38,18 +38,10 @@
   const title = $derived(run.overtime ? '延長戦 終了' : run.cleared ? '生存成功！' : 'GAME OVER');
 </script>
 
-<div class="as-screen">
+<div class="as-screen room">
   <section class="as-panel" class:as-locked={locked} aria-label="結果">
     <h2 class="as-title" class:over={!run.cleared && !run.overtime}>{title}</h2>
-    {#each got as a (a.id)}
-      {#if a.animal}
-        <p class="new">
-          <PixelIcon art={ANIMAL_ART[a.animal].forms[0].walk} size="min(10cqw, 6cqh, 56px)" /><span
-            ><b>NEW!</b> {animal(a.animal).name}が仲間になった</span
-          >
-        </p>
-      {/if}
-    {/each}
+    <Trophy list={got} />
     <p class="coins">
       <PixelIcon art={ITEM_ART.coin} size="min(5cqw, 3cqh, 26px)" /><b>+{run.coins}</b> コイン（もちもの {total.toLocaleString(
         'ja-JP'
@@ -72,9 +64,6 @@
         )}
       </p>
     {/if}
-    {#each got as a (a.id)}
-      <Trophy {a} />
-    {/each}
     <div class="who">
       <PixelIcon art={run.cleared ? art.walk : art.hurt} size="min(18cqw, 10cqh, 96px)" />
       <span>使用キャラクター<br /><b>{animal(run.animal).forms[run.form]}</b></span>
@@ -87,44 +76,17 @@
     </dl>
     <RunKit {run} />
     <DamageTable {run} />
-    <div class="buttons">
-      <button class="as-card" onclick={onagain}>もう一度</button>
-      <button class="as-card" onclick={onselect}>キャラ選択へ</button>
-    </div>
   </section>
+</div>
+<!-- 実績や武器の表が長くても押せるよう、スクロールする .as-screen の外の下に留める -->
+<div class="bar" class:as-locked={locked} data-bar>
+  <div class="buttons">
+    <button class="as-card as-go" onclick={onagain}>もう一度</button>
+    <button class="as-card" onclick={onselect}>キャラ選択へ</button>
+  </div>
 </div>
 
 <style>
-  .new {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    justify-content: center;
-    margin: 0;
-    padding: 6px 12px;
-    border: 3px solid #ffd84a;
-    background: #3a2a14;
-    color: #fff3d6;
-    font-size: min(4.2cqw, 2.5cqh, 22px);
-    animation: pop 360ms steps(4);
-  }
-
-  .new b {
-    color: #ffd84a;
-  }
-
-  @keyframes pop {
-    from {
-      scale: 0.5;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .new {
-      animation: none;
-    }
-  }
-
   .coins {
     display: flex;
     flex-wrap: wrap;
@@ -185,10 +147,25 @@
     color: #ffd84a;
   }
 
+  .room {
+    padding-bottom: calc(max(16px, env(safe-area-inset-bottom)) + min(10cqh, 84px) + 12px);
+  }
+
+  .bar {
+    position: absolute;
+    inset: auto 0 0;
+    z-index: 6;
+    padding: 12px 16px max(16px, env(safe-area-inset-bottom));
+    background: #1f1530;
+    box-shadow: 0 -3px 0 #160c1f;
+  }
+
   .buttons {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
+    width: min(100%, 560px);
+    margin: 0 auto;
   }
 
   .buttons .as-card {

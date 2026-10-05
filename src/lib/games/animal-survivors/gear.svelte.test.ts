@@ -65,12 +65,12 @@ describe('装備の画面', () => {
     const app = open({ bag: { 'oni:0': 3 } });
     (document.querySelector('[data-gear="oni:0"]') as HTMLButtonElement).click();
     flushSync();
-    button('合成').click();
+    button('合成（').click();
     flushSync();
     expect(loadRecords().bag).toEqual({ 'oni:1': 1 });
     (document.querySelector('[data-gear="oni:1"]') as HTMLButtonElement).click();
     flushSync();
-    button('売る').click();
+    button('売る（').click();
     flushSync();
     // 1 回めは確かめるだけで、もう一度押すと売る
     expect(loadRecords().coins).toBe(0);
@@ -80,11 +80,25 @@ describe('装備の画面', () => {
     unmount(app);
   });
 
-  it('最強をつけるで、場所ごとにいちばん高いレア度の品をつけて保存する', () => {
+  it('最強装備をつけるで、場所ごとにいちばん高いレア度の品をつけて保存する', () => {
     const app = open({ bag: { 'oni:0': 1, 'goggles:2': 1, 'knight:1': 1, 'cat:0': 1 } });
-    button('最強をつける').click();
+    button('最強装備をつける').click();
     flushSync();
     expect(loadRecords().worn).toEqual({ head: 'goggles:2', body: 'knight:1', charm: 'cat:0' });
+    unmount(app);
+  });
+
+  it('まとめて売るは、合成と売る数を確かめてから、もう一度押すと合成して弱い品を売る', () => {
+    const app = open({ bag: { 'oni:0': 4, 'hachimaki:1': 1 } });
+    button('まとめて売る').click();
+    flushSync();
+    expect(loadRecords().bag).toEqual({ 'oni:0': 4, 'hachimaki:1': 1 });
+    expect(button('本当に売る').textContent).toContain('合成 1 回・1 個を売って +50');
+    button('本当に売る').click();
+    flushSync();
+    expect(loadRecords().bag).toEqual({ 'oni:1': 1, 'hachimaki:1': 1 });
+    expect(loadRecords().coins).toBe(50);
+    expect(button('まとめて売る').disabled).toBe(true);
     unmount(app);
   });
 

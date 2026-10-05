@@ -10,7 +10,7 @@
       <li>延長戦のコインは 1 分ごとに +0.5 倍</li>
       <li>倒れると延長戦のコインは半分。ポーズの「引き上げる」なら全部もらえる</li>
     </ul>
-    <button class="as-card go" onclick={() => onanswer(true)}>延長戦へ</button>
+    <button class="as-card as-go" onclick={() => onanswer(true)}>延長戦へ</button>
     <button class="as-card" onclick={() => onanswer(false)}>おわる</button>
   </section>
 </div>
@@ -38,9 +38,5 @@
   .as-card {
     justify-content: center;
     font-size: min(4.6cqw, 2.8cqh, 24px);
-  }
-
-  .go {
-    background: #ffd84a;
   }
 </style>
