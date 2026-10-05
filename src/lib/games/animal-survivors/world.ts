@@ -338,7 +338,8 @@ export function makeHero(id: AnimalId, ranks: Ranks, mods: ModId[], gear: GearKe
     pending: 0,
     chests: 0,
     down: false,
-    revive: 0
+    revive: 0,
+    gone: false
   };
 }
 

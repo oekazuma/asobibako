@@ -25,8 +25,8 @@ export const HERO_KEYS = [
   'chests'
 ] as const;
 export type HeroKey = (typeof HERO_KEYS)[number];
-/** down は倒れている、revive は倒れているあいだに相棒がそばにいた秒 */
-export type Hero = Pick<World, HeroKey> & { down: boolean; revive: number };
+/** down は倒れている、revive は倒れているあいだに相棒がそばにいた秒、gone は抜けた（倒れたままで、描かない） */
+export type Hero = Pick<World, HeroKey> & { down: boolean; revive: number; gone: boolean };
 
 /**
  * 今の読み口（w.player・w.weapons など 270 か所ほど）を書き換えずに 2 匹にするため、
@@ -57,7 +57,7 @@ export const RAISE_REACH = 24;
 /** 倒れた動物の起こす時計を進め、届いたら HP 半分で起こす */
 export function raise(w: World, dt: number): void {
   w.heroes.forEach((h, i) => {
-    if (!h.down) return;
+    if (!h.down || h.gone) return;
     const near = w.heroes.some(
       (o) => !o.down && (o.player.x - h.player.x) ** 2 + (o.player.y - h.player.y) ** 2 < RAISE_REACH ** 2
     );

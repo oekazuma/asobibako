@@ -96,7 +96,14 @@ export class CoopHost {
         party.tell(from, { t: 'picked' });
       } else if (m.t === 'move') {
         if (!this.paused) this.#moves.push(m.ms as number, performance.now(), m as unknown as Move);
-      } else if (m.t === 'pause') this.#pause('guest');
+      } else if (m.t === 'quit') {
+        // 抜ける前に子のぶんを記録させる
+        const w = this.#w;
+        if (w?.heroes[1] && !w.heroes[1].gone)
+          this.#party.tell(GUEST, { t: 'record', run: heroRun(w, 1), final: true } as unknown as Message);
+        this.#drop();
+      } else if (m.t === 'leave') this.#drop();
+      else if (m.t === 'pause') this.#pause('guest');
       else if (m.t === 'resume') {
         if (this.paused === 'guest') this.#resume();
       } else this.#answer(m);
@@ -105,6 +112,18 @@ export class CoopHost {
 
   pause(): void {
     this.#pause('host');
+  }
+
+  /** 子が抜けた・切れた。子の動物は倒れたままにして描かず、残っている 3 択と宝箱を消して、親は 1 人で続ける */
+  #drop(): void {
+    const w = this.#w;
+    const h = w?.heroes[1];
+    if (!w || !h || h.gone) return;
+    h.gone = h.down = true;
+    h.pending = h.chests = 0;
+    this.#asked = null;
+    if (this.paused === 'guest') this.paused = null;
+    if (!w.over && w.heroes.every((x) => x.down)) w.over = 'dead';
   }
 
   resume(): void {
@@ -209,11 +228,12 @@ export class CoopHost {
    */
   finish(final: boolean): void {
     const w = this.#w;
-    if (!w) return;
+    if (!w || this.result) return;
     const out = store(heroRun(w, 0), this.#first);
     if (final) this.result = out;
     else this.#first = out;
-    if (w.heroes[1]) this.#party.tell(GUEST, { t: 'record', run: heroRun(w, 1), final } as unknown as Message);
+    if (w.heroes[1] && !w.heroes[1].gone)
+      this.#party.tell(GUEST, { t: 'record', run: heroRun(w, 1), final } as unknown as Message);
   }
 
   /** 延長戦を選ばずに終える */
@@ -227,7 +247,7 @@ export class CoopHost {
     const w = this.#w;
     if (!w) return;
     this.#keep += dt;
-    if (this.#keep >= KEEP_EVERY && w.heroes[1] && !w.over) {
+    if (this.#keep >= KEEP_EVERY && w.heroes[1] && !w.heroes[1].gone && !w.over) {
       this.#keep = 0;
       this.#party.tell(GUEST, { t: 'keep', run: heroRun(w, 1) } as unknown as Message);
     }
@@ -251,6 +271,8 @@ export class CoopGuest {
   #first: Outcome | null = null;
   /** 親から最後に届いた、自分のぶんのまとめ（親が切れたときに記録する） */
   kept: HeroRun | null = null;
+  /** この回を抜けた（リザルトがあれば出し、無ければそのまま戻る） */
+  done = false;
   readonly #party: Party;
   readonly #snaps = new Timeline<Snap>();
   #shown: Snap | null = null;
@@ -276,11 +298,15 @@ export class CoopGuest {
         this.prompts = new Prompts(view, undefined, { send: (msg) => party.act(msg) });
         this.#snaps.clear();
         this.result = this.#first = this.kept = null;
+        this.done = false;
       } else if (m.t === 'record') {
+        if (this.done) return;
         const out = store(m.run as HeroRun, this.#first);
         this.kept = null;
-        if (m.final) this.result = out;
-        else this.#first = out;
+        if (m.final) {
+          this.result = out;
+          this.done = true;
+        } else this.#first = out;
       } else if (m.t === 'end') this.result = this.#first;
       else if (m.t === 'keep') this.kept = m.run as HeroRun;
       else if (m.t === 'pause') this.paused = m.by as Pauser;
@@ -305,6 +331,20 @@ export class CoopGuest {
     if (this.paused) return;
     this.paused = 'guest';
     this.#party.act({ t: 'pause' });
+  }
+
+  /** 抜ける。親から自分のぶんのまとめが届けば記録し、届かなければ最後に届いたまとめを記録する */
+  quit(): void {
+    if (this.done) return;
+    this.#party.act({ t: 'quit' });
+    setTimeout(() => this.#give(), 1500);
+  }
+
+  /** 親とつながらないまま終える。最後に届いた自分のぶんのまとめがあれば記録する */
+  #give(): void {
+    if (this.done) return;
+    this.done = true;
+    if (!this.result && this.kept) this.result = store(this.kept, this.#first);
   }
 
   /** 止めたのが自分のときだけ、親に再開を頼む */
@@ -343,6 +383,7 @@ export class CoopGuest {
 
   /** 描く前に呼ぶ。届いた様子を送った時刻で DELAY_MS 遅らせ、前後の 2 つのあいだをつなぐ */
   frame(now: number): void {
+    if (this.#party.lost && !this.done) this.#give();
     const v = this.view;
     const r = this.#snaps.at(now, DELAY_MS);
     if (!v || !r) return;

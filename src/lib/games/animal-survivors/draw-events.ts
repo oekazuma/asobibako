@@ -60,7 +60,7 @@ function edgeArrow(
 }
 
 /** 矢印を出す相棒（ふたりで遊ぶときの、自分でない動物） */
-export const partners = (w: World) => [...w.heroes.keys()].filter((i) => i !== w.cur);
+export const partners = (w: World) => [...w.heroes.keys()].filter((i) => i !== w.cur && !w.heroes[i].gone);
 
 /**
  * 画面の外の相棒への矢印。宝箱やヌシの矢印と見分けるよう、相棒の顔を画面の内側へ添える。

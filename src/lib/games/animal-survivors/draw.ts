@@ -390,7 +390,7 @@ function raising(ctx: CanvasRenderingContext2D, h: Hero): void {
 
 /** 描く動物の順。自分（cur）がほかの動物の下に隠れないよう、自分を最後にする */
 export function heroOrder(w: World): number[] {
-  return [...w.heroes.keys()].filter((i) => i !== w.cur).concat(w.cur);
+  return [...w.heroes.keys()].filter((i) => i !== w.cur && !w.heroes[i].gone).concat(w.cur);
 }
 
 export function draw(

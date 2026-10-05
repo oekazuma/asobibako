@@ -80,6 +80,12 @@
     ctx = canvas.getContext('2d');
   }
 
+  /** 親はその回を倒れたときと同じに終えて 2 人ともリザルトを出し、子は自分のぶんを記録して抜ける */
+  function quit() {
+    if (host && !world.over) world.over = 'dead';
+    guest?.quit();
+  }
+
   function frame(dt: number) {
     now += dt;
     const move = steer(stick, input.px(1, 1), keys);
@@ -111,6 +117,8 @@
       host.finish(!clear);
       if (clear) askTimer = setTimeout(() => prompts?.ask(stick?.id ?? null), 1200);
     }
+    // 親とつながらないまま、記録するまとめも無く抜けた子はそのまま戻る
+    if (guest?.done && !guest.result) return onend();
     if (side?.result && side.result !== result) {
       result = side.result;
       settle.begin();
@@ -156,6 +164,7 @@
   locked={settle.active}
   busy={!!prompts?.busy}
   {onend}
+  onquit={quit}
   {onagain}
 />
 {#if prompts}

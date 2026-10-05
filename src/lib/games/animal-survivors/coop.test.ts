@@ -59,7 +59,7 @@ const owned = (h: Hero) => h.weapons.reduce((n, o) => n + o.level, 0) + h.passiv
 
 /** つないで、親の「はじめる」まで進めた組。told は子に届いた知らせの種類 */
 async function started() {
-  const { host, guest } = await pair();
+  const { host, guest, pipe } = await pair();
   const told: string[] = [];
   guest.onTell((m) => told.push(m.t));
   const w = createWorld('dog', 1, VIEW);
@@ -69,7 +69,7 @@ async function started() {
   await settle();
   h.start(w);
   await settle();
-  return { host, guest, w, h, g, told };
+  return { host, guest, w, h, g, told, pipe };
 }
 
 async function pair() {
@@ -77,7 +77,7 @@ async function pair() {
   const host = Party.host();
   const guest = Party.guest(b);
   await host.add(a);
-  return { host, guest };
+  return { host, guest, pipe: b };
 }
 
 describe('協力プレイのつなぎ', () => {
@@ -287,6 +287,50 @@ describe('協力プレイのつなぎ', () => {
     h.end();
     await settle();
     expect(g.result?.run.cleared).toBe(true);
+    vi.unstubAllGlobals();
+  });
+
+  it('子が切れると、子の動物の 3 択と宝箱を消して、親は止まらずに続ける', async () => {
+    const { w, h, pipe } = await started();
+    w.heroes[1].pending = 2;
+    w.heroes[1].chests = 1;
+    pipe.close();
+    await settle();
+    h.before();
+    expect(w.heroes[1].gone).toBe(true);
+    expect(w.heroes[1].pending).toBe(0);
+    const t = w.time;
+    step(w, { x: 0, y: 0 }, 1 / 60);
+    expect(w.time).toBeGreaterThan(t);
+  });
+
+  it('親が切れたら、子は最後に届いたまとめを記録してリザルトを出す', async () => {
+    vi.stubGlobal('localStorage', memoryStorage());
+    localStorage.setItem(RECORDS_KEY, JSON.stringify(emptyRecords()));
+    const { w, h, g, pipe } = await started();
+    w.time = 123;
+    h.after(10.1);
+    await settle();
+    pipe.close();
+    await settle();
+    g.frame(performance.now());
+    expect(g.result?.run.time).toBe(123);
+    expect(loadRecords().best).toBe(123);
+    vi.unstubAllGlobals();
+  });
+
+  it('子がやめると、親から自分のぶんのまとめが届いてから抜け、親は 1 人で続ける', async () => {
+    vi.stubGlobal('localStorage', memoryStorage());
+    localStorage.setItem(RECORDS_KEY, JSON.stringify(emptyRecords()));
+    const { w, h, g } = await started();
+    w.time = 45;
+    g.quit();
+    await settle();
+    expect(g.result?.run.animal).toBe('cat');
+    expect(g.done).toBe(true);
+    expect(w.heroes[1].gone).toBe(true);
+    expect(w.over).toBeNull();
+    expect(h.result).toBeNull();
     vi.unstubAllGlobals();
   });
 });

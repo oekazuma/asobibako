@@ -16,6 +16,7 @@
     locked,
     busy,
     onend,
+    onquit,
     onagain
   }: {
     me: 'host' | 'guest';
@@ -29,6 +30,8 @@
     /** 3 択や宝箱を出しているあいだは一時停止を出さない */
     busy: boolean;
     onend: () => void;
+    /** この回を抜ける（親は 2 人ともの回を終え、子は自分だけ抜ける） */
+    onquit: () => void;
     onagain?: () => void;
   } = $props();
 
@@ -37,7 +40,7 @@
 </script>
 
 {#if !result}
-  <button class="round quit" data-quit onclick={() => (sure ? onend() : (sure = true))} aria-label="やめる"
+  <button class="round quit" data-quit onclick={() => (sure ? onquit() : (sure = true))} aria-label="やめる"
     >{sure ? 'やめる？' : '✕'}</button
   >
 {/if}
@@ -51,7 +54,7 @@
     restart={false}
     onresume={() => side?.resume()}
     onrestart={() => {}}
-    onquit={onend}
+    {onquit}
   />
 {:else if paused}
   <p class="note">なかまが とめています</p>

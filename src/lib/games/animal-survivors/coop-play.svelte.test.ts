@@ -1,7 +1,6 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import CoopOverlay from './CoopOverlay.svelte';
-import CoopPlay from './CoopPlay.svelte';
 import { createWorld, summary } from './world';
 
 vi.mock('$lib/audio.svelte', () => ({ audio: { muted: false }, toggleMute: () => {}, bus: () => null }));
@@ -12,9 +11,18 @@ describe('ふたりで遊ぶ画面', () => {
   it('✕ を 2 回押すと抜けられる（相手がいなくなっても閉じ込められない）', () => {
     let ended = 0;
     const target = document.body.appendChild(document.createElement('div'));
-    const app = mount(CoopPlay, {
+    const base = {
+      me: 'guest' as const,
+      side: null,
+      paused: null,
+      waiting: '',
+      busy: false,
+      result: null,
+      locked: false
+    };
+    const app = mount(CoopOverlay, {
       target,
-      props: { world: createWorld('dog', 1, { w: 260, h: 380 }), onend: () => (ended += 1) }
+      props: { ...base, world: createWorld('dog', 1, { w: 260, h: 380 }), onend: () => {}, onquit: () => (ended += 1) }
     });
     flushSync();
     const quit = target.querySelector('[data-quit]') as HTMLButtonElement;
@@ -31,7 +39,16 @@ describe('ふたりで遊ぶ画面', () => {
     const world = createWorld('dog', 1, { w: 260, h: 380 });
     world.over = 'dead';
     const target = document.body.appendChild(document.createElement('div'));
-    const props = { me: 'guest' as const, side: null, world, paused: null, waiting: '', busy: false, onend: () => {} };
+    const props = {
+      me: 'guest' as const,
+      side: null,
+      world,
+      paused: null,
+      waiting: '',
+      busy: false,
+      onend: () => {},
+      onquit: () => {}
+    };
     const app = mount(CoopOverlay, {
       target,
       props: { ...props, result: { run: summary(world), got: [] }, locked: true }
