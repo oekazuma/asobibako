@@ -1,0 +1,128 @@
+import { describe, expect, it } from 'vitest';
+import type { Message } from '$lib/net/link';
+import { Party, type Pipe } from '$lib/net/party.svelte';
+import { CoopGuest, CoopHost } from './coop';
+import { ENEMIES } from './enemies';
+import { createWorld, makeEnemy, step } from './world';
+
+const VIEW = { w: 260, h: 380 };
+
+/** party.svelte.test.ts と同じ、手元でつないだ 2 本の管 */
+function pipes(): [Pipe, Pipe] {
+  const listeners = [new Set<(m: Message) => void>(), new Set<(m: Message) => void>()];
+  const early: Message[][] = [[], []];
+  let open = true;
+  let close!: () => void;
+  const closed = new Promise<void>((resolve) => (close = resolve));
+  const end = (me: 0 | 1): Pipe => ({
+    send: (m) => {
+      if (!open) return;
+      const copy = JSON.parse(JSON.stringify(m));
+      if (!listeners[1 - me].size) early[1 - me].push(copy);
+      for (const l of listeners[1 - me]) l(copy);
+    },
+    on: (l) => {
+      listeners[me].add(l);
+      for (const m of early[me].splice(0)) l(m);
+      return () => listeners[me].delete(l);
+    },
+    closed,
+    close: () => {
+      open = false;
+      close();
+    }
+  });
+  return [end(0), end(1)];
+}
+
+const settle = () => new Promise((resolve) => setTimeout(resolve));
+
+async function pair() {
+  const [a, b] = pipes();
+  const host = Party.host();
+  const guest = Party.guest(b);
+  await host.add(a);
+  return { host, guest };
+}
+
+describe('協力プレイのつなぎ', () => {
+  it('子の hi で 2 匹めが入り、子の位置が親の World に届き、snap で子の画面に敵が出る', async () => {
+    const { host, guest } = await pair();
+    const w = createWorld('dog', 1, VIEW);
+    w.stage = { ...w.stage, waves: [] };
+    const h = new CoopHost(host, w);
+    const g = new CoopGuest(guest, { animal: 'cat', ranks: {}, gear: [] });
+    await settle();
+    expect(h.ready).toBe(true);
+    h.start();
+    await settle();
+    expect(g.view?.heroes).toHaveLength(2);
+    w.enemies.push(makeEnemy(ENEMIES.caterpillar, 40, 0, 50));
+    g.move({ x: 1, y: 0 }, 0.5);
+    await settle();
+    h.before();
+    step(w, { x: 0, y: 0 }, 1 / 60);
+    h.after(0.06);
+    await settle();
+    expect(w.heroes[1].player.x).toBeGreaterThan(40);
+    g.frame(performance.now() + 1000);
+    expect(g.view!.enemies.some((e) => e.alive)).toBe(true);
+  });
+
+  it('版がちがう子には mismatch を返して 2 匹めを入れない', async () => {
+    const { host, guest } = await pair();
+    const w = createWorld('dog', 1, VIEW);
+    const h = new CoopHost(host, w);
+    const told: string[] = [];
+    guest.onTell((m) => told.push(m.t));
+    guest.act({ t: 'hi', v: 0, animal: 'cat', ranks: {}, gear: [] });
+    await settle();
+    expect(h.ready).toBe(false);
+    expect(w.heroes).toHaveLength(1);
+    expect(told).toContain('coop-mismatch');
+  });
+
+  it('snap が届く前の子の画面でも frame が投げない', async () => {
+    const { host, guest } = await pair();
+    const h = new CoopHost(host, createWorld('dog', 1, VIEW));
+    const g = new CoopGuest(guest, { animal: 'cat', ranks: {}, gear: [] });
+    await settle();
+    h.start();
+    await settle();
+    expect(() => g.frame(performance.now())).not.toThrow();
+  });
+
+  it('子の 3 択は親が自動で選び、pending が残らず、cur が 0 に戻る', async () => {
+    const { host, guest } = await pair();
+    const w = createWorld('dog', 1, VIEW);
+    const h = new CoopHost(host, w);
+    new CoopGuest(guest, { animal: 'cat', ranks: {}, gear: [] });
+    await settle();
+    w.heroes[1].pending = 2;
+    const owned = () => w.heroes[1].weapons.reduce((n, o) => n + o.level, 0) + w.heroes[1].passives.length;
+    const before = owned();
+    h.before();
+    expect(w.heroes[1].pending).toBe(0);
+    expect(owned()).toBeGreaterThan(before);
+    expect(w.cur).toBe(0);
+  });
+
+  it('子の画面の出来事は、新しい snap を見せたときに 1 回だけ渡す', async () => {
+    const { host, guest } = await pair();
+    const w = createWorld('dog', 1, VIEW);
+    w.stage = { ...w.stage, waves: [] };
+    const h = new CoopHost(host, w);
+    const g = new CoopGuest(guest, { animal: 'cat', ranks: {}, gear: [] });
+    await settle();
+    h.start();
+    await settle();
+    w.events.push({ type: 'levelup' });
+    h.after(0.06);
+    await settle();
+    const now = performance.now() + 1000;
+    g.frame(now);
+    expect(g.view!.events).toEqual([{ type: 'levelup' }]);
+    g.frame(now + 16);
+    expect(g.view!.events).toEqual([]);
+  });
+});
