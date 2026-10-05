@@ -29,6 +29,7 @@ import { rng, type Rng } from './rng';
 import { stageOf } from './stages';
 import { startEvent, stepEvents } from './events';
 import { quietEarth, stepEruption, updateLava, type Eruption, type Lava } from './eruption';
+import { PLAYER_R, pushOut } from './obstacles';
 import { calm, STORM_PUSH, stepStorm, windFactor, type Storm } from './storm';
 import { spawnRate, type Stage } from './stages/forest';
 import { perks, type Ranks } from './upgrades';
@@ -461,6 +462,7 @@ export function spawnPoint(w: World, out = { x: 0, y: 0 }) {
     p.moving && w.rand() < 0.6 ? Math.atan2(p.aimY, p.aimX) + (w.rand() - 0.5) * Math.PI : w.rand() * Math.PI * 2;
   out.x = p.x + Math.cos(a) * r;
   out.y = p.y + Math.sin(a) * r;
+  pushOut(w.stage.art, out, 16);
   return out;
 }
 
@@ -760,6 +762,9 @@ function moveEnemy(w: World, i: number, dt: number) {
 
 const near: number[] = [];
 
+/** 障害物で止まる敵。ボス・群れ・ランタン・大ヘビの体・きらきらハリネズミは通り抜ける */
+const blocked = (e: Enemy) => !e.def.boss && !e.def.prop && !e.def.part && !e.def.metal && e.drift <= 0;
+
 /** 重なった敵を半分ずつ押し返し、団子にならないようにする。比べるのは近い 4 体まで */
 function separate(w: World) {
   const es = w.enemies;
@@ -916,6 +921,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
     p.x += w.storm.wx * BASE_SPEED * STORM_PUSH * (1 - w.fx.wind) * dt;
     p.y += w.storm.wy * BASE_SPEED * STORM_PUSH * (1 - w.fx.wind) * dt;
   }
+  pushOut(w.stage.art, p, PLAYER_R);
   if (p.moving) {
     const len = Math.hypot(input.x, input.y);
     p.aimX = input.x / len;
@@ -982,6 +988,8 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   });
   w.cur = 0;
   separate(w);
+  // 押し合いのあとに出す。前だと群れに押し込まれた敵が毎フレーム出入りしてガタつく
+  for (const e of w.enemies) if (e.alive && blocked(e)) pushOut(w.stage.art, e, e.def.r);
   eachHero(w, () => touch(w));
   if (w.freeze <= 0 && !w.over) {
     updateHazards(w, dt);

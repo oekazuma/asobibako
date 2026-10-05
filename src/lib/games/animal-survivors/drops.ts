@@ -1,3 +1,4 @@
+import { pushOut } from './obstacles';
 import { eachHero, nearestHero } from './heroes';
 import { countKill, damageEnemy, type Enemy, type World } from './world';
 import { has, healRate, hpScaleOf, MAX_ARCANA } from './arcana';
@@ -153,6 +154,9 @@ function grow(w: World): void {
 
 /** 玉が MAX_GEMS 個あれば、新しく作らずに自分からいちばん遠い玉へ値を足す（経験値を消さずに数を抑える） */
 export function dropGem(w: World, x: number, y: number, value: number): void {
+  const at = { x, y };
+  pushOut(w.stage.art, at, 4);
+  ({ x, y } = at);
   let count = 0;
   let far: Gem | undefined;
   let fd = -1;
@@ -180,6 +184,9 @@ export function dropGem(w: World, x: number, y: number, value: number): void {
 
 function dropItem(w: World, kind: Item['kind'], x: number, y: number, pulled = false): Item | undefined {
   if (kind === 'meat' && noMeat(w)) return;
+  const at = { x, y };
+  pushOut(w.stage.art, at, 6);
+  ({ x, y } = at);
   const it =
     w.items.find((o) => !o.alive) ?? (w.items[w.items.length] = { alive: false, kind, x: 0, y: 0, pulled: false });
   Object.assign(it, { alive: true, kind, x, y, pulled });

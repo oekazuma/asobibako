@@ -51,7 +51,8 @@ describe('障害物の置き方', () => {
         }
       for (const a of all)
         for (const b of all) {
-          if (a === b) continue;
+          // 遠い組は丸が届かないので比べない（全部の組を比べると遅い）
+          if (a === b || Math.hypot(a.x - b.x, a.y - b.y) > CELL * 1.5) continue;
           for (const [ax, ay, ar] of SHAPES[a.kind].circles)
             for (const [bx, by, br] of SHAPES[b.kind].circles)
               expect(Math.hypot(a.x + ax - b.x - bx, a.y + ay - b.y - by) - ar - br).toBeGreaterThan(PLAYER_R * 2);

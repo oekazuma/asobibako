@@ -1,3 +1,4 @@
+import { pushOut } from './obstacles';
 import { hazard } from './bosses';
 import type { Item } from './drops';
 import type { StageEvent } from './stages/forest';
@@ -35,6 +36,7 @@ export function startEvent(w: World, ev: StageEvent): void {
     const free = w.items.findIndex((o) => !o.alive);
     if (free >= 0) w.items[free] = it;
     else w.items.push(it);
+    pushOut(w.stage.art, it, 8);
     w.treasure = it;
   } else if (ev.kind === 'meteor') w.meteors = { left: METEOR_TIME, next: 0 };
   else if (ev.kind === 'festival') w.festival = FESTIVAL;
