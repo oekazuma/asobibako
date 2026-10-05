@@ -87,4 +87,41 @@ describe('2 匹の World', () => {
     hurtPlayer(w, 99999);
     expect(w.over).toBe('dead');
   });
+
+  it('拾った動物の宝箱になり、どちらかに宝箱が残っていれば止まる', () => {
+    const w = two();
+    w.items.push({ alive: true, kind: 'chest', x: 200, y: 0, pulled: false });
+    step(w, still, 1 / 60);
+    expect(w.heroes[1].chests).toBe(1);
+    expect(w.heroes[0].chests).toBe(0);
+    const t = w.time;
+    step(w, still, 1 / 60);
+    expect(w.time).toBe(t);
+  });
+
+  it('倒れた動物のそばに 3 秒いると HP 半分で起き上がり、離れると時計が戻る', () => {
+    const w = two();
+    w.heroes[1].down = true;
+    w.heroes[1].player.hp = 0;
+    w.heroes[0].player.x = 190;
+    for (let i = 0; i < 120; i++) step(w, still, 1 / 60);
+    expect(w.heroes[1].down).toBe(true);
+    w.heroes[0].player.x = 0;
+    step(w, still, 1 / 60);
+    expect(w.heroes[1].revive).toBe(0);
+    w.heroes[0].player.x = 190;
+    for (let i = 0; i < 185; i++) step(w, still, 1 / 60);
+    expect(w.heroes[1].down).toBe(false);
+    expect(w.heroes[1].player.hp).toBe(Math.round(w.heroes[1].stats.maxHp / 2));
+  });
+
+  it('起こす側も倒れていれば、起こす時計は進まない', () => {
+    const w = two();
+    w.heroes[1].down = true;
+    w.heroes[0].down = true;
+    w.heroes[0].player.x = 190;
+    for (let i = 0; i < 200; i++) step(w, still, 1 / 60);
+    expect(w.heroes[1].revive).toBe(0);
+    expect(w.heroes[1].down).toBe(true);
+  });
 });

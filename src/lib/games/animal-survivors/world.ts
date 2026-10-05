@@ -11,7 +11,18 @@ import { hpScale, modPerks, modStage, type Challenge, type ModId } from './daily
 import { CLEAR_COINS, COIN_RATE, collect, dropFrom, overtimeCoins, type Gem, type Item } from './drops';
 import { ENEMIES, MAX_R, type BossId, type EnemyDef } from './enemies';
 import { addBoost, gearOf, type GearFx, type GearKey } from './gear';
-import { anyPending, bindHeroes, eachHero, tagged, HERO_SLOTS, MAX_HEROES, nearestHero, type Hero } from './heroes';
+import {
+  anyChest,
+  anyPending,
+  bindHeroes,
+  raise,
+  eachHero,
+  tagged,
+  HERO_SLOTS,
+  MAX_HEROES,
+  nearestHero,
+  type Hero
+} from './heroes';
 import { Grid } from './grid';
 import { stats, type Stats } from './passives';
 import { rng, type Rng } from './rng';
@@ -325,7 +336,9 @@ export function makeHero(id: AnimalId, ranks: Ranks, mods: ModId[], gear: GearKe
     evolvedNow: [],
     drainLeft: s.maxHp * DRAIN,
     pending: 0,
-    down: false
+    chests: 0,
+    down: false,
+    revive: 0
   };
 }
 
@@ -367,7 +380,6 @@ export function createWorld(
     xp: 0,
     xpTotal: 0,
     kills: 0,
-    chests: 0,
     bossKills: [],
     coins: 0,
     opened: 0,
@@ -868,7 +880,7 @@ export function hurtPlayer(w: World, raw: number, from: Hurt = 'touch'): void {
 
 export function step(w: World, input: { x: number; y: number }, dt: number): void {
   w.events.length = 0;
-  if (w.over || anyPending(w) || w.chests > 0) return;
+  if (w.over || anyPending(w) || anyChest(w)) return;
   w.time += dt;
   if (w.time >= w.stage.length) {
     for (const e of w.enemies) {
@@ -909,6 +921,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
     p.aimY = input.y / len;
     if (input.x !== 0) p.facing = input.x > 0 ? 1 : -1;
   }
+  raise(w, dt);
   eachHero(w, () => {
     const h = w.player;
     h.invuln -= dt;

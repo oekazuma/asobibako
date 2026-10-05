@@ -13,7 +13,7 @@ import { shots, swipes, zonesBelow } from './draw-arms';
 import { bossBars, hazardsAbove, hazardsBelow, introDust, introEdge } from './draw-boss';
 import { growFrame } from './grow';
 import type { Prompts } from './prompts.svelte';
-import { nearestHero } from './heroes';
+import { nearestHero, RAISE_SECS, type Hero } from './heroes';
 import { chiefArrows, confetti, partnerArrows, treasureArrow } from './draw-events';
 import { blizzard } from './draw-storm';
 import { drawLava } from './draw-volcano';
@@ -377,6 +377,17 @@ function pickups(ctx: CanvasRenderingContext2D, w: World, now: number) {
 }
 
 /** 端末の画素の canvas に、仮想画面の scale 倍で描く */
+/** 倒れた動物を起こしている残り。動物のまわりに、満ちていく輪を描く */
+function raising(ctx: CanvasRenderingContext2D, h: Hero): void {
+  if (!h.down || h.revive <= 0) return;
+  const p = h.player;
+  ctx.strokeStyle = PALETTE.y;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y - 2, 14, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * h.revive) / RAISE_SECS);
+  ctx.stroke();
+}
+
 /** 描く動物の順。自分（cur）がほかの動物の下に隠れないよう、自分を最後にする */
 export function heroOrder(w: World): number[] {
   return [...w.heroes.keys()].filter((i) => i !== w.cur).concat(w.cur);
@@ -412,6 +423,7 @@ export function draw(
     for (const i of heroOrder(w)) {
       w.cur = i;
       player(ctx, w, now);
+      raising(ctx, w.heroes[i]);
     }
     w.cur = me;
   }

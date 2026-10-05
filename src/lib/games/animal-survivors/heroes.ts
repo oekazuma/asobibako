@@ -21,10 +21,12 @@ export const HERO_KEYS = [
   'dealt',
   'evolvedNow',
   'drainLeft',
-  'pending'
+  'pending',
+  'chests'
 ] as const;
 export type HeroKey = (typeof HERO_KEYS)[number];
-export type Hero = Pick<World, HeroKey> & { down: boolean };
+/** down は倒れている、revive は倒れているあいだに相棒がそばにいた秒 */
+export type Hero = Pick<World, HeroKey> & { down: boolean; revive: number };
 
 /**
  * 今の読み口（w.player・w.weapons など 270 か所ほど）を書き換えずに 2 匹にするため、
@@ -46,6 +48,31 @@ export const MAX_HEROES = 2;
 export const heroOf = (slot: number) => Math.floor(slot / HERO_SLOTS);
 export const weaponAt = (w: World, slot: number) => w.heroes[heroOf(slot)]?.weapons[slot % HERO_SLOTS];
 export const anyPending = (w: World) => w.heroes.some((h) => h.pending > 0);
+export const anyChest = (w: World) => w.heroes.some((h) => h.chests > 0);
+
+/** 倒れた動物のそばに相棒がこの秒いると起き上がる */
+export const RAISE_SECS = 3;
+export const RAISE_REACH = 24;
+
+/** 倒れた動物の起こす時計を進め、届いたら HP 半分で起こす */
+export function raise(w: World, dt: number): void {
+  w.heroes.forEach((h, i) => {
+    if (!h.down) return;
+    const near = w.heroes.some(
+      (o) => !o.down && (o.player.x - h.player.x) ** 2 + (o.player.y - h.player.y) ** 2 < RAISE_REACH ** 2
+    );
+    h.revive = near ? h.revive + dt : 0;
+    if (h.revive < RAISE_SECS) return;
+    h.down = false;
+    h.revive = 0;
+    h.player.hp = Math.round(h.stats.maxHp / 2);
+    h.player.invuln = 2;
+    const was = w.cur;
+    w.cur = i;
+    w.events.push({ type: 'revive' });
+    w.cur = was;
+  });
+}
 
 /** 倒れていない中でいちばん近い動物。全員倒れていれば 0 */
 export function nearestHero(w: World, x: number, y: number): number {
