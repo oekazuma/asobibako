@@ -4,14 +4,19 @@ import type { AnimalId } from './animals';
 import { apply, choices } from './choices';
 import type { GearKey } from './gear';
 import { applySnap, COOP_VERSION, lerpSnap, makeSnap, type Snap } from './snap';
+import { Timeline } from './timeline';
 import type { Ranks } from './upgrades';
 import { addHero, BASE_SPEED, createWorld, type GameEvent, type World } from './world';
 
 /** 親が様子を送る間（秒）と、子が自分の位置を送る間 */
 const SNAP_EVERY = 0.05;
 const MOVE_EVERY = 1 / 30;
-/** 子は届いた様子をこれだけ遅らせて、前後の 2 つのあいだをつないで描く（届く間のむらで敵がカクつかないように） */
+/**
+ * 届いた様子と位置は、送った時刻でこれだけ遅らせて前後の 2 つのあいだをつなぐ（届く間のむらで相棒や敵がカクつかないように）。
+ * 親の端末の子の位置は当たりにも使うので、短めにする
+ */
 const DELAY_MS = 100;
+const MOVE_DELAY_MS = 60;
 const GUEST = 2;
 
 export interface Me {
@@ -34,7 +39,7 @@ export class CoopHost {
   ready = false;
   readonly #party: Party;
   readonly #w: World;
-  #move: Move | null = null;
+  readonly #moves = new Timeline<Move>();
   #events: GameEvent[] = [];
   #acc = 0;
 
@@ -47,7 +52,7 @@ export class CoopHost {
         if (this.ready) return;
         addHero(w, m.animal as AnimalId, m.ranks as Ranks, m.gear as GearKey[]);
         this.ready = true;
-      } else if (m.t === 'move') this.#move = m as unknown as Move;
+      } else if (m.t === 'move') this.#moves.push(m.ms as number, performance.now(), m as unknown as Move);
     });
   }
 
@@ -58,11 +63,17 @@ export class CoopHost {
   }
 
   /** step の前。子の位置を 2 匹めに書き、子の 3 択を選ぶ（試作では 1 つめの候補） */
-  before(): void {
+  before(now = performance.now()): void {
     const w = this.#w;
     const h = w.heroes[1];
     if (!h) return;
-    if (this.#move && !h.down) Object.assign(h.player, this.#move);
+    const m = this.#moves.at(now, MOVE_DELAY_MS);
+    if (m && !h.down) {
+      const p = h.player;
+      p.x = m.a.x + (m.b.x - m.a.x) * m.t;
+      p.y = m.a.y + (m.b.y - m.a.y) * m.t;
+      ({ facing: p.facing, aimX: p.aimX, aimY: p.aimY, moving: p.moving } = m.b);
+    }
     if (h.pending <= 0) return;
     w.cur = 1;
     try {
@@ -82,7 +93,7 @@ export class CoopHost {
     this.#acc += dt;
     if (this.#acc < SNAP_EVERY || !this.ready) return;
     this.#acc = 0;
-    this.#party.tell(GUEST, { t: 'snap', s: makeSnap(this.#w, this.#events) } as Message);
+    this.#party.tell(GUEST, { t: 'snap', ms: performance.now(), s: makeSnap(this.#w, this.#events) } as Message);
     this.#events = [];
   }
 }
@@ -92,7 +103,7 @@ export class CoopGuest {
   view: World | null = null;
   mismatch = false;
   readonly #party: Party;
-  #snaps: { at: number; s: Snap }[] = [];
+  readonly #snaps = new Timeline<Snap>();
   #shown: Snap | null = null;
   #sent = 0;
 
@@ -105,10 +116,9 @@ export class CoopGuest {
         addHero(view, me.animal, me.ranks, me.gear);
         view.cur = 1;
         this.view = view;
-        this.#snaps = [];
+        this.#snaps.clear();
       } else if (m.t === 'snap') {
-        this.#snaps.push({ at: performance.now(), s: m.s as Snap });
-        if (this.#snaps.length > 4) this.#snaps.shift();
+        this.#snaps.push(m.ms as number, performance.now(), m.s as Snap);
       }
     });
     party.act({ t: 'hi', v: COOP_VERSION, ...me });
@@ -134,24 +144,19 @@ export class CoopGuest {
     this.#sent += dt;
     if (this.#sent < MOVE_EVERY) return;
     this.#sent = 0;
-    this.#party.act({ t: 'move', x: p.x, y: p.y, facing: p.facing, aimX: p.aimX, aimY: p.aimY, moving: p.moving });
+    const move = { x: p.x, y: p.y, facing: p.facing, aimX: p.aimX, aimY: p.aimY, moving: p.moving };
+    this.#party.act({ t: 'move', ms: performance.now(), ...move });
   }
 
-  /** 描く前に呼ぶ。届いた様子を DELAY_MS 遅らせ、前後の 2 つのあいだをつなぐ */
+  /** 描く前に呼ぶ。届いた様子を送った時刻で DELAY_MS 遅らせ、前後の 2 つのあいだをつなぐ */
   frame(now: number): void {
     const v = this.view;
-    const list = this.#snaps;
-    if (!v || !list.length) return;
-    const at = now - DELAY_MS;
-    let k = list.length - 1;
-    while (k > 0 && list[k - 1].at > at) k--;
-    const b = list[k];
-    const a = k > 0 ? list[k - 1] : null;
-    if (a && b.at > a.at && at < b.at) lerpSnap(v, a.s, b.s, Math.max(0, (at - a.at) / (b.at - a.at)));
-    else applySnap(v, b.s);
+    const r = this.#snaps.at(now, DELAY_MS);
+    if (!v || !r) return;
+    if (r.a !== r.b) lerpSnap(v, r.a, r.b, r.t);
+    else applySnap(v, r.a);
     // 出来事（倒した・拾った・レベルアップ）は、その様子を初めて見せたときに 1 回だけ渡す
-    const seen = a && at < b.at ? a.s : b.s;
-    v.events = seen === this.#shown ? [] : seen.events;
-    this.#shown = seen;
+    v.events = r.a === this.#shown ? [] : r.a.events;
+    this.#shown = r.a;
   }
 }
