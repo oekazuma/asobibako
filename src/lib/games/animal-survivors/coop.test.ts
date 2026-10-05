@@ -5,6 +5,8 @@ import { CoopGuest, CoopHost } from './coop';
 import type { Hero } from './heroes';
 import { Prompts } from './prompts.svelte';
 import { ENEMIES } from './enemies';
+import { gainXp } from './drops';
+import { startOvertime } from './overtime';
 import { emptyRecords, loadRecords, RECORDS_KEY } from './records';
 import { createWorld, makeEnemy, step } from './world';
 
@@ -332,5 +334,88 @@ describe('協力プレイのつなぎ', () => {
     expect(w.over).toBeNull();
     expect(h.result).toBeNull();
     vi.unstubAllGlobals();
+  });
+
+  it('子が抜けたあとは、レベルが上がっても抜けた子の 3 択がたまらず、親は止まらない', async () => {
+    const { w, h, pipe } = await started();
+    pipe.close();
+    await settle();
+    gainXp(w, 9999);
+    expect(w.heroes[1].pending).toBe(0);
+    w.heroes[0].pending = 0;
+    h.before();
+    const t = w.time;
+    step(w, { x: 0, y: 0 }, 1 / 60);
+    expect(w.time).toBeGreaterThan(t);
+  });
+
+  it('子が抜けたあとのもう一度は、親が 1 人で始め、記録もする', async () => {
+    vi.stubGlobal('localStorage', memoryStorage());
+    localStorage.setItem(RECORDS_KEY, JSON.stringify(emptyRecords()));
+    const { h, pipe } = await started();
+    pipe.close();
+    await settle();
+    expect(h.ready).toBe(false);
+    const again = createWorld('dog', 2, VIEW);
+    h.start(again);
+    expect(again.heroes).toHaveLength(1);
+    again.over = 'dead';
+    h.finish(true);
+    expect(h.result?.run.animal).toBe('dog');
+    vi.unstubAllGlobals();
+  });
+
+  it('クリアのあと延長戦を選んでいるあいだに子がやめても、2 回記録しない', async () => {
+    vi.stubGlobal('localStorage', memoryStorage());
+    localStorage.setItem(RECORDS_KEY, JSON.stringify(emptyRecords()));
+    const { w, h, g } = await started();
+    w.kills = 20;
+    w.time = w.stage.length;
+    w.over = 'clear';
+    h.finish(false);
+    await settle();
+    const kills = loadRecords().kills;
+    g.quit();
+    await new Promise((r) => setTimeout(r, 1600));
+    expect(loadRecords().kills).toBe(kills);
+    expect(g.result?.run.cleared).toBe(true);
+    vi.unstubAllGlobals();
+  });
+
+  it('子が宝箱を開けているあいだは、親も止まる', async () => {
+    const { w, h, g } = await started();
+    w.heroes[1].chests = 1;
+    h.before();
+    await settle();
+    expect(h.busy).toBe(true);
+    g.prompts!.close(null);
+    await settle();
+    expect(h.busy).toBe(false);
+  });
+
+  it('延長戦の途中で子がやめると、引き上げたことにして拾った券を持ち帰る', async () => {
+    vi.stubGlobal('localStorage', memoryStorage());
+    localStorage.setItem(RECORDS_KEY, JSON.stringify(emptyRecords()));
+    const { w, g } = await started();
+    w.time = w.stage.length;
+    startOvertime(w);
+    w.tickets[0] += 2;
+    g.quit();
+    await settle();
+    expect(g.result?.run.lost).toEqual([0, 0, 0]);
+    expect(w.overtime?.retreat).toBe(false);
+    vi.unstubAllGlobals();
+  });
+
+  it('子の 3 択は、出たときに残っていた移動の指が離れた直後も押せない（合成 click を捨てる）', async () => {
+    const { w, h, g } = await started();
+    g.hold(7);
+    w.heroes[1].pending = 1;
+    h.before();
+    await settle();
+    await new Promise((r) => setTimeout(r, 400));
+    expect(g.prompts!.lock.active).toBe(false);
+    g.prompts!.lock.lift(7);
+    expect(g.prompts!.lock.active).toBe(true);
   });
 });

@@ -137,7 +137,7 @@ export function gainXp(w: World, value: number): void {
     w.xp -= xpNeed(w.level);
     w.level += 1;
     // レベルは 2 匹で共通。3 択は 2 匹ともに 1 つずつたまり、育つ Lv は動物ごとの装備で違う
-    for (const h of w.heroes) h.pending += 1;
+    for (const h of w.heroes) if (!h.gone) h.pending += 1;
     w.events.push({ type: 'levelup' });
     eachHero(w, () => GROW_AT.some((l) => l - w.fx.grow === w.level) && grow(w));
   }

@@ -165,16 +165,16 @@ export class Prompts {
   }
 
   /** 子の端末で、親から届いた 3 択を出す */
-  offer(options: Choice[], tools: Prompts['tools']): void {
+  offer(options: Choice[], tools: Prompts['tools'], finger: number | null = null): void {
     this.options = options;
     this.tools = tools;
-    this.lock.begin(null);
+    this.lock.begin(finger);
   }
 
   /** 子の端末で、親が開けた自分の宝箱の中身を出す */
-  openRewards(rewards: Reward[]): void {
+  openRewards(rewards: Reward[], finger: number | null = null): void {
     this.rewards = rewards;
-    this.lock.begin(null);
+    this.lock.begin(finger);
   }
 
   /** 子の端末では選んだものを親へ送って閉じる。true なら送った */

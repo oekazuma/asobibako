@@ -7,7 +7,7 @@
   import CoopOverlay from './CoopOverlay.svelte';
   import { draw, fitCanvas, type ViewSize } from './draw';
   import { Effects } from './effects';
-  import { anyChest, anyPending } from './heroes';
+  import { waitText } from './coop';
   import { steer } from './input';
   import PromptLayer from './PromptLayer.svelte';
   import { Prompts } from './prompts.svelte';
@@ -82,7 +82,11 @@
 
   /** 親はその回を倒れたときと同じに終えて 2 人ともリザルトを出し、子は自分のぶんを記録して抜ける */
   function quit() {
-    if (host && !world.over) world.over = 'dead';
+    if (host && !world.over) {
+      // 自分で終えたので、延長戦なら引き上げたことにする（1 人で遊ぶときと同じ）
+      if (world.overtime) world.overtime.retreat = true;
+      world.over = 'dead';
+    }
     guest?.quit();
   }
 
@@ -91,7 +95,7 @@
     const move = steer(stick, input.px(1, 1), keys);
     if (host && prompts) {
       host.before();
-      if (!prompts.busy && !world.over && !host.paused) {
+      if (!prompts.busy && !world.over && !host.paused && !host.busy) {
         step(world, move, dt);
         fx.update(dt);
       }
@@ -102,6 +106,7 @@
       world.events.length = 0;
       prompts.next(stick?.id ?? null, dt);
     } else if (guest) {
+      guest.hold(stick?.id ?? null);
       if (!prompts?.busy && !guest.paused) guest.move(move, dt);
       guest.frame(performance.now());
       fx.take(world);
@@ -123,14 +128,7 @@
       result = side.result;
       settle.begin();
     }
-    waiting =
-      result || prompts?.busy || paused
-        ? ''
-        : world.over === 'clear' && guest
-          ? 'おやが えらんでいます…'
-          : anyPending(world) || anyChest(world)
-            ? 'なかまが えらんでいます…'
-            : '';
+    waiting = result || prompts?.busy || paused ? '' : waitText(world, !!guest);
     if (ctx) draw(ctx, world, fx, view, now, top, prompts ?? undefined);
   }
 

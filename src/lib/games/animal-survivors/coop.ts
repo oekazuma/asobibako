@@ -5,6 +5,7 @@ import type { AchievementDef } from './achievements';
 import { openChest, type Reward } from './chest';
 import { heroRun, recordRun, type HeroRun } from './coop-run';
 import { loadRecords, saveRecords } from './records';
+import { anyChest, anyPending } from './heroes';
 import { Prompts } from './prompts.svelte';
 import { apply, choices, isFiller, type Choice } from './choices';
 import type { GearKey } from './gear';
@@ -30,6 +31,12 @@ const KEEP_EVERY = 10;
 export interface Outcome {
   run: RunSummary;
   got: AchievementDef[];
+}
+
+/** 相手を待っているときの帯の文字（待っていなければ空） */
+export function waitText(w: World, guest: boolean): string {
+  if (w.over === 'clear' && guest) return 'おやが えらんでいます…';
+  return anyPending(w) || anyChest(w) ? 'なかまが えらんでいます…' : '';
 }
 
 /** 届いたまとめを記録に入れて保存する。延長戦の 2 回めは first に足して見せる */
@@ -97,10 +104,16 @@ export class CoopHost {
       } else if (m.t === 'move') {
         if (!this.paused) this.#moves.push(m.ms as number, performance.now(), m as unknown as Move);
       } else if (m.t === 'quit') {
-        // 抜ける前に子のぶんを記録させる
+        // 抜ける前に子のぶんを記録させる。決着したあと（延長戦を聞いているあいだ）は記録済みなので送らない
         const w = this.#w;
-        if (w?.heroes[1] && !w.heroes[1].gone)
+        if (w?.heroes[1] && !w.heroes[1].gone && !w.over) {
+          // 自分で抜けたので、延長戦なら引き上げたことにする（拾った券を持ち帰る）
+          const ot = w.overtime;
+          const was = ot?.retreat ?? false;
+          if (ot) ot.retreat = true;
           this.#party.tell(GUEST, { t: 'record', run: heroRun(w, 1), final: true } as unknown as Message);
+          if (ot) ot.retreat = was;
+        }
         this.#drop();
       } else if (m.t === 'leave') this.#drop();
       else if (m.t === 'pause') this.#pause('guest');
@@ -110,12 +123,19 @@ export class CoopHost {
     });
   }
 
+  /** 子が宝箱を開けている（宝箱は開けたときに数が減るので、閉じるまでは 2 人とも止める） */
+  get busy(): boolean {
+    return this.#asked === 'rewards';
+  }
+
   pause(): void {
     this.#pause('host');
   }
 
   /** 子が抜けた・切れた。子の動物は倒れたままにして描かず、残っている 3 択と宝箱を消して、親は 1 人で続ける */
   #drop(): void {
+    this.guest = null;
+    this.ready = false;
     const w = this.#w;
     const h = w?.heroes[1];
     if (!w || !h || h.gone) return;
@@ -186,8 +206,9 @@ export class CoopHost {
 
   /** 子の動物を足して、子に始めを知らせる。子は親と同じ種とステージで、描くための World を作る */
   start(w: World, seed = 1, stage = 'forest'): void {
-    if (!this.guest) return;
     this.#w = w;
+    // 子が抜けたあとのもう一度は、親が 1 人で遊ぶ
+    if (!this.guest) return;
     addHero(w, this.guest.animal, this.guest.ranks, this.guest.gear);
     this.#asked = null;
     this.#moves.clear();
@@ -201,7 +222,7 @@ export class CoopHost {
   before(now = performance.now()): void {
     const w = this.#w;
     const h = w?.heroes[1];
-    if (!w) return;
+    if (!w || !h || h.gone) return;
     if (!h) return;
     const m = this.#moves.at(now, MOVE_DELAY_MS);
     if (m && !h.down) {
@@ -273,6 +294,8 @@ export class CoopGuest {
   kept: HeroRun | null = null;
   /** この回を抜けた（リザルトがあれば出し、無ければそのまま戻る） */
   done = false;
+  /** 画面に残っている移動の指。3 択と宝箱は、この指が離れた直後も押せなくする（合成 click を捨てる） */
+  #finger: number | null = null;
   readonly #party: Party;
   readonly #snaps = new Timeline<Snap>();
   #shown: Snap | null = null;
@@ -311,8 +334,8 @@ export class CoopGuest {
       else if (m.t === 'keep') this.kept = m.run as HeroRun;
       else if (m.t === 'pause') this.paused = m.by as Pauser;
       else if (m.t === 'resume') this.paused = null;
-      else if (m.t === 'offer') this.prompts?.offer(m.options as Choice[], m.tools as Prompts['tools']);
-      else if (m.t === 'rewards') this.prompts?.openRewards(m.rewards as Reward[]);
+      else if (m.t === 'offer') this.prompts?.offer(m.options as Choice[], m.tools as Prompts['tools'], this.#finger);
+      else if (m.t === 'rewards') this.prompts?.openRewards(m.rewards as Reward[], this.#finger);
       else if (m.t === 'snap') {
         this.#snaps.push(m.ms as number, performance.now(), m.s as Snap);
       }
@@ -333,6 +356,11 @@ export class CoopGuest {
     this.#party.act({ t: 'pause' });
   }
 
+  /** 毎フレーム、画面に残っている移動の指を知らせる */
+  hold(finger: number | null): void {
+    this.#finger = finger;
+  }
+
   /** 抜ける。親から自分のぶんのまとめが届けば記録し、届かなければ最後に届いたまとめを記録する */
   quit(): void {
     if (this.done) return;
@@ -344,7 +372,7 @@ export class CoopGuest {
   #give(): void {
     if (this.done) return;
     this.done = true;
-    if (!this.result && this.kept) this.result = store(this.kept, this.#first);
+    if (!this.result) this.result = this.kept ? store(this.kept, this.#first) : this.#first;
   }
 
   /** 止めたのが自分のときだけ、親に再開を頼む */
