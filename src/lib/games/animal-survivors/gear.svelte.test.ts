@@ -102,6 +102,17 @@ describe('装備の画面', () => {
     unmount(app);
   });
 
+  it('まとめて売るの確かめは、ほかの操作をすると取り消す', () => {
+    const app = open({ bag: { 'oni:0': 1, 'hachimaki:1': 1 } });
+    button('まとめて売る').click();
+    flushSync();
+    expect(button('本当に売る')).toBeDefined();
+    button('最強装備をつける').click();
+    flushSync();
+    expect(button('本当に売る')).toBeUndefined();
+    unmount(app);
+  });
+
   it('装備の画面にはガチャを置かない', () => {
     const app = open({ coins: 500 });
     expect(button('ガチャ')).toBeUndefined();

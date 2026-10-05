@@ -130,7 +130,8 @@ export function tidy(r: Records): { merged: number; sold: number; coins: number 
       while ((r.bag[k] ?? 0) >= 3) {
         const up = merge(r, k)!;
         merged += 1;
-        if (worn && !r.bag[k]) r.worn[d.slot] = up;
+        // 合成で 1 つ残っても、つけている品の上がった版ができたらそちらをつける
+        if (worn) r.worn[d.slot] = up;
       }
     }
   let sold = 0;

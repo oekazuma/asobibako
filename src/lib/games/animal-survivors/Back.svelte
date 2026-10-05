@@ -19,12 +19,10 @@
     background:
       radial-gradient(circle, rgb(255 255 255 / 0.06) 1.5px, transparent 2px) 0 0 / 18px 18px,
       #1f1530;
-    pointer-events: none;
   }
 
   .back {
     padding: 8px 16px;
     font-size: min(4cqw, 2.4cqh, 20px);
-    pointer-events: auto;
   }
 </style>

@@ -216,6 +216,13 @@ describe('まとめて売る', () => {
     expect(r.worn.charm).toBe('cat:2');
   });
 
+  it('つけている品が合成で残っても、同じ品の上がった版があればそちらをつける', () => {
+    const r = recs({ 'oni:0': 4 }, { head: 'oni:0' });
+    tidy(r);
+    expect(r.worn.head).toBe('oni:1');
+    expect(r.bag).toEqual({ 'oni:1': 1 });
+  });
+
   it('つけている品はレア度が低くても 1 つ残す', () => {
     const r = recs({ 'oni:0': 2, 'hachimaki:2': 1 }, { head: 'oni:0' });
     const got = tidy(r);

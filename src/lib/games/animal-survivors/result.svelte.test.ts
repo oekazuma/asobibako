@@ -28,5 +28,13 @@ describe('リザルト', () => {
     first.click();
     expect(again).toBe(1);
     unmount(app);
+    // 倒れた指を離すまでは、下の帯も押せない
+    const locked = mount(Result, {
+      target,
+      props: { run, got, total: 0, locked: true, onagain: () => {}, onselect: () => {} }
+    });
+    flushSync();
+    expect(target.querySelector('[data-bar]')!.classList.contains('as-locked')).toBe(true);
+    unmount(locked);
   });
 });

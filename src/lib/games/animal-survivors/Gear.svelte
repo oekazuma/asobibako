@@ -19,6 +19,7 @@
   const plan = $derived(tidyPreview(r));
 
   function act(what: 'equip' | 'merge' | 'sell' | 'close') {
+    sure = false;
     const k = picked;
     if (!k || what === 'close') return void (picked = null);
     if (what === 'equip') equip(r, k);
@@ -56,6 +57,7 @@
           class="as-card"
           onclick={() => {
             equipBest(r);
+            sure = false;
             save();
           }}>最強装備をつける</button
         >
