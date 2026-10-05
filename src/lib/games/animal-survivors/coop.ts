@@ -6,7 +6,8 @@ import type { GearKey } from './gear';
 import { applySnap, COOP_VERSION, lerpSnap, makeSnap, type Snap } from './snap';
 import { Timeline } from './timeline';
 import type { Ranks } from './upgrades';
-import { addHero, BASE_SPEED, createWorld, type GameEvent, type World } from './world';
+import { STORM_PUSH } from './storm';
+import { addHero, BASE_SPEED, createWorld, SLOW, type GameEvent, type World } from './world';
 
 /** 親が様子を送る間（秒）と、子が自分の位置を送る間 */
 const SNAP_EVERY = 0.05;
@@ -131,10 +132,15 @@ export class CoopGuest {
     const h = v.heroes[v.cur];
     if (h.down) return;
     const p = h.player;
-    const speed = BASE_SPEED * h.stats.speed;
+    // 遅さ（糸の玉・冷たい息）と吹雪は親の step と同じ式で、遅さは親から届いた値で効かせる
+    const speed = BASE_SPEED * h.stats.speed * (p.slow > 0 ? SLOW : 1);
     p.moving = input.x !== 0 || input.y !== 0;
     p.x += input.x * speed * dt;
     p.y += input.y * speed * dt;
+    if (v.storm.left > 0 && v.freeze <= 0) {
+      p.x += v.storm.wx * BASE_SPEED * STORM_PUSH * (1 - h.fx.wind) * dt;
+      p.y += v.storm.wy * BASE_SPEED * STORM_PUSH * (1 - h.fx.wind) * dt;
+    }
     if (p.moving) {
       const len = Math.hypot(input.x, input.y);
       p.aimX = input.x / len;

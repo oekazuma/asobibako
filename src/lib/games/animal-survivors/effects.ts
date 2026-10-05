@@ -1,5 +1,6 @@
 import { PALETTE } from './art/palette';
 import { text } from './font';
+import { ownEvent } from './heroes';
 import { sounds } from './sounds';
 import type { World } from './world';
 
@@ -90,8 +91,9 @@ export class Effects {
     let coin = false;
     let kill = false;
     // 育つ演出のあいだは効果の時計が止まるので、同じフレームの光と粒は止まったまま演出を覆う。演出が光を出す
-    const growing = w.events.some((e) => e.type === 'grow');
+    const growing = w.events.some((e) => e.type === 'grow' && ownEvent(w, e));
     for (const e of w.events) {
+      if (!ownEvent(w, e)) continue;
       if (e.type === 'hit') {
         hit = true;
         this.#number(

@@ -89,7 +89,8 @@ export function makeSnap(w: World, events: GameEvent[]): Snap {
         h.down ? 1 : 0,
         h.pending,
         h.weapons.map((o) => `${o.id}:${o.level}`).join(','),
-        h.passives.map((o) => `${o.id}:${o.level}`).join(',')
+        h.passives.map((o) => `${o.id}:${o.level}`).join(','),
+        r1(p.slow)
       ];
     }),
     enemies: rows(w.enemies, (e) => {
@@ -186,6 +187,7 @@ export function applySnap(view: World, s: Snap): void {
     h.pending = r[13] as number;
     h.weapons = parsed(r[14] as string).map((o) => ({ ...o, cd: 0 }));
     h.passives = parsed(r[15] as string);
+    p.slow = r[16] as number;
   });
   place(
     view.enemies,

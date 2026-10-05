@@ -1,4 +1,4 @@
-import type { World } from './world';
+import type { GameEvent, World } from './world';
 
 /** 自分の動物にかかわる World の項目。2 匹で遊ぶときは 1 匹ずつ持つ */
 export const HERO_KEYS = [
@@ -75,3 +75,31 @@ export function eachHero(w: World, fn: (i: number) => void): void {
     w.cur = was;
   }
 }
+
+/** 動物ごとの出来事。持ち主の画面にだけ効果と演出を出す（相棒の被弾で自分の縁を光らせない） */
+const OWN: ReadonlySet<GameEvent['type']> = new Set([
+  'hurt',
+  'heal',
+  'pickup',
+  'coin',
+  'revive',
+  'fire',
+  'grow',
+  'special'
+]);
+
+/** 出来事の並び。2 匹以上のときは、動物ごとの出来事に、積んだときの動物（cur）を持ち主として付ける */
+export function tagged(w: World): GameEvent[] {
+  const list: GameEvent[] = [];
+  const push = list.push.bind(list);
+  list.push = (...items: GameEvent[]) =>
+    push(
+      ...(w.heroes.length > 1
+        ? items.map((e) => (OWN.has(e.type) && e.hero === undefined ? { ...e, hero: w.cur } : e))
+        : items)
+    );
+  return list;
+}
+
+/** 自分（cur）の出来事か、持ち主の無い出来事 */
+export const ownEvent = (w: World, e: GameEvent) => !OWN.has(e.type) || e.hero === undefined || e.hero === w.cur;

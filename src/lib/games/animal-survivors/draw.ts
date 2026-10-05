@@ -13,6 +13,7 @@ import { shots, swipes, zonesBelow } from './draw-arms';
 import { bossBars, hazardsAbove, hazardsBelow, introDust, introEdge } from './draw-boss';
 import { growFrame } from './grow';
 import type { Prompts } from './prompts.svelte';
+import { nearestHero } from './heroes';
 import { chiefArrows, confetti, partnerArrows, treasureArrow } from './draw-events';
 import { blizzard } from './draw-storm';
 import { drawLava } from './draw-volcano';
@@ -341,8 +342,8 @@ function enemies(
     const up = ((e.def.ai === 'bear' || e.def.ai === 'giant') && e.state === 3) || (airborne(e) && e.state !== 5);
     const clock = walkClock(e, e.def.boss ? introduced.includes(w.enemies.indexOf(e)) : false, lively);
     const frame = up ? 2 : frameAt(clock * (e.def.boss ? 4 : 6), 2);
-    // 敵は自分のほうを向く。逃げるきらきらハリネズミだけは反対を向く
-    const flip = !e.def.prop && w.player.x < e.x !== Boolean(e.def.metal);
+    // 敵は追っている動物のほうを向く。逃げるきらきらハリネズミだけは反対を向く
+    const flip = !e.def.prop && w.heroes[nearestHero(w, e.x, e.y)].player.x < e.x !== Boolean(e.def.metal);
     const at = airborne(e) ? leap(e) : e;
     sprite(ctx, art, frame, at.x, at.y, flip, false, e.def.elite, sizeOf(e));
     if (e.flash > 0) {

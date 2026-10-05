@@ -3,6 +3,7 @@ import { openChest, type Reward } from './chest';
 import { WARN_AHEAD } from './bosses';
 import { apply, choices, isFiller, type Choice } from './choices';
 import { ENEMIES } from './enemies';
+import { ownEvent } from './heroes';
 import { Lock } from './lock.svelte';
 import { sounds } from './sounds';
 import type { World } from './world';
@@ -86,7 +87,8 @@ export class Prompts {
   take(): void {
     const w = this.#w;
     for (const e of w.events)
-      if (e.type === 'warning') {
+      if (!ownEvent(w, e)) continue;
+      else if (e.type === 'warning') {
         this.warning = { name: e.title ?? ENEMIES[e.boss].name, key: w.time, until: w.time + WARN_AHEAD };
       } else if (e.type === 'swarm' && e.text)
         this.notice = { text: e.text, key: w.time, until: w.time + NOTICE * (e.text.includes('\n') ? 2 : 1) };

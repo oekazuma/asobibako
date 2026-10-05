@@ -11,7 +11,7 @@ import { hpScale, modPerks, modStage, type Challenge, type ModId } from './daily
 import { CLEAR_COINS, COIN_RATE, collect, dropFrom, overtimeCoins, type Gem, type Item } from './drops';
 import { ENEMIES, MAX_R, type BossId, type EnemyDef } from './enemies';
 import { addBoost, gearOf, type GearFx, type GearKey } from './gear';
-import { anyPending, bindHeroes, eachHero, HERO_SLOTS, MAX_HEROES, nearestHero, type Hero } from './heroes';
+import { anyPending, bindHeroes, eachHero, tagged, HERO_SLOTS, MAX_HEROES, nearestHero, type Hero } from './heroes';
 import { Grid } from './grid';
 import { stats, type Stats } from './passives';
 import { rng, type Rng } from './rng';
@@ -78,7 +78,8 @@ export interface Owned {
   level: number;
 }
 
-export type GameEvent =
+/** hero はふたりで遊ぶときの持ち主（heroes の番号） */
+export type GameEvent = { hero?: number } & (
   | { type: 'hit'; x: number; y: number; dmg: number; crit: boolean }
   | { type: 'kill'; x: number; y: number; enemy: string }
   | { type: 'pickup'; value: number }
@@ -103,7 +104,8 @@ export type GameEvent =
   | { type: 'special'; id: string }
   /** ボスが出た（入れ物の番号）。面の主の 2 体は 1 つにまとめる */
   | { type: 'bossIntro'; ids: number[] }
-  | { type: 'chief'; i: number; name: string };
+  | { type: 'chief'; i: number; name: string }
+);
 
 export interface World {
   rand: Rng;
@@ -406,6 +408,7 @@ export function createWorld(
     cur: 0
   } as unknown as World;
   bindHeroes(w);
+  w.events = tagged(w);
   // お題の今日の札は、始めの 3 枚選びの代わりに持って始める
   if (challenge?.card) takeArcana(w, challenge.card);
   return w;

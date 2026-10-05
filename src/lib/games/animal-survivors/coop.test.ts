@@ -125,4 +125,26 @@ describe('協力プレイのつなぎ', () => {
     g.frame(now + 16);
     expect(g.view!.events).toEqual([]);
   });
+
+  it('子の動物は、親から届いた遅さで遅くなる', async () => {
+    const run = async (slow: number) => {
+      const { host, guest } = await pair();
+      const w = createWorld('dog', 1, VIEW);
+      w.stage = { ...w.stage, waves: [] };
+      const h = new CoopHost(host, w);
+      const g = new CoopGuest(guest, { animal: 'cat', ranks: {}, gear: [] });
+      await settle();
+      h.start();
+      await settle();
+      w.heroes[1].player.slow = slow;
+      h.after(0.06);
+      await settle();
+      g.frame(performance.now() + 1000);
+      const p = g.view!.heroes[1].player;
+      const x = p.x;
+      g.move({ x: 1, y: 0 }, 1);
+      return p.x - x;
+    };
+    expect(await run(1)).toBeLessThan(await run(0));
+  });
 });
