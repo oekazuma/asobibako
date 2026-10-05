@@ -11,6 +11,7 @@ import { hpScale, modPerks, modStage, type Challenge, type ModId } from './daily
 import { CLEAR_COINS, COIN_RATE, collect, dropFrom, overtimeCoins, type Gem, type Item } from './drops';
 import { ENEMIES, MAX_R, type BossId, type EnemyDef } from './enemies';
 import { addBoost, gearOf, type GearFx, type GearKey } from './gear';
+import { bindHeroes, type Hero } from './heroes';
 import { Grid } from './grid';
 import { stats, type Stats } from './passives';
 import { rng, type Rng } from './rng';
@@ -240,6 +241,9 @@ export interface World {
   events: GameEvent[];
   spawnAcc: number[];
   grid: Grid;
+  /** 動物ごとの項目（HERO_KEYS）。上の同じ名前の項目は heroes[cur] を指す */
+  heroes: Hero[];
+  cur: number;
 }
 
 export const MAX_ENEMIES = 400;
@@ -277,17 +281,8 @@ export interface Options {
   gear?: GearKey[];
 }
 
-export function createWorld(
-  id: AnimalId,
-  seed: number,
-  view: { w: number; h: number },
-  ranks: Ranks = {},
-  stageId = 'forest',
-  opts: Options = {}
-): World {
-  const { challenge, heat = PLAIN, arcana = [], note, gear = [] } = opts;
-  const mods = challenge?.mods ?? [];
-  const stage = heatStage(modStage(stageOf(stageId), mods), heat.level);
+/** 1 匹ぶん。店の強化なしのしばりの日は、店の強化と装備を外す */
+export function makeHero(id: AnimalId, ranks: Ranks, mods: ModId[], gear: GearKey[]): Hero {
   const a = animal(id);
   const noShop = mods.includes('noShop');
   const k = modPerks(perks(noShop ? {} : ranks), mods);
@@ -295,15 +290,7 @@ export function createWorld(
   const g = gearOf(worn);
   const boost = addBoost(k.boost, g.boost);
   const s = stats(a, [], boost, 0, hpScale(mods));
-  const w: World = {
-    rand: rng(seed),
-    time: 0,
-    stage,
-    heat,
-    note,
-    arcana: [],
-    arcanaPool: arcana,
-    arcanaPending: arcana.length && !challenge ? 1 : 0,
+  return {
     animal: a,
     form: 0,
     stats: s,
@@ -332,6 +319,42 @@ export function createWorld(
     },
     weapons: [{ id: a.weapon, level: 1, cd: 0.3 }],
     passives: [],
+    dealt: {},
+    evolvedNow: [],
+    drainLeft: s.maxHp * DRAIN,
+    pending: 0,
+    down: false
+  };
+}
+
+/** 2 匹めを足して番号を返す。始めは 1 匹めの少し右に置く */
+export function addHero(w: World, id: AnimalId, ranks: Ranks = {}, gear: GearKey[] = []): number {
+  const h = makeHero(id, ranks, w.mods, gear);
+  h.player.x = w.heroes[0].player.x + 24;
+  h.player.y = w.heroes[0].player.y;
+  return w.heroes.push(h) - 1;
+}
+
+export function createWorld(
+  id: AnimalId,
+  seed: number,
+  view: { w: number; h: number },
+  ranks: Ranks = {},
+  stageId = 'forest',
+  opts: Options = {}
+): World {
+  const { challenge, heat = PLAIN, arcana = [], note, gear = [] } = opts;
+  const mods = challenge?.mods ?? [];
+  const stage = heatStage(modStage(stageOf(stageId), mods), heat.level);
+  const w = {
+    rand: rng(seed),
+    time: 0,
+    stage,
+    heat,
+    note,
+    arcana: [],
+    arcanaPool: arcana,
+    arcanaPending: arcana.length && !challenge ? 1 : 0,
     enemies: [],
     shots: [],
     effects: [],
@@ -342,14 +365,10 @@ export function createWorld(
     xp: 0,
     xpTotal: 0,
     kills: 0,
-    pending: 0,
     chests: 0,
     bossKills: [],
     coins: 0,
     opened: 0,
-    evolvedNow: [],
-    drainLeft: s.maxHp * DRAIN,
-    dealt: {},
     eventNext: 0,
     freeze: 0,
     rush: 0,
@@ -382,8 +401,11 @@ export function createWorld(
     view,
     events: [],
     spawnAcc: stage.waves.map(() => 0),
-    grid: new Grid()
-  };
+    grid: new Grid(),
+    heroes: [makeHero(id, ranks, mods, gear)],
+    cur: 0
+  } as unknown as World;
+  bindHeroes(w);
   // お題の今日の札は、始めの 3 枚選びの代わりに持って始める
   if (challenge?.card) takeArcana(w, challenge.card);
   return w;
