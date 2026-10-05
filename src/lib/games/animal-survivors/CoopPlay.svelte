@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { BoardInput } from '$lib/board-input';
   import { animate } from '$lib/loop';
+  import { Settle } from '$lib/settle.svelte';
   import type { CoopGuest, CoopHost } from './coop';
   import { draw, fitCanvas, type ViewSize } from './draw';
   import { Effects } from './effects';
@@ -35,8 +36,10 @@
   let stick = $state<{ id: number; x: number; y: number; dx: number; dy: number } | null>(null);
   let waiting = $state(false);
   let over = $state(false);
-  let ended = false;
-  let endTimer: ReturnType<typeof setTimeout> | undefined;
+  /** 倒れた指を離したところに「もどる」が出ると合成 click で押されるので、指が離れるまで押せなくする */
+  const settle = new Settle();
+  /** ✕ は 1 回めで確かめ、もう一度押すとやめる（親の iPad が眠っても子が抜けられるように、いつでも出す） */
+  let sure = $state(false);
   let now = 0;
 
   const input = new BoardInput({
@@ -84,20 +87,20 @@
       fx.update(dt);
     }
     waiting = !prompts?.busy && anyPending(world);
-    if (world.over && !ended) {
-      ended = true;
-      // 倒れた指を離したところに「もどる」が出ると、合成 click で押されてしまう
-      endTimer = setTimeout(() => (over = true), 1200);
+    if (world.over && !over) {
+      over = true;
+      settle.begin();
     }
     if (ctx) draw(ctx, world, fx, view, now, top, prompts ?? undefined);
   }
 
   onMount(() => {
     const stop = animate(frame);
+    const unlisten = settle.listen();
     return () => {
       stop();
+      unlisten();
       prompts?.stop();
-      clearTimeout(endTimer);
     };
   });
 </script>
@@ -110,11 +113,16 @@
     <Stick {...stick} {w} {h} />
   {/if}
 </div>
+{#if !over}
+  <button class="round quit" data-quit onclick={() => (sure ? onend() : (sure = true))} aria-label="やめる"
+    >{sure ? 'やめる？' : '✕'}</button
+  >
+{/if}
 {#if waiting}<p class="note">なかまが えらんでいます…</p>{/if}
 {#if prompts}<PromptLayer {prompts} finger={stick?.id ?? null} onanswer={() => {}} />{/if}
 {#if over}
   <div class="as-screen">
-    <section class="as-panel" aria-label="おわり">
+    <section class="as-panel" class:as-locked={settle.active} aria-label="おわり">
       <h2 class="as-title">おわり</h2>
       <button class="as-card as-go" onclick={onend}>もどる</button>
     </section>
@@ -134,6 +142,16 @@
     position: absolute;
     inset: 0 auto auto 0;
     image-rendering: pixelated;
+  }
+
+  .quit {
+    position: absolute;
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+    z-index: 6;
+    width: auto;
+    min-width: 44px;
+    padding: 0 10px;
   }
 
   .note {

@@ -31,6 +31,18 @@ describe('2 匹の World', () => {
     expect(w.cur).toBe(0);
   });
 
+  it('2 匹が当たりの時計を使う同じ武器（骨ブーメラン・ツタ）を持っても、同じ敵にそれぞれ当たる', () => {
+    for (const id of ['boomerang', 'vine']) {
+      const w = two();
+      w.heroes[1].player.x = 20;
+      for (const h of w.heroes) h.weapons = [{ id, level: 1, cd: 0 }];
+      w.enemies.push(makeEnemy({ ...ENEMIES.caterpillar, speed: 0, heavy: 1 }, 10, 40, 100000));
+      for (let i = 0; i < 180; i++) step(w, still, 1 / 60);
+      expect(w.heroes[0].dealt[id]?.damage ?? 0).toBeGreaterThan(0);
+      expect(w.heroes[1].dealt[id]?.damage ?? 0).toBeGreaterThan(0);
+    }
+  });
+
   it('2 匹が同じ武器でも、同じ敵にそれぞれ当たる', () => {
     const w = two();
     w.heroes[1].player.x = 20;

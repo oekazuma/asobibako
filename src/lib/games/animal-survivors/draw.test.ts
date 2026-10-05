@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { devicePx, frameAt, heroOrder, viewSize } from './draw';
+import { devicePx, DOWN_ALPHA, frameAt, heroAlpha, heroOrder, HURT_ALPHA, viewSize } from './draw';
 import { addHero, createWorld, step } from './world';
 
 describe('仮想画面', () => {
@@ -51,5 +51,13 @@ describe('2 匹を描く順', () => {
     expect(heroOrder(w)).toEqual([1, 0]);
     w.cur = 1;
     expect(heroOrder(w)).toEqual([0, 1]);
+  });
+});
+
+describe('倒れた動物の濃さ', () => {
+  it('倒れた動物は薄く描き、被弾の薄さと重ねる', () => {
+    expect(heroAlpha(0, false, false)).toBe(1);
+    expect(heroAlpha(0, false, true)).toBe(DOWN_ALPHA);
+    expect(heroAlpha(0.3, false, true)).toBeCloseTo(DOWN_ALPHA * HURT_ALPHA);
   });
 });

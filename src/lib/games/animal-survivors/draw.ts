@@ -193,6 +193,10 @@ function growBurst(ctx: CanvasRenderingContext2D, p: { x: number; y: number }, k
 export const HURT_ALPHA = 0.55;
 /** 育つ演出のあいだは無敵の時計が止まるので薄くしない */
 export const hurtAlpha = (invuln: number, moment: boolean) => (!moment && invuln > 0 ? HURT_ALPHA : 1);
+/** ふたりで遊ぶときに倒れた動物の濃さ */
+export const DOWN_ALPHA = 0.5;
+export const heroAlpha = (invuln: number, moment: boolean, down: boolean) =>
+  (down ? DOWN_ALPHA : 1) * hurtAlpha(invuln, moment);
 
 /** 攻撃を受けた敵に重ねる白の濃さ。真っ白に切り替えると、大群が一斉に点滅して見える */
 const HIT_WHITE = 0.5;
@@ -215,7 +219,7 @@ function player(ctx: CanvasRenderingContext2D, w: World, now: number, form = w.f
   const flip = p.facing < 0;
   // 育って大きくなっても足もとは 1 段階めと同じ高さにそろえる
   const y = p.y - (art.h - 16) / 2;
-  ctx.globalAlpha = hurtAlpha(p.invuln, moment);
+  ctx.globalAlpha = heroAlpha(p.invuln, moment, w.heroes[w.cur].down);
   // 白いふちで、大群の中でも自分を見失わないようにする
   for (const [dx, dy] of [
     [-1, 0],
@@ -406,10 +410,8 @@ export function draw(
     const me = w.cur;
     for (const i of heroOrder(w)) {
       w.cur = i;
-      ctx.globalAlpha = w.heroes[i].down ? 0.5 : 1;
       player(ctx, w, now);
     }
-    ctx.globalAlpha = 1;
     w.cur = me;
   }
   shots(ctx, w, q);
