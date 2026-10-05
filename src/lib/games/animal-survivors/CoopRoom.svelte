@@ -3,48 +3,73 @@
   import Handshake from '$lib/net/Handshake.svelte';
   import type { Link } from '$lib/net/link';
   import { MISMATCH, Party } from '$lib/net/party.svelte';
+  import type { AnimalId } from './animals';
+  import { openArcana } from './arcana';
   import Back from './Back.svelte';
+  import Cauldron from './Cauldron.svelte';
   import { CoopGuest, CoopHost } from './coop';
+  import CoopPick from './CoopPick.svelte';
   import CoopPlay from './CoopPlay.svelte';
   import { wornKeys } from './gacha';
-  import { loadRecords } from './records';
+  import { loadRecords, payHeat, saveRecords } from './records';
+  import StageSelect from './StageSelect.svelte';
   import { createWorld, type World } from './world';
 
   let { onback }: { onback: () => void } = $props();
 
-  const records = loadRecords();
-
+  let records = $state(loadRecords());
   let joining = $state<'host' | 'guest' | null>(null);
   let failed = $state('');
   let party: Party | null = null;
   let host = $state.raw<CoopHost | null>(null);
   let guest = $state.raw<CoopGuest | null>(null);
   let world = $state.raw<World | null>(null);
-  /** 親で、子が入った */
+  /** 親で子が動物を選んだ／子で親が受け取った・版がちがった */
   let ready = $state(false);
+  let picked = $state(false);
   let mismatch = $state(false);
+  /** 自分の動物。親はこのあとステージと釜を選ぶ */
+  let mine = $state<AnimalId | null>(null);
+  let step = $state<'pick' | 'stage' | 'cauldron'>('pick');
+  let stage = $state('forest');
   let playing = $state(false);
-
-  /** どちらも、キャラ選択で選んでいた子と自分のパワーアップ・装備で遊ぶ */
-  const me = () => ({ animal: records.animal, ranks: records.ranks, gear: wornKeys(records) });
 
   async function linked(link: Link) {
     if (joining === 'host') {
       const p = Party.host();
-      const w = createWorld(records.animal, Date.now() % 2 ** 31, { w: 260, h: 380 }, records.ranks, 'forest', {
-        gear: wornKeys(records)
-      });
-      // 子の最初の知らせ（hi）を聞き逃さないよう、迎え入れる前に聞き手を付ける
-      host = new CoopHost(p, w);
-      world = w;
+      // 子の最初の知らせ（hi と pick）を聞き逃さないよう、迎え入れる前に聞き手を付ける
+      host = new CoopHost(p);
       party = p;
       const seat = await p.add(link);
       if (seat === 'mismatch') failed = MISMATCH;
     } else {
       party = Party.guest(link);
-      guest = new CoopGuest(party, me());
+      guest = new CoopGuest(party);
     }
     joining = null;
+  }
+
+  function choose(id: AnimalId) {
+    mine = id;
+    guest?.pick({ animal: id, ranks: records.ranks, gear: wornKeys(records) });
+    if (host) step = 'stage';
+  }
+
+  /** 釜の「はじめる」。賭けは親だけが払う */
+  function begin(h: number) {
+    const r = loadRecords();
+    const heat = payHeat(r, h);
+    saveRecords(r);
+    records = r;
+    const seed = Date.now() % 2 ** 31;
+    const w = createWorld(mine!, seed, { w: 260, h: 380 }, r.ranks, stage, {
+      heat,
+      arcana: openArcana(r.achieved),
+      gear: wornKeys(r)
+    });
+    host?.start(w, seed, stage);
+    world = w;
+    playing = true;
   }
 
   // CoopHost と CoopGuest はふつうの class なので、画面に出す旗はここで写す
@@ -52,7 +77,8 @@
     if (host) ready = host.ready;
     if (guest) {
       mismatch = guest.mismatch;
-      if (guest.view && !playing) {
+      picked = guest.picked;
+      if (guest.view && guest.view !== world) {
         world = guest.view;
         playing = true;
       }
@@ -63,15 +89,24 @@
     clearInterval(timer);
     party?.close();
   });
-
-  function start() {
-    host?.start();
-    playing = true;
-  }
 </script>
 
 {#if playing && world}
-  <CoopPlay {host} {guest} {world} onend={onback} />
+  <!-- もう一度で World が替わったら、遊ぶ画面を作り直す（遊ぶ画面は受け取った World を進め続ける） -->
+  {#key world}
+    <CoopPlay {host} {guest} {world} onend={onback} />
+  {/key}
+{:else if host && mine && ready && step === 'stage'}
+  <StageSelect
+    {records}
+    onpick={(id) => {
+      stage = id;
+      step = 'cauldron';
+    }}
+    onback={() => (mine = null)}
+  />
+{:else if host && mine && ready && step === 'cauldron'}
+  <Cauldron coins={records.coins} start={records.heatLast} {stage} onstart={begin} onback={() => (step = 'stage')} />
 {:else}
   <div class="as-screen">
     <section class="as-panel" aria-label="ふたりで遊ぶ">
@@ -87,13 +122,16 @@
             }}
           />
         </div>
+      {:else if (host || guest) && mismatch}
+        <p class="note">{MISMATCH}</p>
+      {:else if (host || guest) && !mine}
+        <CoopPick {records} onpick={choose} />
       {:else if host}
-        <p class="note">{ready ? 'なかまが はいりました' : 'なかまを まっています'}</p>
-        <button class="as-card as-go" disabled={!ready} onclick={start}>はじめる</button>
+        <p class="note">なかまが 子を えらぶのを まっています</p>
       {:else if guest}
-        <p class="note">{mismatch ? MISMATCH : 'おやが はじめるのを まっています'}</p>
+        <p class="note">{picked ? 'おやが ステージを えらんでいます' : 'おやに しらせています…'}</p>
       {:else}
-        <p class="note">それぞれの端末で、キャラ選択で選んだ子と いっしょに 森を 生き延びよう</p>
+        <p class="note">それぞれの端末で、自分の子と いっしょに 生き延びよう</p>
         <button class="as-card" onclick={() => (joining = 'host')}>なかまを よぶ</button>
         <button class="as-card" onclick={() => (joining = 'guest')}>なかまに はいる</button>
       {/if}
@@ -132,10 +170,5 @@
   .as-card {
     justify-content: center;
     font-size: min(4.6cqw, 2.8cqh, 24px);
-  }
-
-  .as-card:disabled {
-    opacity: 0.45;
-    cursor: default;
   }
 </style>

@@ -48,10 +48,10 @@ async function started() {
   guest.onTell((m) => told.push(m.t));
   const w = createWorld('dog', 1, VIEW);
   w.stage = { ...w.stage, waves: [] };
-  const h = new CoopHost(host, w);
+  const h = new CoopHost(host);
   const g = new CoopGuest(guest, { animal: 'cat', ranks: {}, gear: [] });
   await settle();
-  h.start();
+  h.start(w);
   await settle();
   return { host, guest, w, h, g, told };
 }
@@ -69,11 +69,11 @@ describe('協力プレイのつなぎ', () => {
     const { host, guest } = await pair();
     const w = createWorld('dog', 1, VIEW);
     w.stage = { ...w.stage, waves: [] };
-    const h = new CoopHost(host, w);
+    const h = new CoopHost(host);
     const g = new CoopGuest(guest, { animal: 'cat', ranks: {}, gear: [] });
     await settle();
     expect(h.ready).toBe(true);
-    h.start();
+    h.start(w);
     await settle();
     expect(g.view?.heroes).toHaveLength(2);
     w.enemies.push(makeEnemy(ENEMIES.caterpillar, 40, 0, 50));
@@ -88,10 +88,31 @@ describe('協力プレイのつなぎ', () => {
     expect(g.view!.enemies.some((e) => e.alive)).toBe(true);
   });
 
+  it('子が動物を選ぶまでは始められず、選ぶと始めたときに子の動物が入る', async () => {
+    const { host, guest } = await pair();
+    const w = createWorld('dog', 1, VIEW);
+    const h = new CoopHost(host);
+    const g = new CoopGuest(guest);
+    const told: string[] = [];
+    guest.onTell((m) => told.push(m.t));
+    await settle();
+    expect(h.ready).toBe(false);
+    expect(h.guest).toBeNull();
+    g.pick({ animal: 'wolf', ranks: { might: 2 }, gear: [] });
+    await settle();
+    expect(h.ready).toBe(true);
+    expect(h.guest?.animal).toBe('wolf');
+    expect(told).toContain('picked');
+    h.start(w);
+    await settle();
+    expect(w.heroes.map((x) => x.animal.id)).toEqual(['dog', 'wolf']);
+    expect(g.view?.heroes[1].animal.id).toBe('wolf');
+  });
+
   it('版がちがう子には mismatch を返して 2 匹めを入れない', async () => {
     const { host, guest } = await pair();
     const w = createWorld('dog', 1, VIEW);
-    const h = new CoopHost(host, w);
+    const h = new CoopHost(host);
     const told: string[] = [];
     guest.onTell((m) => told.push(m.t));
     guest.act({ t: 'hi', v: 0, animal: 'cat', ranks: {}, gear: [] });
@@ -103,10 +124,10 @@ describe('協力プレイのつなぎ', () => {
 
   it('snap が届く前の子の画面でも frame が投げない', async () => {
     const { host, guest } = await pair();
-    const h = new CoopHost(host, createWorld('dog', 1, VIEW));
+    const h = new CoopHost(host);
     const g = new CoopGuest(guest, { animal: 'cat', ranks: {}, gear: [] });
     await settle();
-    h.start();
+    h.start(createWorld('dog', 1, VIEW));
     await settle();
     expect(() => g.frame(performance.now())).not.toThrow();
   });
@@ -115,10 +136,10 @@ describe('協力プレイのつなぎ', () => {
     const { host, guest } = await pair();
     const w = createWorld('dog', 1, VIEW);
     w.stage = { ...w.stage, waves: [] };
-    const h = new CoopHost(host, w);
+    const h = new CoopHost(host);
     const g = new CoopGuest(guest, { animal: 'cat', ranks: {}, gear: [] });
     await settle();
-    h.start();
+    h.start(w);
     await settle();
     w.events.push({ type: 'levelup' });
     h.after(0.06);
@@ -135,10 +156,10 @@ describe('協力プレイのつなぎ', () => {
       const { host, guest } = await pair();
       const w = createWorld('dog', 1, VIEW);
       w.stage = { ...w.stage, waves: [] };
-      const h = new CoopHost(host, w);
+      const h = new CoopHost(host);
       const g = new CoopGuest(guest, { animal: 'cat', ranks: {}, gear: [] });
       await settle();
-      h.start();
+      h.start(w);
       await settle();
       w.heroes[1].player.slow = slow;
       h.after(0.06);
