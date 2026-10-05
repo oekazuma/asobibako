@@ -26,4 +26,7 @@ describe('入力', () => {
     expect(pick({ x: 0, y: 1 }, { x: 1, y: 0 })).toEqual({ x: 0, y: 1 });
     expect(pick({ x: 0, y: 0 }, { x: 1, y: 0 })).toEqual({ x: 1, y: 0 });
   });
+  it('盤面の大きさが 0 のときのスティックは止まったまま（0 で割って位置が壊れないように）', () => {
+    expect(stickVector(10, 5, 0)).toEqual({ x: 0, y: 0 });
+  });
 });

@@ -18,6 +18,8 @@ export function keyVector(keys: ReadonlySet<string>): Vec {
 
 /** 指を置いた所からのずれ。半径の 15% までは遊び、半径より外は長さ 1 */
 export function stickVector(dx: number, dy: number, radius: number): Vec {
+  // 盤面がまだ大きさ 0 のときは 0 で割ると NaN になり、自分の位置がその回ずっと壊れる
+  if (!(radius > 0)) return ZERO;
   const len = Math.hypot(dx, dy) / radius;
   if (len < 0.15) return ZERO;
   const k = Math.min(1, len) / (len * radius);
