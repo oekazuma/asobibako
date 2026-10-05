@@ -1,3 +1,4 @@
+import { ANIMAL_ART } from './art/animals';
 import { ITEM_ART } from './art/items';
 import { pulse } from './draw-boss';
 import { PALETTE } from './art/palette';
@@ -9,17 +10,16 @@ const CONFETTI = 40;
 const COLORS = [PALETTE.r, PALETTE.y, PALETTE.u, PALETTE.p, PALETTE.l];
 
 /**
- * 画面の外のものへの向きの矢印を画面の端に描き、置いた位置を返す（画面の中なら描かずに null）。
+ * 画面の外のものへの向きの矢印を置く位置と向き（画面の中なら null）。
  * 仮想画面の座標で、HUD（上）と持ちもの（下）にかからない内側に置く
  */
-function edgeArrow(
-  ctx: CanvasRenderingContext2D,
+export function edgeAt(
   w: World,
   to: { x: number; y: number },
   vw: number,
   vh: number,
   top: number
-): { x: number; y: number } | null {
+): { x: number; y: number; angle: number } | null {
   const dx = to.x - w.player.x;
   const dy = to.y - w.player.y;
   if (Math.abs(dx) < vw / 2 - 8 && Math.abs(dy) < vh / 2 - 8) return null;
@@ -36,15 +36,48 @@ function edgeArrow(
     dx > 0 ? (right - cx) / dx : dx < 0 ? (left - cx) / dx : Infinity,
     dy > 0 ? (down - cy) / dy : dy < 0 ? (up - cy) / dy : Infinity
   );
-  const x = Math.round(cx + dx * k);
-  const y = Math.round(cy + dy * k);
+  return { x: Math.round(cx + dx * k), y: Math.round(cy + dy * k), angle: Math.atan2(dy, dx) };
+}
+
+/** 画面の外のものへの向きの矢印を画面の端に描き、置いた位置を返す（画面の中なら描かずに null） */
+function edgeArrow(
+  ctx: CanvasRenderingContext2D,
+  w: World,
+  to: { x: number; y: number },
+  vw: number,
+  vh: number,
+  top: number
+): { x: number; y: number } | null {
+  const at = edgeAt(w, to, vw, vh, top);
+  if (!at) return null;
   const a = ITEM_ART.arrow;
   ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(Math.atan2(dy, dx));
+  ctx.translate(at.x, at.y);
+  ctx.rotate(at.angle);
   ctx.drawImage(bake(a), -Math.floor(a.w / 2), -Math.floor(a.h / 2));
   ctx.restore();
-  return { x, y };
+  return at;
+}
+
+/** 矢印を出す相棒（ふたりで遊ぶときの、自分でない動物） */
+export const partners = (w: World) => [...w.heroes.keys()].filter((i) => i !== w.cur);
+
+/**
+ * 画面の外の相棒への矢印。宝箱やヌシの矢印と見分けるよう、相棒の顔を画面の内側へ添える。
+ * 倒れていれば顔を薄くする
+ */
+export function partnerArrows(ctx: CanvasRenderingContext2D, w: World, vw: number, vh: number, top: number): void {
+  for (const i of partners(w)) {
+    const h = w.heroes[i];
+    const at = edgeArrow(ctx, w, h.player, vw, vh, top);
+    if (!at) continue;
+    const face = ANIMAL_ART[h.animal.id].forms[0].walk;
+    const y = at.y > vh / 2 ? at.y - 6 - face.h : at.y + 6;
+    const x = Math.min(vw - face.w - 2, Math.max(2, at.x - Math.floor(face.w / 2)));
+    ctx.globalAlpha = h.down ? 0.5 : 1;
+    ctx.drawImage(bake(face), x, y);
+    ctx.globalAlpha = 1;
+  }
 }
 
 /** 宝の地図の宝箱が消えるまでの秒を、この秒より少なくなったら明滅させる */

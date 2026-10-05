@@ -13,7 +13,7 @@ import { shots, swipes, zonesBelow } from './draw-arms';
 import { bossBars, hazardsAbove, hazardsBelow, introDust, introEdge } from './draw-boss';
 import { growFrame } from './grow';
 import type { Prompts } from './prompts.svelte';
-import { chiefArrows, confetti, treasureArrow } from './draw-events';
+import { chiefArrows, confetti, partnerArrows, treasureArrow } from './draw-events';
 import { blizzard } from './draw-storm';
 import { drawLava } from './draw-volcano';
 import { EAGLE } from './bosses-forest';
@@ -465,6 +465,7 @@ export function draw(
   if (!prompts?.intro) {
     treasureArrow(ctx, w, v.w, v.h, top, now);
     chiefArrows(ctx, w, v.w, v.h, top);
+    partnerArrows(ctx, w, v.w, v.h, top);
   }
   bossBars(ctx, w, v, top);
 }
