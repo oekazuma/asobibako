@@ -12,6 +12,7 @@ import { PALETTE } from './art/palette';
 import { shots, swipes, zonesBelow } from './draw-arms';
 import { bossBars, hazardsAbove, hazardsBelow, introDust, introEdge } from './draw-boss';
 import { growFrame } from './grow';
+import { hash } from './obstacles';
 import type { Prompts } from './prompts.svelte';
 import { nearestHero, RAISE_SECS, type Hero } from './heroes';
 import { chiefArrows, confetti, partnerArrows, treasureArrow } from './draw-events';
@@ -64,12 +65,7 @@ export function devicePx(v: number, scale: number): number {
 let S = 1;
 const q = (v: number) => devicePx(v, S) / S;
 
-/** 座標から決まる 0..1。地面と飾りを毎フレーム同じに並べる */
-export function hash(x: number, y: number) {
-  let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263)) >>> 0;
-  h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0;
-  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-}
+export { hash };
 
 function sprite(
   ctx: CanvasRenderingContext2D,
