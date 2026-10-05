@@ -17,6 +17,8 @@ describe('ふたりで遊ぶ', () => {
       props: { records: emptyRecords(), onpick: () => {}, onquit: () => {}, onopen: (s: string) => opened.push(s) }
     });
     flushSync();
+    // iPad だけのものではないので、端末の名前で限らない
+    expect(target.querySelector('[data-menu="coop"]')!.textContent).not.toContain('iPad');
     (target.querySelector('[data-menu="coop"]') as HTMLButtonElement).click();
     expect(opened).toEqual(['coop']);
     unmount(menu);
@@ -25,6 +27,7 @@ describe('ふたりで遊ぶ', () => {
     const labels = [...target.querySelectorAll('button')].map((b) => b.textContent?.trim());
     expect(labels).toContain('なかまを よぶ');
     expect(labels).toContain('なかまに はいる');
+    expect(target.textContent).not.toContain('iPad');
     unmount(room);
   });
 });

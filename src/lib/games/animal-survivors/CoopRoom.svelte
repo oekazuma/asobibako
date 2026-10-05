@@ -77,21 +77,23 @@
     <section class="as-panel" aria-label="ふたりで遊ぶ">
       <h2 class="as-title">ふたりで遊ぶ</h2>
       {#if joining}
-        <Handshake
-          role={joining}
-          onlink={linked}
-          onfail={(text) => {
-            failed = text;
-            joining = null;
-          }}
-        />
+        <div class="shake">
+          <Handshake
+            role={joining}
+            onlink={linked}
+            onfail={(text) => {
+              failed = text;
+              joining = null;
+            }}
+          />
+        </div>
       {:else if host}
         <p class="note">{ready ? 'なかまが はいりました' : 'なかまを まっています'}</p>
         <button class="as-card as-go" disabled={!ready} onclick={start}>はじめる</button>
       {:else if guest}
         <p class="note">{mismatch ? MISMATCH : 'おやが はじめるのを まっています'}</p>
       {:else}
-        <p class="note">それぞれの iPad で、キャラ選択で選んだ子と いっしょに 森を 生き延びよう</p>
+        <p class="note">それぞれの端末で、キャラ選択で選んだ子と いっしょに 森を 生き延びよう</p>
         <button class="as-card" onclick={() => (joining = 'host')}>なかまを よぶ</button>
         <button class="as-card" onclick={() => (joining = 'guest')}>なかまに はいる</button>
       {/if}
@@ -102,6 +104,19 @@
 {/if}
 
 <style>
+  /* QR の手順は画面いっぱいに出す大きさなので、枠の中では枠の幅に収める（はみ出すと枠で切れて読めない） */
+  .shake {
+    display: grid;
+    gap: 12px;
+    justify-items: center;
+  }
+
+  .shake :global(.code),
+  .shake :global(video) {
+    width: min(100%, 52cqh);
+    box-sizing: border-box;
+  }
+
   .note {
     margin: 0;
     color: #fff3d6;

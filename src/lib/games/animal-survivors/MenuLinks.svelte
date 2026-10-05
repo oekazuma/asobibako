@@ -34,7 +34,7 @@
         art={ANIMAL_ART.cat.forms[0].walk}
         size="min(6cqw, 3.6cqh, 32px)"
       /></span
-    ><span class="text">ふたりで遊ぶ<small>それぞれの iPad で いっしょに</small></span>
+    ><span class="text">ふたりで遊ぶ<small>それぞれの端末で いっしょに</small></span>
   </button>
   <div class="row">
     <button class="as-card mid" data-menu="shop" onclick={() => onopen('shop')}>
