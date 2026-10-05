@@ -56,23 +56,30 @@
   onMount(() => {
     if (matchMedia?.('(prefers-reduced-motion: reduce)').matches) return toFlat();
     let alive = true;
-    scene(canvas!).then((made) => {
-      if (!alive) return made.dispose();
-      three = made;
-      ready = true;
-      resize();
-      stop = animate((dt, now) => {
-        tick(show, dt);
-        drain();
-        if (show.phase !== phase) sync();
-        if (closing(show)) {
-          stop();
-          onclose();
-          return;
-        }
-        made.render(show, now / 1000);
-      });
-    }, toFlat);
+    // 段取りは読み込みを待たずに進める（読み込み中にとばしたときも、押しを受けない間が減って閉じられるように）
+    stop = animate((dt, now) => {
+      tick(show, dt);
+      drain();
+      if (show.phase !== phase) sync();
+      if (closing(show)) {
+        stop();
+        onclose();
+        return;
+      }
+      three?.render(show, now / 1000);
+    });
+    scene(canvas!).then(
+      (made) => {
+        if (!alive) return made.dispose();
+        three = made;
+        ready = true;
+        resize();
+      },
+      () => {
+        stop();
+        toFlat();
+      }
+    );
     const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(resize);
     if (canvas) ro?.observe(canvas);
     return () => {

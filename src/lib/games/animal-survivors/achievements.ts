@@ -95,7 +95,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: 'clear7',
-    name: '7 匹すべてでクリア',
+    name: `${ANIMALS.length} 匹すべてでクリア`,
     coins: 500,
     done: (r) => r.clearedBy.length >= ANIMALS.length,
     progress: (r) => [r.clearedBy.length, ANIMALS.length]

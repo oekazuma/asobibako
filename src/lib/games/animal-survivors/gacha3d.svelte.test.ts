@@ -45,6 +45,25 @@ describe('3D のガチャの重ね', () => {
     unmount(app);
   });
 
+  it('読み込みの途中でとばしても、1 回押せば閉じる', async () => {
+    const closed: string[] = [];
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(Gacha3D, {
+      target,
+      props: { gears: ['owl:2'], onclose: () => closed.push('x'), scene: () => new Promise(() => {}) }
+    });
+    await tick();
+    (target.querySelector('[data-skip]') as HTMLButtonElement).click();
+    flushSync();
+    await new Promise((r) => setTimeout(r, 500));
+    const c = target.querySelector('canvas')!;
+    c.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 1, clientX: 10, clientY: 10, bubbles: true }));
+    c.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, clientX: 10, clientY: 10, bubbles: true }));
+    await new Promise((r) => setTimeout(r, 500));
+    expect(closed).toEqual(['x']);
+    unmount(app);
+  });
+
   it('10 連をとばすと 10 この品を並べる', async () => {
     const fake = { resize() {}, render() {}, handle: () => ({ x: 0, y: 0 }), dispose() {} };
     const target = document.body.appendChild(document.createElement('div'));

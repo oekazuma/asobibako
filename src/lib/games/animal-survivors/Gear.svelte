@@ -87,7 +87,7 @@
         onact={act}
       />
     {/if}
-    <Bag bag={r.bag} worn={r.worn} locks={r.locks} onpick={(k) => (picked = k)} />
+    <Bag bag={r.bag} worn={r.worn} locks={r.locks} onpick={(k) => ((picked = k), (sure = false))} />
   </section>
 </div>
 <Back {onback} />

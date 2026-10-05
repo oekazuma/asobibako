@@ -123,6 +123,11 @@ describe('装備の画面', () => {
     button('最強装備をつける').click();
     flushSync();
     expect(button('本当に売る')).toBeUndefined();
+    button('まとめて売る').click();
+    flushSync();
+    (document.querySelector('[data-gear="hachimaki:1"]') as HTMLButtonElement).click();
+    flushSync();
+    expect(button('本当に売る')).toBeUndefined();
     unmount(app);
   });
 

@@ -124,7 +124,8 @@
 
   .title {
     --fill: var(--pastel-p2);
-    font-size: clamp(26px, min(7cqh, 11cqw), 64px);
+    /* いちばん長い名前（9 文字）でも細い画面の幅に収まる大きさ */
+    font-size: clamp(26px, min(7cqh, 10cqw), 64px);
     white-space: nowrap;
   }
 
