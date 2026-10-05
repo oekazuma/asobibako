@@ -17,7 +17,8 @@
     finger,
     onresume,
     onrestart,
-    onquit
+    onquit,
+    restart = true
   }: {
     run: RunSummary;
     /** 開いたときに残っていたスティックの指 */
@@ -25,6 +26,8 @@
     onresume: () => void;
     onrestart: () => void;
     onquit: () => void;
+    /** ふたりで遊ぶときは、最初からやり直すを出さない */
+    restart?: boolean;
   } = $props();
 
   let asking = $state<'restart' | 'quit' | null>(null);
@@ -92,7 +95,7 @@
       <button class="as-card" onclick={toggleMute}
         ><Icon name={audio.muted ? 'mute' : 'speaker'} size="1.2em" />{audio.muted ? '音を出す' : '音を消す'}</button
       >
-      <button class="as-card" onclick={() => ask('restart')}>最初からやり直す</button>
+      {#if restart}<button class="as-card" onclick={() => ask('restart')}>最初からやり直す</button>{/if}
       <button class="as-card" onclick={() => ask('quit')}>{quit}</button>
     </section>
   {/if}

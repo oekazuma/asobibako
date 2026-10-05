@@ -191,4 +191,34 @@ describe('協力プレイのつなぎ', () => {
     p.next(null);
     expect(p.options).toBeNull();
   });
+
+  it('子が止めると親も止まり、子のつづけるで再開し、止まっていたあいだの位置は捨てる', async () => {
+    const { w, h, g } = await started();
+    g.pause();
+    await settle();
+    expect(h.paused).toBe('guest');
+    expect(g.paused).toBe('guest');
+    g.move({ x: 1, y: 0 }, 2);
+    await settle();
+    g.resume();
+    await settle();
+    expect(h.paused).toBeNull();
+    expect(g.paused).toBeNull();
+    const x = w.heroes[1].player.x;
+    h.before();
+    expect(w.heroes[1].player.x).toBe(x);
+  });
+
+  it('親が止めると子の画面にも知らせが届き、止めていない子は再開できない', async () => {
+    const { h, g } = await started();
+    h.pause();
+    await settle();
+    expect(g.paused).toBe('host');
+    g.resume();
+    await settle();
+    expect(h.paused).toBe('host');
+    h.resume();
+    await settle();
+    expect(g.paused).toBeNull();
+  });
 });

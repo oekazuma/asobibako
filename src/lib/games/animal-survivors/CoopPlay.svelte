@@ -3,15 +3,16 @@
   import { BoardInput } from '$lib/board-input';
   import { animate } from '$lib/loop';
   import { Settle } from '$lib/settle.svelte';
-  import type { CoopGuest, CoopHost } from './coop';
+  import type { CoopGuest, CoopHost, Pauser } from './coop';
   import { draw, fitCanvas, type ViewSize } from './draw';
   import { Effects } from './effects';
   import { anyChest, anyPending } from './heroes';
   import { steer } from './input';
   import PromptLayer from './PromptLayer.svelte';
   import { Prompts } from './prompts.svelte';
+  import Pause from './Pause.svelte';
   import Stick from './Stick.svelte';
-  import { step, type World } from './world';
+  import { step, summary, type World } from './world';
 
   /** 親は host と自分の World、子は guest と描くための World（guest.view）を受け取る */
   let {
@@ -36,6 +37,13 @@
   const prompts = host ? new Prompts(world) : (guest?.prompts ?? null);
   let stick = $state<{ id: number; x: number; y: number; dx: number; dy: number } | null>(null);
   let waiting = $state(false);
+  /** どちらかが止めている。止めた人の端末には一時停止のメニュー、相手には帯を出す */
+  let paused = $state<Pauser>(null);
+  // 親か子かは遊んでいるあいだ変わらない
+  // svelte-ignore state_referenced_locally
+  const me = host ? 'host' : 'guest';
+  // svelte-ignore state_referenced_locally
+  const side = host ?? guest;
   let over = $state(false);
   /** 倒れた指を離したところに「もどる」が出ると合成 click で押されるので、指が離れるまで押せなくする */
   const settle = new Settle();
@@ -71,7 +79,7 @@
     const move = steer(stick, input.px(1, 1), keys);
     if (host && prompts) {
       host.before();
-      if (!prompts.busy && !world.over) {
+      if (!prompts.busy && !world.over && !host.paused) {
         step(world, move, dt);
         fx.update(dt);
       }
@@ -82,14 +90,15 @@
       world.events.length = 0;
       prompts.next(stick?.id ?? null, dt);
     } else if (guest) {
-      if (!prompts?.busy) guest.move(move, dt);
+      if (!prompts?.busy && !guest.paused) guest.move(move, dt);
       guest.frame(performance.now());
       fx.take(world);
       prompts?.take();
       prompts?.next(stick?.id ?? null, dt);
       fx.update(dt);
     }
-    waiting = !prompts?.busy && (anyPending(world) || anyChest(world));
+    paused = side?.paused ?? null;
+    waiting = !prompts?.busy && !paused && (anyPending(world) || anyChest(world));
     if (world.over && !over) {
       over = true;
       settle.begin();
@@ -120,6 +129,21 @@
   <button class="round quit" data-quit onclick={() => (sure ? onend() : (sure = true))} aria-label="やめる"
     >{sure ? 'やめる？' : '✕'}</button
   >
+{/if}
+{#if !over && !paused && !prompts?.busy}
+  <button class="as-pause" onclick={() => side?.pause()} aria-label="一時停止">Ⅱ</button>
+{/if}
+{#if paused === me}
+  <Pause
+    run={summary(world)}
+    finger={null}
+    restart={false}
+    onresume={() => side?.resume()}
+    onrestart={() => {}}
+    onquit={onend}
+  />
+{:else if paused}
+  <p class="note">なかまが とめています</p>
 {/if}
 {#if waiting}<p class="note">なかまが えらんでいます…</p>{/if}
 {#if prompts}<PromptLayer {prompts} finger={stick?.id ?? null} onanswer={() => {}} />{/if}

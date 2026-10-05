@@ -40,8 +40,12 @@ interface Move {
 }
 
 /** 親の端末。World を進め、子の位置を受け取り、様子を送る */
+export type Pauser = 'host' | 'guest' | null;
+
 export class CoopHost {
   ready = false;
+  /** 止めた人。止めた人の「つづける」で再開する */
+  paused: Pauser = null;
   readonly #party: Party;
   readonly #w: World;
   readonly #moves = new Timeline<Move>();
@@ -60,9 +64,33 @@ export class CoopHost {
         if (this.ready) return;
         addHero(w, m.animal as AnimalId, m.ranks as Ranks, m.gear as GearKey[]);
         this.ready = true;
-      } else if (m.t === 'move') this.#moves.push(m.ms as number, performance.now(), m as unknown as Move);
+      } else if (m.t === 'move') {
+        if (!this.paused) this.#moves.push(m.ms as number, performance.now(), m as unknown as Move);
+      } else if (m.t === 'pause') this.#pause('guest');
+      else if (m.t === 'resume') this.paused === 'guest' && this.#resume();
       else this.#answer(m);
     });
+  }
+
+  pause(): void {
+    this.#pause('host');
+  }
+
+  resume(): void {
+    if (this.paused === 'host') this.#resume();
+  }
+
+  #pause(by: 'host' | 'guest'): void {
+    if (this.paused) return;
+    this.paused = by;
+    this.#party.tell(GUEST, { t: 'pause', by });
+  }
+
+  /** 止まっていたあいだの子の位置は捨てる（再開した瞬間に、その位置へ飛ばないように） */
+  #resume(): void {
+    this.paused = null;
+    this.#moves.clear();
+    this.#party.tell(GUEST, { t: 'resume' });
   }
 
   /** 子の動物（cur = 1）に、子の端末で選んだものを当てる。3 択を引き直したら送り直す */
@@ -151,6 +179,7 @@ export class CoopGuest {
   view: World | null = null;
   /** 子の端末の 3 択・宝箱・演出。選んだものは親へ送る */
   prompts: Prompts | null = null;
+  paused: Pauser = null;
   mismatch = false;
   readonly #party: Party;
   readonly #snaps = new Timeline<Snap>();
@@ -169,13 +198,26 @@ export class CoopGuest {
         this.prompts?.stop();
         this.prompts = new Prompts(view, undefined, { send: (msg) => party.act(msg) });
         this.#snaps.clear();
-      } else if (m.t === 'offer') this.prompts?.offer(m.options as Choice[], m.tools as Prompts['tools']);
+      } else if (m.t === 'pause') this.paused = m.by as Pauser;
+      else if (m.t === 'resume') this.paused = null;
+      else if (m.t === 'offer') this.prompts?.offer(m.options as Choice[], m.tools as Prompts['tools']);
       else if (m.t === 'rewards') this.prompts?.openRewards(m.rewards as Reward[]);
       else if (m.t === 'snap') {
         this.#snaps.push(m.ms as number, performance.now(), m.s as Snap);
       }
     });
     party.act({ t: 'hi', v: COOP_VERSION, ...me });
+  }
+
+  pause(): void {
+    if (this.paused) return;
+    this.paused = 'guest';
+    this.#party.act({ t: 'pause' });
+  }
+
+  /** 止めたのが自分のときだけ、親に再開を頼む */
+  resume(): void {
+    if (this.paused === 'guest') this.#party.act({ t: 'resume' });
   }
 
   /** 自分の動物を自分の端末で動かす（親に動かしてもらうと Wi-Fi の遅れのぶんもたつく） */
