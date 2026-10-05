@@ -84,6 +84,10 @@ describe('キャラ選択', () => {
     tile('wolf').click();
     flushSync();
     expect(card()).toContain('最長 04:10');
+    tile('dog').click();
+    tile('chick').click();
+    flushSync();
+    expect(card()).not.toContain('まだ遊んでいない');
     unmount(app);
   });
 

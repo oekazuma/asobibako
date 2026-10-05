@@ -80,6 +80,19 @@ describe('装備の画面', () => {
     unmount(app);
   });
 
+  it('売ったあとに同じ品が残っていても、次はまた確かめる', () => {
+    const app = open({ bag: { 'oni:0': 2 } });
+    (document.querySelector('[data-gear="oni:0"]') as HTMLButtonElement).click();
+    flushSync();
+    button('売る（').click();
+    flushSync();
+    button('本当に売る').click();
+    flushSync();
+    expect(loadRecords().bag).toEqual({ 'oni:0': 1 });
+    expect(button('本当に売る')).toBeUndefined();
+    unmount(app);
+  });
+
   it('最強装備をつけるで、場所ごとにいちばん高いレア度の品をつけて保存する', () => {
     const app = open({ bag: { 'oni:0': 1, 'goggles:2': 1, 'knight:1': 1, 'cat:0': 1 } });
     button('最強装備をつける').click();

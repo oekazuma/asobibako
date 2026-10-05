@@ -38,7 +38,10 @@
     <button class="as-card" disabled={p.rarity === 2 || count < 3} onclick={() => onact('merge')}
       >合成（3 こで 1 段上）</button
     >
-    <button class="as-card" disabled={locked} onclick={() => (sure === gear ? onact('sell') : (sure = gear))}
+    <button
+      class="as-card"
+      disabled={locked}
+      onclick={() => (sure === gear ? ((sure = null), onact('sell')) : (sure = gear))}
       >{locked ? '鍵つきは売れない' : `${sure === gear ? '本当に売る' : '売る'}（${SELL[p.rarity]} コイン）`}</button
     >
     <button class="as-card" onclick={() => ((sure = null), onact('lock'))}>{locked ? '鍵を外す' : '鍵をかける'}</button>

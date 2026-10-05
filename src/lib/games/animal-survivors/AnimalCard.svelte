@@ -23,7 +23,7 @@
       best ? `最長 ${clock(best.time)}` : ''
     ]
       .filter(Boolean)
-      .join('・') || 'まだ遊んでいない'
+      .join('・') || '記録なし'
   );
 
   const top = {
