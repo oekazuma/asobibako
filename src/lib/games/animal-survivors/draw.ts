@@ -12,7 +12,7 @@ import { PALETTE } from './art/palette';
 import { shots, swipes, zonesBelow } from './draw-arms';
 import { bossBars, hazardsAbove, hazardsBelow, introDust, introEdge } from './draw-boss';
 import { growFrame } from './grow';
-import { drawObstacles, inView } from './draw-obstacles';
+import { byFeet, covers, drawObstacles, inView } from './draw-obstacles';
 import { hash, obstaclesNear, type Obstacle } from './obstacles';
 import type { Prompts } from './prompts.svelte';
 import { nearestHero, RAISE_SECS, type Hero } from './heroes';
@@ -69,8 +69,7 @@ const q = (v: number) => devicePx(v, S) / S;
 export { hash };
 
 const seen: Obstacle[] = [];
-const back: Obstacle[] = [];
-const front: Obstacle[] = [];
+const hide: Obstacle[] = [];
 
 function sprite(
   ctx: CanvasRenderingContext2D,
@@ -323,6 +322,7 @@ function enemies(
   cy: number,
   v: ViewSize,
   now: number,
+  obstacles: Obstacle[],
   lively = 0,
   introduced: number[] = []
 ) {
@@ -332,13 +332,14 @@ function enemies(
     const g = footing(e);
     if (g.x > cx - 48 && g.x < cx + v.w + 48 && g.y > cy - 48 && g.y < cy + v.h + 48) order.push(e);
   }
-  order.sort((a, b) => a.y - b.y);
+  const feet = (e: Enemy) => footing(e).y + (ART[e.def.id].h * sizeOf(e)) / 2;
   ctx.fillStyle = 'rgb(0 0 0 / 0.25)';
-  for (const e of order) {
-    const g = footing(e);
-    shadow(ctx, g.x, g.y + (ART[e.def.id].h * sizeOf(e)) / 2 - 1, Math.round(e.def.r * (e.def.boss ? 2.2 : 1.8)));
-  }
-  for (const e of order) {
+  for (const e of order) shadow(ctx, footing(e).x, feet(e) - 1, Math.round(e.def.r * (e.def.boss ? 2.2 : 1.8)));
+  for (const e of byFeet(order, feet, obstacles)) {
+    if (!('def' in e)) {
+      drawObstacles(ctx, [e], now, q);
+      continue;
+    }
     const art = ART[e.def.id];
     // 巨大ベアと溶岩の巨人は地ならしの予告のあいだ、宙にいるボスは上げたコマにする（よみがえっている不死鳥は羽ばたく）
     const up = ((e.def.ai === 'bear' || e.def.ai === 'giant') && e.state === 3) || (airborne(e) && e.state !== 5);
@@ -413,15 +414,12 @@ export function draw(
   const cy = eye.y - v.h / 2;
   ctx.setTransform(S, 0, 0, S, -devicePx(cx, S), -devicePx(cy, S));
   ground(ctx, w, cx, cy, v);
-  // 自分より奥の障害物は敵より先に、手前の障害物は自分のあとに描き、奥行きを合わせる
-  back.length = front.length = 0;
-  for (const o of inView(w.stage.art, cx, cy, v.w, v.h, seen)) (o.y < p.y ? back : front).push(o);
-  drawObstacles(ctx, back, now, q);
   drawLava(ctx, w, now);
   hazardsBelow(ctx, w, q, now);
   zonesBelow(ctx, w, q, now);
   pickups(ctx, w, now);
-  enemies(ctx, w, cx, cy, v, now, prompts?.intro?.t ?? 0, prompts?.intro?.ids);
+  inView(w.stage.art, cx, cy, v.w, v.h, seen);
+  enemies(ctx, w, cx, cy, v, now, seen, prompts?.intro?.t ?? 0, prompts?.intro?.ids);
   const ev = prompts?.growing ? prompts.evolve : null;
   const grow = ev ? growFrame(ev.t, prompts!.still) : null;
   if (!grow) {
@@ -430,10 +428,15 @@ export function draw(
       w.cur = i;
       player(ctx, w, now);
       raising(ctx, w.heroes[i]);
+      // 育っても足もとは同じ高さで、絵は上へ伸びる
+      const h = 16 + w.form * 4;
+      const at = w.player;
+      hide.length = 0;
+      for (const o of seen) if (covers(o, at.x, at.y + 8 - h / 2, h)) hide.push(o);
+      drawObstacles(ctx, hide, now, q, i === me ? at : undefined, false);
     }
     w.cur = me;
   }
-  drawObstacles(ctx, front, now, q, p);
   shots(ctx, w, q);
   swipes(ctx, w, q);
   hazardsAbove(ctx, w, q);

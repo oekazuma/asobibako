@@ -623,7 +623,11 @@ export function spawnEvents(w: World): void {
         const a = (i / ev.count) * Math.PI * 2;
         const e = addEnemy(w, def, p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr);
         if (!e) break;
-        if (def.prop) e.hp = 1;
+        // ランタンは動かず押し出されないので、置くときに障害物の外へ出す
+        if (def.prop) {
+          e.hp = 1;
+          pushOut(w.stage.art, e, def.r);
+        }
       }
     } else if (ev.kind === 'elites') {
       const a = w.rand() * Math.PI * 2;

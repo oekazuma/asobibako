@@ -10,7 +10,7 @@ import {
   type Ground,
   type Obstacle
 } from './obstacles';
-import { inView } from './draw-obstacles';
+import { byFeet, covers, feetOf, inView } from './draw-obstacles';
 
 const GROUNDS: Ground[] = ['forest', 'graveyard', 'snow', 'volcano'];
 const inside = (g: Ground, x: number, y: number, r: number) =>
@@ -115,10 +115,10 @@ describe('区画の大きさ', () => {
 });
 
 describe('画面にかかる障害物', () => {
-  it('画面の外の障害物は入らず、奥（y の小さい）から並ぶ', () => {
+  it('画面の外の障害物は入らず、奥（足もとの y の小さい）から並ぶ', () => {
     const list = inView('forest', -800, -800, 1600, 1600, []);
     expect(list.length).toBeGreaterThan(5);
-    for (let i = 1; i < list.length; i++) expect(list[i].y).toBeGreaterThanOrEqual(list[i - 1].y);
+    for (let i = 1; i < list.length; i++) expect(feetOf(list[i])).toBeGreaterThanOrEqual(feetOf(list[i - 1]));
     // 絵は足もとより上へ伸びるので、画面の下の外は少し広く拾う
     for (const o of inView('forest', -60, -60, 120, 120, [])) {
       expect(Math.abs(o.x)).toBeLessThan(60 + 48);
@@ -126,5 +126,26 @@ describe('画面にかかる障害物', () => {
       expect(o.y).toBeLessThan(60 + 96);
     }
     expect(inView('forest', -60, -60, 120, 120, []).length).toBeLessThan(list.length);
+  });
+});
+
+describe('奥行きの順', () => {
+  const rock = { x: 0, y: 0, kind: 'boulder' as const };
+  const tomb = { x: 0, y: 2, kind: 'bigTomb' as const };
+
+  it('敵と障害物を足もとの高さの順に 1 本に並べる（奥の敵は岩より先、手前の敵は岩よりあと）', () => {
+    const foes = [
+      { id: 'back', feet: feetOf(rock) - 5 },
+      { id: 'front', feet: feetOf(rock) + 5 }
+    ];
+    const out = byFeet(foes, (f) => f.feet, [rock]);
+    expect(out.map((x) => ('id' in x ? x.id : 'rock'))).toEqual(['back', 'rock', 'front']);
+  });
+
+  it('自分の足もとより手前で、自分の絵に重なる障害物だけを自分のあとに描き直す', () => {
+    expect(covers(rock, 0, feetOf(rock) - 12, 16)).toBe(true);
+    expect(covers(rock, 0, feetOf(rock) + 4, 16)).toBe(false);
+    expect(covers(rock, 60, feetOf(rock) - 12, 16)).toBe(false);
+    expect(covers(tomb, 0, -60, 16)).toBe(false);
   });
 });

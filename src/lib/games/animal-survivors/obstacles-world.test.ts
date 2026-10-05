@@ -3,7 +3,7 @@ import { dropGem } from './drops';
 import { ENEMIES } from './enemies';
 import { startEvent } from './events';
 import { obstacleAt, obstaclesNear, PLAYER_R, SHAPES, SQUASH, type Obstacle } from './obstacles';
-import { createWorld, makeEnemy, spawnPoint, step, type World } from './world';
+import { createWorld, makeEnemy, spawnEvents, spawnPoint, step, type World } from './world';
 
 const VIEW = { w: 260, h: 380 };
 
@@ -100,6 +100,18 @@ describe('World の障害物', () => {
       const w = createWorld('dog', seed, VIEW, {}, 'graveyard');
       startEvent(w, { at: 0, kind: 'treasure' } as never);
       expect(inside(w, w.treasure!.x, w.treasure!.y, 8)).toBe(false);
+    }
+  });
+
+  it('出来事で灯すランタンも障害物の中に置かれない', () => {
+    const w = quiet('graveyard');
+    for (let i = 0; i < 300; i++) {
+      for (const e of w.enemies) e.alive = false;
+      Object.assign(w.player, { x: (i % 20) * 53, y: Math.floor(i / 20) * 47 });
+      w.stage = { ...w.stage, events: [{ at: 0, kind: 'lanterns', enemy: 'lantern', count: 8, text: '' }] };
+      w.eventNext = 0;
+      spawnEvents(w);
+      for (const e of w.enemies) if (e.alive) expect(inside(w, e.x, e.y, e.def.r)).toBe(false);
     }
   });
 });
