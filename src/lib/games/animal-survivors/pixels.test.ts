@@ -10,6 +10,7 @@ import { MENU_ART } from './art/menu';
 import { GRAVE_ART } from './art/graveyard';
 import { ITEM_ART } from './art/items';
 import { SNOW_ART } from './art/snow';
+import { OBSTACLE_ART } from './art/obstacles';
 import { goldArt, itemArt } from './art/evolved';
 import { PALETTE } from './art/palette';
 import { goldOf, problems, type Art } from './pixels';
@@ -33,10 +34,16 @@ const all: [string, Art][] = [
   ...Object.entries(GRAVE_ART.decor),
   ['snow.grass', SNOW_ART.grass],
   ['snow.dirt', SNOW_ART.dirt],
-  ...Object.entries(SNOW_ART.decor)
+  ...Object.entries(SNOW_ART.decor),
+  ...Object.entries(OBSTACLE_ART)
 ];
 
 describe('ドット絵の格子', () => {
+  it('障害物の絵は 8 枚で、湯気の出る岩だけ 2 コマ', () => {
+    expect(Object.keys(OBSTACLE_ART)).toHaveLength(8);
+    for (const [id, a] of Object.entries(OBSTACLE_ART)) expect(a.frames).toHaveLength(id === 'steamRock' ? 2 : 1);
+  });
+
   it('problems は幅のずれと知らない文字と行数のずれを見つける', () => {
     expect(problems('bad', { w: 2, h: 2, frames: [['k.', 'kkk']] }, { k: '#000' })).toEqual(['bad[0] 2 行目の幅が 3']);
     expect(problems('x', { w: 1, h: 1, frames: [['z']] }, { k: '#000' })).toEqual(['x[0] に色のない文字 z']);

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { dropGem } from './drops';
 import { ENEMIES } from './enemies';
 import { startEvent } from './events';
-import { obstacleAt, obstaclesNear, PLAYER_R, SHAPES, type Obstacle } from './obstacles';
+import { obstacleAt, obstaclesNear, PLAYER_R, SHAPES, SQUASH, type Obstacle } from './obstacles';
 import { createWorld, makeEnemy, spawnPoint, step, type World } from './world';
 
 const VIEW = { w: 260, h: 380 };
@@ -24,7 +24,7 @@ function firstObstacle(w: World): Obstacle {
 
 const inside = (w: World, x: number, y: number, r: number) =>
   obstaclesNear(w.stage.art, x, y, r, []).some((o) =>
-    SHAPES[o.kind].circles.some(([dx, dy, cr]) => Math.hypot(x - o.x - dx, y - o.y - dy) < r + cr - 0.01)
+    SHAPES[o.kind].circles.some(([dx, dy, cr]) => Math.hypot(x - o.x - dx, (y - o.y - dy) / SQUASH) < r + cr - 0.01)
   );
 
 describe('World の障害物', () => {

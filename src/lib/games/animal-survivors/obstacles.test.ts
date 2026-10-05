@@ -1,10 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { CELL, obstacleAt, obstaclesNear, PLAYER_R, pushOut, SHAPES, type Ground, type Obstacle } from './obstacles';
+import {
+  CELL,
+  obstacleAt,
+  obstaclesNear,
+  PLAYER_R,
+  pushOut,
+  SHAPES,
+  SQUASH,
+  type Ground,
+  type Obstacle
+} from './obstacles';
+import { inView } from './draw-obstacles';
 
 const GROUNDS: Ground[] = ['forest', 'graveyard', 'snow', 'volcano'];
 const inside = (g: Ground, x: number, y: number, r: number) =>
   obstaclesNear(g, x, y, r, []).some((o) =>
-    SHAPES[o.kind].circles.some(([dx, dy, cr]) => Math.hypot(x - o.x - dx, y - o.y - dy) < r + cr - 0.01)
+    SHAPES[o.kind].circles.some(([dx, dy, cr]) => Math.hypot(x - o.x - dx, (y - o.y - dy) / SQUASH) < r + cr - 0.01)
   );
 
 describe('障害物の置き方', () => {
@@ -101,4 +112,19 @@ describe('押し出し', () => {
 
 describe('区画の大きさ', () => {
   it('区画は 160 ドット', () => expect(CELL).toBe(160));
+});
+
+describe('画面にかかる障害物', () => {
+  it('画面の外の障害物は入らず、奥（y の小さい）から並ぶ', () => {
+    const list = inView('forest', -800, -800, 1600, 1600, []);
+    expect(list.length).toBeGreaterThan(5);
+    for (let i = 1; i < list.length; i++) expect(list[i].y).toBeGreaterThanOrEqual(list[i - 1].y);
+    // 絵は足もとより上へ伸びるので、画面の下の外は少し広く拾う
+    for (const o of inView('forest', -60, -60, 120, 120, [])) {
+      expect(Math.abs(o.x)).toBeLessThan(60 + 48);
+      expect(o.y).toBeGreaterThan(-60 - 48);
+      expect(o.y).toBeLessThan(60 + 96);
+    }
+    expect(inView('forest', -60, -60, 120, 120, []).length).toBeLessThan(list.length);
+  });
 });

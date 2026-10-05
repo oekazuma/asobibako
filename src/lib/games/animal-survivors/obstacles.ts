@@ -14,6 +14,8 @@ const CHANCE = 0.25;
 const EDGE = 40;
 const CLEAR = 80;
 export const PLAYER_R = 6;
+/** 斜めに見下ろす絵なので、当たりの丸は縦につぶす（丸のままだと手前に大きなすき間が空く） */
+export const SQUASH = 0.55;
 
 /** 当たりの丸（足もとの真ん中から）と、絵の下の端の位置。横に長い絵は丸を並べて形に合わせる */
 export const SHAPES: Record<ObstacleId, { circles: readonly (readonly [number, number, number])[]; foot: number }> = {
@@ -22,7 +24,7 @@ export const SHAPES: Record<ObstacleId, { circles: readonly (readonly [number, n
       [-8, 0, 10],
       [5, -1, 14]
     ],
-    foot: 8
+    foot: 12
   },
   log: {
     circles: [
@@ -30,9 +32,9 @@ export const SHAPES: Record<ObstacleId, { circles: readonly (readonly [number, n
       [0, 0, 9],
       [12, 0, 9]
     ],
-    foot: 7
+    foot: 11
   },
-  bigTomb: { circles: [[0, 0, 13]], foot: 6 },
+  bigTomb: { circles: [[0, 0, 13]], foot: 13 },
   fence: {
     circles: [
       [-17, 0, 7],
@@ -40,25 +42,25 @@ export const SHAPES: Record<ObstacleId, { circles: readonly (readonly [number, n
       [6, 0, 7],
       [17, 0, 7]
     ],
-    foot: 5
+    foot: 10
   },
   icy: {
     circles: [
       [-6, 0, 12],
       [7, 0, 11]
     ],
-    foot: 6
+    foot: 13
   },
-  snowTree: { circles: [[0, 0, 13]], foot: 6 },
+  snowTree: { circles: [[0, 0, 13]], foot: 13 },
   lavaRock: {
     circles: [
       [-8, 0, 11],
       [8, 0, 11],
       [0, -3, 13]
     ],
-    foot: 6
+    foot: 12
   },
-  steamRock: { circles: [[0, 0, 15]], foot: 6 }
+  steamRock: { circles: [[0, 0, 15]], foot: 14 }
 };
 
 const KINDS: Record<Ground, readonly [ObstacleId, ObstacleId]> = {
@@ -91,7 +93,10 @@ export function obstaclesNear(g: Ground, x: number, y: number, r: number, out: O
   for (let cx = Math.floor((x - r - REACH) / CELL); cx <= Math.floor((x + r + REACH) / CELL); cx++)
     for (let cy = Math.floor((y - r - REACH) / CELL); cy <= Math.floor((y + r + REACH) / CELL); cy++) {
       const o = obstacleAt(g, cx, cy);
-      if (o && SHAPES[o.kind].circles.some(([dx, dy, cr]) => Math.hypot(x - o.x - dx, y - o.y - dy) < r + cr))
+      if (
+        o &&
+        SHAPES[o.kind].circles.some(([dx, dy, cr]) => Math.hypot(x - o.x - dx, (y - o.y - dy) / SQUASH) < r + cr)
+      )
         out.push(o);
     }
   return out;
@@ -107,14 +112,14 @@ export function pushOut(g: Ground, o: { x: number; y: number }, r: number): void
     for (const ob of obstaclesNear(g, o.x, o.y, r, found))
       for (const [dx, dy, cr] of SHAPES[ob.kind].circles) {
         const ex = o.x - ob.x - dx;
-        const ey = o.y - ob.y - dy;
+        const ey = (o.y - ob.y - dy) / SQUASH;
         const d = Math.hypot(ex, ey);
         const min = r + cr;
         if (d >= min) continue;
         // 真ん中に重なったときは下へ出す（向きが決まらないので）
         const k = d === 0 ? 0 : min / d;
-        o.x = ob.x + dx + (d === 0 ? 0 : ex * k);
-        o.y = ob.y + dy + (d === 0 ? min : ey * k);
+        o.x = ob.x + dx + ex * k;
+        o.y = ob.y + dy + (d === 0 ? min : ey * k) * SQUASH;
         moved = true;
       }
     if (!moved) return;

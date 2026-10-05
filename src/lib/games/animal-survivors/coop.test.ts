@@ -9,7 +9,7 @@ import { gainXp } from './drops';
 import { startOvertime } from './overtime';
 import { emptyRecords, loadRecords, RECORDS_KEY } from './records';
 import { createWorld, makeEnemy, step } from './world';
-import { obstacleAt, obstaclesNear, PLAYER_R, SHAPES } from './obstacles';
+import { obstacleAt, obstaclesNear, PLAYER_R, SHAPES, SQUASH } from './obstacles';
 
 const VIEW = { w: 260, h: 380 };
 
@@ -95,7 +95,7 @@ describe('協力プレイのつなぎ', () => {
       g.move({ x: 1, y: 0 }, 1 / 30);
       const hit = obstaclesNear(v.stage.art, me.x, me.y, PLAYER_R, []).some((ob) =>
         SHAPES[ob.kind].circles.some(
-          ([dx, dy, r]) => Math.hypot(me.x - ob.x - dx, me.y - ob.y - dy) < PLAYER_R + r - 0.01
+          ([dx, dy, r]) => Math.hypot(me.x - ob.x - dx, (me.y - ob.y - dy) / SQUASH) < PLAYER_R + r - 0.01
         )
       );
       expect(hit).toBe(false);

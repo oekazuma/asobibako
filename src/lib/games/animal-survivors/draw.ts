@@ -12,7 +12,8 @@ import { PALETTE } from './art/palette';
 import { shots, swipes, zonesBelow } from './draw-arms';
 import { bossBars, hazardsAbove, hazardsBelow, introDust, introEdge } from './draw-boss';
 import { growFrame } from './grow';
-import { hash } from './obstacles';
+import { drawObstacles, inView } from './draw-obstacles';
+import { hash, obstaclesNear, type Obstacle } from './obstacles';
 import type { Prompts } from './prompts.svelte';
 import { nearestHero, RAISE_SECS, type Hero } from './heroes';
 import { chiefArrows, confetti, partnerArrows, treasureArrow } from './draw-events';
@@ -66,6 +67,10 @@ let S = 1;
 const q = (v: number) => devicePx(v, S) / S;
 
 export { hash };
+
+const seen: Obstacle[] = [];
+const back: Obstacle[] = [];
+const front: Obstacle[] = [];
 
 function sprite(
   ctx: CanvasRenderingContext2D,
@@ -160,9 +165,10 @@ function ground(ctx: CanvasRenderingContext2D, w: World, cx: number, cy: number,
       const h = hash(gx * 7 + 3, gy * 5 + 1);
       const kind = g.decor.find(([p]) => h < p)![1];
       if (!kind) continue;
-      const art = decor[kind];
       const x = gx * C + 8 + Math.floor(hash(gx, gy * 3) * 32);
       const y = gy * C + 16 + Math.floor(hash(gx * 3, gy) * 28);
+      if (obstaclesNear(w.stage.art, x, y, 8, seen).length) continue;
+      const art = decor[kind];
       if ((g.shadowed as readonly string[]).includes(kind)) shadow(ctx, x, y - 1, Math.round(art.w * 0.8));
       ctx.drawImage(bake(art), Math.round(x - art.w / 2), y - art.h);
     }
@@ -407,6 +413,10 @@ export function draw(
   const cy = eye.y - v.h / 2;
   ctx.setTransform(S, 0, 0, S, -devicePx(cx, S), -devicePx(cy, S));
   ground(ctx, w, cx, cy, v);
+  // 自分より奥の障害物は敵より先に、手前の障害物は自分のあとに描き、奥行きを合わせる
+  back.length = front.length = 0;
+  for (const o of inView(w.stage.art, cx, cy, v.w, v.h, seen)) (o.y < p.y ? back : front).push(o);
+  drawObstacles(ctx, back, now, q);
   drawLava(ctx, w, now);
   hazardsBelow(ctx, w, q, now);
   zonesBelow(ctx, w, q, now);
@@ -423,6 +433,7 @@ export function draw(
     }
     w.cur = me;
   }
+  drawObstacles(ctx, front, now, q, p);
   shots(ctx, w, q);
   swipes(ctx, w, q);
   hazardsAbove(ctx, w, q);
