@@ -177,4 +177,9 @@
     justify-content: center;
     font-size: min(4.6cqw, 2.8cqh, 24px);
   }
+
+  .buttons .as-card:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
 </style>
