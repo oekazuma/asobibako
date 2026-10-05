@@ -12,6 +12,7 @@ import type { GearKey } from './gear';
 import { applySnap, COOP_VERSION, lerpSnap, makeSnap, type Snap } from './snap';
 import { Timeline } from './timeline';
 import type { Ranks } from './upgrades';
+import { PLAYER_R, pushOut } from './obstacles';
 import { STORM_PUSH } from './storm';
 import { addHero, BASE_SPEED, createWorld, SLOW, type GameEvent, type RunSummary, type World } from './world';
 
@@ -396,6 +397,7 @@ export class CoopGuest {
       p.x += v.storm.wx * BASE_SPEED * STORM_PUSH * (1 - h.fx.wind) * dt;
       p.y += v.storm.wy * BASE_SPEED * STORM_PUSH * (1 - h.fx.wind) * dt;
     }
+    pushOut(v.stage.art, p, PLAYER_R);
     if (p.moving) {
       const len = Math.hypot(input.x, input.y);
       p.aimX = input.x / len;

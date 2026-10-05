@@ -9,6 +9,7 @@ import { gainXp } from './drops';
 import { startOvertime } from './overtime';
 import { emptyRecords, loadRecords, RECORDS_KEY } from './records';
 import { createWorld, makeEnemy, step } from './world';
+import { obstacleAt, obstaclesNear, PLAYER_R, SHAPES } from './obstacles';
 
 const VIEW = { w: 260, h: 380 };
 
@@ -83,6 +84,24 @@ async function pair() {
 }
 
 describe('協力プレイのつなぎ', () => {
+  it('子の端末で動かした子の動物も、障害物の中に入らない', async () => {
+    const { g } = await started();
+    const v = g.view!;
+    const me = v.heroes[v.cur].player;
+    let o = null;
+    for (let c = 1; !o; c++) o = obstacleAt(v.stage.art, c, 0);
+    Object.assign(me, { x: o.x - 60, y: o.y });
+    for (let i = 0; i < 120; i++) {
+      g.move({ x: 1, y: 0 }, 1 / 30);
+      const hit = obstaclesNear(v.stage.art, me.x, me.y, PLAYER_R, []).some((ob) =>
+        SHAPES[ob.kind].circles.some(
+          ([dx, dy, r]) => Math.hypot(me.x - ob.x - dx, me.y - ob.y - dy) < PLAYER_R + r - 0.01
+        )
+      );
+      expect(hit).toBe(false);
+    }
+  });
+
   it('子の hi で 2 匹めが入り、子の位置が親の World に届き、snap で子の画面に敵が出る', async () => {
     const { host, guest } = await pair();
     const w = createWorld('dog', 1, VIEW);
