@@ -18,11 +18,14 @@
   <span class="face">
     <PixelIcon art={ANIMAL_ART[a.id].forms[0].walk} frame={open ? tick % 4 : 0} size="min(18cqw, 10cqh, 96px)" />
   </span>
+  <!-- 子を選び替えるたびに下のボタンが動かないよう、どの子でも同じ行を並べて高さをそろえる -->
   <span class="body">
-    {#if open}
-      <span class="name"
-        >{a.name}<span class="style">{a.style}</span><span class="tier">{'★'.repeat(a.tier)}</span></span
-      >
+    <span class="name"
+      >{open ? a.name : '？？？'}{#if open}<span class="style">{a.style}</span>{/if}<span class="tier"
+        >{'★'.repeat(a.tier)}</span
+      ></span
+    >
+    <span class="info" class:hide={!open}>
       {#each [['HP', a.hp / top.hp], ['速さ', a.speed / top.speed], ['攻撃', a.might / top.might]] as const as [label, ratio] (label)}
         <span class="stat"><span class="label">{label}</span><span class="bar" style:--r={ratio}></span></span>
       {/each}
@@ -30,11 +33,9 @@
         <PixelIcon art={ITEM_ART[`weapon-${a.weapon}`]} size="min(5cqw, 3cqh, 26px)" />
         <b>{WEAPONS[a.weapon].name}</b>
       </span>
-      {#if a.perk}<span class="perk">とくい: {a.perk}</span>{/if}
-    {:else}
-      <span class="name">？？？<span class="tier">{'★'.repeat(a.tier)}</span></span>
-      <span class="unlock">{a.unlock}</span>
-    {/if}
+      <span class="perk">{a.perk ? `とくい: ${a.perk}` : ''}</span>
+    </span>
+    {#if !open}<span class="unlock">{a.unlock}</span>{/if}
   </span>
 </div>
 <button class="as-card go" data-go disabled={!open} onclick={onstart}>この子で出発</button>
@@ -61,16 +62,34 @@
   }
 
   .body {
+    position: relative;
     display: grid;
     flex: 1;
     gap: 4px;
+  }
+
+  .info {
+    display: grid;
+    gap: 4px;
+  }
+
+  .hide {
+    visibility: hidden;
+  }
+
+  .unlock {
+    position: absolute;
+    inset: auto 0;
+    top: 50%;
+    translate: 0 -50%;
   }
 
   .name {
     display: flex;
     gap: 10px;
     align-items: baseline;
-    font-size: min(5.4cqw, 3cqh, 28px);
+    font-size: min(5cqw, 3cqh, 28px);
+    white-space: nowrap;
   }
 
   .style {
@@ -118,8 +137,12 @@
     color: #24151f;
   }
 
+  /* いちばん長いとくいでも細い画面で 2 行に収まるので、2 行ぶんを空けておく */
   .perk {
+    min-height: 2.6em;
+    align-items: flex-start;
     color: #2a64c8;
+    line-height: 1.3;
   }
 
   .go {

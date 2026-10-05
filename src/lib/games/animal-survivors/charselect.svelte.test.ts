@@ -47,6 +47,24 @@ describe('キャラ選択', () => {
     unmount(app);
   });
 
+  it('選び替えても札の高さが変わらないよう、とくいのない子にも仲間でない子にも同じ行を並べる', () => {
+    const { app, tile } = show({ ...emptyRecords(), unlocked: ['dog', 'fox'] });
+    const rows = () =>
+      [...document.querySelectorAll('.detail .body > *, .detail .info > *')].map((e) => e.className.split(' ')[0]);
+    tile('dog').click();
+    flushSync();
+    const dog = rows();
+    expect(dog).toContain('perk');
+    tile('fox').click();
+    flushSync();
+    expect(rows()).toEqual(dog);
+    tile('chick').click();
+    flushSync();
+    expect(rows().filter((r) => r !== 'unlock')).toEqual(dog);
+    expect(document.querySelector('.detail .info')!.classList.contains('hide')).toBe(true);
+    unmount(app);
+  });
+
   it('最後に遊んだ動物を選んだ状態で開く', () => {
     const r = { ...emptyRecords(), unlocked: ['dog', 'cat', 'wolf', 'fox'] as AnimalId[], animal: 'fox' as const };
     const { app, picked, go } = show(r);
