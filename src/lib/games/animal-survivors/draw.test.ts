@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { devicePx, frameAt, viewSize } from './draw';
-import { createWorld, step } from './world';
+import { devicePx, frameAt, heroOrder, viewSize } from './draw';
+import { addHero, createWorld, step } from './world';
 
 describe('仮想画面', () => {
   it('幅が 260 ドット前後になる整数の倍率を選ぶ', () => {
@@ -40,5 +40,16 @@ describe('カメラの動き', () => {
       }
       expect(Math.max(...steps) - Math.min(...steps)).toBeLessThanOrEqual(1);
     }
+  });
+});
+
+describe('2 匹を描く順', () => {
+  it('自分でない動物を先に、自分を最後に描く', () => {
+    const w = createWorld('dog', 1, { w: 260, h: 380 });
+    expect(heroOrder(w)).toEqual([0]);
+    addHero(w, 'cat');
+    expect(heroOrder(w)).toEqual([1, 0]);
+    w.cur = 1;
+    expect(heroOrder(w)).toEqual([0, 1]);
   });
 });

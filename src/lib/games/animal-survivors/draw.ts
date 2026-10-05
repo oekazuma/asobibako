@@ -372,6 +372,11 @@ function pickups(ctx: CanvasRenderingContext2D, w: World, now: number) {
 }
 
 /** 端末の画素の canvas に、仮想画面の scale 倍で描く */
+/** 描く動物の順。自分（cur）がほかの動物の下に隠れないよう、自分を最後にする */
+export function heroOrder(w: World): number[] {
+  return [...w.heroes.keys()].filter((i) => i !== w.cur).concat(w.cur);
+}
+
 export function draw(
   ctx: CanvasRenderingContext2D,
   w: World,
@@ -397,7 +402,16 @@ export function draw(
   enemies(ctx, w, cx, cy, v, now, prompts?.intro?.t ?? 0, prompts?.intro?.ids);
   const ev = prompts?.growing ? prompts.evolve : null;
   const grow = ev ? growFrame(ev.t, prompts!.still) : null;
-  if (!grow) player(ctx, w, now);
+  if (!grow) {
+    const me = w.cur;
+    for (const i of heroOrder(w)) {
+      w.cur = i;
+      ctx.globalAlpha = w.heroes[i].down ? 0.5 : 1;
+      player(ctx, w, now);
+    }
+    ctx.globalAlpha = 1;
+    w.cur = me;
+  }
   shots(ctx, w, q);
   swipes(ctx, w, q);
   hazardsAbove(ctx, w, q);
