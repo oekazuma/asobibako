@@ -3,9 +3,28 @@
   import { ANIMAL_ART } from './art/animals';
   import { ITEM_ART } from './art/items';
   import PixelIcon from './PixelIcon.svelte';
+  import { heatLabel } from './cauldron';
+  import { clock } from './hud';
+  import type { AnimalBest } from './records';
   import { WEAPONS } from './weapons';
 
-  let { a, open, tick, onstart }: { a: Animal; open: boolean; tick: number; onstart: () => void } = $props();
+  let {
+    a,
+    open,
+    tick,
+    best,
+    cleared,
+    onstart
+  }: { a: Animal; open: boolean; tick: number; best?: AnimalBest; cleared: boolean; onstart: () => void } = $props();
+
+  const mark = $derived(
+    [
+      cleared ? (best?.heat !== undefined ? `クリア 釜 ${heatLabel(best.heat)}` : 'クリア済み') : '',
+      best ? `最長 ${clock(best.time)}` : ''
+    ]
+      .filter(Boolean)
+      .join('・') || 'まだ遊んでいない'
+  );
 
   const top = {
     hp: Math.max(...ANIMALS.map((o) => o.hp)),
@@ -34,6 +53,7 @@
         <b>{WEAPONS[a.weapon].name}</b>
       </span>
       <span class="perk">{a.perk ? `とくい: ${a.perk}` : ''}</span>
+      <span class="record">{mark}</span>
     </span>
     {#if !open}<span class="unlock">{a.unlock}</span>{/if}
   </span>
@@ -124,6 +144,7 @@
 
   .weapon,
   .perk,
+  .record,
   .unlock {
     display: flex;
     gap: 6px;
@@ -131,6 +152,12 @@
     color: #5d3a2a;
     font-size: min(2.9cqw, 1.7cqh, 15px);
     font-weight: 700;
+  }
+
+  /* 折り返すと子ごとに札の高さが変わるので 1 行に収める */
+  .record {
+    color: #a3501c;
+    white-space: nowrap;
   }
 
   .weapon b {

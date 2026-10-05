@@ -10,6 +10,8 @@ import {
   oddsTable,
   percent,
   whyNot,
+  toggleLock,
+  gearRecords,
   tidy,
   tidyPreview,
   pull,
@@ -236,5 +238,34 @@ describe('まとめて売る', () => {
     expect(tidyPreview(r)).toEqual({ merged: 1, sold: 1, coins: SELL[0] });
     expect(JSON.stringify(r)).toBe(before);
     expect(tidyPreview(recs({ 'oni:1': 1, 'muffler:0': 1 }))).toEqual({ merged: 0, sold: 0, coins: 0 });
+  });
+});
+
+describe('鍵', () => {
+  const recs = (bag: Record<string, number>) =>
+    ({ ...emptyRecords(), coins: 0, bag }) as ReturnType<typeof emptyRecords>;
+
+  it('鍵の付いた品は売れず、まとめて売るでも合成にも売るにも使わない', () => {
+    const r = recs({ 'oni:0': 3, 'goggles:0': 1, 'hachimaki:1': 1 });
+    toggleLock(r, 'oni:0');
+    toggleLock(r, 'goggles:0');
+    expect(sell(r, 'goggles:0')).toBe(0);
+    expect(tidy(r)).toEqual({ merged: 0, sold: 0, coins: 0 });
+    expect(r.bag).toEqual({ 'oni:0': 3, 'goggles:0': 1, 'hachimaki:1': 1 });
+    toggleLock(r, 'goggles:0');
+    expect(sell(r, 'goggles:0')).toBe(SELL[0]);
+  });
+
+  it('手で合成するのは許し、持っている数が 0 になったら鍵も外す', () => {
+    const r = recs({ 'oni:0': 3 });
+    toggleLock(r, 'oni:0');
+    expect(merge(r, 'oni:0')).toBe('oni:1');
+    expect(r.locks).toEqual([]);
+  });
+
+  it('読み込むときは、持っている品の鍵だけを残す', () => {
+    const got = gearRecords({ bag: { 'oni:0': 1 }, locks: ['oni:0', 'oni:1', 'nope:9', 3] });
+    expect(got.locks).toEqual(['oni:0']);
+    expect(gearRecords({}).locks).toEqual([]);
   });
 });

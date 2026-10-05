@@ -269,7 +269,12 @@ function launch(w: World, def: WeaponDef, s: WeaponStats, slot: number): boolean
       }
       return true;
     case 'ring':
-      effect(w, slot, 'ring', p.x, p.y - 6, SIZE.ring * area, s.duration, 0, s.damage, s.knockback);
+      // 数のぶんの輪は、前の輪が広がり終えてから続けて出す（当たりは輪の生まれた時刻で見るので、同時だと 2 つめが当たらない）
+      for (let i = 0; i < s.amount; i++) {
+        const o = effect(w, slot, 'ring', p.x, p.y - 6, SIZE.ring * area, s.duration, 0, s.damage, s.knockback);
+        o.age = -i * s.duration;
+        o.born = w.time + i * s.duration;
+      }
       return true;
     case 'strike': {
       const hw = w.view.w / 2;
@@ -406,7 +411,7 @@ export function hits(w: World, dt: number): void {
       f.alive = false;
       continue;
     }
-    if (f.kind !== 'ring') continue;
+    if (f.kind !== 'ring' || f.age < 0) continue;
     const r = (f.age / f.life) * f.r;
     for (const j of within(w, f.x, f.y, r + 6, targets)) {
       const e = w.enemies[j];

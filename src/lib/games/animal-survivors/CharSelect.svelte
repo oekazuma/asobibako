@@ -5,6 +5,7 @@
   import { ANIMALS, type AnimalId } from './animals';
   import { ANIMAL_ART } from './art/animals';
   import DailyCard from './DailyCard.svelte';
+  import { MENU_ART } from './art/menu';
   import PixelIcon from './PixelIcon.svelte';
   import AnimalCard from './AnimalCard.svelte';
   import MenuLinks from './MenuLinks.svelte';
@@ -64,10 +65,20 @@
             /></span
           >
           <span class="tier">{'★'.repeat(a.tier)}</span>
+          {#if records.clearedBy.includes(a.id)}<span class="won" data-cleared
+              ><PixelIcon art={MENU_ART.trophy} size="min(3.6cqw, 2.1cqh, 20px)" /></span
+            >{/if}
         </button>
       {/each}
     </div>
-    <AnimalCard a={picked} open={records.unlocked.includes(picked.id)} {tick} onstart={() => onpick(picked.id)} />
+    <AnimalCard
+      a={picked}
+      open={records.unlocked.includes(picked.id)}
+      {tick}
+      best={records.byAnimal[picked.id]}
+      cleared={records.clearedBy.includes(picked.id)}
+      onstart={() => onpick(picked.id)}
+    />
     {#if records.daily}<DailyCard daily={records.daily} onopen={() => onopen('daily')} />{/if}
     <MenuLinks {records} {onopen} />
   </section>
@@ -104,6 +115,7 @@
   }
 
   .tile {
+    position: relative;
     flex-direction: column;
     gap: 2px;
     justify-content: center;
@@ -128,6 +140,14 @@
   }
 
   .face {
+    display: flex;
+  }
+
+  /* クリアした子の印 */
+  .won {
+    position: absolute;
+    top: 3px;
+    right: 3px;
     display: flex;
   }
 

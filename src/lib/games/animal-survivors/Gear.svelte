@@ -2,7 +2,7 @@
   import Back from './Back.svelte';
   import { ITEM_ART } from './art/items';
   import Bag from './Bag.svelte';
-  import { BAG_MAX, bagCount, equip, equipBest, merge, sell, tidy, tidyPreview } from './gacha';
+  import { BAG_MAX, bagCount, equip, equipBest, merge, sell, tidy, tidyPreview, toggleLock } from './gacha';
   import { parseKey, SLOT_NAME, SLOTS, type GearKey } from './gear';
   import GearDetail from './GearDetail.svelte';
   import GearIcon from './GearIcon.svelte';
@@ -18,12 +18,13 @@
   let sure = $state(false);
   const plan = $derived(tidyPreview(r));
 
-  function act(what: 'equip' | 'merge' | 'sell' | 'close') {
+  function act(what: 'equip' | 'merge' | 'sell' | 'lock' | 'close') {
     sure = false;
     const k = picked;
     if (!k || what === 'close') return void (picked = null);
     if (what === 'equip') equip(r, k);
     else if (what === 'merge') picked = merge(r, k);
+    else if (what === 'lock') toggleLock(r, k);
     else sell(r, k);
     if (picked && !r.bag[picked]) picked = null;
     save();
@@ -78,9 +79,15 @@
       </div>
     {/if}
     {#if picked && r.bag[picked]}
-      <GearDetail gear={picked} count={r.bag[picked] ?? 0} worn={Object.values(r.worn).includes(picked)} onact={act} />
+      <GearDetail
+        gear={picked}
+        count={r.bag[picked] ?? 0}
+        worn={Object.values(r.worn).includes(picked)}
+        locked={r.locks.includes(picked)}
+        onact={act}
+      />
     {/if}
-    <Bag bag={r.bag} worn={r.worn} onpick={(k) => (picked = k)} />
+    <Bag bag={r.bag} worn={r.worn} locks={r.locks} onpick={(k) => (picked = k)} />
   </section>
 </div>
 <Back {onback} />

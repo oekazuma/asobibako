@@ -59,6 +59,7 @@ function add(r: Records, k: GearKey, n: number) {
   else {
     delete r.bag[k];
     for (const s of SLOTS) if (r.worn[s] === k) r.worn[s] = null;
+    r.locks = r.locks.filter((l) => l !== k);
   }
 }
 
@@ -93,9 +94,16 @@ export function merge(r: Records, key: GearKey): GearKey | null {
   return up;
 }
 
+export const isLocked = (r: Records, key: GearKey) => r.locks.includes(key);
+
+export function toggleLock(r: Records, key: GearKey): void {
+  if (!r.bag[key]) return;
+  r.locks = isLocked(r, key) ? r.locks.filter((l) => l !== key) : [...r.locks, key];
+}
+
 export function sell(r: Records, key: GearKey): number {
   const p = parseKey(key);
-  if (!p || !r.bag[key]) return 0;
+  if (!p || !r.bag[key] || isLocked(r, key)) return 0;
   add(r, key, -1);
   r.coins += SELL[p.rarity];
   return SELL[p.rarity];
@@ -127,7 +135,7 @@ export function tidy(r: Records): { merged: number; sold: number; coins: number 
     for (const d of GEAR) {
       const k = keyOf(d.id, rarity);
       const worn = r.worn[d.slot] === k;
-      while ((r.bag[k] ?? 0) >= 3) {
+      while ((r.bag[k] ?? 0) >= 3 && !isLocked(r, k)) {
         const up = merge(r, k)!;
         merged += 1;
         // 合成で 1 つ残っても、つけている品の上がった版ができたらそちらをつける
@@ -140,7 +148,7 @@ export function tidy(r: Records): { merged: number; sold: number; coins: number 
     const keys = (Object.keys(r.bag) as GearKey[]).filter((k) => parseKey(k)?.def.slot === s);
     const top = Math.max(-1, ...keys.map((k) => parseKey(k)!.rarity));
     for (const k of keys) {
-      if (parseKey(k)!.rarity >= top) continue;
+      if (parseKey(k)!.rarity >= top || isLocked(r, k)) continue;
       const keep = r.worn[s] === k ? 1 : 0;
       while ((r.bag[k] ?? 0) > keep) {
         coins += sell(r, k);
@@ -159,7 +167,9 @@ export const wornKeys = (r: Records) => SLOTS.flatMap((s) => (r.worn[s] ? [r.wor
 const count = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);
 
 /** 壊れた値・知らない鍵・持っていない品・場所の違う品は捨てる */
-export function gearRecords(raw: Record<string, unknown>): Pick<Records, 'bag' | 'worn' | 'tickets' | 'pity'> {
+export function gearRecords(
+  raw: Record<string, unknown>
+): Pick<Records, 'bag' | 'worn' | 'tickets' | 'pity' | 'locks'> {
   const bag: Records['bag'] = {};
   if (raw.bag && typeof raw.bag === 'object')
     for (const [k, v] of Object.entries(raw.bag)) {
@@ -176,5 +186,16 @@ export function gearRecords(raw: Record<string, unknown>): Pick<Records, 'bag' |
     if (k && bag[k] && p.def.slot === s) worn[s] = k;
   }
   const t = Array.isArray(raw.tickets) ? raw.tickets : [];
-  return { bag, worn, tickets: [count(t[0]), count(t[1]), count(t[2])], pity: Math.min(PITY - 1, count(raw.pity)) };
+  const locks = (Array.isArray(raw.locks) ? raw.locks : []).flatMap((v) => {
+    const p = typeof v === 'string' ? parseKey(v) : null;
+    const k = p && keyOf(p.def.id, p.rarity);
+    return k && bag[k] ? [k] : [];
+  });
+  return {
+    bag,
+    worn,
+    tickets: [count(t[0]), count(t[1]), count(t[2])],
+    pity: Math.min(PITY - 1, count(raw.pity)),
+    locks: [...new Set(locks)]
+  };
 }

@@ -91,7 +91,8 @@ function bolt(ctx: CanvasRenderingContext2D, x: number, y: number, seed: number)
 export function swipes(ctx: CanvasRenderingContext2D, w: World, q: Snap): void {
   ctx.lineCap = 'square';
   for (const f of w.effects) {
-    if (!f.alive) continue;
+    // 続けて出す遠吠えの輪は、前の輪が終わるまで年齢が負
+    if (!f.alive || f.age < 0) continue;
     const t = f.age / f.life;
     const line = isGold(w, f.slot) ? PALETTE.y : PALETTE.w;
     if (f.kind === 'swipe' && kindOf(w, f.slot) === 'claw') {

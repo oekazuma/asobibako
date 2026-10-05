@@ -65,6 +65,28 @@ describe('キャラ選択', () => {
     unmount(app);
   });
 
+  it('クリアした子のタイルに印を付け、札にその子の記録を出す', () => {
+    const { app, tile, card } = show({
+      ...emptyRecords(),
+      unlocked: ['dog', 'cat', 'wolf'],
+      clearedBy: ['dog', 'cat'],
+      byAnimal: { dog: { time: 600, heat: 3.5 }, wolf: { time: 250 } }
+    });
+    expect(tile('dog').querySelector('[data-cleared]')).not.toBeNull();
+    expect(tile('wolf').querySelector('[data-cleared]')).toBeNull();
+    tile('dog').click();
+    flushSync();
+    expect(card()).toContain('クリア 釜 3.5');
+    expect(card()).toContain('10:00');
+    tile('cat').click();
+    flushSync();
+    expect(card()).toContain('クリア済み');
+    tile('wolf').click();
+    flushSync();
+    expect(card()).toContain('最長 04:10');
+    unmount(app);
+  });
+
   it('最後に遊んだ動物を選んだ状態で開く', () => {
     const r = { ...emptyRecords(), unlocked: ['dog', 'cat', 'wolf', 'fox'] as AnimalId[], animal: 'fox' as const };
     const { app, picked, go } = show(r);

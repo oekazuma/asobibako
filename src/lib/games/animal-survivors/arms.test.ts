@@ -65,6 +65,22 @@ describe('武器', () => {
     expect(w.enemies[0].hp).toBe(990);
   });
 
+  it('数が増えると、遠吠えは輪を続けて出して同じ敵にその数だけ当たる', () => {
+    const w = only('howl');
+    w.stats.amount = 1;
+    w.enemies.push(makeEnemy(ENEMIES.caterpillar, 30, 0, 1000));
+    w.enemies[0].def = { ...ENEMIES.caterpillar, speed: 0, heavy: 1 };
+    run(w, 1.2);
+    expect(w.enemies[0].hp).toBe(980);
+  });
+
+  it('数が増えると、野生の炎は 1 回に置く炎が増える', () => {
+    const w = only('flame');
+    w.stats.amount = 2;
+    step(w, still, 1 / 60);
+    expect(w.effects.filter((f) => f.alive && f.kind === 'flame')).toHaveLength(3);
+  });
+
   it('羽根の嵐は同じ敵に間をあけて何度も当たる', () => {
     const w = only('feather');
     w.enemies.push(makeEnemy({ ...ENEMIES.caterpillar, speed: 0, heavy: 1 }, 30, 0, 1000));

@@ -113,6 +113,23 @@ describe('装備の画面', () => {
     unmount(app);
   });
 
+  it('鍵をかけると保存し、持ち物に印を出して、売るを押せなくする', () => {
+    const app = open({ bag: { 'oni:0': 1, 'hachimaki:1': 1 } });
+    (document.querySelector('[data-gear="oni:0"]') as HTMLButtonElement).click();
+    flushSync();
+    button('鍵をかける').click();
+    flushSync();
+    expect(loadRecords().locks).toEqual(['oni:0']);
+    expect(document.querySelector('[data-gear="oni:0"] [data-locked]')).not.toBeNull();
+    expect(button('鍵つきは売れない').disabled).toBe(true);
+    expect(button('まとめて売る').disabled).toBe(true);
+    button('鍵を外す').click();
+    flushSync();
+    expect(loadRecords().locks).toEqual([]);
+    expect(button('売る（').disabled).toBe(false);
+    unmount(app);
+  });
+
   it('装備の画面にはガチャを置かない', () => {
     const app = open({ coins: 500 });
     expect(button('ガチャ')).toBeUndefined();

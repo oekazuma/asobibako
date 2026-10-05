@@ -59,6 +59,15 @@ export interface Records {
   worn: Record<Slot, GearKey | null>;
   tickets: [number, number, number];
   pity: number;
+  /** 鍵を付けた品。売るとまとめて売るから守る */
+  locks: GearKey[];
+  /** 動物ごとの、いちばん長く生き延びた秒と、クリアしたいちばん高い釜の強さ（クリアしていなければ無い） */
+  byAnimal: Partial<Record<AnimalId, AnimalBest>>;
+}
+
+export interface AnimalBest {
+  time: number;
+  heat?: number;
 }
 
 export const RECORDS_KEY = 'asobibako:animal-survivors';
@@ -93,7 +102,9 @@ export function emptyRecords(): Records {
     bag: {},
     worn: { head: null, body: null, charm: null },
     tickets: [0, 0, 0],
-    pity: 0
+    pity: 0,
+    locks: [],
+    byAnimal: {}
   };
 }
 
@@ -153,6 +164,7 @@ export function parseRecords(text: string | null): Records {
     heat: heatOf(raw.heat),
     heatLast: isNum(raw.heatLast) ? snap(raw.heatLast) : 2,
     lavaKills: Math.floor(num(raw.lavaKills)),
+    byAnimal: byAnimalOf(raw.byAnimal, ids),
     ...gearRecords(raw)
   };
 }
@@ -182,6 +194,18 @@ function dailyOf(v: unknown, ids: AnimalId[]): Daily | null {
 }
 
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+function byAnimalOf(v: unknown, ids: AnimalId[]): Records['byAnimal'] {
+  const out: Records['byAnimal'] = {};
+  if (!v || typeof v !== 'object') return out;
+  for (const id of ids) {
+    const b = (v as Record<string, unknown>)[id];
+    if (!b || typeof b !== 'object' || !isNum((b as AnimalBest).time)) continue;
+    const { time, heat } = b as AnimalBest;
+    out[id] = { time: Math.max(0, time), ...(isNum(heat) && { heat: snap(heat) }) };
+  }
+  return out;
+}
 
 function heatOf(v: unknown): Record<string, number> {
   const out: Record<string, number> = {};
@@ -217,6 +241,13 @@ function ranksOf(v: unknown): Ranks {
 /** 1 回の結果で記録を足し、その回に達成した実績を返す。解放は取り消さない */
 export function record(r: Records, run: RunSummary): AchievementDef[] {
   r.best = Math.max(r.best, run.time);
+  const mine = r.byAnimal[run.animal];
+  r.byAnimal[run.animal] = {
+    time: Math.max(mine?.time ?? 0, run.time),
+    ...((run.cleared || mine?.heat !== undefined) && {
+      heat: Math.max(mine?.heat ?? 0, run.cleared ? run.heat.level : 0)
+    })
+  };
   r.kills += run.kills - (run.killsBefore ?? 0);
   for (const b of run.bosses) if (!r.bosses.includes(b)) r.bosses.push(b);
   if (run.cleared) {

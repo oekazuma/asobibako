@@ -37,8 +37,14 @@ export function flameAt(w: World, slot: number, x: number, y: number, scale: num
 }
 
 /** 自分の足もとに炎を置く */
+/** 数のぶんの炎は、足もとのまわりに等しい間をあけて並べる */
 export function dropFlame(w: World, slot: number, s: WeaponStats, area: number): void {
-  flameAt(w, slot, w.player.x, w.player.y + 4, area, s);
+  const { x, y } = w.player;
+  flameAt(w, slot, x, y + 4, area, s);
+  for (let i = 1; i < s.amount; i++) {
+    const a = ((i - 1) / (s.amount - 1)) * Math.PI * 2;
+    flameAt(w, slot, x + Math.cos(a) * FLAME_R * area, y + 4 + Math.sin(a) * FLAME_R * area, area, s);
+  }
 }
 
 /** 竜王の業火の焼け跡。扇の中に、ダメージの 4 分の 1 で 2.5 秒焼く炎を置く */

@@ -3,7 +3,12 @@
   import GearIcon from './GearIcon.svelte';
   import type { Records } from './records';
 
-  let { bag, worn, onpick }: { bag: Records['bag']; worn: Records['worn']; onpick: (k: GearKey) => void } = $props();
+  let {
+    bag,
+    worn,
+    locks,
+    onpick
+  }: { bag: Records['bag']; worn: Records['worn']; locks: GearKey[]; onpick: (k: GearKey) => void } = $props();
 
   const on = $derived(new Set(Object.values(worn)));
   // 場所ごとに表の順、同じ品はレア度の高い順
@@ -29,6 +34,7 @@
         <GearIcon gear={k} size="min(9cqw, 5cqh, 44px)" />
         {#if (bag[k] ?? 0) > 1}<span class="n">×{bag[k]}</span>{/if}
         {#if on.has(k)}<span class="on">E</span>{/if}
+        {#if locks.includes(k)}<span class="lock" data-locked>鍵</span>{/if}
       </button>
     {/each}
   </div>
@@ -60,7 +66,8 @@
   }
 
   .n,
-  .on {
+  .on,
+  .lock {
     position: absolute;
     padding: 0 3px;
     color: #24151f;
@@ -72,6 +79,12 @@
     right: 0;
     bottom: 0;
     background: #fff8ec;
+  }
+
+  .lock {
+    bottom: 0;
+    left: 0;
+    background: #ffd84a;
   }
 
   .on {

@@ -7,9 +7,15 @@
     gear,
     count,
     worn,
+    locked,
     onact
-  }: { gear: GearKey; count: number; worn: boolean; onact: (what: 'equip' | 'merge' | 'sell' | 'close') => void } =
-    $props();
+  }: {
+    gear: GearKey;
+    count: number;
+    worn: boolean;
+    locked: boolean;
+    onact: (what: 'equip' | 'merge' | 'sell' | 'lock' | 'close') => void;
+  } = $props();
 
   const p = $derived(parseKey(gear)!);
   /** 売るのは取り消せないので、同じ品で 2 回押して売る */
@@ -32,10 +38,11 @@
     <button class="as-card" disabled={p.rarity === 2 || count < 3} onclick={() => onact('merge')}
       >合成（3 こで 1 段上）</button
     >
-    <button class="as-card" onclick={() => (sure === gear ? onact('sell') : (sure = gear))}
-      >{sure === gear ? '本当に売る' : '売る'}（{SELL[p.rarity]} コイン）</button
+    <button class="as-card" disabled={locked} onclick={() => (sure === gear ? onact('sell') : (sure = gear))}
+      >{locked ? '鍵つきは売れない' : `${sure === gear ? '本当に売る' : '売る'}（${SELL[p.rarity]} コイン）`}</button
     >
-    <button class="as-card" onclick={() => onact('close')}>とじる</button>
+    <button class="as-card" onclick={() => ((sure = null), onact('lock'))}>{locked ? '鍵を外す' : '鍵をかける'}</button>
+    <button class="as-card close" onclick={() => onact('close')}>とじる</button>
   </div>
 </section>
 
@@ -97,5 +104,9 @@
   .acts button:disabled {
     opacity: 0.45;
     cursor: default;
+  }
+
+  .close {
+    grid-column: 1 / -1;
   }
 </style>
