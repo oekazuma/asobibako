@@ -35,31 +35,33 @@
 
 ## ファイルの分け方
 
-| ファイル | 役目 |
-| --- | --- |
-| `src/lib/games/animal-survivors/obstacles.ts`（新） | 区画のハッシュ・障害物の種類と当たりの丸・`obstacleAt` / `obstaclesNear` / `pushOut`。`hash` を `draw.ts` から移す |
-| `src/lib/games/animal-survivors/obstacles.test.ts`（新） | 置き方と押し出しの単体テスト |
-| `src/lib/games/animal-survivors/obstacles-world.test.ts`（新） | World に入れたときのテスト |
-| `src/lib/games/animal-survivors/world.ts` | 自分・敵・出る位置の押し出し |
-| `src/lib/games/animal-survivors/drops.ts` | 玉と品の落ちる位置の押し出し |
-| `src/lib/games/animal-survivors/events.ts` | 宝の地図の宝箱の位置の押し出し |
-| `src/lib/games/animal-survivors/coop.ts` | 子の端末の `move` の押し出し |
-| `src/lib/games/animal-survivors/art/obstacles.ts`（新） | 8 枚の絵（見本の格子をそのまま） |
-| `src/lib/games/animal-survivors/draw-obstacles.ts`（新） | 障害物を奥と手前に分けて描く |
-| `src/lib/games/animal-survivors/draw.ts` | `hash` を obstacles から読み直す・飾りを飛ばす・描く順に入れる |
-| `src/lib/games/animal-survivors/pixels.test.ts` | 新しい絵を検査に足す |
-| `CLAUDE.md` | アニマルサバイバーの段落に障害物の 1〜2 文 |
+| ファイル                                                       | 役目                                                                                                               |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `src/lib/games/animal-survivors/obstacles.ts`（新）            | 区画のハッシュ・障害物の種類と当たりの丸・`obstacleAt` / `obstaclesNear` / `pushOut`。`hash` を `draw.ts` から移す |
+| `src/lib/games/animal-survivors/obstacles.test.ts`（新）       | 置き方と押し出しの単体テスト                                                                                       |
+| `src/lib/games/animal-survivors/obstacles-world.test.ts`（新） | World に入れたときのテスト                                                                                         |
+| `src/lib/games/animal-survivors/world.ts`                      | 自分・敵・出る位置の押し出し                                                                                       |
+| `src/lib/games/animal-survivors/drops.ts`                      | 玉と品の落ちる位置の押し出し                                                                                       |
+| `src/lib/games/animal-survivors/events.ts`                     | 宝の地図の宝箱の位置の押し出し                                                                                     |
+| `src/lib/games/animal-survivors/coop.ts`                       | 子の端末の `move` の押し出し                                                                                       |
+| `src/lib/games/animal-survivors/art/obstacles.ts`（新）        | 8 枚の絵（見本の格子をそのまま）                                                                                   |
+| `src/lib/games/animal-survivors/draw-obstacles.ts`（新）       | 障害物を奥と手前に分けて描く                                                                                       |
+| `src/lib/games/animal-survivors/draw.ts`                       | `hash` を obstacles から読み直す・飾りを飛ばす・描く順に入れる                                                     |
+| `src/lib/games/animal-survivors/pixels.test.ts`                | 新しい絵を検査に足す                                                                                               |
+| `CLAUDE.md`                                                    | アニマルサバイバーの段落に障害物の 1〜2 文                                                                         |
 
 ---
 
 ### Task 1: obstacles.ts（置き方と押し出し）
 
 **Files:**
+
 - Create: `src/lib/games/animal-survivors/obstacles.ts`
 - Create: `src/lib/games/animal-survivors/obstacles.test.ts`
 - Modify: `src/lib/games/animal-survivors/draw.ts:67-72`（`hash` を移して読み直す）
 
 **Interfaces:**
+
 - Produces。
   - `type Ground = 'forest' | 'graveyard' | 'snow' | 'volcano'`（`Stage['art']` と同じ）
   - `type ObstacleId = 'boulder' | 'log' | 'bigTomb' | 'fence' | 'icy' | 'snowTree' | 'lavaRock' | 'steamRock'`
@@ -122,10 +124,11 @@ describe('障害物の置き方', () => {
   it('隣どうしの障害物のあいだは、自分が通れる（自分の直径より広い）', () => {
     for (const g of GROUNDS) {
       const all: Obstacle[] = [];
-      for (let cx = -15; cx < 15; cx++) for (let cy = -15; cy < 15; cy++) {
-        const o = obstacleAt(g, cx, cy);
-        if (o) all.push(o);
-      }
+      for (let cx = -15; cx < 15; cx++)
+        for (let cy = -15; cy < 15; cy++) {
+          const o = obstacleAt(g, cx, cy);
+          if (o) all.push(o);
+        }
       for (const a of all)
         for (const b of all) {
           if (a === b) continue;
@@ -209,13 +212,47 @@ export const PLAYER_R = 6;
 
 /** 当たりの丸（足もとの真ん中から）と、絵の下の端の位置。横に長い絵は丸を並べて形に合わせる */
 export const SHAPES: Record<ObstacleId, { circles: readonly (readonly [number, number, number])[]; foot: number }> = {
-  boulder: { circles: [[-8, 0, 10], [5, -1, 14]], foot: 8 },
-  log: { circles: [[-12, 0, 9], [0, 0, 9], [12, 0, 9]], foot: 7 },
+  boulder: {
+    circles: [
+      [-8, 0, 10],
+      [5, -1, 14]
+    ],
+    foot: 8
+  },
+  log: {
+    circles: [
+      [-12, 0, 9],
+      [0, 0, 9],
+      [12, 0, 9]
+    ],
+    foot: 7
+  },
   bigTomb: { circles: [[0, 0, 13]], foot: 6 },
-  fence: { circles: [[-17, 0, 7], [-6, 0, 7], [6, 0, 7], [17, 0, 7]], foot: 5 },
-  icy: { circles: [[-6, 0, 12], [7, 0, 11]], foot: 6 },
+  fence: {
+    circles: [
+      [-17, 0, 7],
+      [-6, 0, 7],
+      [6, 0, 7],
+      [17, 0, 7]
+    ],
+    foot: 5
+  },
+  icy: {
+    circles: [
+      [-6, 0, 12],
+      [7, 0, 11]
+    ],
+    foot: 6
+  },
   snowTree: { circles: [[0, 0, 13]], foot: 6 },
-  lavaRock: { circles: [[-8, 0, 11], [8, 0, 11], [0, -3, 13]], foot: 6 },
+  lavaRock: {
+    circles: [
+      [-8, 0, 11],
+      [8, 0, 11],
+      [0, -3, 13]
+    ],
+    foot: 6
+  },
   steamRock: { circles: [[0, 0, 15]], foot: 6 }
 };
 
@@ -226,9 +263,7 @@ const KINDS: Record<Ground, readonly [ObstacleId, ObstacleId]> = {
   volcano: ['lavaRock', 'steamRock']
 };
 
-const REACH = Math.max(
-  ...Object.values(SHAPES).flatMap((s) => s.circles.map(([dx, dy, r]) => Math.hypot(dx, dy) + r))
-);
+const REACH = Math.max(...Object.values(SHAPES).flatMap((s) => s.circles.map(([dx, dy, r]) => Math.hypot(dx, dy) + r)));
 
 /** 座標から決まる 0..1 */
 export function hash(x: number, y: number) {
@@ -306,12 +341,14 @@ git commit -m "Place Animal Survivors obstacles by position hash and push bodies
 ### Task 2: World に入れる（自分・敵・出る位置・玉と品・宝の地図）
 
 **Files:**
+
 - Modify: `src/lib/games/animal-survivors/world.ts`（`spawnPoint` 457〜466 行、`step` の自分の移動 905〜920 行と `separate(w)` の直後 984 行あたり）
 - Modify: `src/lib/games/animal-survivors/drops.ts`（`dropGem` 155 行、`dropItem` 178 行）
 - Modify: `src/lib/games/animal-survivors/events.ts`（`startEvent` の宝の地図 22〜38 行）
 - Create: `src/lib/games/animal-survivors/obstacles-world.test.ts`
 
 **Interfaces:**
+
 - Consumes: `pushOut`、`obstaclesNear`、`obstacleAt`、`SHAPES`、`PLAYER_R`（Task 1）
 - Produces: なし（World の動きだけ変わる）
 
@@ -391,7 +428,8 @@ describe('World の障害物', () => {
     const w = quiet();
     const o = firstObstacle(w);
     Object.assign(w.player, { x: o.x + 70, y: o.y });
-    for (let i = 0; i < 30; i++) w.enemies.push(makeEnemy(ENEMIES.caterpillar, o.x - 40 - (i % 6) * 4, o.y + (i % 5) * 4 - 8, 1e6));
+    for (let i = 0; i < 30; i++)
+      w.enemies.push(makeEnemy(ENEMIES.caterpillar, o.x - 40 - (i % 6) * 4, o.y + (i % 5) * 4 - 8, 1e6));
     for (let k = 0; k < 120; k++) {
       step(w, { x: 0, y: 0 }, 1 / 30);
       for (const e of w.enemies) if (e.alive) expect(inside(w, e.x, e.y, e.def.r)).toBe(false);
@@ -440,21 +478,20 @@ Expected: 「出る位置」「玉」「宝箱」「自分」「敵」が FAIL�
 `spawnPoint` の `return out;` の前。
 
 ```ts
-  pushOut(w.stage.art, out, 16);
+pushOut(w.stage.art, out, 16);
 ```
 
 `step` の吹雪で流したあと（`if (p.moving) {` の前）。
 
 ```ts
-  pushOut(w.stage.art, p, PLAYER_R);
+pushOut(w.stage.art, p, PLAYER_R);
 ```
 
 `separate(w);` の直後。
 
 ```ts
-  // 押し合いのあとに出す。前だと群れに押し込まれた敵が毎フレーム出入りしてガタつく
-  for (const e of w.enemies)
-    if (e.alive && blocked(e)) pushOut(w.stage.art, e, e.def.r);
+// 押し合いのあとに出す。前だと群れに押し込まれた敵が毎フレーム出入りしてガタつく
+for (const e of w.enemies) if (e.alive && blocked(e)) pushOut(w.stage.art, e, e.def.r);
 ```
 
 `separate` の上に。
@@ -467,9 +504,9 @@ const blocked = (e: Enemy) => !e.def.boss && !e.def.prop && !e.def.part && !e.de
 `drops.ts` の import に `import { pushOut } from './obstacles';` を足し、`dropGem` の先頭。
 
 ```ts
-  const at = { x, y };
-  pushOut(w.stage.art, at, 4);
-  ({ x, y } = at);
+const at = { x, y };
+pushOut(w.stage.art, at, 4);
+({ x, y } = at);
 ```
 
 `dropItem` の `Object.assign(it, ...)` の前に同じ 3 行（半径 6）。
@@ -477,7 +514,7 @@ const blocked = (e: Enemy) => !e.def.boss && !e.def.prop && !e.def.part && !e.de
 `events.ts` の宝の地図で `w.treasure = it;` の前。
 
 ```ts
-    pushOut(w.stage.art, it, 8);
+pushOut(w.stage.art, it, 8);
 ```
 
 - [ ] **Step 4: 通ることを見る**
@@ -502,10 +539,12 @@ git commit -m "Block the player and normal enemies with obstacles and keep drops
 ### Task 3: 協力プレイの子の端末
 
 **Files:**
+
 - Modify: `src/lib/games/animal-survivors/coop.ts:384-410`（`CoopGuest.move`）
 - Modify: `src/lib/games/animal-survivors/coop.test.ts`
 
 **Interfaces:**
+
 - Consumes: `pushOut`、`PLAYER_R`、`obstacleAt`、`SHAPES`、`obstaclesNear`（Task 1）
 
 - [ ] **Step 1: 失敗するテストを書く**
@@ -513,21 +552,23 @@ git commit -m "Block the player and normal enemies with obstacles and keep drops
 `coop.test.ts` の `describe('協力プレイのつなぎ'` の中に足す（`started()` を使う）。
 
 ```ts
-  it('子の端末で動かした子の動物も、障害物の中に入らない', async () => {
-    const { g } = await started();
-    const v = g.view!;
-    const me = v.heroes[v.cur].player;
-    let o = null;
-    for (let c = 1; !o; c++) o = obstacleAt(v.stage.art, c, 0);
-    Object.assign(me, { x: o.x - 60, y: o.y });
-    for (let i = 0; i < 120; i++) {
-      g.move({ x: 1, y: 0 }, 1 / 30);
-      const hit = obstaclesNear(v.stage.art, me.x, me.y, PLAYER_R, []).some((ob) =>
-        SHAPES[ob.kind].circles.some(([dx, dy, r]) => Math.hypot(me.x - ob.x - dx, me.y - ob.y - dy) < PLAYER_R + r - 0.01)
-      );
-      expect(hit).toBe(false);
-    }
-  });
+it('子の端末で動かした子の動物も、障害物の中に入らない', async () => {
+  const { g } = await started();
+  const v = g.view!;
+  const me = v.heroes[v.cur].player;
+  let o = null;
+  for (let c = 1; !o; c++) o = obstacleAt(v.stage.art, c, 0);
+  Object.assign(me, { x: o.x - 60, y: o.y });
+  for (let i = 0; i < 120; i++) {
+    g.move({ x: 1, y: 0 }, 1 / 30);
+    const hit = obstaclesNear(v.stage.art, me.x, me.y, PLAYER_R, []).some((ob) =>
+      SHAPES[ob.kind].circles.some(
+        ([dx, dy, r]) => Math.hypot(me.x - ob.x - dx, me.y - ob.y - dy) < PLAYER_R + r - 0.01
+      )
+    );
+    expect(hit).toBe(false);
+  }
+});
 ```
 
 import に `import { obstacleAt, obstaclesNear, PLAYER_R, SHAPES } from './obstacles';` を足す。
@@ -542,7 +583,7 @@ Expected: FAIL
 `coop.ts` の import に `import { PLAYER_R, pushOut } from './obstacles';`。`move` の吹雪のブロックのあと（`if (p.moving) {` の前）。
 
 ```ts
-    pushOut(v.stage.art, p, PLAYER_R);
+pushOut(v.stage.art, p, PLAYER_R);
 ```
 
 - [ ] **Step 4: 通ることを見る**
@@ -562,12 +603,14 @@ git commit -m "Keep the co-op guest's own animal out of obstacles on its device"
 ### Task 4: 絵と描き方
 
 **Files:**
+
 - Create: `src/lib/games/animal-survivors/art/obstacles.ts`
 - Create: `src/lib/games/animal-survivors/draw-obstacles.ts`
 - Modify: `src/lib/games/animal-survivors/draw.ts`（`ground()` の飾り 160〜172 行、`draw()` 413〜430 行）
 - Modify: `src/lib/games/animal-survivors/pixels.test.ts`
 
 **Interfaces:**
+
 - Consumes: `obstacleAt`、`obstaclesNear`、`SHAPES`、`CELL`、`ObstacleId`、`Obstacle`（Task 1）
 - Produces。
   - `OBSTACLE_ART: Record<ObstacleId, Art>`（steamRock だけ 2 コマ、ほかは 1 コマ。色は `pal` で `a #3b3537`・`A #24201f`・`x #5a5355`・`e #7c5a50`・`E #4c3530`・`f #a8857a`）
@@ -584,7 +627,9 @@ const O = JSON.parse(readFileSync(new URL('./obs.json', import.meta.url)));
 const pal = { a: '#3b3537', A: '#24201f', x: '#5a5355', e: '#7c5a50', E: '#4c3530', f: '#a8857a' };
 const body = Object.entries(O)
   .map(([k, frames]) => {
-    const used = Object.fromEntries(Object.entries(pal).filter(([c]) => frames.some((f) => f.some((r) => r.includes(c)))));
+    const used = Object.fromEntries(
+      Object.entries(pal).filter(([c]) => frames.some((f) => f.some((r) => r.includes(c))))
+    );
     const p = Object.keys(used).length ? `,\n    pal: ${JSON.stringify(used)}` : '';
     return `  ${k}: {\n    w: ${frames[0][0].length},\n    h: ${frames[0].length},\n    frames: ${JSON.stringify(frames)}${p}\n  }`;
   })
@@ -603,10 +648,10 @@ Expected: ファイルができ、8 つの絵が入る
 `pixels.test.ts` の import に `import { OBSTACLE_ART } from './art/obstacles';`、`all` の末尾に `...Object.entries(OBSTACLE_ART)`、`describe('ドット絵の格子'` に。
 
 ```ts
-  it('障害物の絵は 8 枚で、湯気の出る岩だけ 2 コマ', () => {
-    expect(Object.keys(OBSTACLE_ART)).toHaveLength(8);
-    for (const [id, a] of Object.entries(OBSTACLE_ART)) expect(a.frames).toHaveLength(id === 'steamRock' ? 2 : 1);
-  });
+it('障害物の絵は 8 枚で、湯気の出る岩だけ 2 コマ', () => {
+  expect(Object.keys(OBSTACLE_ART)).toHaveLength(8);
+  for (const [id, a] of Object.entries(OBSTACLE_ART)) expect(a.frames).toHaveLength(id === 'steamRock' ? 2 : 1);
+});
 ```
 
 Run: `pnpm vitest run src/lib/games/animal-survivors/pixels.test.ts`
@@ -686,9 +731,9 @@ Expected: PASS
 `ground()` の飾りの `const art = decor[kind];` の前に、x と y を先に出して重なる飾りを飛ばす。
 
 ```ts
-      const x = gx * C + 8 + Math.floor(hash(gx, gy * 3) * 32);
-      const y = gy * C + 16 + Math.floor(hash(gx * 3, gy) * 28);
-      if (obstaclesNear(w.stage.art, x, y, 8, seen).length) continue;
+const x = gx * C + 8 + Math.floor(hash(gx, gy * 3) * 32);
+const y = gy * C + 16 + Math.floor(hash(gx * 3, gy) * 28);
+if (obstaclesNear(w.stage.art, x, y, 8, seen).length) continue;
 ```
 
 （下にある同じ 2 行の `const x` / `const y` は消す）
@@ -696,21 +741,22 @@ Expected: PASS
 `draw()` の `ground(ctx, w, cx, cy, v);` のあと。
 
 ```ts
-  // 自分より奥の障害物は敵より先に、手前の障害物は自分のあとに描き、奥行きを合わせる
-  back.length = front.length = 0;
-  for (const o of inView(w.stage.art, cx, cy, v.w, v.h, seen)) (o.y < p.y ? back : front).push(o);
-  drawObstacles(ctx, back, now, q);
+// 自分より奥の障害物は敵より先に、手前の障害物は自分のあとに描き、奥行きを合わせる
+back.length = front.length = 0;
+for (const o of inView(w.stage.art, cx, cy, v.w, v.h, seen)) (o.y < p.y ? back : front).push(o);
+drawObstacles(ctx, back, now, q);
 ```
 
 `w.cur = me;` の `}` のあと（自分を描いたあと、弾の前）。
 
 ```ts
-  drawObstacles(ctx, front, now, q);
+drawObstacles(ctx, front, now, q);
 ```
 
 - [ ] **Step 7: 画面で確かめる（見え方と foot の合わせ）**
 
 scratchpad の今の playwright の台本（`ux-tour.mjs` か `boss-play.mjs`）と同じ形で、`pnpm dev` の画面を headless Chrome（`channel: 'chrome'`）で開き、4 つのステージで遊びはじめて、自分を障害物の上・下・左右に当てたところを撮る（タッチの代わりに World へ入力を送れない場合は、キーボードの矢印で動かす）。見ること。
+
 - 障害物の上側に立つと自分が絵の後ろに隠れ、下側では前に出る
 - 自分の足もとと当たりの縁が合っている（合わなければ `SHAPES` の `foot` と丸を 1〜3 ドットずつ直し、Task 1 のテストを回し直す）
 - 飾りが障害物に重ならない
@@ -730,14 +776,17 @@ git commit -m "Draw the obstacles with depth and skip decor under them"
 ### Task 5: ボットで確かめる（中に入らない・バランス）
 
 **Files:**
+
 - Create（scratchpad、リポジトリには入れない）: `<scratchpad>/sim/obstacles.sim.ts`
 
 **Interfaces:**
+
 - Consumes: `createWorld`・`step`・`openChest`・`apply`・`choices`（今の `boss.sim.ts` と同じ）、`obstaclesNear`・`SHAPES`・`PLAYER_R`
 
 - [ ] **Step 1: シミュレーションを書く**
 
 `<scratchpad>/sim/boss.sim.ts` を写して `obstacles.sim.ts` にし、次を変える。
+
 - `process.env.OFF === '1'` のときは先頭で `vi.mock('<repo>/src/lib/games/animal-survivors/obstacles', async (orig) => ({ ...(await orig()), obstaclesNear: (_g, _x, _y, _r, out) => ((out.length = 0), out), obstacleAt: () => null }))` で障害物を消す
 - ボットは障害物を避ける力を足す（人も避けるので）: `obstaclesNear(w.stage.art, p.x, p.y, 30, [])` の丸ごとに、離れる向きへ `(30 + cr - d) / 30 * 2` の力を足す
 - 1 フレームごとに、自分（`PLAYER_R`）・`blocked` の敵（ボス・ランタン・節・ハリネズミ・群れでない敵）・吸い寄せられていない玉（半径 4）・品（半径 6）が障害物の中にいないかを数え、`inside` として結果に入れる
@@ -770,6 +819,7 @@ git commit -m "Tune the obstacle density from the bot runs"
 ### Task 6: 文書と仕上げ
 
 **Files:**
+
 - Modify: `CLAUDE.md`（アニマルサバイバーの段落。面の説明の「面は地面と飾りの絵（`art`）…」の文のあと）
 
 - [ ] **Step 1: CLAUDE.md に書く**
