@@ -67,8 +67,9 @@ export class CoopHost {
       } else if (m.t === 'move') {
         if (!this.paused) this.#moves.push(m.ms as number, performance.now(), m as unknown as Move);
       } else if (m.t === 'pause') this.#pause('guest');
-      else if (m.t === 'resume') this.paused === 'guest' && this.#resume();
-      else this.#answer(m);
+      else if (m.t === 'resume') {
+        if (this.paused === 'guest') this.#resume();
+      } else this.#answer(m);
     });
   }
 

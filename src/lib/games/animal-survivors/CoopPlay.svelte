@@ -39,11 +39,8 @@
   let waiting = $state(false);
   /** どちらかが止めている。止めた人の端末には一時停止のメニュー、相手には帯を出す */
   let paused = $state<Pauser>(null);
-  // 親か子かは遊んでいるあいだ変わらない
-  // svelte-ignore state_referenced_locally
-  const me = host ? 'host' : 'guest';
-  // svelte-ignore state_referenced_locally
-  const side = host ?? guest;
+  const me = $derived(host ? 'host' : 'guest');
+  const side = $derived(host ?? guest);
   let over = $state(false);
   /** 倒れた指を離したところに「もどる」が出ると合成 click で押されるので、指が離れるまで押せなくする */
   const settle = new Settle();
