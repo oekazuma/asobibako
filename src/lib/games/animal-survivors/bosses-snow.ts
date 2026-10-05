@@ -1,4 +1,5 @@
 import { brood, circle, hazard, SLOWED, type Hazard } from './bosses';
+import { eachHero } from './heroes';
 import { hurtPlayer } from './world';
 import type { Enemy, World } from './world';
 
@@ -174,8 +175,10 @@ export function breathe(w: World, h: Hazard, dt: number): void {
   h.tick = (h.tick ?? 0) - dt;
   if (h.tick > 0) return;
   h.tick = DRAGON.breathTick;
-  const p = w.player;
-  if (!inFan(h, p.x, p.y)) return;
-  p.slow = SLOWED;
-  if (p.invuln <= 0) hurtPlayer(w, h.dmg, 'boss');
+  eachHero(w, () => {
+    const p = w.player;
+    if (!inFan(h, p.x, p.y)) return;
+    p.slow = SLOWED;
+    if (p.invuln <= 0) hurtPlayer(w, h.dmg, 'boss');
+  });
 }

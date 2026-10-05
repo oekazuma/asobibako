@@ -2,6 +2,7 @@ import { desperate, has } from './arcana';
 import { airborne } from './bosses-snow';
 import { MAX_R } from './enemies';
 import { WEAPONS, weaponStats, type WeaponDef, type WeaponStats } from './weapons';
+import { heroOf, HERO_SLOTS, weaponAt } from './heroes';
 import { damageEnemy, type Enemy, type World } from './world';
 import { dropFlame, flameAt, growVines, scorch, updateZones } from './zones';
 
@@ -176,7 +177,7 @@ function strike(w: World, i: number, base: number, fx: number, fy: number, knock
   const e = w.enemies[i];
   const d = Math.hypot(e.x - fx, e.y - fy) || 1;
   const { dmg, crit } = power(w, base);
-  damageEnemy(w, i, dmg, ((e.x - fx) / d) * knock, ((e.y - fy) / d) * knock, crit, w.weapons[slot]?.id);
+  damageEnemy(w, i, dmg, ((e.x - fx) / d) * knock, ((e.y - fy) / d) * knock, crit, weaponAt(w, slot)?.id);
 }
 
 const near: number[] = [];
@@ -307,7 +308,7 @@ export function fire(w: World, dt: number): void {
     const s = weaponStats(def, own.level);
     s.amount += Math.floor(w.stats.amount);
     s.duration *= w.stats.duration;
-    if (!launch(w, def, s, slot)) {
+    if (!launch(w, def, s, slot + w.cur * HERO_SLOTS)) {
       own.cd = 0.25;
       return;
     }
@@ -394,8 +395,10 @@ function hitShot(w: World, o: Shot) {
 }
 
 export function hits(w: World, dt: number): void {
+  // 弾と効果は持ち主の動物を cur にしてから動かして当てる（回る羽根の中心・吸血の回復・ダメージ表が持ち主になる）
   for (const o of w.shots) {
     if (!o.alive) continue;
+    w.cur = heroOf(o.slot);
     o.age += dt;
     if (o.age > o.life) {
       o.alive = false;
@@ -406,6 +409,7 @@ export function hits(w: World, dt: number): void {
   }
   for (const f of w.effects) {
     if (!f.alive) continue;
+    w.cur = heroOf(f.slot);
     f.age += dt;
     if (f.age > f.life) {
       f.alive = false;
@@ -421,12 +425,13 @@ export function hits(w: World, dt: number): void {
       strike(w, j, f.dmg, f.x, f.y, f.knock, f.slot);
     }
   }
+  w.cur = 0;
   updateZones(w);
 }
 
 /** 火の羽根は折り返すところに炎を置く。炎は投げた羽根の 4 割の強さで、範囲と効く時間の強化も受ける（専用進化形は大きく長く焼く） */
 function flameTurn(w: World, o: Shot): void {
-  const own = w.weapons[o.slot];
+  const own = weaponAt(w, o.slot);
   const def = own && WEAPONS[own.id];
   if (!def?.flameTurn) return;
   const s = weaponStats(def, own.level);

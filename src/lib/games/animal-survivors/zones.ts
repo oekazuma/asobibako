@@ -2,6 +2,7 @@ import { airborne } from './bosses-snow';
 import { MAX_R } from './enemies';
 import { power, type Effect } from './arms';
 import type { WeaponStats } from './weapons';
+import { heroOf, weaponAt } from './heroes';
 import { damageEnemy, ZONE_HIT, type World } from './world';
 
 /** 炎とツタが中の敵へ当てる間（秒） */
@@ -73,6 +74,8 @@ const near: number[] = [];
 export function updateZones(w: World): void {
   for (const f of w.effects) {
     if (!f.alive || (f.kind !== 'flame' && f.kind !== 'vine')) continue;
+    // 会心と攻撃の強さは持ち主の動物のもの
+    w.cur = heroOf(f.slot);
     for (const j of w.grid.near(f.x, f.y, f.r + MAX_R, near)) {
       const s = w.enemies[j];
       const r = f.r + s.def.r;
@@ -85,7 +88,8 @@ export function updateZones(w: World): void {
       if (w.time - e.hit[ZONE_HIT + f.slot] < ZONE_TICK) continue;
       e.hit[ZONE_HIT + f.slot] = w.time;
       const { dmg, crit } = power(w, f.dmg);
-      damageEnemy(w, i, dmg, 0, 0, crit, w.weapons[f.slot]?.id);
+      damageEnemy(w, i, dmg, 0, 0, crit, weaponAt(w, f.slot)?.id);
     }
   }
+  w.cur = 0;
 }

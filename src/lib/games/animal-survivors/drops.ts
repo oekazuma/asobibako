@@ -1,3 +1,4 @@
+import { eachHero, nearestHero } from './heroes';
 import { countKill, damageEnemy, type Enemy, type World } from './world';
 import { has, healRate, hpScaleOf, MAX_ARCANA } from './arcana';
 import { stats } from './passives';
@@ -135,9 +136,10 @@ export function gainXp(w: World, value: number): void {
   while (w.xp >= xpNeed(w.level)) {
     w.xp -= xpNeed(w.level);
     w.level += 1;
-    w.pending += 1;
+    // レベルは 2 匹で共通。3 択は 2 匹ともに 1 つずつたまり、育つ Lv は動物ごとの装備で違う
+    for (const h of w.heroes) h.pending += 1;
     w.events.push({ type: 'levelup' });
-    if (GROW_AT.some((l) => l - w.fx.grow === w.level)) grow(w);
+    eachHero(w, () => GROW_AT.some((l) => l - w.fx.grow === w.level) && grow(w));
   }
 }
 
@@ -261,10 +263,12 @@ function pull(w: World, o: { x: number; y: number; pulled: boolean }, reach: num
   return Math.hypot(p.x - o.x, p.y - 4 - o.y) < PICK;
 }
 
+/** 玉と品は 1 つずつ、近いほうの動物が吸い寄せて拾う（吸い寄せる範囲と回復はその動物のもの） */
 export function collect(w: World, dt: number): void {
-  const reach = 32 * w.stats.magnet;
   for (const g of w.gems) {
-    if (!g.alive || !pull(w, g, reach * (1 + w.fx.gemReach), dt)) continue;
+    if (!g.alive) continue;
+    w.cur = nearestHero(w, g.x, g.y);
+    if (!pull(w, g, 32 * w.stats.magnet * (1 + w.fx.gemReach), dt)) continue;
     g.alive = false;
     const v = g.value * (w.festival > 0 ? 2 : 1);
     w.events.push({ type: 'pickup', value: v });
@@ -272,6 +276,8 @@ export function collect(w: World, dt: number): void {
   }
   for (const it of w.items) {
     if (!it.alive) continue;
+    w.cur = nearestHero(w, it.x, it.y);
+    const reach = 32 * w.stats.magnet;
     if (it.kind === 'chest') {
       if ((it.x - w.player.x) ** 2 + (it.y - w.player.y) ** 2 < CHEST_PICK ** 2) {
         it.alive = false;
@@ -327,4 +333,5 @@ export function collect(w: World, dt: number): void {
       w.events.push({ type: 'magnet' });
     }
   }
+  w.cur = 0;
 }

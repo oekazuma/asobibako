@@ -1,3 +1,4 @@
+import { eachHero } from './heroes';
 import { hurtPlayer, damageEnemy, type World } from './world';
 
 /** 割れ目の予告から溶岩が噴き出すまでの秒、池が残る秒、池が当たる間隔 */
@@ -71,7 +72,6 @@ export function stepEruption(w: World, dt: number): void {
 
 /** 割れ目を噴かせ、池の中の自分と敵に当てる。ボス・ランタン・大ヘビの体・ハリネズミには当てない */
 export function updateLava(w: World, dt: number): void {
-  const p = w.player;
   for (const l of w.lava) {
     if (l.life <= 0) continue;
     if (l.warn > 0) {
@@ -82,7 +82,10 @@ export function updateLava(w: World, dt: number): void {
     l.tick -= dt;
     if (l.life <= 0 || l.tick > 0) continue;
     l.tick = POOL_TICK;
-    if (p.invuln <= 0 && (p.x - l.x) ** 2 + (p.y - l.y) ** 2 < l.r * l.r) hurtPlayer(w, POOL_DMG, 'lava');
+    eachHero(w, () => {
+      const q = w.player;
+      if (q.invuln <= 0 && (q.x - l.x) ** 2 + (q.y - l.y) ** 2 < l.r * l.r) hurtPlayer(w, POOL_DMG, 'lava');
+    });
     if (w.over) return;
     const hit = POOL_HIT * w.stage.toughness(w.time);
     for (let i = 0; i < w.enemies.length; i++) {

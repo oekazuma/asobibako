@@ -39,3 +39,39 @@ export function bindHeroes(w: World): void {
       configurable: true
     });
 }
+
+/** 1 匹が持てる武器の枠。弾や効果の枠の番号は、動物をまたいで重ならない通しの番号（cur * HERO_SLOTS + 枠）にする */
+export const HERO_SLOTS = 6;
+export const MAX_HEROES = 2;
+export const heroOf = (slot: number) => Math.floor(slot / HERO_SLOTS);
+export const weaponAt = (w: World, slot: number) => w.heroes[heroOf(slot)]?.weapons[slot % HERO_SLOTS];
+export const anyPending = (w: World) => w.heroes.some((h) => h.pending > 0);
+
+/** 倒れていない中でいちばん近い動物。全員倒れていれば 0 */
+export function nearestHero(w: World, x: number, y: number): number {
+  let best = 0;
+  let bd = Infinity;
+  w.heroes.forEach((h, i) => {
+    if (h.down) return;
+    const d = (h.player.x - x) ** 2 + (h.player.y - y) ** 2;
+    if (d < bd) {
+      bd = d;
+      best = i;
+    }
+  });
+  return best;
+}
+
+/** 倒れていない動物ごとに cur を切り替えて呼び、最後に元の cur に戻す */
+export function eachHero(w: World, fn: (i: number) => void): void {
+  const was = w.cur;
+  try {
+    w.heroes.forEach((h, i) => {
+      if (h.down) return;
+      w.cur = i;
+      fn(i);
+    });
+  } finally {
+    w.cur = was;
+  }
+}

@@ -11,7 +11,7 @@ import { hpScale, modPerks, modStage, type Challenge, type ModId } from './daily
 import { CLEAR_COINS, COIN_RATE, collect, dropFrom, overtimeCoins, type Gem, type Item } from './drops';
 import { ENEMIES, MAX_R, type BossId, type EnemyDef } from './enemies';
 import { addBoost, gearOf, type GearFx, type GearKey } from './gear';
-import { bindHeroes, type Hero } from './heroes';
+import { anyPending, bindHeroes, eachHero, HERO_SLOTS, MAX_HEROES, nearestHero, type Hero } from './heroes';
 import { Grid } from './grid';
 import { stats, type Stats } from './passives';
 import { rng, type Rng } from './rng';
@@ -248,7 +248,7 @@ export interface World {
 
 export const MAX_ENEMIES = 400;
 /** 武器の枠の数（choices の SLOTS）。火の羽根と炎のように 1 つの枠が両方を出すとき、互いの当たりを止めないよう時計を分ける */
-export const ZONE_HIT = 6;
+export const ZONE_HIT = HERO_SLOTS * MAX_HEROES;
 /** 当たって戻せる HP は 1 秒に最大 HP のこの割合まで（大群に当てて一瞬で満タンにならないように） */
 export const DRAIN = 0.03;
 export const BASE_SPEED = 60;
@@ -855,13 +855,17 @@ export function hurtPlayer(w: World, raw: number, from: Hurt = 'touch'): void {
     return;
   }
   p.hp = 0;
+  if (w.heroes.length > 1) {
+    w.heroes[w.cur].down = true;
+    if (w.heroes.some((h) => !h.down)) return;
+  }
   w.over = 'dead';
   w.events.push({ type: 'dead' });
 }
 
 export function step(w: World, input: { x: number; y: number }, dt: number): void {
   w.events.length = 0;
-  if (w.over || w.pending > 0 || w.chests > 0) return;
+  if (w.over || anyPending(w) || w.chests > 0) return;
   w.time += dt;
   if (w.time >= w.stage.length) {
     for (const e of w.enemies) {
@@ -884,6 +888,8 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
     return;
   }
 
+  // 倒れた動物は動かない（2 匹めの位置は子の端末から届く）
+  if (w.heroes[0].down) input = { x: 0, y: 0 };
   const p = w.player;
   const speed = BASE_SPEED * w.stats.speed * (p.slow > 0 ? SLOW : 1);
   p.moving = input.x !== 0 || input.y !== 0;
@@ -900,12 +906,15 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
     p.aimY = input.y / len;
     if (input.x !== 0) p.facing = input.x > 0 ? 1 : -1;
   }
-  p.invuln -= dt;
-  p.hurt -= dt;
-  p.attack -= dt;
-  p.slow -= dt;
-  p.hp = Math.min(w.stats.maxHp, p.hp + w.stats.regen * regenRate(w) * dt);
-  w.drainLeft = Math.min(w.stats.maxHp * DRAIN, w.drainLeft + w.stats.maxHp * DRAIN * dt);
+  eachHero(w, () => {
+    const h = w.player;
+    h.invuln -= dt;
+    h.hurt -= dt;
+    h.attack -= dt;
+    h.slow -= dt;
+    h.hp = Math.min(w.stats.maxHp, h.hp + w.stats.regen * regenRate(w) * dt);
+    w.drainLeft = Math.min(w.stats.maxHp * DRAIN, w.drainLeft + w.stats.maxHp * DRAIN * dt);
+  });
 
   let alive = 0;
   for (const e of w.enemies) if (e.alive && !e.def.prop && !e.def.part) alive++;
@@ -915,7 +924,11 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
     w.spawnAcc[i] += spawnRate(wave, w.time) * dt * (w.festival > 0 ? 2 : 1);
     while (w.spawnAcc[i] >= 1 && alive < cap) {
       w.spawnAcc[i] -= 1;
+      // 2 匹のときは出る位置を順に回し、離れていてもどちらのまわりにも敵が来るようにする
+      const up = w.heroes.flatMap((h, k) => (h.down ? [] : [k]));
+      w.cur = up[alive % up.length] ?? 0;
       spawn(w, ENEMIES[wave.enemy]);
+      w.cur = 0;
       alive++;
     }
   });
@@ -935,27 +948,31 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   w.grid.clear();
   w.enemies.forEach((e, i) => {
     if (!e.alive) return;
+    // 敵の動き（ボスの攻撃も）は w.player を狙うので、近いほうの動物を cur にしてから動かす
+    w.cur = nearestHero(w, e.x, e.y);
+    const q = w.player;
     moveEnemy(w, i, dt);
-    if (e.def.prop && (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > far * far) {
+    if (e.def.prop && (e.x - q.x) ** 2 + (e.y - q.y) ** 2 > far * far) {
       e.alive = false;
       return;
     }
-    if (e.drift <= 0 && !e.def.part && (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > far * far) {
+    if (e.drift <= 0 && !e.def.part && (e.x - q.x) ** 2 + (e.y - q.y) ** 2 > far * far) {
       const at = spawnPoint(w);
       e.x = at.x;
       e.y = at.y;
     }
     w.grid.add(i, e.x, e.y);
   });
+  w.cur = 0;
   separate(w);
-  touch(w);
+  eachHero(w, () => touch(w));
   if (w.freeze <= 0 && !w.over) {
     updateHazards(w, dt);
     updateLava(w, dt);
   }
   if (w.over) return;
 
-  fire(w, dt);
+  eachHero(w, () => fire(w, dt));
   hits(w, dt);
   collect(w, dt);
 }

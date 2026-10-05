@@ -4,6 +4,7 @@ import { boar, eagle, snake, spawnSegments, tree } from './bosses-forest';
 import { breathe, dragon, rolled, yeti } from './bosses-snow';
 import { ENEMIES } from './enemies';
 import { dropGem } from './drops';
+import { eachHero } from './heroes';
 import { damageEnemy, hurtPlayer, makeEnemy, MAX_ENEMIES, spawnPoint, type Enemy, type World } from './world';
 
 export interface Hazard {
@@ -273,8 +274,10 @@ const METEOR_XP = 2;
 
 /** 流れ星が落ちる。円の中の自分と敵に当て、跡に大きな経験値の玉を残す */
 function land(w: World, h: Hazard) {
-  const p = w.player;
-  if (p.invuln <= 0 && (p.x - h.x) ** 2 + (p.y - h.y) ** 2 < h.r ** 2) hurtPlayer(w, h.dmg);
+  eachHero(w, () => {
+    const p = w.player;
+    if (p.invuln <= 0 && (p.x - h.x) ** 2 + (p.y - h.y) ** 2 < h.r ** 2) hurtPlayer(w, h.dmg);
+  });
   const tough = w.stage.toughness(w.time);
   w.enemies.forEach((e, i) => {
     if (e.alive && !e.def.prop && (e.x - h.x) ** 2 + (e.y - h.y) ** 2 < (h.r + e.def.r) ** 2)
@@ -299,11 +302,14 @@ export function updateHazards(w: World, dt: number): void {
       h.life -= dt;
       if (h.kind === 'ball') h.r = rolled(h.life);
       if (h.life <= 0) h.alive = false;
-      else if (p.invuln <= 0 && (h.x - p.x) ** 2 + (h.y - p.y) ** 2 < (h.r + 6) ** 2) {
-        h.alive = false;
-        if (h.kind === 'web') p.slow = SLOWED;
-        hurtPlayer(w, h.dmg, 'shot');
-      }
+      else
+        eachHero(w, () => {
+          const q = w.player;
+          if (!h.alive || q.invuln > 0 || (h.x - q.x) ** 2 + (h.y - q.y) ** 2 >= (h.r + 6) ** 2) return;
+          h.alive = false;
+          if (h.kind === 'web') q.slow = SLOWED;
+          hurtPlayer(w, h.dmg, 'shot');
+        });
       continue;
     }
     const owner = w.enemies[h.owner];
@@ -331,7 +337,11 @@ export function updateHazards(w: World, dt: number): void {
     if (h.delay > 0) {
       h.delay -= dt;
       if (h.delay <= 0 && h.lava) addLava(w, h.x, h.y + RING_DY, h.lava, 0);
-      if (h.delay <= 0 && p.invuln <= 0 && (p.x - h.x) ** 2 + (p.y - h.y) ** 2 < h.r ** 2) hurtPlayer(w, h.dmg, 'boss');
+      if (h.delay <= 0)
+        eachHero(w, () => {
+          const q = w.player;
+          if (q.invuln <= 0 && (q.x - h.x) ** 2 + (q.y - h.y) ** 2 < h.r ** 2) hurtPlayer(w, h.dmg, 'boss');
+        });
     } else {
       h.life -= dt;
       if (h.life <= 0) h.alive = false;
