@@ -68,7 +68,7 @@ describe('キャラ選択のメニュー', () => {
     });
     flushSync();
     const order = [...target.querySelectorAll('[data-menu]')].map((b) => b.getAttribute('data-menu'));
-    expect(order).toEqual(['gacha', 'shop', 'gear', 'trophies', 'book']);
+    expect(order).toEqual(['gacha', 'coop', 'shop', 'gear', 'trophies', 'book']);
     const g = target.querySelector('[data-menu="gacha"]') as HTMLButtonElement;
     expect(g.textContent).toContain('×2');
     g.click();

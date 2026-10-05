@@ -23,6 +23,7 @@
   import Book from './Book.svelte';
   import Gear from './Gear.svelte';
   import GachaRoom from './GachaRoom.svelte';
+  import CoopRoom from './CoopRoom.svelte';
   import { wornKeys } from './gacha';
   import { overtimeRun } from './overtime';
   import { summary, type Options, type RunSummary, type World } from './world';
@@ -31,11 +32,10 @@
   // 10 分の 1 回が面ひとつなので、シェルの level と onfinish は使わない（リザルトはこのゲームが持つ）
   let { onquit }: SoloProps = $props();
 
-  type Screen =
-    'select' | 'stage' | 'cauldron' | 'shop' | 'trophies' | 'book' | 'gear' | 'gacha' | 'daily' | 'play' | 'result';
-  let screen = $state<Screen>('select');
   /** 記録を自分で読み直す画面 */
-  const ROOMS = { shop: Shop, gear: Gear, gacha: GachaRoom, trophies: Trophies };
+  const ROOMS = { shop: Shop, gear: Gear, gacha: GachaRoom, trophies: Trophies, coop: CoopRoom };
+  type Screen = 'select' | 'stage' | 'cauldron' | keyof typeof ROOMS | 'book' | 'daily' | 'play' | 'result';
+  let screen = $state<Screen>('select');
   /** これから遊ぶ動物と面（お題の回はしばりも）。「もう一度」とやり直しは同じ組で始める。
    * want は釜で選んだ強さ（払えずに heat を下げても、もう一度は want で払おうとする） */
   let pick = $state<Options & { animal: AnimalId; stage: string; want?: number }>({ animal: 'dog', stage: 'forest' });

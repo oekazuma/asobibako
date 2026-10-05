@@ -20,7 +20,7 @@
     records: Records;
     onpick: (id: AnimalId) => void;
     onquit: () => void;
-    onopen: (screen: 'daily' | 'gacha' | 'shop' | 'trophies' | 'book' | 'gear') => void;
+    onopen: (screen: 'daily' | 'gacha' | 'coop' | 'shop' | 'trophies' | 'book' | 'gear') => void;
   } = $props();
 
   // 記録はあとから読み直して届くので、押すまでは今の記録の「最後に遊んだ子」を選んでいることにする

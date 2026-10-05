@@ -2,6 +2,7 @@
   import { ACHIEVEMENTS } from './achievements';
   import { GEAR_ART } from './art/gear';
   import { ITEM_ART } from './art/items';
+  import { ANIMAL_ART } from './art/animals';
   import { MENU_ART } from './art/menu';
   import { PITY, wornKeys } from './gacha';
   import GearIcon from './GearIcon.svelte';
@@ -9,7 +10,7 @@
   import type { Records } from './records';
 
   const TICKETS = [0, 1, 2] as const;
-  type Menu = 'gacha' | 'shop' | 'gear' | 'trophies' | 'book';
+  type Menu = 'gacha' | 'coop' | 'shop' | 'gear' | 'trophies' | 'book';
   let { records, onopen }: { records: Records; onopen: (m: Menu) => void } = $props();
 </script>
 
@@ -26,6 +27,14 @@
         <span>伝説まであと {PITY - records.pity} 回</span>
       </small>
     </span>
+  </button>
+  <button class="as-card mid" data-menu="coop" onclick={() => onopen('coop')}>
+    <span class="pair"
+      ><PixelIcon art={ANIMAL_ART.dog.forms[0].walk} size="min(6cqw, 3.6cqh, 32px)" /><PixelIcon
+        art={ANIMAL_ART.cat.forms[0].walk}
+        size="min(6cqw, 3.6cqh, 32px)"
+      /></span
+    ><span class="text">ふたりで遊ぶ<small>それぞれの iPad で いっしょに</small></span>
   </button>
   <div class="row">
     <button class="as-card mid" data-menu="shop" onclick={() => onopen('shop')}>
@@ -114,5 +123,9 @@
     padding-block: min(0.6cqh, 5px);
     background: #e8dcc4;
     font-size: min(3.4cqw, 2cqh, 17px);
+  }
+
+  .pair {
+    display: flex;
   }
 </style>
