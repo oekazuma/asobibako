@@ -6,7 +6,7 @@
   import type { CoopGuest, CoopHost } from './coop';
   import { draw, fitCanvas, type ViewSize } from './draw';
   import { Effects } from './effects';
-  import { anyPending } from './heroes';
+  import { anyChest, anyPending } from './heroes';
   import { steer } from './input';
   import PromptLayer from './PromptLayer.svelte';
   import { Prompts } from './prompts.svelte';
@@ -32,7 +32,8 @@
   const fx = new Effects();
   const keys = new Set<string>();
   // svelte-ignore state_referenced_locally
-  const prompts = host ? new Prompts(world) : null;
+  // 子の 3 択・宝箱・演出は、親から届いたものを出して選んだものを親へ送る Prompts（guest が持つ）
+  const prompts = host ? new Prompts(world) : (guest?.prompts ?? null);
   let stick = $state<{ id: number; x: number; y: number; dx: number; dy: number } | null>(null);
   let waiting = $state(false);
   let over = $state(false);
@@ -81,12 +82,14 @@
       world.events.length = 0;
       prompts.next(stick?.id ?? null, dt);
     } else if (guest) {
-      guest.move(move, dt);
+      if (!prompts?.busy) guest.move(move, dt);
       guest.frame(performance.now());
       fx.take(world);
+      prompts?.take();
+      prompts?.next(stick?.id ?? null, dt);
       fx.update(dt);
     }
-    waiting = !prompts?.busy && anyPending(world);
+    waiting = !prompts?.busy && (anyPending(world) || anyChest(world));
     if (world.over && !over) {
       over = true;
       settle.begin();

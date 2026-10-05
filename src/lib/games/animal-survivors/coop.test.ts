@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { Message } from '$lib/net/link';
 import { Party, type Pipe } from '$lib/net/party.svelte';
 import { CoopGuest, CoopHost } from './coop';
+import type { Hero } from './heroes';
+import { Prompts } from './prompts.svelte';
 import { ENEMIES } from './enemies';
 import { createWorld, makeEnemy, step } from './world';
 
@@ -36,6 +38,23 @@ function pipes(): [Pipe, Pipe] {
 }
 
 const settle = () => new Promise((resolve) => setTimeout(resolve));
+
+const owned = (h: Hero) => h.weapons.reduce((n, o) => n + o.level, 0) + h.passives.length;
+
+/** つないで、親の「はじめる」まで進めた組。told は子に届いた知らせの種類 */
+async function started() {
+  const { host, guest } = await pair();
+  const told: string[] = [];
+  guest.onTell((m) => told.push(m.t));
+  const w = createWorld('dog', 1, VIEW);
+  w.stage = { ...w.stage, waves: [] };
+  const h = new CoopHost(host, w);
+  const g = new CoopGuest(guest, { animal: 'cat', ranks: {}, gear: [] });
+  await settle();
+  h.start();
+  await settle();
+  return { host, guest, w, h, g, told };
+}
 
 async function pair() {
   const [a, b] = pipes();
@@ -92,21 +111,6 @@ describe('協力プレイのつなぎ', () => {
     expect(() => g.frame(performance.now())).not.toThrow();
   });
 
-  it('子の 3 択は親が自動で選び、pending が残らず、cur が 0 に戻る', async () => {
-    const { host, guest } = await pair();
-    const w = createWorld('dog', 1, VIEW);
-    const h = new CoopHost(host, w);
-    new CoopGuest(guest, { animal: 'cat', ranks: {}, gear: [] });
-    await settle();
-    w.heroes[1].pending = 2;
-    const owned = () => w.heroes[1].weapons.reduce((n, o) => n + o.level, 0) + w.heroes[1].passives.length;
-    const before = owned();
-    h.before();
-    expect(w.heroes[1].pending).toBe(0);
-    expect(owned()).toBeGreaterThan(before);
-    expect(w.cur).toBe(0);
-  });
-
   it('子の画面の出来事は、新しい snap を見せたときに 1 回だけ渡す', async () => {
     const { host, guest } = await pair();
     const w = createWorld('dog', 1, VIEW);
@@ -146,5 +150,45 @@ describe('協力プレイのつなぎ', () => {
       return p.x - x;
     };
     expect(await run(1)).toBeLessThan(await run(0));
+  });
+
+  it('子の 3 択は子へ送られ、子が選ぶと子の動物に入り、返事の前には送り直さない', async () => {
+    const { w, h, g, told } = await started();
+    w.heroes[1].pending = 1;
+    h.before();
+    h.before();
+    await settle();
+    expect(g.prompts?.options).toHaveLength(3);
+    expect(told.filter((t) => t === 'offer')).toHaveLength(1);
+    const before = owned(w.heroes[1]);
+    g.prompts!.choose(g.prompts!.options![0], null);
+    await settle();
+    h.before();
+    expect(w.heroes[1].pending).toBe(0);
+    expect(owned(w.heroes[1])).toBeGreaterThan(before);
+    expect(w.cur).toBe(0);
+  });
+
+  it('子が拾った宝箱は子の端末で開け、とじるで親のゲームが進む', async () => {
+    const { w, h, g } = await started();
+    w.heroes[1].chests = 1;
+    h.before();
+    await settle();
+    expect(g.prompts?.rewards?.length).toBeGreaterThan(0);
+    expect(w.heroes[1].chests).toBe(0);
+    g.prompts!.close(null);
+    await settle();
+    w.heroes[1].pending = 1;
+    h.before();
+    await settle();
+    expect(g.prompts?.options).toHaveLength(3);
+  });
+
+  it('remote の Prompts は World の 3 択を自分で開かない', () => {
+    const w = createWorld('dog', 1, VIEW);
+    w.pending = 1;
+    const p = new Prompts(w, true, { send: () => {} });
+    p.next(null);
+    expect(p.options).toBeNull();
   });
 });

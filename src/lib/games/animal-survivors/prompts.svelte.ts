@@ -4,6 +4,7 @@ import { WARN_AHEAD } from './bosses';
 import { apply, choices, isFiller, type Choice } from './choices';
 import { ENEMIES } from './enemies';
 import { ownEvent } from './heroes';
+import type { Message } from '$lib/net/link';
 import { Lock } from './lock.svelte';
 import { sounds } from './sounds';
 import type { World } from './world';
@@ -49,9 +50,16 @@ export class Prompts {
   readonly lock = new Lock();
   readonly #w: World;
 
-  constructor(w: World, still = reducedMotion()) {
+  /**
+   * ふたりで遊ぶ子の端末。World は親が持つので、3 択・宝箱・アルカナを自分で開かず、選んだものを send で親へ送る
+   * （3 択と宝箱は親から届いたものを offer と openRewards で出す）
+   */
+  readonly #remote: { send: (m: Message) => void } | null;
+
+  constructor(w: World, still = reducedMotion(), remote: { send: (m: Message) => void } | null = null) {
     this.#w = w;
     this.#still = still;
+    this.#remote = remote;
     this.#sync();
     // step は毎フレームの出来事を消してから進むので、始めの一言は作るときに帯へ写す
     if (w.note) this.notice = { text: w.note, key: -1, until: w.time + NOTICE * 2 };
@@ -133,7 +141,7 @@ export class Prompts {
       this.evolve = null;
     }
     // 3 択の経験値の袋で育つと、出来事を拾う前にここへ来る。次の 3 択より演出を先にする
-    if (this.busy || w.over || w.events.some((e) => e.type === 'grow')) return;
+    if (this.busy || w.over || w.events.some((e) => e.type === 'grow') || this.#remote) return;
     if (w.arcanaPending > 0) {
       const offer = arcanaOffer(w);
       if (offer.length) {
@@ -156,7 +164,30 @@ export class Prompts {
     this.next(finger);
   }
 
+  /** 子の端末で、親から届いた 3 択を出す */
+  offer(options: Choice[], tools: Prompts['tools']): void {
+    this.options = options;
+    this.tools = tools;
+    this.lock.begin(null);
+  }
+
+  /** 子の端末で、親が開けた自分の宝箱の中身を出す */
+  openRewards(rewards: Reward[]): void {
+    this.rewards = rewards;
+    this.lock.begin(null);
+  }
+
+  /** 子の端末では選んだものを親へ送って閉じる。true なら送った */
+  #send(m: Message): boolean {
+    if (!this.#remote) return false;
+    this.#remote.send(m);
+    this.options = null;
+    this.rewards = null;
+    return true;
+  }
+
   choose(c: Choice, finger: number | null): void {
+    if (this.#send({ t: 'choose', i: this.options?.indexOf(c) ?? -1 })) return;
     apply(this.#w, c);
     this.options = null;
     this.next(finger);
@@ -165,6 +196,7 @@ export class Prompts {
   /** 3 択を引き直す。引き直した札も出た直後の合成 click を捨てる */
   reroll(finger: number | null): void {
     const w = this.#w;
+    if (this.options && this.tools.rerolls > 0 && this.#send({ t: 'reroll' })) return;
     if (!this.options || w.rerolls <= 0) return;
     w.rerolls -= 1;
     this.#sync();
@@ -175,6 +207,7 @@ export class Prompts {
   /** 何も取らずに 3 択を閉じる */
   skip(finger: number | null): void {
     const w = this.#w;
+    if (this.options && this.tools.skips > 0 && this.#send({ t: 'skip' })) return;
     if (!this.options || w.skips <= 0) return;
     w.skips -= 1;
     w.pending = Math.max(0, w.pending - 1);
@@ -186,6 +219,13 @@ export class Prompts {
   /** 札をその回の候補から消し、3 択を引き直す */
   banish(c: Choice, finger: number | null): void {
     const w = this.#w;
+    if (
+      this.options &&
+      this.tools.banishes > 0 &&
+      !isFiller(c) &&
+      this.#send({ t: 'banish', i: this.options.indexOf(c) })
+    )
+      return;
     if (!this.options || w.banishes <= 0 || isFiller(c)) return;
     w.banishes -= 1;
     w.banished.push(`${c.kind}:${c.id}`);
@@ -204,6 +244,7 @@ export class Prompts {
   }
 
   close(finger: number | null): void {
+    if (this.#send({ t: 'close' })) return;
     this.rewards = null;
     this.next(finger);
   }

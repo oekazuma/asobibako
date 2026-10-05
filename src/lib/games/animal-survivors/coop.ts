@@ -1,7 +1,9 @@
 import type { Message } from '$lib/net/link';
 import type { Party } from '$lib/net/party.svelte';
 import type { AnimalId } from './animals';
-import { apply, choices } from './choices';
+import { openChest, type Reward } from './chest';
+import { Prompts } from './prompts.svelte';
+import { apply, choices, isFiller, type Choice } from './choices';
 import type { GearKey } from './gear';
 import { applySnap, COOP_VERSION, lerpSnap, makeSnap, type Snap } from './snap';
 import { Timeline } from './timeline';
@@ -19,6 +21,8 @@ const MOVE_EVERY = 1 / 30;
 const DELAY_MS = 100;
 const MOVE_DELAY_MS = 60;
 const GUEST = 2;
+/** 子の 3 択への返事 */
+const PICKS = new Set(['choose', 'reroll', 'skip', 'banish']);
 
 export interface Me {
   animal: AnimalId;
@@ -43,6 +47,9 @@ export class CoopHost {
   readonly #moves = new Timeline<Move>();
   #events: GameEvent[] = [];
   #acc = 0;
+  /** 子へ送って返事を待っているもの（返事の前に同じ 3 択を送り直さない） */
+  #asked: 'offer' | 'rewards' | null = null;
+  #options: Choice[] = [];
 
   constructor(party: Party, w: World) {
     this.#party = party;
@@ -54,7 +61,48 @@ export class CoopHost {
         addHero(w, m.animal as AnimalId, m.ranks as Ranks, m.gear as GearKey[]);
         this.ready = true;
       } else if (m.t === 'move') this.#moves.push(m.ms as number, performance.now(), m as unknown as Move);
+      else this.#answer(m);
     });
+  }
+
+  /** 子の動物（cur = 1）に、子の端末で選んだものを当てる。3 択を引き直したら送り直す */
+  #answer(m: Message): void {
+    const w = this.#w;
+    if (m.t === 'close') {
+      if (this.#asked === 'rewards') this.#asked = null;
+      return;
+    }
+    if (!w.heroes[1] || this.#asked !== 'offer' || !PICKS.has(m.t)) return;
+    w.cur = 1;
+    try {
+      const c = this.#options[m.i as number];
+      if (m.t === 'choose' && c) {
+        apply(w, c);
+        this.#asked = null;
+      } else if (m.t === 'skip' && w.skips > 0) {
+        w.skips -= 1;
+        w.pending = Math.max(0, w.pending - 1);
+        this.#asked = null;
+      } else if (m.t === 'reroll' && w.rerolls > 0) {
+        w.rerolls -= 1;
+        this.#offer();
+      } else if (m.t === 'banish' && c && w.banishes > 0 && !isFiller(c)) {
+        w.banishes -= 1;
+        w.banished.push(`${c.kind}:${c.id}`);
+        this.#offer();
+      } else this.#offer();
+    } finally {
+      w.cur = 0;
+    }
+  }
+
+  /** 子の動物の 3 択を引いて送る（cur = 1 で呼ぶ） */
+  #offer(): void {
+    const w = this.#w;
+    this.#options = choices(w);
+    this.#asked = 'offer';
+    const tools = { rerolls: w.rerolls, skips: w.skips, banishes: w.banishes };
+    this.#party.tell(GUEST, { t: 'offer', options: this.#options, tools } as unknown as Message);
   }
 
   /** 子に始めを知らせる。子は親と同じ種とステージで、描くための World を作る */
@@ -63,7 +111,7 @@ export class CoopHost {
     this.#party.tell(GUEST, { t: 'start', seed, stage, animal: h.animal.id });
   }
 
-  /** step の前。子の位置を 2 匹めに書き、子の 3 択を選ぶ（試作では 1 つめの候補） */
+  /** step の前。子の位置を 2 匹めに書き、子の動物の宝箱と 3 択を子へ送る（宝箱を先に開ける） */
   before(now = performance.now()): void {
     const w = this.#w;
     const h = w.heroes[1];
@@ -75,14 +123,13 @@ export class CoopHost {
       p.y = m.a.y + (m.b.y - m.a.y) * m.t;
       ({ facing: p.facing, aimX: p.aimX, aimY: p.aimY, moving: p.moving } = m.b);
     }
-    if (h.pending <= 0) return;
+    if (this.#asked || (h.chests <= 0 && h.pending <= 0)) return;
     w.cur = 1;
     try {
-      while (h.pending > 0) {
-        const c = choices(w)[0];
-        if (c) apply(w, c);
-        else h.pending = 0;
-      }
+      if (h.chests > 0) {
+        this.#asked = 'rewards';
+        this.#party.tell(GUEST, { t: 'rewards', rewards: openChest(w) } as unknown as Message);
+      } else this.#offer();
     } finally {
       w.cur = 0;
     }
@@ -102,6 +149,8 @@ export class CoopHost {
 /** 子の端末。自分の動物を動かして位置を送り、届いた様子を描くための World に写す */
 export class CoopGuest {
   view: World | null = null;
+  /** 子の端末の 3 択・宝箱・演出。選んだものは親へ送る */
+  prompts: Prompts | null = null;
   mismatch = false;
   readonly #party: Party;
   readonly #snaps = new Timeline<Snap>();
@@ -117,8 +166,12 @@ export class CoopGuest {
         addHero(view, me.animal, me.ranks, me.gear);
         view.cur = 1;
         this.view = view;
+        this.prompts?.stop();
+        this.prompts = new Prompts(view, undefined, { send: (msg) => party.act(msg) });
         this.#snaps.clear();
-      } else if (m.t === 'snap') {
+      } else if (m.t === 'offer') this.prompts?.offer(m.options as Choice[], m.tools as Prompts['tools']);
+      else if (m.t === 'rewards') this.prompts?.openRewards(m.rewards as Reward[]);
+      else if (m.t === 'snap') {
         this.#snaps.push(m.ms as number, performance.now(), m.s as Snap);
       }
     });
