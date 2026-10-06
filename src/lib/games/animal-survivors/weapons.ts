@@ -36,7 +36,13 @@ export interface WeaponDef {
   drain?: number;
   /** ブーメランが折り返すところに炎を置く（火の羽根） */
   flameTurn?: boolean;
+  /** 合体武器。parts の 2 つの武器の進化形を部品にして 1 つの枠から撃ち、twist の合わせ技を起こす */
+  union?: { parts: [string, string]; twist: Twist };
 }
+
+export type Twist = 'ringBolt' | 'acornVine' | 'dashFlame' | 'clawRoot' | 'fishBones' | 'boomerangOrbit';
+/** 合体武器の部品は、元の武器の進化形のダメージにこれを掛ける */
+export const UNION_BOOST = 1.15;
 
 export const MAX_LEVEL = 5;
 const EXCLUSIVE = ['tigerClaw', 'breath', 'fireFeather'];
@@ -301,6 +307,39 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
     )
   ].map((d) => [d.id, EXCLUSIVE.includes(d.id) ? { ...d, exclusive: true } : d])
 );
+
+const UNION_DEFS: [string, string, string, [string, string], Twist][] = [
+  ['howlUn', '雷鳴の遠吠え', '輪が広がるたびに、輪の中の敵へ雷が落ちる', ['howl', 'thunder'], 'ringBolt'],
+  ['acornUn', '芽吹きの森', 'どんぐりが当たった場所からツタが生え、敵を足止めする', ['acorn', 'vine'], 'acornVine'],
+  ['flameUn', '炎の疾走', '分身が駆け抜けた道に炎が残る', ['dash', 'flame'], 'dashFlame'],
+  ['pawUn', 'しびれ爪', '引っかいた敵が少しのあいだ動けなくなる', ['claw', 'paw'], 'clawRoot'],
+  ['woofUn', '骨の魚群', '魚が弾けると、骨が 4 方向に飛び散る', ['woof', 'fish'], 'fishBones'],
+  [
+    'featherUn',
+    '風のブーメラン',
+    '戻ってきたブーメランが、自分のまわりを 1 周回ってから消える',
+    ['boomerang', 'feather'],
+    'boomerangOrbit'
+  ]
+];
+for (const [id, name, blurb, parts, twist] of UNION_DEFS) {
+  const a = WEAPONS[`${parts[0]}Evo`];
+  WEAPONS[id] = {
+    ...a,
+    id,
+    name,
+    blurb,
+    evolved: true,
+    union: { parts, twist },
+    base: { ...a.base, damage: a.base.damage * UNION_BOOST }
+  };
+}
+
+/** 合体武器の k 番めの部品。元の武器の進化形を写し、ダメージを UNION_BOOST 倍にする */
+export function partDef(def: WeaponDef, k: 0 | 1): WeaponDef {
+  const evo = WEAPONS[`${def.union!.parts[k]}Evo`];
+  return { ...evo, base: { ...evo.base, damage: evo.base.damage * UNION_BOOST } };
+}
 
 const LABEL: Record<keyof WeaponStats, string> = {
   damage: 'ダメージ',

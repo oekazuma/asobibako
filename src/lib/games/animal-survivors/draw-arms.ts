@@ -5,15 +5,20 @@ import { PALETTE } from './art/palette';
 import { frameAt, hash } from './draw';
 import { bake, type Art } from './pixels';
 import { baseOf } from './evolutions';
-import { weaponAt } from './heroes';
+import { PART_B, weaponAt } from './heroes';
 import { WEAPONS } from './weapons';
 import type { World } from './world';
 
 type Snap = (v: number) => number;
 
-/** 進化形の武器の弾・炎・ツタ・線は金色で描く */
+/** 進化形と合体武器の弾・炎・ツタ・線は金色で描く */
 const isGold = (w: World, slot: number) => WEAPONS[weaponAt(w, slot)?.id ?? '']?.evolved ?? false;
-const kindOf = (w: World, slot: number) => baseOf(weaponAt(w, slot)?.id ?? '');
+/** 描き分けに使う元の武器。合体武器は部品ごとの元の武器 */
+const kindOf = (w: World, slot: number) => {
+  const id = weaponAt(w, slot)?.id ?? '';
+  const parts = WEAPONS[id]?.union?.parts;
+  return parts ? parts[slot >= PART_B ? 1 : 0] : baseOf(id);
+};
 
 function rotated(
   ctx: CanvasRenderingContext2D,

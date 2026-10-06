@@ -1,8 +1,8 @@
 import { desperate, has } from './arcana';
 import { airborne } from './bosses-snow';
 import { MAX_R } from './enemies';
-import { WEAPONS, weaponStats, type WeaponDef, type WeaponStats } from './weapons';
-import { heroOf, HERO_SLOTS, weaponAt } from './heroes';
+import { partDef, WEAPONS, weaponStats, type Twist, type WeaponDef, type WeaponStats } from './weapons';
+import { heroOf, HERO_SLOTS, PART_B, weaponAt } from './heroes';
 import { damageEnemy, type Enemy, type World } from './world';
 import { dropFlame, flameAt, growVines, scorch, updateZones } from './zones';
 
@@ -300,25 +300,48 @@ export function attackWait(w: World, cooldown: number): number {
   return cooldown * Math.max(0.35, 1 - w.stats.haste) * (has(w, 'glass') ? 0.6 : 1);
 }
 
+/** 枠の番号の弾や効果が合体武器のものなら、その合わせ技と部品の番号 */
+export function twistAt(w: World, slot: number): { twist: Twist; part: 0 | 1; def: WeaponDef } | null {
+  const own = weaponAt(w, slot);
+  const def = own && WEAPONS[own.id];
+  if (!def?.union) return null;
+  return { twist: def.union.twist, part: slot >= PART_B ? 1 : 0, def };
+}
+
+/** 撃ったら待ち時間を返す。撃てなければ null */
+function fireOne(w: World, def: WeaponDef, level: number, slot: number): number | null {
+  const s = weaponStats(def, level);
+  s.amount += Math.floor(w.stats.amount);
+  s.duration *= w.stats.duration;
+  if (!launch(w, def, s, slot)) return null;
+  const wait = attackWait(w, s.cooldown);
+  // 羽根は回り終えてから待ち時間を数える
+  return def.kind === 'orbit' ? s.duration + wait : wait;
+}
+
 export function fire(w: World, dt: number): void {
   w.weapons.forEach((own, slot) => {
-    own.cd -= dt;
-    if (own.cd > 0) return;
     const def = WEAPONS[own.id];
-    const s = weaponStats(def, own.level);
-    s.amount += Math.floor(w.stats.amount);
-    s.duration *= w.stats.duration;
-    if (!launch(w, def, s, slot + w.cur * HERO_SLOTS)) {
-      own.cd = 0.25;
-      return;
+    const parts: [WeaponDef, 'cd' | 'cd2', number][] = def.union
+      ? [
+          [partDef(def, 0), 'cd', 0],
+          [partDef(def, 1), 'cd2', PART_B]
+        ]
+      : [[def, 'cd', 0]];
+    for (const [d, key, add] of parts) {
+      own[key] = (own[key] ?? 0) - dt;
+      if ((own[key] ?? 0) > 0) continue;
+      const wait = fireOne(w, d, own.level, slot + w.cur * HERO_SLOTS + add);
+      if (wait === null) {
+        own[key] = 0.25;
+        continue;
+      }
+      own[key] = wait;
+      // 炎は足もとに置くだけで、しかも間が短いので、攻撃の格好にすると歩く動きが見えなくなる
+      if (d.kind === 'trail') continue;
+      w.player.attack = 0.15;
+      w.events.push({ type: 'fire', weapon: own.id });
     }
-    const wait = attackWait(w, s.cooldown);
-    // 羽根は回り終えてから待ち時間を数える
-    own.cd = def.kind === 'orbit' ? s.duration + wait : wait;
-    // 炎は足もとに置くだけで、しかも間が短いので、攻撃の格好にすると歩く動きが見えなくなる
-    if (def.kind === 'trail') return;
-    w.player.attack = 0.15;
-    w.events.push({ type: 'fire', weapon: own.id });
   });
 }
 
