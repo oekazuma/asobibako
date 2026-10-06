@@ -966,6 +966,126 @@ export const ITEM_ART: Record<string, Art> = {
       ]
     ]
   },
+  'weapon-howlUn': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '..kuuk..kk..',
+        '...kkukkyk..',
+        '..kuukkyyk..',
+        '...kukyyk...',
+        '.kkukyyykkk.',
+        'kwwukyyyyyk.',
+        'kwwukkkyyk..',
+        '.kkukkyyk...',
+        '...kukykk...',
+        '..kukykk....',
+        '...kkkk.....',
+        '..kuuk......'
+      ]
+    ]
+  },
+  'weapon-acornUn': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '.kk....kk...',
+        'kllk..kLlk..',
+        'kLllkkllLk..',
+        '.kkLldLkk...',
+        '..kkkdkkk...',
+        '.kBBBBBBBk..',
+        'kBBtBBBtBBk.',
+        'kBBBBBBBBBk.',
+        '.kttcttttk..',
+        '.kttctttTk..',
+        '..kTtttTk...',
+        '...kkkkk....'
+      ]
+    ]
+  },
+  'weapon-flameUn': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '.......k....',
+        '......kok...',
+        '.....kook...',
+        'www.koyyyk..',
+        '....koyyyok.',
+        '.wwkooyyyyok',
+        '.wwkooyyyyok',
+        '....koyyyyk.',
+        'www..koywok.',
+        '......kkwk..',
+        '............',
+        '............'
+      ]
+    ]
+  },
+  'weapon-pawUn': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        'y...k..k..k.',
+        '.y.krkkrkkrk',
+        'y.krrkrrkrrk',
+        '..krrkrrkrrk',
+        '..krykrykry.',
+        '.krrkrrkrrk.',
+        '.krrkrrkrrk.',
+        '.krykrykry..',
+        'krrkrrkrrk.y',
+        'krrkrrkrrk.y',
+        'krkkrkkrk.y.',
+        '.k..k..k..y.'
+      ]
+    ]
+  },
+  'weapon-woofUn': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '............',
+        '....k.k.kk..',
+        'k...kwkwkwk.',
+        'wk..kwkwkwwk',
+        'kwkkkkkkkwuk',
+        '.kwwwwwwwwwk',
+        'kwkkkkkkkwwk',
+        'wk..kwkwkwk.',
+        'k...kwkwkk..',
+        '....k.k.....',
+        '............',
+        '............'
+      ]
+    ]
+  },
+  'weapon-featherUn': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '..jjj.......',
+        '.j......kk..',
+        'j.....kkwwk.',
+        'j....kwwwwk.',
+        '....kwwccck.',
+        '...kwwckkk..',
+        '..kwwck.....',
+        '..kwwk......',
+        '.kwwwk.....j',
+        '.kccck.....j',
+        '..kkk.....j.',
+        '.......jjj..'
+      ]
+    ]
+  },
   ember: { w: 6, h: 6, frames: [['...o..', '..oo..', '.oyyo.', '.oyyo.', '.ryyr.', '..rr..']] },
   /** 流れ星。落ちる前に斜め上から降らせる */
   meteor: {

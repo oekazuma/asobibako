@@ -27,4 +27,15 @@ describe('Evolutions', () => {
     expect(target.textContent).not.toContain('竜王の業火');
     unmount(app);
   });
+
+  it('合体の表は 6 行で、作った合体武器だけ名前を出す', () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(Evolutions, { target, props: { evolved: ['howlUn'] } });
+    flushSync();
+    expect(target.querySelectorAll('.unions li')).toHaveLength(6);
+    expect(target.textContent).toContain('雷鳴の遠吠え');
+    expect(target.textContent).not.toContain('骨の魚群');
+    expect(target.textContent).toContain('合体 1 / 6');
+    unmount(app);
+  });
 });

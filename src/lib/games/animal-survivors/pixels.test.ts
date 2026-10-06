@@ -39,6 +39,11 @@ const all: [string, Art][] = [
 ];
 
 describe('ドット絵の格子', () => {
+  it('合体武器のアイコンが 6 枚ある', () => {
+    for (const id of ['howlUn', 'acornUn', 'flameUn', 'pawUn', 'woofUn', 'featherUn'])
+      expect(ITEM_ART[`weapon-${id}`]).toBeDefined();
+  });
+
   it('障害物の絵は 8 枚で、湯気の出る岩だけ 2 コマ', () => {
     expect(Object.keys(OBSTACLE_ART)).toHaveLength(8);
     for (const [id, a] of Object.entries(OBSTACLE_ART)) expect(a.frames).toHaveLength(id === 'steamRock' ? 2 : 1);

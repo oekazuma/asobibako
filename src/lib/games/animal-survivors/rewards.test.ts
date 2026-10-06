@@ -62,8 +62,8 @@ describe('全部埋まったあとのごほうび', () => {
     const w = full();
     for (let i = 0; i < 5; i++) {
       w.chests = 1;
-      // Lv5 の武器と対のパッシブがあれば 1 つめは進化になる
-      for (const r of openChest(w)) expect(['power', 'vigor', 'gold', 'evolve']).toContain(r.kind);
+      // Lv5 の武器と対のパッシブがあれば 1 つめは進化に、合体の組がそろっていればまとめになる
+      for (const r of openChest(w)) expect(['power', 'vigor', 'gold', 'evolve', 'union']).toContain(r.kind);
     }
   });
 });

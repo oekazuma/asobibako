@@ -16,6 +16,8 @@
   const done = $derived(shown >= rewards.length);
 
   function info(r: Reward) {
+    if (r.kind === 'union')
+      return { key: `u-${r.id}`, art: itemArt(`weapon-${r.id}`), name: WEAPONS[r.id].name, text: '合体！', evo: true };
     if (r.kind === 'evolve')
       return { key: `e-${r.id}`, art: itemArt(`weapon-${r.id}`), name: WEAPONS[r.id].name, text: '進化！', evo: true };
     if (r.kind === 'weapon')
@@ -47,10 +49,11 @@
 
   onMount(() => {
     let id: ReturnType<typeof setTimeout>;
-    // 進化の出来事は宝箱を開けた step の外で起きて効果の側に届かないので、見せたときにここで鳴らす
+    // 進化とまとめの出来事は宝箱を開けた step の外で起きて効果の側に届かないので、見せたときにここで鳴らす
     const tick = () => {
       shown += 1;
-      if (rewards[shown - 1]?.kind === 'evolve') sounds.evolve();
+      const k = rewards[shown - 1]?.kind;
+      if (k === 'evolve' || k === 'union') sounds.evolve();
       if (shown < rewards.length) id = setTimeout(tick, 250);
     };
     id = setTimeout(tick, 600);

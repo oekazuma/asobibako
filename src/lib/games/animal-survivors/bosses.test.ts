@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { chestSize, openChest } from './chest';
-import { MAX_LEVEL, WEAPONS } from './weapons';
+import { MAX_LEVEL } from './weapons';
 import { PASSIVES } from './passives';
 import { BOSS_HP } from './bosses';
 import { ENEMIES } from './enemies';
@@ -219,9 +219,8 @@ describe('倒したときと宝箱', () => {
 
   it('宝箱は Lv5 を超えて上げず、上げるものが無ければごほうびになる', () => {
     const w = quiet();
-    w.weapons = Object.keys(WEAPONS)
-      .slice(0, 6)
-      .map((id) => ({ id, level: MAX_LEVEL, cd: 0 }));
+    // 合体の組がそろわない 6 つ
+    w.weapons = ['woof', 'paw', 'howl', 'boomerang', 'acorn', 'dash'].map((id) => ({ id, level: MAX_LEVEL, cd: 0 }));
     w.passives = [{ id: 'heart', level: 4 }];
     w.chests = 1;
     w.rand = () => 0.99; // 5 つ

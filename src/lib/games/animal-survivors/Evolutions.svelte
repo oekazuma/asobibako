@@ -3,6 +3,7 @@
   import { itemArt } from './art/evolved';
   import { EVOLUTIONS } from './evolutions';
   import { PASSIVES } from './passives';
+  import { UNIONS } from './unions';
   import PixelIcon from './PixelIcon.svelte';
   import { WEAPONS } from './weapons';
 
@@ -35,6 +36,23 @@
       <span class="plus">=</span>
       <span class:hidden={!got}><PixelIcon art={itemArt(`weapon-${a.special}`)} {size} /></span>
       <span class="name">{got ? WEAPONS[a.special].name : '？？？'}<small>{a.forms[2]}</small></span>
+    </li>
+  {/each}
+</ul>
+<h3 class="head">合体 {UNIONS.filter((u) => evolved.includes(u.to)).length} / {UNIONS.length}</h3>
+<ul class="unions">
+  {#each UNIONS as u (u.to)}
+    {@const got = evolved.includes(u.to)}
+    <li class:got>
+      <PixelIcon art={itemArt(`weapon-${u.parts[0]}`)} {size} />
+      <span class="plus">+</span>
+      <PixelIcon art={itemArt(`weapon-${u.parts[1]}`)} {size} />
+      <span class="plus">=</span>
+      <span class:hidden={!got}><PixelIcon art={itemArt(`weapon-${u.to}`)} {size} /></span>
+      <span class="name"
+        >{got ? WEAPONS[u.to].name : '？？？'}<small>{WEAPONS[u.parts[0]].name}・{WEAPONS[u.parts[1]].name}</small
+        ></span
+      >
     </li>
   {/each}
 </ul>

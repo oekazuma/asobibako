@@ -3,6 +3,7 @@ import { addCoins, COIN_RATE, gainXp, noMeat, pick } from './drops';
 import { trySpecial } from './specials';
 import { EVOLUTIONS, baseOf } from './evolutions';
 import { PASSIVES, maxOf, stats } from './passives';
+import { partsOf } from './unions';
 import { MAX_LEVEL, WEAPONS } from './weapons';
 import type { World } from './world';
 
@@ -36,8 +37,8 @@ const BAG_XP = 25;
 
 function candidates(w: World): Choice[] {
   const out: Choice[] = [];
-  // 進化した武器の元の武器と、進化形そのものは新しい武器として出さない
-  const had = new Set(w.weapons.map((o) => baseOf(o.id)));
+  // 進化した武器の元の武器・進化形そのもの・まとめた 2 つの武器は、新しい武器として出さない
+  const had = new Set(w.weapons.flatMap((o) => [baseOf(o.id), ...(partsOf(o.id) ?? [])]));
   const fresh = (kind: 'weapon' | 'passive', id: string) =>
     kind === 'passive' ||
     (!WEAPONS[id].evolved && !WEAPONS[id].exclusive && !had.has(id) && !w.mods.includes('oneWeapon'));

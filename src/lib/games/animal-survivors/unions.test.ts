@@ -6,6 +6,10 @@ import { fire, hits } from './arms';
 import { partDef, WEAPONS } from './weapons';
 import { partsOf, unitable, unite, UNIONS } from './unions';
 import { step } from './world';
+import { openChest } from './chest';
+import { choices } from './choices';
+import { ACHIEVEMENTS } from './achievements';
+import { emptyRecords } from './records';
 
 const VIEW = { w: 260, h: 380 };
 
@@ -206,5 +210,69 @@ describe('合わせ技', () => {
       circled = w.shots.some((o) => o.alive && o.kind === 'orbit' && o.slot === 0);
     }
     expect(circled).toBe(true);
+  });
+});
+
+describe('宝箱と 3 択', () => {
+  it('組がそろって宝箱を開けると、中身の 1 つがまとめになる', () => {
+    const w = quiet();
+    w.weapons = [
+      { id: 'howl', level: 5, cd: 0 },
+      { id: 'thunder', level: 5, cd: 0 }
+    ];
+    w.chests = 1;
+    const got = openChest(w);
+    expect(got[0]).toEqual({ kind: 'union', parts: ['howl', 'thunder'], id: 'howlUn' });
+    expect(w.weapons.map((o) => o.id)).toEqual(['howlUn']);
+  });
+
+  it('進化とまとめが両方できるときは進化が先で、中身が 3 つ以上ならまとめも同じ宝箱で起きる', () => {
+    const w = quiet();
+    w.weapons = [
+      { id: 'howl', level: 5, cd: 0 },
+      { id: 'thunder', level: 5, cd: 0 }
+    ];
+    w.passives = [{ id: 'roar', level: 1 }];
+    w.chests = 1;
+    // 宝箱の中身が 1 つになる割合から引くので、1 にすると必ず 3 つ以上
+    w.fx.chest = 1;
+    const got = openChest(w);
+    expect(got[0]).toEqual({ kind: 'evolve', from: 'howl', id: 'howlEvo' });
+    expect(got[1]).toEqual({ kind: 'union', parts: ['howl', 'thunder'], id: 'howlUn' });
+  });
+
+  it('まとめたあと、元の武器は 3 択に新しい武器として出ない', () => {
+    const w = quiet();
+    w.weapons = [{ id: 'howlUn', level: 5, cd: 0, cd2: 0 }];
+    for (let i = 0; i < 50; i++) {
+      const ids = choices(w).map((c) => ('id' in c ? c.id : ''));
+      expect(ids).not.toContain('howl');
+      expect(ids).not.toContain('thunder');
+    }
+  });
+
+  it('専用進化より先に最初の武器をまとめた回は、専用進化が起きない', () => {
+    const w = quiet();
+    w.form = 2;
+    w.weapons = [
+      { id: 'woof', level: 5, cd: 0 },
+      { id: 'fish', level: 5, cd: 0 }
+    ];
+    unite(w, unitable(w)!);
+    w.chests = 1;
+    openChest(w);
+    expect(w.weapons.some((o) => o.id === 'woofSp')).toBe(false);
+  });
+
+  it('はじめての合体と 6 種すべての合体の実績がある', () => {
+    const r = emptyRecords();
+    const one = ACHIEVEMENTS.find((a) => a.id === 'union1')!;
+    const all = ACHIEVEMENTS.find((a) => a.id === 'unionAll')!;
+    expect(one.done(r, undefined as never)).toBe(false);
+    r.evolved.push('howlUn');
+    expect(one.done(r, undefined as never)).toBe(true);
+    expect(all.done(r, undefined as never)).toBe(false);
+    r.evolved.push(...UNIONS.map((u) => u.to));
+    expect(all.done(r, undefined as never)).toBe(true);
   });
 });

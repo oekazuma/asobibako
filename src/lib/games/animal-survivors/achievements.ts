@@ -1,6 +1,7 @@
 import { ANIMALS, type AnimalId } from './animals';
 import { BOOK } from './book';
 import { EVOLUTIONS } from './evolutions';
+import { UNIONS } from './unions';
 import type { Records } from './records';
 import { UPGRADES } from './upgrades';
 import { MAX_LEVEL } from './weapons';
@@ -25,6 +26,7 @@ const filled = (r: Records, kind: keyof typeof BOOK) => {
 
 /** ふつうの進化形だけを数える（専用進化形は別の表） */
 const evolvedCount = (r: Records) => r.evolved.filter((id) => EVOLUTIONS.some((e) => e.to === id)).length;
+const unitedCount = (r: Records) => r.evolved.filter((id) => UNIONS.some((u) => u.to === id)).length;
 const longest = (r: Records) => Math.max(0, ...Object.values(r.overtime));
 const maxed = (r: Records) => UPGRADES.filter((d) => (r.ranks[d.id] ?? 0) >= d.max).length;
 const lv5 = (run: RunSummary | null) => run?.weapons.filter((o) => o.level >= MAX_LEVEL).length ?? 0;
@@ -123,6 +125,14 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     coins: 500,
     done: (r) => evolvedCount(r) >= EVOLUTIONS.length,
     progress: (r) => [evolvedCount(r), EVOLUTIONS.length]
+  },
+  { id: 'union1', name: 'はじめての合体', coins: 150, done: (r) => unitedCount(r) >= 1 },
+  {
+    id: 'unionAll',
+    name: '6 種すべての合体',
+    coins: 500,
+    done: (r) => unitedCount(r) >= UNIONS.length,
+    progress: (r) => [unitedCount(r), UNIONS.length]
   },
   ...(
     [

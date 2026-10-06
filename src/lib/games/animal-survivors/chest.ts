@@ -4,6 +4,7 @@ import { levelUp, rewardsFor } from './choices';
 import { addCoins, CHEST_COINS } from './drops';
 import { evolvable, evolve } from './evolutions';
 import { maxOf } from './passives';
+import { unitable, unite } from './unions';
 import { MAX_LEVEL } from './weapons';
 import type { World } from './world';
 
@@ -13,7 +14,8 @@ export type Reward =
   | { kind: 'bag' }
   | { kind: 'power' | 'gold' }
   | { kind: 'vigor'; heal?: boolean }
-  | { kind: 'evolve'; from: string; id: string };
+  | { kind: 'evolve'; from: string; id: string }
+  | { kind: 'union'; parts: [string, string]; id: string };
 
 /** 上がる数。2.0 の釜では 8.5 割が 1、1.3 割が 3、0.2 割が 5 */
 export function chestSize(r: number, odds = chestOdds(2)): 1 | 3 | 5 {
@@ -33,6 +35,12 @@ export function openChest(w: World): Reward[] {
   if (e) {
     evolve(w, e);
     out.push({ kind: 'evolve', from: e.from, id: e.to });
+    n -= 1;
+  }
+  const u = n > 0 ? unitable(w) : undefined;
+  if (u) {
+    unite(w, u);
+    out.push({ kind: 'union', parts: u.parts, id: u.to });
     n -= 1;
   }
   for (; n > 0; n--) {
