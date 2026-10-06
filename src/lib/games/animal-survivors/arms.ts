@@ -1,10 +1,10 @@
 import { desperate, has } from './arcana';
 import { airborne } from './bosses-snow';
 import { MAX_R } from './enemies';
-import { partDef, WEAPONS, weaponStats, type Twist, type WeaponDef, type WeaponStats } from './weapons';
+import { MAX_LEVEL, partDef, WEAPONS, weaponStats, type Twist, type WeaponDef, type WeaponStats } from './weapons';
 import { heroOf, HERO_SLOTS, PART_B, weaponAt } from './heroes';
 import { damageEnemy, type Enemy, type World } from './world';
-import { dropFlame, flameAt, growVines, scorch, updateZones } from './zones';
+import { dropFlame, flameAt, growVines, scorch, updateZones, vineAt } from './zones';
 
 export interface Shot {
   alive: boolean;
@@ -27,6 +27,8 @@ export interface Shot {
   speed: number;
   /** ブーメランが折り返した（火の羽根はそこで炎を 1 回置く） */
   turned: boolean;
+  /** 炎の疾走が次に炎を置く年齢 */
+  drop: number;
 }
 
 export interface Effect {
@@ -66,6 +68,10 @@ const SPREAD = (12 * Math.PI) / 180;
 const FAN = (25 * Math.PI) / 180;
 /** 同じ敵へ続けて当てるまでの間（秒） */
 const REHIT = { boomerang: 0.35, orbit: 0.4 };
+/** しびれ爪で敵が止まる秒 */
+const CLAW_ROOT = 0.5;
+/** 炎の疾走が炎を置く間（秒） */
+const DASH_FLAME_EVERY = 0.08;
 
 export function power(w: World, base: number): { dmg: number; crit: boolean } {
   const crit = w.rand() < w.stats.crit;
@@ -98,7 +104,8 @@ const newShot = (): Shot => ({
   hits: [],
   angle: 0,
   speed: 0,
-  turned: false
+  turned: false,
+  drop: 0
 });
 
 const newEffect = (): Effect => ({
@@ -116,16 +123,24 @@ const newEffect = (): Effect => ({
   knock: 0
 });
 
-function shoot(w: World, slot: number, kind: Shot['kind'], s: WeaponStats, angle: number, r: number) {
+function shoot(
+  w: World,
+  slot: number,
+  kind: Shot['kind'],
+  s: WeaponStats,
+  angle: number,
+  r: number,
+  from = { x: w.player.x, y: w.player.y - 6 }
+) {
   const o = revive(w.shots, newShot);
-  const p = w.player;
   Object.assign(o, {
     alive: true,
     turned: false,
+    drop: 0,
     slot,
     kind,
-    x: p.x,
-    y: p.y - 6,
+    x: from.x,
+    y: from.y,
     vx: Math.cos(angle) * s.speed,
     vy: Math.sin(angle) * s.speed,
     life: s.duration,
@@ -199,6 +214,29 @@ function within(w: World, x: number, y: number, r: number, out: number[]) {
 
 const targets: number[] = [];
 
+/** 合わせ技でもう一方の部品の攻撃を出すときの数値（範囲と効く時間の強化も受ける） */
+function partStats(w: World, def: WeaponDef, k: 0 | 1): WeaponStats {
+  const s = weaponStats(partDef(def, k), MAX_LEVEL);
+  s.amount += Math.floor(w.stats.amount);
+  s.duration *= w.stats.duration;
+  return s;
+}
+
+/** (x, y) から横 rx・縦 ry の中の敵へ、数のぶんだけ雷を落とす。中に敵がいなければ false */
+function bolts(w: World, slot: number, s: WeaponStats, area: number, x: number, y: number, rx: number, ry: number) {
+  const seen = w.enemies.filter(
+    (e) => e.alive && !e.def.prop && !airborne(e) && Math.abs(e.x - x) < rx && Math.abs(e.y - y) < ry
+  );
+  if (seen.length === 0) return false;
+  for (let i = 0; i < s.amount && seen.length > 0; i++) {
+    const t = seen.splice(Math.floor(w.rand() * seen.length), 1)[0];
+    const r = SIZE.strike * area;
+    effect(w, slot, 'bolt', t.x, t.y, r, s.duration, 0, 0, 0);
+    for (const j of within(w, t.x, t.y, r, targets)) strike(w, j, s.damage, t.x, t.y - 1, s.knockback, slot);
+  }
+  return true;
+}
+
 /** 撃てたら true。雷のように的がいないと撃たない武器は false を返して待ち時間を使わない */
 function launch(w: World, def: WeaponDef, s: WeaponStats, slot: number): boolean {
   const kind = def.kind;
@@ -236,7 +274,8 @@ function launch(w: World, def: WeaponDef, s: WeaponStats, slot: number): boolean
         o.vx = SIZE.orbit * area;
       }
       return true;
-    case 'swipe':
+    case 'swipe': {
+      const root = twistAt(w, slot)?.twist === 'clawRoot';
       for (let i = 0; i < s.amount; i++) {
         // 4 つ以上は全方向へ等しく散らし、それより少なければ前と後ろを交互に裂く
         const a = s.amount > 3 ? aim + (i / s.amount) * Math.PI * 2 : aim + (i % 2) * Math.PI;
@@ -246,10 +285,13 @@ function launch(w: World, def: WeaponDef, s: WeaponStats, slot: number): boolean
           const e = w.enemies[j];
           let da = Math.atan2(e.y - (p.y - 6), e.x - p.x) - a;
           da = Math.atan2(Math.sin(da), Math.cos(da));
-          if (Math.abs(da) < SWIPE_HALF) strike(w, j, s.damage, p.x, p.y, s.knockback, slot);
+          if (Math.abs(da) >= SWIPE_HALF) continue;
+          strike(w, j, s.damage, p.x, p.y, s.knockback, slot);
+          if (root && !e.def.boss && !e.def.part) e.root = Math.max(e.root, CLAW_ROOT);
         }
       }
       return true;
+    }
     case 'cone':
       for (let i = 0; i < s.amount; i++) {
         // 2 つめからは左右へ交互にずらして重ねる
@@ -269,29 +311,22 @@ function launch(w: World, def: WeaponDef, s: WeaponStats, slot: number): boolean
           for (const k of [0.5, 0.85]) scorch(w, slot, p.x + Math.cos(a) * r * k, p.y - 6 + Math.sin(a) * r * k, s);
       }
       return true;
-    case 'ring':
+    case 'ring': {
       // 数のぶんの輪は、前の輪が広がり終えてから続けて出す（当たりは輪の生まれた時刻で見るので、同時だと 2 つめが当たらない）
       for (let i = 0; i < s.amount; i++) {
         const o = effect(w, slot, 'ring', p.x, p.y - 6, SIZE.ring * area, s.duration, 0, s.damage, s.knockback);
         o.age = -i * s.duration;
         o.born = w.time + i * s.duration;
       }
-      return true;
-    case 'strike': {
-      const hw = w.view.w / 2;
-      const hh = w.view.h / 2;
-      const seen = w.enemies.filter(
-        (e) => e.alive && !e.def.prop && !airborne(e) && Math.abs(e.x - p.x) < hw && Math.abs(e.y - p.y) < hh
-      );
-      if (seen.length === 0) return false;
-      for (let i = 0; i < s.amount && seen.length > 0; i++) {
-        const t = seen.splice(Math.floor(w.rand() * seen.length), 1)[0];
-        const r = SIZE.strike * area;
-        effect(w, slot, 'bolt', t.x, t.y, r, s.duration, 0, 0, 0);
-        for (const j of within(w, t.x, t.y, r, targets)) strike(w, j, s.damage, t.x, t.y - 1, s.knockback, slot);
+      const tw = twistAt(w, slot);
+      if (tw?.twist === 'ringBolt') {
+        const r = SIZE.ring * area;
+        bolts(w, slot + PART_B, partStats(w, tw.def, 1), area, p.x, p.y - 6, r, r);
       }
       return true;
     }
+    case 'strike':
+      return bolts(w, slot, s, area, p.x, p.y, w.view.w / 2, w.view.h / 2);
   }
 }
 
@@ -368,7 +403,20 @@ function moveShot(w: World, o: Shot, dt: number) {
       const dx = p.x - o.x;
       const dy = p.y - 6 - o.y;
       const d = Math.hypot(dx, dy) || 1;
-      if (d < 8) o.alive = false;
+      if (d < 8) {
+        const tw = twistAt(w, o.slot);
+        if (tw?.twist === 'boomerangOrbit' && o.kind === 'boomerang') {
+          // 風のブーメラン: 戻ったら自分のまわりを 1 周回ってから消える
+          const s = partStats(w, tw.def, 1);
+          o.kind = 'orbit';
+          o.vx = SIZE.orbit * s.area * w.stats.area;
+          o.speed = s.speed;
+          o.angle = Math.atan2(o.y - (p.y - 6), o.x - p.x);
+          o.life = o.age + (Math.PI * 2) / s.speed;
+          return;
+        }
+        o.alive = false;
+      }
       const v = Math.min(o.speed * 1.3, Math.hypot(o.vx, o.vy) + o.speed * 2 * dt);
       o.vx = (dx / d) * v;
       o.vy = (dy / d) * v;
@@ -388,6 +436,18 @@ function moveShot(w: World, o: Shot, dt: number) {
   o.x += o.vx * dt;
   o.y += o.vy * dt;
   o.angle = Math.atan2(o.vy, o.vx);
+  if (o.kind === 'shot' && o.age >= o.drop) {
+    const tw = twistAt(w, o.slot);
+    if (tw?.twist === 'dashFlame' && tw.part === 0) {
+      // 炎の疾走: 駆け抜けた道に一定の間で炎を置く
+      o.drop = o.age + DASH_FLAME_EVERY;
+      const s = partStats(w, tw.def, 1);
+      flameAt(w, o.slot + PART_B, o.x, o.y + 4, 0.8 * s.area * w.stats.area, {
+        ...s,
+        duration: 1.2 * w.stats.duration
+      });
+    }
+  }
   const far = Math.hypot(w.view.w, w.view.h);
   if ((o.x - p.x) ** 2 + (o.y - p.y) ** 2 > far * far) o.alive = false;
 }
@@ -399,6 +459,14 @@ function hitShot(w: World, o: Shot) {
       if (o.hits.includes(j)) continue;
       o.hits.push(j);
       strike(w, j, o.dmg, o.x - o.vx, o.y - o.vy, o.knock, o.slot);
+      if (o.hits.length === 1) {
+        const tw = twistAt(w, o.slot);
+        // 芽吹きの森: どんぐりは最初に当たった敵の足もとにだけツタを生やす（貫いた先まで生やすと画面がツタで埋まる）
+        if (tw?.twist === 'acornVine' && tw.part === 0) {
+          const s = partStats(w, tw.def, 1);
+          vineAt(w, o.slot + PART_B, e.x, e.y, s.area * w.stats.area, s);
+        }
+      }
       if (--o.pierce <= 0) {
         o.alive = false;
         return;
@@ -407,6 +475,13 @@ function hitShot(w: World, o: Shot) {
       const r = SIZE.burst * (o.r / SIZE.homing);
       effect(w, o.slot, 'burst', o.x, o.y, r, 0.25, 0, 0, 0);
       for (const k of within(w, o.x, o.y, r, [])) strike(w, k, o.dmg, o.x, o.y, o.knock, o.slot);
+      const tw = twistAt(w, o.slot);
+      if (tw?.twist === 'fishBones' && tw.part === 1) {
+        // 骨の魚群: 弾けた場所から骨を 4 方向へ
+        const s = partStats(w, tw.def, 0);
+        for (let k = 0; k < 4; k++)
+          shoot(w, o.slot - PART_B, 'shot', s, (k / 4) * Math.PI * 2, SIZE.shot * s.area * w.stats.area, o);
+      }
       o.alive = false;
       return;
     } else {

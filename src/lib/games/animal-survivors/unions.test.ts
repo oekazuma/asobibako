@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ENEMIES } from './enemies';
 import { heroOf, PART_B, SLOT_COUNT, weaponAt } from './heroes';
 import { addHero, createWorld, makeEnemy, ZONE_HIT } from './world';
-import { fire } from './arms';
+import { fire, hits } from './arms';
 import { partDef, WEAPONS } from './weapons';
 import { partsOf, unitable, unite, UNIONS } from './unions';
 import { step } from './world';
@@ -137,5 +137,74 @@ describe('合体武器を撃つ', () => {
     w.stats.maxHp = w.player.hp = 1e9;
     for (let i = 0; i < 900; i++) step(w, { x: Math.cos(i / 40), y: Math.sin(i / 40) }, 1 / 30);
     expect(w.kills).toBeGreaterThan(0);
+  });
+});
+
+function arena(id: string, foes: [number, number][]) {
+  const w = quiet();
+  w.weapons = [{ id, level: 5, cd: 0, cd2: 99 }];
+  for (const [x, y] of foes) w.enemies.push(makeEnemy(ENEMIES.caterpillar, x, y, 1e9));
+  const tick = (n: number) => {
+    for (let i = 0; i < n; i++) {
+      w.grid.clear();
+      w.enemies.forEach((e, k) => e.alive && w.grid.add(k, e.x, e.y));
+      fire(w, 1 / 30);
+      hits(w, 1 / 30);
+      w.time += 1 / 30;
+    }
+  };
+  return { w, tick };
+}
+
+describe('合わせ技', () => {
+  it('雷鳴の遠吠え: 輪を出すと、輪の中の敵へ雷が落ちる（雷撃の部品は待ち時間中でも）', () => {
+    const { w, tick } = arena('howlUn', [
+      [20, 0],
+      [-30, 10]
+    ]);
+    tick(1);
+    expect(w.effects.filter((f) => f.alive && f.kind === 'bolt' && f.slot === PART_B).length).toBeGreaterThan(0);
+  });
+
+  it('芽吹きの森: どんぐりが当たった敵の足もとにツタが生える', () => {
+    const { w, tick } = arena('acornUn', [[25, -6]]);
+    tick(20);
+    expect(w.effects.some((f) => f.alive && f.kind === 'vine' && f.slot === PART_B)).toBe(true);
+  });
+
+  it('炎の疾走: 分身が駆け抜けた道に炎が並ぶ', () => {
+    const { w, tick } = arena('flameUn', [[120, 0]]);
+    tick(15);
+    expect(w.effects.filter((f) => f.alive && f.kind === 'flame' && f.slot === PART_B).length).toBeGreaterThan(2);
+  });
+
+  it('しびれ爪: 引っかいた敵が動けなくなり、ボスは止めない', () => {
+    const { w, tick } = arena('pawUn', [[14, -6]]);
+    const boss = makeEnemy(ENEMIES.bear, -14, -6, 1e9);
+    w.enemies.push(boss);
+    tick(2);
+    expect(w.enemies[0].root).toBeGreaterThan(0);
+    expect(boss.root).toBeLessThanOrEqual(0);
+  });
+
+  it('骨の魚群: 魚が弾けると、骨が 4 本その場所から飛ぶ', () => {
+    const { w, tick } = arena('woofUn', [[60, 0]]);
+    w.weapons[0] = { id: 'woofUn', level: 5, cd: 99, cd2: 0 };
+    let bones = 0;
+    for (let i = 0; i < 60 && bones < 4; i++) {
+      tick(1);
+      bones = w.shots.filter((o) => o.alive && o.kind === 'shot' && o.slot === 0).length;
+    }
+    expect(bones).toBeGreaterThanOrEqual(4);
+  });
+
+  it('風のブーメラン: 戻ったブーメランが自分のまわりを回る', () => {
+    const { w, tick } = arena('featherUn', [[50, 0]]);
+    let circled = false;
+    for (let i = 0; i < 120 && !circled; i++) {
+      tick(1);
+      circled = w.shots.some((o) => o.alive && o.kind === 'orbit' && o.slot === 0);
+    }
+    expect(circled).toBe(true);
   });
 });

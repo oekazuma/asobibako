@@ -54,6 +54,11 @@ export function scorch(w: World, slot: number, x: number, y: number, s: WeaponSt
 }
 
 /** 画面の中のでたらめな敵の足もとにツタを生やす。敵がいなければ false */
+/** (x, y) にツタを 1 本生やす（芽吹きの森で、どんぐりが当たった場所） */
+export function vineAt(w: World, slot: number, x: number, y: number, scale: number, s: WeaponStats): void {
+  zone(w, slot, 'vine', x, y, VINE_R * scale, s);
+}
+
 export function growVines(w: World, slot: number, s: WeaponStats, area: number): boolean {
   const p = w.player;
   const seen = w.enemies.filter(
