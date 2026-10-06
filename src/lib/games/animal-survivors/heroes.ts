@@ -45,7 +45,10 @@ export function bindHeroes(w: World): void {
 /** 1 匹が持てる武器の枠。弾や効果の枠の番号は、動物をまたいで重ならない通しの番号（cur * HERO_SLOTS + 枠）にする */
 export const HERO_SLOTS = 6;
 export const MAX_HEROES = 2;
-export const heroOf = (slot: number) => Math.floor(slot / HERO_SLOTS);
+export const SLOT_COUNT = HERO_SLOTS * MAX_HEROES;
+/** 合体武器の 2 つめの部品は、枠の番号にこれを足して出す（当たりの時計を 1 つめの部品と分ける） */
+export const PART_B = SLOT_COUNT;
+export const heroOf = (slot: number) => Math.floor((slot % SLOT_COUNT) / HERO_SLOTS);
 export const weaponAt = (w: World, slot: number) => w.heroes[heroOf(slot)]?.weapons[slot % HERO_SLOTS];
 export const anyPending = (w: World) => w.heroes.some((h) => h.pending > 0);
 export const anyChest = (w: World) => w.heroes.some((h) => h.chests > 0);

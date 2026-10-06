@@ -18,8 +18,7 @@ import {
   raise,
   eachHero,
   tagged,
-  HERO_SLOTS,
-  MAX_HEROES,
+  SLOT_COUNT,
   nearestHero,
   type Hero
 } from './heroes';
@@ -58,7 +57,7 @@ export interface Enemy {
   root: number;
   /** ボスの攻撃の数え（巨大ベアは突進と地ならしの交互、女王グモは子グモまでの秒） */
   turn: number;
-  /** 武器の枠ごとに、最後に当たった時刻。後ろの ZONE_HIT からは同じ枠の炎とツタの時計 */
+  /** 武器の枠ごと（合体武器の 2 つめの部品は PART_B から）に最後に当たった時刻。後ろの ZONE_HIT からは同じ番号の炎とツタの時計 */
   hit: Float64Array;
   /** まっすぐ飛ぶ残りの秒（群れ）。0 になったら消え、倒した数には入らない */
   drift: number;
@@ -155,7 +154,7 @@ export interface World {
   /** その回の候補から消した札（kind:id） */
   banished: string[];
   player: Player;
-  weapons: (Owned & { cd: number })[];
+  weapons: (Owned & { cd: number; cd2?: number })[];
   passives: Owned[];
   enemies: Enemy[];
   shots: Shot[];
@@ -262,7 +261,7 @@ export interface World {
 
 export const MAX_ENEMIES = 400;
 /** 武器の枠の数（choices の SLOTS）。火の羽根と炎のように 1 つの枠が両方を出すとき、互いの当たりを止めないよう時計を分ける */
-export const ZONE_HIT = HERO_SLOTS * MAX_HEROES;
+export const ZONE_HIT = SLOT_COUNT * 2;
 /** 当たって戻せる HP は 1 秒に最大 HP のこの割合まで（大群に当てて一瞬で満タンにならないように） */
 export const DRAIN = 0.03;
 export const BASE_SPEED = 60;
