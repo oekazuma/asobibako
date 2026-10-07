@@ -1,6 +1,7 @@
 import { ANIMALS, type AnimalId } from './animals';
 import { BOOK } from './book';
 import { EVOLUTIONS } from './evolutions';
+import { RELICS } from './relics';
 import { UNIONS } from './unions';
 import type { Records } from './records';
 import { UPGRADES } from './upgrades';
@@ -125,6 +126,27 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     coins: 500,
     done: (r) => evolvedCount(r) >= EVOLUTIONS.length,
     progress: (r) => [evolvedCount(r), EVOLUTIONS.length]
+  },
+  { id: 'relic1', name: 'はじめての遺物', coins: 100, done: (r) => r.relics.length >= 1 },
+  {
+    id: 'relicAll',
+    name: '遺物をすべて',
+    coins: 500,
+    done: (r) => r.relics.length >= RELICS.length,
+    progress: (r) => [r.relics.length, RELICS.length]
+  },
+  { id: 'shrine10', name: '祠めぐり', coins: 200, done: (_r, run) => (run?.shrines ?? 0) >= 10 },
+  {
+    id: 'union3',
+    name: '合体の名手',
+    coins: 300,
+    done: (_r, run) => (run?.evolved.filter((id) => UNIONS.some((u) => u.to === id)).length ?? 0) >= 3
+  },
+  {
+    id: 'limit50',
+    name: '限界の先へ',
+    coins: 300,
+    done: (_r, run) => (run?.weapons.reduce((n, o) => n + (o.lb ?? 0), 0) ?? 0) >= 50
   },
   { id: 'union1', name: 'はじめての合体', coins: 150, done: (r) => unitedCount(r) >= 1 },
   {

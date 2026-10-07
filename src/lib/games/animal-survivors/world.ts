@@ -1085,6 +1085,8 @@ export interface RunSummary {
   gear?: GearKey[];
   /** この回に拾った遺物 */
   relics?: RelicId[];
+  /** この回に使った祠の数 */
+  shrines?: number;
 }
 
 /** 強欲を掛けたこの回のコイン。1 枚ずつ掛けると端数で減るので、合計に掛ける */
@@ -1117,6 +1119,7 @@ export function summary(w: World): RunSummary {
     opened: w.opened,
     evolved: [...w.evolvedNow],
     relics: [...w.relicsNow],
+    shrines: w.shrinesUsed.length,
     dealt: Object.entries(w.dealt)
       .map(([id, d]) => ({ id, damage: Math.round(d.damage), kills: d.kills }))
       .sort((a, b) => b.damage - a.damage),

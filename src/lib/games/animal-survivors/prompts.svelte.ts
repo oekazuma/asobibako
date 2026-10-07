@@ -4,7 +4,8 @@ import { WARN_AHEAD } from './bosses';
 import { apply, choices, isFiller, type Choice } from './choices';
 import { ENEMIES } from './enemies';
 import { ownEvent } from './heroes';
-import { keepRelic } from './records';
+import { firstTip, keepRelic, type TipId } from './records';
+import { WEAPONS } from './weapons';
 import { RELICS } from './relics';
 import { SHRINE_NAME } from './shrines';
 import type { Message } from '$lib/net/link';
@@ -26,6 +27,14 @@ export const GROW = 2.6;
 
 const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 const ease = (k: number) => k * k * (3 - 2 * k);
+
+/** 合体・遺物・祠・限界突破が初めて起きたときだけ、帯に足すひとこと */
+const TIP: Record<TipId, string> = {
+  union: '2 つの武器が 1 つになり、枠が 1 つ空いた',
+  relic: '遺物は次の回からもずっと効く。図鑑で見られる',
+  shrine: 'ご利益は 30 秒。HUD の印が残りの秒',
+  limit: 'ここからは武器の能力を上げ続けられる'
+};
 
 export class Prompts {
   options = $state<Choice[] | null>(null);
@@ -66,6 +75,11 @@ export class Prompts {
     this.#sync();
     // step は毎フレームの出来事を消してから進むので、始めの一言は作るときに帯へ写す
     if (w.note) this.notice = { text: w.note, key: -1, until: w.time + NOTICE * 2 };
+  }
+
+  #tipLimit(): void {
+    if (!this.options?.some((c) => c.kind === 'limit') || !firstTip('limit')) return;
+    this.notice = { text: `限界突破！\n${TIP.limit}`, key: this.#w.time, until: this.#w.time + NOTICE * 2 };
   }
 
   #sync() {
@@ -117,9 +131,17 @@ export class Prompts {
         // 雪の結晶はその場で引き直しをふやすので、3 択に見せる数も写し直す
         this.#sync();
         const name = RELICS.find((d) => d.id === e.id)!.name;
-        this.notice = { text: `遺物を手に入れた！\n${name}`, key: w.time, until: w.time + NOTICE * 2 };
-      } else if (e.type === 'shrine')
-        this.notice = { text: `${SHRINE_NAME[e.kind]}！`, key: w.time, until: w.time + NOTICE };
+        const tip = firstTip('relic') ? `\n${TIP.relic}` : '';
+        this.notice = { text: `遺物を手に入れた！ ${name}${tip}`, key: w.time, until: w.time + NOTICE * 2 };
+      } else if (e.type === 'shrine') {
+        const tip = firstTip('shrine');
+        this.notice = {
+          text: `${SHRINE_NAME[e.kind]}！${tip ? `\n${TIP.shrine}` : ''}`,
+          key: w.time,
+          until: w.time + NOTICE * (tip ? 2 : 1)
+        };
+      } else if (e.type === 'evolve' && WEAPONS[e.id]?.union && firstTip('union'))
+        this.notice = { text: `合体！\n${TIP.union}`, key: w.time, until: w.time + NOTICE * 2 };
       else if (e.type === 'chief') this.chief = { text: e.name, key: w.time, until: w.time + NOTICE };
       else if (e.type === 'bossIntro') {
         // WARNING の帯は札と重なるので、ボスが出たら消す
@@ -169,8 +191,11 @@ export class Prompts {
       w.arcanaPending = 0;
     }
     if (w.chests > 0) this.rewards = openChest(w);
-    else if (w.pending > 0) this.options = choices(w);
-    else return;
+    else if (w.pending > 0) {
+      this.options = choices(w);
+      this.#tipLimit();
+      this.#tipLimit();
+    } else return;
     this.lock.begin(finger);
   }
 
@@ -184,6 +209,7 @@ export class Prompts {
   /** 子の端末で、親から届いた 3 択を出す */
   offer(options: Choice[], tools: Prompts['tools'], finger: number | null = null): void {
     this.options = options;
+    this.#tipLimit();
     this.tools = tools;
     this.lock.begin(finger);
   }
@@ -218,6 +244,7 @@ export class Prompts {
     w.rerolls -= 1;
     this.#sync();
     this.options = choices(w);
+    this.#tipLimit();
     this.lock.begin(finger);
   }
 
@@ -248,6 +275,7 @@ export class Prompts {
     w.banished.push(`${c.kind}:${c.id}`);
     this.#sync();
     this.options = choices(w);
+    this.#tipLimit();
     this.lock.begin(finger);
   }
 

@@ -8,7 +8,7 @@ import { ENEMY_ART } from './art/enemies';
 import { goldArt } from './art/evolved';
 import { ITEM_ART } from './art/items';
 import { RELIC_ART } from './art/explore';
-import { RELICS } from './relics';
+import { RELICS, type RelicDef } from './relics';
 import { stageOf } from './stages';
 import { BOOK } from './book';
 import { COIN_RATE, POUCH, PURSE } from './drops';
@@ -53,7 +53,7 @@ export function entries(r: Records, tab: Tab): Entry[] {
       name: d.name,
       known: r.relics.includes(d.id),
       detail: [d.blurb],
-      hint: `${stageOf(d.stage).name}のどこかにある`
+      hint: relicHint(d)
     }));
   if (tab === 'arcana') {
     const open = openArcana(r.achieved);
@@ -108,4 +108,13 @@ export function entries(r: Records, tab: Tab): Entry[] {
     known: b.items.includes(key),
     detail: [ITEMS[key][1]]
   }));
+}
+
+const COMPASS = ['東', '南東', '南', '南西', '西', '北西', '北', '北東'];
+
+/** まだ拾っていない遺物の手がかり。画面の上を北として、向きは 8 方位、遠さは 2 段 */
+export function relicHint(def: RelicDef): string {
+  const i = ((Math.round(def.angle / (Math.PI / 4)) % 8) + 8) % 8;
+  const far = def.dist >= 1000 ? '遠く' : '少し離れたところ';
+  return `${stageOf(def.stage).name}の${COMPASS[i]}の${far}`;
 }

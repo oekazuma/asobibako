@@ -5,10 +5,14 @@ import { ENEMIES } from './enemies';
 import { limitStats } from './limit';
 import { obstacleAt } from './obstacles';
 import { MAX_LEVEL, WEAPONS, weaponStats } from './weapons';
-import { addHero, chiefOf, createWorld, makeEnemy, step, type World } from './world';
+import { addHero, chiefOf, createWorld, makeEnemy, step, summary, type World } from './world';
 import { quitAction } from './coop-quit';
 import { relicIconY } from './draw-events';
 import { BLESS_GAP } from './draw-explore';
+import { ACHIEVEMENTS } from './achievements';
+import { relicHint } from './book-view';
+import { emptyRecords } from './records';
+import { RELICS } from './relics';
 
 const VIEW = { w: 260, h: 380 };
 
@@ -112,5 +116,42 @@ describe('HUD の重なり', () => {
 
   it('ご利益の印の間は、印（5）と 3 けたの秒（3 × 4 ドット）より広い', () => {
     expect(BLESS_GAP).toBeGreaterThan(5 + 2 + 3 * 4);
+  });
+});
+
+describe('新しい実績', () => {
+  const done = (id: string, r = emptyRecords(), run?: Parameters<(typeof ACHIEVEMENTS)[number]['done']>[1]) =>
+    ACHIEVEMENTS.find((a) => a.id === id)!.done(r, run as never);
+
+  it('遺物の 2 つは記録の遺物の数で決まり、店の画面（回のまとめなし）でも落ちない', () => {
+    const r = emptyRecords();
+    expect(done('relic1', r)).toBe(false);
+    r.relics = ['map'];
+    expect(done('relic1', r)).toBe(true);
+    expect(done('relicAll', r)).toBe(false);
+    r.relics = RELICS.map((d) => d.id);
+    expect(done('relicAll', r)).toBe(true);
+    for (const id of ['shrine10', 'union3', 'limit50']) expect(done(id, r, undefined)).toBe(false);
+  });
+
+  it('祠めぐり・合体の名手・限界の先へは、その回のまとめで決まる', () => {
+    const w = quiet();
+    w.shrinesUsed = Array.from({ length: 10 }, (_, i) => i);
+    w.evolvedNow.push('howlUn', 'acornUn', 'pawUn');
+    w.weapons = [{ id: 'woof', level: 5, cd: 0, limit: { damage: 50 } }];
+    const run = summary(w);
+    expect(run.shrines).toBe(10);
+    expect(done('shrine10', emptyRecords(), run)).toBe(true);
+    expect(done('union3', emptyRecords(), run)).toBe(true);
+    expect(done('limit50', emptyRecords(), run)).toBe(true);
+  });
+});
+
+describe('図鑑の遺物の手がかり', () => {
+  it('ステージと、画面の上を北とした向きと、遠さを出す', () => {
+    const map = RELICS.find((d) => d.id === 'map')!; // 角度 -0.6（右上）、700
+    const lamp = RELICS.find((d) => d.id === 'lamp')!; // 角度 2.4（左下）、1500
+    expect(relicHint(map)).toBe('森の北東の少し離れたところ');
+    expect(relicHint(lamp)).toBe('森の南西の遠く');
   });
 });

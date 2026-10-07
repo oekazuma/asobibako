@@ -109,6 +109,7 @@ describe('世界', () => {
       opened: 0,
       evolved: [],
       relics: [],
+      shrines: 0,
       dealt: [],
       stage: 'forest',
       form: 0,

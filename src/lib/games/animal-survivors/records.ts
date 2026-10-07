@@ -34,6 +34,8 @@ export interface Records {
   /** 作った進化形 */
   evolved: string[];
   relics: RelicId[];
+  /** 出した初めての説明（端末ごと） */
+  tips: TipId[];
   /** クリアした面 */
   stages: string[];
   /** 前に遊んだ面 */
@@ -91,6 +93,7 @@ export function emptyRecords(): Records {
     chests: 0,
     evolved: [],
     relics: [],
+    tips: [],
     stages: [],
     stage: 'forest',
     animal: 'dog',
@@ -157,6 +160,7 @@ export function parseRecords(text: string | null): Records {
       Object.keys(WEAPONS).filter((id) => WEAPONS[id].evolved)
     ),
     relics: list(raw.relics, RELIC_IDS),
+    tips: list(raw.tips, TIP_IDS),
     stages: stagesOf(raw),
     stage: typeof raw.stage === 'string' && STAGE_IDS.includes(raw.stage) ? raw.stage : 'forest',
     animal: ids.includes(raw.animal as AnimalId) ? (raw.animal as AnimalId) : 'dog',
@@ -307,6 +311,18 @@ export function saveRecords(r: Records): void {
   } catch {
     // 保存できなくても遊び続けられるようにする
   }
+}
+
+export type TipId = 'union' | 'relic' | 'shrine' | 'limit';
+const TIP_IDS: TipId[] = ['union', 'relic', 'shrine', 'limit'];
+
+/** 初めての説明をまだ出していなければ、出したことを記録に書いて true（端末ごと） */
+export function firstTip(id: TipId): boolean {
+  const r = loadRecords();
+  if (r.tips.includes(id)) return false;
+  r.tips.push(id);
+  saveRecords(r);
+  return true;
 }
 
 /** 拾った遺物をすぐ記録へ書く（倒れた回・アプリが閉じた回でも残るように、回の終わりを待たない） */
