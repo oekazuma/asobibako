@@ -104,8 +104,29 @@ describe('協力プレイのつなぎ', () => {
     expect(v.heroes[v.cur].weapons[0].limit).toEqual({ damage: 2, cooldown: 1 });
   });
 
-  it('snap の形を変えたので、つなぎ方の版は 3（古い版の端末とはつながない）', () => {
-    expect(COOP_VERSION).toBe(3);
+  it('snap の形を変えたので、つなぎ方の版は 4（古い版の端末とはつながない）', () => {
+    expect(COOP_VERSION).toBe(4);
+  });
+  it('子の押しが親の World で数えられ、親も押すと技が出る', async () => {
+    const { g, w, h } = await started();
+    w.heroes[1].player.x = w.heroes[0].player.x + 10;
+    w.heroes[1].player.y = w.heroes[0].player.y;
+    w.link.charge = w.link.need;
+    g.link();
+    await settle();
+    expect(w.link.press[1]).toBe(w.time);
+    h.link();
+    expect(w.link.armed).toBe(true);
+  });
+
+  it('親が一時停止しているあいだに届いた子の押しは数えない', async () => {
+    const { guest, w, h } = await started();
+    w.link.charge = w.link.need;
+    h.pause();
+    // 子の端末の止まった印を待たずに届いた押し（親の側で数えないことを見る）
+    guest.act({ t: 'link' });
+    await settle();
+    expect(w.link.press[1]).toBe(-1e9);
   });
 
   it('風の祠のご利益は、子の端末での子の動物の動きにも効く', async () => {

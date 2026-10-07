@@ -11,6 +11,7 @@ import { apply, choices, isFiller, type Choice } from './choices';
 import type { GearKey } from './gear';
 import { applySnap, COOP_VERSION, lerpSnap, makeSnap, type Snap } from './snap';
 import { Timeline } from './timeline';
+import { pressLink } from './link';
 import type { Ranks } from './upgrades';
 import { PLAYER_R, pushOut } from './obstacles';
 import { HASTE } from './shrines';
@@ -118,7 +119,10 @@ export class CoopHost {
         }
         this.#drop();
       } else if (m.t === 'leave') this.#drop();
-      else if (m.t === 'pause') this.#pause('guest');
+      else if (m.t === 'link') {
+        // 止めているあいだはゲームの時刻が進まないので、そのあいだの押しを数えると再開後の押しと合わさってしまう
+        if (this.#w?.heroes[1] && !this.paused) pressLink(this.#w, 1);
+      } else if (m.t === 'pause') this.#pause('guest');
       else if (m.t === 'resume') {
         if (this.paused === 'guest') this.#resume();
       } else this.#answer(m);
@@ -128,6 +132,11 @@ export class CoopHost {
   /** 子が宝箱を開けている（宝箱は開けたときに数が減るので、閉じるまでは 2 人とも止める） */
   get busy(): boolean {
     return this.#asked === 'rewards';
+  }
+
+  /** 親が連携の技のボタンを押した */
+  link(): void {
+    if (this.#w && !this.paused) pressLink(this.#w, 0);
   }
 
   pause(): void {
@@ -350,6 +359,11 @@ export class CoopGuest {
   pick(me: Me): void {
     this.#me = me;
     this.#party.act({ t: 'pick', ...me });
+  }
+
+  /** 連携の技のボタンを押した。そろったかは親が決める */
+  link(): void {
+    if (!this.paused) this.#party.act({ t: 'link' });
   }
 
   pause(): void {

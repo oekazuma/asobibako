@@ -13,6 +13,18 @@ function guestView() {
 }
 
 describe('snap', () => {
+  it('連携の技のゲージと押した時刻と絵を運ぶ', () => {
+    const w = createWorld('dog', 1, VIEW);
+    addHero(w, 'cat');
+    w.link.charge = 120;
+    w.link.press = [3.5, -1e9];
+    w.link.fuse = 0.4;
+    w.link.shows.push({ hero: 0, animal: 'dog', x: 1, y: 2, angle: 0.5, t: 0.1 });
+    const s = JSON.parse(JSON.stringify(makeSnap(w, [])));
+    const view = guestView();
+    applySnap(view, s);
+    expect(view.link).toEqual(w.link);
+  });
   it('読んだ側の敵・ほかの動物が、親と同じ位置と種類になる', () => {
     const w = createWorld('dog', 1, VIEW);
     addHero(w, 'cat');

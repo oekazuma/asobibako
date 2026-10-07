@@ -1,4 +1,5 @@
 import { RELIC_IDS, type RelicId } from './relics';
+import type { Link } from './link';
 import { LIMIT_STATS, type Limit } from './limit';
 import { animal, type AnimalId } from './animals';
 import type { Effect, Shot } from './arms';
@@ -10,7 +11,7 @@ import type { Storm } from './storm';
 import { addHero, chiefOf, eliteOf, makeEnemy, type GameEvent, type World } from './world';
 
 /** 協力プレイの知らせの形の版。形を変えたら 1 上げる */
-export const COOP_VERSION = 3;
+export const COOP_VERSION = 4;
 
 type Row = (number | string)[];
 
@@ -32,6 +33,7 @@ export interface Snap {
   treasure: number;
   relics: RelicId[];
   shrines: number[];
+  link: Link;
   events: GameEvent[];
 }
 
@@ -159,6 +161,7 @@ export function makeSnap(w: World, events: GameEvent[]): Snap {
     treasure: w.treasure ? w.items.indexOf(w.treasure) : -1,
     relics: w.relics,
     shrines: w.shrinesUsed,
+    link: { ...w.link, press: [...w.link.press] as [number, number], shows: w.link.shows.map((s) => ({ ...s })) },
     events
   };
 }
@@ -293,6 +296,7 @@ export function applySnap(view: World, s: Snap): void {
   view.treasure = s.treasure >= 0 ? (view.items[s.treasure] ?? null) : null;
   view.relics = s.relics;
   view.shrinesUsed = s.shrines;
+  view.link = s.link;
   view.events = s.events;
 }
 
