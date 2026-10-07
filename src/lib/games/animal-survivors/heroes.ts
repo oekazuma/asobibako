@@ -24,6 +24,7 @@ export const HERO_KEYS = [
   'pending',
   'chests',
   'big',
+  'raises',
   'blessing'
 ] as const;
 export type HeroKey = (typeof HERO_KEYS)[number];
@@ -89,6 +90,7 @@ export function raise(w: World, dt: number): void {
       b.might = Math.max(0, b.might) + RAISE_BLESS;
       b.speed = Math.max(0, b.speed) + RAISE_BLESS;
     }
+    w.heroes[by].raises += 1;
     w.events.push({ type: 'raised', who: i, by });
   });
 }

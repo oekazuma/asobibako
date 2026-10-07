@@ -79,6 +79,7 @@ export function stepCarry(w: World, dt: number): void {
     h.big += 1;
   }
   addCoins(w, CARRY_COINS);
+  w.carried += 1;
   w.carry = null;
   w.events.push({ type: 'swarm', text: '祭壇に届いた！\n2 匹に宝箱' });
 }

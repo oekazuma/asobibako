@@ -224,6 +224,10 @@ export interface World {
   carry: Carry | null;
   /** 次に開ける宝箱を中身 3 つにする数（運んだ重い宝箱のぶん） */
   big: number;
+  /** その動物が相棒を起こした回数 */
+  raises: number;
+  /** 2 匹で祭壇まで運んだ重い宝箱の数 */
+  carried: number;
   /** 流れ星の残り秒と、次の予告までの秒 */
   meteors: { left: number; next: number };
   /** お祭りの残り秒 */
@@ -271,6 +275,8 @@ export interface World {
       bossTimes: number;
       lavaKills: number;
       tickets: number[];
+      links: number;
+      raises: number[];
     };
     coins: number;
     retreat: boolean;
@@ -368,6 +374,7 @@ export function makeHero(id: AnimalId, ranks: Ranks, mods: ModId[], gear: GearKe
     pending: 0,
     chests: 0,
     big: 0,
+    raises: 0,
     blessing: { might: 0, speed: 0, xp: 0 },
     down: false,
     revive: 0,
@@ -426,6 +433,7 @@ export function createWorld(
     lavaKills: 0,
     treasure: null,
     carry: null,
+    carried: 0,
     meteors: { left: 0, next: 0 },
     festival: 0,
     propCd: 2,
@@ -1064,6 +1072,18 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   collect(w, dt);
 }
 
+export interface CoopRun {
+  me: number;
+  heroes: { animal: AnimalId; kills: number; damage: number; raises: number }[];
+  links: number;
+  carries: number;
+  /** 2 人でクリアしたときに足したコイン（銅の券 1 枚もいっしょに足してある） */
+  bonus: number;
+}
+
+/** 2 人でクリアした回のコインに足す割合 */
+export const DUO_BONUS = 0.2;
+
 export interface RunSummary {
   animal: AnimalId;
   cleared: boolean;
@@ -1108,6 +1128,8 @@ export interface RunSummary {
   relics?: RelicId[];
   /** この回に使った祠の数 */
   shrines?: number;
+  /** 協力プレイの回の 2 人の数（1 人の回には無い）。me はこのまとめの動物の番号 */
+  coop?: CoopRun;
 }
 
 /** 強欲を掛けたこの回のコイン。1 枚ずつ掛けると端数で減るので、合計に掛ける */
@@ -1116,7 +1138,7 @@ export function coinsOf(w: World): number {
 }
 
 export function summary(w: World): RunSummary {
-  return {
+  const s: RunSummary = {
     animal: w.animal.id,
     heat: w.heat,
     arcana: [...w.arcana],
@@ -1165,4 +1187,27 @@ export function summary(w: World): RunSummary {
       }
     })
   };
+  if (w.heroes.length < 2) return s;
+  const duo = w.over === 'clear' && !w.overtime && w.heroes.every((h) => !h.gone);
+  const bonus = duo ? Math.floor(s.coins * DUO_BONUS) : 0;
+  s.coop = {
+    me: w.cur,
+    heroes: w.heroes.map((h) => {
+      const d = Object.values(h.dealt);
+      return {
+        animal: h.animal.id,
+        kills: d.reduce((n, x) => n + x.kills, 0),
+        damage: Math.round(d.reduce((n, x) => n + x.damage, 0)),
+        raises: h.raises
+      };
+    }),
+    links: w.link.uses,
+    carries: w.carried,
+    bonus
+  };
+  if (bonus) {
+    s.coins += bonus;
+    s.tickets = [(s.tickets?.[0] ?? 0) + 1, s.tickets?.[1] ?? 0, s.tickets?.[2] ?? 0];
+  }
+  return s;
 }

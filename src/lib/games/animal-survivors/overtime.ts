@@ -40,7 +40,9 @@ export function startOvertime(w: World): void {
       killsBy: { ...w.killsBy },
       bossTimes: w.bossTimes.length,
       lavaKills: w.lavaKills,
-      tickets: [...w.tickets]
+      tickets: [...w.tickets],
+      links: w.link.uses,
+      raises: w.heroes.map((h) => h.raises)
     },
     coins: 0,
     retreat: false
@@ -72,6 +74,16 @@ export function overtimeRun(w: World): RunSummary {
     opened: w.opened - base.opened,
     lavaKills: w.lavaKills - base.lavaKills,
     coins: overtimeCoins(w),
-    book: { ...s.book, kills, bosses: s.book.bosses.slice(base.bossTimes) }
+    book: { ...s.book, kills, bosses: s.book.bosses.slice(base.bossTimes) },
+    // 記録は 10:00 のクリアで 1 度入れているので、2 度めは延長戦のぶんの差だけにする
+    ...(s.coop && {
+      coop: {
+        ...s.coop,
+        links: s.coop.links - base.links,
+        carries: 0,
+        heroes: s.coop.heroes.map((h, i) => ({ ...h, raises: h.raises - (base.raises[i] ?? 0) })),
+        bonus: 0
+      }
+    })
   };
 }
