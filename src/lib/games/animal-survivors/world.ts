@@ -1,5 +1,5 @@
 import { animal, type Animal, type AnimalId } from './animals';
-import { calmLink, type Link } from './link';
+import { calmLink, chargeLink, stepLink, type Link } from './link';
 import type { RunBook } from './book';
 import { fire, hits, type Effect, type Shot } from './arms';
 import { moveBoss, slot, spawnBosses, updateHazards, type Hazard } from './bosses';
@@ -535,6 +535,7 @@ export function damageEnemy(
     return;
   }
   countKill(w, e);
+  chargeLink(w, e);
   if (e.def.metal) w.metalWon = true;
   if (source) w.dealt[source].kills += 1;
   w.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.def.id });
@@ -927,6 +928,8 @@ export function hurtPlayer(w: World, raw: number, from: Hurt = 'touch'): void {
 export function step(w: World, input: { x: number; y: number }, dt: number): void {
   w.events.length = 0;
   if (w.over || anyPending(w) || anyChest(w)) return;
+  // 連携の技の前の止めは World の中で持つので、親の画面も子の画面も同じだけ止まる
+  if (stepLink(w, dt)) return;
   w.time += dt;
   if (w.time >= w.stage.length) {
     for (const e of w.enemies) {

@@ -1,7 +1,7 @@
 import type { AnimalId } from './animals';
 import { eachHero } from './heroes';
-import { HALVES, inHalf } from './link-halves';
-import { damageEnemy, type World } from './world';
+import { HALVES, inHalf, linkName } from './link-halves';
+import { damageEnemy, type Enemy, type World } from './world';
 
 export interface LinkShow {
   hero: number;
@@ -97,4 +97,82 @@ export function fireLink(w: World): void {
   } finally {
     w.link.firing = false;
   }
+}
+
+/** 1 体で入る量。危ない相手に寄って倒すほど早くたまる */
+const worth = (e: Enemy) => (e.def.boss ? 80 : e.def.chief ? 40 : e.def.elite ? 4 : 1);
+
+/** 2 匹がどちらも立っていて、近くにいる */
+export function together(w: World): boolean {
+  const [a, b] = w.heroes;
+  if (!b || a.down || b.down || a.gone || b.gone) return false;
+  return Math.hypot(a.player.x - b.player.x, a.player.y - b.player.y) <= LINK_NEAR;
+}
+
+/** 倒したところで呼ぶ */
+export function chargeLink(w: World, e: Enemy): void {
+  const l = w.link;
+  if (l.firing || l.armed || l.fuse > 0 || !together(w)) return;
+  l.charge = Math.min(l.need, l.charge + worth(e));
+}
+
+export function linkReady(w: World): boolean {
+  const l = w.link;
+  return (
+    w.heroes.length > 1 &&
+    w.heroes.every((h) => !h.down && !h.gone) &&
+    !l.armed &&
+    l.fuse <= 0 &&
+    l.cool <= 0 &&
+    l.charge >= l.need
+  );
+}
+
+/** 押した。2 人の押しが LINK_WINDOW 以内にそろえば、次の step で止めを始める */
+export function pressLink(w: World, hero: 0 | 1): boolean {
+  if (!linkReady(w)) return false;
+  const l = w.link;
+  l.press[hero] = w.time;
+  if (w.time - l.press[1 - hero] > LINK_WINDOW) return true;
+  l.armed = true;
+  l.press = [NEVER, NEVER];
+  l.charge = 0;
+  l.uses += 1;
+  l.need = Math.round(l.need * LINK_GROW);
+  l.cool = LINK_COOL;
+  return true;
+}
+
+export type LinkState = 'none' | 'ready' | 'waiting' | 'partner';
+
+/** me の端末のボタンの見た目 */
+export function linkState(w: World, me: number): LinkState {
+  if (!linkReady(w)) return 'none';
+  const l = w.link;
+  if (w.time - l.press[me] <= LINK_WINDOW) return 'waiting';
+  if (w.time - l.press[1 - me] <= LINK_WINDOW) return 'partner';
+  return 'ready';
+}
+
+/** step の頭で呼ぶ。止めているあいだは true を返し、step はそのまま返す */
+export function stepLink(w: World, dt: number): boolean {
+  const l = w.link;
+  if (l.armed) {
+    l.armed = false;
+    l.fuse = LINK_FUSE;
+    const [a, b] = w.heroes;
+    w.events.push({ type: 'link', a: a.animal.id, b: b.animal.id, name: linkName(a.animal.id, b.animal.id) });
+    return true;
+  }
+  if (l.fuse > 0) {
+    l.fuse -= dt;
+    if (l.fuse > 0) return true;
+    l.fuse = 0;
+    fireLink(w);
+    return false;
+  }
+  l.cool = Math.max(0, l.cool - dt);
+  for (const s of l.shows) s.t += dt;
+  l.shows = l.shows.filter((s) => s.t < LINK_SHOW);
+  return false;
 }

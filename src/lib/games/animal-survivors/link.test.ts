@@ -1,8 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { ENEMIES } from './enemies';
 import { HALVES, inHalf, linkName } from './link-halves';
-import { fireLink, LINK_BOSS, LINK_INVULN } from './link';
-import { addHero, createWorld, makeEnemy, type World } from './world';
+import {
+  fireLink,
+  LINK_BASE,
+  LINK_BOSS,
+  LINK_COOL,
+  LINK_FUSE,
+  LINK_GROW,
+  LINK_INVULN,
+  LINK_WINDOW,
+  linkReady,
+  linkState,
+  pressLink
+} from './link';
+import { addHero, createWorld, damageEnemy, makeEnemy, step, type World } from './world';
 
 const VIEW = { w: 260, h: 380 };
 
@@ -89,5 +101,147 @@ describe('技の当たり', () => {
     w.heroes[1].down = true;
     fireLink(w);
     expect(w.link.shows.map((s) => s.animal)).toEqual(['dog']);
+  });
+});
+
+/** i 番の敵を 1 体倒す */
+function kill(w: World, def = ENEMIES.caterpillar): void {
+  w.enemies.push(makeEnemy(def, 500, 500, 1));
+  damageEnemy(w, w.enemies.length - 1, 99, 0, 0);
+}
+
+/** ゲージを満たす */
+function fill(w: World): void {
+  w.link.charge = w.link.need;
+}
+
+describe('ゲージ', () => {
+  it('2 匹が近いときに倒した敵だけでたまり、ヌシとボスは多めに入る', () => {
+    const w = pair();
+    kill(w);
+    expect(w.link.charge).toBe(1);
+    w.heroes[1].player.x = 200;
+    kill(w);
+    expect(w.link.charge).toBe(1);
+    w.heroes[1].player.x = 20;
+    kill(w, { ...ENEMIES.boar, chief: true });
+    const chief = w.link.charge - 1;
+    kill(w, { ...ENEMIES.bear, hp: 1 });
+    const boss = w.link.charge - 1 - chief;
+    expect(chief).toBeGreaterThan(1);
+    expect(boss).toBeGreaterThan(chief);
+  });
+
+  it('1 匹のとき、片方が倒れているとき、抜けたときはたまらない', () => {
+    const solo = createWorld('dog', 1, VIEW);
+    kill(solo);
+    expect(solo.link.charge).toBe(0);
+    const w = pair();
+    w.heroes[1].down = true;
+    kill(w);
+    w.heroes[1].down = false;
+    w.heroes[1].gone = true;
+    kill(w);
+    expect(w.link.charge).toBe(0);
+  });
+
+  it('要る量を超えてはたまらない', () => {
+    const w = pair();
+    w.link.charge = w.link.need - 1;
+    kill(w, { ...ENEMIES.bear, hp: 1 });
+    expect(w.link.charge).toBe(w.link.need);
+  });
+});
+
+describe('せーの', () => {
+  it('満タンでないと押せず、1 匹のときもボタンは出ない', () => {
+    const w = pair();
+    expect(linkState(w, 0)).toBe('none');
+    expect(pressLink(w, 0)).toBe(false);
+    const solo = createWorld('dog', 1, VIEW);
+    solo.link.charge = solo.link.need;
+    expect(linkReady(solo)).toBe(false);
+  });
+
+  it('先に押した人は待っていて、相手には相棒が押したと出る', () => {
+    const w = pair();
+    fill(w);
+    expect(linkState(w, 0)).toBe('ready');
+    pressLink(w, 0);
+    expect(linkState(w, 0)).toBe('waiting');
+    expect(linkState(w, 1)).toBe('partner');
+  });
+
+  it('1.5 秒以内にそろうと 1 秒止めてから技が出て、要る量が増え、45 秒は使えない', () => {
+    const w = pair();
+    w.enemies.push(makeEnemy(ENEMIES.croc, 60, 0, 9999));
+    fill(w);
+    pressLink(w, 0);
+    w.time += LINK_WINDOW - 0.1;
+    expect(pressLink(w, 1)).toBe(true);
+    const t0 = w.time;
+    step(w, { x: 0, y: 0 }, 1 / 60);
+    expect(w.events.some((e) => e.type === 'link')).toBe(true);
+    for (let i = 0; i < 30; i++) step(w, { x: 0, y: 0 }, 1 / 60);
+    expect(w.time).toBe(t0);
+    expect(w.enemies[0].alive).toBe(true);
+    for (let i = 0; i < 40; i++) step(w, { x: 0, y: 0 }, 1 / 60);
+    expect(w.enemies[0].alive).toBe(false);
+    expect(w.link.need).toBe(Math.round(LINK_BASE * LINK_GROW));
+    fill(w);
+    expect(linkReady(w)).toBe(false);
+    w.link.cool = 0;
+    expect(linkReady(w)).toBe(true);
+    expect(LINK_COOL).toBeGreaterThanOrEqual(45);
+    expect(LINK_FUSE).toBe(1);
+  });
+
+  it('間に合わなければ出ず、満タンのまま押し直せる', () => {
+    const w = pair();
+    fill(w);
+    pressLink(w, 0);
+    w.time += LINK_WINDOW + 0.1;
+    pressLink(w, 1);
+    expect(w.link.armed).toBe(false);
+    expect(linkState(w, 0)).toBe('partner');
+    expect(pressLink(w, 0)).toBe(true);
+    expect(w.link.armed).toBe(true);
+  });
+
+  it('技で倒した敵ではたまらない', () => {
+    const w = pair();
+    for (let k = 0; k < 20; k++) w.enemies.push(makeEnemy(ENEMIES.caterpillar, 30 + k, 0, 50));
+    fill(w);
+    pressLink(w, 0);
+    pressLink(w, 1);
+    for (let i = 0; i < 80; i++) step(w, { x: 0, y: 0 }, 1 / 60);
+    expect(w.enemies.every((e) => !e.alive)).toBe(true);
+    expect(w.link.charge).toBe(0);
+  });
+
+  it('止めているあいだにもう一度押しても 2 回は出ない', () => {
+    const w = pair();
+    fill(w);
+    pressLink(w, 0);
+    pressLink(w, 1);
+    step(w, { x: 0, y: 0 }, 1 / 60);
+    expect(pressLink(w, 0)).toBe(false);
+    expect(pressLink(w, 1)).toBe(false);
+    for (let i = 0; i < 80; i++) step(w, { x: 0, y: 0 }, 1 / 60);
+    expect(w.link.uses).toBe(1);
+    expect(w.link.shows.length).toBeLessThanOrEqual(2);
+  });
+
+  it('片方が押したあとに相棒が倒れたらボタンは消え、起き上がったあとに古い押しでは出ない', () => {
+    const w = pair();
+    fill(w);
+    pressLink(w, 0);
+    w.heroes[1].down = true;
+    expect(linkState(w, 0)).toBe('none');
+    expect(linkState(w, 1)).toBe('none');
+    w.time += LINK_WINDOW + 1;
+    w.heroes[1].down = false;
+    pressLink(w, 1);
+    expect(w.link.armed).toBe(false);
   });
 });
