@@ -39,6 +39,8 @@ export const sounds = {
   revive: () => {
     for (const [i, f] of [392, 523, 784, 1047].entries()) tone(f, 180, 'triangle', 0.09, i * 80);
   },
+  /** 起こしているあいだ 1 秒ごと。段が進むほど高くする */
+  raising: (step: number) => tone(523 + step * 131, 90, 'triangle', 0.06),
   swarm: () => sweep(200, 600, 300, 0.07),
   cross: () => {
     noise(300, 0.1);

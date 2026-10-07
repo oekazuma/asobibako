@@ -142,6 +142,24 @@ describe('協力プレイのつなぎ', () => {
     expect(me.x).toBe(x0);
   });
 
+  it('親の World で子の動物が起き上がると、子の画面にも raised が届く', async () => {
+    const { g, w, h } = await started();
+    w.heroes[1].down = true;
+    w.heroes[1].player.hp = 0;
+    w.heroes[1].player.x = w.heroes[0].player.x + 5;
+    w.heroes[1].player.y = w.heroes[0].player.y;
+    let seen = false;
+    for (let i = 0; i < 200 && !seen; i++) {
+      step(w, { x: 0, y: 0 }, 1 / 60);
+      seen = w.events.some((e) => e.type === 'raised');
+      h.after(0.06);
+    }
+    expect(seen).toBe(true);
+    await settle();
+    g.frame(performance.now() + 1000);
+    expect(g.view!.events.some((e) => e.type === 'raised')).toBe(true);
+  });
+
   it('親が一時停止しているあいだに届いた子の押しは数えない', async () => {
     const { guest, w, h } = await started();
     w.link.charge = w.link.need;

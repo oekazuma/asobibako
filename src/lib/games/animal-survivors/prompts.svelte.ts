@@ -5,7 +5,7 @@ import { openChest, type Reward } from './chest';
 import { WARN_AHEAD } from './bosses';
 import { apply, choices, isFiller, type Choice } from './choices';
 import { ENEMIES } from './enemies';
-import { ownEvent } from './heroes';
+import { ownEvent, RAISE_BLESS } from './heroes';
 import { firstTip, keepRelic, type TipId } from './records';
 import { WEAPONS } from './weapons';
 import { RELICS } from './relics';
@@ -149,6 +149,8 @@ export class Prompts {
         this.notice = { text: `合体！\n${TIP.union}`, key: w.time, until: w.time + NOTICE * 2 };
       else if (e.type === 'chief') this.chief = { text: e.name, key: w.time, until: w.time + NOTICE };
       else if (e.type === 'link') this.link = { a: e.a, b: e.b, name: e.name, t: 0 };
+      else if (e.type === 'raised')
+        this.notice = { text: `復活！\n力と風のご利益 ${RAISE_BLESS} 秒`, key: w.time, until: w.time + NOTICE * 2 };
       else if (e.type === 'bossIntro') {
         // WARNING の帯は札と重なるので、ボスが出たら消す
         this.warning = null;

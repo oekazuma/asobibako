@@ -183,6 +183,17 @@ export class Effects {
       } else if (e.type === 'coin') {
         coin = true;
         if (e.value > 1) this.#number(`+${e.value}`, w.player.x, w.player.y - 14, PALETTE.y, 2);
+      } else if (e.type === 'raised') {
+        // 起こした相棒の画面にも、起きた動物の場所で粒をはじけさせる（白く光らせるのは起きた本人だけ）
+        const p = w.heroes[e.who].player;
+        if (e.who === w.cur) this.flash = 0.3;
+        for (let i = 0; i < 40; i++) {
+          const a = (i / 40) * Math.PI * 2;
+          this.#bit(p.x, p.y, Math.cos(a) * 140, Math.sin(a) * 140, 0.6, i % 2 ? PALETTE.r : PALETTE.w, 3);
+        }
+        sounds.revive();
+      } else if (e.type === 'raising') {
+        sounds.raising(e.step);
       } else if (e.type === 'revive') {
         this.flash = 0.3;
         const p = w.player;
