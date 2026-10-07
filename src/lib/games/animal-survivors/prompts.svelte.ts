@@ -4,6 +4,9 @@ import { WARN_AHEAD } from './bosses';
 import { apply, choices, isFiller, type Choice } from './choices';
 import { ENEMIES } from './enemies';
 import { ownEvent } from './heroes';
+import { keepRelic } from './records';
+import { RELICS } from './relics';
+import { SHRINE_NAME } from './shrines';
 import type { Message } from '$lib/net/link';
 import { Lock } from './lock.svelte';
 import { sounds } from './sounds';
@@ -103,6 +106,13 @@ export class Prompts {
       else if (e.type === 'special')
         this.notice = { text: `${w.animal.forms[2]}の 専用進化！`, key: w.time, until: w.time + NOTICE };
       else if (e.type === 'rush') this.notice = { text: 'コインラッシュ！', key: w.time, until: w.time + NOTICE };
+      else if (e.type === 'relic') {
+        // 倒れた回やアプリが閉じた回でも残るよう、拾ったその場で記録へ書く（協力プレイの子の端末も snap の出来事で書く）
+        keepRelic(e.id);
+        const name = RELICS.find((d) => d.id === e.id)!.name;
+        this.notice = { text: `遺物を手に入れた！\n${name}`, key: w.time, until: w.time + NOTICE * 2 };
+      } else if (e.type === 'shrine')
+        this.notice = { text: `${SHRINE_NAME[e.kind]}！`, key: w.time, until: w.time + NOTICE };
       else if (e.type === 'chief') this.chief = { text: e.name, key: w.time, until: w.time + NOTICE };
       else if (e.type === 'bossIntro') {
         // WARNING の帯は札と重なるので、ボスが出たら消す

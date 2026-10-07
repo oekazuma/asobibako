@@ -11,6 +11,7 @@ import { GRAVE_ART } from './art/graveyard';
 import { ITEM_ART } from './art/items';
 import { SNOW_ART } from './art/snow';
 import { OBSTACLE_ART } from './art/obstacles';
+import { RELIC_ART, SHRINE_ART } from './art/explore';
 import { goldArt, itemArt } from './art/evolved';
 import { PALETTE } from './art/palette';
 import { goldOf, problems, type Art } from './pixels';
@@ -35,10 +36,17 @@ const all: [string, Art][] = [
   ['snow.grass', SNOW_ART.grass],
   ['snow.dirt', SNOW_ART.dirt],
   ...Object.entries(SNOW_ART.decor),
-  ...Object.entries(OBSTACLE_ART)
+  ...Object.entries(OBSTACLE_ART),
+  ...Object.entries(RELIC_ART),
+  ...Object.entries(SHRINE_ART)
 ];
 
 describe('ドット絵の格子', () => {
+  it('遺物 8 つと祠 5 つの絵がある', () => {
+    expect(Object.keys(RELIC_ART)).toHaveLength(8);
+    expect(Object.keys(SHRINE_ART)).toHaveLength(5);
+  });
+
   it('合体武器のアイコンが 6 枚ある', () => {
     for (const id of ['howlUn', 'acornUn', 'flameUn', 'pawUn', 'woofUn', 'featherUn'])
       expect(ITEM_ART[`weapon-${id}`]).toBeDefined();

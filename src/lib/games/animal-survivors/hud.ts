@@ -5,6 +5,7 @@ import { overtimeRate, xpNeed } from './drops';
 import type { ViewSize } from './draw';
 import { text, textWidth } from './font';
 import { bake } from './pixels';
+import { blessings } from './draw-explore';
 import { WEAPONS } from './weapons';
 import { coinsOf, type Owned, type World } from './world';
 
@@ -73,6 +74,7 @@ export function hud(ctx: CanvasRenderingContext2D, w: World, v: ViewSize, top: n
   bar(ctx, 6, top + 12, 80, 4, w.player.hp / w.stats.maxHp, PALETTE.r, PALETTE.R);
   text(ctx, `${hp}/${Math.round(w.stats.maxHp)}`, 90, top + 11, PALETTE.w);
 
+  blessings(ctx, w, 6, v.h - SLOT * 2 - 16, text);
   slots(ctx, w.weapons, 'weapon', 6, v.h - SLOT * 2 - 8);
   slots(ctx, w.passives, 'passive', 6, v.h - SLOT - 6);
 }

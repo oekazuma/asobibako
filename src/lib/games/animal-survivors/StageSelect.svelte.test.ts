@@ -66,4 +66,15 @@ describe('StageSelect', () => {
     record(r, run(3));
     expect(r.heat.forest).toBe(3);
   });
+
+  it('札に、そのステージで拾った遺物の数を出す', () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const r = { ...emptyRecords(), stages: ['forest', 'graveyard'], relics: ['map' as const] };
+    const app = mount(StageSelect, { target, props: { records: r, onpick: () => {}, onback: () => {} } });
+    flushSync();
+    const text = (id: string) => target.querySelector(`[data-stage="${id}"]`)!.textContent;
+    expect(text('forest')).toContain('遺物 1 / 2');
+    expect(text('graveyard')).toContain('遺物 0 / 2');
+    unmount(app);
+  });
 });

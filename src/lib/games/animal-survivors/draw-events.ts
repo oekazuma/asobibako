@@ -4,6 +4,8 @@ import { pulse } from './draw-boss';
 import { PALETTE } from './art/palette';
 import { text, textWidth } from './font';
 import { bake } from './pixels';
+import { RELIC_ART } from './art/explore';
+import { relicTargets } from './draw-explore';
 import type { World } from './world';
 
 const CONFETTI = 40;
@@ -128,6 +130,14 @@ export function chiefArrows(ctx: CanvasRenderingContext2D, w: World, vw: number,
     if (!e.alive || !e.def.chief) continue;
     const at = edgeArrow(ctx, w, e, vw, vh, top);
     if (at) ctx.drawImage(bake(c), at.x - Math.floor(c.w / 2), at.y + 6);
+  }
+}
+
+/** 画面の外の遺物への矢印。宝箱やヌシと見分けるよう、遺物の絵を画面の内側へ添える */
+export function relicArrows(ctx: CanvasRenderingContext2D, w: World, vw: number, vh: number, top: number): void {
+  for (const t of relicTargets(w)) {
+    const at = edgeArrow(ctx, w, t, vw, vh, top);
+    if (at) ctx.drawImage(bake(RELIC_ART[t.id]), at.x - 6, at.y + 6);
   }
 }
 

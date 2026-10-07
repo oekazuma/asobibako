@@ -21,4 +21,12 @@ describe('札の図鑑と開く実績', () => {
     expect(glass.known).toBe(false);
     expect(glass.hint).toContain('武器 3 つを Lv5 にする');
   });
+
+  it('遺物のタブは 8 つで、持っている遺物だけ名前が出る', () => {
+    const r = emptyRecords();
+    r.relics = ['lamp'];
+    const list = entries(r, 'relics');
+    expect(list).toHaveLength(8);
+    expect(list.filter((e) => e.known).map((e) => e.name)).toEqual(['魔法のランプ']);
+  });
 });

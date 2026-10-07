@@ -16,7 +16,7 @@ import { byFeet, covers, drawObstacles, inView } from './draw-obstacles';
 import { hash, obstaclesNear, type Obstacle } from './obstacles';
 import type { Prompts } from './prompts.svelte';
 import { nearestHero, RAISE_SECS, type Hero } from './heroes';
-import { chiefArrows, confetti, partnerArrows, treasureArrow } from './draw-events';
+import { chiefArrows, confetti, partnerArrows, relicArrows, treasureArrow } from './draw-events';
 import { blizzard } from './draw-storm';
 import { drawLava } from './draw-volcano';
 import { EAGLE } from './bosses-forest';
@@ -25,6 +25,7 @@ import { airborne, YETI } from './bosses-snow';
 import { gemTier } from './drops';
 import type { Effects } from './effects';
 import { hud } from './hud';
+import { drawRelic, drawShrines } from './draw-explore';
 import { bake, type Art } from './pixels';
 import type { Enemy, World } from './world';
 
@@ -365,7 +366,8 @@ function pickups(ctx: CanvasRenderingContext2D, w: World, now: number) {
     sprite(ctx, ITEM_ART[`gem${gemTier(g.value)}`], frameAt(now * 3 + g.x * 0.1, 2), g.x, g.y);
   }
   for (const it of w.items)
-    if (it.alive)
+    if (it.alive && it.kind === 'relic') drawRelic(ctx, it.x, it.y, it.relic!, now, q);
+    else if (it.alive)
       sprite(
         ctx,
         it.kind === 'ticket'
@@ -414,6 +416,7 @@ export function draw(
   const cy = eye.y - v.h / 2;
   ctx.setTransform(S, 0, 0, S, -devicePx(cx, S), -devicePx(cy, S));
   ground(ctx, w, cx, cy, v);
+  drawShrines(ctx, w, cx, cy, v.w, v.h, q);
   drawLava(ctx, w, now);
   hazardsBelow(ctx, w, q, now);
   zonesBelow(ctx, w, q, now);
@@ -488,6 +491,7 @@ export function draw(
   if (!prompts?.intro) {
     treasureArrow(ctx, w, v.w, v.h, top, now);
     chiefArrows(ctx, w, v.w, v.h, top);
+    relicArrows(ctx, w, v.w, v.h, top);
     partnerArrows(ctx, w, v.w, v.h, top);
   }
   bossBars(ctx, w, v, top);

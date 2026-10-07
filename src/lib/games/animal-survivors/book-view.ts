@@ -7,13 +7,16 @@ import { BOSS_ART } from './art/bosses';
 import { ENEMY_ART } from './art/enemies';
 import { goldArt } from './art/evolved';
 import { ITEM_ART } from './art/items';
+import { RELIC_ART } from './art/explore';
+import { RELICS } from './relics';
+import { stageOf } from './stages';
 import { BOOK } from './book';
 import { COIN_RATE, POUCH, PURSE } from './drops';
 import { ENEMIES } from './enemies';
 import type { Art } from './pixels';
 import type { Records } from './records';
 
-export type Tab = keyof typeof BOOK | 'arcana';
+export type Tab = keyof typeof BOOK | 'arcana' | 'relics';
 
 export interface Entry {
   key: string;
@@ -43,6 +46,15 @@ const art = (id: string): Art => (ENEMY_ART as Record<string, Art>)[id] ?? (BOSS
 
 export function entries(r: Records, tab: Tab): Entry[] {
   const b = r.book;
+  if (tab === 'relics')
+    return RELICS.map((d) => ({
+      key: d.id,
+      art: RELIC_ART[d.id],
+      name: d.name,
+      known: r.relics.includes(d.id),
+      detail: [d.blurb],
+      hint: `${stageOf(d.stage).name}のどこかにある`
+    }));
   if (tab === 'arcana') {
     const open = openArcana(r.achieved);
     return ARCANA.map((a) => ({

@@ -10,9 +10,12 @@
   import { clock } from './hud';
   import PixelIcon from './PixelIcon.svelte';
   import { canPlay, type Records } from './records';
+  import { RELICS } from './relics';
   import { STAGES } from './stages';
 
   let { records, onpick, onback }: { records: Records; onpick: (id: string) => void; onback: () => void } = $props();
+
+  const found = (stage: string) => RELICS.filter((d) => d.stage === stage && records.relics.includes(d.id)).length;
 
   const LOOK = {
     forest: { tile: FOREST_ART.grass, mark: FOREST_ART.decor.tree },
@@ -48,6 +51,7 @@
             {#if s.id !== 'forest'}<span class="info hard">敵が強い</span>{/if}
             {#if records.overtime[s.id]}<span class="info">延長 {clock(records.overtime[s.id])}</span>{/if}
             {#if (records.heat[s.id] ?? 0) > 2}<span class="info">釜 {heatLabel(records.heat[s.id])}</span>{/if}
+            <span class="info">遺物 {found(s.id)} / {RELICS.filter((d) => d.stage === s.id).length}</span>
           {:else}
             <span class="info">{s.unlock}</span>
           {/if}

@@ -11,7 +11,8 @@
     ['bosses', 'ボス'],
     ['forms', '動物'],
     ['items', '品'],
-    ['arcana', '札']
+    ['arcana', '札'],
+    ['relics', '遺物']
   ];
   let tab = $state<Tab>('enemies');
   let open = $state<Entry | null>(null);
