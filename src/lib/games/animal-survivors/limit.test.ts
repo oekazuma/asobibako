@@ -126,3 +126,14 @@ describe('限界突破の札', () => {
     expect(summary(w).weapons[0].lb).toBe(4);
   });
 });
+
+describe('見直しで直したこと', () => {
+  it('上げた回数のある 2 つの武器を合体させても、回数は能力ごとに足して残る', async () => {
+    const { unite, unitable } = await import('./unions');
+    const w = full(['howl', 'thunder', 'paw', 'acorn', 'dash', 'boomerang']);
+    w.weapons[0].limit = { damage: 2, area: 1 };
+    w.weapons[1].limit = { damage: 1, cooldown: 3 };
+    unite(w, unitable(w)!);
+    expect(w.weapons[0]).toMatchObject({ id: 'howlUn', limit: { damage: 3, area: 1, cooldown: 3 } });
+  });
+});
