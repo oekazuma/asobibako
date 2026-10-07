@@ -38,8 +38,8 @@ export const LINK_FUSE = 1;
 export const LINK_INVULN = 2;
 export const LINK_BOSS = 0.1;
 export const LINK_SHOW = 0.8;
-export const LINK_BASE = 300;
-export const LINK_GROW = 1.6;
+export const LINK_BASE = 900;
+export const LINK_GROW = 2;
 /** JSON で送れるよう -Infinity の代わりに使う */
 export const NEVER = -1e9;
 
