@@ -69,6 +69,9 @@ export function relicTargets(w: World): { x: number; y: number; id: RelicId }[] 
     .map((it) => ({ x: it.x, y: it.y, id: it.relic! }));
 }
 
+/** ご利益の印どうしの間（印 5 ドット・すき間・3 けたの秒が入る） */
+export const BLESS_GAP = 26;
+
 const BLESS = [
   ['might', 'r'],
   ['speed', 'l'],
@@ -87,7 +90,7 @@ export function blessings(
   for (const [k, c] of BLESS) {
     const left = w.blessing[k];
     if (left <= 0) continue;
-    const sx = x + i * 18;
+    const sx = x + i * BLESS_GAP;
     ctx.fillStyle = PALETTE.k;
     ctx.fillRect(sx, y, 5, 5);
     ctx.fillStyle = PALETTE[c];

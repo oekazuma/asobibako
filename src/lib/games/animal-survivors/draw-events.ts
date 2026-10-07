@@ -133,11 +133,14 @@ export function chiefArrows(ctx: CanvasRenderingContext2D, w: World, vw: number,
   }
 }
 
+/** 遺物の絵を添える高さ。下半分では HUD の武器の枠に重ならないよう、矢印の上に出す */
+export const relicIconY = (atY: number, vh: number) => (atY > vh / 2 ? atY - 18 : atY + 6);
+
 /** 画面の外の遺物への矢印。宝箱やヌシと見分けるよう、遺物の絵を画面の内側へ添える */
 export function relicArrows(ctx: CanvasRenderingContext2D, w: World, vw: number, vh: number, top: number): void {
   for (const t of relicTargets(w)) {
     const at = edgeArrow(ctx, w, t, vw, vh, top);
-    if (at) ctx.drawImage(bake(RELIC_ART[t.id]), at.x - 6, at.y + 6);
+    if (at) ctx.drawImage(bake(RELIC_ART[t.id]), at.x - 6, relicIconY(at.y, vh));
   }
 }
 

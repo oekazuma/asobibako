@@ -7,6 +7,8 @@ import { obstacleAt } from './obstacles';
 import { MAX_LEVEL, WEAPONS, weaponStats } from './weapons';
 import { addHero, chiefOf, createWorld, makeEnemy, step, type World } from './world';
 import { quitAction } from './coop-quit';
+import { relicIconY } from './draw-events';
+import { BLESS_GAP } from './draw-explore';
 
 const VIEW = { w: 260, h: 380 };
 
@@ -99,5 +101,16 @@ describe('協力プレイの ✕', () => {
     expect(quitAction({ host: true, over: null, overtime: false, asking: false })).toBe('end');
     expect(quitAction({ host: true, over: 'dead', overtime: false, asking: false })).toBe('none');
     expect(quitAction({ host: false, over: 'clear', overtime: false, asking: true })).toBe('leave');
+  });
+});
+
+describe('HUD の重なり', () => {
+  it('遺物の絵は、矢印が画面の下半分なら矢印の上、上半分なら下に出す', () => {
+    expect(relicIconY(300, 380)).toBeLessThan(300);
+    expect(relicIconY(40, 380)).toBeGreaterThan(40);
+  });
+
+  it('ご利益の印の間は、印（5）と 3 けたの秒（3 × 4 ドット）より広い', () => {
+    expect(BLESS_GAP).toBeGreaterThan(5 + 2 + 3 * 4);
   });
 });

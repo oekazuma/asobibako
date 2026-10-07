@@ -17,7 +17,13 @@
 
   function info(r: Reward) {
     if (r.kind === 'union')
-      return { key: `u-${r.id}`, art: itemArt(`weapon-${r.id}`), name: WEAPONS[r.id].name, text: '合体！', evo: true };
+      return {
+        key: `u-${r.id}`,
+        art: itemArt(`weapon-${r.id}`),
+        name: WEAPONS[r.id].name,
+        text: `${WEAPONS[r.parts[0]].name}＋${WEAPONS[r.parts[1]].name}の合体！`,
+        evo: true
+      };
     if (r.kind === 'evolve')
       return { key: `e-${r.id}`, art: itemArt(`weapon-${r.id}`), name: WEAPONS[r.id].name, text: '進化！', evo: true };
     if (r.kind === 'weapon')

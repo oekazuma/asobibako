@@ -49,4 +49,18 @@ describe('DamageTable', () => {
     expect(rows[2]).toContain('Lv5');
     unmount(app);
   });
+
+  it('合体武器の印は「+」で、★ は出さない', () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(DamageTable, {
+      target,
+      props: {
+        run: { ...run, weapons: [{ id: 'howlUn', level: 5 }], dealt: [{ id: 'howlUn', damage: 500, kills: 20 }] }
+      }
+    });
+    flushSync();
+    expect(target.textContent).toContain('+');
+    expect(target.textContent).not.toContain('★');
+    unmount(app);
+  });
 });

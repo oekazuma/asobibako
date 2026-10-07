@@ -24,7 +24,7 @@
         {WEAPONS[d.id].name}<small
           >{#if WEAPONS[d.id].special}<span class="crown"
               ><PixelIcon art={ITEM_ART.crown} size="min(3.4cqw, 2cqh, 16px)" /></span
-            >{:else}{WEAPONS[d.id].evolved ? '★' : `Lv${level(d.id)}`}{/if}</small
+            >{:else}{WEAPONS[d.id].union ? '+' : WEAPONS[d.id].evolved ? '★' : `Lv${level(d.id)}`}{/if}</small
         >
       </span>
       <span role="cell">{n(d.damage)}</span>

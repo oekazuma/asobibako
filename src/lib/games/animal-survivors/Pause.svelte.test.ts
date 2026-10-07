@@ -136,4 +136,14 @@ describe('Pause', () => {
     delete run.weapons[0].lb;
     unmount(app);
   });
+
+  it('合体武器の印は、HUD と同じ「+」', () => {
+    run.weapons.push({ id: 'howlUn', level: 5 });
+    const { target, app } = show();
+    const slots = [...target.querySelectorAll('.owned .slot')];
+    expect(slots.at(-1)?.textContent).toContain('+');
+    expect(slots.at(-1)?.textContent).not.toContain('★');
+    run.weapons.pop();
+    unmount(app);
+  });
 });

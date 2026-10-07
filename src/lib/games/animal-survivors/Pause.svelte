@@ -50,9 +50,10 @@
       ...o,
       key: `weapon-${o.id}`,
       star: WEAPONS[o.id]?.evolved ?? false,
-      crown: WEAPONS[o.id]?.special ?? false
+      crown: WEAPONS[o.id]?.special ?? false,
+      union: !!WEAPONS[o.id]?.union
     })),
-    ...run.passives.map((o) => ({ ...o, key: `passive-${o.id}`, star: false, crown: false }))
+    ...run.passives.map((o) => ({ ...o, key: `passive-${o.id}`, star: false, crown: false, union: false }))
   ]);
 </script>
 
@@ -86,7 +87,8 @@
           <li class="slot">
             <PixelIcon art={itemArt(o.key)} size="min(8cqw, 4.6cqh, 40px)" /><span class="lv"
               >{#if o.crown}<span class="crown"><PixelIcon art={ITEM_ART.crown} size="min(3.4cqw, 2cqh, 16px)" /></span
-                >{:else}{o.star ? '★' : o.level}{/if}{#if o.lb}<span class="lb">+{o.lb}</span>{/if}</span
+                >{:else}{o.union ? '+' : o.star ? '★' : o.level}{/if}{#if o.lb}<span class="lb">+{o.lb}</span
+                >{/if}</span
             >
           </li>
         {/each}

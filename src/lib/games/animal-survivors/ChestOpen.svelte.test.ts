@@ -48,4 +48,21 @@ describe('ChestOpen', () => {
     expect(target.textContent).toContain('大きさ +10%');
     unmount(app);
   });
+
+  it('合体の中身は、元の 2 つの武器の名前を出す', () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(ChestOpen, {
+      target,
+      props: {
+        rewards: [{ kind: 'union', parts: ['howl', 'thunder'], id: 'howlUn' }],
+        locked: false,
+        onclose: () => {}
+      }
+    });
+    flushSync();
+    vi.advanceTimersByTime(700);
+    flushSync();
+    expect(target.textContent).toContain('遠吠え＋雷撃の合体！');
+    unmount(app);
+  });
 });
