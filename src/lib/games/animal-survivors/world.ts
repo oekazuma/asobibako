@@ -789,6 +789,9 @@ function moveEnemy(w: World, i: number, dt: number) {
 
 const near: number[] = [];
 
+/** ヌシは体が大きく、隣り合う障害物のすき間で引っかかるので、障害物から押し出す丸だけを小さくする */
+const CHIEF_PUSH = 16;
+
 /** 障害物で止まる敵。ボス・群れ・ランタン・大ヘビの体・きらきらハリネズミは通り抜ける */
 const blocked = (e: Enemy) => !e.def.boss && !e.def.prop && !e.def.part && !e.def.metal && e.drift <= 0;
 
@@ -948,7 +951,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   p.x += input.x * speed * dt;
   p.y += input.y * speed * dt;
   stepStorm(w, dt);
-  if (w.storm.left > 0 && w.freeze <= 0) {
+  if (w.storm.left > 0 && w.freeze <= 0 && !w.heroes[0].down) {
     p.x += w.storm.wx * BASE_SPEED * STORM_PUSH * (1 - w.fx.wind) * dt;
     p.y += w.storm.wy * BASE_SPEED * STORM_PUSH * (1 - w.fx.wind) * dt;
   }
@@ -1026,7 +1029,8 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   w.cur = 0;
   separate(w);
   // 押し合いのあとに出す。前だと群れに押し込まれた敵が毎フレーム出入りしてガタつく
-  for (const e of w.enemies) if (e.alive && blocked(e)) pushOut(w.stage.art, e, e.def.r);
+  for (const e of w.enemies)
+    if (e.alive && blocked(e)) pushOut(w.stage.art, e, e.def.chief ? Math.min(e.def.r, CHIEF_PUSH) : e.def.r);
   eachHero(w, () => touch(w));
   if (w.freeze <= 0 && !w.over) {
     updateHazards(w, dt);

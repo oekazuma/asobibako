@@ -71,6 +71,10 @@ const SPREAD = (12 * Math.PI) / 180;
 const FAN = (25 * Math.PI) / 180;
 /** 同じ敵へ続けて当てるまでの間（秒） */
 const REHIT = { boomerang: 0.35, orbit: 0.4 };
+/** 芽吹きの森と炎の疾走が、合体武器 1 つにつき同時に置けるツタと炎の数（増やしすぎると端末が重くなる） */
+const TWIST_ZONES = 24;
+const zonesAt = (w: World, slot: number) =>
+  w.effects.filter((f) => f.alive && f.slot === slot && (f.kind === 'vine' || f.kind === 'flame')).length;
 /** しびれ爪で敵が止まる秒 */
 const CLAW_ROOT = 0.5;
 /** 炎の疾走が炎を置く間（秒） */
@@ -453,10 +457,11 @@ function moveShot(w: World, o: Shot, dt: number) {
       // 炎の疾走: 駆け抜けた道に一定の間で炎を置く
       o.drop = o.age + DASH_FLAME_EVERY;
       const s = partStats(w, tw.def, 1, tw.limit);
-      flameAt(w, o.slot + PART_B, o.x, o.y + 4, 0.8 * s.area * w.stats.area, {
-        ...s,
-        duration: 1.2 * w.stats.duration
-      });
+      if (zonesAt(w, o.slot + PART_B) < TWIST_ZONES)
+        flameAt(w, o.slot + PART_B, o.x, o.y + 4, 0.8 * s.area * w.stats.area, {
+          ...s,
+          duration: 1.2 * w.stats.duration
+        });
     }
   }
   const far = Math.hypot(w.view.w, w.view.h);
@@ -475,7 +480,7 @@ function hitShot(w: World, o: Shot) {
         // 芽吹きの森: どんぐりは最初に当たった敵の足もとにだけツタを生やす（貫いた先まで生やすと画面がツタで埋まる）
         if (tw?.twist === 'acornVine' && tw.part === 0) {
           const s = partStats(w, tw.def, 1, tw.limit);
-          vineAt(w, o.slot + PART_B, e.x, e.y, s.area * w.stats.area, s);
+          if (zonesAt(w, o.slot + PART_B) < TWIST_ZONES) vineAt(w, o.slot + PART_B, e.x, e.y, s.area * w.stats.area, s);
         }
       }
       if (--o.pierce <= 0) {
@@ -552,7 +557,7 @@ function flameTurn(w: World, o: Shot): void {
   const own = weaponAt(w, o.slot);
   const def = own && WEAPONS[own.id];
   if (!def?.flameTurn) return;
-  const s = weaponStats(def, own.level);
+  const s = limitStats(weaponStats(def, own.level), own.limit);
   const scale = (def.special ? 1.4 : 0.8) * s.area * w.stats.area;
   const duration = (def.special ? 2 : 1.4) * w.stats.duration;
   flameAt(w, o.slot, o.x, o.y + 4, scale, { ...s, damage: o.dmg * 0.4, duration });

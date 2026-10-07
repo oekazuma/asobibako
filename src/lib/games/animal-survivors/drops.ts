@@ -49,6 +49,10 @@ const COIN_CHANCE = 0.03;
 export const POUCH = 10;
 /** 時計で敵が止まる秒 */
 export const FREEZE = 6;
+/** 遠くへ置いていった品は、長い延長戦でたまり続けるので消す（画面の対角線の何倍か） */
+const FAR_ITEM = 3;
+/** 遠くても消さない品。取りに戻る値打ちがある */
+const KEEP = new Set<Item['kind']>(['chest', 'ticket', 'relic', 'purse']);
 /** 古い懐中時計でのびる秒 */
 const WATCH_SECS = 2;
 /** ランタンから出る品の重み。十字架と時計は運で増える */
@@ -292,8 +296,16 @@ export function collect(w: World, dt: number): void {
     w.events.push({ type: 'pickup', value: v });
     gainXp(w, v);
   }
+  const far2 = (FAR_ITEM * Math.hypot(w.view.w, w.view.h)) ** 2;
   for (const it of w.items) {
     if (!it.alive) continue;
+    if (
+      !KEEP.has(it.kind) &&
+      w.heroes.filter((h) => !h.gone).every((h) => (it.x - h.player.x) ** 2 + (it.y - h.player.y) ** 2 > far2)
+    ) {
+      it.alive = false;
+      continue;
+    }
     w.cur = nearestHero(w, it.x, it.y);
     const reach = 32 * w.stats.magnet;
     if (it.kind === 'chest') {

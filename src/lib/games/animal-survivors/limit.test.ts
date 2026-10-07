@@ -136,4 +136,23 @@ describe('見直しで直したこと', () => {
     unite(w, unitable(w)!);
     expect(w.weapons[0]).toMatchObject({ id: 'howlUn', limit: { damage: 3, area: 1, cooldown: 3 } });
   });
+  it('火の羽根の折り返しの炎にも、限界突破の大きさが効く', () => {
+    const size = (area?: number) => {
+      const w = createWorld('chick', 1, VIEW);
+      w.items.length = 0;
+      w.weapons = [{ id: 'fireFeather', level: MAX_LEVEL, cd: 0, ...(area && { limit: { area } }) }];
+      w.enemies.push(makeEnemy(ENEMIES.caterpillar, 60, 0, 1e9));
+      for (let i = 0; i < 90; i++) {
+        w.grid.clear();
+        w.enemies.forEach((e, k) => w.grid.add(k, e.x, e.y));
+        fire(w, 1 / 30);
+        hits(w, 1 / 30);
+        w.time += 1 / 30;
+        const f = w.effects.find((x) => x.alive && x.kind === 'flame');
+        if (f) return f.r;
+      }
+      return 0;
+    };
+    expect(size(5)).toBeCloseTo(size() * 1.5, 1);
+  });
 });

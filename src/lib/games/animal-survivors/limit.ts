@@ -13,6 +13,9 @@ export type Limit = Partial<Record<LimitStat, number>>;
 export const STEP = { damage: 0.2, cooldown: 0.07, area: 0.1, speed: 0.12, duration: 0.12, amount: 1 };
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
+/** 限界突破で縮める待ち時間の下限（元の何割まで）。上限なしで上げると撃つ間が 0 に近づく */
+const COOL_FLOOR = 0.4;
+
 export const LIMIT_TEXT: Record<LimitStat, string> = {
   damage: `ダメージ +${pct(STEP.damage)}`,
   cooldown: `待ち時間 −${pct(STEP.cooldown)}`,
@@ -41,7 +44,7 @@ export function limitStats(s: WeaponStats, limit: Limit | undefined): WeaponStat
   return {
     ...s,
     damage: s.damage * (1 + STEP.damage * n('damage')),
-    cooldown: s.cooldown * (1 - STEP.cooldown) ** n('cooldown'),
+    cooldown: s.cooldown * Math.max(COOL_FLOOR, (1 - STEP.cooldown) ** n('cooldown')),
     area: s.area * (1 + STEP.area * n('area')),
     speed: s.speed * (1 + STEP.speed * n('speed')),
     duration: s.duration * (1 + STEP.duration * n('duration')),
