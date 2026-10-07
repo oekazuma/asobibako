@@ -1,4 +1,7 @@
 import { CELL, hash, obstaclesNear, type Ground } from './obstacles';
+import { dropChest } from './drops';
+import type { World } from './world';
+import { hasRelic } from './relics';
 
 export type ShrineKind = 'power' | 'wind' | 'wisdom' | 'treasure' | 'heal';
 export interface Shrine {
@@ -40,3 +43,38 @@ export function shrinesNear(g: Ground, x: number, y: number, r: number, out: Shr
     }
   return out;
 }
+
+export const BLESS_SECS = 30;
+export const MIGHT = 1.3;
+export const HASTE = 1.3;
+export const WISDOM = 2;
+const TOUCH = 12;
+/** 氷の鏡でご利益の秒に掛ける */
+const MIRROR = 1.5;
+
+const found: Shrine[] = [];
+
+/** 今の cur の動物で、触れている祠を使う。使った祠はその回は戻らない */
+export function touchShrines(w: World): void {
+  const p = w.player;
+  for (const s of shrinesNear(w.stage.art, p.x, p.y, TOUCH, found)) {
+    if (w.shrinesUsed.includes(s.key)) continue;
+    w.shrinesUsed.push(s.key);
+    const secs = BLESS_SECS * (hasRelic(w, 'mirror') ? MIRROR : 1);
+    if (s.kind === 'power') w.blessing.might = Math.max(w.blessing.might, 0) + secs;
+    else if (s.kind === 'wind') w.blessing.speed = Math.max(w.blessing.speed, 0) + secs;
+    else if (s.kind === 'wisdom') w.blessing.xp = Math.max(w.blessing.xp, 0) + secs;
+    else if (s.kind === 'treasure') dropChest(w, s.x, s.y + 10);
+    else p.hp = w.stats.maxHp;
+    w.events.push({ type: 'shrine', kind: s.kind });
+  }
+}
+
+export function stepBlessing(w: World, dt: number): void {
+  const b = w.blessing;
+  b.might = Math.max(0, b.might - dt);
+  b.speed = Math.max(0, b.speed - dt);
+  b.xp = Math.max(0, b.xp - dt);
+}
+
+export const speedOf = (w: World) => (w.blessing.speed > 0 ? HASTE : 1);

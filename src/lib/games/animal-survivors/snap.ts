@@ -30,6 +30,7 @@ export interface Snap {
   storm: Storm;
   treasure: number;
   relics: RelicId[];
+  shrines: number[];
   events: GameEvent[];
 }
 
@@ -94,7 +95,10 @@ export function makeSnap(w: World, events: GameEvent[]): Snap {
         h.passives.map((o) => `${o.id}:${o.level}`).join(','),
         r1(p.slow),
         r1(h.revive),
-        h.chests
+        h.chests,
+        r1(h.blessing.might),
+        r1(h.blessing.speed),
+        r1(h.blessing.xp)
       ];
     }),
     enemies: rows(w.enemies, (e) => {
@@ -153,6 +157,7 @@ export function makeSnap(w: World, events: GameEvent[]): Snap {
     storm: { ...w.storm },
     treasure: w.treasure ? w.items.indexOf(w.treasure) : -1,
     relics: w.relics,
+    shrines: w.shrinesUsed,
     events
   };
 }
@@ -202,6 +207,7 @@ export function applySnap(view: World, s: Snap): void {
     p.slow = r[16] as number;
     h.revive = r[17] as number;
     h.chests = r[18] as number;
+    h.blessing = { might: r[19] as number, speed: r[20] as number, xp: r[21] as number };
   });
   place(
     view.enemies,
@@ -272,6 +278,7 @@ export function applySnap(view: World, s: Snap): void {
   view.storm = s.storm;
   view.treasure = s.treasure >= 0 ? (view.items[s.treasure] ?? null) : null;
   view.relics = s.relics;
+  view.shrinesUsed = s.shrines;
   view.events = s.events;
 }
 

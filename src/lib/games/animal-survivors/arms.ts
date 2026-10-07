@@ -5,6 +5,7 @@ import { MAX_LEVEL, partDef, WEAPONS, weaponStats, type Twist, type WeaponDef, t
 import { heroOf, HERO_SLOTS, PART_B, weaponAt } from './heroes';
 import { damageEnemy, type Enemy, type World } from './world';
 import { drainAt } from './unions';
+import { MIGHT } from './shrines';
 import { dropFlame, flameAt, growVines, scorch, updateZones, vineAt } from './zones';
 
 export interface Shot {
@@ -77,7 +78,8 @@ const DASH_FLAME_EVERY = 0.08;
 export function power(w: World, base: number): { dmg: number; crit: boolean } {
   const crit = w.rand() < w.stats.crit;
   const oni = w.player.hp < w.stats.maxHp / 2 ? 1 + w.fx.oni : 1;
-  return { dmg: base * w.stats.might * desperate(w) * oni * (crit ? 2 * (1 + w.fx.critDmg) : 1), crit };
+  const blessed = w.blessing.might > 0 ? MIGHT : 1;
+  return { dmg: base * w.stats.might * desperate(w) * oni * blessed * (crit ? 2 * (1 + w.fx.critDmg) : 1), crit };
 }
 
 function revive<T extends { alive: boolean }>(list: T[], make: () => T): T {

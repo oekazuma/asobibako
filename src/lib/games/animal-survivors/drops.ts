@@ -1,6 +1,7 @@
 import { pushOut } from './obstacles';
 import { eachHero, nearestHero } from './heroes';
 import { hasRelic, takeRelic, type RelicId } from './relics';
+import { WISDOM } from './shrines';
 import { countKill, damageEnemy, type Enemy, type World } from './world';
 import { has, healRate, hpScaleOf, MAX_ARCANA } from './arcana';
 import { stats } from './passives';
@@ -188,6 +189,9 @@ export function dropGem(w: World, x: number, y: number, value: number): void {
   Object.assign(g, { alive: true, x, y, value, pulled: false });
 }
 
+/** 宝の祠の宝箱。歩いて拾う、ボスの宝箱と同じもの */
+export const dropChest = (w: World, x: number, y: number) => void dropItem(w, 'chest', x, y);
+
 function dropItem(w: World, kind: Item['kind'], x: number, y: number, pulled = false): Item | undefined {
   if (kind === 'meat' && noMeat(w)) return;
   const at = { x, y };
@@ -284,7 +288,7 @@ export function collect(w: World, dt: number): void {
     w.cur = nearestHero(w, g.x, g.y);
     if (!pull(w, g, 32 * w.stats.magnet * (1 + w.fx.gemReach), dt)) continue;
     g.alive = false;
-    const v = g.value * (w.festival > 0 ? 2 : 1);
+    const v = g.value * (w.festival > 0 ? 2 : 1) * (w.blessing.xp > 0 ? WISDOM : 1);
     w.events.push({ type: 'pickup', value: v });
     gainXp(w, v);
   }

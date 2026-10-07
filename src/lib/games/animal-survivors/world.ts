@@ -30,6 +30,7 @@ import { startEvent, stepEvents } from './events';
 import { quietEarth, stepEruption, updateLava, type Eruption, type Lava } from './eruption';
 import { PLAYER_R, pushOut } from './obstacles';
 import { hasRelic, placeRelics, type RelicId } from './relics';
+import { speedOf, stepBlessing, touchShrines, type ShrineKind } from './shrines';
 import { calm, STORM_PUSH, stepStorm, windFactor, type Storm } from './storm';
 import { spawnRate, type Stage } from './stages/forest';
 import { perks, type Ranks } from './upgrades';
@@ -109,6 +110,7 @@ export type GameEvent = { hero?: number } & (
   | { type: 'revive' }
   | { type: 'evolve'; id: string }
   | { type: 'relic'; id: RelicId }
+  | { type: 'shrine'; kind: ShrineKind }
   | { type: 'swarm'; text: string }
   | { type: 'cross' }
   | { type: 'freeze' }
@@ -184,6 +186,10 @@ export interface World {
   /** 持っている遺物と、この回に拾った遺物（効き目はこれを見る）。2 匹で共通 */
   relics: RelicId[];
   relicsNow: RelicId[];
+  /** 祠のご利益の残りの秒（動物ごと） */
+  blessing: { might: number; speed: number; xp: number };
+  /** 使った祠の key。その回は戻さない */
+  shrinesUsed: number[];
   /** 今当たって戻せる HP。毎秒 DRAIN × 最大 HP ずつ、その量まで戻る */
   drainLeft: number;
   /** 武器の id ごとの、与えたダメージと倒した数 */
@@ -344,6 +350,7 @@ export function makeHero(id: AnimalId, ranks: Ranks, mods: ModId[], gear: GearKe
     drainLeft: s.maxHp * DRAIN,
     pending: 0,
     chests: 0,
+    blessing: { might: 0, speed: 0, xp: 0 },
     down: false,
     revive: 0,
     gone: false
@@ -427,7 +434,8 @@ export function createWorld(
     heroes: [makeHero(id, ranks, mods, gear)],
     cur: 0,
     relics: [...(opts.relics ?? [])],
-    relicsNow: []
+    relicsNow: [],
+    shrinesUsed: []
   } as unknown as World;
   bindHeroes(w);
   w.events = tagged(w);
@@ -931,7 +939,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   // 倒れた動物は動かない（2 匹めの位置は子の端末から届く）
   if (w.heroes[0].down) input = { x: 0, y: 0 };
   const p = w.player;
-  const speed = BASE_SPEED * w.stats.speed * (p.slow > 0 ? SLOW : 1);
+  const speed = BASE_SPEED * w.stats.speed * (p.slow > 0 ? SLOW : 1) * speedOf(w);
   p.moving = input.x !== 0 || input.y !== 0;
   p.x += input.x * speed * dt;
   p.y += input.y * speed * dt;
@@ -956,6 +964,11 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
     h.slow -= dt;
     h.hp = Math.min(w.stats.maxHp, h.hp + w.stats.regen * regenRate(w) * dt);
     w.drainLeft = Math.min(w.stats.maxHp * DRAIN, w.drainLeft + w.stats.maxHp * DRAIN * dt);
+    stepBlessing(w, dt);
+  });
+  // 倒れた動物は祠に触れない。先に触れた動物の番で祠は使ったことになるので、2 匹が同時に触れても 1 匹だけ
+  eachHero(w, () => {
+    if (!w.heroes[w.cur].down) touchShrines(w);
   });
 
   let alive = 0;

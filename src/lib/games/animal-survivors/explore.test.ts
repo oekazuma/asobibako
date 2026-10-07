@@ -1,14 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
 import { obstaclesNear, type Ground } from './obstacles';
 import { relicSpot, RELICS } from './relics';
-import { shrineAt, shrinesNear } from './shrines';
+import { BLESS_SECS, shrineAt, shrinesNear, touchShrines, type Shrine } from './shrines';
 import { STAGES } from './stages';
 import { openChest } from './chest';
 import { collect } from './drops';
 import { startEvent } from './events';
 import { keepRelic, loadRecords, record } from './records';
 import { hasRelic } from './relics';
-import { createWorld, hurtPlayer, spawnProps, summary, type World } from './world';
+import { addHero, createWorld, hurtPlayer, spawnProps, step, summary, type World } from './world';
+import { power } from './arms';
 
 const GROUNDS: Ground[] = ['forest', 'graveyard', 'snow', 'volcano'];
 
@@ -182,5 +183,97 @@ describe('遺物を拾う', () => {
       hurtPlayer(w, 20, 'lava');
     }
     expect(100 - b.player.hp).toBeCloseTo((100 - a.player.hp) / 2, 0);
+  });
+});
+
+function shrineOf(kind: string): Shrine {
+  for (let c = 1; c < 400; c++)
+    for (const [cx, cy] of [
+      [c, 0],
+      [0, c],
+      [-c, 0],
+      [0, -c],
+      [c, c]
+    ]) {
+      const s = shrineAt('forest', cx, cy);
+      if (s?.kind === kind) return s;
+    }
+  throw new Error(kind);
+}
+
+const quiet = (relics: 'mirror'[] = []) => {
+  const w = createWorld('dog', 1, VIEW, {}, 'forest', { relics });
+  w.stage = { ...w.stage, waves: [], bosses: [], chiefs: [], events: [] };
+  w.metalAt = -1;
+  w.propCd = 1e9;
+  return w;
+};
+
+describe('祠', () => {
+  it('力の祠: 触れると 30 秒攻撃 +30% で、祠は消える', () => {
+    const w = quiet();
+    const s = shrineOf('power');
+    Object.assign(w.player, { x: s.x, y: s.y });
+    const before = power(w, 10).dmg;
+    touchShrines(w);
+    expect(w.blessing.might).toBe(BLESS_SECS);
+    expect(w.shrinesUsed).toContain(s.key);
+    w.stats.crit = 0;
+    expect(power(w, 10).dmg).toBeCloseTo(before * 1.3);
+    w.blessing.might = 0;
+    touchShrines(w);
+    expect(w.blessing.might).toBe(0);
+  });
+
+  it('風の祠で速くなり、知恵の祠で拾う経験値が 2 倍', () => {
+    const w = quiet();
+    const wind = shrineOf('wind');
+    Object.assign(w.player, { x: wind.x, y: wind.y });
+    touchShrines(w);
+    const x0 = w.player.x;
+    step(w, { x: 1, y: 0 }, 0.1);
+    expect(w.player.x - x0).toBeCloseTo(60 * w.stats.speed * 1.3 * 0.1, 1);
+    const wis = shrineOf('wisdom');
+    Object.assign(w.player, { x: wis.x, y: wis.y });
+    touchShrines(w);
+    // Lv が上がると xp は引かれるので、合計で見る
+    const xp = w.xpTotal;
+    w.gems.push({ alive: true, x: w.player.x, y: w.player.y, value: 5, pulled: false });
+    collect(w, 1 / 30);
+    expect(w.xpTotal - xp).toBe(10 * w.stats.growth);
+  });
+
+  it('宝の祠はその場に宝箱、癒しの祠は全快', () => {
+    const w = quiet();
+    const t = shrineOf('treasure');
+    Object.assign(w.player, { x: t.x, y: t.y });
+    touchShrines(w);
+    expect(w.items.some((it) => it.alive && it.kind === 'chest')).toBe(true);
+    const h = shrineOf('heal');
+    w.player.hp = 1;
+    Object.assign(w.player, { x: h.x, y: h.y });
+    touchShrines(w);
+    expect(w.player.hp).toBe(w.stats.maxHp);
+  });
+
+  it('ご利益の時計は step で減り、続けて触れると残りがのび、氷の鏡で 1.5 倍', () => {
+    const w = quiet(['mirror']);
+    const s = shrineOf('power');
+    Object.assign(w.player, { x: s.x, y: s.y });
+    touchShrines(w);
+    expect(w.blessing.might).toBe(BLESS_SECS * 1.5);
+    step(w, { x: 0, y: 0 }, 1);
+    expect(w.blessing.might).toBeCloseTo(BLESS_SECS * 1.5 - 1);
+  });
+
+  it('2 匹が同じフレームで触れても、ご利益は 1 匹だけで、祠は 1 回で消える', () => {
+    const w = quiet();
+    addHero(w, 'cat');
+    const s = shrineOf('power');
+    for (const h of w.heroes) Object.assign(h.player, { x: s.x, y: s.y });
+    step(w, { x: 0, y: 0 }, 1 / 60);
+    const got = w.heroes.filter((h) => h.blessing.might > 0).length;
+    expect(got).toBe(1);
+    expect(w.shrinesUsed.filter((k) => k === s.key)).toHaveLength(1);
   });
 });

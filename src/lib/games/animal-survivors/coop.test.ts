@@ -84,6 +84,19 @@ async function pair() {
 }
 
 describe('協力プレイのつなぎ', () => {
+  it('風の祠のご利益は、子の端末での子の動物の動きにも効く', async () => {
+    const { g, w, h } = await started();
+    w.heroes[1].blessing.speed = 10;
+    h.after(0.06);
+    await settle();
+    g.frame(performance.now() + 1000);
+    const v = g.view!;
+    const me = v.heroes[v.cur].player;
+    const x0 = me.x;
+    g.move({ x: 1, y: 0 }, 0.1);
+    expect(me.x - x0).toBeCloseTo(60 * v.heroes[v.cur].stats.speed * 1.3 * 0.1, 1);
+  });
+
   it('子の端末で動かした子の動物も、障害物の中に入らない', async () => {
     const { g } = await started();
     const v = g.view!;

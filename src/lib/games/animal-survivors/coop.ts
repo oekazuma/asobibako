@@ -13,6 +13,7 @@ import { applySnap, COOP_VERSION, lerpSnap, makeSnap, type Snap } from './snap';
 import { Timeline } from './timeline';
 import type { Ranks } from './upgrades';
 import { PLAYER_R, pushOut } from './obstacles';
+import { HASTE } from './shrines';
 import { STORM_PUSH } from './storm';
 import { addHero, BASE_SPEED, createWorld, SLOW, type GameEvent, type RunSummary, type World } from './world';
 
@@ -389,7 +390,7 @@ export class CoopGuest {
     if (h.down) return;
     const p = h.player;
     // 遅さ（糸の玉・冷たい息）と吹雪は親の step と同じ式で、遅さは親から届いた値で効かせる
-    const speed = BASE_SPEED * h.stats.speed * (p.slow > 0 ? SLOW : 1);
+    const speed = BASE_SPEED * h.stats.speed * (p.slow > 0 ? SLOW : 1) * (h.blessing.speed > 0 ? HASTE : 1);
     p.moving = input.x !== 0 || input.y !== 0;
     p.x += input.x * speed * dt;
     p.y += input.y * speed * dt;

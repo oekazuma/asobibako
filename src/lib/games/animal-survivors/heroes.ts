@@ -22,7 +22,8 @@ export const HERO_KEYS = [
   'evolvedNow',
   'drainLeft',
   'pending',
-  'chests'
+  'chests',
+  'blessing'
 ] as const;
 export type HeroKey = (typeof HERO_KEYS)[number];
 /** down は倒れている、revive は倒れているあいだに相棒がそばにいた秒、gone は抜けた（倒れたままで、描かない） */
@@ -115,7 +116,8 @@ const OWN: ReadonlySet<GameEvent['type']> = new Set([
   'revive',
   'fire',
   'grow',
-  'special'
+  'special',
+  'shrine'
 ]);
 
 /** 出来事の並び。2 匹以上のときは、動物ごとの出来事に、積んだときの動物（cur）を持ち主として付ける */
