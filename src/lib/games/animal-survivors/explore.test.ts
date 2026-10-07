@@ -6,7 +6,7 @@ import { STAGES } from './stages';
 import { openChest } from './chest';
 import { collect } from './drops';
 import { startEvent } from './events';
-import { keepRelic, loadRecords, record } from './records';
+import { keepRelic, loadRecords, record, saveRecords } from './records';
 import { hasRelic } from './relics';
 import { addHero, createWorld, hurtPlayer, spawnProps, step, summary, type World } from './world';
 import { power } from './arms';
@@ -126,6 +126,8 @@ describe('遺物を拾う', () => {
     walkTo(w, it.x, it.y);
     w.over = 'dead';
     record(stale, summary(w));
+    // 回の終わりは手元の写しを保存する。写しが遺物を持っていなくても、回のまとめから足して消さない
+    saveRecords(stale);
     expect(loadRecords().relics).toEqual(['map']);
     vi.unstubAllGlobals();
   });
@@ -275,5 +277,42 @@ describe('祠', () => {
     const got = w.heroes.filter((h) => h.blessing.might > 0).length;
     expect(got).toBe(1);
     expect(w.shrinesUsed.filter((k) => k === s.key)).toHaveLength(1);
+  });
+});
+
+describe('見直しで直したこと', () => {
+  it('肉が出ない回は、癒しの祠で回復しない', () => {
+    const w = quiet();
+    w.mods.push('noMeat');
+    const h = shrineOf('heal');
+    w.player.hp = 1;
+    Object.assign(w.player, { x: h.x, y: h.y });
+    touchShrines(w);
+    expect(w.player.hp).toBe(1);
+  });
+
+  it('道具なしの回は、雪の結晶で引き直しがふえない', () => {
+    const w = createWorld('dog', 1, VIEW, {}, 'snow');
+    w.mods.push('noTools');
+    w.rerolls = 0;
+    const it = w.items.find((o) => o.kind === 'relic' && o.relic === 'flake')!;
+    walkTo(w, it.x, it.y);
+    expect(w.rerolls).toBe(0);
+  });
+
+  it('雪の結晶を持っていれば、協力プレイの 2 匹めにも引き直しが 1 回ふえる', () => {
+    const a = createWorld('dog', 1, VIEW, {}, 'snow');
+    const b = createWorld('dog', 1, VIEW, {}, 'snow', { relics: ['flake'] });
+    addHero(a, 'cat');
+    addHero(b, 'cat');
+    expect(b.heroes[1].rerolls - a.heroes[1].rerolls).toBe(1);
+  });
+
+  it('時計の品で止まっているあいだは、ご利益の時計も減らない', () => {
+    const w = quiet();
+    w.blessing.might = 10;
+    w.freeze = 5;
+    step(w, { x: 0, y: 0 }, 1);
+    expect(w.blessing.might).toBe(10);
   });
 });

@@ -9,7 +9,7 @@ import type { Storm } from './storm';
 import { addHero, chiefOf, eliteOf, makeEnemy, type GameEvent, type World } from './world';
 
 /** 協力プレイの知らせの形の版。形を変えたら 1 上げる */
-export const COOP_VERSION = 1;
+export const COOP_VERSION = 2;
 
 type Row = (number | string)[];
 

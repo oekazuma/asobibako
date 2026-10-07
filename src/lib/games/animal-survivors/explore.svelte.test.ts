@@ -21,4 +21,14 @@ describe('遺物と祠の帯', () => {
     p.take();
     expect(p.notice?.text).toContain('力の祠');
   });
+
+  it('雪の結晶を拾うと、3 択に見せる引き直しの数もふえる', () => {
+    const w = createWorld('dog', 1, { w: 260, h: 380 }, {}, 'snow');
+    const p = new Prompts(w);
+    const before = p.tools.rerolls;
+    w.rerolls += 1;
+    w.events.push({ type: 'relic', id: 'flake' });
+    p.take();
+    expect(p.tools.rerolls).toBe(before + 1);
+  });
 });

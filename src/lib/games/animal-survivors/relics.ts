@@ -44,6 +44,9 @@ export function relicSpot(def: RelicDef, g: Ground): { x: number; y: number } {
 
 export const hasRelic = (w: World, id: RelicId) => w.relics.includes(id);
 
+/** 道具なしのしばりの回は、雪の結晶でも引き直しをふやさない */
+export const flakes = (w: World) => !w.mods.includes('noTools');
+
 /** まだ持っていない、このステージの遺物を品として置く */
 export function placeRelics(w: World): void {
   for (const def of RELICS) {
@@ -58,6 +61,6 @@ export function takeRelic(w: World, id: RelicId): void {
   if (hasRelic(w, id)) return;
   w.relics.push(id);
   w.relicsNow.push(id);
-  if (id === 'flake') for (const h of w.heroes) h.rerolls += 1;
+  if (id === 'flake' && flakes(w)) for (const h of w.heroes) h.rerolls += 1;
   w.events.push({ type: 'relic', id });
 }

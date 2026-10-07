@@ -1,5 +1,6 @@
 import { CELL, hash, obstaclesNear, type Ground } from './obstacles';
-import { dropChest } from './drops';
+import { healRate } from './arcana';
+import { dropChest, noMeat } from './drops';
 import type { World } from './world';
 import { hasRelic } from './relics';
 
@@ -65,7 +66,8 @@ export function touchShrines(w: World): void {
     else if (s.kind === 'wind') w.blessing.speed = Math.max(w.blessing.speed, 0) + secs;
     else if (s.kind === 'wisdom') w.blessing.xp = Math.max(w.blessing.xp, 0) + secs;
     else if (s.kind === 'treasure') dropChest(w, s.x, s.y + 10);
-    else p.hp = w.stats.maxHp;
+    // 肉が出ないしばりと札の回は、ほかの全快と同じく回復しない
+    else if (!noMeat(w)) p.hp = Math.min(w.stats.maxHp, p.hp + (w.stats.maxHp - p.hp) * healRate(w));
     w.events.push({ type: 'shrine', kind: s.kind });
   }
 }

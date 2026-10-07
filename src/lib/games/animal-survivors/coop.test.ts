@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Message } from '$lib/net/link';
 import { Party, type Pipe } from '$lib/net/party.svelte';
 import { CoopGuest, CoopHost } from './coop';
+import { COOP_VERSION } from './snap';
 import type { Hero } from './heroes';
 import { Prompts } from './prompts.svelte';
 import { ENEMIES } from './enemies';
@@ -84,6 +85,10 @@ async function pair() {
 }
 
 describe('協力プレイのつなぎ', () => {
+  it('snap の形を変えたので、つなぎ方の版は 2（古い版の端末とはつながない）', () => {
+    expect(COOP_VERSION).toBe(2);
+  });
+
   it('風の祠のご利益は、子の端末での子の動物の動きにも効く', async () => {
     const { g, w, h } = await started();
     w.heroes[1].blessing.speed = 10;

@@ -29,7 +29,7 @@ import { stageOf } from './stages';
 import { startEvent, stepEvents } from './events';
 import { quietEarth, stepEruption, updateLava, type Eruption, type Lava } from './eruption';
 import { PLAYER_R, pushOut } from './obstacles';
-import { hasRelic, placeRelics, type RelicId } from './relics';
+import { flakes, hasRelic, placeRelics, type RelicId } from './relics';
 import { speedOf, stepBlessing, touchShrines, type ShrineKind } from './shrines';
 import { calm, STORM_PUSH, stepStorm, windFactor, type Storm } from './storm';
 import { spawnRate, type Stage } from './stages/forest';
@@ -360,6 +360,7 @@ export function makeHero(id: AnimalId, ranks: Ranks, mods: ModId[], gear: GearKe
 /** 2 匹めを足して番号を返す。始めは 1 匹めの少し右に置く */
 export function addHero(w: World, id: AnimalId, ranks: Ranks = {}, gear: GearKey[] = []): number {
   const h = makeHero(id, ranks, w.mods, gear);
+  if (hasRelic(w, 'flake') && flakes(w)) h.rerolls += 1;
   h.player.x = w.heroes[0].player.x + 24;
   h.player.y = w.heroes[0].player.y;
   return w.heroes.push(h) - 1;
@@ -440,7 +441,7 @@ export function createWorld(
   bindHeroes(w);
   w.events = tagged(w);
   placeRelics(w);
-  if (hasRelic(w, 'flake')) w.rerolls += 1;
+  if (hasRelic(w, 'flake') && flakes(w)) w.rerolls += 1;
   // お題の今日の札は、始めの 3 枚選びの代わりに持って始める
   if (challenge?.card) takeArcana(w, challenge.card);
   return w;
@@ -964,7 +965,8 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
     h.slow -= dt;
     h.hp = Math.min(w.stats.maxHp, h.hp + w.stats.regen * regenRate(w) * dt);
     w.drainLeft = Math.min(w.stats.maxHp * DRAIN, w.drainLeft + w.stats.maxHp * DRAIN * dt);
-    stepBlessing(w, dt);
+    // ご利益の時計は、ほかの出来事と同じく時計の品で止まっているあいだは進めない
+    if (w.freeze <= 0) stepBlessing(w, dt);
   });
   // 倒れた動物は祠に触れない。先に触れた動物の番で祠は使ったことになるので、2 匹が同時に触れても 1 匹だけ
   eachHero(w, () => {

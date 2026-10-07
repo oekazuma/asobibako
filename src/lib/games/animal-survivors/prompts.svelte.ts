@@ -109,6 +109,8 @@ export class Prompts {
       else if (e.type === 'relic') {
         // 倒れた回やアプリが閉じた回でも残るよう、拾ったその場で記録へ書く（協力プレイの子の端末も snap の出来事で書く）
         keepRelic(e.id);
+        // 雪の結晶はその場で引き直しをふやすので、3 択に見せる数も写し直す
+        this.#sync();
         const name = RELICS.find((d) => d.id === e.id)!.name;
         this.notice = { text: `遺物を手に入れた！\n${name}`, key: w.time, until: w.time + NOTICE * 2 };
       } else if (e.type === 'shrine')
