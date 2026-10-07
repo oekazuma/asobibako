@@ -68,7 +68,8 @@
     const w = createWorld(mine!, seed, { w: 260, h: 380 }, r.ranks, stage, {
       heat,
       arcana: openArcana(r.achieved),
-      gear: wornKeys(r)
+      gear: wornKeys(r),
+      relics: r.relics
     });
     host?.start(w, seed, stage);
     world = w;

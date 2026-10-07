@@ -1,5 +1,6 @@
 import { pushOut } from './obstacles';
 import { eachHero, nearestHero } from './heroes';
+import { hasRelic, takeRelic, type RelicId } from './relics';
 import { countKill, damageEnemy, type Enemy, type World } from './world';
 import { has, healRate, hpScaleOf, MAX_ARCANA } from './arcana';
 import { stats } from './passives';
@@ -16,7 +17,8 @@ export interface Gem {
 
 export interface Item {
   alive: boolean;
-  kind: 'meat' | 'magnet' | 'goldMagnet' | 'chest' | 'coin' | 'purse' | 'pouch' | 'cross' | 'clock' | 'ticket';
+  kind:
+    'meat' | 'magnet' | 'goldMagnet' | 'chest' | 'coin' | 'purse' | 'pouch' | 'cross' | 'clock' | 'ticket' | 'relic';
   x: number;
   y: number;
   pulled: boolean;
@@ -24,6 +26,8 @@ export interface Item {
   life?: number;
   /** ガチャ券の種類 */
   tier?: Ticket;
+  /** 遺物の品だけが持つ、どの遺物か */
+  relic?: RelicId;
 }
 
 export const MAX_GEMS = 400;
@@ -44,6 +48,8 @@ const COIN_CHANCE = 0.03;
 export const POUCH = 10;
 /** 時計で敵が止まる秒 */
 export const FREEZE = 6;
+/** 古い懐中時計でのびる秒 */
+const WATCH_SECS = 2;
 /** ランタンから出る品の重み。十字架と時計は運で増える */
 const LOOT: [Item['kind'], number, boolean][] = [
   ['meat', 20, false],
@@ -192,6 +198,7 @@ function dropItem(w: World, kind: Item['kind'], x: number, y: number, pulled = f
   Object.assign(it, { alive: true, kind, x, y, pulled });
   delete it.life;
   delete it.tier;
+  delete it.relic;
   return it;
 }
 
@@ -296,6 +303,13 @@ export function collect(w: World, dt: number): void {
       }
       continue;
     }
+    if (it.kind === 'relic') {
+      if ((it.x - w.player.x) ** 2 + (it.y - w.player.y) ** 2 < CHEST_PICK ** 2) {
+        it.alive = false;
+        takeRelic(w, it.relic!);
+      }
+      continue;
+    }
     if (it.kind === 'ticket') {
       if ((it.x - w.player.x) ** 2 + (it.y - w.player.y) ** 2 < CHEST_PICK ** 2) {
         it.alive = false;
@@ -319,7 +333,7 @@ export function collect(w: World, dt: number): void {
       continue;
     }
     if (it.kind === 'clock') {
-      w.freeze = FREEZE + w.fx.freeze;
+      w.freeze = FREEZE + w.fx.freeze + (hasRelic(w, 'watch') ? WATCH_SECS : 0);
       w.events.push({ type: 'freeze' });
       continue;
     }

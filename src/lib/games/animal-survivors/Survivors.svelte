@@ -56,7 +56,8 @@
   });
 
   function start(stage: string) {
-    pick = { ...pick, stage, gear: wornKeys(records) };
+    // 遺物は拾ったときに記録へ直接書くので、手元の写しではなく記録から読む
+    pick = { ...pick, stage, gear: wornKeys(records), relics: loadRecords().relics };
     field = { song: 'field', quiet: false };
     round += 1;
     screen = 'play';

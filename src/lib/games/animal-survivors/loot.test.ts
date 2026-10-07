@@ -11,6 +11,8 @@ function quiet(): World {
   w.spawnAcc = [];
   w.weapons = [];
   w.metalAt = -1;
+  // ステージに置いた遺物の品は、品の並びを数えるテストの邪魔になる
+  w.items.length = 0;
   return w;
 }
 

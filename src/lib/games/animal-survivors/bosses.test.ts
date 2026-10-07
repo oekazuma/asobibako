@@ -16,6 +16,8 @@ function quiet(id: 'dog' | 'wolf' = 'dog'): World {
   w.stage = { ...w.stage, waves: [], events: [] };
   w.spawnAcc = [];
   w.player.hp = w.stats.maxHp = 1e6;
+  // ステージに置いた遺物の品は、品の並びを数えるテストの邪魔になる
+  w.items.length = 0;
   return w;
 }
 

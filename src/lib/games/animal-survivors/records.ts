@@ -7,6 +7,7 @@ import { makeDaily, MODS, todayKey, type Daily, type ModId } from './daily';
 import { gearRecords } from './gacha';
 import type { GearKey, Slot } from './gear';
 import { WEAPONS } from './weapons';
+import { RELIC_IDS, type RelicId } from './relics';
 import { STAGES } from './stages';
 import { ENEMIES, type BossId } from './enemies';
 import { UPGRADES, type Ranks } from './upgrades';
@@ -32,6 +33,7 @@ export interface Records {
   chests: number;
   /** 作った進化形 */
   evolved: string[];
+  relics: RelicId[];
   /** クリアした面 */
   stages: string[];
   /** 前に遊んだ面 */
@@ -88,6 +90,7 @@ export function emptyRecords(): Records {
     clearedBy: [],
     chests: 0,
     evolved: [],
+    relics: [],
     stages: [],
     stage: 'forest',
     animal: 'dog',
@@ -153,6 +156,7 @@ export function parseRecords(text: string | null): Records {
       raw.evolved,
       Object.keys(WEAPONS).filter((id) => WEAPONS[id].evolved)
     ),
+    relics: list(raw.relics, RELIC_IDS),
     stages: stagesOf(raw),
     stage: typeof raw.stage === 'string' && STAGE_IDS.includes(raw.stage) ? raw.stage : 'forest',
     animal: ids.includes(raw.animal as AnimalId) ? (raw.animal as AnimalId) : 'dog',
@@ -265,6 +269,7 @@ export function record(r: Records, run: RunSummary): AchievementDef[] {
   r.animal = run.animal;
   if (run.finale && !r.finales.includes(run.stage)) r.finales.push(run.stage);
   for (const id of run.evolved) if (!r.evolved.includes(id)) r.evolved.push(id);
+  for (const id of run.relics ?? []) if (!r.relics.includes(id)) r.relics.push(id);
   if (run.overtime) r.overtime[run.stage] = Math.max(r.overtime[run.stage] ?? 0, run.overtime.secs);
   const d = r.daily;
   if (run.cleared && run.daily && d && d.date === run.daily.date && !d.cleared) {
@@ -302,6 +307,14 @@ export function saveRecords(r: Records): void {
   } catch {
     // 保存できなくても遊び続けられるようにする
   }
+}
+
+/** 拾った遺物をすぐ記録へ書く（倒れた回・アプリが閉じた回でも残るように、回の終わりを待たない） */
+export function keepRelic(id: RelicId): void {
+  const r = loadRecords();
+  if (r.relics.includes(id)) return;
+  r.relics.push(id);
+  saveRecords(r);
 }
 
 /** 面の after（先にクリアする面）をクリアしていれば選べる。知らない面は選べない */

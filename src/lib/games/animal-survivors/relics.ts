@@ -1,4 +1,5 @@
 import { pushOut, type Ground } from './obstacles';
+import type { World } from './world';
 
 export type RelicId = 'map' | 'lamp' | 'watch' | 'bell' | 'flake' | 'mirror' | 'orb' | 'shard';
 
@@ -39,4 +40,24 @@ export function relicSpot(def: RelicDef, g: Ground): { x: number; y: number } {
   const at = { x: Math.cos(def.angle) * def.dist, y: Math.sin(def.angle) * def.dist };
   pushOut(g, at, 8);
   return at;
+}
+
+export const hasRelic = (w: World, id: RelicId) => w.relics.includes(id);
+
+/** まだ持っていない、このステージの遺物を品として置く */
+export function placeRelics(w: World): void {
+  for (const def of RELICS) {
+    if (def.stage !== w.stage.id || hasRelic(w, def.id)) continue;
+    const at = relicSpot(def, w.stage.art);
+    w.items.push({ alive: true, kind: 'relic', relic: def.id, x: at.x, y: at.y, pulled: false });
+  }
+}
+
+/** 拾った遺物は、その回からすぐ効く（記録へ書くのは Prompts） */
+export function takeRelic(w: World, id: RelicId): void {
+  if (hasRelic(w, id)) return;
+  w.relics.push(id);
+  w.relicsNow.push(id);
+  if (id === 'flake') for (const h of w.heroes) h.rerolls += 1;
+  w.events.push({ type: 'relic', id });
 }

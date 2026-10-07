@@ -29,6 +29,7 @@ import { stageOf } from './stages';
 import { startEvent, stepEvents } from './events';
 import { quietEarth, stepEruption, updateLava, type Eruption, type Lava } from './eruption';
 import { PLAYER_R, pushOut } from './obstacles';
+import { hasRelic, placeRelics, type RelicId } from './relics';
 import { calm, STORM_PUSH, stepStorm, windFactor, type Storm } from './storm';
 import { spawnRate, type Stage } from './stages/forest';
 import { perks, type Ranks } from './upgrades';
@@ -107,6 +108,7 @@ export type GameEvent = { hero?: number } & (
   | { type: 'coin'; value: number }
   | { type: 'revive' }
   | { type: 'evolve'; id: string }
+  | { type: 'relic'; id: RelicId }
   | { type: 'swarm'; text: string }
   | { type: 'cross' }
   | { type: 'freeze' }
@@ -179,6 +181,9 @@ export interface World {
   opened: number;
   /** この回に作った進化形 */
   evolvedNow: string[];
+  /** 持っている遺物と、この回に拾った遺物（効き目はこれを見る）。2 匹で共通 */
+  relics: RelicId[];
+  relicsNow: RelicId[];
   /** 今当たって戻せる HP。毎秒 DRAIN × 最大 HP ずつ、その量まで戻る */
   drainLeft: number;
   /** 武器の id ごとの、与えたダメージと倒した数 */
@@ -292,6 +297,8 @@ export interface Options {
   note?: string;
   /** つけている装備 */
   gear?: GearKey[];
+  /** 記録で持っている遺物 */
+  relics?: RelicId[];
 }
 
 /** 1 匹ぶん。店の強化なしのしばりの日は、店の強化と装備を外す */
@@ -418,10 +425,14 @@ export function createWorld(
     spawnAcc: stage.waves.map(() => 0),
     grid: new Grid(),
     heroes: [makeHero(id, ranks, mods, gear)],
-    cur: 0
+    cur: 0,
+    relics: [...(opts.relics ?? [])],
+    relicsNow: []
   } as unknown as World;
   bindHeroes(w);
   w.events = tagged(w);
+  placeRelics(w);
+  if (hasRelic(w, 'flake')) w.rerolls += 1;
   // お題の今日の札は、始めの 3 枚選びの代わりに持って始める
   if (challenge?.card) takeArcana(w, challenge.card);
   return w;
@@ -596,7 +607,7 @@ export function spawnProps(w: World, dt: number): void {
   w.propCd = PROP_EVERY;
   let n = 0;
   for (const e of w.enemies) if (e.alive && e.def.prop) n++;
-  if (n >= LANTERNS) return;
+  if (n >= LANTERNS + (hasRelic(w, 'lamp') ? 1 : 0)) return;
   const at = spawnPoint(w);
   const e = addEnemy(w, ENEMIES.lantern, at.x, at.y);
   // 時刻で硬くならない
@@ -828,11 +839,15 @@ function touch(w: World) {
   if (atk > 0) hurtPlayer(w, atk, boss ? 'boss' : 'touch');
 }
 
+/** 黒曜石のかけらで溶岩の池から受けるダメージに掛ける */
+const SHARD = 0.5;
+
 /** 受けたダメージの出どころ。装備のよろい・甲羅・マントが見る */
 export type Hurt = 'touch' | 'boss' | 'shot' | 'lava';
 
 /** 自分にダメージを与え、少し無敵にする。釜の攻撃の倍率はボスの攻撃や予告にも効かせるのでここで掛け、防御を引き、最低 1 */
 export function hurtPlayer(w: World, raw: number, from: Hurt = 'touch'): void {
+  if (from === 'lava' && hasRelic(w, 'shard')) raw *= SHARD;
   const f = w.fx;
   const scale =
     (from === 'boss' || from === 'shot' ? 1 - f.bossGuard : 1) *
@@ -1046,6 +1061,8 @@ export interface RunSummary {
   lost?: number[];
   /** つけていた装備 */
   gear?: GearKey[];
+  /** この回に拾った遺物 */
+  relics?: RelicId[];
 }
 
 /** 強欲を掛けたこの回のコイン。1 枚ずつ掛けると端数で減るので、合計に掛ける */
@@ -1073,6 +1090,7 @@ export function summary(w: World): RunSummary {
     coins: coinsOf(w),
     opened: w.opened,
     evolved: [...w.evolvedNow],
+    relics: [...w.relicsNow],
     dealt: Object.entries(w.dealt)
       .map(([id, d]) => ({ id, damage: Math.round(d.damage), kills: d.kills }))
       .sort((a, b) => b.damage - a.damage),

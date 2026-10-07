@@ -44,4 +44,10 @@ describe('協力プレイの記録', () => {
     expect(end.run.kills).toBe(540);
     expect(end.run.animal).toBe('cat');
   });
+  it('子のまとめにも、その回に拾った遺物が入る', () => {
+    const w = createWorld('dog', 1, VIEW, {}, 'forest');
+    addHero(w, 'cat');
+    w.relicsNow.push('map');
+    expect(heroRun(w, 1).part.relics).toEqual(['map']);
+  });
 });

@@ -4,6 +4,7 @@ import { levelUp, rewardsFor } from './choices';
 import { addCoins, CHEST_COINS } from './drops';
 import { evolvable, evolve } from './evolutions';
 import { maxOf } from './passives';
+import { hasRelic } from './relics';
 import { unitable, unite } from './unions';
 import { MAX_LEVEL } from './weapons';
 import type { World } from './world';
@@ -22,6 +23,9 @@ export function chestSize(r: number, odds = chestOdds(2)): 1 | 3 | 5 {
   return r < odds.one ? 1 : r < odds.three ? 3 : 5;
 }
 
+/** 炎の宝玉で、中身が 1 つになる割合から引く */
+const ORB_CHEST = 0.1;
+
 /** 宝箱を 1 つ開けて、持っている Lv5 未満のものを 1 Lv ずつ上げる。上げるものが無くなったら全部埋まったあとのごほうび */
 export function openChest(w: World): Reward[] {
   w.chests = Math.max(0, w.chests - 1);
@@ -29,7 +33,8 @@ export function openChest(w: World): Reward[] {
   addCoins(w, CHEST_COINS);
   const out: Reward[] = [];
   const o = chestOdds(w.heat.level);
-  let n = chestSize(w.rand(), { one: Math.max(0, o.one - w.fx.chest), three: o.three });
+  const orb = hasRelic(w, 'orb') ? ORB_CHEST : 0;
+  let n = chestSize(w.rand(), { one: Math.max(0, o.one - w.fx.chest - orb), three: o.three });
   if (has(w, 'cursed')) n = Math.max(3, n) as 3 | 5;
   const e = evolvable(w);
   if (e) {

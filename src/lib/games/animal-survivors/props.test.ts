@@ -11,6 +11,8 @@ function quiet() {
   w.stage = { ...w.stage, waves: [], bosses: [], events: [] };
   w.spawnAcc = [];
   w.weapons = [];
+  // ステージに置いた遺物の品は、品の並びを数えるテストの邪魔になる
+  w.items.length = 0;
   return w;
 }
 

@@ -1,3 +1,4 @@
+import { RELIC_IDS, type RelicId } from './relics';
 import { animal, type AnimalId } from './animals';
 import type { Effect, Shot } from './arms';
 import type { Hazard } from './bosses';
@@ -28,6 +29,7 @@ export interface Snap {
   lava: Lava[];
   storm: Storm;
   treasure: number;
+  relics: RelicId[];
   events: GameEvent[];
 }
 
@@ -138,11 +140,19 @@ export function makeSnap(w: World, events: GameEvent[]): Snap {
       r1(f.born)
     ]),
     gems: rows(w.gems, (g) => [r1(g.x), r1(g.y), g.value]),
-    items: rows(w.items, (it) => [it.kind, r1(it.x), r1(it.y), it.tier ?? -1, r1(it.life ?? -1)]),
+    items: rows(w.items, (it) => [
+      it.kind,
+      r1(it.x),
+      r1(it.y),
+      // 遺物の品は、券の種類の欄に遺物の番号を入れる
+      it.kind === 'relic' ? RELIC_IDS.indexOf(it.relic!) : (it.tier ?? -1),
+      r1(it.life ?? -1)
+    ]),
     hazards: w.hazards.filter((h) => h.alive),
     lava: w.lava.filter((l) => l.life > 0),
     storm: { ...w.storm },
     treasure: w.treasure ? w.items.indexOf(w.treasure) : -1,
+    relics: w.relics,
     events
   };
 }
@@ -250,7 +260,9 @@ export function applySnap(view: World, s: Snap): void {
       it.kind = r[1] as Item['kind'];
       it.x = r[2] as number;
       it.y = r[3] as number;
-      it.tier = (r[4] as number) >= 0 ? (r[4] as Item['tier']) : undefined;
+      const n = r[4] as number;
+      it.relic = it.kind === 'relic' ? RELIC_IDS[n] : undefined;
+      it.tier = it.kind !== 'relic' && n >= 0 ? (n as Item['tier']) : undefined;
       it.life = (r[5] as number) >= 0 ? (r[5] as number) : undefined;
       return true;
     }
@@ -259,6 +271,7 @@ export function applySnap(view: World, s: Snap): void {
   view.lava = s.lava;
   view.storm = s.storm;
   view.treasure = s.treasure >= 0 ? (view.items[s.treasure] ?? null) : null;
+  view.relics = s.relics;
   view.events = s.events;
 }
 

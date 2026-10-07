@@ -1,4 +1,5 @@
 import { pushOut } from './obstacles';
+import { hasRelic } from './relics';
 import { hazard } from './bosses';
 import type { Item } from './drops';
 import type { StageEvent } from './stages/forest';
@@ -6,6 +7,8 @@ import type { World } from './world';
 
 /** 宝の地図の宝箱が消えるまでの秒 */
 export const TREASURE_LIFE = 30;
+/** 銀の鈴でのびる秒 */
+const BELL_SECS = 10;
 /** 流れ星が降り続ける秒と、予告を出す間 */
 export const METEOR_TIME = 10;
 export const METEOR_EVERY = 0.5;
@@ -31,7 +34,7 @@ export function startEvent(w: World, ev: StageEvent): void {
       x: w.player.x + Math.cos(a) * d,
       y: w.player.y + Math.sin(a) * d,
       pulled: false,
-      life: TREASURE_LIFE
+      life: TREASURE_LIFE + (hasRelic(w, 'bell') ? BELL_SECS : 0)
     };
     const free = w.items.findIndex((o) => !o.alive);
     if (free >= 0) w.items[free] = it;
