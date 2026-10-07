@@ -4,6 +4,7 @@ import { MAX_R } from './enemies';
 import { MAX_LEVEL, partDef, WEAPONS, weaponStats, type Twist, type WeaponDef, type WeaponStats } from './weapons';
 import { heroOf, HERO_SLOTS, PART_B, weaponAt } from './heroes';
 import { damageEnemy, type Enemy, type World } from './world';
+import { drainAt } from './unions';
 import { dropFlame, flameAt, growVines, scorch, updateZones, vineAt } from './zones';
 
 export interface Shot {
@@ -192,7 +193,16 @@ function strike(w: World, i: number, base: number, fx: number, fy: number, knock
   const e = w.enemies[i];
   const d = Math.hypot(e.x - fx, e.y - fy) || 1;
   const { dmg, crit } = power(w, base);
-  damageEnemy(w, i, dmg, ((e.x - fx) / d) * knock, ((e.y - fy) / d) * knock, crit, weaponAt(w, slot)?.id);
+  damageEnemy(
+    w,
+    i,
+    dmg,
+    ((e.x - fx) / d) * knock,
+    ((e.y - fy) / d) * knock,
+    crit,
+    weaponAt(w, slot)?.id,
+    drainAt(w, slot)
+  );
 }
 
 const near: number[] = [];
@@ -317,11 +327,6 @@ function launch(w: World, def: WeaponDef, s: WeaponStats, slot: number): boolean
         const o = effect(w, slot, 'ring', p.x, p.y - 6, SIZE.ring * area, s.duration, 0, s.damage, s.knockback);
         o.age = -i * s.duration;
         o.born = w.time + i * s.duration;
-      }
-      const tw = twistAt(w, slot);
-      if (tw?.twist === 'ringBolt') {
-        const r = SIZE.ring * area;
-        bolts(w, slot + PART_B, partStats(w, tw.def, 1), area, p.x, p.y - 6, r, r);
       }
       return true;
     }
@@ -513,6 +518,7 @@ export function hits(w: World, dt: number): void {
       f.alive = false;
       continue;
     }
+    if (f.kind === 'ring' && f.age > 0 && f.age - dt <= 0) ringBolts(w, f);
     if (f.kind !== 'ring' || f.age < 0) continue;
     const r = (f.age / f.life) * f.r;
     for (const j of within(w, f.x, f.y, r + 6, targets)) {
@@ -525,6 +531,14 @@ export function hits(w: World, dt: number): void {
   }
   w.cur = 0;
   updateZones(w);
+}
+
+/** 雷鳴の遠吠え: 輪が広がりはじめるたびに（数で続けて出す輪も）、輪の中の敵へ雷を落とす */
+function ringBolts(w: World, f: Effect): void {
+  const tw = twistAt(w, f.slot);
+  if (tw?.twist !== 'ringBolt' || tw.part !== 0) return;
+  const s = partStats(w, tw.def, 1);
+  bolts(w, f.slot + PART_B, s, s.area * w.stats.area, f.x, f.y, f.r, f.r);
 }
 
 /** 火の羽根は折り返すところに炎を置く。炎は投げた羽根の 4 割の強さで、範囲と効く時間の強化も受ける（専用進化形は大きく長く焼く） */

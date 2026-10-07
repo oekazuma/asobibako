@@ -1,6 +1,6 @@
 import { baseOf } from './evolutions';
-import { heroOf, HERO_SLOTS } from './heroes';
-import { MAX_LEVEL, WEAPONS } from './weapons';
+import { heroOf, HERO_SLOTS, PART_B, weaponAt } from './heroes';
+import { MAX_LEVEL, partDef, WEAPONS } from './weapons';
 import type { World } from './world';
 
 export interface Union {
@@ -40,4 +40,12 @@ export function unite(w: World, u: Union): void {
     }
   w.evolvedNow.push(u.to);
   w.events.push({ type: 'evolve', id: u.to });
+}
+
+/** その番号の弾や効果が当たって戻す HP。合体武器は部品ごとの元の進化形の値（合体武器の定義は 1 つめの部品の値しか持たない） */
+export function drainAt(w: World, slot: number): number {
+  const own = weaponAt(w, slot);
+  const def = own && WEAPONS[own.id];
+  if (!def) return 0;
+  return (def.union ? partDef(def, slot >= PART_B ? 1 : 0).drain : def.drain) ?? 0;
 }

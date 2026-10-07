@@ -276,3 +276,27 @@ describe('宝箱と 3 択', () => {
     expect(all.done(r, undefined as never)).toBe(true);
   });
 });
+
+describe('見直しで直したこと', () => {
+  it('炎の疾走の炎は、燃える心臓と同じく当たると回復する', () => {
+    const { w, tick } = arena('flameUn', [[0, 4]]);
+    w.weapons[0] = { id: 'flameUn', level: 5, cd: 99, cd2: 0 };
+    w.player.hp = 10;
+    w.drainLeft = 100;
+    tick(30);
+    expect(w.player.hp).toBeGreaterThan(10);
+  });
+
+  it('雷鳴の遠吠え: 数のパッシブで増えた 2 つめの輪が広がるときにも雷が落ちる', () => {
+    const { w, tick } = arena('howlUn', [
+      [20, 0],
+      [-30, 10],
+      [10, 30]
+    ]);
+    w.stats.amount = 1;
+    tick(1);
+    for (const f of w.effects) if (f.kind === 'bolt') f.alive = false;
+    tick(22);
+    expect(w.effects.some((f) => f.alive && f.kind === 'bolt' && f.slot === PART_B)).toBe(true);
+  });
+});

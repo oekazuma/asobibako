@@ -465,7 +465,7 @@ export function spawnPoint(w: World, out = { x: 0, y: 0 }) {
   return out;
 }
 
-/** source はダメージを出した武器の id（当たって回復とダメージ表に使う） */
+/** source はダメージを出した武器の id（ダメージ表に使う）。drain は当たって戻す HP で、無ければ source の武器の値 */
 export function damageEnemy(
   w: World,
   i: number,
@@ -473,17 +473,18 @@ export function damageEnemy(
   kx: number,
   ky: number,
   crit = false,
-  source?: string
+  source?: string,
+  drain?: number
 ): void {
   const e = w.enemies[i];
   if (!e.alive || airborne(e)) return;
   if (e.def.part) {
     // 大ヘビの体の節。光るのは節で、体力は頭から減らす
     e.flash = 0.12;
-    if (w.enemies[e.turn]?.alive) damageEnemy(w, e.turn, dmg, 0, 0, crit, source);
+    if (w.enemies[e.turn]?.alive) damageEnemy(w, e.turn, dmg, 0, 0, crit, source, drain);
     return;
   }
-  const heal = source ? (WEAPONS[source]?.drain ?? 0) : 0;
+  const heal = drain ?? (source ? (WEAPONS[source]?.drain ?? 0) : 0);
   if (heal > 0 && w.drainLeft > 0) {
     const amt = Math.min(heal, w.drainLeft);
     w.drainLeft -= amt;

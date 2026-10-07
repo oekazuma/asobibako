@@ -3,6 +3,7 @@ import { MAX_R } from './enemies';
 import { power, type Effect } from './arms';
 import type { WeaponStats } from './weapons';
 import { heroOf, weaponAt } from './heroes';
+import { drainAt } from './unions';
 import { damageEnemy, ZONE_HIT, type World } from './world';
 
 /** 炎とツタが中の敵へ当てる間（秒） */
@@ -53,12 +54,12 @@ export function scorch(w: World, slot: number, x: number, y: number, s: WeaponSt
   zone(w, slot, 'flame', x, y, FLAME_R, { ...s, damage: s.damage / 4, duration: 2.5 });
 }
 
-/** 画面の中のでたらめな敵の足もとにツタを生やす。敵がいなければ false */
 /** (x, y) にツタを 1 本生やす（芽吹きの森で、どんぐりが当たった場所） */
 export function vineAt(w: World, slot: number, x: number, y: number, scale: number, s: WeaponStats): void {
   zone(w, slot, 'vine', x, y, VINE_R * scale, s);
 }
 
+/** 画面の中のでたらめな敵の足もとにツタを生やす。敵がいなければ false */
 export function growVines(w: World, slot: number, s: WeaponStats, area: number): boolean {
   const p = w.player;
   const seen = w.enemies.filter(
@@ -93,7 +94,7 @@ export function updateZones(w: World): void {
       if (w.time - e.hit[ZONE_HIT + f.slot] < ZONE_TICK) continue;
       e.hit[ZONE_HIT + f.slot] = w.time;
       const { dmg, crit } = power(w, f.dmg);
-      damageEnemy(w, i, dmg, 0, 0, crit, weaponAt(w, f.slot)?.id);
+      damageEnemy(w, i, dmg, 0, 0, crit, weaponAt(w, f.slot)?.id, drainAt(w, f.slot));
     }
   }
   w.cur = 0;
