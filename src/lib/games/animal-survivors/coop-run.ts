@@ -43,6 +43,12 @@ export function recordRun(
     tickets: (first?.tickets ?? [0, 0, 0]).map((n, i) => n + (part.tickets?.[i] ?? 0)),
     lost: part.lost
   };
+  // 延長戦の 2 回めに見せる回の合計（full）は延長戦の中で作ったので、10:00 で入れたボーナスを足して見せる
+  const bonus = first?.coop?.bonus;
+  if (bonus && run.coop) {
+    run.coins += bonus;
+    run.coop = { ...run.coop, bonus };
+  }
   if (run.overtime) run.overtime.best = r.overtime[run.stage];
   return { run, got: first ? [...got, ...now] : now };
 }

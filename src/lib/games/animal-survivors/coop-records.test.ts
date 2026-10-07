@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ACHIEVEMENTS } from './achievements';
 import { emptyRecords, pairKey, parseRecords, record } from './records';
 import { startCarry, stepCarry } from './carry';
-import { heroRun } from './coop-run';
+import { heroRun, recordRun } from './coop-run';
 import { startOvertime } from './overtime';
 import { overtimeRun } from './overtime';
 import { addHero, createWorld, DUO_BONUS, step, summary, type World } from './world';
@@ -46,6 +46,7 @@ describe('その回の 2 人の数', () => {
       ],
       links: 2,
       carries: 1,
+      together: true,
       bonus: 0
     });
   });
@@ -215,5 +216,34 @@ describe('協力の実績', () => {
       true,
       true
     ]);
+  });
+});
+
+describe('レビューの直し', () => {
+  it('延長戦まで遊んだ回のリザルトにも、10:00 で入れたふたりのボーナスを出す', () => {
+    const r = emptyRecords();
+    const w = duo();
+    w.coins = 1000;
+    w.over = 'clear';
+    const first = recordRun(r, heroRun(w, 0), null);
+    const bonus = first.run.coop!.bonus;
+    expect(bonus).toBeGreaterThan(0);
+    startOvertime(w);
+    w.over = 'dead';
+    const after = recordRun(r, heroRun(w, 0), first.run, first.got);
+    expect(after.run.coop!.bonus).toBe(bonus);
+    expect(after.run.coins).toBe(heroRun(w, 0).full.coins + bonus);
+  });
+
+  it('子が抜けた回は、クリアしても「ふたり」のクリアに数えない', () => {
+    const r = emptyRecords();
+    const w = duo();
+    w.heroes[1].gone = w.heroes[1].down = true;
+    w.over = 'clear';
+    w.time = 600;
+    record(r, summary(w));
+    expect(r.coop.runs).toBe(1);
+    expect(r.coop.clears).toBe(0);
+    expect(ACHIEVEMENTS.find((a) => a.id === 'coopClear')!.done(r, null)).toBe(false);
   });
 });

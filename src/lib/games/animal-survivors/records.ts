@@ -328,7 +328,7 @@ export function record(r: Records, run: RunSummary): AchievementDef[] {
     // 延長戦の 2 回めの記録（killsBefore がある）は、回とクリアを 10:00 の記録で数えてある
     if (run.killsBefore === undefined) {
       o.runs += 1;
-      if (run.cleared) o.clears += 1;
+      if (run.cleared && c.together) o.clears += 1;
     }
     o.best = Math.max(o.best, run.time);
     o.raises += c.heroes.reduce((n, h) => n + h.raises, 0);

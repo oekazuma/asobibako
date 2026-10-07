@@ -1077,6 +1077,8 @@ export interface CoopRun {
   heroes: { animal: AnimalId; kills: number; damage: number; raises: number }[];
   links: number;
   carries: number;
+  /** 最後まで 2 人とも残っていた（途中で抜けた回は「ふたり」のクリアに数えない） */
+  together: boolean;
   /** 2 人でクリアしたときに足したコイン（銅の券 1 枚もいっしょに足してある） */
   bonus: number;
 }
@@ -1188,7 +1190,8 @@ export function summary(w: World): RunSummary {
     })
   };
   if (w.heroes.length < 2) return s;
-  const duo = w.over === 'clear' && !w.overtime && w.heroes.every((h) => !h.gone);
+  const together = w.heroes.every((h) => !h.gone);
+  const duo = w.over === 'clear' && !w.overtime && together;
   const bonus = duo ? Math.floor(s.coins * DUO_BONUS) : 0;
   s.coop = {
     me: w.cur,
@@ -1203,6 +1206,7 @@ export function summary(w: World): RunSummary {
     }),
     links: w.link.uses,
     carries: w.carried,
+    together,
     bonus
   };
   if (bonus) {

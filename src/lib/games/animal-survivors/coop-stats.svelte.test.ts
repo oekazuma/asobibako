@@ -17,6 +17,7 @@ const run = (over: Partial<CoopRun> = {}): CoopRun => ({
   ],
   links: 3,
   carries: 1,
+  together: true,
   bonus: 0,
   ...over
 });
