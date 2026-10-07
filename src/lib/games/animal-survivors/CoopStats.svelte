@@ -14,7 +14,7 @@
 <section class="duo" aria-label="ふたりの活躍">
   <h3>ふたりの活躍</h3>
   <div class="cols">
-    {#each coop.heroes as h, i (i)}
+    {#each coop.heroes as h, i (`${h.animal}-${i}`)}
       <div class="col" class:me={i === coop.me}>
         <PixelIcon art={ANIMAL_ART[h.animal].forms[0].walk} size="min(10cqw, 6cqh, 56px)" />
         <b>{animal(h.animal).name}</b>
