@@ -6,6 +6,7 @@ import { text, textWidth } from './font';
 import { bake } from './pixels';
 import { RELIC_ART } from './art/explore';
 import { relicTargets } from './draw-explore';
+import { inPinch } from './heroes';
 import type { World } from './world';
 
 const CONFETTI = 40;
@@ -64,22 +65,56 @@ function edgeArrow(
 /** 矢印を出す相棒（ふたりで遊ぶときの、自分でない動物） */
 export const partners = (w: World) => [...w.heroes.keys()].filter((i) => i !== w.cur && !w.heroes[i].gone);
 
+/** 相棒のピンチの赤。ゆっくり強めて弱める（大群の中で点滅させない） */
+function pinchAlpha(now: number): number {
+  return 0.35 + 0.45 * pulse(now);
+}
+
 /**
  * 画面の外の相棒への矢印。宝箱やヌシの矢印と見分けるよう、相棒の顔を画面の内側へ添える。
- * 倒れていれば顔を薄くする
+ * ピンチ（HP 3 割未満か倒れている）なら矢印と顔のうしろに赤い丸を出す
  */
-export function partnerArrows(ctx: CanvasRenderingContext2D, w: World, vw: number, vh: number, top: number): void {
+export function partnerArrows(
+  ctx: CanvasRenderingContext2D,
+  w: World,
+  vw: number,
+  vh: number,
+  top: number,
+  now: number
+): void {
   for (const i of partners(w)) {
     const h = w.heroes[i];
-    const at = edgeArrow(ctx, w, h.player, vw, vh, top);
-    if (!at) continue;
+    const near = edgeAt(w, h.player, vw, vh, top);
+    if (!near) continue;
     const face = ANIMAL_ART[h.animal.id].forms[0].walk;
-    const y = at.y > vh / 2 ? at.y - 6 - face.h : at.y + 6;
-    const x = Math.min(vw - face.w - 2, Math.max(2, at.x - Math.floor(face.w / 2)));
-    ctx.globalAlpha = h.down ? 0.5 : 1;
+    const y = near.y > vh / 2 ? near.y - 6 - face.h : near.y + 6;
+    const x = Math.min(vw - face.w - 2, Math.max(2, near.x - Math.floor(face.w / 2)));
+    if (inPinch(h)) {
+      ctx.globalAlpha = pinchAlpha(now);
+      ctx.fillStyle = PALETTE.r;
+      ctx.beginPath();
+      ctx.arc(near.x, near.y, 9, 0, Math.PI * 2);
+      ctx.arc(x + face.w / 2, y + face.h / 2, face.w / 2 + 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    edgeArrow(ctx, w, h.player, vw, vh, top);
     ctx.drawImage(bake(face), x, y);
-    ctx.globalAlpha = 1;
   }
+}
+
+/** 画面の中のピンチの相棒の足もとの赤い輪（自分の動物には出さない） */
+export function pinchRing(ctx: CanvasRenderingContext2D, w: World, i: number, now: number): void {
+  const h = w.heroes[i];
+  if (i === w.cur || !inPinch(h)) return;
+  const p = h.player;
+  ctx.globalAlpha = pinchAlpha(now);
+  ctx.strokeStyle = PALETTE.r;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 8, 12, 5, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
 }
 
 /** 宝の地図の宝箱が消えるまでの秒を、この秒より少なくなったら明滅させる */

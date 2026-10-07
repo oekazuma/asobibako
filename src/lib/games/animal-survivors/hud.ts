@@ -1,3 +1,4 @@
+import { ANIMAL_ART } from './art/animals';
 import { itemArt } from './art/evolved';
 import { ITEM_ART } from './art/items';
 import { PALETTE } from './art/palette';
@@ -6,6 +7,7 @@ import type { ViewSize } from './draw';
 import { text, textWidth } from './font';
 import { bake } from './pixels';
 import { blessings } from './draw-explore';
+import { RAISE_SECS } from './heroes';
 import { WEAPONS } from './weapons';
 import { coinsOf, type Owned, type World } from './world';
 
@@ -77,6 +79,20 @@ export function hud(ctx: CanvasRenderingContext2D, w: World, v: ViewSize, top: n
   if (w.heroes.length > 1) {
     const l = w.link;
     bar(ctx, 6, top + 19, 80, 2, l.charge / l.need, l.cool > 0 ? PALETTE.Y : PALETTE.y, PALETTE.M);
+  }
+  // 相棒の顔と HP。倒れていればバーは空で、顔の横に起こす輪の進み具合を出す
+  const mate = w.heroes.length > 1 ? w.heroes[w.cur === 0 ? 1 : 0] : null;
+  if (mate && !mate.gone) {
+    const y = top + 23;
+    ctx.drawImage(bake(ANIMAL_ART[mate.animal.id].forms[0].walk), 6, y);
+    bar(ctx, 24, y + 7, 62, 3, mate.down ? 0 : mate.player.hp / mate.stats.maxHp, PALETTE.r, PALETTE.R);
+    if (mate.down && mate.revive > 0) {
+      ctx.strokeStyle = PALETTE.y;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(94, y + 8, 4, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * mate.revive) / RAISE_SECS);
+      ctx.stroke();
+    }
   }
 
   blessings(ctx, w, 6, v.h - SLOT * 2 - 16, text);

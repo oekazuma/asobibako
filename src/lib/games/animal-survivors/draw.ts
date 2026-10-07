@@ -17,7 +17,7 @@ import { byFeet, covers, drawObstacles, inView } from './draw-obstacles';
 import { hash, obstaclesNear, type Obstacle } from './obstacles';
 import type { Prompts } from './prompts.svelte';
 import { nearestHero, RAISE_SECS, type Hero } from './heroes';
-import { chiefArrows, confetti, partnerArrows, relicArrows, treasureArrow } from './draw-events';
+import { chiefArrows, confetti, partnerArrows, pinchRing, relicArrows, treasureArrow } from './draw-events';
 import { blizzard } from './draw-storm';
 import { drawLava } from './draw-volcano';
 import { EAGLE } from './bosses-forest';
@@ -429,6 +429,8 @@ export function draw(
   if (!grow) {
     const me = w.cur;
     for (const i of heroOrder(w)) {
+      w.cur = me;
+      pinchRing(ctx, w, i, now);
       w.cur = i;
       player(ctx, w, now);
       raising(ctx, w.heroes[i]);
@@ -494,7 +496,7 @@ export function draw(
     treasureArrow(ctx, w, v.w, v.h, top, now);
     chiefArrows(ctx, w, v.w, v.h, top);
     relicArrows(ctx, w, v.w, v.h, top);
-    partnerArrows(ctx, w, v.w, v.h, top);
+    partnerArrows(ctx, w, v.w, v.h, top, now);
   }
   bossBars(ctx, w, v, top);
 }
