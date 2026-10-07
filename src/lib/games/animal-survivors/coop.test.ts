@@ -85,8 +85,18 @@ async function pair() {
 }
 
 describe('協力プレイのつなぎ', () => {
-  it('snap の形を変えたので、つなぎ方の版は 2（古い版の端末とはつながない）', () => {
-    expect(COOP_VERSION).toBe(2);
+  it('子の端末にも、武器ごとの限界突破の回数が届く', async () => {
+    const { g, w, h } = await started();
+    w.heroes[1].weapons[0].limit = { damage: 2, cooldown: 1 };
+    h.after(0.06);
+    await settle();
+    g.frame(performance.now() + 1000);
+    const v = g.view!;
+    expect(v.heroes[v.cur].weapons[0].limit).toEqual({ damage: 2, cooldown: 1 });
+  });
+
+  it('snap の形を変えたので、つなぎ方の版は 3（古い版の端末とはつながない）', () => {
+    expect(COOP_VERSION).toBe(3);
   });
 
   it('風の祠のご利益は、子の端末での子の動物の動きにも効く', async () => {

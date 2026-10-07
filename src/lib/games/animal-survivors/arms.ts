@@ -5,6 +5,7 @@ import { MAX_LEVEL, partDef, WEAPONS, weaponStats, type Twist, type WeaponDef, t
 import { heroOf, HERO_SLOTS, PART_B, weaponAt } from './heroes';
 import { damageEnemy, type Enemy, type World } from './world';
 import { drainAt } from './unions';
+import { limitStats, type Limit } from './limit';
 import { MIGHT } from './shrines';
 import { dropFlame, flameAt, growVines, scorch, updateZones, vineAt } from './zones';
 
@@ -227,8 +228,8 @@ function within(w: World, x: number, y: number, r: number, out: number[]) {
 const targets: number[] = [];
 
 /** 合わせ技でもう一方の部品の攻撃を出すときの数値（範囲と効く時間の強化も受ける） */
-function partStats(w: World, def: WeaponDef, k: 0 | 1): WeaponStats {
-  const s = weaponStats(partDef(def, k), MAX_LEVEL);
+function partStats(w: World, def: WeaponDef, k: 0 | 1, limit?: Limit): WeaponStats {
+  const s = limitStats(weaponStats(partDef(def, k), MAX_LEVEL), limit);
   s.amount += Math.floor(w.stats.amount);
   s.duration *= w.stats.duration;
   return s;
@@ -343,16 +344,19 @@ export function attackWait(w: World, cooldown: number): number {
 }
 
 /** 枠の番号の弾や効果が合体武器のものなら、その合わせ技と部品の番号 */
-export function twistAt(w: World, slot: number): { twist: Twist; part: 0 | 1; def: WeaponDef } | null {
+export function twistAt(
+  w: World,
+  slot: number
+): { twist: Twist; part: 0 | 1; def: WeaponDef; limit: Limit | undefined } | null {
   const own = weaponAt(w, slot);
   const def = own && WEAPONS[own.id];
   if (!def?.union) return null;
-  return { twist: def.union.twist, part: slot >= PART_B ? 1 : 0, def };
+  return { twist: def.union.twist, part: slot >= PART_B ? 1 : 0, def, limit: own.limit };
 }
 
 /** 撃ったら待ち時間を返す。撃てなければ null */
-function fireOne(w: World, def: WeaponDef, level: number, slot: number): number | null {
-  const s = weaponStats(def, level);
+function fireOne(w: World, def: WeaponDef, level: number, slot: number, limit?: Limit): number | null {
+  const s = limitStats(weaponStats(def, level), limit);
   s.amount += Math.floor(w.stats.amount);
   s.duration *= w.stats.duration;
   if (!launch(w, def, s, slot)) return null;
@@ -373,7 +377,7 @@ export function fire(w: World, dt: number): void {
     for (const [d, key, add] of parts) {
       own[key] = (own[key] ?? 0) - dt;
       if ((own[key] ?? 0) > 0) continue;
-      const wait = fireOne(w, d, own.level, slot + w.cur * HERO_SLOTS + add);
+      const wait = fireOne(w, d, own.level, slot + w.cur * HERO_SLOTS + add, own.limit);
       if (wait === null) {
         own[key] = 0.25;
         continue;
@@ -414,7 +418,7 @@ function moveShot(w: World, o: Shot, dt: number) {
         const tw = twistAt(w, o.slot);
         if (tw?.twist === 'boomerangOrbit' && o.kind === 'boomerang') {
           // 風のブーメラン: 戻ったら自分のまわりを 1 周回ってから消える
-          const s = partStats(w, tw.def, 1);
+          const s = partStats(w, tw.def, 1, tw.limit);
           o.kind = 'orbit';
           o.vx = SIZE.orbit * s.area * w.stats.area;
           o.speed = s.speed;
@@ -448,7 +452,7 @@ function moveShot(w: World, o: Shot, dt: number) {
     if (tw?.twist === 'dashFlame' && tw.part === 0) {
       // 炎の疾走: 駆け抜けた道に一定の間で炎を置く
       o.drop = o.age + DASH_FLAME_EVERY;
-      const s = partStats(w, tw.def, 1);
+      const s = partStats(w, tw.def, 1, tw.limit);
       flameAt(w, o.slot + PART_B, o.x, o.y + 4, 0.8 * s.area * w.stats.area, {
         ...s,
         duration: 1.2 * w.stats.duration
@@ -470,7 +474,7 @@ function hitShot(w: World, o: Shot) {
         const tw = twistAt(w, o.slot);
         // 芽吹きの森: どんぐりは最初に当たった敵の足もとにだけツタを生やす（貫いた先まで生やすと画面がツタで埋まる）
         if (tw?.twist === 'acornVine' && tw.part === 0) {
-          const s = partStats(w, tw.def, 1);
+          const s = partStats(w, tw.def, 1, tw.limit);
           vineAt(w, o.slot + PART_B, e.x, e.y, s.area * w.stats.area, s);
         }
       }
@@ -485,7 +489,7 @@ function hitShot(w: World, o: Shot) {
       const tw = twistAt(w, o.slot);
       if (tw?.twist === 'fishBones' && tw.part === 1) {
         // 骨の魚群: 弾けた場所から骨を 4 方向へ
-        const s = partStats(w, tw.def, 0);
+        const s = partStats(w, tw.def, 0, tw.limit);
         for (let k = 0; k < 4; k++)
           shoot(w, o.slot - PART_B, 'shot', s, (k / 4) * Math.PI * 2, SIZE.shot * s.area * w.stats.area, o);
       }
@@ -539,7 +543,7 @@ export function hits(w: World, dt: number): void {
 function ringBolts(w: World, f: Effect): void {
   const tw = twistAt(w, f.slot);
   if (tw?.twist !== 'ringBolt' || tw.part !== 0) return;
-  const s = partStats(w, tw.def, 1);
+  const s = partStats(w, tw.def, 1, tw.limit);
   bolts(w, f.slot + PART_B, s, s.area * w.stats.area, f.x, f.y, f.r, f.r);
 }
 

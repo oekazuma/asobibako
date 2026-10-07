@@ -1,10 +1,11 @@
 import { healRate, hpScaleOf } from './arcana';
-import { addCoins, COIN_RATE, gainXp, noMeat, pick } from './drops';
+import { gainXp, noMeat, pick } from './drops';
 import { trySpecial } from './specials';
 import { EVOLUTIONS, baseOf } from './evolutions';
 import { PASSIVES, maxOf, stats } from './passives';
 import { partsOf } from './unions';
 import { MAX_LEVEL, WEAPONS } from './weapons';
+import { limitCards, type LimitStat } from './limit';
 import type { World } from './world';
 
 export type Choice =
@@ -12,21 +13,11 @@ export type Choice =
   | { kind: 'passive'; id: string; level: number; evo?: boolean }
   | { kind: 'meat' }
   | { kind: 'bag' }
-  /** 全部埋まったあとのごほうび。攻撃 +5%・最大 HP +10 と全回復（heal が false なら回復なし）・コイン +20 */
-  | { kind: 'power' }
-  | { kind: 'vigor'; heal?: boolean }
-  | { kind: 'gold' };
+  /** 全部埋まったあとの札。限界突破と、最大 HP +10 と全回復（heal が false なら回復なし） */
+  | { kind: 'limit'; id: string; stat: LimitStat; now: number }
+  | { kind: 'vigor'; heal?: boolean };
 
-/** 全部埋まったあとの 3 択と、宝箱で上げるものがないときの中身 */
-export const REWARDS = [{ kind: 'power' }, { kind: 'vigor' }, { kind: 'gold' }] as const;
-
-/** 肉が出ない回は全回復が肉の代わりに強すぎるので、元気のみなもとは最大 HP だけを上げる */
-export function rewardsFor(w: World): Choice[] {
-  return REWARDS.map((c) => (c.kind === 'vigor' ? { kind: 'vigor', heal: !noMeat(w) } : { ...c }));
-}
-export const POWER = 0.05;
 export const VIGOR = 10;
-export const GOLD = 20;
 
 /** 武器・パッシブでない札（除外できない） */
 export const isFiller = (c: Choice) => c.kind !== 'weapon' && c.kind !== 'passive';
@@ -63,7 +54,7 @@ function fourth(w: World): number {
 
 export function choices(w: World, n = 3 + fourth(w)): Choice[] {
   const list = candidates(w);
-  if (list.length === 0) return rewardsFor(w);
+  if (list.length === 0) return limitCards(w, n);
   for (let i = list.length - 1; i > 0; i--) {
     const j = Math.floor(w.rand() * (i + 1));
     [list[i], list[j]] = [list[j], list[i]];
@@ -100,15 +91,14 @@ export function levelUp(w: World, c: Choice): void {
     p.hp += Math.max(0, w.stats.maxHp - before);
   } else if (c.kind === 'meat') {
     p.hp = Math.min(w.stats.maxHp, p.hp + w.stats.maxHp * 0.3 * healRate(w));
-  } else if (c.kind === 'power' || c.kind === 'vigor') {
+  } else if (c.kind === 'limit') {
+    const own = w.weapons.find((o) => o.id === c.id);
+    if (own) own.limit = { ...own.limit, [c.stat]: (own.limit?.[c.stat] ?? 0) + 1 };
+  } else if (c.kind === 'vigor') {
     // その回だけの強化は World.boost に足す（パッシブや育ちで stats を作り直しても残る）
-    if (c.kind === 'power') w.boost = { ...w.boost, might: (w.boost.might ?? 0) + POWER };
-    else w.boost = { ...w.boost, maxHp: (w.boost.maxHp ?? 0) + VIGOR / hpScaleOf(w) };
+    w.boost = { ...w.boost, maxHp: (w.boost.maxHp ?? 0) + VIGOR / hpScaleOf(w) };
     w.stats = stats(w.animal, w.passives, w.boost, w.form, hpScaleOf(w));
-    if (c.kind === 'vigor' && c.heal !== false) p.hp = w.stats.maxHp;
-  } else if (c.kind === 'gold') {
-    // 札に書いた枚数がそのまま入るよう、拾ったコインの倍率（COIN_RATE）の分を割っておく
-    addCoins(w, GOLD / COIN_RATE);
+    if (c.heal !== false) p.hp = w.stats.maxHp;
   } else {
     pick(w, 'bag');
     gainXp(w, BAG_XP);

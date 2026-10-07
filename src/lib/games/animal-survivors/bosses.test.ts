@@ -219,7 +219,7 @@ describe('倒したときと宝箱', () => {
     expect(chestSize(0.99)).toBe(5);
   });
 
-  it('宝箱は Lv5 を超えて上げず、上げるものが無ければごほうびになる', () => {
+  it('宝箱は Lv5 を超えて上げず、上げるものが無ければ限界突破か最大 HP になる', () => {
     const w = quiet();
     // 合体の組がそろわない 6 つ
     w.weapons = ['woof', 'paw', 'howl', 'boomerang', 'acorn', 'dash'].map((id) => ({ id, level: MAX_LEVEL, cd: 0 }));
@@ -229,7 +229,7 @@ describe('倒したときと宝箱', () => {
     const got = openChest(w);
     expect(got).toHaveLength(5);
     expect(got[0]).toEqual({ kind: 'passive', id: 'heart', level: 5 });
-    for (const r of got.slice(1)) expect(['power', 'vigor', 'gold']).toContain(r.kind);
+    for (const r of got.slice(1)) expect(['limit', 'vigor']).toContain(r.kind);
     expect(w.passives[0].level).toBe(5);
     expect(w.chests).toBe(0);
     expect(Object.keys(PASSIVES)).toContain('heart');

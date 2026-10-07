@@ -1,6 +1,7 @@
 import { has } from './arcana';
 import { chestOdds } from './cauldron';
-import { levelUp, rewardsFor } from './choices';
+import { levelUp } from './choices';
+import { limitCards, type LimitStat } from './limit';
 import { addCoins, CHEST_COINS } from './drops';
 import { evolvable, evolve } from './evolutions';
 import { maxOf } from './passives';
@@ -13,7 +14,7 @@ export type Reward =
   | { kind: 'weapon' | 'passive'; id: string; level: number }
   | { kind: 'meat' }
   | { kind: 'bag' }
-  | { kind: 'power' | 'gold' }
+  | { kind: 'limit'; id: string; stat: LimitStat; now: number }
   | { kind: 'vigor'; heal?: boolean }
   | { kind: 'evolve'; from: string; id: string }
   | { kind: 'union'; parts: [string, string]; id: string };
@@ -57,7 +58,7 @@ export function openChest(w: World): Reward[] {
         .filter((o) => o.level < maxOf(o.id))
         .map((o) => ({ kind: 'passive' as const, id: o.id, level: o.level + 1 }))
     ];
-    const r: Reward = open.length ? open[Math.floor(w.rand() * open.length)] : rewardsFor(w)[Math.floor(w.rand() * 3)];
+    const r: Reward = open.length ? open[Math.floor(w.rand() * open.length)] : limitCards(w, 1)[0];
     levelUp(w, r);
     out.push(r);
   }

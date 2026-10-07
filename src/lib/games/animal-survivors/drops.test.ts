@@ -75,7 +75,7 @@ describe('3 択', () => {
       }
   });
 
-  it('全部 Lv5 ならごほうびの 3 枚だけになり、選び続けても止まる', () => {
+  it('全部 Lv5 なら限界突破と最大 HP の札だけになり、選び続けても止まる', () => {
     const w = fresh();
     w.weapons = Object.keys(WEAPONS)
       .slice(0, SLOTS)
@@ -84,9 +84,9 @@ describe('3 択', () => {
       .slice(0, SLOTS)
       .map((id) => ({ id, level: MAX_LEVEL }));
     w.pending = 1;
-    expect(choices(w).map((c) => c.kind)).toEqual(['power', 'vigor', 'gold']);
+    for (const c of choices(w)) expect(['limit', 'vigor']).toContain(c.kind);
     let guard = 0;
-    while (w.pending > 0 && guard++ < 1000) apply(w, { kind: 'gold' });
+    while (w.pending > 0 && guard++ < 1000) apply(w, { kind: 'vigor' });
     expect(w.pending).toBe(0);
   });
 

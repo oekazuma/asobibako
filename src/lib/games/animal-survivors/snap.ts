@@ -1,4 +1,5 @@
 import { RELIC_IDS, type RelicId } from './relics';
+import { LIMIT_STATS, type Limit } from './limit';
 import { animal, type AnimalId } from './animals';
 import type { Effect, Shot } from './arms';
 import type { Hazard } from './bosses';
@@ -9,7 +10,7 @@ import type { Storm } from './storm';
 import { addHero, chiefOf, eliteOf, makeEnemy, type GameEvent, type World } from './world';
 
 /** 協力プレイの知らせの形の版。形を変えたら 1 上げる */
-export const COOP_VERSION = 2;
+export const COOP_VERSION = 3;
 
 type Row = (number | string)[];
 
@@ -91,7 +92,7 @@ export function makeSnap(w: World, events: GameEvent[]): Snap {
         r1(p.attack),
         h.down ? 1 : 0,
         h.pending,
-        h.weapons.map((o) => `${o.id}:${o.level}`).join(','),
+        h.weapons.map((o) => `${o.id}:${o.level}:${LIMIT_STATS.map((k) => o.limit?.[k] ?? 0).join('.')}`).join(','),
         h.passives.map((o) => `${o.id}:${o.level}`).join(','),
         r1(p.slow),
         r1(h.revive),
@@ -177,6 +178,19 @@ const parsed = (s: string) =>
     ? s.split(',').map((x) => ({ id: x.slice(0, x.lastIndexOf(':')), level: Number(x.slice(x.lastIndexOf(':') + 1)) }))
     : [];
 
+/** 武器の行は id:level:回数.回数…（回数は LIMIT_STATS の並び） */
+const parsedWeapons = (s: string) =>
+  s
+    ? s.split(',').map((x) => {
+        const [id, level, counts] = x.split(':');
+        const limit: Limit = {};
+        (counts ?? '').split('.').forEach((v, i) => {
+          if (Number(v) > 0) limit[LIMIT_STATS[i]] = Number(v);
+        });
+        return { id, level: Number(level), cd: 0, ...(Object.keys(limit).length && { limit }) };
+      })
+    : [];
+
 /** 子の端末の描くための World に書き込む。自分（view.cur）の位置と向きは自分の端末で動かしているので書かない */
 export function applySnap(view: World, s: Snap): void {
   const [time, level, xp, kills, coins, freeze, festival] = s.t;
@@ -202,7 +216,7 @@ export function applySnap(view: World, s: Snap): void {
     p.attack = r[11] as number;
     h.down = r[12] === 1;
     h.pending = r[13] as number;
-    h.weapons = parsed(r[14] as string).map((o) => ({ ...o, cd: 0 }));
+    h.weapons = parsedWeapons(r[14] as string);
     h.passives = parsed(r[15] as string);
     p.slow = r[16] as number;
     h.revive = r[17] as number;

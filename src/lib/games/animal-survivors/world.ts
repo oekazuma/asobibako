@@ -30,6 +30,7 @@ import { startEvent, stepEvents } from './events';
 import { quietEarth, stepEruption, updateLava, type Eruption, type Lava } from './eruption';
 import { PLAYER_R, pushOut } from './obstacles';
 import { flakes, hasRelic, placeRelics, type RelicId } from './relics';
+import { limitTotal, type Limit } from './limit';
 import { speedOf, stepBlessing, touchShrines, type ShrineKind } from './shrines';
 import { calm, STORM_PUSH, stepStorm, windFactor, type Storm } from './storm';
 import { spawnRate, type Stage } from './stages/forest';
@@ -89,6 +90,8 @@ export interface Player {
 export interface Owned {
   id: string;
   level: number;
+  /** summary の武器だけ: 限界突破で上げた回数の合計 */
+  lb?: number;
 }
 
 /** hero はふたりで遊ぶときの持ち主（heroes の番号） */
@@ -158,7 +161,7 @@ export interface World {
   /** その回の候補から消した札（kind:id） */
   banished: string[];
   player: Player;
-  weapons: (Owned & { cd: number; cd2?: number })[];
+  weapons: (Owned & { cd: number; cd2?: number; limit?: Limit })[];
   passives: Owned[];
   enemies: Enemy[];
   shots: Shot[];
@@ -1099,7 +1102,11 @@ export function summary(w: World): RunSummary {
     level: w.level,
     kills: w.kills,
     xp: w.xpTotal,
-    weapons: w.weapons.map(({ id, level }) => ({ id, level })),
+    weapons: w.weapons.map(({ id, level, limit }) => ({
+      id,
+      level,
+      ...(limitTotal(limit) && { lb: limitTotal(limit) })
+    })),
     passives: w.passives.map(({ id, level }) => ({ id, level })),
     bosses: [...w.bossKills],
     coins: coinsOf(w),
