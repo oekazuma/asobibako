@@ -39,3 +39,19 @@ describe('初めての説明', () => {
     expect(loadRecords().tips).not.toContain('evolve');
   });
 });
+
+describe('祠の初めての説明', () => {
+  it('時計の無い祠（宝箱・全快）では説明を使い切らず、次の時計のある祠で出す', () => {
+    localStorage.clear();
+    const w = createWorld('dog', 1, { w: 260, h: 380 });
+    const p = new Prompts(w);
+    w.events.push({ type: 'shrine', kind: 'treasure' });
+    p.take();
+    expect(p.notice?.text).not.toContain('30 秒');
+    expect(loadRecords().tips).not.toContain('shrine');
+    w.events.length = 0;
+    w.events.push({ type: 'shrine', kind: 'wisdom' });
+    p.take();
+    expect(p.notice?.text).toContain('30 秒');
+  });
+});

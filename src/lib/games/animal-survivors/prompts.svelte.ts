@@ -134,7 +134,8 @@ export class Prompts {
         const tip = firstTip('relic') ? `\n${TIP.relic}` : '';
         this.notice = { text: `遺物を手に入れた！ ${name}${tip}`, key: w.time, until: w.time + NOTICE * 2 };
       } else if (e.type === 'shrine') {
-        const tip = firstTip('shrine');
+        // 宝箱と全快はその場で終わり HUD に印が出ないので、30 秒の説明は時計のある祠まで取っておく
+        const tip = e.kind !== 'treasure' && e.kind !== 'heal' && firstTip('shrine');
         this.notice = {
           text: `${SHRINE_NAME[e.kind]}！${tip ? `\n${TIP.shrine}` : ''}`,
           key: w.time,
