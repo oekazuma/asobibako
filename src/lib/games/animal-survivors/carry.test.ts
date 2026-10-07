@@ -98,11 +98,13 @@ describe('運び方', () => {
 
   it('中身 3 つの数は宝箱 1 つぶんだけ効く', () => {
     const w = duo();
+    // いつも中身 1 つを引く乱数にして、重い宝箱のぶんだけ 3 つになるのを見る
+    w.rand = () => 0;
     w.big = 1;
     w.chests = 2;
-    // 引いた割合が 5 つなら 5 つのまま（重い宝箱で減らさない）
-    expect(openChest(w).length).toBeGreaterThanOrEqual(3);
+    expect(openChest(w)).toHaveLength(3);
     expect(w.big).toBe(0);
+    expect(openChest(w)).toHaveLength(1);
   });
 
   it('60 秒で沈んで消え、時計の品で止まっているあいだは減らない', () => {

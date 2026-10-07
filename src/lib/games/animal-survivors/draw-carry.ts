@@ -2,11 +2,16 @@ import { ITEM_ART } from './art/items';
 import { PALETTE } from './art/palette';
 import { ALTAR_R, CARRY_REACH } from './carry';
 import { pulse } from './draw-boss';
-import { bake } from './pixels';
+import { bake, type Art } from './pixels';
 import type { World } from './world';
 
+/** 2 倍で描く宝箱の左上。動くものなので、ほかの絵と同じく端末の画素に丸める（q は draw.ts の丸め） */
+export function chestAt(c: { x: number; y: number }, art: Art, q: (v: number) => number): { x: number; y: number } {
+  return { x: q(c.x - art.w), y: q(c.y - art.h * 2 + 6) };
+}
+
 /** 重い宝箱と祭壇（地面の高さで、敵より先に描く）。光はなめらかに強めて弱める */
-export function drawCarry(ctx: CanvasRenderingContext2D, w: World, now: number): void {
+export function drawCarry(ctx: CanvasRenderingContext2D, w: World, now: number, q: (v: number) => number): void {
   const c = w.carry;
   if (!c) return;
   const glow = 0.45 + 0.35 * pulse(now);
@@ -30,12 +35,13 @@ export function drawCarry(ctx: CanvasRenderingContext2D, w: World, now: number):
   });
   ctx.globalAlpha = 1;
   const a = ITEM_ART.chest;
-  ctx.drawImage(bake(a), Math.round(c.x - a.w), Math.round(c.y - a.h * 2 + 6), a.w * 2, a.h * 2);
+  const at = chestAt(c, a, q);
+  ctx.drawImage(bake(a), at.x, at.y, a.w * 2, a.h * 2);
   if (c.near.length > 1 && c.near.every(Boolean)) {
     const ang = Math.atan2(c.ay - c.y, c.ax - c.x);
     const arrow = ITEM_ART.arrow;
     ctx.save();
-    ctx.translate(Math.round(c.x + Math.cos(ang) * 26), Math.round(c.y + Math.sin(ang) * 26));
+    ctx.translate(q(c.x + Math.cos(ang) * 26), q(c.y + Math.sin(ang) * 26));
     ctx.rotate(ang);
     ctx.drawImage(bake(arrow), -Math.floor(arrow.w / 2), -Math.floor(arrow.h / 2));
     ctx.restore();

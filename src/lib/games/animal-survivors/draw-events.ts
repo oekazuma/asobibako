@@ -120,6 +120,19 @@ export function pinchRing(ctx: CanvasRenderingContext2D, w: World, i: number, no
 /** 宝の地図の宝箱が消えるまでの秒を、この秒より少なくなったら明滅させる */
 const HURRY = 10;
 
+/** 残り秒を出す場所。画面の外の宝箱の矢印、画面の外の祭壇の矢印、どちらも画面の中なら宝箱の上（画面の座標） */
+export function carryTimer(
+  w: World,
+  vw: number,
+  vh: number,
+  top: number
+): 'chest' | 'altar' | { x: number; y: number } {
+  const c = w.carry!;
+  if (edgeAt(w, c, vw, vh, top)) return 'chest';
+  if (edgeAt(w, { x: c.ax, y: c.ay }, vw, vh, top)) return 'altar';
+  return { x: vw / 2 + c.x - w.player.x, y: Math.round(vh / 2 + c.y - w.player.y) - ITEM_ART.chest.h * 2 - 2 };
+}
+
 /** 画面の外の重い宝箱と祭壇への矢印。宝箱か祭壇の印と残り秒を画面の内側へ添える */
 export function carryArrows(
   ctx: CanvasRenderingContext2D,
@@ -140,6 +153,8 @@ export function carryArrows(
     ctx.drawImage(bake(art), box.x - Math.floor(art.w / 2), y);
     text(ctx, s, box.x - Math.round(textWidth(s) / 2), y + art.h + 1, PALETTE.y);
   }
+  const spot = carryTimer(w, vw, vh, top);
+  if (typeof spot === 'object') text(ctx, s, Math.round(spot.x - textWidth(s) / 2), spot.y, PALETTE.y);
   const altar = edgeArrow(ctx, w, { x: c.ax, y: c.ay }, vw, vh, top);
   if (altar) {
     const y = altar.y > vh / 2 ? altar.y - 12 : altar.y + 10;
@@ -148,8 +163,8 @@ export function carryArrows(
     ctx.beginPath();
     ctx.ellipse(altar.x, y, 6, 3.5, 0, 0, Math.PI * 2);
     ctx.stroke();
-    // 下の端では矢印が輪の下に来るので、秒は輪の上に置く
-    if (!box) text(ctx, s, altar.x - Math.round(textWidth(s) / 2), altar.y > vh / 2 ? y - 10 : y + 5, PALETTE.y);
+    if (spot === 'altar')
+      text(ctx, s, altar.x - Math.round(textWidth(s) / 2), altar.y > vh / 2 ? y - 10 : y + 5, PALETTE.y);
   }
   ctx.globalAlpha = 1;
 }

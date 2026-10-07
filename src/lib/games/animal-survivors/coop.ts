@@ -151,7 +151,9 @@ export class CoopHost {
     const h = w?.heroes[1];
     if (!w || !h || h.gone) return;
     h.gone = h.down = true;
-    h.pending = h.chests = 0;
+    h.pending = h.chests = h.big = 0;
+    // 1 匹では動かせないので、残すと消えるまで運べない宝箱が見え続ける
+    w.carry = null;
     this.#asked = null;
     if (this.paused === 'guest') this.paused = null;
     if (!w.over && w.heroes.every((x) => x.down)) w.over = 'dead';

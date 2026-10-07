@@ -160,6 +160,17 @@ describe('協力プレイのつなぎ', () => {
     expect(g.view!.events.some((e) => e.type === 'raised')).toBe(true);
   });
 
+  it('子が抜けたら、親 1 匹では運べない重い宝箱を消す', async () => {
+    const { guest, w } = await started();
+    const { startCarry } = await import('./carry');
+    startCarry(w);
+    w.heroes[1].big = 1;
+    guest.act({ t: 'leave' });
+    await settle();
+    expect(w.carry).toBeNull();
+    expect(w.heroes[1].big).toBe(0);
+  });
+
   it('親が一時停止しているあいだに届いた子の押しは数えない', async () => {
     const { guest, w, h } = await started();
     w.link.charge = w.link.need;

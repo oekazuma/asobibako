@@ -431,7 +431,7 @@ export function draw(
   hazardsBelow(ctx, w, q, now);
   zonesBelow(ctx, w, q, now);
   pickups(ctx, w, now);
-  drawCarry(ctx, w, now);
+  drawCarry(ctx, w, now, q);
   inView(w.stage.art, cx, cy, v.w, v.h, seen);
   enemies(ctx, w, cx, cy, v, now, seen, prompts?.intro?.t ?? 0, prompts?.intro?.ids);
   const ev = prompts?.growing ? prompts.evolve : null;
