@@ -13,6 +13,18 @@ function guestView() {
 }
 
 describe('snap', () => {
+  it('子の画面の技の絵は、届いた 2 つの様子のあいだで進み具合をつなぐ', () => {
+    const w = createWorld('dog', 1, VIEW);
+    addHero(w, 'cat');
+    w.link.shows.push({ hero: 0, animal: 'dog', x: 1, y: 2, angle: 0, t: 0.1 });
+    const a = JSON.parse(JSON.stringify(makeSnap(w, [])));
+    w.link.shows[0].t = 0.3;
+    const b = JSON.parse(JSON.stringify(makeSnap(w, [])));
+    const view = guestView();
+    lerpSnap(view, a, b, 0.5);
+    expect(view.link.shows[0].t).toBeCloseTo(0.2);
+  });
+
   it('連携の技のゲージと押した時刻と絵を運ぶ', () => {
     const w = createWorld('dog', 1, VIEW);
     addHero(w, 'cat');

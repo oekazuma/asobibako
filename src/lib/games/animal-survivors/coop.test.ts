@@ -119,6 +119,29 @@ describe('協力プレイのつなぎ', () => {
     expect(w.link.armed).toBe(true);
   });
 
+  it('止める前の押しは、一時停止で消える（止まっているあいだはゲームの時刻が進まないので）', async () => {
+    const { w, h } = await started();
+    w.link.charge = w.link.need;
+    h.link();
+    expect(w.link.press[0]).toBe(w.time);
+    h.pause();
+    expect(w.link.press).toEqual([-1e9, -1e9]);
+  });
+
+  it('連携の技の前の 1 秒の止めのあいだは、子も動けない', async () => {
+    const { g } = await started();
+    const v = g.view!;
+    const me = v.heroes[v.cur].player;
+    const x0 = me.x;
+    v.link.fuse = 0.5;
+    g.move({ x: 1, y: 0 }, 0.1);
+    expect(me.x).toBe(x0);
+    v.link.fuse = 0;
+    v.link.armed = true;
+    g.move({ x: 1, y: 0 }, 0.1);
+    expect(me.x).toBe(x0);
+  });
+
   it('親が一時停止しているあいだに届いた子の押しは数えない', async () => {
     const { guest, w, h } = await started();
     w.link.charge = w.link.need;

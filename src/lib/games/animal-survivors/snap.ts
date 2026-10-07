@@ -317,6 +317,11 @@ export function lerpSnap(view: World, a: Snap, b: Snap, t: number): void {
     const prev = byIndex(before);
     for (const [i, rb] of byIndex(after)) if (list[i]?.alive) mix(list[i], prev.get(i), rb, at, kind);
   }
+  // 技の絵の進み具合は 1 秒に 20 回しか届かないので、ほかの位置と同じく 2 つのあいだをつなぐ
+  view.link.shows.forEach((s, i) => {
+    const sb = b.link.shows[i];
+    if (sb && sb.hero === s.hero && sb.animal === s.animal) s.t += (sb.t - s.t) * t;
+  });
   b.heroes.forEach((rb, i) => {
     const ra = a.heroes[i];
     if (i === view.cur || !ra || ra[0] !== rb[0]) return;

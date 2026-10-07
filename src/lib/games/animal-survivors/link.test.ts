@@ -245,3 +245,14 @@ describe('せーの', () => {
     expect(w.link.armed).toBe(false);
   });
 });
+
+describe('終わったあと', () => {
+  it('決着したあとは満タンでも押せない（届くのが遅れた子の押しでゲージを失わない）', () => {
+    const w = pair();
+    fill(w);
+    w.over = 'clear';
+    expect(linkReady(w)).toBe(false);
+    expect(pressLink(w, 1)).toBe(false);
+    expect(w.link.charge).toBe(w.link.need);
+  });
+});

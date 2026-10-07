@@ -11,7 +11,7 @@ import { apply, choices, isFiller, type Choice } from './choices';
 import type { GearKey } from './gear';
 import { applySnap, COOP_VERSION, lerpSnap, makeSnap, type Snap } from './snap';
 import { Timeline } from './timeline';
-import { pressLink } from './link';
+import { NEVER, pressLink } from './link';
 import type { Ranks } from './upgrades';
 import { PLAYER_R, pushOut } from './obstacles';
 import { HASTE } from './shrines';
@@ -164,6 +164,8 @@ export class CoopHost {
   #pause(by: 'host' | 'guest'): void {
     if (this.paused) return;
     this.paused = by;
+    // 止まっているあいだはゲームの時刻が進まないので、前の押しを残すと再開後の押しと 1.5 秒以内に見えてしまう
+    if (this.#w) this.#w.link.press = [NEVER, NEVER];
     this.#party.tell(GUEST, { t: 'pause', by });
   }
 
@@ -401,7 +403,8 @@ export class CoopGuest {
     const v = this.view;
     if (!v) return;
     const h = v.heroes[v.cur];
-    if (h.down) return;
+    // 連携の技の前の止めは親の World が自分で止まるので、子の動物も合わせて止める
+    if (h.down || v.link.armed || v.link.fuse > 0) return;
     const p = h.player;
     // 遅さ（糸の玉・冷たい息）と吹雪は親の step と同じ式で、遅さは親から届いた値で効かせる
     const speed = BASE_SPEED * h.stats.speed * (p.slow > 0 ? SLOW : 1) * (h.blessing.speed > 0 ? HASTE : 1);

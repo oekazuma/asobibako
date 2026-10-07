@@ -119,6 +119,7 @@ export function chargeLink(w: World, e: Enemy): void {
 export function linkReady(w: World): boolean {
   const l = w.link;
   return (
+    !w.over &&
     w.heroes.length > 1 &&
     w.heroes.every((h) => !h.down && !h.gone) &&
     !l.armed &&

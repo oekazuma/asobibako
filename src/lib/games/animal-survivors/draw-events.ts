@@ -1,6 +1,6 @@
 import { ANIMAL_ART } from './art/animals';
 import { ITEM_ART } from './art/items';
-import { pulse } from './draw-boss';
+import { barsTop, pulse } from './draw-boss';
 import { PALETTE } from './art/palette';
 import { text, textWidth } from './font';
 import { bake } from './pixels';
@@ -29,7 +29,7 @@ export function edgeAt(
   const right = vw - 14;
   // 上はボスの体力バー（1 本 10 ドット）の下、下は持ちものの欄の上
   const bars = w.enemies.filter((e) => e.alive && e.def.boss).length;
-  const up = top + 26 + 10 * bars;
+  const up = barsTop(w, top) + 4 + 10 * bars;
   const down = vh - 52;
   const cx = vw / 2;
   const cy = vh / 2;

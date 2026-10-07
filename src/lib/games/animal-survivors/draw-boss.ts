@@ -259,8 +259,11 @@ export function introEdge(ctx: CanvasRenderingContext2D, v: ViewSize, intro: { t
   ctx.globalAlpha = 1;
 }
 
+/** ボスの体力バーの 1 本めの高さ。2 匹のときは HP の下の連携のゲージと重ならないよう下げる */
+export const barsTop = (w: World, top: number) => top + 22 + (w.heroes.length > 1 ? 5 : 0);
+
 export function bossBars(ctx: CanvasRenderingContext2D, w: World, v: ViewSize, top: number): void {
-  let y = top + 22;
+  let y = barsTop(w, top);
   for (const e of w.enemies) {
     if (!e.alive || !e.def.boss) continue;
     const width = v.w - 60;
