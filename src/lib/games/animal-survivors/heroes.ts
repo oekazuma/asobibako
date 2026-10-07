@@ -58,23 +58,37 @@ export const anyChest = (w: World) => w.heroes.some((h) => h.chests > 0);
 export const RAISE_SECS = 3;
 export const RAISE_REACH = 24;
 
-/** 倒れた動物の起こす時計を進め、届いたら HP 半分で起こす */
+/** 起こした 2 匹に足す、力と風のご利益の秒 */
+export const RAISE_BLESS = 10;
+/** 相棒の HP がこの割合を切ると、自分の画面でピンチを知らせる */
+export const PINCH = 0.3;
+
+export const inPinch = (h: Hero) => !h.gone && (h.down || h.player.hp < h.stats.maxHp * PINCH);
+
+/** 倒れた動物の起こす時計を進め、届いたら HP 半分で起こし、2 匹にご利益を足す */
 export function raise(w: World, dt: number): void {
   w.heroes.forEach((h, i) => {
     if (!h.down || h.gone) return;
-    const near = w.heroes.some(
+    const by = w.heroes.findIndex(
       (o) => !o.down && (o.player.x - h.player.x) ** 2 + (o.player.y - h.player.y) ** 2 < RAISE_REACH ** 2
     );
-    h.revive = near ? h.revive + dt : 0;
-    if (h.revive < RAISE_SECS) return;
+    const was = h.revive;
+    h.revive = by >= 0 ? h.revive + dt : 0;
+    if (h.revive < RAISE_SECS) {
+      if (Math.floor(h.revive) > Math.floor(was))
+        w.events.push({ type: 'raising', who: i, step: Math.floor(h.revive) });
+      return;
+    }
     h.down = false;
     h.revive = 0;
     h.player.hp = Math.round(h.stats.maxHp / 2);
     h.player.invuln = 2;
-    const was = w.cur;
-    w.cur = i;
-    w.events.push({ type: 'revive' });
-    w.cur = was;
+    for (const k of [i, by]) {
+      const b = w.heroes[k].blessing;
+      b.might = Math.max(0, b.might) + RAISE_BLESS;
+      b.speed = Math.max(0, b.speed) + RAISE_BLESS;
+    }
+    w.events.push({ type: 'raised', who: i, by });
   });
 }
 

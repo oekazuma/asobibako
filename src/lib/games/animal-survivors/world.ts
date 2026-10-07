@@ -126,6 +126,10 @@ export type GameEvent = { hero?: number } & (
   | { type: 'chief'; i: number; name: string }
   /** 連携の技を出す前の止めが始まった（2 匹の動物と技の名前） */
   | { type: 'link'; a: AnimalId; b: AnimalId; name: string }
+  /** 倒れた動物を起こしている（1 秒ごと。who は起きる動物、step はそこまでの秒） */
+  | { type: 'raising'; who: number; step: number }
+  /** 相棒がそばで起こした（who が起きた動物、by が起こした動物） */
+  | { type: 'raised'; who: number; by: number }
 );
 
 export interface World {
