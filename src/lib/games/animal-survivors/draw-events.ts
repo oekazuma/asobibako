@@ -148,6 +148,8 @@ export function carryArrows(
     ctx.beginPath();
     ctx.ellipse(altar.x, y, 6, 3.5, 0, 0, Math.PI * 2);
     ctx.stroke();
+    // 下の端では矢印が輪の下に来るので、秒は輪の上に置く
+    if (!box) text(ctx, s, altar.x - Math.round(textWidth(s) / 2), altar.y > vh / 2 ? y - 10 : y + 5, PALETTE.y);
   }
   ctx.globalAlpha = 1;
 }
