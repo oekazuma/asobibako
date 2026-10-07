@@ -37,6 +37,10 @@ export function openChest(w: World): Reward[] {
   const orb = hasRelic(w, 'orb') ? ORB_CHEST : 0;
   let n = chestSize(w.rand(), { one: Math.max(0, o.one - w.fx.chest - orb), three: o.three });
   if (has(w, 'cursed')) n = Math.max(3, n) as 3 | 5;
+  if (w.big > 0) {
+    w.big -= 1;
+    n = Math.max(3, n) as 3 | 5;
+  }
   const e = evolvable(w);
   if (e) {
     evolve(w, e);

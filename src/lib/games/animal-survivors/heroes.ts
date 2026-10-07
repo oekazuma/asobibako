@@ -23,6 +23,7 @@ export const HERO_KEYS = [
   'drainLeft',
   'pending',
   'chests',
+  'big',
   'blessing'
 ] as const;
 export type HeroKey = (typeof HERO_KEYS)[number];

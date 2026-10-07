@@ -1,4 +1,5 @@
 import { pushOut } from './obstacles';
+import { coopCarry, CARRY_TEXT, startCarry } from './carry';
 import { hasRelic } from './relics';
 import { hazard } from './bosses';
 import type { Item } from './drops';
@@ -24,7 +25,12 @@ const METEOR_R = 22;
 const METEOR_DMG = 20;
 
 /** 時間の続く出来事を始める。spawnEvents が群れ・輪のほかの種類を渡す */
-export function startEvent(w: World, ev: StageEvent): void {
+export function startEvent(w: World, ev: StageEvent): string | undefined {
+  // 2 匹のときの宝の地図は、2 匹がそろっていないと動かない重い宝箱にする
+  if (ev.kind === 'treasure' && coopCarry(w)) {
+    startCarry(w);
+    return CARRY_TEXT;
+  }
   if (ev.kind === 'treasure') {
     const a = w.rand() * Math.PI * 2;
     const d = TREASURE_NEAR + w.rand() * (TREASURE_FAR - TREASURE_NEAR);

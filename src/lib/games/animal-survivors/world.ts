@@ -28,6 +28,7 @@ import { stats, type Stats } from './passives';
 import { rng, type Rng } from './rng';
 import { stageOf } from './stages';
 import { startEvent, stepEvents } from './events';
+import { stepCarry, type Carry } from './carry';
 import { quietEarth, stepEruption, updateLava, type Eruption, type Lava } from './eruption';
 import { PLAYER_R, pushOut } from './obstacles';
 import { flakes, hasRelic, placeRelics, type RelicId } from './relics';
@@ -219,6 +220,10 @@ export interface World {
   lavaKills: number;
   /** 宝の地図の宝箱（無ければ null） */
   treasure: Item | null;
+  /** 協力プレイの重い宝箱（2 匹で祭壇まで運ぶ） */
+  carry: Carry | null;
+  /** 次に開ける宝箱を中身 3 つにする数（運んだ重い宝箱のぶん） */
+  big: number;
   /** 流れ星の残り秒と、次の予告までの秒 */
   meteors: { left: number; next: number };
   /** お祭りの残り秒 */
@@ -362,6 +367,7 @@ export function makeHero(id: AnimalId, ranks: Ranks, mods: ModId[], gear: GearKe
     drainLeft: s.maxHp * DRAIN,
     pending: 0,
     chests: 0,
+    big: 0,
     blessing: { might: 0, speed: 0, xp: 0 },
     down: false,
     revive: 0,
@@ -419,6 +425,7 @@ export function createWorld(
     lava: [],
     lavaKills: 0,
     treasure: null,
+    carry: null,
     meteors: { left: 0, next: 0 },
     festival: 0,
     propCd: 2,
@@ -643,8 +650,8 @@ export function spawnEvents(w: World): void {
   while (w.eventNext < list.length && list[w.eventNext].at <= w.time) {
     const ev = list[w.eventNext++];
     if (ev.kind === 'treasure' || ev.kind === 'meteor' || ev.kind === 'festival') {
-      startEvent(w, ev);
-      w.events.push({ type: 'swarm', text: ev.text });
+      const text = startEvent(w, ev) ?? ev.text;
+      w.events.push({ type: 'swarm', text });
       continue;
     }
     const def = ENEMIES[ev.enemy];
@@ -1019,6 +1026,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
     stepEvents(w, dt);
     stepEruption(w, dt);
   }
+  stepCarry(w, dt);
 
   const far = Math.hypot(w.view.w, w.view.h) * 0.9;
   w.grid.clear();
