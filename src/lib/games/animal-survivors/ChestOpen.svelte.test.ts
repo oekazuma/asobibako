@@ -45,7 +45,7 @@ describe('ChestOpen', () => {
     vi.advanceTimersByTime(700);
     flushSync();
     expect(target.textContent).toContain('ワンワンショット');
-    expect(target.textContent).toContain('大きさ +8%');
+    expect(target.textContent).toContain('大きさ +10%');
     unmount(app);
   });
 });

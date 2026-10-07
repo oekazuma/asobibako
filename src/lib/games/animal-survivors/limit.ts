@@ -9,16 +9,17 @@ export type LimitStat = 'damage' | 'cooldown' | 'area' | 'speed' | 'duration' | 
 export const LIMIT_STATS: LimitStat[] = ['damage', 'cooldown', 'area', 'speed', 'duration', 'amount'];
 export type Limit = Partial<Record<LimitStat, number>>;
 
-/** 1 回の上がり幅。待ち時間は掛け算で縮める（足し引きだと 0 を下回る） */
-export const STEP = { damage: 0.1, cooldown: 0.05, area: 0.08, speed: 0.1, duration: 0.1, amount: 1 };
+/** 1 回の上がり幅。ボットで、なくした「攻撃 +5%」の札と延長戦の伸びが並ぶ幅にした。待ち時間は掛け算で縮める（足し引きだと 0 を下回る） */
+export const STEP = { damage: 0.2, cooldown: 0.07, area: 0.1, speed: 0.12, duration: 0.12, amount: 1 };
 
+const pct = (v: number) => `${Math.round(v * 100)}%`;
 export const LIMIT_TEXT: Record<LimitStat, string> = {
-  damage: 'ダメージ +10%',
-  cooldown: '待ち時間 −5%',
-  area: '大きさ +8%',
-  speed: '速さ +10%',
-  duration: '時間 +10%',
-  amount: '数 +1'
+  damage: `ダメージ +${pct(STEP.damage)}`,
+  cooldown: `待ち時間 −${pct(STEP.cooldown)}`,
+  area: `大きさ +${pct(STEP.area)}`,
+  speed: `速さ +${pct(STEP.speed)}`,
+  duration: `時間 +${pct(STEP.duration)}`,
+  amount: `数 +${STEP.amount}`
 };
 
 const MOVING: WeaponKind[] = ['shot', 'boomerang', 'homing', 'orbit', 'nova'];

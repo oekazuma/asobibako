@@ -93,9 +93,9 @@ describe('LevelUp', () => {
     flushSync();
     const text = target.textContent ?? '';
     expect(text).toContain('ワンワンショット');
-    expect(text).toContain('ダメージ +10%');
+    expect(text).toContain('ダメージ +20%');
     expect(text).toContain('+3 → +4');
-    expect(text).toContain('待ち時間 −5%');
+    expect(text).toContain('待ち時間 −7%');
     expect(text).toContain('引き直す 2');
     expect(text).not.toContain('除外');
     unmount(app);

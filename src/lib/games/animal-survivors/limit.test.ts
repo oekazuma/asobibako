@@ -24,11 +24,11 @@ describe('限界突破の能力', () => {
   it('上げた回数を一定の幅で掛け、待ち時間は掛け算で縮む', () => {
     const s = weaponStats(WEAPONS.woof, 5);
     const t = limitStats(s, { damage: 3, cooldown: 2, area: 1, speed: 1, duration: 1, amount: 2 });
-    expect(t.damage).toBeCloseTo(s.damage * 1.3);
-    expect(t.cooldown).toBeCloseTo(s.cooldown * 0.95 ** 2);
-    expect(t.area).toBeCloseTo(s.area * 1.08);
-    expect(t.speed).toBeCloseTo(s.speed * 1.1);
-    expect(t.duration).toBeCloseTo(s.duration * 1.1);
+    expect(t.damage).toBeCloseTo(s.damage * 1.6);
+    expect(t.cooldown).toBeCloseTo(s.cooldown * 0.93 ** 2);
+    expect(t.area).toBeCloseTo(s.area * 1.1);
+    expect(t.speed).toBeCloseTo(s.speed * 1.12);
+    expect(t.duration).toBeCloseTo(s.duration * 1.12);
     expect(t.amount).toBe(s.amount + 2);
     expect(limitStats(s, undefined)).toEqual(s);
   });
@@ -106,7 +106,7 @@ describe('限界突破の札', () => {
       hits(w, 1 / 60);
       return w.dealt.howlUn?.damage ?? 0;
     };
-    expect(shotDamage({ damage: 5 })).toBeCloseTo(shotDamage() * 1.5, 0);
+    expect(shotDamage({ damage: 5 })).toBeCloseTo(shotDamage() * 2, 0);
   });
 
   it('全部埋まった宝箱の中身も限界突破（か最大 HP）になる', () => {
