@@ -4,8 +4,9 @@
   let { mode, onpress }: { mode: LinkState; onpress: () => void } = $props();
 
   const can = $derived(mode === 'ready' || mode === 'partner');
-  const label = $derived(
-    mode === 'waiting' ? '相棒を待っています' : mode === 'partner' ? '相棒が押した！' : 'いっしょに！'
+  // 細い端末でも変なところで折り返さないよう、行を決めておく
+  const lines = $derived(
+    mode === 'waiting' ? ['相棒を', '待っています'] : mode === 'partner' ? ['相棒が', '押した！'] : ['いっしょに！']
   );
 
   // 2 人で「せーの」と合わせるので、指が触れた瞬間に数える（click は指を離すまで遅れる）
@@ -25,7 +26,7 @@
 
 {#if mode !== 'none'}
   <button class="link as-card" class:partner={mode === 'partner'} data-link disabled={!can} onpointerdown={press}>
-    {label}
+    {#each lines as line (line)}<span>{line}</span>{/each}
   </button>
 {/if}
 
@@ -35,7 +36,8 @@
     top: 50%;
     right: max(12px, env(safe-area-inset-right));
     z-index: 5;
-    width: min(26cqw, 140px);
+    flex-direction: column;
+    width: min(32cqw, 170px);
     min-height: min(14cqw, 76px);
     justify-content: center;
     padding: 6px;
@@ -45,7 +47,7 @@
     font-size: min(4.4cqw, 2.6cqh, 22px);
     font-weight: 900;
     line-height: 1.2;
-    white-space: normal;
+    white-space: nowrap;
   }
 
   .link:disabled {

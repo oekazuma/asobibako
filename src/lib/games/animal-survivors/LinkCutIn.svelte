@@ -4,6 +4,8 @@
   import PixelIcon from './PixelIcon.svelte';
 
   let { a, b, name }: { a: AnimalId; b: AnimalId; name: string } = $props();
+  // 長い名前の途中で折り返さないよう、2 つの半分を 1 行ずつに分ける
+  const parts = $derived(name.split(' × '));
 </script>
 
 <div class="plate" role="alert">
@@ -12,13 +14,16 @@
     <b>×</b>
     <PixelIcon art={ANIMAL_ART[b].forms[0].walk} size="min(14cqw, 8cqh, 72px)" />
   </span>
-  <strong>{name}</strong>
+  <strong>
+    {#each parts as part, i (part)}<span>{i ? `× ${part}` : part}</span>{/each}
+  </strong>
 </div>
 
 <style>
   .plate {
     position: absolute;
-    top: 36%;
+    /* 2 匹と技の絵を隠さないよう、HUD のすぐ下に出す */
+    top: 16%;
     left: 50%;
     z-index: 4;
     display: grid;
@@ -48,6 +53,8 @@
   }
 
   strong {
+    display: grid;
+    white-space: nowrap;
     text-align: center;
     font-size: min(5.4cqw, 3.2cqh, 32px);
     letter-spacing: 0.04em;
