@@ -104,8 +104,8 @@ describe('協力プレイのつなぎ', () => {
     expect(v.heroes[v.cur].weapons[0].limit).toEqual({ damage: 2, cooldown: 1 });
   });
 
-  it('snap の形を変えたので、つなぎ方の版は 4（古い版の端末とはつながない）', () => {
-    expect(COOP_VERSION).toBe(4);
+  it('snap の形を変えたので、つなぎ方の版は 5（古い版の端末とはつながない）', () => {
+    expect(COOP_VERSION).toBe(5);
   });
   it('子の押しが親の World で数えられ、親も押すと技が出る', async () => {
     const { g, w, h } = await started();

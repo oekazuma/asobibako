@@ -23,6 +23,28 @@ describe('snap', () => {
     const view = guestView();
     lerpSnap(view, a, b, 0.5);
     expect(view.link.shows[0].t).toBeCloseTo(0.2);
+    lerpSnap(view, a, b, 0.5);
+    expect(view.link.shows[0].t).toBeCloseTo(0.2);
+  });
+
+  it('重い宝箱と祭壇と残り秒を運び、宝箱は 2 つの様子のあいだでなめらかに動く', () => {
+    const w = createWorld('dog', 1, VIEW);
+    addHero(w, 'cat');
+    w.carry = { x: 10, y: 20, ax: 300, ay: 40, life: 42, near: [true, false] };
+    const a = JSON.parse(JSON.stringify(makeSnap(w, [])));
+    w.carry.x = 20;
+    const b = JSON.parse(JSON.stringify(makeSnap(w, [])));
+    const view = guestView();
+    applySnap(view, a);
+    expect(view.carry).toEqual({ x: 10, y: 20, ax: 300, ay: 40, life: 42, near: [true, false] });
+    lerpSnap(view, a, b, 0.5);
+    expect(view.carry!.x).toBeCloseTo(15);
+    // 毎フレーム同じ 2 つからつなぐので、届いた様子を書き換えると次のフレームでずれる
+    lerpSnap(view, a, b, 0.5);
+    expect(view.carry!.x).toBeCloseTo(15);
+    w.carry = null;
+    applySnap(view, JSON.parse(JSON.stringify(makeSnap(w, []))));
+    expect(view.carry).toBeNull();
   });
 
   it('連携の技のゲージと押した時刻と絵を運ぶ', () => {

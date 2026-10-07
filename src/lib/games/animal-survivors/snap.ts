@@ -1,4 +1,5 @@
 import { RELIC_IDS, type RelicId } from './relics';
+import type { Carry } from './carry';
 import type { Link } from './link';
 import { LIMIT_STATS, type Limit } from './limit';
 import { animal, type AnimalId } from './animals';
@@ -11,7 +12,7 @@ import type { Storm } from './storm';
 import { addHero, chiefOf, eliteOf, makeEnemy, type GameEvent, type World } from './world';
 
 /** 協力プレイの知らせの形の版。形を変えたら 1 上げる */
-export const COOP_VERSION = 4;
+export const COOP_VERSION = 5;
 
 type Row = (number | string)[];
 
@@ -34,6 +35,7 @@ export interface Snap {
   relics: RelicId[];
   shrines: number[];
   link: Link;
+  carry: Carry | null;
   events: GameEvent[];
 }
 
@@ -162,6 +164,7 @@ export function makeSnap(w: World, events: GameEvent[]): Snap {
     relics: w.relics,
     shrines: w.shrinesUsed,
     link: { ...w.link, press: [...w.link.press] as [number, number], shows: w.link.shows.map((s) => ({ ...s })) },
+    carry: w.carry && { ...w.carry, near: [...w.carry.near] },
     events
   };
 }
@@ -296,7 +299,9 @@ export function applySnap(view: World, s: Snap): void {
   view.treasure = s.treasure >= 0 ? (view.items[s.treasure] ?? null) : null;
   view.relics = s.relics;
   view.shrinesUsed = s.shrines;
-  view.link = s.link;
+  // つなぐときに view の値を書き換えるので、届いた様子の写しにする（毎フレーム同じ様子からつなぐ）
+  view.link = { ...s.link, shows: s.link.shows.map((o) => ({ ...o })) };
+  view.carry = s.carry && { ...s.carry };
   view.events = s.events;
 }
 
@@ -322,6 +327,10 @@ export function lerpSnap(view: World, a: Snap, b: Snap, t: number): void {
     const sb = b.link.shows[i];
     if (sb && sb.hero === s.hero && sb.animal === s.animal) s.t += (sb.t - s.t) * t;
   });
+  if (view.carry && a.carry && b.carry) {
+    view.carry.x = a.carry.x + (b.carry.x - a.carry.x) * t;
+    view.carry.y = a.carry.y + (b.carry.y - a.carry.y) * t;
+  }
   b.heroes.forEach((rb, i) => {
     const ra = a.heroes[i];
     if (i === view.cur || !ra || ra[0] !== rb[0]) return;
