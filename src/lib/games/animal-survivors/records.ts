@@ -67,6 +67,8 @@ export interface Records {
   locks: GearKey[];
   /** 動物ごとの、いちばん長く生き延びた秒と、クリアしたいちばん高い釜の強さ（クリアしていなければ無い） */
   byAnimal: Partial<Record<AnimalId, AnimalBest>>;
+  /** 2 人で遊んだ記録（端末ごと） */
+  coop: CoopRecords;
 }
 
 export interface AnimalBest {
@@ -110,13 +112,50 @@ export function emptyRecords(): Records {
     tickets: [0, 0, 0],
     pity: 0,
     locks: [],
-    byAnimal: {}
+    byAnimal: {},
+    coop: emptyCoop()
   };
 }
 
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : 0);
 const list = <T extends string>(v: unknown, known: readonly T[]): T[] =>
   Array.isArray(v) ? known.filter((k) => v.includes(k)) : [];
+
+export interface CoopRecords {
+  runs: number;
+  clears: number;
+  /** 2 人で遊んだ回のいちばん長い生存の秒 */
+  best: number;
+  raises: number;
+  links: number;
+  carries: number;
+  /** 組んだ 2 匹（pairKey） */
+  pairs: string[];
+}
+
+const emptyCoop = (): CoopRecords => ({ runs: 0, clears: 0, best: 0, raises: 0, links: 0, carries: 0, pairs: [] });
+
+/** 組み合わせの名前。どちらが親でも同じ組になるよう、id の並びを決める */
+export const pairKey = (a: AnimalId, b: AnimalId) => (a <= b ? `${a}+${b}` : `${b}+${a}`);
+
+function coopOf(v: unknown, ids: AnimalId[]): CoopRecords {
+  if (!v || typeof v !== 'object') return emptyCoop();
+  const c = v as Record<string, unknown>;
+  const known = (p: unknown) => {
+    if (typeof p !== 'string') return false;
+    const [a, b] = p.split('+');
+    return ids.includes(a as AnimalId) && ids.includes(b as AnimalId) && p === pairKey(a as AnimalId, b as AnimalId);
+  };
+  return {
+    runs: Math.floor(num(c.runs)),
+    clears: Math.floor(num(c.clears)),
+    best: num(c.best),
+    raises: Math.floor(num(c.raises)),
+    links: Math.floor(num(c.links)),
+    carries: Math.floor(num(c.carries)),
+    pairs: Array.isArray(c.pairs) ? [...new Set(c.pairs.filter(known) as string[])] : []
+  };
+}
 
 /** 壊れた保存や型の違う値は既定値にする。犬・猫・狼はいつも選べる */
 const STAGE_IDS = STAGES.map((s) => s.id);
@@ -173,6 +212,7 @@ export function parseRecords(text: string | null): Records {
     heatLast: isNum(raw.heatLast) ? snap(raw.heatLast) : 2,
     lavaKills: Math.floor(num(raw.lavaKills)),
     byAnimal: byAnimalOf(raw.byAnimal, ids),
+    coop: coopOf(raw.coop, ids),
     ...gearRecords(raw)
   };
 }
@@ -281,6 +321,21 @@ export function record(r: Records, run: RunSummary): AchievementDef[] {
     r.dailyDays += 1;
     r.coins += run.daily.bonus;
     run.daily.paid = true;
+  }
+  const c = run.coop;
+  if (c) {
+    const o = r.coop;
+    // 延長戦の 2 回めの記録（killsBefore がある）は、回とクリアを 10:00 の記録で数えてある
+    if (run.killsBefore === undefined) {
+      o.runs += 1;
+      if (run.cleared) o.clears += 1;
+    }
+    o.best = Math.max(o.best, run.time);
+    o.raises += c.heroes.reduce((n, h) => n + h.raises, 0);
+    o.links += c.links;
+    o.carries += c.carries;
+    const key = pairKey(c.heroes[0].animal, c.heroes[1].animal);
+    if (!o.pairs.includes(key)) o.pairs.push(key);
   }
   run.bookCoins = addBook(r, run);
   r.coins += run.bookCoins;

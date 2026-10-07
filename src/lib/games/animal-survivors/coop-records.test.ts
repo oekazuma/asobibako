@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { ACHIEVEMENTS } from './achievements';
+import { emptyRecords, pairKey, parseRecords, record } from './records';
 import { startCarry, stepCarry } from './carry';
 import { heroRun } from './coop-run';
 import { startOvertime } from './overtime';
@@ -116,3 +118,102 @@ function createWorldClear(): World {
   w.over = 'clear';
   return w;
 }
+
+describe('記録の「ふたり」', () => {
+  it('回ごとに遊んだ回数・クリア・最長・起こした回数・連携・運んだ数・組み合わせが増える', () => {
+    const r = emptyRecords();
+    const w = duo();
+    w.time = 300;
+    w.link.uses = 2;
+    w.heroes[0].raises = 1;
+    w.heroes[1].raises = 2;
+    w.carried = 1;
+    record(r, summary(w));
+    expect(r.coop).toEqual({
+      runs: 1,
+      clears: 0,
+      best: 300,
+      raises: 3,
+      links: 2,
+      carries: 1,
+      pairs: [pairKey('dog', 'cat')]
+    });
+    const v = createWorld('cat', 2, VIEW);
+    addHero(v, 'dog');
+    v.over = 'clear';
+    v.time = 600;
+    record(r, summary(v));
+    expect(r.coop.runs).toBe(2);
+    expect(r.coop.clears).toBe(1);
+    expect(r.coop.best).toBe(600);
+    expect(r.coop.pairs).toHaveLength(1);
+  });
+
+  it('1 人の回では増えない', () => {
+    const r = emptyRecords();
+    record(r, summary(createWorld('dog', 1, VIEW)));
+    expect(r.coop.runs).toBe(0);
+  });
+
+  it('延長戦の 2 回めの記録では、遊んだ回数とクリアを 2 度数えない', () => {
+    const r = emptyRecords();
+    const w = duo();
+    w.link.uses = 2;
+    w.over = 'clear';
+    w.time = 600;
+    record(r, summary(w));
+    startOvertime(w);
+    w.link.uses = 3;
+    w.time = 700;
+    w.over = 'dead';
+    record(r, overtimeRun(w));
+    expect(r.coop.runs).toBe(1);
+    expect(r.coop.clears).toBe(1);
+    expect(r.coop.links).toBe(3);
+    expect(r.coop.best).toBe(700);
+  });
+
+  it('古い記録と壊れた欄は、0 と空で読み、知らない組み合わせは捨てる', () => {
+    expect(parseRecords(JSON.stringify({ coins: 5 })).coop).toEqual(emptyRecords().coop);
+    const r = parseRecords(
+      JSON.stringify({ coop: { runs: 'x', clears: 2, pairs: ['cat+dog', 'dog+ufo', 3], best: -1 } })
+    );
+    expect(r.coop).toEqual({ ...emptyRecords().coop, clears: 2, pairs: ['cat+dog'] });
+  });
+
+  it('組み合わせは並びの順によらない', () => {
+    expect(pairKey('dog', 'cat')).toBe(pairKey('cat', 'dog'));
+    expect(pairKey('dog', 'dog')).toBe('dog+dog');
+  });
+});
+
+describe('協力の実績', () => {
+  const done = (id: string, r = emptyRecords()) => ACHIEVEMENTS.find((a) => a.id === id)!.done(r, null);
+
+  it('5 つの条件', () => {
+    const r = emptyRecords();
+    expect(['coopClear', 'coopLink10', 'coopRaise10', 'coopCarry5', 'coopPairs10'].map((id) => done(id, r))).toEqual([
+      false,
+      false,
+      false,
+      false,
+      false
+    ]);
+    r.coop = {
+      runs: 3,
+      clears: 1,
+      best: 600,
+      raises: 10,
+      links: 10,
+      carries: 5,
+      pairs: Array.from({ length: 10 }, (_, i) => `p${i}`)
+    };
+    expect(['coopClear', 'coopLink10', 'coopRaise10', 'coopCarry5', 'coopPairs10'].map((id) => done(id, r))).toEqual([
+      true,
+      true,
+      true,
+      true,
+      true
+    ]);
+  });
+});

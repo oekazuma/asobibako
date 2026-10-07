@@ -27,5 +27,6 @@ export const TROPHY_GROUPS: [string, string[]][] = [
   [
     'お店・図鑑・お題',
     ['firstBuy', 'oneMax', 'allMax', 'bookEnemies', 'bookBosses', 'bookForms', 'bookItems', 'daily1', 'daily7']
-  ]
+  ],
+  ['ふたりで', ['coopClear', 'coopLink10', 'coopRaise10', 'coopCarry5', 'coopPairs10']]
 ];

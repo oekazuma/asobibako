@@ -210,7 +210,36 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     done: (r) => r.bosses.includes('pumpkin') && r.bosses.includes('knight')
   },
   { id: 'heat5', name: '釜 5.0 以上でクリア', coins: 300, done: (r) => Object.values(r.heat).some((v) => v >= 5) },
-  { id: 'heat9', name: '釜 9.0 でクリア', coins: 1000, done: (r) => Object.values(r.heat).some((v) => v >= 9) }
+  { id: 'heat9', name: '釜 9.0 でクリア', coins: 1000, done: (r) => Object.values(r.heat).some((v) => v >= 9) },
+  { id: 'coopClear', name: 'ふたりでクリア', coins: 300, done: (r) => r.coop.clears >= 1 },
+  {
+    id: 'coopLink10',
+    name: '息ぴったり（連携の技を合計 10 回）',
+    coins: 200,
+    done: (r) => r.coop.links >= 10,
+    progress: (r) => [Math.min(r.coop.links, 10), 10]
+  },
+  {
+    id: 'coopRaise10',
+    name: 'たすけあい（相棒を合計 10 回起こす）',
+    coins: 200,
+    done: (r) => r.coop.raises >= 10,
+    progress: (r) => [Math.min(r.coop.raises, 10), 10]
+  },
+  {
+    id: 'coopCarry5',
+    name: 'はこびや（重い宝箱を合計 5 つ運ぶ）',
+    coins: 200,
+    done: (r) => r.coop.carries >= 5,
+    progress: (r) => [Math.min(r.coop.carries, 5), 5]
+  },
+  {
+    id: 'coopPairs10',
+    name: 'いろんな相棒（10 通りの組み合わせで遊ぶ）',
+    coins: 300,
+    done: (r) => r.coop.pairs.length >= 10,
+    progress: (r) => [Math.min(r.coop.pairs.length, 10), 10]
+  }
 ];
 
 /**
