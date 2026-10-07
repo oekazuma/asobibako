@@ -1,0 +1,48 @@
+import type { WeaponDef, WeaponKind, WeaponStats } from './weapons';
+import { partDef } from './weapons';
+
+export type LimitStat = 'damage' | 'cooldown' | 'area' | 'speed' | 'duration' | 'amount';
+/** snap に書く並びでもある */
+export const LIMIT_STATS: LimitStat[] = ['damage', 'cooldown', 'area', 'speed', 'duration', 'amount'];
+export type Limit = Partial<Record<LimitStat, number>>;
+
+/** 1 回の上がり幅。待ち時間は掛け算で縮める（足し引きだと 0 を下回る） */
+export const STEP = { damage: 0.1, cooldown: 0.05, area: 0.08, speed: 0.1, duration: 0.1, amount: 1 };
+
+export const LIMIT_TEXT: Record<LimitStat, string> = {
+  damage: 'ダメージ +10%',
+  cooldown: '待ち時間 −5%',
+  area: '大きさ +8%',
+  speed: '速さ +10%',
+  duration: '時間 +10%',
+  amount: '数 +1'
+};
+
+const MOVING: WeaponKind[] = ['shot', 'boomerang', 'homing', 'orbit', 'nova'];
+// 輪は時間をのばすと広がるのが遅くなるだけなので、残る攻撃に入れない
+const LASTING: WeaponKind[] = ['orbit', 'trail', 'snare'];
+
+export function statsFor(def: WeaponDef): LimitStat[] {
+  const kinds = def.union ? [partDef(def, 0).kind, partDef(def, 1).kind] : [def.kind];
+  return LIMIT_STATS.filter(
+    (k) =>
+      (k !== 'speed' || kinds.some((x) => MOVING.includes(x))) &&
+      (k !== 'duration' || kinds.some((x) => LASTING.includes(x)))
+  );
+}
+
+export function limitStats(s: WeaponStats, limit: Limit | undefined): WeaponStats {
+  if (!limit) return s;
+  const n = (k: LimitStat) => limit[k] ?? 0;
+  return {
+    ...s,
+    damage: s.damage * (1 + STEP.damage * n('damage')),
+    cooldown: s.cooldown * (1 - STEP.cooldown) ** n('cooldown'),
+    area: s.area * (1 + STEP.area * n('area')),
+    speed: s.speed * (1 + STEP.speed * n('speed')),
+    duration: s.duration * (1 + STEP.duration * n('duration')),
+    amount: s.amount + STEP.amount * n('amount')
+  };
+}
+
+export const limitTotal = (limit: Limit | undefined) => LIMIT_STATS.reduce((sum, k) => sum + (limit?.[k] ?? 0), 0);
