@@ -1,6 +1,7 @@
 <script lang="ts">
   import ArcanaPick from './ArcanaPick.svelte';
   import BossIntro from './BossIntro.svelte';
+  import LinkCutIn from './LinkCutIn.svelte';
   import BossWarning from './BossWarning.svelte';
   import ChestOpen from './ChestOpen.svelte';
   import GrowPlate from './GrowPlate.svelte';
@@ -27,6 +28,9 @@
 {/if}
 {#if prompts.evolve && prompts.growing && (prompts.still || prompts.evolve.t >= SWAP + 0.1)}
   <GrowPlate from={prompts.evolve.from} to={prompts.evolve.to} steps={prompts.evolve.form - prompts.evolve.fromForm} />
+{/if}
+{#if prompts.link}
+  <LinkCutIn a={prompts.link.a} b={prompts.link.b} name={prompts.link.name} />
 {/if}
 {#if prompts.intro && prompts.named}
   <BossIntro epithet={prompts.intro.epithet} name={prompts.intro.name} />

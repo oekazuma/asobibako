@@ -1,3 +1,5 @@
+import type { AnimalId } from './animals';
+import { LINK_FUSE, LINK_SHOW } from './link';
 import { arcanaOffer, takeArcana, type ArcanaId } from './arcana';
 import { openChest, type Reward } from './chest';
 import { WARN_AHEAD } from './bosses';
@@ -58,6 +60,8 @@ export class Prompts {
   evolve = $state<{ from: string; to: string; fromForm: 0 | 1; form: 1 | 2; t: number } | null>(null);
   /** ヌシの帯 */
   chief = $state<{ text: string; key: number; until: number } | null>(null);
+  /** 連携の技の帯。t は端末の時間で進める（止めているあいだもゲームの時計は進まない） */
+  link = $state<{ a: AnimalId; b: AnimalId; name: string; t: number } | null>(null);
   readonly #still: boolean;
   readonly lock = new Lock();
   readonly #w: World;
@@ -144,6 +148,7 @@ export class Prompts {
       } else if (e.type === 'evolve' && WEAPONS[e.id]?.union && firstTip('union'))
         this.notice = { text: `合体！\n${TIP.union}`, key: w.time, until: w.time + NOTICE * 2 };
       else if (e.type === 'chief') this.chief = { text: e.name, key: w.time, until: w.time + NOTICE };
+      else if (e.type === 'link') this.link = { a: e.a, b: e.b, name: e.name, t: 0 };
       else if (e.type === 'bossIntro') {
         // WARNING の帯は札と重なるので、ボスが出たら消す
         this.warning = null;
@@ -164,6 +169,10 @@ export class Prompts {
   /** 毎フレーム呼ぶ。finger は画面に残っている移動の指（出た直後の合成 click を捨てるため）。dt は端末の秒 */
   next(finger: number | null, dt = 0): void {
     const w = this.#w;
+    if (this.link) {
+      this.link.t += dt;
+      if (this.link.t >= LINK_FUSE + LINK_SHOW) this.link = null;
+    }
     let left = dt;
     if (this.intro) {
       this.intro.t += dt;

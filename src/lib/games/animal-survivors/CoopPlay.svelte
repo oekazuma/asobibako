@@ -13,6 +13,7 @@
   import { Prompts } from './prompts.svelte';
   import Stick from './Stick.svelte';
   import { quitCoop } from './coop-quit';
+  import { linkState, type LinkState } from './link';
   import { startOvertime } from './overtime';
   import { step, type World } from './world';
 
@@ -52,6 +53,7 @@
   let askTimer: ReturnType<typeof setTimeout> | undefined;
   /** どちらかが止めている。止めた人の端末には一時停止のメニュー、相手には帯を出す */
   let paused = $state<Pauser>(null);
+  let link = $state<LinkState>('none');
   const me = $derived(host ? 'host' : 'guest');
   const side = $derived(host ?? guest);
   /** 倒れた指を離したところに「もどる」が出ると合成 click で押されるので、指が離れるまで押せなくする */
@@ -108,6 +110,7 @@
       fx.update(dt);
     }
     paused = side?.paused ?? null;
+    link = linkState(world, world.cur);
     if (host && world.over && !ended) {
       ended = true;
       // 10:00 のクリアでは記録してから延長戦を聞く（記録は延長戦の終わりにもう 1 回、差だけを入れる）
@@ -150,6 +153,7 @@
   {side}
   {world}
   {paused}
+  {link}
   {waiting}
   {result}
   locked={settle.active}

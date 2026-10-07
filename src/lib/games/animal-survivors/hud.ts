@@ -73,6 +73,11 @@ export function hud(ctx: CanvasRenderingContext2D, w: World, v: ViewSize, top: n
   const hp = Math.ceil(w.player.hp);
   bar(ctx, 6, top + 12, 80, 4, w.player.hp / w.stats.maxHp, PALETTE.r, PALETTE.R);
   text(ctx, `${hp}/${Math.round(w.stats.maxHp)}`, 90, top + 11, PALETTE.w);
+  // 連携の技のゲージ（2 匹のときだけ）。満タンで使えるあいだは明るい黄色にする
+  if (w.heroes.length > 1) {
+    const l = w.link;
+    bar(ctx, 6, top + 19, 80, 2, l.charge / l.need, l.cool > 0 ? PALETTE.Y : PALETTE.y, PALETTE.M);
+  }
 
   blessings(ctx, w, 6, v.h - SLOT * 2 - 16, text);
   slots(ctx, w.weapons, 'weapon', 6, v.h - SLOT * 2 - 8);

@@ -1,5 +1,7 @@
 <script lang="ts">
   import type { CoopGuest, CoopHost, Outcome, Pauser } from './coop';
+  import type { LinkState } from './link';
+  import LinkButton from './LinkButton.svelte';
   import Pause from './Pause.svelte';
   import { loadRecords } from './records';
   import Result from './Result.svelte';
@@ -15,6 +17,7 @@
     result,
     locked,
     busy,
+    link = 'none',
     onend,
     onquit,
     onagain
@@ -29,6 +32,8 @@
     locked: boolean;
     /** 3 択や宝箱を出しているあいだは一時停止を出さない */
     busy: boolean;
+    /** 連携の技のボタンの見た目 */
+    link?: LinkState;
     onend: () => void;
     /** この回を抜ける（親は 2 人ともの回を終え、子は自分だけ抜ける） */
     onquit: () => void;
@@ -49,6 +54,9 @@
 {/if}
 {#if !result && !world.over && !paused && !busy}
   <button class="as-pause" onclick={() => side?.pause()} aria-label="一時停止">Ⅱ</button>
+{/if}
+{#if !result && !world.over && !paused && !busy}
+  <LinkButton mode={link} onpress={() => side?.link()} />
 {/if}
 {#if paused === me}
   <Pause

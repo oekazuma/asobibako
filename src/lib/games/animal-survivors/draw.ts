@@ -1,3 +1,4 @@
+import { drawLink } from './draw-link';
 import { ANIMAL_ART } from './art/animals';
 import { BOSS_ART } from './art/bosses';
 import { ENEMY_ART } from './art/enemies';
@@ -442,6 +443,7 @@ export function draw(
   }
   shots(ctx, w, q);
   swipes(ctx, w, q);
+  drawLink(ctx, w);
   hazardsAbove(ctx, w, q);
   if (prompts?.intro) introDust(ctx, w, prompts.intro);
   fx.draw(ctx, S);
