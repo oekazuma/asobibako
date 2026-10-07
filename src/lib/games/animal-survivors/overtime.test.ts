@@ -68,7 +68,8 @@ describe('延長戦を始める', () => {
     expect(warned).toEqual(['bear@657', 'spiderQueen@717']);
     const bosses = w.enemies.filter((e) => e.alive && e.def.boss).map((e) => e.def.id);
     expect(bosses).toEqual(expect.arrayContaining(['bear', 'spiderQueen']));
-  });
+    // 2 分ぶんの step を回すので、全部のテストを一度に流すと 5 秒を超えることがある
+  }, 20_000);
 
   it('延長戦では硬さと攻撃の強さの伸びが強まる（10:00 では同じ）', () => {
     const w = cleared();
