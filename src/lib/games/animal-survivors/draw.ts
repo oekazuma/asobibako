@@ -17,7 +17,16 @@ import { byFeet, covers, drawObstacles, inView } from './draw-obstacles';
 import { hash, obstaclesNear, type Obstacle } from './obstacles';
 import type { Prompts } from './prompts.svelte';
 import { nearestHero, RAISE_SECS, type Hero } from './heroes';
-import { chiefArrows, confetti, partnerArrows, pinchRing, relicArrows, treasureArrow } from './draw-events';
+import {
+  carryArrows,
+  chiefArrows,
+  confetti,
+  partnerArrows,
+  pinchRing,
+  relicArrows,
+  treasureArrow
+} from './draw-events';
+import { drawCarry } from './draw-carry';
 import { blizzard } from './draw-storm';
 import { drawLava } from './draw-volcano';
 import { EAGLE } from './bosses-forest';
@@ -422,6 +431,7 @@ export function draw(
   hazardsBelow(ctx, w, q, now);
   zonesBelow(ctx, w, q, now);
   pickups(ctx, w, now);
+  drawCarry(ctx, w, now);
   inView(w.stage.art, cx, cy, v.w, v.h, seen);
   enemies(ctx, w, cx, cy, v, now, seen, prompts?.intro?.t ?? 0, prompts?.intro?.ids);
   const ev = prompts?.growing ? prompts.evolve : null;
@@ -494,6 +504,7 @@ export function draw(
   // ボスの登場のあいだはカメラが自分から離れるので、自分から測る矢印の向きが合わない
   if (!prompts?.intro) {
     treasureArrow(ctx, w, v.w, v.h, top, now);
+    carryArrows(ctx, w, v.w, v.h, top, now);
     chiefArrows(ctx, w, v.w, v.h, top);
     relicArrows(ctx, w, v.w, v.h, top);
     partnerArrows(ctx, w, v.w, v.h, top, now);

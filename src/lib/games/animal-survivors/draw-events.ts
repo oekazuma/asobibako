@@ -120,6 +120,38 @@ export function pinchRing(ctx: CanvasRenderingContext2D, w: World, i: number, no
 /** 宝の地図の宝箱が消えるまでの秒を、この秒より少なくなったら明滅させる */
 const HURRY = 10;
 
+/** 画面の外の重い宝箱と祭壇への矢印。宝箱か祭壇の印と残り秒を画面の内側へ添える */
+export function carryArrows(
+  ctx: CanvasRenderingContext2D,
+  w: World,
+  vw: number,
+  vh: number,
+  top: number,
+  now: number
+): void {
+  const c = w.carry;
+  if (!c) return;
+  const s = String(Math.ceil(c.life));
+  ctx.globalAlpha = c.life > HURRY ? 1 : 0.45 + 0.55 * pulse(now);
+  const box = edgeArrow(ctx, w, c, vw, vh, top);
+  if (box) {
+    const art = ITEM_ART.chest;
+    const y = box.y > vh / 2 ? box.y - 6 - art.h - 7 : box.y + 6;
+    ctx.drawImage(bake(art), box.x - Math.floor(art.w / 2), y);
+    text(ctx, s, box.x - Math.round(textWidth(s) / 2), y + art.h + 1, PALETTE.y);
+  }
+  const altar = edgeArrow(ctx, w, { x: c.ax, y: c.ay }, vw, vh, top);
+  if (altar) {
+    const y = altar.y > vh / 2 ? altar.y - 12 : altar.y + 10;
+    ctx.strokeStyle = PALETTE.y;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(altar.x, y, 6, 3.5, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
 /**
  * 宝の地図の宝箱への案内。画面の外なら端の矢印に宝箱と残り秒を添え、画面の中なら宝箱の上に
  * はずむ矢印と残り秒を出す（ふつうの宝箱と見分け、消えるまでの秒を見せる）
