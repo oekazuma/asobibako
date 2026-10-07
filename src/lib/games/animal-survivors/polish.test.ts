@@ -6,6 +6,7 @@ import { limitStats } from './limit';
 import { obstacleAt } from './obstacles';
 import { MAX_LEVEL, WEAPONS, weaponStats } from './weapons';
 import { addHero, chiefOf, createWorld, makeEnemy, step, type World } from './world';
+import { quitAction } from './coop-quit';
 
 const VIEW = { w: 260, h: 380 };
 
@@ -89,5 +90,14 @@ describe('遠くの品', () => {
     expect(w.items[0].alive).toBe(false);
     expect(w.items[1].alive).toBe(true);
     for (const it of w.items.slice(2)) expect(it.alive).toBe(true);
+  });
+});
+
+describe('協力プレイの ✕', () => {
+  it('親は、延長戦を聞く画面では「進まない」、遊んでいるあいだは終える、終わったあとは何もしない', () => {
+    expect(quitAction({ host: true, over: 'clear', overtime: false, asking: true })).toBe('decline');
+    expect(quitAction({ host: true, over: null, overtime: false, asking: false })).toBe('end');
+    expect(quitAction({ host: true, over: 'dead', overtime: false, asking: false })).toBe('none');
+    expect(quitAction({ host: false, over: 'clear', overtime: false, asking: true })).toBe('leave');
   });
 });

@@ -85,6 +85,15 @@ async function pair() {
 }
 
 describe('協力プレイのつなぎ', () => {
+  it('2 人が同時に一時停止を押しても、両方の端末の止めた人がそろう', async () => {
+    const { g, h } = await started();
+    h.pause();
+    g.pause();
+    await settle();
+    expect(h.paused).toBe('host');
+    expect(g.paused).toBe('host');
+  });
+
   it('子の端末にも、武器ごとの限界突破の回数が届く', async () => {
     const { g, w, h } = await started();
     w.heroes[1].weapons[0].limit = { damage: 2, cooldown: 1 };

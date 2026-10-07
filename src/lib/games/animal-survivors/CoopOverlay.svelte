@@ -39,6 +39,9 @@
   let sure = $state(false);
 </script>
 
+<!-- 画面が隠れたら止める（1 人で遊ぶときと同じ。選ぶ画面のあいだは止めない） -->
+<svelte:document onvisibilitychange={() => document.hidden && !busy && !paused && !world.over && side?.pause()} />
+
 {#if !result}
   <button class="round quit" data-quit onclick={() => (sure ? onquit() : (sure = true))} aria-label="やめる"
     >{sure ? 'やめる？' : '✕'}</button

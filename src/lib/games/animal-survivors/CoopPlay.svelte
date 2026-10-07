@@ -12,6 +12,7 @@
   import PromptLayer from './PromptLayer.svelte';
   import { Prompts } from './prompts.svelte';
   import Stick from './Stick.svelte';
+  import { quitCoop } from './coop-quit';
   import { startOvertime } from './overtime';
   import { step, type World } from './world';
 
@@ -80,15 +81,7 @@
     ctx = canvas.getContext('2d');
   }
 
-  /** 親はその回を倒れたときと同じに終えて 2 人ともリザルトを出し、子は自分のぶんを記録して抜ける */
-  function quit() {
-    if (host && !world.over) {
-      // 自分で終えたので、延長戦なら引き上げたことにする（1 人で遊ぶときと同じ）
-      if (world.overtime) world.overtime.retreat = true;
-      world.over = 'dead';
-    }
-    guest?.quit();
-  }
+  const quit = () => quitCoop(world, host, guest, prompts);
 
   function frame(dt: number) {
     now += dt;
@@ -107,7 +100,7 @@
       prompts.next(stick?.id ?? null, dt);
     } else if (guest) {
       guest.hold(stick?.id ?? null);
-      if (!prompts?.busy && !guest.paused) guest.move(move, dt);
+      if (!prompts?.picking && !guest.paused) guest.move(move, dt);
       guest.frame(performance.now());
       fx.take(world);
       prompts?.take();

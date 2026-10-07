@@ -61,4 +61,33 @@ describe('ふたりで遊ぶ画面', () => {
     expect(again.textContent).toContain('おやを まっています');
     unmount(app);
   });
+  it('画面が隠れたら一時停止を頼み、選ぶ画面が出ているあいだは頼まない', () => {
+    let asked = 0;
+    const side = { pause: () => (asked += 1) } as never;
+    const target = document.body.appendChild(document.createElement('div'));
+    const props = {
+      me: 'guest' as const,
+      side,
+      world: createWorld('dog', 1, { w: 260, h: 380 }),
+      paused: null,
+      waiting: '',
+      result: null,
+      locked: false,
+      busy: false,
+      onend: () => {},
+      onquit: () => {}
+    };
+    const app = mount(CoopOverlay, { target, props });
+    flushSync();
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(asked).toBe(1);
+    unmount(app);
+    const busyApp = mount(CoopOverlay, { target, props: { ...props, busy: true } });
+    flushSync();
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(asked).toBe(1);
+    unmount(busyApp);
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+  });
 });

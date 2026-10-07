@@ -73,6 +73,11 @@ export class Prompts {
     this.tools = { rerolls: w.rerolls, skips: w.skips, banishes: w.banishes };
   }
 
+  /** 指で選ぶ画面が出ている。子の端末はこのあいだだけ動きを止める（育つ演出とボスの登場は、親の World が子のためには止まらないので動ける） */
+  get picking(): boolean {
+    return this.options !== null || this.rewards !== null || this.cards !== null || this.asking;
+  }
+
   get busy(): boolean {
     return (
       this.options !== null ||
