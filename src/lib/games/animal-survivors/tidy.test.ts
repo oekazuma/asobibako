@@ -7,7 +7,7 @@ import { ENEMIES } from './enemies';
 import { glyphOf } from './font';
 import { maxOf } from './passives';
 import { startOvertime } from './overtime';
-import { reward } from './rewards';
+import { cardInfo } from './choice-view';
 import { createWorld, makeEnemy, step, type World } from './world';
 
 const VIEW = { w: 274, h: 394 };
@@ -55,8 +55,8 @@ describe('肉が出ないお題の元気のみなもと', () => {
     w.player.hp = 10;
     apply(w, vigor);
     expect(w.player.hp).toBe(10);
-    expect(reward('vigor', false).text).not.toContain('全回復');
-    expect(reward('vigor').text).toContain('全回復');
+    expect(cardInfo({ kind: 'vigor', heal: false }).text).not.toContain('全回復');
+    expect(cardInfo({ kind: 'vigor' }).text).toContain('全回復');
   });
 
   it('ふつうの回は全回復する', () => {

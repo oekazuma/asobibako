@@ -71,4 +71,33 @@ describe('LevelUp', () => {
     expect(target.querySelector('.evo')?.textContent).toBe('進化');
     unmount(app);
   });
+
+  it('限界突破の札は、武器の名前・能力・回数を出し、同じ武器の札が並んでも出せ、引き直すも出る', () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const options = [
+      { kind: 'limit' as const, id: 'woof', stat: 'damage' as const, now: 3 },
+      { kind: 'limit' as const, id: 'woof', stat: 'cooldown' as const, now: 0 },
+      { kind: 'vigor' as const }
+    ];
+    const app = mount(LevelUp, {
+      target,
+      props: {
+        options,
+        locked: false,
+        tools: { rerolls: 2, skips: 0, banishes: 3 },
+        onpick: () => {},
+        ontool: () => {},
+        onbanish: () => {}
+      }
+    });
+    flushSync();
+    const text = target.textContent ?? '';
+    expect(text).toContain('ワンワンショット');
+    expect(text).toContain('ダメージ +10%');
+    expect(text).toContain('+3 → +4');
+    expect(text).toContain('待ち時間 −5%');
+    expect(text).toContain('引き直す 2');
+    expect(text).not.toContain('除外');
+    unmount(app);
+  });
 });

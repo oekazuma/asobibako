@@ -86,7 +86,7 @@
           <li class="slot">
             <PixelIcon art={itemArt(o.key)} size="min(8cqw, 4.6cqh, 40px)" /><span class="lv"
               >{#if o.crown}<span class="crown"><PixelIcon art={ITEM_ART.crown} size="min(3.4cqw, 2cqh, 16px)" /></span
-                >{:else}{o.star ? '★' : o.level}{/if}</span
+                >{:else}{o.star ? '★' : o.level}{/if}{#if o.lb}<span class="lb">+{o.lb}</span>{/if}</span
             >
           </li>
         {/each}
@@ -150,6 +150,10 @@
     position: relative;
     padding: 3px;
     background: #1f1530;
+  }
+
+  .lb {
+    font-size: 0.8em;
   }
 
   .lv {

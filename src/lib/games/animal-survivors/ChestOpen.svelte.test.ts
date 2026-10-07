@@ -34,4 +34,18 @@ describe('ChestOpen', () => {
     expect(played).toEqual(['evolve']);
     unmount(app);
   });
+
+  it('限界突破の中身は、武器と能力と回数を出す', () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(ChestOpen, {
+      target,
+      props: { rewards: [{ kind: 'limit', id: 'woof', stat: 'area', now: 0 }], locked: false, onclose: () => {} }
+    });
+    flushSync();
+    vi.advanceTimersByTime(700);
+    flushSync();
+    expect(target.textContent).toContain('ワンワンショット');
+    expect(target.textContent).toContain('大きさ +8%');
+    unmount(app);
+  });
 });

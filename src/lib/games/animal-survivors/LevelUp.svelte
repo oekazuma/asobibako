@@ -1,11 +1,7 @@
 <script lang="ts">
-  import { itemArt } from './art/evolved';
-  import { ITEM_ART } from './art/items';
-  import { reward } from './rewards';
+  import { cardInfo, cardKey } from './choice-view';
   import { isFiller, type Choice } from './choices';
-  import { PASSIVES } from './passives';
   import PixelIcon from './PixelIcon.svelte';
-  import { WEAPONS, upText } from './weapons';
 
   let {
     options,
@@ -24,8 +20,8 @@
     onbanish: (c: Choice) => void;
   } = $props();
 
-  /** 全部ごほうびのときは引き直しても同じ札しか出ず、除外もできないので、その 2 つは出さない */
-  const rerolls = $derived(options.every(isFiller) ? 0 : tools.rerolls);
+  /** 限界突破の札は引き直せば別の能力が出るので、ほかの埋め草の札だけのときに引き直しを出さない。除外は埋め草だけなら出さない */
+  const rerolls = $derived(options.every((c) => isFiller(c) && c.kind !== 'limit') ? 0 : tools.rerolls);
   const banishes = $derived(options.every(isFiller) ? 0 : tools.banishes);
   /** 除外を押したあと、消す札を選んでいるところ */
   let banishing = $state(false);
@@ -35,33 +31,6 @@
     if (isFiller(c)) return;
     banishing = false;
     onbanish(c);
-  }
-
-  function info(c: Choice) {
-    if (c.kind === 'weapon') {
-      const d = WEAPONS[c.id];
-      const fresh = c.level === 1;
-      return {
-        art: itemArt(`weapon-${c.id}`),
-        name: d.name,
-        tag: fresh ? 'NEW' : `Lv ${c.level}`,
-        text: fresh ? d.blurb : upText(d, c.level),
-        evo: c.evo ?? false
-      };
-    }
-    if (c.kind === 'passive') {
-      const d = PASSIVES[c.id];
-      return {
-        art: itemArt(`passive-${c.id}`),
-        name: d.name,
-        tag: c.level === 1 ? 'NEW' : `Lv ${c.level}`,
-        text: d.blurb,
-        evo: c.evo ?? false
-      };
-    }
-    if (c.kind === 'meat') return { art: ITEM_ART.meat, name: '肉', tag: '', text: 'HP を 30% 回復', evo: false };
-    if (c.kind !== 'bag') return reward(c.kind, c.kind !== 'vigor' || c.heal !== false);
-    return { art: ITEM_ART.chest, name: '経験値の袋', tag: '', text: '経験値 +25', evo: false };
   }
 
   function key(event: KeyboardEvent) {
@@ -82,16 +51,16 @@
 <div class="veil">
   <section class="as-panel pop" class:as-locked={locked} class:banishing aria-label="レベルアップ">
     <h2 class="as-title">LEVEL UP!</h2>
-    {#each options as c, i (c.kind + ('id' in c ? c.id : ''))}
-      {@const d = info(c)}
+    {#each options as c, i (cardKey(c))}
+      {@const d = cardInfo(c)}
       <button class="as-card" onclick={() => choose(c)}>
         <span class="key">{i + 1}</span>
         <PixelIcon art={d.art} size="min(10cqw, 6cqh, 64px)" />
         <span class="body">
           <span class="name"
-            >{d.name}{#if d.tag}<span class="tag" class:new={d.tag === 'NEW'}>{d.tag}</span>{/if}{#if d.evo}<span
-                class="tag evo">進化</span
-              >{/if}</span
+            >{d.name}{#if d.tag}<span class="tag" class:new={d.tag === 'NEW'} class:limit={d.tag === '限界突破'}
+                >{d.tag}</span
+              >{/if}{#if d.evo}<span class="tag evo">進化</span>{/if}</span
           >
           <span class="text">{d.text}</span>
         </span>
@@ -173,6 +142,10 @@
 
   .tag.new {
     background: #d8463c;
+  }
+
+  .tag.limit {
+    background: #8e2430;
   }
 
   .tag.evo {

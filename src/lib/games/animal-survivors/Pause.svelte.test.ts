@@ -128,4 +128,12 @@ describe('Pause', () => {
     expect(target.querySelector('.lv')?.textContent).toBe('★');
     unmount(app);
   });
+
+  it('武器の並びに、限界突破で上げた回数の合計を出す', () => {
+    run.weapons[0].lb = 12;
+    const { target, app } = show();
+    expect(target.querySelector('.owned')?.textContent).toContain('+12');
+    delete run.weapons[0].lb;
+    unmount(app);
+  });
 });
