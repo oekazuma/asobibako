@@ -4,6 +4,7 @@
   import { ANIMAL_ART } from './art/animals';
   import { heatLabel } from './cauldron';
   import { ITEM_ART } from './art/items';
+  import CoopStats from './CoopStats.svelte';
   import DamageTable from './DamageTable.svelte';
   import RunKit from './RunKit.svelte';
   import { clock } from './hud';
@@ -51,6 +52,7 @@
       )}）
       {#if run.bookCoins}<span class="book">図鑑 +{run.bookCoins}</span>{/if}
       {#if run.daily?.paid}<span class="book">お題クリア +{run.daily.bonus}</span>{/if}
+      {#if run.coop?.bonus}<span class="book">ふたりのボーナス +{run.coop.bonus}</span>{/if}
     </p>
     {#if run.heat.level !== 2}
       <!-- 延長戦の回は 10:00 のクリアで賭けが戻っている -->
@@ -77,6 +79,7 @@
         <dd>{value}</dd>
       {/each}
     </dl>
+    {#if run.coop}<CoopStats coop={run.coop} />{/if}
     <RunKit {run} />
     <DamageTable {run} />
   </section>

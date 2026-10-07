@@ -8,6 +8,7 @@
   import Back from './Back.svelte';
   import Cauldron from './Cauldron.svelte';
   import { CoopGuest, CoopHost } from './coop';
+  import CoopBook from './CoopBook.svelte';
   import CoopPick from './CoopPick.svelte';
   import CoopPlay from './CoopPlay.svelte';
   import { wornKeys } from './gacha';
@@ -138,6 +139,7 @@
         <p class="note">それぞれの端末で、自分の子と いっしょに 生き延びよう</p>
         <button class="as-card" onclick={() => (joining = 'host')}>なかまを よぶ</button>
         <button class="as-card" onclick={() => (joining = 'guest')}>なかまに はいる</button>
+        <CoopBook coop={records.coop} />
       {/if}
       {#if failed}<p class="warn">{failed}</p>{/if}
     </section>
