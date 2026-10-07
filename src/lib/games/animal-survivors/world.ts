@@ -1,4 +1,5 @@
 import { animal, type Animal, type AnimalId } from './animals';
+import { calmLink, type Link } from './link';
 import type { RunBook } from './book';
 import { fire, hits, type Effect, type Shot } from './arms';
 import { moveBoss, slot, spawnBosses, updateHazards, type Hazard } from './bosses';
@@ -123,6 +124,8 @@ export type GameEvent = { hero?: number } & (
   /** ボスが出た（入れ物の番号）。面の主の 2 体は 1 つにまとめる */
   | { type: 'bossIntro'; ids: number[] }
   | { type: 'chief'; i: number; name: string }
+  /** 連携の技を出す前の止めが始まった（2 匹の動物と技の名前） */
+  | { type: 'link'; a: AnimalId; b: AnimalId; name: string }
 );
 
 export interface World {
@@ -269,6 +272,8 @@ export interface World {
   spawnAcc: number[];
   grid: Grid;
   /** 動物ごとの項目（HERO_KEYS）。上の同じ名前の項目は heroes[cur] を指す */
+  /** 協力プレイの連携の技（1 匹のときは使わない） */
+  link: Link;
   heroes: Hero[];
   cur: number;
 }
@@ -439,7 +444,8 @@ export function createWorld(
     cur: 0,
     relics: [...(opts.relics ?? [])],
     relicsNow: [],
-    shrinesUsed: []
+    shrinesUsed: [],
+    link: calmLink()
   } as unknown as World;
   bindHeroes(w);
   w.events = tagged(w);
