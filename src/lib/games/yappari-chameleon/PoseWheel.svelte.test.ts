@@ -39,28 +39,91 @@ describe('PoseWheel', () => {
     unmount(app);
   });
 
-  it('指を置いたまま項目へ滑らせて離すと、その項目に決まる', () => {
-    const play = { ...fake(), wheel: { id: 7 } } as unknown as Play;
+  // happy-dom は矩形を 0 で返すので、輪を中心 (590, 410)・直径 400 に見せる
+  function wheelAt(play: Play) {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      left: 390,
+      top: 210,
+      width: 400,
+      height: 400
+    } as DOMRect);
     const target = document.body.appendChild(document.createElement('div'));
     const app = mount(PoseWheel, { target, props: { play } });
     flushSync();
-    // happy-dom の矩形は 0 なので、中心 (0, 0) から真上（項目 0）へ 100px
-    window.dispatchEvent(new PointerEvent('pointermove', { pointerId: 7, clientX: 0, clientY: -100 }));
+    return { target, app };
+  }
+  const touch = (type: string, x: number, y: number) =>
+    window.dispatchEvent(new PointerEvent(type, { pointerId: 7, clientX: x, clientY: y }));
+  const held = () => ({ ...fake(), wheel: { id: 7 } }) as unknown as Play;
+
+  it('指を置いたまま輪に入って項目へ滑らせて離すと、その項目に決まる', () => {
+    const play = held();
+    const { target, app } = wheelAt(play);
+    touch('pointermove', 1110, 410);
+    touch('pointermove', 590, 410);
+    touch('pointermove', 590, 290);
     flushSync();
     expect(target.querySelectorAll('.item')[0].classList.contains('lit')).toBe(true);
-    window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 7, clientX: 0, clientY: -100 }));
+    touch('pointerup', 590, 290);
     expect(play.setPose).toHaveBeenCalledWith('curl');
     unmount(app);
+    vi.restoreAllMocks();
   });
 
-  it('中心の近くで離すと選ばず、開いたまま項目を押せる状態にする', () => {
-    const play = { ...fake(), wheel: { id: 7 } } as unknown as Play;
-    const target = document.body.appendChild(document.createElement('div'));
-    const app = mount(PoseWheel, { target, props: { play } });
-    flushSync();
-    window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 7, clientX: 5, clientY: 5 }));
+  it('輪の外（ボタンの上）で揺れて離しても選ばず、開いたままにする', () => {
+    const play = held();
+    const { app } = wheelAt(play);
+    touch('pointermove', 1110, 400);
+    touch('pointermove', 1115, 395);
+    touch('pointerup', 1115, 395);
     expect(play.setPose).not.toHaveBeenCalled();
     expect(play.openWheel).toHaveBeenCalledWith(null);
     unmount(app);
+    vi.restoreAllMocks();
+  });
+
+  it('輪に入ってから外へ出て離すと、何も選ばない', () => {
+    const play = held();
+    const { app } = wheelAt(play);
+    touch('pointermove', 590, 290);
+    touch('pointermove', 590, 120);
+    touch('pointerup', 590, 120);
+    expect(play.setPose).not.toHaveBeenCalled();
+    expect(play.openWheel).toHaveBeenCalledWith(null);
+    unmount(app);
+    vi.restoreAllMocks();
+  });
+
+  it('中心の近くで離すと選ばず、開いたまま項目を押せる状態にする', () => {
+    const play = held();
+    const { app } = wheelAt(play);
+    touch('pointerup', 595, 415);
+    expect(play.setPose).not.toHaveBeenCalled();
+    expect(play.openWheel).toHaveBeenCalledWith(null);
+    unmount(app);
+    vi.restoreAllMocks();
+  });
+
+  it('pointercancel では項目を選ばず、開いたままにする', () => {
+    const play = held();
+    const { app } = wheelAt(play);
+    touch('pointermove', 590, 290);
+    touch('pointercancel', 590, 290);
+    expect(play.setPose).not.toHaveBeenCalled();
+    expect(play.openWheel).toHaveBeenCalledWith(null);
+    unmount(app);
+    vi.restoreAllMocks();
+  });
+
+  it('‹ は前のページへ戻る', () => {
+    const { target, app } = wheelAt(fake());
+    (target.querySelector('button.prev') as HTMLButtonElement).click();
+    flushSync();
+    expect(target.querySelector('.item')?.textContent?.trim()).toBe('片足立ち');
+    (target.querySelector('button.prev') as HTMLButtonElement).click();
+    flushSync();
+    expect(target.querySelector('.item')?.textContent?.trim()).toBe('丸まる');
+    unmount(app);
+    vi.restoreAllMocks();
   });
 });

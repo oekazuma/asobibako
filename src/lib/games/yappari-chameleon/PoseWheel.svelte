@@ -8,6 +8,9 @@
   let lit = $state<number | null>(null);
   let wheel: HTMLDivElement;
   const PER = 6;
+  const pages = Math.ceil(POSES.length / PER);
+  // ポーズのボタンは輪から遠く、押した指の揺れで項目を選ばないよう、輪に入ってからだけ狙う
+  let entered = false;
   const items = $derived(POSES.slice(page * PER, page * PER + PER));
 
   function choose(id: string) {
@@ -19,7 +22,9 @@
     const r = wheel.getBoundingClientRect();
     const dx = e.clientX - (r.left + r.width / 2);
     const dy = e.clientY - (r.top + r.height / 2);
-    if (Math.hypot(dx, dy) < 50) return (lit = null);
+    const d = Math.hypot(dx, dy);
+    if (d < r.width / 2) entered = true;
+    if (!entered || d < 50 || d > r.width / 2) return (lit = null);
     const a = (Math.atan2(dx, -dy) + Math.PI * 2) % (Math.PI * 2);
     lit = Math.round(a / ((Math.PI * 2) / PER)) % PER;
   }
@@ -33,13 +38,16 @@
       if (lit !== null) choose(items[lit].id);
       else play.openWheel(null);
     };
+    const cancel = (e: PointerEvent) => {
+      if (play.wheel?.id === e.pointerId) play.openWheel(null);
+    };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
-    window.addEventListener('pointercancel', up);
+    window.addEventListener('pointercancel', cancel);
     return () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
-      window.removeEventListener('pointercancel', up);
+      window.removeEventListener('pointercancel', cancel);
     };
   });
 </script>
@@ -57,8 +65,8 @@
         <span style:rotate="{(-i * 360) / PER}deg">{p.label}</span>
       </button>
     {/each}
-    <button class="arrow prev" onclick={() => (page = (page + 1) % 2)} aria-label="前のページ">‹</button>
-    <button class="arrow next" onclick={() => (page = (page + 1) % 2)} aria-label="次のページ">›</button>
+    <button class="arrow prev" onclick={() => (page = (page - 1 + pages) % pages)} aria-label="前のページ">‹</button>
+    <button class="arrow next" onclick={() => (page = (page + 1) % pages)} aria-label="次のページ">›</button>
     <button class="clear" onclick={() => choose(STAND.id)} aria-label="ポーズを解く">×</button>
   </div>
 </div>

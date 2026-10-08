@@ -24,7 +24,6 @@ export class Play {
   /** 壁際にいる。ジャンプのボタンを本家の言葉の「よじ登り」にする */
   nearWall = $state(false);
   pose = $state('stand');
-  /** 回転ロック。向きを変えずに横や後ろへ歩く */
   lock = $state(false);
   /** 開いた輪。`id` は開いた指（軽く押して開いたら null） */
   wheel = $state<{ id: number | null } | null>(null);
@@ -93,7 +92,6 @@ export class Play {
 
   toggleLock(): void {
     this.lock = !this.lock;
-    this.held.turn = 0;
   }
 
   openWheel(id: number | null): void {

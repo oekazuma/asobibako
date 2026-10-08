@@ -158,10 +158,12 @@ describe('Play', () => {
     p.held.turn = 0;
     expect(p.body.yaw).toBeGreaterThan(0.5);
     const yaw = p.body.yaw;
+    const x = p.body.pos[0];
     p.pointer('down', 1, 100, 400, 1000);
     p.pointer('move', 1, 170, 400, 1000);
     secs(p, 0.5);
     expect(p.body.yaw).toBeCloseTo(yaw, 5);
+    expect(Math.abs(p.body.pos[0] - x) + Math.abs(p.body.pos[2])).toBeGreaterThan(0.3);
   });
 
   it('壁に張り付くと回るボタンが消えるので、押していた回転を残さない', () => {
