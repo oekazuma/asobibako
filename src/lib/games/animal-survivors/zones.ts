@@ -12,6 +12,8 @@ const FLAME_R = 10;
 const VINE_R = 12;
 /** ツタの中にいるあいだ、毎フレームこの秒だけ足止めを延ばす */
 const ROOT = 0.2;
+/** 地面に残る炎とツタの、武器の枠 1 つあたりの上限。合体と限界突破で 1000 を超えて重くなったため */
+export const ZONE_CAP = 48;
 
 function zone(w: World, slot: number, kind: 'flame' | 'vine', x: number, y: number, r: number, s: WeaponStats) {
   const z: Effect = {
@@ -28,6 +30,14 @@ function zone(w: World, slot: number, kind: 'flame' | 'vine', x: number, y: numb
     dmg: s.damage,
     knock: 0
   };
+  let count = 0;
+  let oldest: Effect | null = null;
+  for (const f of w.effects) {
+    if (!f.alive || f.slot !== slot || (f.kind !== 'flame' && f.kind !== 'vine')) continue;
+    count++;
+    if (!oldest || f.born < oldest.born) oldest = f;
+  }
+  if (count >= ZONE_CAP && oldest) oldest.alive = false;
   const free = w.effects.findIndex((f) => !f.alive);
   if (free >= 0) w.effects[free] = z;
   else w.effects.push(z);

@@ -7,6 +7,14 @@ const OVER = 48;
 /** 自分の頭が絵の上の端より下にある（ほとんど隠れている）ときだけ薄くする */
 const HEAD = 10;
 
+/** 描く範囲（画面の左上 cx・cy と大きさ）に、絵の大きさぶんの余白を足した中か */
+export function onScreen(x: number, y: number, cx: number, cy: number, vw: number, vh: number, pad = 48): boolean {
+  return x > cx - pad && x < cx + vw + pad && y > cy - pad && y < cy + vh + pad;
+}
+
+/** 湯気の 2 コマを入れ替える番号（now は秒）。ゆっくり入れ替えて、明滅ではなく形の揺れに見せる */
+export const steamFrame = (now: number, n: number) => (n > 1 ? Math.floor(now / 0.5) % n : 0);
+
 export function inView(g: Ground, cx: number, cy: number, w: number, h: number, out: Obstacle[]): Obstacle[] {
   out.length = 0;
   for (let gx = Math.floor((cx - OVER) / CELL); gx <= Math.floor((cx + w + OVER) / CELL); gx++)
@@ -65,8 +73,7 @@ export function drawObstacles(
       ctx.ellipse(q(o.x), q(o.y + s.foot - 1), art.w * 0.42, 3, 0, 0, Math.PI * 2);
       ctx.fill();
     }
-    // 湯気だけゆっくり 2 コマを入れ替える（明滅ではなく形が揺れる）
-    const frame = art.frames.length > 1 ? Math.floor(now / 500) % art.frames.length : 0;
+    const frame = steamFrame(now, art.frames.length);
     ctx.drawImage(bake(art, frame), q(o.x - art.w / 2), q(top));
   }
   ctx.globalAlpha = 1;

@@ -5,6 +5,7 @@ import { PALETTE } from './art/palette';
 import { frameAt, hash } from './draw';
 import { bake, type Art } from './pixels';
 import { baseOf } from './evolutions';
+import { onScreen } from './draw-obstacles';
 import { PART_B, weaponAt } from './heroes';
 import { WEAPONS } from './weapons';
 import type { World } from './world';
@@ -52,9 +53,17 @@ function afterimage(ctx: CanvasRenderingContext2D, q: Snap, w: World, x: number,
   ctx.globalAlpha = 1;
 }
 
-export function shots(ctx: CanvasRenderingContext2D, w: World, q: Snap): void {
+export function shots(
+  ctx: CanvasRenderingContext2D,
+  w: World,
+  q: Snap,
+  cx: number,
+  cy: number,
+  vw: number,
+  vh: number
+): void {
   for (const o of w.shots) {
-    if (!o.alive) continue;
+    if (!o.alive || !onScreen(o.x, o.y, cx, cy, vw, vh)) continue;
     const weapon = kindOf(w, o.slot);
     const gold = isGold(w, o.slot);
     if (weapon === 'dash') afterimage(ctx, q, w, o.x, o.y, o.vx, o.vy);

@@ -13,7 +13,7 @@ import { PALETTE } from './art/palette';
 import { shots, swipes, zonesBelow } from './draw-arms';
 import { bossBars, hazardsAbove, hazardsBelow, introDust, introEdge } from './draw-boss';
 import { growFrame } from './grow';
-import { byFeet, covers, drawObstacles, inView } from './draw-obstacles';
+import { byFeet, covers, drawObstacles, inView, onScreen } from './draw-obstacles';
 import { hash, obstaclesNear, type Obstacle } from './obstacles';
 import type { Prompts } from './prompts.svelte';
 import { nearestHero, RAISE_SECS, type Hero } from './heroes';
@@ -370,14 +370,15 @@ function enemies(
   }
 }
 
-function pickups(ctx: CanvasRenderingContext2D, w: World, now: number) {
+function pickups(ctx: CanvasRenderingContext2D, w: World, now: number, cx: number, cy: number, v: ViewSize) {
   for (const g of w.gems) {
-    if (!g.alive) continue;
+    if (!g.alive || !onScreen(g.x, g.y, cx, cy, v.w, v.h)) continue;
     sprite(ctx, ITEM_ART[`gem${gemTier(g.value)}`], frameAt(now * 3 + g.x * 0.1, 2), g.x, g.y);
   }
   for (const it of w.items)
-    if (it.alive && it.kind === 'relic') drawRelic(ctx, it.x, it.y, it.relic!, now, q);
-    else if (it.alive)
+    if (!it.alive || !onScreen(it.x, it.y, cx, cy, v.w, v.h)) continue;
+    else if (it.kind === 'relic') drawRelic(ctx, it.x, it.y, it.relic!, now, q);
+    else
       sprite(
         ctx,
         it.kind === 'ticket'
@@ -430,7 +431,7 @@ export function draw(
   drawLava(ctx, w, now);
   hazardsBelow(ctx, w, q, now);
   zonesBelow(ctx, w, q, now);
-  pickups(ctx, w, now);
+  pickups(ctx, w, now, cx, cy, v);
   drawCarry(ctx, w, now, q);
   inView(w.stage.art, cx, cy, v.w, v.h, seen);
   enemies(ctx, w, cx, cy, v, now, seen, prompts?.intro?.t ?? 0, prompts?.intro?.ids);
@@ -453,7 +454,7 @@ export function draw(
     }
     w.cur = me;
   }
-  shots(ctx, w, q);
+  shots(ctx, w, q, cx, cy, v.w, v.h);
   swipes(ctx, w, q);
   drawLink(ctx, w);
   hazardsAbove(ctx, w, q);
