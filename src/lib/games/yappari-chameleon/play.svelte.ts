@@ -253,11 +253,18 @@ export class Play {
     this.nearWall = !this.body.cling && wallNear(this.body, w.level) !== null;
     w.placeDoll(this.body);
     w.poses.step(dt);
+    // 部屋の中と分かっている点（天井では pos が天井の高さなので下へ下げる）。カメラを殻の外へ出さない線の始点
+    const inside: V3 = [
+      this.body.pos[0],
+      this.body.pos[1] + (this.body.cling?.kind === 'ceiling' ? -0.4 : 0.4),
+      this.body.pos[2]
+    ];
     if (this.mode === 'walk') {
       const lift = this.body.cling?.kind === 'ceiling' ? -0.4 : 0.85;
       const t: V3 = [this.body.pos[0], this.body.pos[1] + lift, this.body.pos[2]];
-      w.follow(t, this.camYaw, this.camPitch, 2.4, 60, dt);
-    } else if (this.mode === 'paint') w.follow(w.dollCenter(), this.orbitYaw, this.orbitPitch, this.orbitDist, 45, dt);
+      w.follow(t, this.camYaw, this.camPitch, 2.4, 60, dt, inside);
+    } else if (this.mode === 'paint')
+      w.follow(w.dollCenter(), this.orbitYaw, this.orbitPitch, this.orbitDist, 45, dt, inside);
     else w.eye([this.ghost.pos[0], this.ghost.pos[1] + EYE_HEIGHT, this.ghost.pos[2]], this.eyeYaw, this.eyePitch);
     if (this.mode !== 'paint' || (!this.#stroke && now > this.#cursorUntil)) w.cursor(null, 0);
     // 張り付いているあいだは体が面に載っているので、その面を透かすと穴があくだけになる

@@ -174,7 +174,7 @@ export class World {
   }
 
   /** target のまわりを回る三人称のカメラ。壁の向こうへ行かないよう、手前で止める */
-  follow(target: V3, yaw: number, pitch: number, dist: number, fov: number, dt: number): void {
+  follow(target: V3, yaw: number, pitch: number, dist: number, fov: number, dt: number, from?: V3): void {
     const dir: V3 = [-Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch)];
     const want = Math.max(0.3, Math.min(dist, rayDistance(this.level, target, dir, dist) - 0.15));
     // 壁で縮むときは壁の向こうが見えないようすぐ寄せ、離れるときはゆっくり戻す
@@ -182,7 +182,18 @@ export class World {
     const d = this.#dist;
     this.camera.fov = fov;
     this.camera.updateProjectionMatrix();
-    this.camera.position.set(target[0] + dir[0] * d, target[1] + dir[1] * d, target[2] + dir[2] * d);
+    const pos = new THREE.Vector3(target[0] + dir[0] * d, target[1] + dir[1] * d, target[2] + dir[2] * d);
+    if (from) {
+      // 張り付いた体の中心は壁の中にあることがある。部屋の中と分かっている点から線を引いて、殻の外へ出さない
+      const v = pos.clone().sub(new THREE.Vector3(...from));
+      const len = v.length();
+      if (len > 1e-6) {
+        v.divideScalar(len);
+        const hit = rayDistance(this.level, from, [v.x, v.y, v.z], len);
+        if (hit < len) pos.set(...from).addScaledVector(v, Math.max(0, hit - 0.15));
+      }
+    }
+    this.camera.position.copy(pos);
     this.camera.lookAt(target[0], target[1], target[2]);
   }
 

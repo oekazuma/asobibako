@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { floorBelow, idle, newBody, rayDistance, RADIUS, step, type Input, type Level } from './move';
 import type { V3 } from '$lib/sculpt';
+import { HEIGHT } from './doll';
 
 // 床（y = 0）・奥の壁（z = 5）・天井（y = 3）・低い台（高さ 1）・段（高さ 0.2）・坂（z が増えると 0 → 1.5）
 const level: Level = {
@@ -82,6 +83,16 @@ describe('move', () => {
     go(b, { up: true }, 4);
     expect(b.cling).toEqual({ kind: 'ceiling' });
     expect(b.pos[1]).toBeCloseTo(3, 3);
+  });
+
+  it('壁から天井へ移ると体を返し、頭が壁の中へ入らない', () => {
+    const b = newBody([0, 0, 5 - RADIUS - 0.05]);
+    go(b, {}, 0.2);
+    step(b, { ...idle(), jump: true }, level, 1 / 60);
+    go(b, { up: true }, 4);
+    expect(b.cling).toEqual({ kind: 'ceiling' });
+    expect(Math.cos(b.yaw)).toBeCloseTo(-1, 5);
+    expect(b.pos[2] + Math.cos(b.yaw) * HEIGHT).toBeLessThan(5 - 0.3);
   });
 
   it('天井から「はなす」で床へ落ちる', () => {

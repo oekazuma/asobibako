@@ -198,6 +198,10 @@ function stepWall(b: Body, c: { nx: number; nz: number }, inp: Input, lv: Level,
     b.cling = { kind: 'ceiling' };
     b.pos[1] = ceil;
     b.ground = false;
+    // 壁を向いたまま寝かせると頭が壁の中へ入る。向きを返し、足を壁に置いて体を部屋のほうへ伸ばす
+    b.yaw = Math.atan2(Math.sin(b.yaw + Math.PI), Math.cos(b.yaw + Math.PI));
+    b.pos[0] += c.nx * 0.1;
+    b.pos[2] += c.nz * 0.1;
     return;
   }
   // 床の高さで張り付いたまま待てるよう、外すのは「さがる」で床まで下りたときだけ
