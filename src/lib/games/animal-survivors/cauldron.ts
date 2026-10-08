@@ -19,8 +19,12 @@ const bend = (h: number, at0: number, at9: number) =>
 
 export const HP_AT9 = 4.5;
 export const ATK_AT9 = 2.2;
-export const hpMul = (h: number) => bend(h, 0.6, HP_AT9);
-export const atkMul = (h: number) => bend(h, 0.7, ATK_AT9);
+/** 硬さと攻撃は 9.0 に近いほど急に上げる。お題の 2.5〜3.5 は遊んで決めた強さのまま、9.0 だけを厳しくする */
+const TOP = 1.4;
+const steep = (h: number, at0: number, at9: number) =>
+  h <= 2 ? bend(h, at0, at9) : 1 + (at9 - 1) * ((h - 2) / 7) ** TOP;
+export const hpMul = (h: number) => steep(h, 0.6, HP_AT9);
+export const atkMul = (h: number) => steep(h, 0.7, ATK_AT9);
 export const coinMul = (h: number) => bend(h, 0.5, 4);
 
 /** 賭けは上のほうで急に増える。2.0 を少しでも越えたら賭けがあることを見せるため、最低 10 枚 */

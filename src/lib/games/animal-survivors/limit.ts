@@ -21,8 +21,9 @@ const COOL_FLOOR = 0.4;
  */
 export const LIMIT_SOFT = 10;
 export const limitCount = (n: number) => (n <= 0 ? 0 : n / (1 + (n - 1) / LIMIT_SOFT));
-/** 数は 1 ずつしか増やせないので、効く回数を丸める（切り捨てだと 1 回めの札が効かない） */
-const amountOf = (n: number) => Math.round(limitCount(n));
+/** 数は頭打ちで割ると 1 つも増えない札が出るので、1 回 1 つずつで上限を決める */
+export const AMOUNT_CAP = 5;
+const amountOf = (n: number) => Math.min(n, AMOUNT_CAP);
 
 export const LIMIT_TEXT: Record<LimitStat, string> = {
   damage: `ダメージ +${pct(STEP.damage)}`,
@@ -81,7 +82,8 @@ export function limitCards(w: World, n: number): Choice[] {
   const pool: { c: Choice; weight: number }[] = [{ c: { kind: 'vigor', heal: !noMeat(w) }, weight: 1 }];
   for (const o of w.weapons)
     for (const stat of statsFor(WEAPONS[o.id]))
-      pool.push({ c: { kind: 'limit', id: o.id, stat, now: o.limit?.[stat] ?? 0 }, weight: WEIGHT[stat] });
+      if (stat !== 'amount' || (o.limit?.amount ?? 0) < AMOUNT_CAP)
+        pool.push({ c: { kind: 'limit', id: o.id, stat, now: o.limit?.[stat] ?? 0 }, weight: WEIGHT[stat] });
   const out: Choice[] = [];
   while (out.length < n && pool.length) {
     let r = w.rand() * pool.reduce((s, p) => s + p.weight, 0);

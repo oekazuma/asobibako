@@ -3,7 +3,7 @@ import { cardInfo } from './choice-view';
 import { betOf, MAX_BET } from './cauldron';
 import { OVERTIME_MAX, overtimeRate } from './drops';
 import { LIMIT_SOFT, limitCount, limitStats, STEP } from './limit';
-import { otScale } from './overtime';
+import { OT_GROW, otScale } from './overtime';
 import { STAGES } from './stages';
 import { createWorld } from './world';
 
@@ -29,9 +29,9 @@ describe('限界突破の頭打ち', () => {
 });
 
 describe('延長戦', () => {
-  it('伸び方は 1 分ごとの掛け算', () => {
+  it('長くなると 1 分ごとの掛け算で強まる', () => {
     expect(otScale(600, 600)).toBe(1);
-    expect(otScale(720, 600) / otScale(660, 600)).toBeCloseTo(otScale(660, 600));
+    expect(otScale(600 + 50 * 60, 600) / otScale(600 + 49 * 60, 600)).toBeCloseTo(OT_GROW);
   });
 
   it('コインの倍率は 4 倍で止まる', () => {

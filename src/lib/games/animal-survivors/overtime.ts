@@ -2,9 +2,16 @@ import { overtimeCoins } from './drops';
 import { RAGE, type Stage } from './stages/forest';
 import { summary, type RunSummary, type World } from './world';
 
-/** 延長戦の敵の硬さと攻撃に、1 分ごとに掛ける倍率（足し算だと全部そろえた動物がいつまでも倒れなかった） */
+/**
+ * 延長戦の敵の硬さと攻撃の伸び。1 分ごとに OT_EARLY を足す伸びと OT_GROW を掛ける伸びの速いほうで強める。
+ * 足すほうだけでは全部そろえた動物が倒れず、掛けるほうだけでは序盤がやさしすぎる（27 分ほどで入れ替わる）
+ */
+export const OT_EARLY = 0.6;
 export const OT_GROW = 1.12;
-export const otScale = (t: number, from: number) => OT_GROW ** (Math.max(0, t - from) / 60);
+export const otScale = (t: number, from: number) => {
+  const m = Math.max(0, t - from) / 60;
+  return Math.max(1 + OT_EARLY * m, OT_GROW ** m);
+};
 /** 延長戦のボスは 1 分ごと。誰も届かない長さまで行を用意しておく */
 const BOSS_EVERY = 60;
 const BOSS_ROWS = 60;
