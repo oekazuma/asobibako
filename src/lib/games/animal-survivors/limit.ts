@@ -17,7 +17,7 @@ const pct = (v: number) => `${Math.round(v * 100)}%`;
 const COOL_FLOOR = 0.4;
 /**
  * 頭打ちの強さ。上げた回数 n は n / (1 + (n - 1) / LIMIT_SOFT) 回ぶんだけ効き、LIMIT_SOFT 回ぶんを超えない
- * （延長戦で上限なく強くなるのを止める。1 回めは今までどおり丸ごと効かせ、10 分の回の手ざわりを変えない）
+ * （延長戦で上限なく強くならないようにする。1 回めは丸ごと効かせ、10 分の回の手ざわりを保つ）
  */
 export const LIMIT_SOFT = 10;
 export const limitCount = (n: number) => (n <= 0 ? 0 : n / (1 + (n - 1) / LIMIT_SOFT));

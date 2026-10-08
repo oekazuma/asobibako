@@ -12,13 +12,13 @@ import type { World } from './world';
 const CONFETTI = 40;
 const COLORS = [PALETTE.r, PALETTE.y, PALETTE.u, PALETTE.p, PALETTE.l];
 
+/** 協力プレイの右端の真ん中にある「いっしょに！」のボタンの、上下の半分の高さ */
+export const BUTTON_BAND = 28;
+
 /**
  * 画面の外のものへの向きの矢印を置く位置と向き（画面の中なら null）。
  * 仮想画面の座標で、HUD（上）と持ちもの（下）にかからない内側に置く
  */
-/** 協力プレイの右端の真ん中にある「いっしょに！」のボタンの、上下の半分の高さ */
-export const BUTTON_BAND = 28;
-
 export function edgeAt(
   w: World,
   to: { x: number; y: number },

@@ -12,7 +12,7 @@ const FLAME_R = 10;
 const VINE_R = 12;
 /** ツタの中にいるあいだ、毎フレームこの秒だけ足止めを延ばす */
 const ROOT = 0.2;
-/** 地面に残る炎とツタの、武器の枠 1 つあたりの上限。合体と限界突破で 1000 を超えて重くなったため */
+/** 地面に残る炎とツタの、武器の枠 1 つあたりの上限。合体と限界突破で数が増えると、当てるのも描くのも重くなる */
 export const ZONE_CAP = 48;
 
 function zone(w: World, slot: number, kind: 'flame' | 'vine', x: number, y: number, r: number, s: WeaponStats) {
