@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { pushRecent } from './color';
 import type { Level } from './move';
+import { RADIUS } from './move';
 import type { Dab } from './paint';
 import { Play } from './play.svelte';
 import type { World } from './world3d';
@@ -35,6 +36,17 @@ function fakeWorld() {
 const run = (p: Play, frames: number) => {
   for (let i = 0; i < frames; i++) p.frame(1 / 60, i * 16);
 };
+
+const secs = (p: Play, t: number) => run(p, Math.round(t * 60));
+
+function clinging() {
+  const p = new Play(fakeWorld(), 70);
+  p.body.pos = [0, 0, 5 - RADIUS - 0.05];
+  secs(p, 0.2);
+  p.jump();
+  secs(p, 0.1);
+  return p;
+}
 
 describe('Play', () => {
   it('押したままの下がるが、床まで下りて張り付きが終わっても残らず、張り付き直しても滑り落ちない', () => {
@@ -97,5 +109,83 @@ describe('Play', () => {
     p.brush.color[0] = 0.3;
     expect(dab.c).toEqual([1, 0, 0]);
     expect(p.recent[0]).toEqual([1, 0, 0]);
+  });
+
+  it('壁に張り付いたままポーズを変えても、壁から外れない', () => {
+    const p = clinging();
+    p.held.up = true;
+    secs(p, 0.5);
+    p.held.up = false;
+    const y = p.body.pos[1];
+    p.setPose('curl');
+    secs(p, 1);
+    expect(p.body.cling?.kind).toBe('wall');
+    expect(p.body.pos[1]).toBeCloseTo(y, 5);
+    expect(p.pose).toBe('curl');
+  });
+
+  it('張り付いたままペイントとフリーカメラに出入りしても、張り付いたまま', () => {
+    const p = clinging();
+    p.togglePaint();
+    secs(p, 1);
+    p.togglePaint();
+    p.toggleEye();
+    secs(p, 1);
+    p.toggleEye();
+    secs(p, 0.2);
+    expect(p.body.cling?.kind).toBe('wall');
+  });
+
+  it('天井にいるままフリーカメラに出入りしても、天井にいる', () => {
+    const p = clinging();
+    p.held.up = true;
+    secs(p, 4);
+    p.held.up = false;
+    expect(p.body.cling?.kind).toBe('ceiling');
+    p.toggleEye();
+    secs(p, 1);
+    p.toggleEye();
+    secs(p, 0.2);
+    expect(p.body.cling?.kind).toBe('ceiling');
+  });
+
+  it('回転ロックのあいだは、歩いても向きが変わらず、その場で回転で向きだけが変わる', () => {
+    const p = new Play(fakeWorld(), 70);
+    secs(p, 0.2);
+    p.toggleLock();
+    p.held.turn = 1;
+    secs(p, 0.5);
+    p.held.turn = 0;
+    expect(p.body.yaw).toBeGreaterThan(0.5);
+    const yaw = p.body.yaw;
+    p.pointer('down', 1, 100, 400, 1000);
+    p.pointer('move', 1, 170, 400, 1000);
+    secs(p, 0.5);
+    expect(p.body.yaw).toBeCloseTo(yaw, 5);
+  });
+
+  it('壁に張り付くと回るボタンが消えるので、押していた回転を残さない', () => {
+    const p = clinging();
+    p.held.turn = 1;
+    secs(p, 0.1);
+    expect(p.held.turn).toBe(0);
+  });
+
+  it('モードを替えると輪と回転も捨てる', () => {
+    const p = new Play(fakeWorld(), 70);
+    p.held.turn = -1;
+    p.openWheel(3);
+    p.togglePaint();
+    expect(p.held.turn).toBe(0);
+    expect(p.wheel).toBeNull();
+  });
+
+  it('輪で選んだポーズを人形に当てる', () => {
+    const w = fakeWorld();
+    const p = new Play(w, 70);
+    p.setPose('lie');
+    expect(w.poses.to).toHaveBeenCalledWith(expect.objectContaining({ id: 'lie' }));
+    p.setPose('stand');
+    expect(p.pose).toBe('stand');
   });
 });

@@ -4,6 +4,7 @@ import { pushRecent } from './color';
 import { restHit } from './doll3d';
 import { floorBelow, idle, newBody, step, wallNear, type Body } from './move';
 import { PaintLog, Stroke, type Brush, type Dab } from './paint';
+import { poseById, STAND } from './poses';
 import { TouchPad, type Mode, type PaintEvent } from './touch';
 import type { World } from './world3d';
 
@@ -22,8 +23,13 @@ export class Play {
   cling = $state<'wall' | 'ceiling' | null>(null);
   /** 壁際にいる。ジャンプのボタンを本家の言葉の「よじ登り」にする */
   nearWall = $state(false);
+  pose = $state('stand');
+  /** 回転ロック。向きを変えずに横や後ろへ歩く */
+  lock = $state(false);
+  /** 開いた輪。`id` は開いた指（軽く押して開いたら null） */
+  wheel = $state<{ id: number | null } | null>(null);
   stick = $state({ x: 0, y: 0, active: false, ox: 0, oy: 0 });
-  readonly held = { up: false, down: false };
+  readonly held = { up: false, down: false, turn: 0 };
   readonly world: World;
   readonly pad: TouchPad;
   readonly log = new PaintLog();
@@ -79,6 +85,25 @@ export class Play {
     this.#setMode('eye');
   }
 
+  setPose(id: string): void {
+    const p = id === STAND.id ? STAND : poseById(id);
+    this.pose = p.id;
+    this.world.poses.to(p);
+  }
+
+  toggleLock(): void {
+    this.lock = !this.lock;
+    this.held.turn = 0;
+  }
+
+  openWheel(id: number | null): void {
+    this.wheel = { id };
+  }
+
+  closeWheel(): void {
+    this.wheel = null;
+  }
+
   toggleSpoit(): void {
     this.spoit = !this.spoit;
   }
@@ -132,6 +157,8 @@ export class Play {
     for (const e of this.pad.setMode(m)) this.#paint(e);
     this.spoit = false;
     this.held.up = this.held.down = false;
+    this.held.turn = 0;
+    this.wheel = null;
     this.mode = m;
     this.stick = { ...this.pad.stick };
   }
@@ -191,7 +218,9 @@ export class Play {
       jump: this.#jump,
       release: this.#release,
       up: this.held.up,
-      down: this.held.down
+      down: this.held.down,
+      lock: this.lock,
+      turn: this.held.turn
     };
   }
 
@@ -219,6 +248,8 @@ export class Play {
     this.#jump = this.#release = false;
     // 押していたボタンは張り付きが終わると消えて pointerup が届かないので、離れたあとに残さない
     if (!this.body.cling) this.held.up = this.held.down = false;
+    // 回るボタンも壁では消える
+    if (this.body.cling?.kind === 'wall') this.held.turn = 0;
     this.cling = this.body.cling?.kind ?? null;
     this.nearWall = !this.body.cling && wallNear(this.body, w.level) !== null;
     w.placeDoll(this.body);

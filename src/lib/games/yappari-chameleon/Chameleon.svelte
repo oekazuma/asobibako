@@ -11,6 +11,7 @@
   import { makeDoll } from './doll3d';
   import { COLOR_SIZE } from './paint-gpu';
   import { Play } from './play.svelte';
+  import PoseWheel from './PoseWheel.svelte';
   import StickView from './StickView.svelte';
   import { testRoom } from './test-room';
   import { World } from './world3d';
@@ -102,6 +103,9 @@
         bind:value={play.brush.radius}
         onchange={() => play?.showCursor(box.clientWidth / 2, box.clientHeight / 2)}
       />
+    {/if}
+    {#if play.wheel}
+      <PoseWheel {play} />
     {/if}
     <Buttons {play} onquit={() => onquit?.()} />
   {:else}

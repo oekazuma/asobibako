@@ -10,7 +10,11 @@ function fake(over: Partial<Play> = {}) {
     nearWall: false,
     spoit: false,
     shadow: true,
-    held: { up: false, down: false },
+    pose: 'stand',
+    lock: false,
+    held: { up: false, down: false, turn: 0 },
+    openWheel: vi.fn(),
+    toggleLock: vi.fn(),
     jump: vi.fn(),
     release: vi.fn(),
     togglePaint: vi.fn(),
@@ -25,11 +29,11 @@ function fake(over: Partial<Play> = {}) {
 const labels = (t: HTMLElement) => [...t.querySelectorAll('.column button')].map((b) => b.textContent?.trim());
 
 describe('Buttons', () => {
-  it('歩くときはジャンプ・ペイントモード・フリーカメラ', () => {
+  it('歩くときはジャンプ・ポーズ・ペイントモード・フリーカメラ・回転ロック', () => {
     const target = document.body.appendChild(document.createElement('div'));
     const app = mount(Buttons, { target, props: { play: fake(), onquit: () => {} } });
     flushSync();
-    expect(labels(target)).toEqual(['ジャンプ', 'ペイントモード', 'フリーカメラ']);
+    expect(labels(target)).toEqual(['ジャンプ', 'ポーズ', 'ペイントモード', 'フリーカメラ', '回転ロック']);
     unmount(app);
   });
 
@@ -46,7 +50,7 @@ describe('Buttons', () => {
     const target = document.body.appendChild(document.createElement('div'));
     const app = mount(Buttons, { target, props: { play, onquit: () => {} } });
     flushSync();
-    expect(labels(target)).toEqual(['上がる', '下がる', '張り付き解除', 'ペイントモード']);
+    expect(labels(target)).toEqual(['上がる', '下がる', '張り付き解除', 'ポーズ', 'ペイントモード']);
     const up = target.querySelectorAll('.column button')[0];
     // Svelte は pointerdown を根元でまとめて受けるので、泡立てて送る
     up.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
@@ -61,6 +65,45 @@ describe('Buttons', () => {
     const app = mount(Buttons, { target, props: { play: fake({ mode: 'paint' }), onquit: () => {} } });
     flushSync();
     expect(labels(target)).toEqual(['3D スポイト', '元に戻す', '影', 'ペイントモード']);
+    unmount(app);
+  });
+
+  it('回るボタンは歩くときと天井にだけあり、押しているあいだだけ turn が立つ（左が 1）', () => {
+    const play = fake();
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(Buttons, { target, props: { play, onquit: () => {} } });
+    flushSync();
+    const [left, right] = target.querySelectorAll('.spin button');
+    left.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    expect(play.held.turn).toBe(1);
+    left.dispatchEvent(new PointerEvent('pointerleave'));
+    expect(play.held.turn).toBe(0);
+    right.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    expect(play.held.turn).toBe(-1);
+    unmount(app);
+
+    for (const over of [{ cling: 'wall' as const }, { mode: 'paint' as const }, { mode: 'eye' as const }]) {
+      const t = document.body.appendChild(document.createElement('div'));
+      const a = mount(Buttons, { target: t, props: { play: fake(over), onquit: () => {} } });
+      flushSync();
+      expect(t.querySelector('.spin')).toBeNull();
+      unmount(a);
+    }
+    const t = document.body.appendChild(document.createElement('div'));
+    const a = mount(Buttons, { target: t, props: { play: fake({ cling: 'ceiling' }), onquit: () => {} } });
+    flushSync();
+    expect(t.querySelectorAll('.spin button')).toHaveLength(2);
+    unmount(a);
+  });
+
+  it('ポーズのボタンは押した指の番号で輪を開く', () => {
+    const play = fake();
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(Buttons, { target, props: { play, onquit: () => {} } });
+    flushSync();
+    const pose = [...target.querySelectorAll('.column button')].find((b) => b.textContent?.includes('ポーズ'))!;
+    pose.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 4 }));
+    expect(play.openWheel).toHaveBeenCalledWith(4);
     unmount(app);
   });
 });
