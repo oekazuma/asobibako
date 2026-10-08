@@ -25,7 +25,8 @@ function fakeWorld() {
     eye: vi.fn(),
     render: vi.fn(),
     dollCenter: () => [0, 1, 0],
-    pickBody: () => null
+    pickBody: () => null,
+    cursor: vi.fn()
   } as unknown as World;
 }
 

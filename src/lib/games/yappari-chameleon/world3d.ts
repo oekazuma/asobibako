@@ -27,6 +27,10 @@ export class World {
   #stage: THREE.Group | null = null;
   #environment: THREE.WebGLRenderTarget | null = null;
   #ray = new THREE.Raycaster();
+  #cursor = new THREE.Mesh(
+    new THREE.RingGeometry(0.92, 1, 48),
+    new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.85, depthTest: false })
+  );
   #w = 1;
   #h = 1;
 
@@ -59,6 +63,9 @@ export class World {
     this.rig = rig(this.renderer);
     this.poses = new PoseAnimator(this.rig);
     this.scene.add(this.rig.root);
+    this.#cursor.visible = false;
+    this.#cursor.renderOrder = 10;
+    this.scene.add(this.#cursor);
   }
 
   #buildEnvironment(): void {
@@ -138,6 +145,17 @@ export class World {
     return this.#cast(x, y, [this.rig.mesh]);
   }
 
+  /** 体の上の当たりに、面に沿った筆の半径の輪を置く。指の下が見えないタッチで、塗る所と大きさを見せる */
+  cursor(hit: THREE.Intersection | null, radius: number): void {
+    const c = this.#cursor;
+    c.visible = !!hit?.normal;
+    if (!hit?.normal) return;
+    const n = hit.normal.clone().transformDirection(hit.object.matrixWorld);
+    c.position.copy(hit.point).addScaledVector(n, 0.004);
+    c.lookAt(hit.point.clone().add(n));
+    c.scale.setScalar(radius);
+  }
+
   spoit(x: number, y: number): { color: RGB; metal: number; rough: number } | null {
     const hit = this.#cast(x, y, [this.rig.mesh, ...(this.#stage ? [this.#stage] : [])]);
     if (!hit) return null;
@@ -167,6 +185,8 @@ export class World {
     });
     this.#environment?.dispose();
     this.rig.paint.dispose();
+    this.#cursor.geometry.dispose();
+    this.#cursor.material.dispose();
     this.renderer.dispose();
     // iOS は WebGL の文脈の数に上限があり、ゲームを開閉するたびに残すと古いものから失われていく
     this.renderer.forceContextLoss();

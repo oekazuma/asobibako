@@ -6,6 +6,7 @@
   import { layAtlas } from './atlas';
   import BrushSize from './BrushSize.svelte';
   import Buttons from './Buttons.svelte';
+  import PaintPanel from './PaintPanel.svelte';
   import { buildDoll } from './doll';
   import { makeDoll } from './doll3d';
   import { COLOR_SIZE } from './paint-gpu';
@@ -96,7 +97,11 @@
       <StickView ox={play.stick.ox} oy={play.stick.oy} x={play.stick.x} y={play.stick.y} r={radius} />
     {/if}
     {#if play.mode === 'paint'}
-      <BrushSize bind:value={play.brush.radius} />
+      <PaintPanel {play} />
+      <BrushSize
+        bind:value={play.brush.radius}
+        onchange={() => play?.showCursor(box.clientWidth / 2, box.clientHeight / 2)}
+      />
     {/if}
     <Buttons {play} onquit={() => onquit?.()} />
   {:else}

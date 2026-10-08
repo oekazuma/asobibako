@@ -1,13 +1,21 @@
 <script lang="ts">
   import { RADIUS } from './paint';
 
-  let { value = $bindable() }: { value: number } = $props();
+  let { value = $bindable(), onchange }: { value: number; onchange?: () => void } = $props();
 </script>
 
 <label class="size">
   <span class="dot" style:width="{8 + (value / RADIUS[1]) * 56}px" style:height="{8 + (value / RADIUS[1]) * 56}px"
   ></span>
-  <input type="range" min={RADIUS[0]} max={RADIUS[1]} step="0.005" bind:value aria-label="ブラシの大きさ" />
+  <input
+    type="range"
+    min={RADIUS[0]}
+    max={RADIUS[1]}
+    step="0.005"
+    bind:value
+    oninput={() => onchange?.()}
+    aria-label="ブラシの大きさ"
+  />
   <span class="label">{Math.round(value * 200)} cm</span>
 </label>
 

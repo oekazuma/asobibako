@@ -39,6 +39,7 @@ export class Play {
   #stroke: Stroke | null = null;
   #jump = false;
   #release = false;
+  #cursorUntil = 0;
 
   constructor(world: World, stickRadius: number) {
     this.world = world;
@@ -97,6 +98,12 @@ export class Play {
     this.brush.color = c;
   }
 
+  /** 大きさを変えたあと、画面の (x, y) の体の上に筆の輪を 1 秒出す */
+  showCursor(x: number, y: number): void {
+    this.#cursorUntil = performance.now() + 1000;
+    this.world.cursor(this.world.pickBody(x, y), this.brush.radius);
+  }
+
   rebuildPaint(): void {
     this.world.rig.paint.rebuild(this.log.dabs);
   }
@@ -146,6 +153,7 @@ export class Play {
   #paint(e: PaintEvent) {
     if (e.kind === 'cancel') {
       this.#stroke = null;
+      this.world.cursor(null, 0);
       if (this.log.cancel()) this.rebuildPaint();
       this.canUndo = this.log.canUndo;
       return;
@@ -160,6 +168,7 @@ export class Play {
     }
     const hit = this.#stroke && this.world.pickBody(e.x, e.y);
     const rest = hit && restHit(this.world.rig, hit);
+    this.world.cursor(e.kind === 'end' ? null : hit, this.brush.radius);
     if (this.#stroke && rest) this.applyDabs(this.#stroke.to(rest));
     if (e.kind === 'end') {
       if (this.#stroke) this.recent = pushRecent(this.recent, this.#stroke.brush.color);
@@ -220,6 +229,7 @@ export class Play {
       w.follow(t, this.camYaw, this.camPitch, 2.4, 60);
     } else if (this.mode === 'paint') w.follow(w.dollCenter(), this.orbitYaw, this.orbitPitch, this.orbitDist, 45);
     else w.eye([this.ghost.pos[0], this.ghost.pos[1] + EYE_HEIGHT, this.ghost.pos[2]], this.eyeYaw, this.eyePitch);
+    if (this.mode !== 'paint' || (!this.#stroke && now > this.#cursorUntil)) w.cursor(null, 0);
     w.render();
   }
 }
