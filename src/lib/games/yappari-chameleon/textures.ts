@@ -500,8 +500,10 @@ export function readPick(
     // 描くときと同じ繰り返し・ずらし・回しにして、模様の 1 枚の中の位置に畳む。canvas の行は上から数える
     map.updateMatrix();
     const t = map.transformUv(uv.clone());
+    // transformUv は flipY のとき v を上下逆にして返すので、その場合は行へそのまま使う
+    const v = t.y - Math.floor(t.y);
     const x = Math.min(w - 1, Math.floor((t.x - Math.floor(t.x)) * w));
-    const y = Math.min(h - 1, Math.floor((1 - (t.y - Math.floor(t.y))) * h));
+    const y = Math.min(h - 1, Math.floor((map.flipY ? v : 1 - v) * h));
     const i = (y * w + x) * 4;
     color = [(data[i] / 255) * color[0], (data[i + 1] / 255) * color[1], (data[i + 2] / 255) * color[2]];
   }

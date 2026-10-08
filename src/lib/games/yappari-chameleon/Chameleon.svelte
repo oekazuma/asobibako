@@ -13,7 +13,7 @@
   import { Play } from './play.svelte';
   import PoseWheel from './PoseWheel.svelte';
   import StickView from './StickView.svelte';
-  import { testRoom } from './test-room';
+  import { buildMansion } from './mansion/build';
   import { World } from './world3d';
 
   let { onquit }: SoloProps = $props();
@@ -47,7 +47,7 @@
         (r) => makeDoll(r, s, atlas),
         () => play?.rebuildPaint()
       );
-      world.setStage(testRoom());
+      world.setStage(buildMansion());
       size();
       play = new Play(world, radius);
       if (import.meta.env.DEV) (window as unknown as { __chameleon?: Play }).__chameleon = play;

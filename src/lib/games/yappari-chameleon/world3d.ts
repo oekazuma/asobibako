@@ -65,11 +65,15 @@ export class World {
     this.scene.background = new THREE.Color('#1d1a17');
     this.scene.add(new THREE.HemisphereLight('#fff4e0', '#5a4a3a', 1.1));
     const top = new THREE.DirectionalLight('#fff1dc', 1.6);
-    top.position.set(3, 10, 2);
+    // 屋敷の全体（x −24〜8、z −1〜13）を 1 枚の影で覆う
+    top.position.set(-8, 20, 6);
+    top.target.position.set(-8, 0, 6);
     top.castShadow = true;
     top.shadow.mapSize.set(2048, 2048);
-    top.shadow.camera.left = top.shadow.camera.bottom = -14;
-    top.shadow.camera.right = top.shadow.camera.top = 14;
+    top.shadow.camera.left = -17;
+    top.shadow.camera.right = 17;
+    top.shadow.camera.top = 8;
+    top.shadow.camera.bottom = -8;
     top.shadow.bias = -0.0004;
     top.shadow.normalBias = 0.02;
     this.scene.add(top, top.target);
@@ -235,7 +239,8 @@ export class World {
     if (!hit) return null;
     if (hit.object === this.rig.mesh) return hit.uv ? this.rig.paint.read(hit.uv) : null;
     const m = (hit.object as THREE.Mesh).material;
-    return readPick(Array.isArray(m) ? m[0] : m, hit.uv);
+    // 壁や床の箱は面ごとに別の材質なので、当たった面の材質を読む
+    return readPick(Array.isArray(m) ? m[hit.face?.materialIndex ?? 0] : m, hit.uv);
   }
 
   project(p: V3): { x: number; y: number } {
