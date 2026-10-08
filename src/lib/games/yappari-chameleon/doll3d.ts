@@ -4,6 +4,7 @@ import type { Atlas } from './atlas';
 import { BONES, JOINTS, PARENT, type Bone, type DollSurface } from './doll';
 import type { Hit } from './paint';
 import { PaintSurface } from './paint-gpu';
+import { STAND, type Pose } from './poses';
 
 export interface DollRig {
   root: THREE.Group;
@@ -85,4 +86,61 @@ export function restHit(rig: DollRig, hit: THREE.Intersection): Hit | null {
   const p: V3 = [mix(pos, 0), mix(pos, 1), mix(pos, 2)];
   const nv = new THREE.Vector3(mix(nrm, 0), mix(nrm, 1), mix(nrm, 2)).normalize();
   return { p, n: [nv.x, nv.y, nv.z] };
+}
+
+const rest = new THREE.Quaternion();
+const euler = new THREE.Euler();
+
+/** ポーズのあいだを 0.25 秒ほどでなめらかにつなぐ。角度の表は回っていない骨からの回り */
+export class PoseAnimator {
+  readonly #rig: DollRig;
+  #target: Pose = STAND;
+  #want = new Map<Bone, THREE.Quaternion>();
+  #moving = true;
+
+  constructor(rig: DollRig) {
+    this.#rig = rig;
+    this.snap(STAND);
+  }
+
+  get pose(): Pose {
+    return this.#target;
+  }
+
+  to(p: Pose): void {
+    this.#target = p;
+    this.#want = new Map(
+      BONES.map((b) => {
+        const a = p.bones[b];
+        return [b, a ? new THREE.Quaternion().setFromEuler(euler.set(a[0], a[1], a[2])) : rest.clone()];
+      })
+    );
+    this.#moving = true;
+  }
+
+  snap(p: Pose): void {
+    this.to(p);
+    this.#apply(1);
+  }
+
+  step(dt: number): boolean {
+    if (!this.#moving) return false;
+    return this.#apply(1 - Math.exp(-12 * dt));
+  }
+
+  #apply(k: number): boolean {
+    let far = 0;
+    for (const b of BONES) {
+      const q = this.#rig.bones[b].quaternion;
+      const w = this.#want.get(b)!;
+      q.slerp(w, k);
+      far = Math.max(far, q.angleTo(w));
+    }
+    const hips = this.#rig.bones.hips;
+    const wantY = JOINTS.hips[1] + (this.#target.drop ?? 0);
+    hips.position.y += (wantY - hips.position.y) * k;
+    far = Math.max(far, Math.abs(wantY - hips.position.y));
+    this.#moving = far > 1e-3;
+    return true;
+  }
 }
