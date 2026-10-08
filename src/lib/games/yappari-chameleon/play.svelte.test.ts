@@ -28,6 +28,7 @@ function fakeWorld() {
     eye: vi.fn(),
     render: vi.fn(),
     xray: vi.fn(),
+    snapCamera: vi.fn(),
     holdBrush: vi.fn(),
     dollCenter: () => [0, 1, 0],
     pickBody: () => null,

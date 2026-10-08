@@ -56,5 +56,6 @@ export function testRoom(): Built {
     { min: [-W / 2 - t, 0, -D / 2], max: [-W / 2, H, D / 2] },
     { min: [1.7, 0, 0.7], max: [2.3, H, 1.3] }
   ];
-  return { group, level: { boxes, ramps: [], spawn: [0, 0, 0] } };
+  // カメラは柱を通り抜ける（柱が人形を隠せるように）。柱の当たりは歩く動きだけが見る
+  return { group, level: { boxes, shell: boxes.slice(0, 6), ramps: [], spawn: [0, 0, 0] } };
 }

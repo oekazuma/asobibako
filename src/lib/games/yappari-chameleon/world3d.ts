@@ -160,7 +160,7 @@ export class World {
     }
   }
 
-  /** ペイントモードのあいだだけ右手に絵筆を持つ（本家のスクショで、隠れる側が塗るときに持っている） */
+  /** 隠れる側が塗っているのが見えるよう、ペイントモードのあいだだけ右手に絵筆を持つ */
   holdBrush(on: boolean): void {
     this.#brush.visible = on;
   }
@@ -174,16 +174,21 @@ export class World {
   }
 
   /** target のまわりを回る三人称のカメラ。壁の向こうへ行かないよう、手前で止める */
-  follow(target: V3, yaw: number, pitch: number, dist: number, fov: number): void {
+  follow(target: V3, yaw: number, pitch: number, dist: number, fov: number, dt: number): void {
     const dir: V3 = [-Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch)];
     const want = Math.max(0.3, Math.min(dist, rayDistance(this.level, target, dir, dist) - 0.15));
     // 壁で縮むときは壁の向こうが見えないようすぐ寄せ、離れるときはゆっくり戻す
-    this.#dist = want < this.#dist ? want : this.#dist + (want - this.#dist) * 0.08;
+    this.#dist = want < this.#dist ? want : this.#dist + (want - this.#dist) * (1 - Math.pow(1 - 0.08, dt * 60));
     const d = this.#dist;
     this.camera.fov = fov;
     this.camera.updateProjectionMatrix();
     this.camera.position.set(target[0] + dir[0] * d, target[1] + dir[1] * d, target[2] + dir[2] * d);
     this.camera.lookAt(target[0], target[1], target[2]);
+  }
+
+  /** 三人称の距離のなめらかさを捨て、次の follow で目標の距離へ飛ぶ（モードが変わったとき） */
+  snapCamera(): void {
+    this.#dist = Infinity;
   }
 
   eye(pos: V3, yaw: number, pitch: number): void {
@@ -227,7 +232,7 @@ export class World {
     return { x: ((v.x + 1) / 2) * this.#w, y: ((1 - v.y) / 2) * this.#h };
   }
 
-  /** 自分の画面の位置（描画の画素、左下が原点）と、自分までの深さを入れる */
+  // 自分の画面の位置（描画の画素、左下が原点）と、自分までの深さ
   xray(on: boolean): void {
     XRAY.on.value = on ? 1 : 0;
     if (!on) return;
@@ -256,6 +261,7 @@ export class World {
         m.dispose();
       }
     });
+    XRAY.on.value = 0;
     this.#environment?.dispose();
     this.rig.paint.dispose();
     this.#cursor.geometry.dispose();

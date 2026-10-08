@@ -158,6 +158,7 @@ export class Play {
     this.held.turn = 0;
     this.wheel = null;
     this.mode = m;
+    this.world.snapCamera();
     this.stick = { ...this.pad.stick };
   }
 
@@ -255,11 +256,12 @@ export class Play {
     if (this.mode === 'walk') {
       const lift = this.body.cling?.kind === 'ceiling' ? -0.4 : 0.85;
       const t: V3 = [this.body.pos[0], this.body.pos[1] + lift, this.body.pos[2]];
-      w.follow(t, this.camYaw, this.camPitch, 2.4, 60);
-    } else if (this.mode === 'paint') w.follow(w.dollCenter(), this.orbitYaw, this.orbitPitch, this.orbitDist, 45);
+      w.follow(t, this.camYaw, this.camPitch, 2.4, 60, dt);
+    } else if (this.mode === 'paint') w.follow(w.dollCenter(), this.orbitYaw, this.orbitPitch, this.orbitDist, 45, dt);
     else w.eye([this.ghost.pos[0], this.ghost.pos[1] + EYE_HEIGHT, this.ghost.pos[2]], this.eyeYaw, this.eyePitch);
     if (this.mode !== 'paint' || (!this.#stroke && now > this.#cursorUntil)) w.cursor(null, 0);
-    w.xray(this.mode !== 'eye');
+    // 張り付いているあいだは体が面に載っているので、その面を透かすと穴があくだけになる
+    w.xray(this.mode !== 'eye' && !this.body.cling);
     w.holdBrush(this.mode === 'paint');
     w.render();
   }

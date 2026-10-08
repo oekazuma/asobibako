@@ -28,7 +28,6 @@ if (uXrayOn > 0.5) {
   }
 }`;
 
-/** 屋敷の材質に、自分のまわりを透かす処理を足す。同じ材質に 2 度は足さない */
 export function seeThrough(m: THREE.Material): void {
   if (!(m instanceof THREE.MeshStandardMaterial) || m.userData.xray) return;
   m.userData.xray = true;

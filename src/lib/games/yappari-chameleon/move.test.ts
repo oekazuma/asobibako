@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { floorBelow, idle, newBody, rayDistance, RADIUS, step, type Input, type Level } from './move';
+import type { V3 } from '$lib/sculpt';
 
 // 床（y = 0）・奥の壁（z = 5）・天井（y = 3）・低い台（高さ 1）・段（高さ 0.2）・坂（z が増えると 0 → 1.5）
 const level: Level = {
@@ -139,6 +140,13 @@ describe('move', () => {
   it('カメラの線は壁で止まる', () => {
     expect(rayDistance(level, [0, 1, 0], [0, 0, 1], 10)).toBeCloseTo(5, 5);
     expect(rayDistance(level, [0, 1, 0], [1, 0, 0], 2)).toBe(2);
+  });
+
+  it('カメラの線は殻だけに当たり、柱の箱は通り抜ける', () => {
+    const pillar = { min: [-0.3, 0, 1] as V3, max: [0.3, 3, 1.6] as V3 };
+    const lv = { ...level, boxes: [...level.boxes, pillar], shell: level.boxes };
+    expect(rayDistance({ ...level, boxes: lv.boxes }, [0, 1, 0], [0, 0, 1], 10)).toBeCloseTo(1, 5);
+    expect(rayDistance(lv, [0, 1, 0], [0, 0, 1], 10)).toBeCloseTo(5, 5);
   });
 
   it('外へ落ちたら始めの場所へ戻る', () => {

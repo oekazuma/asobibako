@@ -17,6 +17,8 @@ export interface Level {
   boxes: Box[];
   ramps: Ramp[];
   spawn: V3;
+  /** カメラの線だけが当たる箱（部屋の殻）。無ければ boxes。柱や家具の陰に人形が入れるよう、動きの当たりとは分ける */
+  shell?: Box[];
 }
 
 export type Cling = { kind: 'wall'; nx: number; nz: number } | { kind: 'ceiling' };
@@ -312,10 +314,10 @@ export function step(b: Body, inp: Input, lv: Level, dt: number): void {
   } else b.ground = false;
 }
 
-/** カメラの線（o から向き d、長さ max）が箱に当たるまでの距離 */
+/** カメラの線（o から向き d、長さ max）が部屋の殻（shell、無ければ boxes）に当たるまでの距離 */
 export function rayDistance(lv: Level, o: V3, d: V3, max: number): number {
   let best = max;
-  for (const box of lv.boxes) {
+  for (const box of lv.shell ?? lv.boxes) {
     let t0 = 0;
     let t1 = best;
     for (let i = 0; i < 3; i++) {
