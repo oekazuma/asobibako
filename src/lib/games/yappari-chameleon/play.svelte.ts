@@ -259,6 +259,8 @@ export class Play {
     } else if (this.mode === 'paint') w.follow(w.dollCenter(), this.orbitYaw, this.orbitPitch, this.orbitDist, 45);
     else w.eye([this.ghost.pos[0], this.ghost.pos[1] + EYE_HEIGHT, this.ghost.pos[2]], this.eyeYaw, this.eyePitch);
     if (this.mode !== 'paint' || (!this.#stroke && now > this.#cursorUntil)) w.cursor(null, 0);
+    w.xray(this.mode !== 'eye');
+    w.holdBrush(this.mode === 'paint');
     w.render();
   }
 }

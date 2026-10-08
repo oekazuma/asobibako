@@ -42,6 +42,10 @@ export function testRoom(): Built {
       [0, Math.PI, 0]
     )
   );
+  const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.6, H, 0.6), finish({ tint: '#f1ece2', rough: 0.5 }, [0.6, H]));
+  pillar.position.set(2, H / 2, 1);
+  pillar.castShadow = pillar.receiveShadow = true;
+  group.add(pillar);
   const t = 0.3;
   const boxes: Box[] = [
     { min: [-W / 2, -1, -D / 2], max: [W / 2, 0, D / 2] },
@@ -49,7 +53,8 @@ export function testRoom(): Built {
     { min: [-W / 2, 0, D / 2], max: [W / 2, H, D / 2 + t] },
     { min: [-W / 2, 0, -D / 2 - t], max: [W / 2, H, -D / 2] },
     { min: [W / 2, 0, -D / 2], max: [W / 2 + t, H, D / 2] },
-    { min: [-W / 2 - t, 0, -D / 2], max: [-W / 2, H, D / 2] }
+    { min: [-W / 2 - t, 0, -D / 2], max: [-W / 2, H, D / 2] },
+    { min: [1.7, 0, 0.7], max: [2.3, H, 1.3] }
   ];
   return { group, level: { boxes, ramps: [], spawn: [0, 0, 0] } };
 }

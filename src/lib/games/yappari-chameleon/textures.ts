@@ -439,6 +439,21 @@ export function leather(): Pattern {
   });
 }
 
+/** 本家のハンターの銃と絵筆の柄の、虹色のペンキのまだら */
+export function rainbowMottle(): Pattern {
+  return make('rainbow', 128, 128, [0.12, 0.12], (g) => {
+    const r = rng(61);
+    g.fillStyle = '#f4efe6';
+    g.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 60; i++) {
+      g.fillStyle = `hsl(${Math.floor(r() * 360)} 85% 55%)`;
+      g.beginPath();
+      g.ellipse(r() * 128, r() * 128, 6 + r() * 14, 4 + r() * 8, r() * Math.PI, 0, Math.PI * 2);
+      g.fill();
+    }
+  });
+}
+
 export interface Finish {
   pattern?: Pattern;
   tint?: string;

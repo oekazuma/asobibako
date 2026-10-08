@@ -4,7 +4,8 @@ import type { V3 } from '$lib/sculpt';
 import type { RGB } from './color';
 import { PoseAnimator, type DollRig } from './doll3d';
 import { rayDistance, RADIUS, type Body, type Level } from './move';
-import { readPick } from './textures';
+import { finish, rainbowMottle, readPick } from './textures';
+import { seeThrough, XRAY } from './xray';
 
 /** 一人称の縦の視野。本家の 16:9 の画面での横 105 度と同じ見え方 */
 export const EYE_FOV = 72;
@@ -31,6 +32,18 @@ export class World {
     new THREE.RingGeometry(0.92, 1, 48),
     new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.85, depthTest: false })
   );
+  #ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.62, 0.68, 64),
+    new THREE.MeshBasicMaterial({
+      color: '#e0302a',
+      transparent: true,
+      opacity: 0.85,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    })
+  );
+  #brush = new THREE.Group();
+  #dist = 2.4;
   #w = 1;
   #h = 1;
 
@@ -66,6 +79,28 @@ export class World {
     this.#cursor.visible = false;
     this.#cursor.renderOrder = 10;
     this.scene.add(this.#cursor);
+    this.#ring.visible = false;
+    this.scene.add(this.#ring);
+    const handle = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.012, 0.014, 0.36, 12),
+      finish({ pattern: rainbowMottle(), rough: 0.5 }, [0.08, 0.36])
+    );
+    const ferrule = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.016, 0.014, 0.05, 12),
+      finish({ tint: '#c9a227', metal: 1, rough: 0.35 }, [0.1, 0.05])
+    );
+    const tip = new THREE.Mesh(
+      new THREE.ConeGeometry(0.018, 0.07, 12),
+      finish({ tint: '#2b2420', rough: 0.9 }, [0.1, 0.07])
+    );
+    ferrule.position.y = 0.2;
+    tip.position.y = 0.26;
+    this.#brush.add(handle, ferrule, tip);
+    // 手の楕円体（doll.ts の [-0.538, 0.616, 0]）を、前腕の骨の付け根 [-0.354, 0.745, 0] からの差で指す。穂先を下にして腰のわきへ垂らす（横へ寝かせると床に付く）
+    this.#brush.position.set(-0.184, -0.129, 0.03);
+    this.#brush.rotation.set(Math.PI - 0.5, 0, 0.2);
+    this.#brush.visible = false;
+    this.rig.bones['forearm.r'].add(this.#brush);
   }
 
   #buildEnvironment(): void {
@@ -84,6 +119,10 @@ export class World {
     this.#stage = b.group;
     this.level = b.level;
     this.scene.add(b.group);
+    b.group.traverse((o) => {
+      const m = (o as THREE.Mesh).material;
+      if (m) for (const one of Array.isArray(m) ? m : [m]) seeThrough(one);
+    });
   }
 
   resize(w: number, h: number): void {
@@ -108,6 +147,22 @@ export class World {
       root.position.y = b.pos[1] - HALF_DEPTH;
     }
     root.updateMatrixWorld(true);
+    const ring = this.#ring;
+    ring.visible = !!b.cling;
+    if (b.cling?.kind === 'wall') {
+      ring.position.set(root.position.x, b.pos[1] + 0.58, root.position.z);
+      ring.lookAt(ring.position.x + b.cling.nx, ring.position.y, ring.position.z + b.cling.nz);
+    } else if (b.cling?.kind === 'ceiling') {
+      // 天井では体が横たわるので、輪は足もとではなく体の真ん中に置く
+      const mid = root.localToWorld(new THREE.Vector3(0, 0.58, 0));
+      ring.position.set(mid.x, b.pos[1] - 0.02, mid.z);
+      ring.lookAt(mid.x, b.pos[1] - 1, mid.z);
+    }
+  }
+
+  /** ペイントモードのあいだだけ右手に絵筆を持つ（本家のスクショで、隠れる側が塗るときに持っている） */
+  holdBrush(on: boolean): void {
+    this.#brush.visible = on;
   }
 
   /** 体の真ん中（ペイントのカメラが回る中心）。ポーズで変わるので骨の外接球から出す */
@@ -121,7 +176,10 @@ export class World {
   /** target のまわりを回る三人称のカメラ。壁の向こうへ行かないよう、手前で止める */
   follow(target: V3, yaw: number, pitch: number, dist: number, fov: number): void {
     const dir: V3 = [-Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch)];
-    const d = Math.max(0.3, Math.min(dist, rayDistance(this.level, target, dir, dist) - 0.15));
+    const want = Math.max(0.3, Math.min(dist, rayDistance(this.level, target, dir, dist) - 0.15));
+    // 壁で縮むときは壁の向こうが見えないようすぐ寄せ、離れるときはゆっくり戻す
+    this.#dist = want < this.#dist ? want : this.#dist + (want - this.#dist) * 0.08;
+    const d = this.#dist;
     this.camera.fov = fov;
     this.camera.updateProjectionMatrix();
     this.camera.position.set(target[0] + dir[0] * d, target[1] + dir[1] * d, target[2] + dir[2] * d);
@@ -169,6 +227,21 @@ export class World {
     return { x: ((v.x + 1) / 2) * this.#w, y: ((1 - v.y) / 2) * this.#h };
   }
 
+  /** 自分の画面の位置（描画の画素、左下が原点）と、自分までの深さを入れる */
+  xray(on: boolean): void {
+    XRAY.on.value = on ? 1 : 0;
+    if (!on) return;
+    this.camera.updateMatrixWorld();
+    const c = new THREE.Vector3(...this.dollCenter());
+    const dist = -c.clone().applyMatrix4(this.camera.matrixWorldInverse).z;
+    const pr = this.renderer.getPixelRatio();
+    const s = this.project([c.x, c.y, c.z]);
+    const perMeter = (this.#h * pr) / 2 / Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2) / Math.max(dist, 0.1);
+    XRAY.center.value.set(s.x * pr, (this.#h - s.y) * pr);
+    XRAY.radius.value = 0.7 * perMeter;
+    XRAY.depth.value = dist - 0.3;
+  }
+
   render(): void {
     this.rig.paint.flush();
     this.renderer.render(this.scene, this.camera);
@@ -187,6 +260,14 @@ export class World {
     this.rig.paint.dispose();
     this.#cursor.geometry.dispose();
     this.#cursor.material.dispose();
+    this.#ring.geometry.dispose();
+    this.#ring.material.dispose();
+    this.#brush.traverse((o) => {
+      if (!(o instanceof THREE.Mesh)) return;
+      o.geometry.dispose();
+      (o.material as THREE.MeshStandardMaterial).map?.dispose();
+      o.material.dispose();
+    });
     this.renderer.dispose();
     // iOS は WebGL の文脈の数に上限があり、ゲームを開閉するたびに残すと古いものから失われていく
     this.renderer.forceContextLoss();
