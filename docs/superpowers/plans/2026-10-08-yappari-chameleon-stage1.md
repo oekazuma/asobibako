@@ -252,7 +252,11 @@ cp static/thumbs/doodle-worm.webp static/thumbs/yappari-chameleon.webp
 Run: `pnpm vitest run src/lib/components/SoloShell.svelte.test.ts src/lib/games.test.ts && pnpm check && pnpm lint`
 Expected: PASS。
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 7: 横持ちのタイトル画面を確かめる**
+
+`.wide` で枠を回さなくなるので、共通のタイトル画面（`SoloTitle`・遊び方）が横長の画面にそのまま出る。dev サーバー（`pnpm dev --port 5180`）を起動し、headless Chrome で `viewport: { width: 1180, height: 820 }`・`hasTouch: true` にして `http://localhost:5180/asobibako/games/yappari-chameleon` を開いて撮る。遊び方の 3 行と「はじめる」が切れず、大きすぎず、隅の ✕ とミュートが重ならないことを確かめる。崩れるときは、`SoloShell.svelte` の `.wide` の中だけで直す（ほかのゲームのタイトルは変えない）。縦（820 × 1180）でも撮り、ほかのゲームと同じ見た目であることも確かめる。
+
+- [ ] **Step 8: Commit**
 
 ```bash
 git add src/lib/games.ts src/lib/components/SoloShell.svelte src/lib/components/SoloShell.svelte.test.ts src/app.css src/lib/games/yappari-chameleon static/thumbs/yappari-chameleon.webp
