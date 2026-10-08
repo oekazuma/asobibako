@@ -3,7 +3,9 @@ import {
   floorBelow,
   idle,
   newBody,
+  cameraReach,
   easeDist,
+  settleDist,
   rayDistance,
   RADIUS,
   step,
@@ -227,6 +229,46 @@ describe('move', () => {
       if (s.dist > before + 1e-6) up++;
     }
     expect(up).toBe(0);
+  });
+
+  describe('壁に張り付いた体のそばのカメラ', () => {
+    // 部屋（x -5〜5、z 0〜5）の奥の壁は z = 5〜5.3。体の中心は壁の面から 0.12 手前
+    const wall: Level = { boxes: [], shell: [{ min: [-5, 0, 5], max: [5, 3, 5.3] }], ramps: [], spawn: [0, 0, 0] };
+    const target: V3 = [0, 1, 4.88];
+    const inWall = (d: number, dir: V3) => {
+      const z = target[2] + dir[2] * d;
+      return z > 5 && z < 5.3 && Math.abs(target[0] + dir[0] * d) < 5;
+    };
+
+    it('壁へ向けても、0.3 の下限より壁の手前に留まるほうを選ぶ', () => {
+      const dir: V3 = [0, 0, 1];
+      const r = cameraReach(wall, target, dir, 2.4, [0, 1.4, 4.88], 0.12);
+      expect(r.limit).toBeLessThan(0.3);
+      const s = { dist: 2.25, wait: 0 };
+      // 急に壁へ向いた 1 フレーム目から、壁の中へは入らない
+      for (let i = 0; i < 10; i++) {
+        const d = settleDist(s, r.limit, r.blocked, 1 / 60);
+        expect(inWall(d, dir)).toBe(false);
+        expect(d).toBeGreaterThan(0);
+      }
+    });
+
+    it('向きを変えた直後に目標が 1m 以上縮んでも、その 1 フレームで壁の手前に収まる', () => {
+      const s = { dist: 2.25, wait: 0 };
+      const free = cameraReach(wall, target, [0, 0, -1], 2.4, [0, 1.4, 4.88], 0.12);
+      expect(settleDist(s, free.limit, free.blocked, 1 / 60)).toBeCloseTo(2.25, 3);
+      const dir: V3 = [Math.sin(0.5), 0, Math.cos(0.5)];
+      const hit = cameraReach(wall, target, dir, 2.4, [0, 1.4, 4.88], 0.12);
+      const d = settleDist(s, hit.limit, hit.blocked, 1 / 60);
+      expect(d).toBeLessThanOrEqual(Math.max(0.05, hit.limit) + 1e-9);
+      expect(inWall(d, dir)).toBe(false);
+    });
+
+    it('壁に当たらない向きでは、今までどおり 0.3 の下限と通常の距離', () => {
+      const r = cameraReach(wall, target, [0, 0, -1], 2.4, undefined, 0.12);
+      expect(r.limit).toBeCloseTo(2.25, 5);
+      expect(r.blocked).toBe(false);
+    });
   });
 
   it('外へ落ちたら始めの場所へ戻る', () => {

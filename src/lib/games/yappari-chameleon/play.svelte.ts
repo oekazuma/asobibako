@@ -318,9 +318,12 @@ export class Play {
         this.body.cling?.kind === 'ceiling' ? [CEILING_PITCH_MIN, CEILING_PITCH_MAX] : [CAM_PITCH_MIN, CAM_PITCH_MAX];
       const fit = (v: number) => Math.min(hi, Math.max(lo, v));
       // 張り付いた瞬間に向きが飛ばないよう、範囲の外にいるあいだは指を受けずに、なめらかに範囲へ寄せる
-      if (this.camPitch < lo || this.camPitch > hi)
-        this.camPitch += (fit(this.camPitch) - this.camPitch) * (1 - Math.exp(-dt * 8));
-      else this.camPitch = fit(this.camPitch + look.dy * LOOK);
+      if (this.camPitch < lo || this.camPitch > hi) {
+        const to = fit(this.camPitch);
+        // 指数で寄せるだけでは浮動小数点で範囲のふちに届かず、範囲の外のまま指を受けなくなるので、近づいたら合わせる
+        this.camPitch =
+          Math.abs(to - this.camPitch) < 1e-3 ? to : this.camPitch + (to - this.camPitch) * (1 - Math.exp(-dt * 8));
+      } else this.camPitch = fit(this.camPitch + look.dy * LOOK);
       step(this.body, this.#input(this.camYaw), w.level, dt);
     } else if (this.mode === 'eye') {
       const look = this.pad.takeLook();

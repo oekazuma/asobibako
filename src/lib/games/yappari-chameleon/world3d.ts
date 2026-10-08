@@ -3,7 +3,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import type { V3 } from '$lib/sculpt';
 import type { RGB } from './color';
 import { bakePose, PoseAnimator, type DollRig } from './doll3d';
-import { easeDist, rayDistance, thickRayDistance, RADIUS, type Body, type DistState, type Level } from './move';
+import { cameraReach, settleDist, RADIUS, type Body, type DistState, type Level } from './move';
 import { finish, rainbowMottle, readPick } from './textures';
 import { seeThrough, XRAY } from './xray';
 
@@ -200,28 +200,8 @@ export class World {
   follow(target: V3, yaw: number, pitch: number, dist: number, fov: number, dt: number, from?: V3): void {
     const dir: V3 = [-Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch)];
     // 太さを持った線で測る。細い線だと壁をかすめる角度で当たったり外れたりして、寄り引きを繰り返す
-    const ray = thickRayDistance(this.level, target, dir, dist, CAM_RADIUS);
-    let blocked = ray < dist;
-    let want = Math.min(dist, ray - 0.15);
-    if (from) {
-      // 張り付いた体の中心は壁の中にあることがある。部屋の中と分かっている点からの線でも測り、殻の外へ出さない
-      for (let i = 0; i < 3; i++) {
-        const v: V3 = [
-          target[0] + dir[0] * want - from[0],
-          target[1] + dir[1] * want - from[1],
-          target[2] + dir[2] * want - from[2]
-        ];
-        const len = Math.hypot(...v);
-        if (len < 1e-6) break;
-        const hit = rayDistance(this.level, from, [v[0] / len, v[1] / len, v[2] / len], len);
-        if (hit >= len) break;
-        want *= Math.max(0, hit - 0.15) / len;
-        blocked = true;
-      }
-    }
-    want = Math.max(0.3, want);
-    if (this.#snap) this.#ease = { dist: want, wait: 0 };
-    else easeDist(this.#ease, want, blocked, dt);
+    const { limit, blocked } = cameraReach(this.level, target, dir, dist, from, CAM_RADIUS);
+    settleDist(this.#ease, limit, blocked, dt, this.#snap);
     this.#snap = false;
     this.camera.fov = fov;
     this.camera.updateProjectionMatrix();

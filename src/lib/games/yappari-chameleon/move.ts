@@ -393,3 +393,52 @@ export function easeDist(s: DistState, want: number, blocked: boolean, dt: numbe
   else if (s.wait === 0) s.dist += (want - s.dist) * (1 - Math.pow(1 - 0.08, dt * 60));
   return s;
 }
+
+/**
+ * 見る中心 target から向き d（長さ 1）へ、壁にぶつからずに引ける距離の上限（人形に寄りすぎないための下限は含めない）。
+ * 太い線に 0.15 の余白を足した限りと、部屋の中と分かっている点 from からの線の限りの小さいほう。
+ * blocked は dist のうち壁に押さえられたか
+ */
+export function cameraReach(
+  lv: Level,
+  target: V3,
+  d: V3,
+  dist: number,
+  from: V3 | undefined,
+  radius: number
+): { limit: number; blocked: boolean } {
+  const ray = thickRayDistance(lv, target, d, dist, radius);
+  let blocked = ray < dist;
+  let limit = Math.min(dist, ray - 0.15);
+  if (from) {
+    // 張り付いた体の中心は壁の中にあることがある。殻の外へ出さない
+    for (let i = 0; i < 3; i++) {
+      const v: V3 = [
+        target[0] + d[0] * limit - from[0],
+        target[1] + d[1] * limit - from[1],
+        target[2] + d[2] * limit - from[2]
+      ];
+      const len = Math.hypot(...v);
+      if (len < 1e-6) break;
+      const hit = rayDistance(lv, from, [v[0] / len, v[1] / len, v[2] / len], len);
+      if (hit >= len) break;
+      limit *= Math.max(0, hit - 0.15) / len;
+      blocked = true;
+    }
+  }
+  return { limit, blocked };
+}
+
+/** 人形に寄りすぎて切れないための下限。ただし壁の中へ入るくらいなら、これより近くても部屋の中に留まる */
+const MIN_DIST = 0.3;
+/** near（0.05）より手前へは寄せない */
+const NEAR_DIST = 0.05;
+
+/** 目標を上限と下限で整えて距離を寄せ、さらに壁の限りを超えないよう必ず打ち切る（寄せ方が遅れた 1 フレームで壁の中へ出ない） */
+export function settleDist(s: DistState, limit: number, blocked: boolean, dt: number, snap = false): number {
+  const want = Math.max(MIN_DIST, limit);
+  if (snap) s.dist = want;
+  else easeDist(s, want, blocked, dt);
+  s.dist = Math.min(s.dist, Math.max(NEAR_DIST, limit));
+  return s.dist;
+}

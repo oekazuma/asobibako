@@ -459,6 +459,41 @@ describe('Play のカメラ', () => {
     p.pointer('up', 1, 800, 300, 1000);
   });
 
+  it('天井の範囲へ寄せ終えたあとは、指で上下に見回せる（範囲のふちで固まらない）', () => {
+    const p = clinging();
+    p.held.up = true;
+    secs(p, 4);
+    p.held.up = false;
+    p.camPitch = 0.4;
+    secs(p, 3);
+    expect(p.camPitch).toBe(-0.25);
+    p.pointer('down', 1, 800, 300, 1000);
+    p.pointer('move', 1, 800, 300 - 60, 1000);
+    secs(p, 0.1);
+    expect(p.camPitch).toBeCloseTo(-0.55, 5);
+    p.pointer('up', 1, 800, 300, 1000);
+  });
+
+  it('天井から落ちて範囲の外から戻ったあとも、指で上下に見回せる', () => {
+    const p = clinging();
+    p.held.up = true;
+    secs(p, 4);
+    p.held.up = false;
+    p.pointer('down', 1, 800, 300, 1000);
+    p.pointer('move', 1, 800, 300 - 400, 1000);
+    secs(p, 0.1);
+    p.pointer('up', 1, 800, 300, 1000);
+    expect(p.camPitch).toBeCloseTo(-1.2, 5);
+    p.release();
+    secs(p, 3);
+    expect(p.body.cling).toBeNull();
+    expect(p.camPitch).toBe(-0.5);
+    p.pointer('down', 2, 800, 300, 1000);
+    p.pointer('move', 2, 800, 300 + 60, 1000);
+    secs(p, 0.1);
+    expect(p.camPitch).toBeCloseTo(-0.2, 5);
+  });
+
   it('天井から離れたら、見回しの範囲は元に戻る', () => {
     const p = clinging();
     p.held.up = true;
