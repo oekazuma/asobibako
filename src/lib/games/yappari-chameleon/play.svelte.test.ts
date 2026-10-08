@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
+import { pushRecent } from './color';
 import type { Level } from './move';
+import type { Dab } from './paint';
 import { Play } from './play.svelte';
 import type { World } from './world3d';
 
@@ -83,5 +85,17 @@ describe('Play', () => {
     p.jump();
     run(p, 6);
     expect(p.ghost.cling).toBeNull();
+  });
+
+  it('最近の色から選んだ色は、塗りの記録の色と配列を共有しない', () => {
+    const p = new Play(fakeWorld(), 70);
+    const dab = { p: [0, 0, 0], n: [0, 1, 0], r: 0.05, c: [1, 0, 0], a: 1, m: 0, ro: 0.85 } as Dab;
+    p.log.add([dab]);
+    p.recent = pushRecent([], dab.c);
+    p.setColor(p.recent[0]);
+    // スライダーが筆の色を配列の中で書き換えても、記録した塗りと最近の色は変わらない
+    p.brush.color[0] = 0.3;
+    expect(dab.c).toEqual([1, 0, 0]);
+    expect(p.recent[0]).toEqual([1, 0, 0]);
   });
 });

@@ -45,7 +45,8 @@ export function fromHex(hex: string): RGB {
 const same = (a: RGB, b: RGB) => a.every((v, i) => Math.abs(v - b[i]) < 0.5 / 255);
 
 export function pushRecent(list: RGB[], c: RGB): RGB[] {
-  return [c, ...list.filter((x) => !same(x, c))].slice(0, 8);
+  // 呼び出し側の配列（塗りの記録が持つ色）を共有しない
+  return [[...c], ...list.filter((x) => !same(x, c))].slice(0, 8) as RGB[];
 }
 
 /** 本家のパレットの見本の格子（14 色 × 3 段）。1 段めは白黒と木と金、2 段めは強い色、3 段めは淡い色と屋敷の壁紙の色 */

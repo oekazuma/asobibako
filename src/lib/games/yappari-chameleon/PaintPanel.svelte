@@ -130,6 +130,7 @@
   }
 
   .tall {
+    touch-action: none;
     writing-mode: vertical-lr;
     direction: rtl;
     width: 22px;

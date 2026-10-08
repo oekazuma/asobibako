@@ -100,6 +100,7 @@
 
   input {
     min-width: 0;
+    touch-action: none;
     accent-color: #fff;
   }
 

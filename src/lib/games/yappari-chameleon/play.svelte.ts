@@ -95,7 +95,7 @@ export class Play {
 
   setColor(c: RGB): void {
     this.previous = this.brush.color;
-    this.brush.color = c;
+    this.brush.color = [...c];
   }
 
   /** 大きさを変えたあと、画面の (x, y) の体の上に筆の輪を 1 秒出す */
