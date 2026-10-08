@@ -8,7 +8,7 @@ export interface Heat {
 
 export const PLAIN: Heat = { level: 2, bet: 0 };
 export const HEAT_MAX = 9;
-const MAX_BET = 1500;
+export const MAX_BET = 6000;
 
 export const snap = (h: number) => Math.min(HEAT_MAX, Math.max(0, Math.round(h * 10) / 10));
 export const heatLabel = (h: number) => snap(h).toFixed(1);
@@ -17,8 +17,10 @@ export const heatLabel = (h: number) => snap(h).toFixed(1);
 const bend = (h: number, at0: number, at9: number) =>
   h <= 2 ? at0 + ((1 - at0) * h) / 2 : 1 + ((at9 - 1) * (h - 2)) / 7;
 
-export const hpMul = (h: number) => bend(h, 0.6, 2.75);
-export const atkMul = (h: number) => bend(h, 0.7, 1.8);
+export const HP_AT9 = 4;
+export const ATK_AT9 = 2.5;
+export const hpMul = (h: number) => bend(h, 0.6, HP_AT9);
+export const atkMul = (h: number) => bend(h, 0.7, ATK_AT9);
 export const coinMul = (h: number) => bend(h, 0.5, 4);
 
 /** 賭けは上のほうで急に増える。2.0 を少しでも越えたら賭けがあることを見せるため、最低 10 枚 */

@@ -14,10 +14,10 @@ const runAt = (level: number, cleared: boolean) => {
 
 describe('釜の賭け', () => {
   it('はじめるときに賭けを引き、最後の強さを覚える', () => {
-    const r = { ...emptyRecords(), coins: 1000 };
+    const r = { ...emptyRecords(), coins: 5000 };
     const heat = payHeat(r, 4.5);
     expect(heat).toEqual({ level: 4.5, bet: betOf(4.5) });
-    expect(r.coins).toBe(1000 - betOf(4.5));
+    expect(r.coins).toBe(5000 - betOf(4.5));
     expect(r.heatLast).toBe(4.5);
   });
 

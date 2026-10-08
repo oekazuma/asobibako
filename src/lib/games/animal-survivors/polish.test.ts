@@ -45,7 +45,8 @@ describe('合わせ技のツタと炎の数', () => {
 describe('限界突破の待ち時間の下限', () => {
   it('何回上げても、待ち時間は元の 4 割より短くならない', () => {
     const s = weaponStats(WEAPONS.woof, MAX_LEVEL);
-    expect(limitStats(s, { cooldown: 100 }).cooldown).toBeCloseTo(s.cooldown * 0.4);
+    for (const n of [10, 100, 10_000])
+      expect(limitStats(s, { cooldown: n }).cooldown).toBeGreaterThanOrEqual(s.cooldown * 0.4 - 1e-9);
   });
 });
 

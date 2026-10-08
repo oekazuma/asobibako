@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { atkMul, betOf, chestOdds, coinMul, heatLabel, heatStage, hpMul, maxHeat, PLAIN, snap } from './cauldron';
+import {
+  ATK_AT9,
+  atkMul,
+  betOf,
+  chestOdds,
+  coinMul,
+  HP_AT9,
+  heatLabel,
+  heatStage,
+  hpMul,
+  MAX_BET,
+  maxHeat,
+  PLAIN,
+  snap
+} from './cauldron';
 import { chestSize } from './chest';
 import { FOREST } from './stages/forest';
 import { coinsOf, createWorld, hurtPlayer, summary } from './world';
@@ -15,12 +29,12 @@ describe('釜の強さ', () => {
     expect(chestOdds(2)).toEqual({ one: 0.85, three: 0.98 });
   });
 
-  it('0.0 はやさしくコインが半分、9.0 は強くコイン 4 倍で 1500 枚賭ける', () => {
+  it('0.0 はやさしくコインが半分、9.0 は強くコイン 4 倍で MAX_BET 枚賭ける', () => {
     expect([hpMul(0), atkMul(0), coinMul(0), betOf(0)]).toEqual([0.6, 0.7, 0.5, 0]);
-    expect(hpMul(9)).toBeCloseTo(2.75);
-    expect(atkMul(9)).toBeCloseTo(1.8);
+    expect(hpMul(9)).toBeCloseTo(HP_AT9);
+    expect(atkMul(9)).toBeCloseTo(ATK_AT9);
     expect(coinMul(9)).toBeCloseTo(4);
-    expect(betOf(9)).toBe(1500);
+    expect(betOf(9)).toBe(MAX_BET);
     expect(chestOdds(9).one).toBeCloseTo(0.5);
     expect(chestOdds(9).three).toBeCloseTo(0.85);
   });

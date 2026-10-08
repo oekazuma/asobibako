@@ -43,6 +43,7 @@ export const CHEST_COINS = 10;
 export const COIN_RATE = 1.5;
 /** 延長戦のコインの倍率が 1 分ごとに上がる幅 */
 export const OVERTIME_STEP = 0.5;
+export const OVERTIME_MAX = 4;
 export const PURSE = 50;
 const ELITE_COINS = 5;
 const COIN_CHANCE = 0.03;
@@ -73,7 +74,7 @@ const ELITE_GOLD = 0.05;
 
 /** 延長戦に入ってからの分ごとに上がるコインの倍率。延長戦でなければ 1 */
 export function overtimeRate(w: World): number {
-  return w.overtime ? 1 + OVERTIME_STEP * Math.floor((w.time - w.overtime.from) / 60) : 1;
+  return w.overtime ? Math.min(OVERTIME_MAX, 1 + OVERTIME_STEP * Math.floor((w.time - w.overtime.from) / 60)) : 1;
 }
 
 /** コインはすべてここを通す。延長戦のあいだは倍率を掛けて延長戦のぶんに貯める */

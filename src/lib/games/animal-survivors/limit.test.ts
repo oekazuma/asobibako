@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { limitStats, limitTotal, statsFor } from './limit';
+import { limitCount, limitStats, limitTotal, statsFor, STEP } from './limit';
 import { MAX_LEVEL, WEAPONS, weaponStats } from './weapons';
 import { fire, hits } from './arms';
 import { openChest } from './chest';
@@ -21,11 +21,11 @@ describe('限界突破の能力', () => {
     expect(statsFor(WEAPONS.flameUn)).toEqual(['damage', 'cooldown', 'area', 'speed', 'duration', 'amount']);
   });
 
-  it('上げた回数を一定の幅で掛け、待ち時間は掛け算で縮む', () => {
+  it('上げた回数を頭打ちの回数で掛け、待ち時間は掛け算で縮む', () => {
     const s = weaponStats(WEAPONS.woof, 5);
     const t = limitStats(s, { damage: 3, cooldown: 2, area: 1, speed: 1, duration: 1, amount: 2 });
-    expect(t.damage).toBeCloseTo(s.damage * 1.6);
-    expect(t.cooldown).toBeCloseTo(s.cooldown * 0.93 ** 2);
+    expect(t.damage).toBeCloseTo(s.damage * (1 + STEP.damage * limitCount(3)));
+    expect(t.cooldown).toBeCloseTo(s.cooldown * 0.93 ** limitCount(2));
     expect(t.area).toBeCloseTo(s.area * 1.1);
     expect(t.speed).toBeCloseTo(s.speed * 1.12);
     expect(t.duration).toBeCloseTo(s.duration * 1.12);
@@ -106,7 +106,7 @@ describe('限界突破の札', () => {
       hits(w, 1 / 60);
       return w.dealt.howlUn?.damage ?? 0;
     };
-    expect(shotDamage({ damage: 5 })).toBeCloseTo(shotDamage() * 2, 0);
+    expect(shotDamage({ damage: 5 })).toBeCloseTo(shotDamage() * (1 + STEP.damage * limitCount(5)), 0);
   });
 
   it('全部埋まった宝箱の中身も限界突破（か最大 HP）になる', () => {
@@ -153,6 +153,6 @@ describe('見直しで直したこと', () => {
       }
       return 0;
     };
-    expect(size(5)).toBeCloseTo(size() * 1.5, 1);
+    expect(size(5)).toBeCloseTo(size() * (1 + STEP.area * limitCount(5)), 1);
   });
 });

@@ -23,9 +23,9 @@ export const FINALE = 540;
 export const RAGE = 1.5;
 
 /** 2・4 分に 2 体を、6・8 分に同じ 2 体を攻撃を速めて出し、9 分に面の主 */
-export const bossRun = (a: BossId, b: BossId, title: string): Stage['bosses'] => [
+export const bossRun = (a: BossId, b: BossId, title: string, hp4 = 0.6): Stage['bosses'] => [
   { at: 120, id: a, hp: 0.6 },
-  { at: 240, id: b, hp: 0.6, arcana: true },
+  { at: 240, id: b, hp: hp4, arcana: true },
   { at: 360, id: a, rage: RAGE },
   { at: 480, id: b, rage: RAGE, arcana: true },
   { at: FINALE, id: a, hp: 1.5, rage: RAGE, title },

@@ -2,6 +2,7 @@ import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Choice } from './choices';
 import LevelUp from './LevelUp.svelte';
+import { limitGain } from './limit';
 
 const options: Choice[] = [{ kind: 'weapon', id: 'paw', level: 1 }, { kind: 'meat' }];
 
@@ -93,7 +94,7 @@ describe('LevelUp', () => {
     flushSync();
     const text = target.textContent ?? '';
     expect(text).toContain('ワンワンショット');
-    expect(text).toContain('ダメージ +20%');
+    expect(text).toContain(limitGain('damage', 3));
     expect(text).toContain('+3 → +4');
     expect(text).toContain('待ち時間 −7%');
     expect(text).toContain('引き直す 2');

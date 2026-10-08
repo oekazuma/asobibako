@@ -19,7 +19,7 @@ const button = (text: string) =>
 const coins = () => JSON.parse(localStorage.getItem(RECORDS_KEY)!).coins as number;
 
 function open() {
-  localStorage.setItem(RECORDS_KEY, JSON.stringify({ ...emptyRecords(), coins: 1000 }));
+  localStorage.setItem(RECORDS_KEY, JSON.stringify({ ...emptyRecords(), coins: 5000 }));
   const target = document.body.appendChild(document.createElement('div'));
   const app = mount(Survivors, { target, props: { level: 1, onfinish: () => {}, onquit: () => {} } });
   flushSync();
@@ -45,7 +45,7 @@ describe('釜を通る流れ', () => {
     flushSync();
     (document.querySelector('[data-start]') as HTMLButtonElement).click();
     flushSync();
-    expect(coins()).toBe(1000 - betOf(4.5));
+    expect(coins()).toBe(5000 - betOf(4.5));
     expect(JSON.parse(localStorage.getItem(RECORDS_KEY)!).heatLast).toBe(4.5);
     expect(document.body.textContent).not.toContain('まじょの釜');
     unmount(app);
@@ -89,7 +89,7 @@ describe('釜を通る流れ', () => {
     button('挑戦する').click();
     flushSync();
     expect(document.body.textContent).not.toContain('まじょの釜');
-    expect(coins()).toBe(1000);
+    expect(coins()).toBe(5000);
     unmount(app);
   });
 });
