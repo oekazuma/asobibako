@@ -149,8 +149,10 @@ export class Prompts {
       } else if (e.type === 'evolve' && WEAPONS[e.id]?.union && firstTip('union'))
         this.notice = { text: `合体！\n${TIP.union}`, key: w.time, until: w.time + NOTICE * 2 };
       else if (e.type === 'chief') this.chief = { text: e.name, key: w.time, until: w.time + NOTICE };
-      else if (e.type === 'link') this.link = { a: e.a, b: e.b, name: e.name, t: 0 };
-      else if (e.type === 'raised')
+      else if (e.type === 'link') {
+        this.link = { a: e.a, b: e.b, name: e.name, t: 0 };
+        this.#seen = { fuse: w.link.fuse, time: w.time };
+      } else if (e.type === 'raised')
         this.notice = { text: `復活！\n力と風のご利益 ${RAISE_BLESS} 秒`, key: w.time, until: w.time + NOTICE * 2 };
       else if (e.type === 'bossIntro') {
         // WARNING の帯は札と重なるので、ボスが出たら消す
@@ -173,10 +175,9 @@ export class Prompts {
   next(finger: number | null, dt = 0): void {
     const w = this.#w;
     if (this.link) {
-      // 一時停止のあいだはゲームの時刻も止めの秒も動かないので、帯の時計も進めない
-      const moved = w.link.fuse !== this.#seen.fuse || w.time !== this.#seen.time;
+      // 帯の時計はゲームの時間で進める（一時停止では止まり、子の端末では 1 秒に 20 回届く様子のぶんだけ進む）
+      this.link.t += Math.max(0, w.time - this.#seen.time) + Math.max(0, this.#seen.fuse - w.link.fuse);
       this.#seen = { fuse: w.link.fuse, time: w.time };
-      if (moved) this.link.t += dt;
       if (this.link.t >= LINK_FUSE + LINK_SHOW) this.link = null;
     }
     let left = dt;

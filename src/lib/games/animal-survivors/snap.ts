@@ -81,17 +81,22 @@ function defOf(c: number, max: number | undefined): EnemyDef | null {
 export function makeSnap(w: World, events: GameEvent[]): Snap {
   const rows = <T extends { alive: boolean }>(list: T[], row: (o: T) => Row) =>
     list.flatMap((o, i) => (o.alive ? [[i, ...row(o)]] : []));
-  const around = <T extends { alive: boolean; x: number; y: number }>(list: T[], row: (o: T) => Row) => {
+  const around = <T extends { alive: boolean; x: number; y: number }>(
+    list: T[],
+    row: (o: T) => Row,
+    always: (o: T) => boolean = () => false
+  ) => {
     const g = w.heroes[1]?.player;
-    const picked = list.flatMap((o, i) => (o.alive && near(w, o.x, o.y) ? [i] : []));
+    const picked = list.flatMap((o, i) => (o.alive && (always(o) || near(w, o.x, o.y)) ? [i] : []));
     if (g && picked.length > SNAP_ROWS)
       picked.sort(
         (a, b) => (list[a].x - g.x) ** 2 + (list[a].y - g.y) ** 2 - ((list[b].x - g.x) ** 2 + (list[b].y - g.y) ** 2)
       );
     return picked.slice(0, SNAP_ROWS).map((i) => [i, ...row(list[i])]);
   };
-  let hits = 0;
-  const sent = events.filter((e) => e.type !== 'hit' || hits++ < SNAP_HITS);
+  // 子の画面に出せるのは新しいほうの 60 個なので、子のまわりの新しいものを残す
+  const hits = new Set(events.filter((e) => e.type === 'hit' && near(w, e.x, e.y)).slice(-SNAP_HITS));
+  const sent = events.filter((e) => e.type !== 'hit' || hits.has(e));
   return {
     t: [
       r1(w.time),
@@ -173,14 +178,19 @@ export function makeSnap(w: World, events: GameEvent[]): Snap {
       r1(f.born)
     ]),
     gems: around(w.gems, (g) => [r1(g.x), r1(g.y), g.value]),
-    items: around(w.items, (it) => [
-      it.kind,
-      r1(it.x),
-      r1(it.y),
-      // 遺物の品は、券の種類の欄に遺物の番号を入れる
-      it.kind === 'relic' ? RELIC_IDS.indexOf(it.relic!) : (it.tier ?? -1),
-      r1(it.life ?? -1)
-    ]),
+    items: around(
+      w.items,
+      (it) => [
+        it.kind,
+        r1(it.x),
+        r1(it.y),
+        // 遺物の品は、券の種類の欄に遺物の番号を入れる
+        it.kind === 'relic' ? RELIC_IDS.indexOf(it.relic!) : (it.tier ?? -1),
+        r1(it.life ?? -1)
+      ],
+      // 遺物は古い地図の矢印が遠くても指し、宝箱と券は歩いて拾いに行くので、遠くても送る（どれも数が少ない）
+      (it) => it.kind === 'relic' || it.kind === 'chest' || it.kind === 'ticket'
+    ),
     hazards: w.hazards.filter((h) => h.alive),
     lava: w.lava.filter((l) => l.life > 0),
     storm: { ...w.storm },
