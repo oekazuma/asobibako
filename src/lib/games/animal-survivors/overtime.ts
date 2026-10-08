@@ -6,7 +6,7 @@ import { summary, type RunSummary, type World } from './world';
  * 延長戦の敵の硬さと攻撃の伸び。1 分ごとに OT_EARLY を足す伸びと OT_GROW を掛ける伸びの速いほうで強める。
  * 足すほうだけでは全部そろえた動物が倒れず、掛けるほうだけでは序盤がやさしすぎる（27 分ほどで入れ替わる）
  */
-export const OT_EARLY = 0.6;
+export const OT_EARLY = 0.4;
 export const OT_GROW = 1.12;
 export const otScale = (t: number, from: number) => {
   const m = Math.max(0, t - from) / 60;
