@@ -226,7 +226,8 @@ function stepCeiling(b: Body, inp: Input, lv: Level, dt: number) {
   const pz = b.pos[2];
   b.pos[0] += inp.x * CLIMB * dt;
   b.pos[2] += inp.z * CLIMB * dt;
-  const hang = { ...b, pos: [b.pos[0], b.pos[1] - HEIGHT, b.pos[2]] as [number, number, number] };
+  // 天井ボックスが干渉判定のブロッカーに数えられないよう、吊った体を少し下げる
+  const hang = { ...b, pos: [b.pos[0], b.pos[1] - HEIGHT - 0.01, b.pos[2]] as [number, number, number] };
   const hx = hang.pos[0];
   const hz = hang.pos[2];
   pushOut(hang, lv);
@@ -234,7 +235,7 @@ function stepCeiling(b: Body, inp: Input, lv: Level, dt: number) {
     b.pos[0] = px;
     b.pos[2] = pz;
   }
-  const checkHang = { ...b, pos: [b.pos[0], b.pos[1] - HEIGHT, b.pos[2]] as [number, number, number] };
+  const checkHang = { ...b, pos: [b.pos[0], b.pos[1] - HEIGHT - 0.01, b.pos[2]] as [number, number, number] };
   if (Math.abs(ceilingAt(lv, checkHang) - b.pos[1]) > 0.01) {
     b.pos[0] = px;
     b.pos[2] = pz;

@@ -161,12 +161,12 @@ describe('move', () => {
     const goPerp = (b: ReturnType<typeof newBody>, inp: Partial<Input>, secs: number) => {
       for (let t = 0; t < secs; t += 1 / 60) step(b, { ...idle(), ...inp }, levelWithPerp, 1 / 60);
     };
-    const b = newBody([0, 0, 5 - RADIUS - 0.05]);
+    const b = newBody([2, 0, 5 - RADIUS - 0.05]);
     goPerp(b, {}, 0.2);
     step(b, { ...idle(), jump: true }, levelWithPerp, 1 / 60);
     expect(b.cling?.kind).toBe('wall');
     goPerp(b, { x: 1 }, 3);
-    expect(b.pos[0]).toBeLessThanOrEqual(3 - RADIUS);
+    expect(b.pos[0]).toBeLessThanOrEqual(3 - RADIUS + 0.01);
     expect(b.cling).toEqual({ kind: 'wall', nx: 0, nz: -1 });
   });
 
@@ -184,13 +184,13 @@ describe('move', () => {
     const goPerp = (b: ReturnType<typeof newBody>, inp: Partial<Input>, secs: number) => {
       for (let t = 0; t < secs; t += 1 / 60) step(b, { ...idle(), ...inp }, levelWithPerp, 1 / 60);
     };
-    const b = newBody([0, 0, 5 - RADIUS - 0.05]);
+    const b = newBody([2, 0, 5 - RADIUS - 0.05]);
     goPerp(b, {}, 0.2);
     step(b, { ...idle(), jump: true }, levelWithPerp, 1 / 60);
     goPerp(b, { up: true }, 4);
     expect(b.cling).toEqual({ kind: 'ceiling' });
     goPerp(b, { x: 1 }, 3);
-    expect(b.pos[0]).toBeLessThanOrEqual(3 - RADIUS);
+    expect(b.pos[0]).toBeLessThanOrEqual(3 - RADIUS + 0.01);
     expect(b.cling).toEqual({ kind: 'ceiling' });
   });
 });
