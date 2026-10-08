@@ -25,6 +25,7 @@ function fake(over: Partial<Play> = {}) {
     toggleSpoit: vi.fn(),
     toggleShadow: vi.fn(),
     undo: vi.fn(),
+    interrupt: vi.fn(),
     ...over
   } as unknown as Play;
 }
@@ -131,5 +132,64 @@ describe('Buttons', () => {
     pose.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 4 }));
     expect(play.openWheel).toHaveBeenCalledWith(4);
     unmount(app);
+  });
+
+  describe('✕ の確かめ', () => {
+    const open = (play = fake()) => {
+      const onquit = vi.fn();
+      const target = document.body.appendChild(document.createElement('div'));
+      const app = mount(Buttons, { target, props: { play, onquit } });
+      flushSync();
+      const ask = () => {
+        target.querySelector<HTMLButtonElement>('.quit')!.click();
+        flushSync();
+      };
+      const dialog = () => target.querySelector('[role="dialog"]');
+      const pick = (label: string) =>
+        [...target.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find((b) => b.textContent?.trim() === label)!;
+      return { target, app, onquit, ask, dialog, pick, play };
+    };
+
+    it('✕ を押しても、確かめるだけでタイトルへは戻らず、押している指を捨てる', () => {
+      const t = open();
+      expect(t.dialog()).toBeNull();
+      t.ask();
+      expect(t.dialog()?.textContent).toContain('タイトルへ戻ると、塗った体は消えます。');
+      expect(t.onquit).not.toHaveBeenCalled();
+      expect(t.play.interrupt).toHaveBeenCalled();
+      unmount(t.app);
+    });
+
+    it('出てから 350ms は押せず、過ぎたら つづける で閉じ、戻る は押さない', () => {
+      vi.useFakeTimers();
+      const t = open();
+      t.ask();
+      t.pick('戻る').click();
+      t.pick('つづける').click();
+      flushSync();
+      expect(t.onquit).not.toHaveBeenCalled();
+      expect(t.dialog()).not.toBeNull();
+      vi.advanceTimersByTime(350);
+      flushSync();
+      t.pick('つづける').click();
+      flushSync();
+      expect(t.dialog()).toBeNull();
+      expect(t.onquit).not.toHaveBeenCalled();
+      vi.useRealTimers();
+      unmount(t.app);
+    });
+
+    it('戻る を押すと onquit を 1 回だけ呼ぶ', () => {
+      vi.useFakeTimers();
+      const t = open();
+      t.ask();
+      vi.advanceTimersByTime(350);
+      flushSync();
+      t.pick('戻る').click();
+      flushSync();
+      expect(t.onquit).toHaveBeenCalledTimes(1);
+      vi.useRealTimers();
+      unmount(t.app);
+    });
   });
 });

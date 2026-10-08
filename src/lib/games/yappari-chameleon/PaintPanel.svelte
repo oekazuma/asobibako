@@ -93,12 +93,12 @@
 <style>
   .panel {
     position: absolute;
-    top: max(70px, calc(env(safe-area-inset-top) + 58px));
+    top: max(86px, calc(env(safe-area-inset-top) + 74px));
     left: max(12px, env(safe-area-inset-left));
     display: grid;
     gap: 10px;
     width: 330px;
-    max-height: calc(100% - 90px);
+    max-height: calc(100% - 106px);
     overflow-y: auto;
     padding: 12px;
     border-radius: 14px;

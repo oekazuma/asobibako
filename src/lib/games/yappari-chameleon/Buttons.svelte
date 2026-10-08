@@ -2,8 +2,16 @@
   import Icon from '$lib/components/Icon.svelte';
   import type { IconName } from '$lib/icons';
   import type { Play } from './play.svelte';
+  import QuitConfirm from './QuitConfirm.svelte';
 
   let { play, onquit }: { play: Play; onquit: () => void } = $props();
+  let asking = $state(false);
+
+  function ask() {
+    // 確かめが出ているあいだは、押していた指の続きを操作にしない
+    play.interrupt();
+    asking = true;
+  }
 </script>
 
 {#snippet button(icon: IconName, label: string, onclick: () => void, on = false, rotate = 0)}
@@ -54,7 +62,7 @@
   </button>
 {/snippet}
 
-<button class="quit" onclick={onquit} aria-label="タイトルへ">✕</button>
+<button class="quit" onclick={ask} aria-label="タイトルへ">✕</button>
 
 <div class="column">
   {#if play.mode === 'paint'}
@@ -85,6 +93,10 @@
     {@render spinner(1, 'その場で回転（左）', true)}
     {@render spinner(-1, 'その場で回転（右）')}
   </div>
+{/if}
+
+{#if asking}
+  <QuitConfirm onstay={() => (asking = false)} onleave={onquit} />
 {/if}
 
 <style>
