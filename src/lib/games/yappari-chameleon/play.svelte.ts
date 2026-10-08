@@ -2,7 +2,7 @@ import type { V3 } from '$lib/sculpt';
 import type { RGB } from './color';
 import { pushRecent } from './color';
 import { restHit } from './doll3d';
-import { idle, newBody, step, wallNear, type Body } from './move';
+import { floorBelow, idle, newBody, step, wallNear, type Body } from './move';
 import { PaintLog, Stroke, type Brush, type Dab } from './paint';
 import { TouchPad, type Mode, type PaintEvent } from './touch';
 import type { World } from './world3d';
@@ -71,7 +71,8 @@ export class Play {
     if (this.mode === 'eye') return this.#setMode('walk');
     // 三人称のカメラのいる所から歩き出す（壁の外へは出ない位置）
     const c = this.world.camera.position;
-    this.ghost = newBody([c.x, this.body.pos[1], c.z]);
+    // 天井や壁の高い所にいても、カメラの真下の床から歩き出す
+    this.ghost = newBody([c.x, floorBelow(this.world.level, c.x, c.z, c.y), c.z]);
     this.eyeYaw = this.camYaw;
     this.eyePitch = 0;
     this.#setMode('eye');
@@ -115,8 +116,15 @@ export class Play {
     this.brush.rough = got.rough;
   }
 
+  /** 縦持ちで止めるときなど、押している指とボタンの状態を捨てる */
+  interrupt(): void {
+    this.#setMode(this.mode);
+  }
+
   #setMode(m: Mode) {
     for (const e of this.pad.setMode(m)) this.#paint(e);
+    this.spoit = false;
+    this.held.up = this.held.down = false;
     this.mode = m;
     this.stick = { ...this.pad.stick };
   }
@@ -190,7 +198,9 @@ export class Play {
       const look = this.pad.takeLook();
       this.eyeYaw -= look.dx * LOOK;
       this.eyePitch = Math.min(1.3, Math.max(-1.3, this.eyePitch + look.dy * LOOK));
-      step(this.ghost, { ...this.#input(this.eyeYaw), jump: false }, w.level, dt);
+      // 壁際で跳ぶと張り付いてしまうので、ふつうの跳び上がりのときだけ通す
+      const jump = this.#jump && wallNear(this.ghost, w.level) === null;
+      step(this.ghost, { ...this.#input(this.eyeYaw), jump }, w.level, dt);
     } else {
       const o = this.pad.takeOrbit();
       this.orbitYaw -= o.dx * ORBIT;
@@ -198,6 +208,8 @@ export class Play {
       this.orbitDist = Math.min(3.5, Math.max(0.5, this.orbitDist / o.zoom));
     }
     this.#jump = this.#release = false;
+    // 押していたボタンは張り付きが終わると消えて pointerup が届かないので、離れたあとに残さない
+    if (!this.body.cling) this.held.up = this.held.down = false;
     this.cling = this.body.cling?.kind ?? null;
     this.nearWall = !this.body.cling && wallNear(this.body, w.level) !== null;
     w.placeDoll(this.body);

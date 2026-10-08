@@ -25,38 +25,40 @@
     const mq = matchMedia('(orientation: portrait)');
     let stop: (() => void) | null = null;
     let world: World | null = null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const size = () => world?.resize(box.clientWidth, box.clientHeight);
     const run = () => {
       stop?.();
       stop = null;
       portrait = mq.matches;
+      if (portrait) play?.interrupt();
       if (portrait || !play) return;
       size();
       const p = play;
       stop = animate((dt, now) => p.frame(dt, now));
     };
+    const build = () => {
+      const s = buildDoll();
+      const atlas = layAtlas(s.pos, s.idx, COLOR_SIZE);
+      world = new World(
+        canvas,
+        (r) => makeDoll(r, s, atlas),
+        () => play?.rebuildPaint()
+      );
+      world.setStage(testRoom());
+      size();
+      play = new Play(world, radius);
+      if (import.meta.env.DEV) (window as unknown as { __chameleon?: Play }).__chameleon = play;
+      run();
+    };
     // 人形の面と升目を作るのに数百 ms 止まるので、「準備中」を 1 度描かせてから作る
-    const raf = requestAnimationFrame(() =>
-      setTimeout(() => {
-        const s = buildDoll();
-        const atlas = layAtlas(s.pos, s.idx, COLOR_SIZE);
-        world = new World(
-          canvas,
-          (r) => makeDoll(r, s, atlas),
-          () => play?.rebuildPaint()
-        );
-        world.setStage(testRoom());
-        size();
-        play = new Play(world, radius);
-        if (import.meta.env.DEV) (window as unknown as { __chameleon?: Play }).__chameleon = play;
-        run();
-      })
-    );
+    const raf = requestAnimationFrame(() => (timer = setTimeout(build)));
     mq.addEventListener('change', run);
     const ro = new ResizeObserver(size);
     ro.observe(box);
     return () => {
       cancelAnimationFrame(raf);
+      clearTimeout(timer);
       mq.removeEventListener('change', run);
       ro.disconnect();
       stop?.();

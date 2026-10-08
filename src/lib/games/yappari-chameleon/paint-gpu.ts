@@ -57,6 +57,46 @@ uniform vec4 uFill;
 out vec4 outColor;
 void main() { outColor = uFill; }`;
 
+// 吹き付けの三角形に覆われた画素は alpha 1、升のすき間は alpha 0 にして区別する。
+// 画面が遠いと mipmap なしの標本が三角形のふちの外（すき間）に当たって白い点になるので、すき間へ近い塗りの色を広げる
+const DILATE = 4;
+const DILATE_FRAGMENT = `
+precision highp float;
+precision highp sampler2D;
+uniform sampler2D uSrc;
+out vec4 outColor;
+void main() {
+  ivec2 p = ivec2(gl_FragCoord.xy);
+  vec4 here = texelFetch(uSrc, p, 0);
+  if (here.a > 0.5) {
+    outColor = here;
+    return;
+  }
+  ivec2 lim = textureSize(uSrc, 0) - 1;
+  float best = 1e9;
+  vec4 pick = here;
+  for (int dy = -${DILATE}; dy <= ${DILATE}; dy++) {
+    for (int dx = -${DILATE}; dx <= ${DILATE}; dx++) {
+      ivec2 q = p + ivec2(dx, dy);
+      if (q.x < 0 || q.y < 0 || q.x > lim.x || q.y > lim.y) continue;
+      vec4 c = texelFetch(uSrc, q, 0);
+      float d = float(dx * dx + dy * dy);
+      if (c.a > 0.5 && d < best) {
+        best = d;
+        pick = c;
+      }
+    }
+  }
+  outColor = vec4(pick.rgb, 0.0);
+}`;
+
+const COPY_FRAGMENT = `
+precision highp float;
+precision highp sampler2D;
+uniform sampler2D uSrc;
+out vec4 outColor;
+void main() { outColor = texelFetch(uSrc, ivec2(gl_FragCoord.xy), 0); }`;
+
 const target = (size: number, colorSpace: THREE.ColorSpace) =>
   new THREE.WebGLRenderTarget(size, size, {
     colorSpace,
@@ -83,7 +123,14 @@ export class PaintSurface {
     uN: { value: Array.from({ length: BATCH }, () => new THREE.Vector4()) },
     uC: { value: Array.from({ length: BATCH }, () => new THREE.Vector4()) }
   };
+  readonly #cover = new THREE.Scene();
+  readonly #dilate = new THREE.Scene();
+  readonly #copy = new THREE.Scene();
+  readonly #scratchColor = target(COLOR_SIZE, THREE.SRGBColorSpace);
+  readonly #scratchGloss = target(GLOSS_SIZE, THREE.NoColorSpace);
+  readonly #src = { value: null as THREE.Texture | null };
   readonly #fillColor = { value: new THREE.Vector4() };
+  #dirty = false;
   readonly #pixel = new Uint8Array(4);
 
   constructor(renderer: THREE.WebGLRenderer, geo: THREE.BufferGeometry) {
@@ -110,20 +157,39 @@ export class PaintSurface {
     const tri = new THREE.BufferGeometry();
     tri.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-1, -1, 3, -1, -1, 3]), 2));
     tri.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1);
-    const fill = new THREE.Mesh(
-      tri,
+    const raw = (fragmentShader: string, uniforms: Record<string, THREE.IUniform>) =>
       new THREE.RawShaderMaterial({
         glslVersion: THREE.GLSL3,
         vertexShader: FILL_VERTEX,
+        fragmentShader,
+        uniforms,
+        depthTest: false,
+        depthWrite: false,
+        blending: THREE.NoBlending
+      });
+    const full = (scene: THREE.Scene, material: THREE.Material) => {
+      const m = new THREE.Mesh(tri, material);
+      m.frustumCulled = false;
+      scene.add(m);
+    };
+    full(this.#fill, raw(FILL_FRAGMENT, { uFill: this.#fillColor }));
+    full(this.#dilate, raw(DILATE_FRAGMENT, { uSrc: this.#src }));
+    full(this.#copy, raw(COPY_FRAGMENT, { uSrc: this.#src }));
+    const cover = new THREE.Mesh(
+      geo,
+      new THREE.RawShaderMaterial({
+        glslVersion: THREE.GLSL3,
+        vertexShader: VERTEX,
         fragmentShader: FILL_FRAGMENT,
         uniforms: { uFill: this.#fillColor },
+        side: THREE.DoubleSide,
         depthTest: false,
         depthWrite: false,
         blending: THREE.NoBlending
       })
     );
-    fill.frustumCulled = false;
-    this.#fill.add(fill);
+    cover.frustumCulled = false;
+    this.#cover.add(cover);
     this.reset();
   }
 
@@ -140,13 +206,34 @@ export class PaintSurface {
   }
 
   reset(): void {
-    this.#fillColor.value.set(1, 1, 1, 1);
+    // 全面を alpha 0 で塗ってから、吹き付けの三角形の中だけ alpha 1 にする
+    this.#fillColor.value.set(1, 1, 1, 0);
     this.#draw(this.color, this.#fill);
-    this.#fillColor.value.set(0, WHITE_ROUGH, 0, 1);
+    this.#fillColor.value.set(1, 1, 1, 1);
+    this.#draw(this.color, this.#cover);
+    this.#fillColor.value.set(0, WHITE_ROUGH, 0, 0);
     this.#draw(this.gloss, this.#fill);
+    this.#fillColor.value.set(0, WHITE_ROUGH, 0, 1);
+    this.#draw(this.gloss, this.#cover);
+  }
+
+  /** 塗ったあとの、すき間への色の広げ直し。塗りの変更をまとめて、描く前に 1 回だけ行う */
+  flush(): void {
+    if (!this.#dirty) return;
+    this.#dirty = false;
+    for (const [to, scratch] of [
+      [this.color, this.#scratchColor],
+      [this.gloss, this.#scratchGloss]
+    ] as const) {
+      this.#src.value = to.texture;
+      this.#draw(scratch, this.#dilate);
+      this.#src.value = scratch.texture;
+      this.#draw(to, this.#copy);
+    }
   }
 
   apply(dabs: readonly Dab[]): void {
+    this.#dirty = true;
     const u = this.#u;
     for (let at = 0; at < dabs.length; at += BATCH) {
       const list = dabs.slice(at, at + BATCH);
@@ -179,7 +266,9 @@ export class PaintSurface {
   dispose(): void {
     this.color.dispose();
     this.gloss.dispose();
-    for (const s of [this.#paint, this.#fill])
+    this.#scratchColor.dispose();
+    this.#scratchGloss.dispose();
+    for (const s of [this.#paint, this.#fill, this.#cover, this.#dilate, this.#copy])
       s.traverse((o) => {
         if (o instanceof THREE.Mesh) {
           o.geometry.dispose();

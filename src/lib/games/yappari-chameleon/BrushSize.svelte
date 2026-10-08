@@ -14,7 +14,7 @@
 <style>
   .size {
     position: absolute;
-    right: max(96px, calc(env(safe-area-inset-right) + 84px));
+    right: max(110px, calc(env(safe-area-inset-right) + 98px));
     top: 50%;
     translate: 0 -50%;
     display: grid;

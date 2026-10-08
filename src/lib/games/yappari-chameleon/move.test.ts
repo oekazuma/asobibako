@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { idle, newBody, rayDistance, RADIUS, step, type Input, type Level } from './move';
+import { floorBelow, idle, newBody, rayDistance, RADIUS, step, type Input, type Level } from './move';
 
 // 床（y = 0）・奥の壁（z = 5）・天井（y = 3）・低い台（高さ 1）・段（高さ 0.2）・坂（z が増えると 0 → 1.5）
 const level: Level = {
@@ -192,5 +192,12 @@ describe('move', () => {
     goPerp(b, { x: 1 }, 3);
     expect(b.pos[0]).toBeLessThanOrEqual(3 - RADIUS + 0.01);
     expect(b.cling).toEqual({ kind: 'ceiling' });
+  });
+
+  it('floorBelow は真下の床の高さを返し、天井や高い所からは床へ下ろす', () => {
+    expect(floorBelow(level, 0, 0, 2.9)).toBe(0);
+    expect(floorBelow(level, 4, -2, 2.9)).toBe(1);
+    expect(floorBelow(level, 4, -2, 0.5)).toBe(0);
+    expect(floorBelow(level, 99, 99, 2)).toBe(2);
   });
 });

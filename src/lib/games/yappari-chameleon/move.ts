@@ -155,6 +155,12 @@ function groundAt(lv: Level, x: number, z: number, below: number): number {
   return g;
 }
 
+/** (x, z) の真下で y 以下にある、いちばん高い床の高さ。無ければ y（空中や天井から出したカメラを床へ下ろすのに使う） */
+export function floorBelow(lv: Level, x: number, z: number, y: number): number {
+  const g = groundAt(lv, x, z, y);
+  return Number.isFinite(g) ? g : y;
+}
+
 /** 頭の上の、いちばん低い天井（箱の下の面） */
 function ceilingAt(lv: Level, b: Body): number {
   let c = Infinity;

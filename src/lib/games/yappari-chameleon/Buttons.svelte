@@ -77,14 +77,15 @@
     display: grid;
     justify-items: center;
     align-content: center;
-    width: 84px;
-    height: 84px;
+    width: 88px;
+    height: 88px;
     border: 2px solid rgb(255 255 255 / 0.85);
     border-radius: 50%;
     background: rgb(0 0 0 / 0.35);
     color: #fff;
     font-family: 'Hiragino Mincho ProN', serif;
-    font-size: 11px;
+    font-size: 10px;
+    white-space: nowrap;
     line-height: 1.15;
     text-shadow: 0 1px 2px #000;
   }

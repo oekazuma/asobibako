@@ -152,12 +152,23 @@ export class World {
   }
 
   render(): void {
+    this.rig.paint.flush();
     this.renderer.render(this.scene, this.camera);
   }
 
   dispose(): void {
+    this.#stage?.traverse((o) => {
+      if (!(o instanceof THREE.Mesh)) return;
+      o.geometry.dispose();
+      for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+        (m as THREE.MeshStandardMaterial).map?.dispose();
+        m.dispose();
+      }
+    });
     this.#environment?.dispose();
     this.rig.paint.dispose();
     this.renderer.dispose();
+    // iOS は WebGL の文脈の数に上限があり、ゲームを開閉するたびに残すと古いものから失われていく
+    this.renderer.forceContextLoss();
   }
 }
