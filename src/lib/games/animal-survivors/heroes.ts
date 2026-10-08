@@ -55,6 +55,8 @@ export const heroOf = (slot: number) => Math.floor((slot % SLOT_COUNT) / HERO_SL
 export const weaponAt = (w: World, slot: number) => w.heroes[heroOf(slot)]?.weapons[slot % HERO_SLOTS];
 export const anyPending = (w: World) => w.heroes.some((h) => h.pending > 0);
 export const anyChest = (w: World) => w.heroes.some((h) => h.chests > 0);
+/** 抜けていない相棒がいる（自分の端末から見て） */
+export const hasMate = (w: World) => w.heroes.some((h, k) => k !== w.cur && !h.gone);
 
 /** 倒れた動物のそばに相棒がこの秒いると起き上がる */
 export const RAISE_SECS = 3;

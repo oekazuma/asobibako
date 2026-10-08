@@ -69,6 +69,8 @@ describe('連携の帯', () => {
     p.take();
     expect(p.link?.name).toBe('X × Y');
     expect(p.busy).toBe(false);
+    // 帯の時計はゲームが進んだぶんだけ進むので、ゲームの時刻を進めてから呼ぶ
+    w.time += 1;
     p.next(null, LINK_FUSE + LINK_SHOW + 0.01);
     expect(p.link).toBeNull();
   });

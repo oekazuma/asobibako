@@ -1,3 +1,4 @@
+import { hasMate } from './heroes';
 import { ITEM_ART } from './art/items';
 import { PALETTE } from './art/palette';
 import type { ViewSize } from './draw';
@@ -263,7 +264,7 @@ export function introEdge(ctx: CanvasRenderingContext2D, v: ViewSize, intro: { t
 export const MATE_ROW = 21;
 
 /** ボスの体力バーの 1 本めの高さ。2 匹のときは連携のゲージと相棒の行と重ならないよう下げる */
-export const barsTop = (w: World, top: number) => top + 22 + (w.heroes.length > 1 ? MATE_ROW : 0);
+export const barsTop = (w: World, top: number) => top + 22 + (hasMate(w) ? MATE_ROW : 0);
 
 export function bossBars(ctx: CanvasRenderingContext2D, w: World, v: ViewSize, top: number): void {
   let y = barsTop(w, top);

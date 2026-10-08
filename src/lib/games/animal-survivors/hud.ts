@@ -7,7 +7,8 @@ import type { ViewSize } from './draw';
 import { text, textWidth } from './font';
 import { bake } from './pixels';
 import { blessings } from './draw-explore';
-import { RAISE_SECS } from './heroes';
+import { hasMate, RAISE_SECS } from './heroes';
+import { linkReady } from './link';
 import { WEAPONS } from './weapons';
 import { coinsOf, type Owned, type World } from './world';
 
@@ -75,13 +76,13 @@ export function hud(ctx: CanvasRenderingContext2D, w: World, v: ViewSize, top: n
   const hp = Math.ceil(w.player.hp);
   bar(ctx, 6, top + 12, 80, 4, w.player.hp / w.stats.maxHp, PALETTE.r, PALETTE.R);
   text(ctx, `${hp}/${Math.round(w.stats.maxHp)}`, 90, top + 11, PALETTE.w);
-  // 連携の技のゲージ（2 匹のときだけ）。満タンで使えるあいだは明るい黄色にする
-  if (w.heroes.length > 1) {
+  // 連携の技のゲージ（相棒がいるときだけ）。満タンで使えるときだけ明るい黄色にし、たまっている途中と見分ける
+  if (hasMate(w)) {
     const l = w.link;
-    bar(ctx, 6, top + 19, 80, 2, l.charge / l.need, l.cool > 0 ? PALETTE.Y : PALETTE.y, PALETTE.M);
+    bar(ctx, 6, top + 19, 80, 2, l.charge / l.need, linkReady(w) ? PALETTE.y : PALETTE.Y, PALETTE.M);
   }
   // 相棒の顔と HP。倒れていればバーは空で、顔の横に起こす輪の進み具合を出す
-  const mate = w.heroes.length > 1 ? w.heroes[w.cur === 0 ? 1 : 0] : null;
+  const mate = hasMate(w) ? w.heroes[w.cur === 0 ? 1 : 0] : null;
   if (mate && !mate.gone) {
     const y = top + 23;
     ctx.drawImage(bake(ANIMAL_ART[mate.animal.id].forms[0].walk), 6, y);

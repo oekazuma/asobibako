@@ -65,6 +65,7 @@ export class Prompts {
   readonly #still: boolean;
   readonly lock = new Lock();
   readonly #w: World;
+  #seen = { fuse: 0, time: 0 };
 
   /**
    * ふたりで遊ぶ子の端末。World は親が持つので、3 択・宝箱・アルカナを自分で開かず、選んだものを send で親へ送る
@@ -172,7 +173,10 @@ export class Prompts {
   next(finger: number | null, dt = 0): void {
     const w = this.#w;
     if (this.link) {
-      this.link.t += dt;
+      // 一時停止のあいだはゲームの時刻も止めの秒も動かないので、帯の時計も進めない
+      const moved = w.link.fuse !== this.#seen.fuse || w.time !== this.#seen.time;
+      this.#seen = { fuse: w.link.fuse, time: w.time };
+      if (moved) this.link.t += dt;
       if (this.link.t >= LINK_FUSE + LINK_SHOW) this.link = null;
     }
     let left = dt;

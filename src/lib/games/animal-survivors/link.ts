@@ -29,6 +29,8 @@ export interface Link {
   /** 技の当たりを入れているあいだ（技で倒した敵ではたまらない） */
   firing: boolean;
   shows: LinkShow[];
+  /** 技のあと、当たらないあいだも半透明にしない秒（被弾のあとの無敵と見分ける） */
+  calm: number;
 }
 
 export const LINK_NEAR = 80;
@@ -53,7 +55,8 @@ export function calmLink(): Link {
     armed: false,
     fuse: 0,
     firing: false,
-    shows: []
+    shows: [],
+    calm: 0
   };
 }
 
@@ -94,6 +97,7 @@ export function fireLink(w: World): void {
       });
       p.invuln = Math.max(p.invuln, LINK_INVULN);
     });
+    w.link.calm = LINK_INVULN;
   } finally {
     w.link.firing = false;
   }
@@ -173,6 +177,7 @@ export function stepLink(w: World, dt: number): boolean {
     return false;
   }
   l.cool = Math.max(0, l.cool - dt);
+  l.calm = Math.max(0, l.calm - dt);
   for (const s of l.shows) s.t += dt;
   l.shows = l.shows.filter((s) => s.t < LINK_SHOW);
   return false;

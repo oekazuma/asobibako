@@ -232,7 +232,7 @@ function player(ctx: CanvasRenderingContext2D, w: World, now: number, form = w.f
   const flip = p.facing < 0;
   // 育って大きくなっても足もとは 1 段階めと同じ高さにそろえる
   const y = p.y - (art.h - 16) / 2;
-  ctx.globalAlpha = heroAlpha(p.invuln, moment, w.heroes[w.cur].down);
+  ctx.globalAlpha = heroAlpha(p.invuln, moment || w.link.calm > 0, w.heroes[w.cur].down);
   // 白いふちで、大群の中でも自分を見失わないようにする
   for (const [dx, dy] of [
     [-1, 0],

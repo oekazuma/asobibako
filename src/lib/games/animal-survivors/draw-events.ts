@@ -6,7 +6,7 @@ import { text, textWidth } from './font';
 import { bake } from './pixels';
 import { RELIC_ART } from './art/explore';
 import { relicTargets } from './draw-explore';
-import { inPinch } from './heroes';
+import { hasMate, inPinch } from './heroes';
 import type { World } from './world';
 
 const CONFETTI = 40;
@@ -16,6 +16,9 @@ const COLORS = [PALETTE.r, PALETTE.y, PALETTE.u, PALETTE.p, PALETTE.l];
  * 画面の外のものへの向きの矢印を置く位置と向き（画面の中なら null）。
  * 仮想画面の座標で、HUD（上）と持ちもの（下）にかからない内側に置く
  */
+/** 協力プレイの右端の真ん中にある「いっしょに！」のボタンの、上下の半分の高さ */
+export const BUTTON_BAND = 28;
+
 export function edgeAt(
   w: World,
   to: { x: number; y: number },
@@ -39,7 +42,11 @@ export function edgeAt(
     dx > 0 ? (right - cx) / dx : dx < 0 ? (left - cx) / dx : Infinity,
     dy > 0 ? (down - cy) / dy : dy < 0 ? (up - cy) / dy : Infinity
   );
-  return { x: Math.round(cx + dx * k), y: Math.round(cy + dy * k), angle: Math.atan2(dy, dx) };
+  const x = Math.round(cx + dx * k);
+  let y = Math.round(cy + dy * k);
+  // 協力プレイでは右端の真ん中に「いっしょに！」のボタンが出るので、その高さには矢印を置かない
+  if (hasMate(w) && x >= right - 1 && Math.abs(y - cy) < BUTTON_BAND) y = cy + (y < cy ? -BUTTON_BAND : BUTTON_BAND);
+  return { x, y, angle: Math.atan2(dy, dx) };
 }
 
 /** 画面の外のものへの向きの矢印を画面の端に描き、置いた位置を返す（画面の中なら描かずに null） */

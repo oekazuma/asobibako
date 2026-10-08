@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { edgeAt, partners } from './draw-events';
+import { BUTTON_BAND, edgeAt, partners } from './draw-events';
 import { addHero, createWorld } from './world';
 
 const VW = 260;
@@ -14,7 +14,8 @@ describe('相棒の矢印', () => {
     w.heroes[1].player.x = 900;
     const at = edgeAt(w, w.heroes[1].player, VW, VH, 24)!;
     expect(at.x).toBe(VW - 14);
-    expect(at.y).toBe(VH / 2);
+    // 右端の真ん中には「いっしょに！」のボタンが出るので、その高さを避けて置く
+    expect(Math.abs(at.y - VH / 2)).toBe(BUTTON_BAND);
     expect(at.angle).toBeCloseTo(0);
   });
 
