@@ -184,10 +184,12 @@ function stepWall(b: Body, c: { nx: number; nz: number }, inp: Input, lv: Level,
   b.pos[0] += tx * side * dt;
   b.pos[2] += tz * side * dt;
   b.pos[1] += vy * dt;
+  if (Math.abs(side) > 1e-6) pushOut(b, lv);
   const ceil = ceilingAt(lv, b);
   if (b.pos[1] + HEIGHT >= ceil) {
     b.cling = { kind: 'ceiling' };
     b.pos[1] = ceil;
+    b.ground = false;
     return;
   }
   // 床の高さで張り付いたまま待てるよう、外すのは「さがる」で床まで下りたときだけ
@@ -202,6 +204,7 @@ function stepWall(b: Body, c: { nx: number; nz: number }, inp: Input, lv: Level,
   // 壁の上まで上がり切った（台の上へ乗る）か、横へはみ出した（落ちる）
   b.cling = null;
   b.vy = 0;
+  b.ground = false;
   const top = wallNear({ ...b, pos: [b.pos[0], b.pos[1] - 0.3, b.pos[2]] }, lv, c);
   if (top && inp.up) {
     b.pos[1] = top.top;
@@ -216,6 +219,7 @@ function stepCeiling(b: Body, inp: Input, lv: Level, dt: number) {
     b.cling = null;
     b.vy = 0;
     b.pos[1] -= HEIGHT;
+    b.ground = false;
     return;
   }
   const px = b.pos[0];
@@ -223,7 +227,15 @@ function stepCeiling(b: Body, inp: Input, lv: Level, dt: number) {
   b.pos[0] += inp.x * CLIMB * dt;
   b.pos[2] += inp.z * CLIMB * dt;
   const hang = { ...b, pos: [b.pos[0], b.pos[1] - HEIGHT, b.pos[2]] as [number, number, number] };
-  if (Math.abs(ceilingAt(lv, hang) - b.pos[1]) > 0.01) {
+  const hx = hang.pos[0];
+  const hz = hang.pos[2];
+  pushOut(hang, lv);
+  if (hang.pos[0] !== hx || hang.pos[2] !== hz) {
+    b.pos[0] = px;
+    b.pos[2] = pz;
+  }
+  const checkHang = { ...b, pos: [b.pos[0], b.pos[1] - HEIGHT, b.pos[2]] as [number, number, number] };
+  if (Math.abs(ceilingAt(lv, checkHang) - b.pos[1]) > 0.01) {
     b.pos[0] = px;
     b.pos[2] = pz;
   }
@@ -243,6 +255,7 @@ export function step(b: Body, inp: Input, lv: Level, dt: number): void {
     if (inp.release) {
       b.cling = null;
       b.vy = 0;
+      b.ground = false;
     } else return stepWall(b, b.cling, inp, lv, dt);
   }
 
@@ -268,6 +281,7 @@ export function step(b: Body, inp: Input, lv: Level, dt: number): void {
       b.cling = { kind: 'wall', nx: wall.nx, nz: wall.nz };
       b.vy = 0;
       b.yaw = Math.atan2(-wall.nx, -wall.nz);
+      b.ground = false;
       return;
     }
     if (b.ground) {

@@ -73,6 +73,7 @@ describe('move', () => {
     step(b, { ...idle(), jump: true }, level, 1 / 60);
     go(b, {}, 2);
     expect(b.cling?.kind).toBe('wall');
+    expect(b.ground).toBe(false);
     go(b, { up: true }, 0.5);
     const y = b.pos[1];
     go(b, {}, 1);
@@ -144,5 +145,52 @@ describe('move', () => {
     const b = newBody([0, -20, 0]);
     go(b, {}, 0.1);
     expect(b.pos).toEqual([0, 0, 0]);
+  });
+
+  it('壁に張り付いて横へ移動するときに垂直な壁に当たると止まる', () => {
+    const levelWithPerp: Level = {
+      boxes: [
+        { min: [-10, -1, -10], max: [10, 0, 10] },
+        { min: [-10, 0, 5], max: [10, 3, 5.3] },
+        { min: [-10, 3, -10], max: [10, 3.3, 10] },
+        { min: [3, 0, 4], max: [3.3, 3, 5] }
+      ],
+      ramps: [{ min: [-8, 0, -6], max: [-6, 1.5, -2], rise: 'z+' }],
+      spawn: [0, 0, 0]
+    };
+    const goPerp = (b: ReturnType<typeof newBody>, inp: Partial<Input>, secs: number) => {
+      for (let t = 0; t < secs; t += 1 / 60) step(b, { ...idle(), ...inp }, levelWithPerp, 1 / 60);
+    };
+    const b = newBody([0, 0, 5 - RADIUS - 0.05]);
+    goPerp(b, {}, 0.2);
+    step(b, { ...idle(), jump: true }, levelWithPerp, 1 / 60);
+    expect(b.cling?.kind).toBe('wall');
+    goPerp(b, { x: 1 }, 3);
+    expect(b.pos[0]).toBeLessThanOrEqual(3 - RADIUS);
+    expect(b.cling).toEqual({ kind: 'wall', nx: 0, nz: -1 });
+  });
+
+  it('天井の下を横へ移動するときに垂直な壁に当たると止まる', () => {
+    const levelWithPerp: Level = {
+      boxes: [
+        { min: [-10, -1, -10], max: [10, 0, 10] },
+        { min: [-10, 0, 5], max: [10, 3, 5.3] },
+        { min: [-10, 3, -10], max: [10, 3.3, 10] },
+        { min: [3, 0, 4], max: [3.3, 3, 5] }
+      ],
+      ramps: [{ min: [-8, 0, -6], max: [-6, 1.5, -2], rise: 'z+' }],
+      spawn: [0, 0, 0]
+    };
+    const goPerp = (b: ReturnType<typeof newBody>, inp: Partial<Input>, secs: number) => {
+      for (let t = 0; t < secs; t += 1 / 60) step(b, { ...idle(), ...inp }, levelWithPerp, 1 / 60);
+    };
+    const b = newBody([0, 0, 5 - RADIUS - 0.05]);
+    goPerp(b, {}, 0.2);
+    step(b, { ...idle(), jump: true }, levelWithPerp, 1 / 60);
+    goPerp(b, { up: true }, 4);
+    expect(b.cling).toEqual({ kind: 'ceiling' });
+    goPerp(b, { x: 1 }, 3);
+    expect(b.pos[0]).toBeLessThanOrEqual(3 - RADIUS);
+    expect(b.cling).toEqual({ kind: 'ceiling' });
   });
 });

@@ -88,6 +88,23 @@ export class TouchPad {
     return [];
   }
 
+  cancel(id: number): PaintEvent[] {
+    if (this.mode === 'paint') {
+      this.#fingers.delete(id);
+      if (!this.#fingers.size) this.#gesture = false;
+      if (this.#pending?.id === id) {
+        this.#pending = null;
+        return [];
+      }
+      if (this.#painting === id) {
+        this.#painting = null;
+        return [{ kind: 'cancel' }];
+      }
+      return [];
+    }
+    return this.up(id);
+  }
+
   tick(now: number): PaintEvent[] {
     const p = this.#pending;
     if (!p || now - p.t < HOLD_MS) return [];

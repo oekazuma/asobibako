@@ -120,4 +120,17 @@ describe('TouchPad 塗る', () => {
     expect(t.setMode('walk')).toEqual([{ kind: 'cancel' }]);
     expect(t.move(1, 600, 500, 200)).toEqual([]);
   });
+
+  it('待機中の指をキャンセルすると何も出ない', () => {
+    const t = paint();
+    t.down(1, 500, 500, W, 0);
+    expect(t.cancel(1)).toEqual([]);
+  });
+
+  it('塗っている途中の指をキャンセルするとキャンセル出す', () => {
+    const t = paint();
+    t.down(1, 500, 500, W, 0);
+    t.tick(100);
+    expect(t.cancel(1)).toEqual([{ kind: 'cancel' }]);
+  });
 });
