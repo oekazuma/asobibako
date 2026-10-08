@@ -77,7 +77,7 @@
   });
 </script>
 
-<main class="stage solo" class:settling={settle.active}>
+<main class="stage solo" class:wide={meta.landscape} class:settling={settle.active}>
   {#if screen === 'playing'}
     {#key round}
       <Game {level} onfinish={finish} onhint={(text) => (hint = text)} onquit={() => (screen = 'title')} />

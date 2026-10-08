@@ -16,6 +16,7 @@ import oekakiMori from './games/oekaki-mori/meta';
 import petHouse from './games/pet-house/meta';
 import pinRescue from './games/pin-rescue/meta';
 import snowCamp from './games/snow-camp/meta';
+import yappariChameleon from './games/yappari-chameleon/meta';
 import type { Net } from './net/link';
 import type { Player } from './player';
 
@@ -80,6 +81,8 @@ export interface SoloMeta extends BaseMeta {
   anyOrder?: boolean;
   /** 遊んでいるあいだの隅の ✕ と ↻ を出さない。ゲームが自分で一時停止やタイトルへ戻る口を持つ（長い 1 回を押し間違いで失わないため） */
   ownMenu?: boolean;
+  /** 横持ちで遊ぶ。シェルの枠を横向きのタッチ端末で 90 度回さない（端末を手に持って 3D を見回すゲーム） */
+  landscape?: true;
   load: () => Promise<SoloModule>;
 }
 
@@ -93,6 +96,7 @@ export interface PartyMeta extends BaseMeta {
 export type GameMeta = DuelMeta | SoloMeta | PartyMeta;
 
 export const games: GameMeta[] = [
+  yappariChameleon,
   animalSurvivors,
   petHouse,
   pinRescue,

@@ -22,7 +22,9 @@ const meta = {
   load: async () => ({ Game: StubGame, Howto: StubHowto })
 };
 
-function show(extra: { levelName?: string; ownResult?: boolean; anyOrder?: boolean; ownMenu?: boolean } = {}) {
+function show(
+  extra: { levelName?: string; ownResult?: boolean; anyOrder?: boolean; ownMenu?: boolean; landscape?: true } = {}
+) {
   const target = document.body.appendChild(document.createElement('div'));
   const app = mount(SoloShell, { target, props: { meta: { ...meta, ...extra }, Game: StubGame, Howto: StubHowto } });
   flushSync();
@@ -43,6 +45,18 @@ describe('SoloShell', () => {
   afterEach(() => {
     vi.useRealTimers();
     document.body.innerHTML = '';
+  });
+
+  it('横持ちのゲームでは枠に wide を付け、横向きで回さない', () => {
+    const { target, app } = show({ landscape: true });
+    expect(target.querySelector('main.stage')?.classList.contains('wide')).toBe(true);
+    unmount(app);
+  });
+
+  it('ふつうのゲームの枠には wide を付けない', () => {
+    const { target, app } = show();
+    expect(target.querySelector('main.stage')?.classList.contains('wide')).toBe(false);
+    unmount(app);
   });
 
   it('ownMenu のゲームでは遊んでいるあいだ隅の ✕ と ↻ を出さず、onquit でタイトルへ戻る', () => {
