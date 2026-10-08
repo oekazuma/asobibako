@@ -438,4 +438,46 @@ describe('Play のカメラ', () => {
     expect(p.brush.color).toEqual([0, 1, 0]);
     expect(p.orbitYaw).toBe(yaw);
   });
+
+  it('天井に張り付いているあいだは、カメラを人形の下に保ち、見回しも下向きの範囲に収める', () => {
+    const p = clinging();
+    p.held.up = true;
+    secs(p, 4);
+    p.held.up = false;
+    expect(p.body.cling?.kind).toBe('ceiling');
+    p.camPitch = 0.4;
+    secs(p, 1);
+    expect(p.camPitch).toBeLessThanOrEqual(-0.25 + 1e-3);
+    // 上へ向けようと指を動かしても、下向きの範囲から出ない
+    p.pointer('down', 1, 800, 300, 1000);
+    p.pointer('move', 1, 800, 300 - 2000, 1000);
+    secs(p, 0.1);
+    expect(p.camPitch).toBeLessThanOrEqual(-0.25 + 1e-3);
+    p.pointer('move', 1, 800, 300 + 4000, 1000);
+    secs(p, 0.1);
+    expect(p.camPitch).toBeGreaterThanOrEqual(-1.2 - 1e-6);
+    p.pointer('up', 1, 800, 300, 1000);
+  });
+
+  it('天井から離れたら、見回しの範囲は元に戻る', () => {
+    const p = clinging();
+    p.held.up = true;
+    secs(p, 4);
+    p.held.up = false;
+    p.release();
+    secs(p, 1);
+    expect(p.body.cling).toBeNull();
+    p.pointer('down', 1, 800, 300, 1000);
+    p.pointer('move', 1, 800, 300 + 400, 1000);
+    secs(p, 0.1);
+    expect(p.camPitch).toBeCloseTo(1.2, 5);
+  });
+
+  it('ペイントに入るとき、つぶれた距離は引き継がず、使える最小の距離から始める', () => {
+    const w = fakeWorld();
+    (w as unknown as { dist: number }).dist = 0.8;
+    const p = new Play(w, 70);
+    p.togglePaint();
+    expect(p.orbitDist).toBe(1.2);
+  });
 });

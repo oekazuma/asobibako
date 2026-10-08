@@ -14,6 +14,11 @@ const ORBIT = 0.006;
 const EYE_HEIGHT = 1.0;
 const CAM_PITCH_MIN = -0.5;
 const CAM_PITCH_MAX = 1.2;
+/** 天井では見る中心が天井の 0.4m 下なので、上から見ると天井にぶつかって距離がつぶれる。人形の下から見上げる範囲に収める */
+const CEILING_PITCH_MIN = -1.2;
+const CEILING_PITCH_MAX = -0.25;
+/** ペイントに入るとき、壁でつぶれた距離を引き継ぐと人形に寄りすぎるので、ここより近くは始めない */
+const PAINT_DIST_MIN = 1.2;
 /** 見る中心が切り替わったときのずれが 1/e になる時間。0.3 秒でほぼ収まる */
 const SLIDE_SECS = 0.1;
 
@@ -110,7 +115,7 @@ export class Play {
     // 見ている向き・高さ・距離をそのまま引き継ぐ。塗る手を止めずに済み、見る中心だけが体の真ん中へ移る
     this.orbitYaw = this.camYaw;
     this.orbitPitch = this.camPitch;
-    this.orbitDist = Math.min(3.5, Math.max(0.5, this.world.dist));
+    this.orbitDist = Math.min(3.5, Math.max(PAINT_DIST_MIN, this.world.dist));
     this.#setMode('paint');
   }
 
@@ -309,7 +314,13 @@ export class Play {
     if (this.mode === 'walk') {
       const look = this.pad.takeLook();
       this.camYaw -= look.dx * LOOK;
-      this.camPitch = Math.min(CAM_PITCH_MAX, Math.max(CAM_PITCH_MIN, this.camPitch + look.dy * LOOK));
+      const [lo, hi] =
+        this.body.cling?.kind === 'ceiling' ? [CEILING_PITCH_MIN, CEILING_PITCH_MAX] : [CAM_PITCH_MIN, CAM_PITCH_MAX];
+      const fit = (v: number) => Math.min(hi, Math.max(lo, v));
+      // 張り付いた瞬間に向きが飛ばないよう、範囲の外にいるあいだは指を受けずに、なめらかに範囲へ寄せる
+      if (this.camPitch < lo || this.camPitch > hi)
+        this.camPitch += (fit(this.camPitch) - this.camPitch) * (1 - Math.exp(-dt * 8));
+      else this.camPitch = fit(this.camPitch + look.dy * LOOK);
       step(this.body, this.#input(this.camYaw), w.level, dt);
     } else if (this.mode === 'eye') {
       const look = this.pad.takeLook();
