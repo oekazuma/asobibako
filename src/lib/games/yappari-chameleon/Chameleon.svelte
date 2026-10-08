@@ -21,6 +21,7 @@
   let canvas: HTMLCanvasElement;
   let box: HTMLDivElement;
   let portrait = $state(false);
+  let failed = $state(false);
   let play = $state.raw<Play | null>(null);
   const radius = 70;
 
@@ -43,11 +44,17 @@
     const build = () => {
       const s = buildDoll();
       const atlas = layAtlas(s.pos, s.idx, COLOR_SIZE);
-      world = new World(
-        canvas,
-        (r) => makeDoll(r, s, atlas),
-        () => play?.rebuildPaint()
-      );
+      try {
+        world = new World(
+          canvas,
+          (r) => makeDoll(r, s, atlas),
+          () => play?.rebuildPaint()
+        );
+      } catch {
+        // WebGL2 が作れない端末やメモリ不足では、準備中のまま固まらず理由を見せる
+        failed = true;
+        return;
+      }
       world.setStage(buildMansion());
       size();
       play = new Play(world, radius);
@@ -57,12 +64,16 @@
     // 人形の面と升目を作るのに数百 ms 止まるので、「準備中」を 1 度描かせてから作る
     const raf = requestAnimationFrame(() => (timer = setTimeout(build)));
     mq.addEventListener('change', run);
+    // 裏に回ると pointerup が届かないことがあるので、押している指とボタンを捨てる
+    const hide = () => document.hidden && play?.interrupt();
+    document.addEventListener('visibilitychange', hide);
     const ro = new ResizeObserver(size);
     ro.observe(box);
     return () => {
       cancelAnimationFrame(raf);
       clearTimeout(timer);
       mq.removeEventListener('change', run);
+      document.removeEventListener('visibilitychange', hide);
       ro.disconnect();
       stop?.();
       world?.dispose();
@@ -110,6 +121,11 @@
     {/if}
     {#if play.mode !== 'eye'}<HideTimer {play} />{/if}
     <Buttons {play} onquit={() => onquit?.()} />
+  {:else if failed}
+    <div class="notice failed">
+      <p>この端末では 3D を表示できません</p>
+      <button onclick={() => onquit?.()}>タイトルへ</button>
+    </div>
   {:else}
     <p class="notice">準備中…</p>
   {/if}
@@ -146,6 +162,26 @@
     font-size: 28px;
     text-shadow: 0 2px 4px #000;
     pointer-events: none;
+  }
+
+  .failed {
+    align-content: center;
+    gap: 16px;
+    pointer-events: auto;
+  }
+
+  .failed p {
+    margin: 0;
+  }
+
+  .failed button {
+    padding: 8px 24px;
+    border: 2px solid rgb(255 255 255 / 0.85);
+    border-radius: 24px;
+    background: rgb(0 0 0 / 0.35);
+    color: #fff;
+    font: inherit;
+    font-size: 18px;
   }
 
   .cover {

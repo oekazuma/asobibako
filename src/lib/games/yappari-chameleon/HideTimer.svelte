@@ -6,7 +6,8 @@
   const shown = $derived(play.timer === null ? null : Math.ceil(play.timer));
 </script>
 
-<button class="timer" onclick={() => (shown === null ? play.startTimer() : play.stopTimer())}>
+<!-- 歩いている最中に別の指で押すことがあるので、click ではなく pointerdown で受ける -->
+<button class="timer" onpointerdown={() => (shown === null ? play.startTimer() : play.stopTimer())}>
   {#if shown === null}
     隠れタイム計測
   {:else}

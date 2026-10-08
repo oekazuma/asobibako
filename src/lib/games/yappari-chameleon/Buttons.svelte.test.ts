@@ -99,6 +99,29 @@ describe('Buttons', () => {
     unmount(a);
   });
 
+  it('ジャンプ・よじ登り・回転ロックは click ではなく pointerdown で受ける（別の指を置いたまま押せる）', () => {
+    for (const over of [{}, { mode: 'eye' as const }, { nearWall: true }]) {
+      const play = fake(over);
+      const target = document.body.appendChild(document.createElement('div'));
+      const app = mount(Buttons, { target, props: { play, onquit: () => {} } });
+      flushSync();
+      const jump = target.querySelector('.column button')!;
+      jump.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+      jump.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(play.jump).toHaveBeenCalledTimes(1);
+      unmount(app);
+    }
+    const play = fake();
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(Buttons, { target, props: { play, onquit: () => {} } });
+    flushSync();
+    const lock = [...target.querySelectorAll('.column button')].find((b) => b.textContent?.includes('回転ロック'))!;
+    lock.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    lock.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(play.toggleLock).toHaveBeenCalledTimes(1);
+    unmount(app);
+  });
+
   it('ポーズのボタンは押した指の番号で輪を開く', () => {
     const play = fake();
     const target = document.body.appendChild(document.createElement('div'));

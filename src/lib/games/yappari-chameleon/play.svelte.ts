@@ -47,6 +47,8 @@ export class Play {
   orbitPitch = 0.15;
   orbitDist = 1.6;
   #stroke: Stroke | null = null;
+  /** 取り消し列の 1 本を始めたか。体に当たるまで始めないので、体を外した指は何も残さない */
+  #began = false;
   #jump = false;
   #release = false;
   #cursorUntil = 0;
@@ -132,6 +134,8 @@ export class Play {
 
   toggleSpoit(): void {
     this.spoit = !this.spoit;
+    // 塗っている指があるまま切り替えても、スポイト中は move と end が筆に届かないので、ここで筆を終える
+    if (this.spoit && this.#stroke) this.#endStroke();
   }
 
   toggleShadow(): void {
@@ -205,11 +209,22 @@ export class Play {
     this.stick = { ...this.pad.stick };
   }
 
+  #endStroke() {
+    if (this.#stroke) this.recent = pushRecent(this.recent, this.#stroke.brush.color);
+    this.#stroke = null;
+    this.#began = false;
+    this.world.cursor(null, 0);
+    this.canUndo = this.log.canUndo;
+  }
+
   #paint(e: PaintEvent) {
     if (e.kind === 'cancel') {
+      // スポイト中や体を外したままの筆は取り消し列に入っていないので、前の筆を消さない
+      const began = this.#began;
       this.#stroke = null;
+      this.#began = false;
       this.world.cursor(null, 0);
-      if (this.log.cancel()) this.rebuildPaint();
+      if (began && this.log.cancel()) this.rebuildPaint();
       this.canUndo = this.log.canUndo;
       return;
     }
@@ -217,20 +232,19 @@ export class Play {
       if (e.kind === 'end') this.spoitAt(e.x, e.y);
       return;
     }
-    if (e.kind === 'start') {
-      this.log.begin();
-      this.#stroke = new Stroke({ ...this.brush, color: [...this.brush.color] });
-      sounds.spray();
-    }
+    if (e.kind === 'start') this.#stroke = new Stroke({ ...this.brush, color: [...this.brush.color] });
     const hit = this.#stroke && this.world.pickBody(e.x, e.y);
     const rest = hit && restHit(this.world.rig, hit);
     this.world.cursor(e.kind === 'end' ? null : hit, this.brush.radius);
-    if (this.#stroke && rest) this.applyDabs(this.#stroke.to(rest));
-    if (e.kind === 'end') {
-      if (this.#stroke) this.recent = pushRecent(this.recent, this.#stroke.brush.color);
-      this.#stroke = null;
-      this.canUndo = this.log.canUndo;
+    if (this.#stroke && rest) {
+      if (!this.#began) {
+        this.#began = true;
+        this.log.begin();
+        sounds.spray();
+      }
+      this.applyDabs(this.#stroke.to(rest));
     }
+    if (e.kind === 'end') this.#endStroke();
   }
 
   #input(yaw: number) {

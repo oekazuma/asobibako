@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import type { V3 } from '$lib/sculpt';
 import type { RGB } from './color';
-import { PoseAnimator, type DollRig } from './doll3d';
+import { bakePose, PoseAnimator, type DollRig } from './doll3d';
 import { rayDistance, RADIUS, type Body, type Level } from './move';
 import { finish, rainbowMottle, readPick } from './textures';
 import { seeThrough, XRAY } from './xray';
@@ -43,6 +43,8 @@ export class World {
     })
   );
   #brush = new THREE.Group();
+  #baked = -1;
+  #center = new THREE.Vector3();
   #dist = 2.4;
   #w = 1;
   #h = 1;
@@ -74,6 +76,9 @@ export class World {
     top.shadow.camera.right = 17;
     top.shadow.camera.top = 8;
     top.shadow.camera.bottom = -8;
+    // 奥行きの範囲を光の高さ（20m）の前後に絞る。既定の far 500 だと bias の -0.0004 が 20cm にもなって影が浮く
+    top.shadow.camera.near = 1;
+    top.shadow.camera.far = 30;
     top.shadow.bias = -0.0004;
     top.shadow.normalBias = 0.02;
     this.scene.add(top, top.target);
@@ -169,11 +174,19 @@ export class World {
     this.#brush.visible = on;
   }
 
-  /** 体の真ん中（ペイントのカメラが回る中心）。ポーズで変わるので骨の外接球から出す */
+  /** 今のポーズの当たり用の体。骨が動いたときだけ焼き直す（焼くのに 8ms ほどかかる） */
+  #body(): THREE.Mesh {
+    if (this.poses.version !== this.#baked) {
+      this.#baked = this.poses.version;
+      this.#center.copy(bakePose(this.rig));
+    }
+    return this.rig.pick;
+  }
+
+  /** 体の真ん中（ペイントのカメラが回る中心）。ポーズで変わるので骨で曲げた形から出す */
   dollCenter(): V3 {
-    const m = this.rig.mesh;
-    m.computeBoundingSphere();
-    const c = m.boundingSphere!.center.clone().applyMatrix4(m.matrixWorld);
+    this.#body();
+    const c = this.#center.clone().applyMatrix4(this.rig.mesh.matrixWorld);
     return [c.x, c.y, c.z];
   }
 
@@ -220,7 +233,7 @@ export class World {
   }
 
   pickBody(x: number, y: number): THREE.Intersection | null {
-    return this.#cast(x, y, [this.rig.mesh]);
+    return this.#cast(x, y, [this.#body()]);
   }
 
   /** 体の上の当たりに、面に沿った筆の半径の輪を置く。指の下が見えないタッチで、塗る所と大きさを見せる */
@@ -235,9 +248,9 @@ export class World {
   }
 
   spoit(x: number, y: number): { color: RGB; metal: number; rough: number } | null {
-    const hit = this.#cast(x, y, [this.rig.mesh, ...(this.#stage ? [this.#stage] : [])]);
+    const hit = this.#cast(x, y, [this.#body(), ...(this.#stage ? [this.#stage] : [])]);
     if (!hit) return null;
-    if (hit.object === this.rig.mesh) return hit.uv ? this.rig.paint.read(hit.uv) : null;
+    if (hit.object === this.rig.pick) return hit.uv ? this.rig.paint.read(hit.uv) : null;
     const m = (hit.object as THREE.Mesh).material;
     // 壁や床の箱は面ごとに別の材質なので、当たった面の材質を読む
     return readPick(Array.isArray(m) ? m[hit.face?.materialIndex ?? 0] : m, hit.uv);

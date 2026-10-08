@@ -6,6 +6,10 @@ import type { Dab } from './paint';
 import { Play } from './play.svelte';
 import type { World } from './world3d';
 
+vi.mock('./doll3d', () => ({
+  restHit: () => ({ p: [0, 1, 0], n: [0, 0, 1] })
+}));
+
 vi.mock('$lib/audio.svelte', () => ({
   tone: vi.fn(),
   sweep: vi.fn(),
@@ -24,7 +28,7 @@ const level: Level = {
   spawn: [0, 0, 0]
 };
 
-function fakeWorld() {
+function fakeWorld(onBody = false) {
   return {
     level,
     camera: { position: { x: 0, y: 2.9, z: 1 } },
@@ -38,7 +42,7 @@ function fakeWorld() {
     snapCamera: vi.fn(),
     holdBrush: vi.fn(),
     dollCenter: () => [0, 1, 0],
-    pickBody: () => null,
+    pickBody: () => (onBody ? { object: {}, point: {}, normal: {} } : null),
     cursor: vi.fn()
   } as unknown as World;
 }
@@ -57,6 +61,105 @@ function clinging() {
   secs(p, 0.1);
   return p;
 }
+
+const sprayed = async () => {
+  const { noise } = await import('$lib/audio.svelte');
+  return vi.mocked(noise);
+};
+
+/** ペイントモードで 1 本の指を置き、塗り始める時間まで待って離す */
+function stroke(p: Play, id = 1) {
+  p.pointer('down', id, 400, 300, 1000);
+  p.frame(1 / 60, performance.now() + 200);
+  p.pointer('move', id, 410, 300, 1000);
+  p.pointer('up', id, 410, 300, 1000);
+}
+
+describe('Play の塗り', () => {
+  it('3D スポイト中の取り消し（2 本めの指）は、前の筆を消さない', () => {
+    const w = fakeWorld(true);
+    const p = new Play(w, 70);
+    p.togglePaint();
+    stroke(p);
+    expect(p.canUndo).toBe(true);
+    vi.mocked(w.rig.paint.rebuild).mockClear();
+    p.toggleSpoit();
+    p.pointer('down', 1, 400, 300, 1000);
+    p.frame(1 / 60, performance.now() + 200);
+    p.pointer('down', 2, 500, 300, 1000);
+    expect(p.canUndo).toBe(true);
+    expect(p.log.dabs.length).toBeGreaterThan(0);
+    expect(w.rig.paint.rebuild).not.toHaveBeenCalled();
+  });
+
+  it('体を外した 1 回のタップは、取り消しの 1 本にも吹き付けの音にもならない', async () => {
+    const noise = await sprayed();
+    noise.mockClear();
+    const p = new Play(fakeWorld(false), 70);
+    p.togglePaint();
+    stroke(p);
+    expect(p.canUndo).toBe(false);
+    expect(noise).not.toHaveBeenCalled();
+  });
+
+  it('体に当たらないまま取り消された筆は、塗りを作り直さない', () => {
+    const w = fakeWorld(false);
+    const p = new Play(w, 70);
+    p.togglePaint();
+    p.pointer('down', 1, 400, 300, 1000);
+    p.frame(1 / 60, performance.now() + 200);
+    p.pointer('down', 2, 500, 300, 1000);
+    expect(w.rig.paint.rebuild).not.toHaveBeenCalled();
+  });
+
+  it('体に当たった筆が取り消されたら、その筆だけ消して作り直す', () => {
+    const w = fakeWorld(true);
+    const p = new Play(w, 70);
+    p.togglePaint();
+    stroke(p);
+    const kept = p.log.dabs.length;
+    p.pointer('down', 1, 400, 300, 1000);
+    p.frame(1 / 60, performance.now() + 200);
+    p.pointer('move', 1, 420, 300, 1000);
+    expect(p.log.dabs.length).toBeGreaterThan(kept);
+    p.pointer('down', 2, 500, 300, 1000);
+    expect(p.log.dabs).toHaveLength(kept);
+    expect(w.rig.paint.rebuild).toHaveBeenCalledTimes(1);
+  });
+
+  it('塗っている途中に 3D スポイトを入れると、その筆はそこで終えて残る', () => {
+    const p = new Play(fakeWorld(true), 70);
+    p.togglePaint();
+    p.pointer('down', 1, 400, 300, 1000);
+    p.frame(1 / 60, performance.now() + 200);
+    p.pointer('move', 1, 420, 300, 1000);
+    const dabs = p.log.dabs.length;
+    p.toggleSpoit();
+    expect(p.spoit).toBe(true);
+    p.pointer('move', 1, 440, 300, 1000);
+    expect(p.log.dabs).toHaveLength(dabs);
+    expect(p.canUndo).toBe(true);
+    expect(p.recent).toHaveLength(1);
+  });
+
+  it('interrupt は塗りかけの筆を取り消し、押しているボタンも捨てる', () => {
+    const w = fakeWorld(true);
+    const p = new Play(w, 70);
+    p.togglePaint();
+    stroke(p);
+    const kept = p.log.dabs.length;
+    p.pointer('down', 1, 400, 300, 1000);
+    p.frame(1 / 60, performance.now() + 200);
+    p.pointer('move', 1, 420, 300, 1000);
+    p.hold('up', true);
+    p.hold('down', true);
+    p.turn(1);
+    p.interrupt();
+    expect(p.log.dabs).toHaveLength(kept);
+    expect(p.held).toEqual({ up: false, down: false, turn: 0 });
+    expect(p.mode).toBe('paint');
+  });
+});
 
 describe('Play', () => {
   it('押したままの下がるが、床まで下りて張り付きが終わっても残らず、張り付き直しても滑り落ちない', () => {

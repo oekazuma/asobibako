@@ -9,6 +9,8 @@ import { STAND, type Pose } from './poses';
 export interface DollRig {
   root: THREE.Group;
   mesh: THREE.SkinnedMesh;
+  /** 今のポーズに焼いた見えない体。塗る指の当たり判定と体の中心を、毎回骨で曲げ直さずに出す */
+  pick: THREE.Mesh;
   bones: Record<Bone, THREE.Bone>;
   paint: PaintSurface;
   material: THREE.MeshStandardMaterial;
@@ -72,11 +74,36 @@ export function makeDoll(renderer: THREE.WebGLRenderer, s: DollSurface, a: Atlas
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   root.add(mesh);
-  return { root, mesh, bones, paint, material };
+  // 面の並びは mesh と同じなので、当たった面の番号がそのまま restHit で休みの形の位置に引ける
+  const pickGeo = new THREE.BufferGeometry();
+  pickGeo.setAttribute('position', new THREE.BufferAttribute(pos.slice(), 3));
+  pickGeo.setAttribute('normal', geo.attributes.normal);
+  pickGeo.setAttribute('uv', geo.attributes.uv);
+  const pick = new THREE.Mesh(pickGeo, material);
+  pick.visible = false;
+  root.add(pick);
+  return { root, mesh, pick, bones, paint, material };
+}
+
+/** pick を今のポーズの形に焼き直し、メッシュの座標での体の真ん中を返す */
+export function bakePose(rig: DollRig): THREE.Vector3 {
+  // 骨の行列は描画のときに更新されるので、その前に呼ばれても今の骨で曲げる
+  rig.root.updateMatrixWorld(true);
+  const at = rig.pick.geometry.attributes.position as THREE.BufferAttribute;
+  const v = new THREE.Vector3();
+  for (let i = 0; i < at.count; i++) {
+    rig.mesh.getVertexPosition(i, v);
+    at.setXYZ(i, v.x, v.y, v.z);
+  }
+  at.needsUpdate = true;
+  // Mesh.raycast は外接の箱と球を作り直さず使い回すので、焼くたびに計算し直す
+  rig.pick.geometry.computeBoundingBox();
+  rig.pick.geometry.computeBoundingSphere();
+  return rig.pick.geometry.boundingSphere!.center;
 }
 
 export function restHit(rig: DollRig, hit: THREE.Intersection): Hit | null {
-  if (hit.object !== rig.mesh || !hit.face || !hit.barycoord) return null;
+  if (hit.object !== rig.pick || !hit.face || !hit.barycoord) return null;
   const { a, b, c } = hit.face;
   const w = hit.barycoord;
   const pos = rig.mesh.geometry.attributes.position;
@@ -97,6 +124,8 @@ export class PoseAnimator {
   #target: Pose = STAND;
   #want = new Map<Bone, THREE.Quaternion>();
   #moving = true;
+  /** 骨を動かすたびに増える。ポーズに合わせて作り直す物が、変わったかどうかを見るのに使う */
+  version = 0;
 
   constructor(rig: DollRig) {
     this.#rig = rig;
@@ -129,6 +158,7 @@ export class PoseAnimator {
   }
 
   #apply(k: number): boolean {
+    this.version++;
     let far = 0;
     for (const b of BONES) {
       const q = this.#rig.bones[b].quaternion;

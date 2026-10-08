@@ -13,6 +13,14 @@
   </button>
 {/snippet}
 
+<!-- スティックの指を置いたまま押す 2 本めの指では iOS が click を出さないことがあるので、pointerdown で受ける -->
+{#snippet tap(icon: IconName, label: string, onpress: () => void, on = false)}
+  <button class="btn" class:on onpointerdown={onpress}>
+    <Icon name={icon} size="30px" />
+    <span>{label}</span>
+  </button>
+{/snippet}
+
 {#snippet holder(icon: IconName, label: string, key: 'up' | 'down', rotate = 0)}
   <button
     class="btn"
@@ -55,7 +63,7 @@
     {@render button('shadow', '影', () => play.toggleShadow(), play.shadow)}
     {@render button('spray', 'ペイントモード', () => play.togglePaint(), true)}
   {:else if play.mode === 'eye'}
-    {@render button('lift', 'ジャンプ', () => play.jump())}
+    {@render tap('lift', 'ジャンプ', () => play.jump())}
     {@render button('eye', 'フリーカメラ', () => play.toggleEye(), true)}
   {:else if play.cling}
     {@render holder('lift', '上がる', 'up')}
@@ -64,11 +72,11 @@
     {@render pose()}
     {@render button('spray', 'ペイントモード', () => play.togglePaint())}
   {:else}
-    {@render button('lift', play.nearWall ? 'よじ登り' : 'ジャンプ', () => play.jump())}
+    {@render tap('lift', play.nearWall ? 'よじ登り' : 'ジャンプ', () => play.jump())}
     {@render pose()}
     {@render button('spray', 'ペイントモード', () => play.togglePaint())}
     {@render button('eye', 'フリーカメラ', () => play.toggleEye())}
-    {@render button('lock', '回転ロック', () => play.toggleLock(), play.lock)}
+    {@render tap('lock', '回転ロック', () => play.toggleLock(), play.lock)}
   {/if}
 </div>
 
