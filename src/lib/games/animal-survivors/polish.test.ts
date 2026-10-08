@@ -138,6 +138,7 @@ describe('新しい実績', () => {
   it('祠めぐり・合体の名手・限界の先へは、その回のまとめで決まる', () => {
     const w = quiet();
     w.shrinesUsed = Array.from({ length: 10 }, (_, i) => i);
+    w.shrineCount = 10;
     w.evolvedNow.push('howlUn', 'acornUn', 'pawUn');
     w.weapons = [{ id: 'woof', level: 5, cd: 0, limit: { damage: 50 } }];
     const run = summary(w);

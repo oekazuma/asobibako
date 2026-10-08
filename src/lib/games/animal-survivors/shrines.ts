@@ -61,6 +61,7 @@ export function touchShrines(w: World): void {
   for (const s of shrinesNear(w.stage.art, p.x, p.y, TOUCH, found)) {
     if (w.shrinesUsed.includes(s.key)) continue;
     w.shrinesUsed.push(s.key);
+    w.shrineCount += 1;
     const secs = BLESS_SECS * (hasRelic(w, 'mirror') ? MIRROR : 1);
     if (s.kind === 'power') w.blessing.might = Math.max(w.blessing.might, 0) + secs;
     else if (s.kind === 'wind') w.blessing.speed = Math.max(w.blessing.speed, 0) + secs;

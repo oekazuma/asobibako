@@ -25,6 +25,7 @@ export const HERO_KEYS = [
   'chests',
   'big',
   'raises',
+  'shrineCount',
   'blessing'
 ] as const;
 export type HeroKey = (typeof HERO_KEYS)[number];

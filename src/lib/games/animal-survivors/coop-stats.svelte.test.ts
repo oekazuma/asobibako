@@ -50,6 +50,7 @@ describe('ふたりの活躍', () => {
     expect(text).toContain('いちばん助けた');
     expect(text).toContain('連携の技 3');
     expect(text).toContain('重い宝箱 1');
+    expect(target.querySelector('[aria-current="true"]')?.textContent).toContain('じぶん');
     unmount(app);
   });
 

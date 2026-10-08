@@ -34,10 +34,12 @@ export const LIMIT_TEXT: Record<LimitStat, string> = {
 };
 
 /** 次の 1 回で実際に上がるぶんの文（頭打ちのあとの伸び） */
-export function limitGain(stat: LimitStat, now: number): string {
+export function limitGain(stat: LimitStat, now: number, kind?: WeaponKind): string {
   const d = limitCount(now + 1) - limitCount(now);
   if (stat === 'amount') return `数 +${amountOf(now + 1) - amountOf(now)}`;
-  if (stat === 'cooldown') return `待ち時間 −${pct(1 - (1 - STEP.cooldown) ** d)}`;
+  // 回る武器は回り終えてから待つので、縮むのはそのあとの待ち時間だけ（回っている時間は変わらない）
+  if (stat === 'cooldown')
+    return `${kind === 'orbit' ? '回り終えてからの待ち時間' : '待ち時間'} −${pct(1 - (1 - STEP.cooldown) ** d)}`;
   const name = { damage: 'ダメージ', area: '大きさ', speed: '速さ', duration: '時間' }[stat];
   return `${name} +${pct(STEP[stat] * d)}`;
 }

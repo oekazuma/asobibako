@@ -13,7 +13,7 @@ import { PALETTE } from './art/palette';
 import { shots, swipes, zonesBelow } from './draw-arms';
 import { bossBars, hazardsAbove, hazardsBelow, introDust, introEdge } from './draw-boss';
 import { growFrame } from './grow';
-import { byFeet, covers, drawObstacles, inView, onScreen } from './draw-obstacles';
+import { byFeet, covers, drawObstacles, inView, onScreen, feetOf } from './draw-obstacles';
 import { hash, obstaclesNear, type Obstacle } from './obstacles';
 import type { Prompts } from './prompts.svelte';
 import { nearestHero, RAISE_SECS, type Hero } from './heroes';
@@ -26,7 +26,7 @@ import {
   relicArrows,
   treasureArrow
 } from './draw-events';
-import { drawCarry } from './draw-carry';
+import { drawCarry, drawCarryChest } from './draw-carry';
 import { blizzard } from './draw-storm';
 import { drawLava } from './draw-volcano';
 import { EAGLE } from './bosses-forest';
@@ -335,7 +335,8 @@ function enemies(
   now: number,
   obstacles: Obstacle[],
   lively = 0,
-  introduced: number[] = []
+  introduced: number[] = [],
+  chest?: { feet: number; draw: () => void }
 ) {
   order.length = 0;
   for (const e of w.enemies) {
@@ -346,7 +347,12 @@ function enemies(
   const feet = (e: Enemy) => footing(e).y + (ART[e.def.id].h * sizeOf(e)) / 2;
   ctx.fillStyle = 'rgb(0 0 0 / 0.25)';
   for (const e of order) shadow(ctx, footing(e).x, feet(e) - 1, Math.round(e.def.r * (e.def.boss ? 2.2 : 1.8)));
+  let chestDone = !chest;
   for (const e of byFeet(order, feet, obstacles)) {
+    if (!chestDone && ('def' in e ? feet(e) : feetOf(e)) > chest!.feet) {
+      chest!.draw();
+      chestDone = true;
+    }
     if (!('def' in e)) {
       drawObstacles(ctx, [e], now, q);
       continue;
@@ -368,6 +374,7 @@ function enemies(
     if (e.def.chief) crown(ctx, e, art, flip);
     if (e.def.metal) sparkle(ctx, e, now);
   }
+  if (!chestDone) chest!.draw();
 }
 
 function pickups(ctx: CanvasRenderingContext2D, w: World, now: number, cx: number, cy: number, v: ViewSize) {
@@ -432,9 +439,10 @@ export function draw(
   hazardsBelow(ctx, w, q, now);
   zonesBelow(ctx, w, q, now);
   pickups(ctx, w, now, cx, cy, v);
-  drawCarry(ctx, w, now, q);
+  drawCarry(ctx, w, now);
   inView(w.stage.art, cx, cy, v.w, v.h, seen);
-  enemies(ctx, w, cx, cy, v, now, seen, prompts?.intro?.t ?? 0, prompts?.intro?.ids);
+  const chest = w.carry ? { feet: w.carry.y + 6, draw: () => drawCarryChest(ctx, w, q) } : undefined;
+  enemies(ctx, w, cx, cy, v, now, seen, prompts?.intro?.t ?? 0, prompts?.intro?.ids, chest);
   const ev = prompts?.growing ? prompts.evolve : null;
   const grow = ev ? growFrame(ev.t, prompts!.still) : null;
   if (!grow) {

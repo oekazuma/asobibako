@@ -66,9 +66,12 @@ export function stepCarry(w: World, dt: number): void {
     const len = Math.hypot(dx, dy);
     const go = Math.min(len, BASE_SPEED * CARRY_SPEED * dt);
     if (len > 0) {
+      const was = { x: c.x, y: c.y };
       c.x += (dx / len) * go;
       c.y += (dy / len) * go;
       pushOut(w.stage.art, c, CARRY_R);
+      // 2 つの障害物のあいだで押し出しが行き来すると揺れて見えるので、ほとんど進めないなら動かさない
+      if (Math.hypot(c.x - was.x, c.y - was.y) < go * 0.3) Object.assign(c, was);
     }
   }
   if (Math.hypot(c.x - c.ax, c.y - c.ay) > ALTAR_R) return;

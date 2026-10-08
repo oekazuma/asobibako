@@ -34,7 +34,7 @@ export function cardInfo(c: Choice | Reward) {
       art: itemArt(`weapon-${c.id}`),
       name: WEAPONS[c.id].name,
       tag: '限界突破',
-      text: `${limitGain(c.stat, c.now)}（今 +${c.now} → +${c.now + 1}）`,
+      text: `${limitGain(c.stat, c.now, WEAPONS[c.id].kind)}（今 +${c.now} → +${c.now + 1}）`,
       evo: false
     };
   if (c.kind === 'meat') return { art: ITEM_ART.meat, name: '肉', tag: '', text: 'HP を 30% 回復', evo: false };

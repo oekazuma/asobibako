@@ -133,6 +133,9 @@ export interface CoopRecords {
   pairs: string[];
 }
 
+/** これより短い 2 人の回は記録しない（つないですぐ抜けると、組み合わせを稼げてしまう） */
+export const COOP_MIN_SECS = 60;
+
 const emptyCoop = (): CoopRecords => ({ runs: 0, clears: 0, best: 0, raises: 0, links: 0, carries: 0, pairs: [] });
 
 /** 組み合わせの名前。どちらが親でも同じ組になるよう、id の並びを決める */
@@ -323,7 +326,7 @@ export function record(r: Records, run: RunSummary): AchievementDef[] {
     run.daily.paid = true;
   }
   const c = run.coop;
-  if (c) {
+  if (c && run.time >= COOP_MIN_SECS) {
     const o = r.coop;
     // 延長戦の 2 回めの記録（killsBefore がある）は、回とクリアを 10:00 の記録で数えてある
     if (run.killsBefore === undefined) {

@@ -226,6 +226,8 @@ export interface World {
   big: number;
   /** その動物が相棒を起こした回数 */
   raises: number;
+  /** その動物が使った祠の数（祠めぐりの実績を動物ごとに見る） */
+  shrineCount: number;
   /** 2 匹で祭壇まで運んだ重い宝箱の数 */
   carried: number;
   /** 流れ星の残り秒と、次の予告までの秒 */
@@ -375,6 +377,7 @@ export function makeHero(id: AnimalId, ranks: Ranks, mods: ModId[], gear: GearKe
     chests: 0,
     big: 0,
     raises: 0,
+    shrineCount: 0,
     blessing: { might: 0, speed: 0, xp: 0 },
     down: false,
     revive: 0,
@@ -1164,7 +1167,7 @@ export function summary(w: World): RunSummary {
     opened: w.opened,
     evolved: [...w.evolvedNow],
     relics: [...w.relicsNow],
-    shrines: w.shrinesUsed.length,
+    shrines: w.shrineCount,
     dealt: Object.entries(w.dealt)
       .map(([id, d]) => ({ id, damage: Math.round(d.damage), kills: d.kills }))
       .sort((a, b) => b.damage - a.damage),

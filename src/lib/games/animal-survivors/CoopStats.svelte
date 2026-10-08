@@ -15,9 +15,10 @@
   <h3>ふたりの活躍</h3>
   <div class="cols">
     {#each coop.heroes as h, i (`${h.animal}-${i}`)}
-      <div class="col" class:me={i === coop.me}>
+      <div class="col" class:me={i === coop.me} aria-current={i === coop.me ? 'true' : undefined}>
         <PixelIcon art={ANIMAL_ART[h.animal].forms[0].walk} size="min(10cqw, 6cqh, 56px)" />
         <b>{animal(h.animal).name}</b>
+        {#if i === coop.me}<small>じぶん</small>{/if}
         <span>撃破 {n(h.kills)}</span>
         <span>ダメージ {n(h.damage)}</span>
         <span>起こした {h.raises}</span>

@@ -10,8 +10,8 @@ export function chestAt(c: { x: number; y: number }, art: Art, q: (v: number) =>
   return { x: q(c.x - art.w), y: q(c.y - art.h * 2 + 6) };
 }
 
-/** 重い宝箱と祭壇（地面の高さで、敵より先に描く）。光はなめらかに強めて弱める */
-export function drawCarry(ctx: CanvasRenderingContext2D, w: World, now: number, q: (v: number) => number): void {
+/** 祭壇と宝箱のまわりの輪（地面の高さで、敵より先に描く）。光はなめらかに強めて弱める */
+export function drawCarry(ctx: CanvasRenderingContext2D, w: World, now: number): void {
   const c = w.carry;
   if (!c) return;
   const glow = 0.45 + 0.35 * pulse(now);
@@ -34,6 +34,12 @@ export function drawCarry(ctx: CanvasRenderingContext2D, w: World, now: number, 
     ctx.stroke();
   });
   ctx.globalAlpha = 1;
+}
+
+/** 重い宝箱と祭壇への向きの矢印。障害物と同じく足もとの高さの順で、敵や障害物と混ぜて描く */
+export function drawCarryChest(ctx: CanvasRenderingContext2D, w: World, q: (v: number) => number): void {
+  const c = w.carry;
+  if (!c) return;
   const a = ITEM_ART.chest;
   const at = chestAt(c, a, q);
   ctx.drawImage(bake(a), at.x, at.y, a.w * 2, a.h * 2);
