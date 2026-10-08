@@ -3,7 +3,7 @@ import { RAGE, type Stage } from './stages/forest';
 import { summary, type RunSummary, type World } from './world';
 
 /** 延長戦の敵の硬さと攻撃に、1 分ごとに掛ける倍率（足し算だと全部そろえた動物がいつまでも倒れなかった） */
-export const OT_GROW = 1.25;
+export const OT_GROW = 1.12;
 export const otScale = (t: number, from: number) => OT_GROW ** (Math.max(0, t - from) / 60);
 /** 延長戦のボスは 1 分ごと。誰も届かない長さまで行を用意しておく */
 const BOSS_EVERY = 60;

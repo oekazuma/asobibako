@@ -2,7 +2,8 @@ import { ENEMIES } from '../enemies';
 import { bossRun, FOREST, type Stage } from './forest';
 
 /** 森の時刻の流れのまま、敵を墓地の顔ぶれにして 1 段強くした面 */
-const HARDER = 1.1;
+/** 敵の顔ぶれ（おばけ・ガイコツ・ゾンビ）が森の敵より 1.3〜2 倍硬いので、表の倍率は森より下げる（1.1 だと雪山より難しく出た。ボットで測った） */
+export const HARDER = 0.9;
 
 const CHIEFS = ['skeleton', 'zombie', 'ghost', 'skeleton'];
 
@@ -24,8 +25,7 @@ export const GRAVEYARD: Stage = {
     return to ? { ...ev, enemy: to, text: ev.text.replace(ENEMIES[ev.enemy].name, ENEMIES[to].name) } : ev;
   }),
   chiefs: FOREST.chiefs.map((c, i) => ({ ...c, enemy: CHIEFS[i], hp: Math.round(c.hp * HARDER) })),
-  // 4:00 のかぼちゃ大王で倒れる回が多く、雪山や火山より難しく出ていた（ボットで測った）
-  bosses: bossRun('knight', 'pumpkin', '墓地の主', 0.4),
+  bosses: bossRun('knight', 'pumpkin', '墓地の主'),
   waves: FOREST.waves.map((w) => ({ ...w, enemy: SWAP[w.enemy] ?? w.enemy })),
   cap: (t) => Math.min(400, Math.round(FOREST.cap(t) * 1.15)),
   toughness: (t) => FOREST.toughness(t) * HARDER,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ENEMIES } from './enemies';
 import { FOREST } from './stages/forest';
-import { GRAVEYARD } from './stages/graveyard';
+import { GRAVEYARD, HARDER } from './stages/graveyard';
 import { STAGES, stageOf } from './stages';
 import { Prompts } from './prompts.svelte';
 import { coinsOf, createWorld, damageEnemy, makeEnemy, step, type World } from './world';
@@ -30,10 +30,10 @@ describe('面の表', () => {
     expect(stageOf('nope')).toBe(FOREST);
   });
 
-  it('墓地は森より 1.1 倍強く、コインは 1.5 倍', () => {
+  it('墓地は森の HARDER 倍の強さで、コインは 1.5 倍', () => {
     for (const t of [0, 300, 899]) {
-      expect(GRAVEYARD.toughness(t)).toBeCloseTo(FOREST.toughness(t) * 1.1);
-      expect(GRAVEYARD.fury(t)).toBeCloseTo(FOREST.fury(t) * 1.1);
+      expect(GRAVEYARD.toughness(t)).toBeCloseTo(FOREST.toughness(t) * HARDER);
+      expect(GRAVEYARD.fury(t)).toBeCloseTo(FOREST.fury(t) * HARDER);
     }
     const w = createWorld('dog', 1, VIEW, {}, 'graveyard');
     expect(w.stage).toBe(GRAVEYARD);

@@ -17,8 +17,8 @@ export const heatLabel = (h: number) => snap(h).toFixed(1);
 const bend = (h: number, at0: number, at9: number) =>
   h <= 2 ? at0 + ((1 - at0) * h) / 2 : 1 + ((at9 - 1) * (h - 2)) / 7;
 
-export const HP_AT9 = 4;
-export const ATK_AT9 = 2.5;
+export const HP_AT9 = 4.5;
+export const ATK_AT9 = 2.2;
 export const hpMul = (h: number) => bend(h, 0.6, HP_AT9);
 export const atkMul = (h: number) => bend(h, 0.7, ATK_AT9);
 export const coinMul = (h: number) => bend(h, 0.5, 4);

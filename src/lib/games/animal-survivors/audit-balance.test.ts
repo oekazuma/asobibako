@@ -47,8 +47,8 @@ describe('釜と夜の墓地', () => {
     expect(betOf(9)).toBe(MAX_BET);
   });
 
-  it('夜の墓地の 4:00 のボスの体力は、ほかの面の 4:00 より低い', () => {
-    const hp4 = (id: string) => STAGES.find((s) => s.id === id)!.bosses.find((b) => b.at === 240)!.hp!;
-    expect(hp4('graveyard')).toBeLessThan(hp4('snow'));
+  it('夜の墓地の硬さは森より低い倍率で掛ける（顔ぶれの敵がもともと硬いため）', () => {
+    const at = (id: string) => STAGES.find((s) => s.id === id)!.toughness(300);
+    expect(at('graveyard')).toBeLessThan(at('forest'));
   });
 });
