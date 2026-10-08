@@ -146,7 +146,9 @@ describe('Buttons', () => {
       };
       const dialog = () => target.querySelector('[role="dialog"]');
       const pick = (label: string) =>
-        [...target.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find((b) => b.textContent?.trim() === label)!;
+        [...target.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find(
+          (b) => b.textContent?.trim() === label
+        )!;
       return { target, app, onquit, ask, dialog, pick, play };
     };
 

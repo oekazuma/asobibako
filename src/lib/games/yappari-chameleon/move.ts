@@ -318,8 +318,8 @@ export function step(b: Body, inp: Input, lv: Level, dt: number): void {
   } else b.ground = false;
 }
 
-/** カメラの線（o から向き d、長さ max）が部屋の殻（shell、無ければ boxes）に当たるまでの距離 */
-export function rayDistance(lv: Level, o: V3, d: V3, max: number): number {
+/** カメラの線（o から向き d、長さ max）が部屋の殻（shell、無ければ boxes）に当たるまでの距離。skipInside なら始点を含む箱は無いものとする */
+export function rayDistance(lv: Level, o: V3, d: V3, max: number, skipInside = false): number {
   let best = max;
   for (const box of lv.shell ?? lv.boxes) {
     let t0 = 0;
@@ -335,7 +335,61 @@ export function rayDistance(lv: Level, o: V3, d: V3, max: number): number {
       t0 = Math.max(t0, a);
       t1 = Math.min(t1, c);
     }
-    if (t0 <= t1 && t0 < best) best = t0;
+    if (t0 <= t1 && t0 < best && !(skipInside && t0 === 0)) best = t0;
   }
   return best;
+}
+
+/**
+ * 半径 radius の太さを持つカメラの線。中心と、向きに直角な上下左右へ radius ずらした 4 本のうち最も短い距離。
+ * 縁の線は、始点が壁の中に入る（張り付いた体や壁ぎわの歩き）と 0 を返して距離が潰れるので、始点を含む箱は数えない。
+ * d は長さ 1
+ */
+export function thickRayDistance(lv: Level, o: V3, d: V3, max: number, radius: number): number {
+  const ref: V3 = Math.abs(d[1]) > 0.95 ? [1, 0, 0] : [0, 1, 0];
+  const r = norm(cross(d, ref));
+  const u = cross(r, d);
+  let best = rayDistance(lv, o, d, max);
+  for (const [a, b] of [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1]
+  ]) {
+    const from: V3 = [
+      o[0] + radius * (a * r[0] + b * u[0]),
+      o[1] + radius * (a * r[1] + b * u[1]),
+      o[2] + radius * (a * r[2] + b * u[2])
+    ];
+    best = Math.min(best, rayDistance(lv, from, d, best, true));
+  }
+  return best;
+}
+
+const cross = (a: V3, b: V3): V3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const norm = (v: V3): V3 => {
+  const l = Math.hypot(...v);
+  return [v[0] / l, v[1] / l, v[2] / l];
+};
+
+/** 壁で縮んだあと、揺れ戻しに釣られて伸び縮みを繰り返さないよう、伸び始めるまで待つ秒 */
+const REGROW_WAIT = 0.35;
+
+export interface DistState {
+  dist: number;
+  /** 伸び始めるまでの残り秒 */
+  wait: number;
+}
+
+/**
+ * カメラの距離を目標 want へ寄せる。blocked は want が壁などに押さえられていること。
+ * 縮むときは壁の向こうが見えないよう速く、伸びるときは壁に最後に押さえられてしばらく待ってからゆっくり。
+ * 戸口の縁など、指の手ぶれで線が当たったり外れたりする所で、寄り引きが毎周期の揺れにならないようにする
+ */
+export function easeDist(s: DistState, want: number, blocked: boolean, dt: number): DistState {
+  if (blocked && want <= s.dist + 0.01) s.wait = REGROW_WAIT;
+  else s.wait = Math.max(0, s.wait - dt);
+  if (want < s.dist) s.dist += (want - s.dist) * (1 - Math.pow(0.5, dt * 60));
+  else if (s.wait === 0) s.dist += (want - s.dist) * (1 - Math.pow(1 - 0.08, dt * 60));
+  return s;
 }

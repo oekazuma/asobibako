@@ -47,8 +47,9 @@ export class TouchPad {
     this.#orbit = { dx: 0, dy: 0, zoom: 1 };
   }
 
-  down(id: number, x: number, y: number, width: number, now: number): PaintEvent[] {
-    if (this.mode === 'paint') return this.#paintDown(id, x, y, now);
+  /** orbit は塗るモードで、指を置いた所が体の外のとき（その指は塗らずにカメラを回す） */
+  down(id: number, x: number, y: number, width: number, now: number, orbit = false): PaintEvent[] {
+    if (this.mode === 'paint') return this.#paintDown(id, x, y, now, orbit);
     if (this.#stickId === null && x < width * STICK_AREA) {
       this.#stickId = id;
       Object.assign(this.stick, { x: 0, y: 0, active: true, ox: x, oy: y });
@@ -92,6 +93,7 @@ export class TouchPad {
     if (this.mode === 'paint') {
       this.#fingers.delete(id);
       if (!this.#fingers.size) this.#gesture = false;
+      if (this.#lookId === id) this.#lookId = null;
       if (this.#pending?.id === id) {
         this.#pending = null;
         return [];
@@ -125,14 +127,18 @@ export class TouchPad {
     return o;
   }
 
-  #paintDown(id: number, x: number, y: number, now: number): PaintEvent[] {
+  #paintDown(id: number, x: number, y: number, now: number, orbit: boolean): PaintEvent[] {
     this.#fingers.set(id, { x, y });
     if (this.#fingers.size === 1 && !this.#gesture) {
-      this.#pending = { id, x, y, t: now };
+      if (orbit) {
+        this.#lookId = id;
+        this.#lookAt = { x, y };
+      } else this.#pending = { id, x, y, t: now };
       return [];
     }
     this.#gesture = true;
     this.#pending = null;
+    this.#lookId = null;
     if (this.#painting !== null) {
       this.#painting = null;
       return [{ kind: 'cancel' }];
@@ -158,6 +164,12 @@ export class TouchPad {
     }
     f.x = x;
     f.y = y;
+    if (id === this.#lookId) {
+      this.#look.dx += x - this.#lookAt.x;
+      this.#look.dy += y - this.#lookAt.y;
+      this.#lookAt = { x, y };
+      return [];
+    }
     const out: PaintEvent[] = [];
     const p = this.#pending;
     if (p && p.id === id && (now - p.t >= HOLD_MS || Math.hypot(x - p.x, y - p.y) >= HOLD_PX)) {
@@ -171,6 +183,7 @@ export class TouchPad {
     const f = this.#fingers.get(id);
     this.#fingers.delete(id);
     if (!this.#fingers.size) this.#gesture = false;
+    if (this.#lookId === id) this.#lookId = null;
     if (this.#pending?.id === id) {
       // 動かさずに離したタップも 1 回は吹き付ける（点を打つ）
       this.#pending = null;

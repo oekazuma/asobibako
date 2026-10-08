@@ -3,7 +3,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import type { V3 } from '$lib/sculpt';
 import type { RGB } from './color';
 import { bakePose, PoseAnimator, type DollRig } from './doll3d';
-import { rayDistance, RADIUS, type Body, type Level } from './move';
+import { easeDist, rayDistance, thickRayDistance, RADIUS, type Body, type DistState, type Level } from './move';
 import { finish, rainbowMottle, readPick } from './textures';
 import { seeThrough, XRAY } from './xray';
 
@@ -14,6 +14,11 @@ export interface Built {
   group: THREE.Group;
   level: Level;
 }
+
+/**
+ * カメラの線の太さ。体は壁から RADIUS 離れて歩くので、同じ太さにすると壁ぎわを歩くあいだ縁の線がずっと壁をかすめて、距離が潰れる
+ */
+const CAM_RADIUS = 0.12;
 
 /** 体の厚みの半分。張り付いたときに壁や天井と体の間を空けない */
 const HALF_DEPTH = 0.12;
@@ -45,7 +50,8 @@ export class World {
   #brush = new THREE.Group();
   #baked = -1;
   #center = new THREE.Vector3();
-  #dist = 2.4;
+  #ease: DistState = { dist: 2.4, wait: 0 };
+  #snap = false;
   #w = 1;
   #h = 1;
 
@@ -193,30 +199,45 @@ export class World {
   /** target のまわりを回る三人称のカメラ。壁の向こうへ行かないよう、手前で止める */
   follow(target: V3, yaw: number, pitch: number, dist: number, fov: number, dt: number, from?: V3): void {
     const dir: V3 = [-Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch)];
-    const want = Math.max(0.3, Math.min(dist, rayDistance(this.level, target, dir, dist) - 0.15));
-    // 壁で縮むときは壁の向こうが見えないようすぐ寄せ、離れるときはゆっくり戻す
-    this.#dist = want < this.#dist ? want : this.#dist + (want - this.#dist) * (1 - Math.pow(1 - 0.08, dt * 60));
-    const d = this.#dist;
-    this.camera.fov = fov;
-    this.camera.updateProjectionMatrix();
-    const pos = new THREE.Vector3(target[0] + dir[0] * d, target[1] + dir[1] * d, target[2] + dir[2] * d);
+    // 太さを持った線で測る。細い線だと壁をかすめる角度で当たったり外れたりして、寄り引きを繰り返す
+    const ray = thickRayDistance(this.level, target, dir, dist, CAM_RADIUS);
+    let blocked = ray < dist;
+    let want = Math.min(dist, ray - 0.15);
     if (from) {
-      // 張り付いた体の中心は壁の中にあることがある。部屋の中と分かっている点から線を引いて、殻の外へ出さない
-      const v = pos.clone().sub(new THREE.Vector3(...from));
-      const len = v.length();
-      if (len > 1e-6) {
-        v.divideScalar(len);
-        const hit = rayDistance(this.level, from, [v.x, v.y, v.z], len);
-        if (hit < len) pos.set(...from).addScaledVector(v, Math.max(0, hit - 0.15));
+      // 張り付いた体の中心は壁の中にあることがある。部屋の中と分かっている点からの線でも測り、殻の外へ出さない
+      for (let i = 0; i < 3; i++) {
+        const v: V3 = [
+          target[0] + dir[0] * want - from[0],
+          target[1] + dir[1] * want - from[1],
+          target[2] + dir[2] * want - from[2]
+        ];
+        const len = Math.hypot(...v);
+        if (len < 1e-6) break;
+        const hit = rayDistance(this.level, from, [v[0] / len, v[1] / len, v[2] / len], len);
+        if (hit >= len) break;
+        want *= Math.max(0, hit - 0.15) / len;
+        blocked = true;
       }
     }
-    this.camera.position.copy(pos);
+    want = Math.max(0.3, want);
+    if (this.#snap) this.#ease = { dist: want, wait: 0 };
+    else easeDist(this.#ease, want, blocked, dt);
+    this.#snap = false;
+    this.camera.fov = fov;
+    this.camera.updateProjectionMatrix();
+    const d = this.#ease.dist;
+    this.camera.position.set(target[0] + dir[0] * d, target[1] + dir[1] * d, target[2] + dir[2] * d);
     this.camera.lookAt(target[0], target[1], target[2]);
   }
 
-  /** 三人称の距離のなめらかさを捨て、次の follow で目標の距離へ飛ぶ（モードが変わったとき） */
+  /** 今の三人称の見る中心からカメラまでの距離 */
+  get dist(): number {
+    return this.#ease.dist;
+  }
+
+  /** 三人称の距離のなめらかさを捨て、次の follow で目標の距離へ飛ぶ（フリーカメラへ出入りするとき） */
   snapCamera(): void {
-    this.#dist = Infinity;
+    this.#snap = true;
   }
 
   eye(pos: V3, yaw: number, pitch: number): void {

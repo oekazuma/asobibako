@@ -43,7 +43,8 @@ function fakeWorld(onBody = false) {
     holdBrush: vi.fn(),
     dollCenter: () => [0, 1, 0],
     pickBody: () => (onBody ? { object: {}, point: {}, normal: {} } : null),
-    cursor: vi.fn()
+    cursor: vi.fn(),
+    dist: 2.25
   } as unknown as World;
 }
 
@@ -325,5 +326,116 @@ describe('Play', () => {
     secs(p, 1);
     p.stopTimer();
     expect(p.timer).toBe(null);
+  });
+});
+
+describe('Play のカメラ', () => {
+  const follows = (w: World) => vi.mocked(w.follow).mock.calls;
+  const last = (w: World) => follows(w).at(-1)!;
+
+  it('ペイントモードに入っても、向き・高さ・距離・画角は歩きのまま', () => {
+    const w = fakeWorld();
+    const p = new Play(w, 70);
+    p.camYaw = 1.1;
+    p.camPitch = 0.6;
+    secs(p, 0.1);
+    vi.mocked(w.snapCamera).mockClear();
+    p.togglePaint();
+    expect([p.orbitYaw, p.orbitPitch, p.orbitDist]).toEqual([1.1, 0.6, 2.25]);
+    secs(p, 0.1);
+    expect(last(w).slice(1, 5)).toEqual([1.1, 0.6, 2.25, 60]);
+    expect(w.snapCamera).not.toHaveBeenCalled();
+  });
+
+  it('張り付いていても天井でも、入るときに向きを変えない', () => {
+    const p = clinging();
+    p.camYaw = 0.7;
+    p.togglePaint();
+    expect(p.orbitYaw).toBe(0.7);
+    expect(p.orbitPitch).toBe(p.camPitch);
+  });
+
+  it('見る中心は歩きの位置から体の真ん中へなめらかに移り、戻るときも飛ばない', () => {
+    const w = fakeWorld();
+    const p = new Play(w, 70);
+    secs(p, 0.1);
+    const walk = last(w)[0];
+    p.togglePaint();
+    p.frame(1 / 60, 0);
+    const first = last(w)[0];
+    expect(first[1]).toBeCloseTo(walk[1], 1);
+    secs(p, 0.5);
+    expect(last(w)[0][1]).toBeCloseTo(1, 1);
+    p.togglePaint();
+    p.frame(1 / 60, 0);
+    expect(last(w)[0][1]).toBeCloseTo(1, 1);
+    secs(p, 0.6);
+    expect(last(w)[0][1]).toBeCloseTo(walk[1], 1);
+  });
+
+  it('ペイントを出ると、回した向きと高さを歩きのカメラが引き継ぐ', () => {
+    const p = new Play(fakeWorld(), 70);
+    p.togglePaint();
+    p.orbitYaw = 2;
+    p.orbitPitch = 1.25;
+    p.togglePaint();
+    expect([p.camYaw, p.camPitch]).toEqual([2, 1.2]);
+  });
+
+  it('フリーカメラに出入りするときだけ距離を飛ばす', () => {
+    const w = fakeWorld();
+    const p = new Play(w, 70);
+    p.toggleEye();
+    p.toggleEye();
+    expect(w.snapCamera).toHaveBeenCalledTimes(2);
+    vi.mocked(w.snapCamera).mockClear();
+    p.interrupt();
+    p.togglePaint();
+    p.interrupt();
+    expect(w.snapCamera).not.toHaveBeenCalled();
+  });
+
+  it('体の外から始めた 1 本指はカメラを回し、塗らない', () => {
+    const p = new Play(fakeWorld(false), 70);
+    p.togglePaint();
+    const yaw = p.orbitYaw;
+    const pitch = p.orbitPitch;
+    p.pointer('down', 1, 400, 300, 1000);
+    p.pointer('move', 1, 500, 340, 1000);
+    p.frame(1 / 60, performance.now() + 200);
+    p.pointer('up', 1, 500, 340, 1000);
+    expect(p.orbitYaw).toBeCloseTo(yaw - 100 * 0.005);
+    expect(p.orbitPitch).toBeCloseTo(pitch + 40 * 0.005);
+    expect(p.canUndo).toBe(false);
+    expect(p.log.dabs).toHaveLength(0);
+  });
+
+  it('体の上から始めた 1 本指は塗り、カメラは回さない', () => {
+    const p = new Play(fakeWorld(true), 70);
+    p.togglePaint();
+    const yaw = p.orbitYaw;
+    stroke(p);
+    expect(p.canUndo).toBe(true);
+    expect(p.orbitYaw).toBe(yaw);
+  });
+
+  it('3D スポイトのあいだは、体の外から始めた指も離した所で色を取る', () => {
+    const w = fakeWorld(false);
+    vi.mocked(w as unknown as { spoit: () => unknown }).spoit = vi.fn(() => ({
+      color: [0, 1, 0],
+      metal: 0,
+      rough: 0.5
+    })) as never;
+    const p = new Play(w, 70);
+    p.togglePaint();
+    p.toggleSpoit();
+    const yaw = p.orbitYaw;
+    p.pointer('down', 1, 400, 300, 1000);
+    p.frame(1 / 60, performance.now() + 200);
+    p.pointer('move', 1, 410, 300, 1000);
+    p.frame(1 / 60, performance.now() + 400);
+    p.pointer('up', 1, 410, 300, 1000);
+    expect(p.brush.color).toEqual([0, 1, 0]);
+    expect(p.orbitYaw).toBe(yaw);
   });
 });

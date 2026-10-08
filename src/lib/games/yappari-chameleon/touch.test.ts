@@ -134,3 +134,62 @@ describe('TouchPad 塗る', () => {
     expect(t.cancel(1)).toEqual([{ kind: 'cancel' }]);
   });
 });
+
+describe('TouchPad 塗るモードで体の外から始めた指', () => {
+  const paint = () => {
+    const t = new TouchPad(100);
+    t.setMode('paint');
+    return t;
+  };
+
+  it('塗らず、なぞった分が見回しのずれになる', () => {
+    const t = paint();
+    expect(t.down(1, 500, 500, W, 0, true)).toEqual([]);
+    expect(t.move(1, 530, 480, 10)).toEqual([]);
+    expect(t.tick(500)).toEqual([]);
+    expect(t.up(1)).toEqual([]);
+    expect(t.takeLook()).toEqual({ dx: 30, dy: -20 });
+    expect(t.takeLook()).toEqual({ dx: 0, dy: 0 });
+  });
+
+  it('体の上から始めた指は今までどおり塗り、見回しは動かない', () => {
+    const t = paint();
+    t.down(1, 500, 500, W, 0);
+    expect(t.move(1, 520, 500, 10)).toEqual([
+      { kind: 'start', x: 500, y: 500 },
+      { kind: 'move', x: 520, y: 500 }
+    ]);
+    expect(t.takeLook()).toEqual({ dx: 0, dy: 0 });
+  });
+
+  it('2 本めが来たら 2 本指のカメラになり、1 本めのなぞりはもう見回しに足さない', () => {
+    const t = paint();
+    t.down(1, 500, 500, W, 0, true);
+    t.move(1, 510, 500, 10);
+    t.down(2, 600, 500, W, 20);
+    t.move(1, 530, 500, 30);
+    t.move(2, 630, 500, 30);
+    expect(t.takeLook()).toEqual({ dx: 10, dy: 0 });
+    const o = t.takeOrbit();
+    expect(o.dx).toBeCloseTo(25);
+    expect(o.zoom).toBeCloseTo(100 / 90);
+  });
+
+  it('2 本指のあと残った指では、見回しも塗りもしない', () => {
+    const t = paint();
+    t.down(1, 500, 500, W, 0, true);
+    t.down(2, 600, 500, W, 20);
+    t.up(2);
+    t.move(1, 560, 500, 40);
+    expect(t.takeLook()).toEqual({ dx: 0, dy: 0 });
+    expect(t.tick(500)).toEqual([]);
+  });
+
+  it('取り消された指のあとに、体の上から始めた指で塗れる', () => {
+    const t = paint();
+    t.down(1, 500, 500, W, 0, true);
+    t.cancel(1);
+    t.down(2, 500, 500, W, 100);
+    expect(t.tick(200)).toEqual([{ kind: 'start', x: 500, y: 500 }]);
+  });
+});

@@ -12,6 +12,10 @@ import type { World } from './world3d';
 const LOOK = 0.005;
 const ORBIT = 0.006;
 const EYE_HEIGHT = 1.0;
+const CAM_PITCH_MIN = -0.5;
+const CAM_PITCH_MAX = 1.2;
+/** 見る中心が切り替わったときのずれが 1/e になる時間。0.3 秒でほぼ収まる */
+const SLIDE_SECS = 0.1;
 
 export class Play {
   mode = $state<Mode>('walk');
@@ -52,6 +56,10 @@ export class Play {
   #jump = false;
   #release = false;
   #cursorUntil = 0;
+  /** 見る中心を、モードが変わる前の位置から新しい位置へなめらかに移すためのずれ */
+  #slide: V3 = [0, 0, 0];
+  #shown: V3 | null = null;
+  #slideNext = false;
 
   constructor(world: World, stickRadius: number) {
     this.world = world;
@@ -93,14 +101,17 @@ export class Play {
   }
 
   togglePaint(): void {
-    this.#setMode(this.mode === 'paint' ? 'walk' : 'paint');
     if (this.mode === 'paint') {
-      // 壁に張り付いた体は背中が部屋を向く。壁や天井の裏から見ないよう、部屋の側（天井では下）に回る
-      const on = this.body.cling?.kind;
-      this.orbitYaw = on === 'wall' ? this.body.yaw : this.body.yaw + Math.PI;
-      this.orbitPitch = on === 'ceiling' ? -0.9 : 0.15;
-      this.orbitDist = 1.6;
+      this.camYaw = this.orbitYaw;
+      this.camPitch = Math.min(CAM_PITCH_MAX, Math.max(CAM_PITCH_MIN, this.orbitPitch));
+      this.#setMode('walk');
+      return;
     }
+    // 見ている向き・高さ・距離をそのまま引き継ぐ。塗る手を止めずに済み、見る中心だけが体の真ん中へ移る
+    this.orbitYaw = this.camYaw;
+    this.orbitPitch = this.camPitch;
+    this.orbitDist = Math.min(3.5, Math.max(0.5, this.world.dist));
+    this.#setMode('paint');
   }
 
   toggleEye(): void {
@@ -190,16 +201,23 @@ export class Play {
     this.held.up = this.held.down = false;
     this.held.turn = 0;
     this.wheel = null;
+    if (m !== this.mode) {
+      if (m === 'eye' || this.mode === 'eye') {
+        this.world.snapCamera();
+        this.#shown = null;
+      } else this.#slideNext = true;
+    }
     this.mode = m;
-    this.world.snapCamera();
     this.stick = { ...this.pad.stick };
   }
 
   pointer(kind: 'down' | 'move' | 'up' | 'cancel', id: number, x: number, y: number, width: number): void {
     const now = performance.now();
+    // 体の外に置いた指は塗らずにカメラを回す。スポイトは外でも離した所で色を取るので塗る道を通す。測るのは置いたときの 1 回だけ
+    const orbit = kind === 'down' && this.mode === 'paint' && !this.spoit && !this.world.pickBody(x, y);
     const events =
       kind === 'down'
-        ? this.pad.down(id, x, y, width, now)
+        ? this.pad.down(id, x, y, width, now, orbit)
         : kind === 'move'
           ? this.pad.move(id, x, y, now)
           : kind === 'cancel'
@@ -267,6 +285,17 @@ export class Play {
     };
   }
 
+  /** 見る中心。モードが変わった直後は直前に見ていた位置から始め、desired へ寄せる */
+  #focus(desired: V3, dt: number): V3 {
+    const prev = this.#shown;
+    if (this.#slideNext && prev) this.#slide = [prev[0] - desired[0], prev[1] - desired[1], prev[2] - desired[2]];
+    this.#slideNext = false;
+    const [sx, sy, sz] = this.#slide;
+    const keep = Math.exp(-dt / SLIDE_SECS);
+    this.#slide = [sx * keep, sy * keep, sz * keep];
+    return (this.#shown = [desired[0] + sx, desired[1] + sy, desired[2] + sz]);
+  }
+
   frame(dt: number, now: number): void {
     if (this.timer !== null) {
       this.timer = Math.max(0, this.timer - dt);
@@ -280,7 +309,7 @@ export class Play {
     if (this.mode === 'walk') {
       const look = this.pad.takeLook();
       this.camYaw -= look.dx * LOOK;
-      this.camPitch = Math.min(1.2, Math.max(-0.5, this.camPitch + look.dy * LOOK));
+      this.camPitch = Math.min(CAM_PITCH_MAX, Math.max(CAM_PITCH_MIN, this.camPitch + look.dy * LOOK));
       step(this.body, this.#input(this.camYaw), w.level, dt);
     } else if (this.mode === 'eye') {
       const look = this.pad.takeLook();
@@ -291,8 +320,9 @@ export class Play {
       step(this.ghost, { ...this.#input(this.eyeYaw), jump }, w.level, dt);
     } else {
       const o = this.pad.takeOrbit();
-      this.orbitYaw -= o.dx * ORBIT;
-      this.orbitPitch = Math.min(1.3, Math.max(-1.0, this.orbitPitch + o.dy * ORBIT));
+      const look = this.pad.takeLook();
+      this.orbitYaw -= o.dx * ORBIT + look.dx * LOOK;
+      this.orbitPitch = Math.min(1.3, Math.max(-1.0, this.orbitPitch + o.dy * ORBIT + look.dy * LOOK));
       this.orbitDist = Math.min(3.5, Math.max(0.5, this.orbitDist / o.zoom));
     }
     this.#jump = this.#release = false;
@@ -315,9 +345,9 @@ export class Play {
     if (this.mode === 'walk') {
       const lift = this.body.cling?.kind === 'ceiling' ? -0.4 : 0.85;
       const t: V3 = [this.body.pos[0], this.body.pos[1] + lift, this.body.pos[2]];
-      w.follow(t, this.camYaw, this.camPitch, 2.4, 60, dt, inside);
+      w.follow(this.#focus(t, dt), this.camYaw, this.camPitch, 2.4, 60, dt, inside);
     } else if (this.mode === 'paint')
-      w.follow(w.dollCenter(), this.orbitYaw, this.orbitPitch, this.orbitDist, 45, dt, inside);
+      w.follow(this.#focus(w.dollCenter(), dt), this.orbitYaw, this.orbitPitch, this.orbitDist, 60, dt, inside);
     else w.eye([this.ghost.pos[0], this.ghost.pos[1] + EYE_HEIGHT, this.ghost.pos[2]], this.eyeYaw, this.eyePitch);
     if (this.mode !== 'paint' || (!this.#stroke && now > this.#cursorUntil)) w.cursor(null, 0);
     // 張り付いているあいだは体が面に載っているので、その面を透かすと穴があくだけになる

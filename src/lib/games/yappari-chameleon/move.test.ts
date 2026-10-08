@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { floorBelow, idle, newBody, rayDistance, RADIUS, step, type Input, type Level } from './move';
+import {
+  floorBelow,
+  idle,
+  newBody,
+  easeDist,
+  rayDistance,
+  RADIUS,
+  step,
+  thickRayDistance,
+  type Input,
+  type Level
+} from './move';
 import type { V3 } from '$lib/sculpt';
 import { HEIGHT } from './doll';
 
@@ -158,6 +169,64 @@ describe('move', () => {
     const lv = { ...level, boxes: [...level.boxes, pillar], shell: level.boxes };
     expect(rayDistance({ ...level, boxes: lv.boxes }, [0, 1, 0], [0, 0, 1], 10)).toBeCloseTo(1, 5);
     expect(rayDistance(lv, [0, 1, 0], [0, 0, 1], 10)).toBeCloseTo(5, 5);
+  });
+
+  it('太い線は、中心の線が外れる壁のかどにも当たる', () => {
+    // 中心の線は x = 0.1 を通って 1 の先の柱（x 0.2〜1）をかすめて外れるが、半径 0.2 の線は掛かる
+    const lv: Level = { boxes: [], shell: [{ min: [0.2, 0, 3], max: [1, 3, 4] }], ramps: [], spawn: [0, 0, 0] };
+    expect(rayDistance(lv, [0.1, 1, 0], [0, 0, 1], 10)).toBe(10);
+    expect(thickRayDistance(lv, [0.1, 1, 0], [0, 0, 1], 10, 0.2)).toBeCloseTo(3, 5);
+  });
+
+  it('太い線は、斜めに見下ろす向きでも上下左右に広がる', () => {
+    const lv: Level = { boxes: [], shell: [{ min: [-5, -1, -5], max: [5, 0, 5] }], ramps: [], spawn: [0, 0, 0] };
+    const d: V3 = [0, -Math.sin(0.3), -Math.cos(0.3)];
+    // 向きに直角な下の端が先に床へ当たる
+    expect(thickRayDistance(lv, [0, 1, 0], d, 10, 0.2)).toBeLessThan(rayDistance(lv, [0, 1, 0], d, 10));
+  });
+
+  it('太い線の縁の線は、始点が箱の中にあるとき無かったことにする（壁に張り付いた体のすぐ横）', () => {
+    // 始点は壁の面から 0.12。壁へ 0.2 ずれた縁の線は壁の中から始まるが、0 にはしない
+    const lv: Level = { boxes: [], shell: [{ min: [-5, 0, 12], max: [5, 3, 12.3] }], ramps: [], spawn: [0, 0, 0] };
+    expect(thickRayDistance(lv, [0, 1, 11.88], [1, 0, 0], 3, 0.2)).toBe(3);
+    expect(thickRayDistance(lv, [0, 1, 11.88], [0, 0, -1], 3, 0.2)).toBe(3);
+  });
+
+  it('真上や真下を向く線でも太さを持つ', () => {
+    const lv: Level = { boxes: [], shell: [{ min: [0.1, 3, -1], max: [1, 4, 1] }], ramps: [], spawn: [0, 0, 0] };
+    expect(thickRayDistance(lv, [0, 0, 0], [0, 1, 0], 10, 0.2)).toBeCloseTo(3, 5);
+  });
+
+  it('距離は縮むときは速く、壁に押さえられなくなってしばらく待ってから、ゆっくり伸びる', () => {
+    const s = { dist: 2, wait: 0 };
+    easeDist(s, 1, true, 1 / 60);
+    expect(s.dist).toBeCloseTo(1.5, 5);
+    for (let i = 0; i < 60; i++) easeDist(s, 1, true, 1 / 60);
+    expect(s.dist).toBeCloseTo(1, 3);
+    // 押さえが外れても待つあいだは伸びない
+    for (let i = 0; i < 15; i++) easeDist(s, 2, false, 1 / 60);
+    expect(s.dist).toBeCloseTo(1, 3);
+    for (let i = 0; i < 60; i++) easeDist(s, 2, false, 1 / 60);
+    expect(s.dist).toBeGreaterThan(1.5);
+    expect(s.dist).toBeLessThan(2);
+  });
+
+  it('壁に押さえられていない距離の変え方（つまみのズーム）は待たずに伸びる', () => {
+    const s = { dist: 1, wait: 0 };
+    easeDist(s, 2, false, 1 / 60);
+    expect(s.dist).toBeGreaterThan(1.05);
+  });
+
+  it('縁で当たったり外れたりを 3 周期繰り返しても、距離は戻らず縮んだまま', () => {
+    const s = { dist: 2, wait: 0 };
+    let up = 0;
+    for (let i = 0; i < 60; i++) {
+      const before = s.dist;
+      const hit = i % 20 < 10;
+      easeDist(s, hit ? 1.2 : 2, hit, 1 / 60);
+      if (s.dist > before + 1e-6) up++;
+    }
+    expect(up).toBe(0);
   });
 
   it('外へ落ちたら始めの場所へ戻る', () => {
