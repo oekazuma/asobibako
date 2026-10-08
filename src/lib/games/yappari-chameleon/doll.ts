@@ -54,45 +54,52 @@ export const PARENT: Record<Bone, Bone | null> = {
   'shin.r': 'thigh.r'
 };
 
-const DEPTH: V3 = [1, 1, 0.72];
+const DEPTH: V3 = [1, 1, 0.78];
+
+/**
+ * 形のつなぎ（sculpt の smin）は、近い 2 つの面を k の 1/4 だけ外へ膨らませる。
+ * 同じ軸で続く円すい（ひざ・ひじ・手首・背骨と胸）は k をほぼ 0 にしないと継ぎ目がこぶになり、
+ * k は角度を付けてつながる所（肩・もものつけ根）だけに使う
+ */
+const FLUSH = 0.004;
 
 function side(s: 1 | -1): Shape[] {
   const l = s === 1 ? 'l' : 'r';
   return [
     {
       a: [0.19 * s, 0.86, 0],
-      cone: { b: [0.354 * s, 0.745, 0], ra: 0.068, rb: 0.062 },
-      k: 0.05,
+      cone: { b: [0.354 * s, 0.745, 0], ra: 0.07, rb: 0.066 },
+      k: 0.028,
       bone: `upperarm.${l}`,
       tag: 'arm'
     },
     {
       a: [0.354 * s, 0.745, 0],
-      cone: { b: [0.5 * s, 0.642, 0], ra: 0.062, rb: 0.055 },
-      k: 0.03,
+      cone: { b: [0.5 * s, 0.642, 0], ra: 0.066, rb: 0.06 },
+      k: FLUSH,
       bone: `forearm.${l}`,
       tag: 'arm'
     },
     {
       a: [0.538 * s, 0.616, 0],
-      ell: [0.058, 0.064, 0.05],
+      ell: [0.062, 0.06, 0.06],
       turn: [0, 0, -0.61 * s],
-      k: 0.03,
+      k: FLUSH,
       bone: `forearm.${l}`,
       tag: 'hand'
     },
     {
       a: [0.09 * s, 0.5, 0],
-      cone: { b: [0.09 * s, 0.27, 0], ra: 0.072, rb: 0.066 },
-      k: 0.06,
+      cone: { b: [0.09 * s, 0.27, 0], ra: 0.07, rb: 0.066 },
+      k: 0.015,
       bone: `thigh.${l}`,
       tag: 'leg'
     },
     // 足の形は作らず、すねの先の丸みがそのまま床に付く
     {
       a: [0.09 * s, 0.27, 0],
-      cone: { b: [0.09 * s, 0.06, 0], ra: 0.066, rb: 0.06 },
-      k: 0.03,
+      cone: { b: [0.09 * s, 0.062, 0], ra: 0.066, rb: 0.062 },
+      k: FLUSH,
       bone: `shin.${l}`,
       tag: 'leg'
     }
@@ -103,26 +110,26 @@ export function dollShapes(): Shape[] {
   return [
     { a: [0, 1.045, 0], ell: [0.105, 0.105, 0.105], k: 0.035, bone: 'head', tag: 'head' },
     {
-      a: [0, 0.58, 0],
-      cone: { b: [0, 0.64, 0], ra: 0.11, rb: 0.145 },
+      a: [0, 0.6, 0],
+      cone: { b: [0, 0.62, 0], ra: 0.12, rb: 0.14 },
       squash: DEPTH,
-      k: 0.08,
+      k: FLUSH,
       bone: 'hips',
       tag: 'body'
     },
     {
-      a: [0, 0.64, 0],
-      cone: { b: [0, 0.72, 0], ra: 0.145, rb: 0.155 },
+      a: [0, 0.62, 0],
+      cone: { b: [0, 0.74, 0], ra: 0.14, rb: 0.16 },
       squash: DEPTH,
-      k: 0.08,
+      k: FLUSH,
       bone: 'spine',
       tag: 'body'
     },
     {
-      a: [0, 0.72, 0],
-      cone: { b: [0, 0.8, 0], ra: 0.155, rb: 0.17 },
+      a: [0, 0.74, 0],
+      cone: { b: [0, 0.8, 0], ra: 0.16, rb: 0.175 },
       squash: DEPTH,
-      k: 0.08,
+      k: FLUSH,
       bone: 'chest',
       tag: 'body'
     },

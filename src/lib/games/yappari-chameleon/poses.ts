@@ -35,7 +35,7 @@ export const POSES: Pose[] = [
       'upperarm.r': [-0.6, 0, 2.0]
     }
   },
-  { id: 'lie', label: '寝そべる', drop: -0.36, bones: { hips: [Math.PI / 2, 0, 0], ...ARMS_DOWN } },
+  { id: 'lie', label: '寝そべる', drop: -0.364, bones: { hips: [Math.PI / 2, 0, 0], ...ARMS_DOWN } },
   {
     id: 'crouch',
     label: 'しゃがむ',
@@ -53,7 +53,7 @@ export const POSES: Pose[] = [
   {
     id: 'cross',
     label: 'あぐら',
-    drop: -0.39,
+    drop: -0.395,
     bones: {
       'thigh.l': [-1.45, 0, 0.9],
       'thigh.r': [-1.45, 0, -0.9],
@@ -112,7 +112,7 @@ export const POSES: Pose[] = [
   {
     id: 'split',
     label: '開脚',
-    drop: -0.38,
+    drop: -0.389,
     bones: { 'thigh.l': [0, 0, 1.5], 'thigh.r': [0, 0, -1.5], 'upperarm.l': [0, 0, 0.3], 'upperarm.r': [0, 0, -0.3] }
   },
   {
