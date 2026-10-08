@@ -6,6 +6,7 @@
   import { layAtlas } from './atlas';
   import BrushSize from './BrushSize.svelte';
   import Buttons from './Buttons.svelte';
+  import HideTimer from './HideTimer.svelte';
   import PaintPanel from './PaintPanel.svelte';
   import { buildDoll } from './doll';
   import { makeDoll } from './doll3d';
@@ -107,6 +108,7 @@
     {#if play.wheel}
       <PoseWheel {play} />
     {/if}
+    {#if play.mode !== 'eye'}<HideTimer {play} />{/if}
     <Buttons {play} onquit={() => onquit?.()} />
   {:else}
     <p class="notice">準備中…</p>
@@ -121,6 +123,7 @@
     position: absolute;
     inset: 0;
     overflow: hidden;
+    container-type: size;
     background: #1d1a17;
   }
 

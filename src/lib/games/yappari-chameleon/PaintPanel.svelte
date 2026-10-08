@@ -20,11 +20,11 @@
 
   function setHsv(next: [number, number, number]) {
     hsv = next;
-    play.brush.color = hsvToRgb(...next);
+    play.tune({ color: hsvToRgb(...next) });
   }
 
   function setRgb(c: RGB) {
-    play.brush.color = c;
+    play.tune({ color: c });
   }
 </script>
 
@@ -77,9 +77,9 @@
         rough={play.brush.rough}
         onhsv={setHsv}
         onrgb={setRgb}
-        onopacity={(v) => (play.brush.opacity = Math.max(0.05, v))}
-        onmetal={(v) => (play.brush.metal = v)}
-        onrough={(v) => (play.brush.rough = v)}
+        onopacity={(v) => play.tune({ opacity: Math.max(0.05, v) })}
+        onmetal={(v) => play.tune({ metal: v })}
+        onrough={(v) => play.tune({ rough: v })}
       />
     {/snippet}
     {@render sliders('color')}

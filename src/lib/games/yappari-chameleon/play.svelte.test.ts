@@ -6,6 +6,13 @@ import type { Dab } from './paint';
 import { Play } from './play.svelte';
 import type { World } from './world3d';
 
+vi.mock('$lib/audio.svelte', () => ({
+  tone: vi.fn(),
+  sweep: vi.fn(),
+  noise: vi.fn(),
+  sfx: { start: vi.fn(), finish: vi.fn() }
+}));
+
 // 床（y = 0）・奥の壁（z = 5）・天井（y = 3）
 const level: Level = {
   boxes: [
@@ -192,5 +199,28 @@ describe('Play', () => {
     expect(w.poses.to).toHaveBeenCalledWith(expect.objectContaining({ id: 'lie' }));
     p.setPose('stand');
     expect(p.pose).toBe('stand');
+  });
+
+  it('隠れタイムの時計は 60 秒から減り、0 で止まって 1 度だけ知らせる', async () => {
+    const { sfx } = await import('$lib/audio.svelte');
+    const p = new Play(fakeWorld(), 70);
+    vi.mocked(sfx.finish).mockClear();
+    p.startTimer();
+    expect(p.timer).toBe(60);
+    expect(p.timerRuns).toBe(1);
+    secs(p, 59);
+    expect(p.timer).toBeGreaterThan(0);
+    expect(sfx.finish).not.toHaveBeenCalled();
+    secs(p, 2);
+    expect(p.timer).toBe(null);
+    expect(sfx.finish).toHaveBeenCalledTimes(1);
+  });
+
+  it('時計は止められる', () => {
+    const p = new Play(fakeWorld(), 70);
+    p.startTimer();
+    secs(p, 1);
+    p.stopTimer();
+    expect(p.timer).toBe(null);
   });
 });

@@ -4,6 +4,7 @@ import Buttons from './Buttons.svelte';
 import type { Play } from './play.svelte';
 
 function fake(over: Partial<Play> = {}) {
+  const held = { up: false, down: false, turn: 0 };
   return {
     mode: 'walk',
     cling: null,
@@ -12,7 +13,9 @@ function fake(over: Partial<Play> = {}) {
     shadow: true,
     pose: 'stand',
     lock: false,
-    held: { up: false, down: false, turn: 0 },
+    held,
+    hold: (key: 'up' | 'down', on: boolean) => (held[key] = on),
+    turn: (dir: number) => (held.turn = dir),
     openWheel: vi.fn(),
     toggleLock: vi.fn(),
     jump: vi.fn(),

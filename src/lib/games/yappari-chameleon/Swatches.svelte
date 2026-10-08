@@ -7,7 +7,7 @@
 <div data-part="swatches">
   {#if recent.length}
     <div class="line" role="group" aria-label="最近使った色">
-      {#each recent as c, i (i)}
+      {#each recent as c, i (c.join())}
         <button class="chip" style:background={toHex(c)} onclick={() => onpick(c)} aria-label="最近の色 {i + 1}"
         ></button>
       {/each}

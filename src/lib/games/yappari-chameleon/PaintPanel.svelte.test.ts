@@ -9,6 +9,9 @@ function fake() {
     previous: [0, 0, 1],
     recent: [[0, 1, 0]],
     spoit: false,
+    tune(patch: object) {
+      Object.assign(this.brush, patch);
+    },
     setColor: vi.fn(),
     toggleSpoit: vi.fn()
   };

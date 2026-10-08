@@ -4,6 +4,8 @@ export interface Scene {
   id: string;
   /** 1 人用で遊ぶレベル。ページを開く前に到達レベルとして保存し、タイトルでこのレベルが選ばれるようにする */
   level?: number;
+  /** 横持ちのゲームは横長の画面で撮る */
+  viewport?: { width: number; height: number };
   /** 撮る範囲（CSS px）。幅 : 高さ = 680 : 400 */
   clip: Clip;
   play: (s: Stage) => Promise<void>;
@@ -442,5 +444,71 @@ export const SCENES: Scene[] = [
   { id: 'bug-rush', clip: band(286), play: bugRush },
   // 両側の指示までは入らないので、手前の指示と真ん中の稲妻、向かいの陣地の端を撮る
   { id: 'lightning', clip: band(445), play: lightning },
-  { id: 'cat-mouse', clip: band(270), play: catMouse }
+  { id: 'cat-mouse', clip: band(270), play: catMouse },
+  {
+    // 半身だけ壁の色を塗って張り付き、塗った側が壁に溶ける様子で遊び方を見せる
+    id: 'yappari-chameleon',
+    viewport: { width: 1024, height: 768 },
+    clip: { x: 172, y: 184, width: 680, height: 400 },
+    play: async (s) => {
+      await s.startSolo();
+      await s.wait(2500);
+      const hold = (up: boolean) =>
+        s.page.evaluate((up) => {
+          (window as unknown as { __chameleon: { held: { up: boolean } } }).__chameleon.held.up = up;
+        }, up);
+      await s.page.evaluate(() => {
+        const play = (
+          window as unknown as {
+            __chameleon: { body: { pos: number[] }; camYaw: number; camPitch: number; jump(): void };
+          }
+        ).__chameleon;
+        play.body.pos = [-12.1, 0, 6.5];
+        play.camYaw = 0.45;
+        play.camPitch = 0.12;
+        play.jump();
+      });
+      await s.wait(300);
+      await hold(true);
+      await s.wait(1100);
+      await hold(false);
+      await s.wait(800);
+      await s.page.evaluate(() => {
+        interface Attr {
+          count: number;
+          getX(i: number): number;
+          getY(i: number): number;
+          getZ(i: number): number;
+        }
+        interface Chameleon {
+          applyDabs(d: unknown[]): void;
+          world: {
+            project(p: number[]): { x: number; y: number };
+            spoit(x: number, y: number): { color: number[] } | null;
+            rig: { mesh: { geometry: { attributes: { position: Attr; normal: Attr } } } };
+          };
+        }
+        const play = (window as unknown as { __chameleon: Chameleon }).__chameleon;
+        const at = play.world.project([-12.9, 1.7, 6.74]);
+        const color = play.world.spoit(at.x, at.y)?.color ?? [0.25, 0.37, 0.23];
+        // 人形の面の、骨で曲げる前の位置と法線（左半身 x > 0 だけ）に吹く
+        const { position: pos, normal: nrm } = play.world.rig.mesh.geometry.attributes;
+        const dabs = [];
+        for (let i = 0; i < pos.count; i += 9) {
+          if (pos.getX(i) < 0) continue;
+          dabs.push({
+            p: [pos.getX(i), pos.getY(i), pos.getZ(i)],
+            n: [nrm.getX(i), nrm.getY(i), nrm.getZ(i)],
+            r: 0.06,
+            c: color,
+            a: 0.9,
+            m: 0,
+            ro: 0.8
+          });
+        }
+        play.applyDabs(dabs);
+      });
+      await s.wait(1500);
+    }
+  }
 ];

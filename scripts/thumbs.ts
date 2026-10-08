@@ -58,7 +58,7 @@ try {
   for (const scene of SCENES) {
     if (only.length && !only.includes(scene.id)) continue;
     const context = await browser.newContext({
-      viewport: { width: 768, height: 1024 },
+      viewport: scene.viewport ?? { width: 768, height: 1024 },
       deviceScaleFactor: 2,
       hasTouch: true
     });

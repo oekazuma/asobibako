@@ -5,6 +5,7 @@ import { restHit } from './doll3d';
 import { floorBelow, idle, newBody, step, wallNear, type Body } from './move';
 import { PaintLog, Stroke, type Brush, type Dab } from './paint';
 import { poseById, STAND } from './poses';
+import { sounds } from './sounds';
 import { TouchPad, type Mode, type PaintEvent } from './touch';
 import type { World } from './world3d';
 
@@ -23,6 +24,10 @@ export class Play {
   cling = $state<'wall' | 'ceiling' | null>(null);
   /** 壁際にいる。ジャンプのボタンを本家の言葉の「よじ登り」にする */
   nearWall = $state(false);
+  /** 隠れタイムの残り秒 */
+  timer = $state<number | null>(null);
+  /** 始めた回数。中央の「隠れタイム」を出し直すのに使う */
+  timerRuns = $state(0);
   pose = $state('stand');
   lock = $state(false);
   /** 開いた輪。`id` は開いた指（軽く押して開いたら null） */
@@ -52,6 +57,29 @@ export class Play {
     this.body = newBody(world.level.spawn);
     this.ghost = newBody(world.level.spawn);
     world.placeDoll(this.body);
+  }
+
+  /** ボタンを押しているあいだだけ上がる・下がる・回る */
+  hold(key: 'up' | 'down', on: boolean): void {
+    this.held[key] = on;
+  }
+
+  turn(dir: number): void {
+    this.held.turn = dir;
+  }
+
+  tune(patch: Partial<Brush>): void {
+    Object.assign(this.brush, patch);
+  }
+
+  startTimer(): void {
+    this.timer = 60;
+    this.timerRuns++;
+    sounds.button();
+  }
+
+  stopTimer(): void {
+    this.timer = null;
   }
 
   jump(): void {
@@ -141,6 +169,7 @@ export class Play {
     const got = this.world.spoit(x, y);
     this.spoit = false;
     if (!got) return;
+    sounds.pick();
     this.setColor(got.color);
     this.brush.metal = got.metal;
     this.brush.rough = got.rough;
@@ -191,6 +220,7 @@ export class Play {
     if (e.kind === 'start') {
       this.log.begin();
       this.#stroke = new Stroke({ ...this.brush, color: [...this.brush.color] });
+      sounds.spray();
     }
     const hit = this.#stroke && this.world.pickBody(e.x, e.y);
     const rest = hit && restHit(this.world.rig, hit);
@@ -224,6 +254,13 @@ export class Play {
   }
 
   frame(dt: number, now: number): void {
+    if (this.timer !== null) {
+      this.timer = Math.max(0, this.timer - dt);
+      if (this.timer === 0) {
+        this.timer = null;
+        sounds.done();
+      }
+    }
     for (const e of this.pad.tick(now)) this.#paint(e);
     const w = this.world;
     if (this.mode === 'walk') {
@@ -249,7 +286,9 @@ export class Play {
     if (!this.body.cling) this.held.up = this.held.down = false;
     // 回るボタンも壁では消える
     if (this.body.cling?.kind === 'wall') this.held.turn = 0;
-    this.cling = this.body.cling?.kind ?? null;
+    const clung = this.body.cling?.kind ?? null;
+    if (clung && !this.cling) sounds.cling();
+    this.cling = clung;
     this.nearWall = !this.body.cling && wallNear(this.body, w.level) !== null;
     w.placeDoll(this.body);
     w.poses.step(dt);

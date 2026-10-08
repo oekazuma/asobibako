@@ -4,8 +4,6 @@
   import type { Play } from './play.svelte';
 
   let { play, onquit }: { play: Play; onquit: () => void } = $props();
-
-  const hold = (key: 'up' | 'down', on: boolean) => (play.held[key] = on);
 </script>
 
 {#snippet button(icon: IconName, label: string, onclick: () => void, on = false, rotate = 0)}
@@ -18,10 +16,10 @@
 {#snippet holder(icon: IconName, label: string, key: 'up' | 'down', rotate = 0)}
   <button
     class="btn"
-    onpointerdown={() => hold(key, true)}
-    onpointerup={() => hold(key, false)}
-    onpointercancel={() => hold(key, false)}
-    onpointerleave={() => hold(key, false)}
+    onpointerdown={() => play.hold(key, true)}
+    onpointerup={() => play.hold(key, false)}
+    onpointercancel={() => play.hold(key, false)}
+    onpointerleave={() => play.hold(key, false)}
   >
     <Icon name={icon} size="30px" {rotate} />
     <span>{label}</span>
@@ -38,10 +36,10 @@
 {#snippet spinner(turn: number, label: string, mirror = false)}
   <button
     class="btn"
-    onpointerdown={() => (play.held.turn = turn)}
-    onpointerup={() => (play.held.turn = 0)}
-    onpointercancel={() => (play.held.turn = 0)}
-    onpointerleave={() => (play.held.turn = 0)}
+    onpointerdown={() => play.turn(turn)}
+    onpointerup={() => play.turn(0)}
+    onpointercancel={() => play.turn(0)}
+    onpointerleave={() => play.turn(0)}
     aria-label={label}
   >
     <span class:mirror><Icon name="spin" size="30px" /></span>
