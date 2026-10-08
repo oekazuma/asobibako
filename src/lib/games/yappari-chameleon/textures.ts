@@ -131,7 +131,7 @@ export function checker(): Pattern {
         }
       }
     g.strokeStyle = '#8a8580';
-    g.lineWidth = 2;
+    g.lineWidth = 9;
     g.strokeRect(0, 0, 128, 128);
     g.strokeRect(128, 128, 128, 128);
     g.strokeRect(128, 0, 128, 128);
@@ -168,7 +168,7 @@ export function oilPainting(): Pattern {
       g.fillStyle = '#393f27';
       g.fillRect(x, 282 - h, w, h);
       g.strokeStyle = '#a59863';
-      g.lineWidth = 5;
+      g.lineWidth = 9;
       g.strokeRect(x, 282 - h, w, h);
     }
     for (let i = 0; i < 8; i++) {
@@ -176,7 +176,7 @@ export function oilPainting(): Pattern {
       g.fillRect(30 + i * 26, 282 - (i + 1) * 26, 200 - i * 14, 26);
     }
     g.strokeStyle = '#2c2416';
-    g.lineWidth = 8;
+    g.lineWidth = 9;
     g.beginPath();
     g.moveTo(26, 272);
     g.lineTo(240, 64);
@@ -185,6 +185,255 @@ export function oilPainting(): Pattern {
       g.fillStyle = `hsl(${65 + r() * 25} ${10 + r() * 20}% ${25 + r() * 40}% / 0.18)`;
       g.beginPath();
       g.ellipse(r() * 512, r() * 384, 6 + r() * 16, 3 + r() * 6, r() * Math.PI, 0, Math.PI * 2);
+      g.fill();
+    }
+  });
+}
+
+/** 大広間の濃い茶の板張り。縦の板 4 枚（1 枚 15cm）に木目と板の継ぎ目 */
+export function woodPanel(): Pattern {
+  return make('wood-panel', 256, 512, [0.6, 1.2], (g) => {
+    const r = rng(5);
+    for (let i = 0; i < 4; i++) {
+      const base = 22 + r() * 8;
+      g.fillStyle = `hsl(24 45% ${base}%)`;
+      g.fillRect(i * 64, 0, 64, 512);
+      for (let k = 0; k < 7; k++) {
+        g.strokeStyle = `hsl(22 40% ${base - 7 + r() * 6}% / 0.7)`;
+        g.lineWidth = 9 + r() * 5;
+        g.beginPath();
+        const x0 = i * 64 + 6 + r() * 52;
+        g.moveTo(x0, 0);
+        for (let y = 0; y <= 512; y += 32) g.lineTo(x0 + Math.sin(y / 70 + k) * 4, y);
+        g.stroke();
+      }
+      g.fillStyle = '#1a0f08';
+      g.fillRect(i * 64, 0, 9, 512);
+    }
+  });
+}
+
+/** 緑の廊下の腰の羽目板（高さ 1m）。木の枠に、一段下がった鏡板 */
+export function wainscot(): Pattern {
+  return make('wainscot', 512, 427, [1.2, 1.0], (g) => {
+    g.fillStyle = '#5a3a22';
+    g.fillRect(0, 0, 512, 427);
+    g.fillStyle = '#3e2615';
+    g.fillRect(0, 0, 512, 34);
+    for (const x of [26, 282]) {
+      g.fillStyle = '#4a2e1a';
+      g.fillRect(x, 64, 204, 320);
+      g.strokeStyle = '#7a5434';
+      g.lineWidth = 9;
+      g.strokeRect(x + 16, 80, 172, 288);
+      g.strokeStyle = '#2a190c';
+      g.lineWidth = 9;
+      g.strokeRect(x + 5, 69, 194, 310);
+    }
+  });
+}
+
+/** 大広間の木の格天井。梁の格子と、くぼんだ升の真ん中に金の花 */
+export function coffer(): Pattern {
+  return make('coffer', 512, 512, [1.5, 1.5], (g) => {
+    g.fillStyle = '#5a3a22';
+    g.fillRect(0, 0, 512, 512);
+    g.fillStyle = '#3b2414';
+    g.fillRect(48, 48, 416, 416);
+    g.strokeStyle = '#7a5434';
+    g.lineWidth = 10;
+    g.strokeRect(80, 80, 352, 352);
+    g.fillStyle = '#c9a227';
+    g.beginPath();
+    g.arc(256, 256, 40, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#8a6a1a';
+    for (let i = 0; i < 8; i++) {
+      g.beginPath();
+      g.ellipse(
+        256 + Math.cos((i * Math.PI) / 4) * 58,
+        256 + Math.sin((i * Math.PI) / 4) * 58,
+        18,
+        9,
+        (i * Math.PI) / 4,
+        0,
+        Math.PI * 2
+      );
+      g.fill();
+    }
+  });
+}
+
+/** 大広間の床。クリームの大理石（1 枚 60cm）に灰色の筋と、目地の交わりに黒い菱形 */
+export function marble(): Pattern {
+  return make('marble', 512, 512, [1.2, 1.2], (g) => {
+    const r = rng(17);
+    g.fillStyle = '#e9e0cf';
+    g.fillRect(0, 0, 512, 512);
+    for (let k = 0; k < 14; k++) {
+      g.strokeStyle = `rgb(120 110 100 / ${0.1 + r() * 0.12})`;
+      g.lineWidth = 9 + r() * 5;
+      g.beginPath();
+      let x = r() * 512;
+      let y = r() * 512;
+      g.moveTo(x, y);
+      for (let s = 0; s < 12; s++) {
+        x += (r() - 0.3) * 60;
+        y += (r() - 0.5) * 50;
+        g.lineTo(x, y);
+      }
+      g.stroke();
+    }
+    g.strokeStyle = '#b8ad9a';
+    g.lineWidth = 9;
+    for (const v of [0, 256, 512]) {
+      g.beginPath();
+      g.moveTo(v, 0);
+      g.lineTo(v, 512);
+      g.moveTo(0, v);
+      g.lineTo(512, v);
+      g.stroke();
+    }
+    g.fillStyle = '#151311';
+    for (const x of [0, 256, 512])
+      for (const y of [0, 256, 512]) {
+        g.beginPath();
+        g.moveTo(x, y - 34);
+        g.lineTo(x + 34, y);
+        g.lineTo(x, y + 34);
+        g.lineTo(x - 34, y);
+        g.fill();
+      }
+  });
+}
+
+/** ピアノの下の赤い柄の絨毯（2.4m × 3.6m を 1 枚で） */
+export function rug(): Pattern {
+  return make('rug', 512, 768, [2.4, 3.6], (g) => {
+    g.fillStyle = '#8e1b1b';
+    g.fillRect(0, 0, 512, 768);
+    g.strokeStyle = '#1f2a4d';
+    g.lineWidth = 34;
+    g.strokeRect(17, 17, 478, 734);
+    g.strokeStyle = '#c9a227';
+    g.lineWidth = 10;
+    g.strokeRect(46, 46, 420, 676);
+    g.fillStyle = '#1f2a4d';
+    g.beginPath();
+    g.ellipse(256, 384, 130, 200, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#c9a227';
+    g.beginPath();
+    g.ellipse(256, 384, 70, 110, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#8e1b1b';
+    g.beginPath();
+    g.ellipse(256, 384, 30, 50, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#c9a227';
+    for (const [x, y] of [
+      [110, 140],
+      [402, 140],
+      [110, 628],
+      [402, 628]
+    ]) {
+      g.beginPath();
+      g.arc(x, y, 26, 0, Math.PI * 2);
+      g.fill();
+    }
+  });
+}
+
+/** 本棚の 1 段（幅 1.2m、高さ 47cm）。背表紙は 3〜6cm 幅で、上下に金の帯 */
+export function books(): Pattern {
+  return make('books', 512, 200, [1.2, 0.47], (g) => {
+    const r = rng(31);
+    const colors = [
+      '#7a1f2b',
+      '#2f4f6f',
+      '#3e5b3a',
+      '#b87333',
+      '#d8c39a',
+      '#1d1a17',
+      '#6b2d5c',
+      '#c9a227',
+      '#8b5a2b',
+      '#efe6d2'
+    ];
+    g.fillStyle = '#24160c';
+    g.fillRect(0, 0, 512, 200);
+    let x = 4;
+    while (x < 500) {
+      const w = Math.min(500 - x, 13 + Math.floor(r() * 13));
+      const h = 120 + Math.floor(r() * 54);
+      const c = colors[Math.floor(r() * colors.length)];
+      g.fillStyle = c;
+      g.fillRect(x, 184 - h, w - 2, h);
+      g.fillStyle = '#d4af37';
+      g.fillRect(x, 184 - h + 8, w - 2, 9);
+      g.fillRect(x, 184 - 20, w - 2, 9);
+      if (r() < 0.4) {
+        g.fillStyle = 'rgb(0 0 0 / 0.35)';
+        g.fillRect(x + 2, 184 - h + 34, w - 6, 18);
+      }
+      x += w;
+    }
+    g.fillStyle = '#5a3a22';
+    g.fillRect(0, 184, 512, 16);
+  });
+}
+
+/** 緑の廊下の古いポスター（人物の絵と文字の帯） */
+export function poster(): Pattern {
+  return make('poster', 256, 384, [0.5, 0.75], (g) => {
+    const r = rng(43);
+    g.fillStyle = '#d9c9a3';
+    g.fillRect(0, 0, 256, 384);
+    for (let i = 0; i < 30; i++) {
+      g.fillStyle = `rgb(120 90 50 / ${r() * 0.12})`;
+      g.beginPath();
+      g.arc(r() * 256, r() * 384, 10 + r() * 40, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.fillStyle = '#5b3a24';
+    g.fillRect(28, 26, 200, 26);
+    g.beginPath();
+    g.arc(128, 150, 46, 0, Math.PI * 2);
+    g.fill();
+    g.beginPath();
+    g.ellipse(128, 270, 90, 70, 0, Math.PI, 0);
+    g.fill();
+    g.fillRect(48, 300, 160, 14);
+    g.fillRect(70, 326, 116, 11);
+    g.strokeStyle = '#5b3a24';
+    g.lineWidth = 11;
+    g.strokeRect(12, 12, 232, 360);
+  });
+}
+
+/** チェスターフィールドのソファの茶色の革。菱形に並んだ鋲のくぼみ */
+export function leather(): Pattern {
+  return make('leather', 256, 256, [0.4, 0.4], (g) => {
+    const r = rng(53);
+    g.fillStyle = '#6b3f22';
+    g.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 120; i++) {
+      g.fillStyle = `rgb(${r() < 0.5 ? '40 20 10' : '140 90 55'} / 0.08)`;
+      g.fillRect(r() * 256, r() * 256, 14, 14);
+    }
+    for (const [x, y] of [
+      [0, 0],
+      [128, 128],
+      [256, 0],
+      [0, 256],
+      [256, 256]
+    ]) {
+      const grad = g.createRadialGradient(x, y, 2, x, y, 60);
+      grad.addColorStop(0, 'rgb(20 10 5 / 0.7)');
+      grad.addColorStop(1, 'rgb(20 10 5 / 0)');
+      g.fillStyle = grad;
+      g.beginPath();
+      g.arc(x, y, 60, 0, Math.PI * 2);
       g.fill();
     }
   });
