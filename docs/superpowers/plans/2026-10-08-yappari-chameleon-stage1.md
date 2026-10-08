@@ -15,15 +15,16 @@
 - id は `yappari-chameleon`、名前は「やっぱりカメレオン」。フォルダは `src/lib/games/yappari-chameleon/`。
 - three はこのゲームの `load()` から読み込まれる本体の中でだけ import する。一覧画面の import に入れない。
 - 1 段めは `SoloMeta`（`players: 1`、`levels: 1`、`ownMenu: true`）で、新しく足す `landscape: true` を付ける。
-- 横持ちで遊ぶ。縦持ちのあいだは描画を止めて「よこむきに してね」を出す。
-- 一人称（鬼の目）の three の `fov` は縦 72 度に固定する。
+- 横持ちで遊ぶ。縦持ちのあいだは描画を止めて「横向きにしてください」を出す。
+- 一人称（フリーカメラ）の three の `fov` は縦 72 度に固定する。
 - 人形の背の高さは 1.15m。y が上、足もとが y = 0、正面は +z。長さの単位は m。
 - 塗りの色のテクスチャは 2048²（sRGB）、メタリックとラフネスのテクスチャは 1024²（linear、G がラフネス、B がメタリック）。白の初期値は色 (1, 1, 1)、ラフネス 0.85、メタリック 0。
 - 描画は pet-house に合わせ、`setPixelRatio(Math.min(1.5, devicePixelRatio))`、`antialias: true`、影は 2048² の固定。
 - コンポーネントは 200 行未満。抑制コメントは使わない。
 - 絵文字は使わない。アイコンは `src/lib/icons.ts` に SVG パスで足し、DOM では `Icon.svelte` で出す。
 - コメントは非自明な WHY だけ（隠れた制約・workaround の理由・驚く挙動）。WHAT・変更履歴・タスク番号は書かない。
-- HUD と画面の字は白に黒い影の明朝（`font-family: 'Hiragino Mincho ProN', serif`）。漢字まじりで書く。
+- HUD と画面の字は白に黒い影の明朝（`font-family: 'Hiragino Mincho ProN', serif`）。本家と同じく大人向けの漢字まじりで書き、子ども向けの分かち書きはしない。ボタンの言葉は本家の画面の言葉（ペイントモード・3D スポイト・ポーズ・回転ロック・その場で回転・よじ登り・上がる・下がる・張り付き解除・影・フリーカメラ）を使う。
+- 本家の見た目と比べるための画像（Steam のスクショと切り抜き）は scratchpad の `ss/*.jpg`・`fig*.png`・`f11crop.png`（色のパネル）にある。人形・模様・部屋のシートを担当へ返すときは、横に本家の画像を並べた 1 枚も作る（リポジトリには入れない）。
 - 外の素材（画像・モデル・フォント）は使わない。模様は canvas で描く。
 - 2 人が同時に触るゲームではないが、指は必ず `pointerdown` と `pointerId` で扱う（スティックと見回しとボタンを同時に使うため）。
 - コミットの前に `pnpm format` で整える。計画のコードは読みやすさのために行が長いところがある。
@@ -37,7 +38,7 @@
 2. スティックの指を置いたまま、別の指で見回す・ボタンを押す・指が画面の外へ出る（`pointercancel`）。スティックが戻らずに歩き続けたり、ボタンの指が見回しに化けたりしない。
 3. ペイントモードで 1 本めの指を置いた直後に 2 本めを置く。1 本めの指の跡が体に残らない（2 本指はカメラだけを動かす）。
 4. iOS がアプリを裏に回して WebGL のコンテキストを失ったあと戻る。塗った体が白に戻らず、塗りの列から作り直される。
-5. 張り付いたまま・天井にいるままポーズを変える、ペイントモードに入る、鬼の目に切り替える。体が壁や天井から外れて落ちたり、床に埋まったりしない。
+5. 張り付いたまま・天井にいるままポーズを変える、ペイントモードに入る、フリーカメラに切り替える。体が壁や天井から外れて落ちたり、床に埋まったりしない。
 
 それぞれの確かめは、持ち主のタスクに入れてある（1 と 4 は Task 9 の headless の確かめ、2 と 3 は Task 8 のテスト、5 は Task 6 と Task 11 のテスト）。
 
@@ -66,7 +67,7 @@
 | `yappari-chameleon/test-room.ts`                                   | 受け入れを試す 1 部屋（柄の壁・市松の床・額）                                                             | 9      |
 | `yappari-chameleon/Buttons.svelte`                                 | 右側のボタン                                                                                              | 9, 11  |
 | `yappari-chameleon/StickView.svelte`                               | スティックの見た目                                                                                        | 9      |
-| `yappari-chameleon/PaintPanel.svelte` ほか                         | 色のパネル（`HueRing.svelte`・`ColorSliders.svelte`・`Swatches.svelte`・`BrushSize.svelte`）              | 10     |
+| `yappari-chameleon/PaintPanel.svelte` ほか                         | 色のパネル（`ColorDisk.svelte`・`ColorSliders.svelte`・`Swatches.svelte`・`BrushSize.svelte`）            | 10     |
 | `yappari-chameleon/PoseWheel.svelte`                               | ポーズの輪                                                                                                | 11     |
 | `yappari-chameleon/xray.ts`                                        | 物の陰の自分を丸く透かす材質の書き足し                                                                    | 12     |
 | `yappari-chameleon/textures.ts`                                    | canvas の模様（ダマスク・市松・菱形・木目・羽目板・格天井・絨毯・背表紙・油絵・ポスター・革）と画素の控え | 13     |
@@ -148,7 +149,7 @@ import type { GameMeta } from '$lib/games';
 export default {
   id: 'yappari-chameleon',
   name: 'やっぱりカメレオン',
-  description: '真っ白な 体に ペンキを ふきつけて、屋敷に とけこむ かくれんぼ。いまは ひとりで ためせる 試作',
+  description: '真っ白な体にペンキを吹き付けて、屋敷に溶け込むかくれんぼ。今は 1 人で試せる試作',
   players: 1,
   levels: 1,
   ownMenu: true,
@@ -168,11 +169,12 @@ export default {
   import Icon from '$lib/components/Icon.svelte';
 </script>
 
-<span class="howto-rule">体に 色を ふきつけて、屋敷の 模様に とけこもう</span>
+<span class="howto-rule">体にペンキを吹き付けて、屋敷の模様に溶け込もう</span>
 <span class="howto-legend">
-  <span class="howto-item"><span class="howto-mark"><Icon name="brush" /></span>ペイントで 体を ぬる</span>
-  <span class="howto-item"><span class="howto-mark"><Icon name="magnifier" /></span>鬼の目で 見え方を たしかめる</span>
-  <span class="howto-item"><span class="howto-mark"><Icon name="devices" /></span>iPad を よこに もって あそぶ</span>
+  <span class="howto-item"><span class="howto-mark"><Icon name="brush" /></span>ペイントモードで体を塗る</span>
+  <span class="howto-item"><span class="howto-mark"><Icon name="magnifier" /></span>フリーカメラで見え方を確かめる</span
+  >
+  <span class="howto-item"><span class="howto-mark"><Icon name="devices" /></span>iPad を横に持って遊ぶ</span>
 </span>
 ```
 
@@ -197,9 +199,9 @@ export default {
 
 <div class="chameleon">
   {#if portrait}
-    <p class="notice">よこむきに してね</p>
+    <p class="notice">横向きにしてください</p>
   {:else}
-    <p class="notice">じゅんびちゅう</p>
+    <p class="notice">準備中</p>
   {/if}
   <button class="quit" onclick={() => onquit?.()} aria-label="タイトルへ">✕</button>
 </div>
@@ -259,7 +261,7 @@ git commit -m "Add Yappari Chameleon as a landscape solo game"
 
 ### Task 2: 人形の形と骨
 
-本家の人形（真っ白・頭は球・首はほぼ無し・顔なし・先のすぼまったソーセージの手足・ミトンの手・約 4 頭身）を、`$lib/sculpt.ts` の形の表で 1 枚の面にし、頂点ごとに骨の重さを付ける。three は使わない。
+本家の人形（真っ白・頭は小さな球・首はほぼ無し・顔なし・太い胴・先のすぼまった太いソーセージの手足・ミトンの手・足は丸い先だけ・約 5.5 頭身）を、`$lib/sculpt.ts` の形の表で 1 枚の面にし、頂点ごとに骨の重さを付ける。three は使わない。
 
 **Files:**
 
@@ -274,7 +276,7 @@ git commit -m "Add Yappari Chameleon as a landscape solo game"
   - `JOINTS: Record<Bone, V3>`（骨の付け根の位置）、`PARENT: Record<Bone, Bone | null>`。
   - `HEIGHT = 1.15`、`dollShapes(): Shape[]`。
   - `interface DollSurface extends Surface { skinIndex: Uint16Array; skinWeight: Float32Array }`。
-  - `buildDoll(h = 0.014): DollSurface`（`h` は面の細かさ m）。
+  - `buildDoll(h = 0.015): DollSurface`（`h` は面の細かさ m）。
 
 - [ ] **Step 1: 落ちるテストを書く**
 
@@ -357,8 +359,9 @@ Expected: FAIL（`./doll` が無い）。
 import { bounds, field, mesh, type Shape, type Surface, type V3 } from '$lib/sculpt';
 
 /**
- * 本家の白い人形。頭は球で顔は描かず、首はほぼ無く頭が肩にめり込む。手足は先のすぼまったソーセージで、
- * 継ぎ目を見せないよう 1 枚の面にして骨で曲げる。約 4 頭身で背は 1.15m（ダイニングの椅子の背より少し高い）
+ * 本家の白い人形。頭は小さな球で顔は描かず、首はほぼ無く頭が肩にめり込む。胴と手足は太く、手足は先のすぼまった
+ * ソーセージで、足は靴の形を持たず脚の先が丸く終わる。継ぎ目を見せないよう 1 枚の面にして骨で曲げる。
+ * 約 5.5 頭身で背は 1.15m（ダイニングの椅子の背より少し高い）
  */
 export const BONES = [
   'hips',
@@ -381,17 +384,17 @@ export const HEIGHT = 1.15;
 /** 腕は水平から 35 度下げた形で作る。真横に伸ばした形だと、下ろしたときに肩の面がつぶれる */
 export const JOINTS: Record<Bone, V3> = {
   hips: [0, 0.5, 0],
-  spine: [0, 0.6, 0],
-  chest: [0, 0.72, 0],
-  head: [0, 0.88, 0],
-  'upperarm.l': [0.15, 0.84, 0],
-  'forearm.l': [0.289, 0.743, 0],
-  'upperarm.r': [-0.15, 0.84, 0],
-  'forearm.r': [-0.289, 0.743, 0],
-  'thigh.l': [0.085, 0.47, 0],
-  'shin.l': [0.085, 0.26, 0],
-  'thigh.r': [-0.085, 0.47, 0],
-  'shin.r': [-0.085, 0.26, 0]
+  spine: [0, 0.62, 0],
+  chest: [0, 0.74, 0],
+  head: [0, 0.92, 0],
+  'upperarm.l': [0.19, 0.86, 0],
+  'forearm.l': [0.354, 0.745, 0],
+  'upperarm.r': [-0.19, 0.86, 0],
+  'forearm.r': [-0.354, 0.745, 0],
+  'thigh.l': [0.09, 0.48, 0],
+  'shin.l': [0.09, 0.27, 0],
+  'thigh.r': [-0.09, 0.48, 0],
+  'shin.r': [-0.09, 0.27, 0]
 };
 
 export const PARENT: Record<Bone, Bone | null> = {
@@ -409,66 +412,66 @@ export const PARENT: Record<Bone, Bone | null> = {
   'shin.r': 'thigh.r'
 };
 
-const DEPTH: V3 = [1, 1, 0.78];
+const DEPTH: V3 = [1, 1, 0.75];
 
 function side(s: 1 | -1): Shape[] {
   const l = s === 1 ? 'l' : 'r';
   return [
     {
-      a: [0.15 * s, 0.84, 0],
-      cone: { b: [0.289 * s, 0.743, 0], ra: 0.056, rb: 0.05 },
-      k: 0.04,
+      a: [0.19 * s, 0.86, 0],
+      cone: { b: [0.354 * s, 0.745, 0], ra: 0.07, rb: 0.065 },
+      k: 0.045,
       bone: `upperarm.${l}`,
       tag: 'arm'
     },
     {
-      a: [0.289 * s, 0.743, 0],
-      cone: { b: [0.412 * s, 0.657, 0], rb: 0.042, ra: 0.05 },
-      k: 0.035,
+      a: [0.354 * s, 0.745, 0],
+      cone: { b: [0.5 * s, 0.642, 0], ra: 0.065, rb: 0.056 },
+      k: 0.04,
       bone: `forearm.${l}`,
       tag: 'arm'
     },
     {
-      a: [0.445 * s, 0.633, 0],
-      ell: [0.05, 0.055, 0.04],
+      a: [0.538 * s, 0.616, 0],
+      ell: [0.058, 0.064, 0.05],
       turn: [0, 0, -0.61 * s],
-      k: 0.025,
+      k: 0.03,
       bone: `forearm.${l}`,
       tag: 'hand'
     },
     {
-      a: [0.085 * s, 0.5, 0],
-      cone: { b: [0.085 * s, 0.26, 0], ra: 0.072, rb: 0.058 },
-      k: 0.04,
+      a: [0.09 * s, 0.5, 0],
+      cone: { b: [0.09 * s, 0.27, 0], ra: 0.078, rb: 0.07 },
+      k: 0.045,
       bone: `thigh.${l}`,
       tag: 'leg'
     },
+    // 足の形は作らず、すねの先の丸みがそのまま床に付く
     {
-      a: [0.085 * s, 0.26, 0],
-      cone: { b: [0.085 * s, 0.07, 0], ra: 0.058, rb: 0.05 },
-      k: 0.035,
+      a: [0.09 * s, 0.27, 0],
+      cone: { b: [0.09 * s, 0.062, 0], ra: 0.07, rb: 0.062 },
+      k: 0.04,
       bone: `shin.${l}`,
       tag: 'leg'
-    },
-    { a: [0.085 * s, 0.05, 0.025], ell: [0.055, 0.05, 0.075], k: 0.025, bone: `shin.${l}`, tag: 'foot' }
+    }
   ];
 }
 
 export function dollShapes(): Shape[] {
   return [
-    { a: [0, 1.005, 0], ell: [0.145, 0.145, 0.145], k: 0.04, bone: 'head', tag: 'head' },
-    { a: [0, 0.52, 0], ell: [0.15, 0.11, 0.12], k: 0.05, bone: 'hips', tag: 'body' },
+    { a: [0, 1.045, 0], ell: [0.105, 0.105, 0.105], k: 0.035, bone: 'head', tag: 'head' },
+    { a: [0, 0.53, 0], ell: [0.17, 0.12, 0.13], k: 0.05, bone: 'hips', tag: 'body' },
     {
-      a: [0, 0.56, 0],
-      cone: { b: [0, 0.68, 0], ra: 0.135, rb: 0.14 },
+      a: [0, 0.58, 0],
+      cone: { b: [0, 0.7, 0], ra: 0.165, rb: 0.17 },
       squash: DEPTH,
       k: 0.05,
       bone: 'spine',
       tag: 'body'
     },
     {
-      a: [0, 0.68, 0],
-      cone: { b: [0, 0.76, 0], ra: 0.14, rb: 0.14 },
+      a: [0, 0.7, 0],
+      cone: { b: [0, 0.8, 0], ra: 0.17, rb: 0.165 },
       squash: DEPTH,
       k: 0.05,
       bone: 'chest',
@@ -485,7 +488,7 @@ export interface DollSurface extends Surface {
 }
 
 /** 形ごとの距離から骨の重さを決める（pet-house の models.ts と同じ式）。近い形ほど重く、上位 4 本の骨に付ける */
-export function buildDoll(h = 0.014): DollSurface {
+export function buildDoll(h = 0.015): DollSurface {
   const shapes = dollShapes();
   const f = field(shapes);
   const s = mesh(f, bounds(shapes, h * 2), h);
@@ -518,7 +521,7 @@ export function buildDoll(h = 0.014): DollSurface {
 - [ ] **Step 4: 通ることを確かめる**
 
 Run: `pnpm vitest run src/lib/games/yappari-chameleon/doll.test.ts`
-Expected: PASS。手の先のテストが落ちるときは、手の楕円体（`0.445, 0.633`）が前腕の円すいの先より外に出ているかを確かめ、楕円体の位置を前腕の向きに 1cm ずつ外へ出す。
+Expected: PASS。手の先のテストが落ちるときは、手の楕円体（`0.538, 0.616`）が前腕の円すいの先より外に出ているかを確かめ、楕円体の位置を前腕の向きに 1cm ずつ外へ出す。
 
 - [ ] **Step 5: Commit**
 
@@ -1553,7 +1556,7 @@ Expected:
 
 - [ ] **Step 6: 人形の見た目を確かめてもらう**
 
-`doll-0.png`〜`doll-3.png` を作業の担当（このタスクを渡した人）へ返す。担当はユーザーに見せ、本家の人形との違いを聞く。形の直しは `doll.ts` の数字だけで行う。
+`doll-0.png`〜`doll-3.png` と、本家の切り抜き（scratchpad の `fig0.png` 背面・`fig5.png` 上半身・`fig7.png` 正面の全身）を横に並べた 1 枚を作り、作業の担当（このタスクを渡した人）へ返す。担当はユーザーに見せ、本家の人形との違いを聞く。形の直しは `doll.ts` の数字だけで行う。比べる点は、頭の大きさ（約 5.5 頭身）・胴と手足の太さ・脚の先が丸いだけであること。
 
 - [ ] **Step 7: Commit**
 
@@ -1564,7 +1567,7 @@ git commit -m "Paint the doll on a GPU atlas with metal and roughness"
 
 ### Task 6: 動きと当たり
 
-体を縦のカプセル（半径 0.2m、高さ 1.15m）、屋敷を箱と坂の集まりにして、自前の小さな計算で解く。本家の隠れる側の動き（歩く・走る・ジャンプ・壁際のジャンプで張り付く・張り付いたまま上がる下がる・天井に張り付く・回転ロックとその場で回転）を持つ。three も DOM も使わない。
+体を縦のカプセル（半径 0.2m、高さ 1.15m）、屋敷を箱と坂の集まりにして、自前の小さな計算で解く。本家の隠れる側の動き（歩く・走る・ジャンプ・壁際のよじ登りで張り付く・張り付いたまま上がる下がる・天井に張り付く・回転ロック・その場で回転）を持つ。three も DOM も使わない。
 
 **Files:**
 
@@ -1580,7 +1583,8 @@ git commit -m "Paint the doll on a GPU atlas with metal and roughness"
   - `interface Body { pos: [number, number, number]; vy: number; yaw: number; ground: boolean; cling: Cling | null }`。`pos` は足もとの中心。天井に張り付いているときの `pos[1]` は天井の高さ。`yaw` は 0 で +z を向き、正で +x へ回る（向きのベクトルは `[sin(yaw), cos(yaw)]`）。
   - `interface Input { x: number; z: number; run: boolean; jump: boolean; up: boolean; down: boolean; release: boolean; lock: boolean; turn: number }`。`x`・`z` は世界の向きの移動（長さ 1 まで）。`jump` と `release` は押した瞬間だけ true。`turn` は −1..1。
   - `RADIUS = 0.2`、`STEP = 0.3`、`WALK = 2.0`、`RUN = 3.8`、`CLIMB = 1.0`。
-  - `newBody(at: V3): Body`、`idle(): Input`、`step(b: Body, inp: Input, lv: Level, dt: number): void`。
+  - `newBody(at: V3): Body`、`idle(): Input`、`step(b: Body, inp: Input, lv: Level, dt: number): void`。`turn` は回転ロックと別に、壁に張り付いているとき以外はいつでも効く（本家のその場で回転）。
+  - `wallNear(b: Body, lv: Level): { nx: number; nz: number; top: number } | null`（壁際か。ジャンプのボタンを「よじ登り」と呼ぶかに使う）。
   - `rayDistance(lv: Level, o: V3, d: V3, max: number): number`（カメラの線が箱に当たるまでの距離。当たらなければ `max`）。
 
 - [ ] **Step 1: 落ちるテストを書く**
@@ -1710,6 +1714,12 @@ describe('move', () => {
     expect(b.yaw).toBeCloseTo(0, 5);
     expect(b.pos[0]).toBeGreaterThan(1);
     go(b, { lock: true, turn: 1 }, 0.5);
+    expect(b.yaw).toBeGreaterThan(0.5);
+  });
+
+  it('その場で回転は、回転ロックしていなくても効く', () => {
+    const b = newBody([0, 0, 0]);
+    go(b, { turn: 1 }, 0.5);
     expect(b.yaw).toBeGreaterThan(0.5);
   });
 
@@ -1850,7 +1860,7 @@ function pushOut(b: Body, lv: Level): { nx: number; nz: number } | null {
 }
 
 /** 体のふちから NEAR 以内にある壁の法線（張り付けるか、まだ張り付いていられるか） */
-function wallNear(
+export function wallNear(
   b: Body,
   lv: Level,
   want?: { nx: number; nz: number }
@@ -1980,7 +1990,8 @@ export function step(b: Body, inp: Input, lv: Level, dt: number): void {
     b.cling = null;
     return;
   }
-  if (inp.lock) b.yaw += inp.turn * TURN * dt;
+  // その場で回転は回転ロックと別の操作で、いつでも（天井にいるときも）効く。壁では体が壁を向いたままにする
+  if (b.cling?.kind !== 'wall') b.yaw += inp.turn * TURN * dt;
   if (b.cling?.kind === 'ceiling') return stepCeiling(b, inp, lv, dt);
   if (b.cling?.kind === 'wall') {
     if (inp.release) {
@@ -2404,7 +2415,7 @@ git commit -m "Add the twelve poses from the original's pose wheel"
 
 ### Task 8: 指の振り分け
 
-歩くときと鬼の目では、左の 45% に置いた指がスティック（置いた所が中心）、それ以外の 1 本が見回しになる。ペイントモードでは 1 本指で塗り、2 本指でカメラを回してつまんでズームする。2 本指の 1 本めで体に跡が付かないよう、1 本めは 80ms たつか 6px 動くまで塗り始めない。そのあとで 2 本めが来たら、描きかけの筆を取り消す知らせを出す。DOM を使わず、座標と時刻を受け取るだけにする。
+歩くときとフリーカメラでは、左の 45% に置いた指がスティック（置いた所が中心）、それ以外の 1 本が見回しになる。ペイントモードでは 1 本指で塗り、2 本指でカメラを回してつまんでズームする。2 本指の 1 本めで体に跡が付かないよう、1 本めは 80ms たつか 6px 動くまで塗り始めない。そのあとで 2 本めが来たら、描きかけの筆を取り消す知らせを出す。DOM を使わず、座標と時刻を受け取るだけにする。
 
 **Files:**
 
@@ -2743,13 +2754,13 @@ git add src/lib/games/yappari-chameleon/touch.ts src/lib/games/yappari-chameleon
 git commit -m "Route fingers to the stick, looking, painting and two-finger orbit"
 ```
 
-### Task 9: 試しの部屋で歩く・塗る・スポイト・鬼の目
+### Task 9: 試しの部屋で歩く・塗る・スポイト・フリーカメラ
 
-人形・塗り・動き・指を three の場面と画面につなぐ。屋敷を作る前に、緑のダマスクの壁・白黒の市松の床・金の額の油絵だけの試しの部屋で、受け入れの 1 枚め（壁の色を全身に吹いて張り付くと、鬼の目でほぼ見えない）を撮る。
+人形・塗り・動き・指を three の場面と画面につなぐ。屋敷を作る前に、緑のダマスクの壁・白黒の市松の床・金の額の油絵だけの試しの部屋で、受け入れの 1 枚め（壁の色を全身に吹いて張り付くと、フリーカメラでほぼ見えない）を撮る。
 
 **Files:**
 
-- Modify: `src/lib/icons.ts`（`currentColor` で描くアイコンを 9 つ足す）
+- Modify: `src/lib/icons.ts`（`currentColor` で描くアイコン 9 つと、HUD の砂時計を足す）
 - Create: `src/lib/games/yappari-chameleon/textures.ts`（ダマスク・市松・油絵と、模様を貼った材質・スポイトで読む画素）
 - Create: `src/lib/games/yappari-chameleon/test-room.ts`
 - Create: `src/lib/games/yappari-chameleon/world3d.ts`
@@ -2773,11 +2784,11 @@ git commit -m "Route fingers to the stick, looking, painting and two-finger orbi
   - `EYE_FOV = 72`、`interface Built { group: THREE.Group; level: Level }`。
   - `class World { renderer; scene; camera; rig: DollRig; poses: PoseAnimator; level: Level; constructor(canvas: HTMLCanvasElement, rig: (r: THREE.WebGLRenderer) => DollRig, onRestore: () => void); setStage(b: Built): void; resize(w: number, h: number): void; placeDoll(b: Body): void; follow(target: V3, yaw: number, pitch: number, dist: number, fov: number): void; eye(pos: V3, yaw: number, pitch: number): void; dollCenter(): V3; pickBody(x: number, y: number): THREE.Intersection | null; spoit(x: number, y: number): { color: RGB; metal: number; rough: number } | null; project(p: V3): { x: number; y: number }; render(): void; dispose(): void }`。`x`・`y` は canvas の CSS px。
 - Produces（`play.svelte.ts`）:
-  - `class Play`。画面から読む `$state`: `mode`・`brush`・`spoit`・`shadow`・`canUndo`・`cling`（`'wall' | 'ceiling' | null`）。ボタンの口: `jump()`・`release()`・`held`（`{ up: boolean; down: boolean }`）・`togglePaint()`・`toggleEye()`・`toggleSpoit()`・`toggleShadow()`・`undo()`・`setColor(c: RGB)`。指の口: `pointer(kind: 'down' | 'move' | 'up', id: number, x: number, y: number, width: number)`。描く口: `frame(dt: number, now: number)`。headless の確かめから使う口: `body`・`ghost`・`log`・`world`・`spoitAt(x, y)`・`applyDabs(dabs: Dab[])`。
+  - `class Play`。画面から読む `$state`: `mode`・`brush`・`spoit`・`shadow`・`canUndo`・`cling`（`'wall' | 'ceiling' | null`）・`nearWall`。ボタンの口: `jump()`・`release()`・`held`（`{ up: boolean; down: boolean }`）・`togglePaint()`・`toggleEye()`・`toggleSpoit()`・`toggleShadow()`・`undo()`・`setColor(c: RGB)`。指の口: `pointer(kind: 'down' | 'move' | 'up', id: number, x: number, y: number, width: number)`。描く口: `frame(dt: number, now: number)`。headless の確かめから使う口: `body`・`ghost`・`log`・`world`・`spoitAt(x, y)`・`applyDabs(dabs: Dab[])`。
 
 - [ ] **Step 1: アイコンを足す**
 
-`src/lib/icons.ts` の `const LINE = ...` の下に `const C = 'currentColor';` を足し、`ICONS` の最後の項目のあとに足す（ボタンの白い字の色をそのまま使うため、どれも `currentColor` で描く）。
+`src/lib/icons.ts` の `const LINE = ...` の下に `const C = 'currentColor';` を足し、`ICONS` の最後の項目のあとに足す（ボタンの白い字の色をそのまま使うため、砂時計のほかは `currentColor` で描く）。
 
 ```ts
   eye: [
@@ -2807,7 +2818,12 @@ git commit -m "Route fingers to the stick, looking, painting and two-finger orbi
     { d: 'M9.5 9V6.5h4V9', stroke: C, width: 2 },
     { d: 'M17 4.5h.01M19.5 6h.01M17.5 7.5h.01M20 3.5h.01', stroke: C, width: 2.2 }
   ],
-  rewind: [{ d: 'M5 10h9.5a5 5 0 0 1 0 10H10M9 5.5L4.5 10 9 14.5', stroke: C, width: 2.2 }]
+  rewind: [{ d: 'M5 10h9.5a5 5 0 0 1 0 10H10M9 5.5L4.5 10 9 14.5', stroke: C, width: 2.2 }],
+  // 本家の HUD の、緑の砂の砂時計
+  hourglass: [
+    { d: 'M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9s10 4 10 9', stroke: '#ffffff', width: 1.8 },
+    { d: 'M9 6.5h6l-3 3.5zM8 19.5c1.5-3 6.5-3 8 0z', fill: '#7cc243' }
+  ]
 ```
 
 - [ ] **Step 2: `textures.ts` を作る**
@@ -2871,42 +2887,54 @@ export function damask(ground: string, ink: string): Pattern {
   return make(`damask:${ground}:${ink}`, 256, 384, [0.5, 0.75], (g) => {
     g.fillStyle = ground;
     g.fillRect(0, 0, 256, 384);
-    const half = (cx: number, cy: number, s: number) => {
-      for (const flip of [1, -1]) {
-        g.save();
-        g.translate(cx, cy);
-        g.scale(flip * s, s);
-        g.fillStyle = ink;
-        g.strokeStyle = ink;
-        g.lineWidth = 11;
-        g.lineCap = 'round';
-        g.beginPath();
-        g.moveTo(0, -150);
-        g.bezierCurveTo(60, -120, 90, -60, 40, -20);
-        g.bezierCurveTo(90, 10, 100, 80, 30, 120);
-        g.bezierCurveTo(15, 135, 6, 145, 0, 160);
-        g.stroke();
-        g.beginPath();
-        g.moveTo(40, -20);
-        g.bezierCurveTo(70, -40, 105, -25, 100, 5);
-        g.bezierCurveTo(95, 30, 70, 25, 72, 8);
-        g.stroke();
-        g.beginPath();
-        g.ellipse(0, 10, 26, 46, 0, 0, Math.PI * 2);
-        g.fill();
-        g.beginPath();
-        g.moveTo(0, -95);
-        g.quadraticCurveTo(34, -70, 0, -40);
-        g.fill();
-        g.beginPath();
-        g.moveTo(30, 120);
-        g.quadraticCurveTo(70, 150, 50, 185);
-        g.stroke();
-        g.restore();
-      }
+    g.fillStyle = ink;
+    g.strokeStyle = ink;
+    g.lineWidth = 11;
+    g.lineCap = 'round';
+    const leaf = (x: number, y: number, len: number, wid: number, rot: number) => {
+      g.save();
+      g.translate(x, y);
+      g.rotate(rot);
+      g.beginPath();
+      g.moveTo(0, 0);
+      g.quadraticCurveTo(wid, len * 0.5, 0, len);
+      g.quadraticCurveTo(-wid, len * 0.5, 0, 0);
+      g.fill();
+      g.restore();
     };
-    half(128, 192, 1);
-    // 隣の飾りと合わせるため、四隅に半分ずつ小さな花を置く
+    // 本家の壁紙は線ではなく、鳥と葉を塗りつぶした面の多い飾り。中心から左右に写す
+    for (const flip of [1, -1]) {
+      g.save();
+      g.translate(128, 0);
+      g.scale(flip, 1);
+      g.beginPath();
+      g.moveTo(0, 18);
+      g.bezierCurveTo(78, 70, 78, 150, 22, 196);
+      g.bezierCurveTo(-8, 228, 22, 292, 66, 334);
+      g.stroke();
+      leaf(42, 56, 62, 26, -0.7);
+      leaf(62, 128, 72, 30, 0.5);
+      leaf(34, 226, 58, 24, -0.4);
+      leaf(70, 290, 62, 26, 0.8);
+      // 葉の陰にとまる鳥（体・頭・尾・翼）
+      g.beginPath();
+      g.ellipse(84, 178, 30, 15, -0.3, 0, Math.PI * 2);
+      g.arc(108, 164, 11, 0, Math.PI * 2);
+      g.moveTo(58, 186);
+      g.lineTo(26, 206);
+      g.lineTo(34, 178);
+      g.fill();
+      g.beginPath();
+      g.moveTo(74, 172);
+      g.quadraticCurveTo(84, 140, 112, 132);
+      g.quadraticCurveTo(100, 166, 90, 182);
+      g.fill();
+      g.restore();
+    }
+    g.beginPath();
+    g.ellipse(128, 192, 24, 44, 0, 0, Math.PI * 2);
+    g.fill();
+    // 隣の飾りと合わせるため、四隅に半分ずつ花を置く
     for (const [x, y] of [
       [0, 0],
       [256, 0],
@@ -2914,8 +2942,7 @@ export function damask(ground: string, ink: string): Pattern {
       [256, 384]
     ]) {
       g.beginPath();
-      g.fillStyle = ink;
-      g.arc(x, y, 24, 0, Math.PI * 2);
+      g.arc(x, y, 28, 0, Math.PI * 2);
       g.fill();
     }
   });
@@ -2943,35 +2970,50 @@ export function checker(): Pattern {
   });
 }
 
-/** 金の額に入れる、階段のある広間の油絵（本家のトレーラーで体に写していた絵に寄せる） */
+/**
+ * 金の額に入れる油絵。本家のトレーラーで体に写していた絵に寄せ、灰色がかった緑とオリーブを主に、
+ * 左に上がる茶の階段、右に扉の並ぶ廊下、手前に明るいベージュの床を置く
+ */
 export function oilPainting(): Pattern {
   return make('oil', 512, 384, [1.2, 0.9], (g) => {
     const r = rng(23);
-    const sky = g.createLinearGradient(0, 0, 0, 384);
-    sky.addColorStop(0, '#3b2a1d');
-    sky.addColorStop(0.55, '#8a6a3e');
-    sky.addColorStop(1, '#2a1f17');
-    g.fillStyle = sky;
+    const wall = g.createLinearGradient(0, 0, 0, 384);
+    wall.addColorStop(0, '#4c5039');
+    wall.addColorStop(0.6, '#6e7653');
+    wall.addColorStop(1, '#393f27');
+    g.fillStyle = wall;
     g.fillRect(0, 0, 512, 384);
-    g.fillStyle = '#d8c39a';
-    g.fillRect(300, 40, 120, 170);
-    for (let i = 0; i < 9; i++) {
-      g.fillStyle = i % 2 ? '#6e4a2a' : '#a77b4a';
-      g.beginPath();
-      g.moveTo(40 + i * 28, 360 - i * 30);
-      g.lineTo(360 + i * 6, 360 - i * 30);
-      g.lineTo(360 + i * 6, 330 - i * 30);
-      g.lineTo(40 + i * 28, 330 - i * 30);
-      g.fill();
+    g.fillStyle = '#a59863';
+    g.fillRect(0, 0, 512, 42);
+    g.fillStyle = '#b9ab78';
+    g.beginPath();
+    g.moveTo(0, 384);
+    g.lineTo(512, 384);
+    g.lineTo(404, 282);
+    g.lineTo(108, 282);
+    g.fill();
+    for (let i = 0; i < 4; i++) {
+      const w = 40 - i * 6;
+      const h = 150 - i * 22;
+      const x = 300 + i * 48;
+      g.fillStyle = '#393f27';
+      g.fillRect(x, 282 - h, w, h);
+      g.strokeStyle = '#a59863';
+      g.lineWidth = 5;
+      g.strokeRect(x, 282 - h, w, h);
     }
-    g.strokeStyle = '#2b1a10';
+    for (let i = 0; i < 8; i++) {
+      g.fillStyle = i % 2 ? '#6a4a2c' : '#8a6a44';
+      g.fillRect(30 + i * 26, 282 - (i + 1) * 26, 200 - i * 14, 26);
+    }
+    g.strokeStyle = '#2c2416';
     g.lineWidth = 8;
     g.beginPath();
-    g.moveTo(30, 330);
-    g.lineTo(290, 80);
+    g.moveTo(26, 272);
+    g.lineTo(240, 64);
     g.stroke();
     for (let i = 0; i < 260; i++) {
-      g.fillStyle = `hsl(${30 + r() * 20} ${30 + r() * 30}% ${20 + r() * 50}% / 0.18)`;
+      g.fillStyle = `hsl(${65 + r() * 25} ${10 + r() * 20}% ${25 + r() * 40}% / 0.18)`;
       g.beginPath();
       g.ellipse(r() * 512, r() * 384, 6 + r() * 16, 3 + r() * 6, r() * Math.PI, 0, Math.PI * 2);
       g.fill();
@@ -3011,8 +3053,6 @@ export function finish(f: Finish, size: [number, number]): THREE.MeshStandardMat
   return m;
 }
 
-const frac = (v: number) => v - Math.floor(v);
-
 /** 光が当たる前の物の色（模様の画素 × 材質の色）。体にも同じ光が当たるので、同じ場所では同じに見える */
 export function readPick(
   m: THREE.Material,
@@ -3024,8 +3064,11 @@ export function readPick(
   const map = (m as THREE.MeshStandardMaterial).map;
   if (pick.image && uv && map) {
     const { width: w, height: h, data } = pick.image;
-    const x = Math.min(w - 1, Math.floor(frac(uv.x * map.repeat.x + map.offset.x) * w));
-    const y = Math.min(h - 1, Math.floor((1 - frac(uv.y * map.repeat.y + map.offset.y)) * h));
+    // 描くときと同じ写し方（繰り返し・ずらし・回し・上下の反転）で、模様の画素の位置にする
+    map.updateMatrix();
+    const t = map.transformUv(uv.clone());
+    const x = Math.min(w - 1, Math.floor(t.x * w));
+    const y = Math.min(h - 1, Math.floor(t.y * h));
     const i = (y * w + x) * 4;
     color = [(data[i] / 255) * color[0], (data[i + 1] / 255) * color[1], (data[i + 2] / 255) * color[2]];
   }
@@ -3057,7 +3100,7 @@ function plane(size: [number, number], m: THREE.Material, at: V3, rot: V3): THRE
 /** 受け入れを試す 1 部屋。奥の壁が緑のダマスクで、金の額の油絵が掛かり、床は白黒の市松 */
 export function testRoom(): Built {
   const group = new THREE.Group();
-  const green = finish({ pattern: damask('#3f5e3a', '#5f8255') }, [W, H]);
+  const green = finish({ pattern: damask('#26330a', '#86a63a') }, [W, H]);
   const plain = finish({ tint: '#d9cdb4' }, [W, H]);
   group.add(plane([W, D], finish({ pattern: checker(), rough: 0.35 }, [W, D]), [0, 0, 0], [-Math.PI / 2, 0, 0]));
   group.add(plane([W, D], finish({ tint: '#efe6d2' }, [W, D]), [0, H, 0], [Math.PI / 2, 0, 0]));
@@ -3257,7 +3300,7 @@ import type { V3 } from '$lib/sculpt';
 import type { RGB } from './color';
 import { pushRecent } from './color';
 import { restHit } from './doll3d';
-import { idle, newBody, step, type Body } from './move';
+import { idle, newBody, step, wallNear, type Body } from './move';
 import { PaintLog, Stroke, type Brush, type Dab } from './paint';
 import { TouchPad, type Mode, type PaintEvent } from './touch';
 import type { World } from './world3d';
@@ -3275,6 +3318,8 @@ export class Play {
   shadow = $state(true);
   canUndo = $state(false);
   cling = $state<'wall' | 'ceiling' | null>(null);
+  /** 壁際にいる。ジャンプのボタンを本家の言葉の「よじ登り」にする */
+  nearWall = $state(false);
   stick = $state({ x: 0, y: 0, active: false, ox: 0, oy: 0 });
   readonly held = { up: false, down: false };
   readonly world: World;
@@ -3447,6 +3492,7 @@ export class Play {
     }
     this.#jump = this.#release = false;
     this.cling = this.body.cling?.kind ?? null;
+    this.nearWall = !this.body.cling && wallNear(this.body, w.level) !== null;
     w.placeDoll(this.body);
     w.poses.step(dt);
     if (this.mode === 'walk') {
@@ -3576,22 +3622,22 @@ export class Play {
 
 <div class="column">
   {#if play.mode === 'paint'}
-    {@render button('dropper', 'スポイト', () => play.toggleSpoit(), play.spoit)}
-    {@render button('rewind', 'もどす', () => play.undo())}
+    {@render button('dropper', '3D スポイト', () => play.toggleSpoit(), play.spoit)}
+    {@render button('rewind', '元に戻す', () => play.undo())}
     {@render button('shadow', '影', () => play.toggleShadow(), play.shadow)}
-    {@render button('spray', 'おわる', () => play.togglePaint(), true)}
+    {@render button('spray', 'ペイントモード', () => play.togglePaint(), true)}
   {:else if play.mode === 'eye'}
     {@render button('lift', 'ジャンプ', () => play.jump())}
-    {@render button('eye', 'もどる', () => play.toggleEye(), true)}
+    {@render button('eye', 'フリーカメラ', () => play.toggleEye(), true)}
   {:else if play.cling}
     {@render holder('lift', '上がる', 'up')}
-    {@render holder('lift', 'さがる', 'down', 180)}
-    <button class="btn" onclick={() => play.release()}><span>はなす</span></button>
-    {@render button('spray', 'ペイント', () => play.togglePaint())}
+    {@render holder('lift', '下がる', 'down', 180)}
+    <button class="btn" onclick={() => play.release()}><span>張り付き解除</span></button>
+    {@render button('spray', 'ペイントモード', () => play.togglePaint())}
   {:else}
-    {@render button('lift', 'ジャンプ', () => play.jump())}
-    {@render button('spray', 'ペイント', () => play.togglePaint())}
-    {@render button('eye', '鬼の目', () => play.toggleEye())}
+    {@render button('lift', play.nearWall ? 'よじ登り' : 'ジャンプ', () => play.jump())}
+    {@render button('spray', 'ペイントモード', () => play.togglePaint())}
+    {@render button('eye', 'フリーカメラ', () => play.toggleEye())}
   {/if}
 </div>
 
@@ -3621,14 +3667,15 @@ export class Play {
     display: grid;
     justify-items: center;
     align-content: center;
-    width: 72px;
-    height: 72px;
+    width: 84px;
+    height: 84px;
     border: 2px solid rgb(255 255 255 / 0.85);
     border-radius: 50%;
     background: rgb(0 0 0 / 0.35);
     color: #fff;
     font-family: 'Hiragino Mincho ProN', serif;
-    font-size: 12px;
+    font-size: 11px;
+    line-height: 1.15;
     text-shadow: 0 1px 2px #000;
   }
 
@@ -3680,7 +3727,7 @@ export class Play {
       const p = play;
       stop = animate((dt, now) => p.frame(dt, now));
     };
-    // 人形の面と升目を作るのに数百 ms 止まるので、「じゅんびちゅう」を 1 度描かせてから作る
+    // 人形の面と升目を作るのに数百 ms 止まるので、「準備中」を 1 度描かせてから作る
     const raf = requestAnimationFrame(() =>
       setTimeout(() => {
         const s = buildDoll();
@@ -3743,10 +3790,10 @@ export class Play {
     {/if}
     <Buttons {play} onquit={() => onquit?.()} />
   {:else}
-    <p class="notice">じゅんびちゅう…</p>
+    <p class="notice">準備中…</p>
   {/if}
   {#if portrait}
-    <p class="notice cover">よこむきに してね</p>
+    <p class="notice cover">横向きにしてください</p>
   {/if}
 </div>
 
@@ -3800,6 +3847,7 @@ function fake(over: Partial<Play> = {}) {
   return {
     mode: 'walk',
     cling: null,
+    nearWall: false,
     spoit: false,
     shadow: true,
     held: { up: false, down: false },
@@ -3817,33 +3865,42 @@ function fake(over: Partial<Play> = {}) {
 const labels = (t: HTMLElement) => [...t.querySelectorAll('.column button')].map((b) => b.textContent?.trim());
 
 describe('Buttons', () => {
-  it('歩くときはジャンプ・ペイント・鬼の目', () => {
+  it('歩くときはジャンプ・ペイントモード・フリーカメラ', () => {
     const target = document.body.appendChild(document.createElement('div'));
     const app = mount(Buttons, { target, props: { play: fake(), onquit: () => {} } });
     flushSync();
-    expect(labels(target)).toEqual(['ジャンプ', 'ペイント', '鬼の目']);
+    expect(labels(target)).toEqual(['ジャンプ', 'ペイントモード', 'フリーカメラ']);
     unmount(app);
   });
 
-  it('張り付いているあいだは、上がる・さがるを押しているあいだだけ held が立つ', () => {
+  it('壁際ではジャンプを本家の言葉の「よじ登り」と呼ぶ', () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(Buttons, { target, props: { play: fake({ nearWall: true }), onquit: () => {} } });
+    flushSync();
+    expect(labels(target)[0]).toBe('よじ登り');
+    unmount(app);
+  });
+
+  it('張り付いているあいだは、上がる・下がるを押しているあいだだけ held が立つ', () => {
     const play = fake({ cling: 'wall' });
     const target = document.body.appendChild(document.createElement('div'));
     const app = mount(Buttons, { target, props: { play, onquit: () => {} } });
     flushSync();
-    expect(labels(target)).toEqual(['上がる', 'さがる', 'はなす', 'ペイント']);
+    expect(labels(target)).toEqual(['上がる', '下がる', '張り付き解除', 'ペイントモード']);
     const up = target.querySelectorAll('.column button')[0];
-    up.dispatchEvent(new PointerEvent('pointerdown'));
+    // Svelte は pointerdown を根元でまとめて受けるので、泡立てて送る
+    up.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
     expect(play.held.up).toBe(true);
     up.dispatchEvent(new PointerEvent('pointerleave'));
     expect(play.held.up).toBe(false);
     unmount(app);
   });
 
-  it('ペイント中はスポイト・もどす・影・おわる', () => {
+  it('ペイント中は 3D スポイト・元に戻す・影・ペイントモード', () => {
     const target = document.body.appendChild(document.createElement('div'));
     const app = mount(Buttons, { target, props: { play: fake({ mode: 'paint' }), onquit: () => {} } });
     flushSync();
-    expect(labels(target)).toEqual(['スポイト', 'もどす', '影', 'おわる']);
+    expect(labels(target)).toEqual(['3D スポイト', '元に戻す', '影', 'ペイントモード']);
     unmount(app);
   });
 });
@@ -3865,18 +3922,22 @@ dev サーバー（`pnpm dev --port 5180`）を起動したまま、scratchpad �
 2. `play.world.project([0.5, 1.6, 3.99])`（壁の上の点）で画面の位置を出し、`play.spoitAt(x, y)` で壁の色を取る。`play.brush.color` が緑（G が R と B より大きい）になっていることを確かめる。
 3. 全身に吹く。人形の形を `buildDoll()` で作り直し（`/asobibako/src/lib/games/yappari-chameleon/doll.ts` を import）、頂点を 30 個おきに取って、`{ p, n, r: 0.08, c: play.brush.color, a: 0.9, m: 0, ro: 0.8 }` の吹き付けを `play.applyDabs(list)` で当てる。
 4. `play.jump()` で壁に張り付かせ、0.5 秒待つ。`play.cling` が `'wall'` であることを確かめる。
-5. `play.toggleEye()` で鬼の目に替え、`play.ghost.pos = [0.5, 0, 0.75]`、`play.eyeYaw = 0`、`play.eyePitch = 0.1` にして 0.5 秒待ち、`accept-1.png` を撮る。
+5. `play.toggleEye()` でフリーカメラに替え、3m 離れた所から、正面（`play.ghost.pos = [0.5, 0, 0.75]`、`play.eyeYaw = 0`）・左 30 度・右 30 度の 3 か所（同じ距離で、人形へ向く `eyeYaw`）から、`play.eyePitch = 0.1` で 0.5 秒ずつ待って撮る（`accept-1.png`・`accept-1-left.png`・`accept-1-right.png`）。本家でいちばんばれるのは、動いて見たときの輪郭と背景とのずれなので、正面の 1 枚だけで決めない。
 6. 比べるため、`play.log.clear(); play.rebuildPaint();` で白に戻して同じ場所から `accept-1-white.png` を撮る。
 7. WebGL のコンテキストを失って戻る場合（Review Focus 4）を確かめる。もう一度 3 の吹き付けを当ててから、`const ext = play.world.renderer.getContext().getExtension('WEBGL_lose_context'); ext.loseContext();` のあと 0.5 秒待って `ext.restoreContext();`、1 秒待って `accept-1-restored.png` を撮る。
 
-8. 縦持ちと横持ちの行き来を確かめる（Review Focus 1）。`page.setViewportSize({ width: 820, height: 1180 })` で縦にして 0.5 秒待ち、「よこむきに してね」が出ていることを撮る（`accept-1-portrait.png`）。`page.setViewportSize({ width: 1180, height: 820 })` で横に戻して 1 秒待ち、`play.body.pos` が縦にする前と同じで、画面が引きのばされずに描かれていることを撮る（`accept-1-back.png`）。
+8. 油絵を写す（受け入れの 2 枚め。塗りの細かさ 2048² が足りるかをここで決める）。白に戻してから、体を額の前（`body.pos = [-1.5, 0, 3.75]`）に置いて `play.jump()` で壁に張り付かせ、上がるを 0.4 秒押して（`play.held.up = true` のあと戻す）体の中心を絵の高さに合わせる。体の頂点を 2 つおきに取り、骨で曲げたあとの位置（`rig.mesh.getVertexPosition(i, v)` に `rig.mesh.matrixWorld` を掛けたもの）を壁の面へまっすぐ写して、その点の油絵の画素の色（`oilPainting().image` から読む。絵の外なら金の額の色 `#d4af37`）で、半径 1.2cm・濃さ 1 の吹き付けを作って `play.applyDabs()` で当てる。当てるのは壁から離れた側を向いた面の頂点だけ（法線を世界の向きに直し、壁の法線と同じ向きのもの）。フリーカメラで 2.5m 離れて、正面・左 30 度・右 30 度から撮る（`accept-2.png`・`accept-2-left.png`・`accept-2-right.png`）。
+9. 指で塗った場合も撮る（理想の写しだけでは、塗り心地を測れないため）。白に戻してペイントモードに入り、`play.pointer()` に、体の上を横になぞる指の道（半径 3cm の筆、1 本 0.6 秒、縦に 3cm ずつずらして 20 本、道には ±4px の揺れを入れる）を 1 フレームずつ渡して、壁の色で塗る。フリーカメラで同じ 3 か所から撮る（`accept-1-finger*.png`）。
+10. 縦持ちと横持ちの行き来を確かめる（Review Focus 1）。`page.setViewportSize({ width: 820, height: 1180 })` で縦にして 0.5 秒待ち、「横向きにしてください」が出ていることを撮る（`accept-1-portrait.png`）。`page.setViewportSize({ width: 1180, height: 820 })` で横に戻して 1 秒待ち、`play.body.pos` が縦にする前と同じで、画面が引きのばされずに描かれていることを撮る（`accept-1-back.png`）。
 
 Run: `node <scratchpad>/accept.mjs <scratchpad>`
 Expected:
 
-- `accept-1.png` で、人形が緑のダマスクの壁にほぼ溶け込み、輪郭と影のほかはほとんど見えない。`accept-1-white.png` では白い人形がはっきり見える。
+- `accept-1*.png` の 3 枚で、人形が緑のダマスクの壁にほぼ溶け込み、輪郭と影のほかはほとんど見えない。`accept-1-white.png` では白い人形がはっきり見える。
+- `accept-2*.png` の 3 枚で、人形が額の中の絵の一部に見える（本家のトレーラーの場面）。写した階段や扉がにじんで見分けられないときは、塗りの細かさが足りない。作業の担当へ「細かさが足りない」と返す（直し方は担当が決める）。
+- `accept-1-finger*.png` は、指で塗るとどこまで溶けるかの見本。合否は付けず、担当がユーザーに見せる。
 - `accept-1-restored.png` が `accept-1.png` と同じ見え方（体が白に戻っていない）。
-- `accept-1-portrait.png` に「よこむきに してね」が出て、`accept-1-back.png` が引きのばされずに続きを描いている。
+- `accept-1-portrait.png` に「横向きにしてください」が出て、`accept-1-back.png` が引きのばされずに続きを描いている。
 
 溶け込まないときの見どころ。
 
@@ -3891,25 +3952,39 @@ git add src/lib/icons.ts src/lib/games/yappari-chameleon
 git commit -m "Walk, paint, sample colors and check with the seeker's eye in a test room"
 ```
 
-`accept-1.png`・`accept-1-white.png` を作業の担当へ返す（担当がユーザーに見せる）。
+`accept-1*.png`・`accept-2*.png` と、本家のスクショ（scratchpad の `ss/` と `fig0.png`・`fig7.png`）を横に並べた 1 枚を作業の担当へ返す（担当がユーザーに見せる）。
 
-### Task 10: 色のパネル
+### Task 10: 色のパネルと筆の輪
 
-本家のペイントの左上のパネルの並び（色相の輪・明るさと不透明度の縦のスライダー・今の色と前の色・H/S/V と R/G/B のスライダー・メタリックとラフネス・最近使った色・14 × 3 の見本）を、ペイントモードの左に出す。塗る場所を空けられるよう、パネルはたためる。
+本家のペイントモードの左上のパネル（scratchpad の `f11crop.png`）の並びで、ペイントモードの左に出す。
+
+| 段  | 本家の並び                                                                                                                                        |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 色相と彩度の円盤（まん中が白で、外ほど濃い。円の中の小さな丸で色相と彩度を同時に選ぶ）、その右に彩度と明るさの縦のスライダー 2 本、今の色と前の色 |
+| 2   | 左に R・G・B・A（A は不透明度）、右に H・S・V                                                                                                     |
+| 3   | 最近使った色と見本の格子（14 × 3）                                                                                                                |
+| 4   | メタリックとラフネス                                                                                                                              |
+| 5   | 大きな「3D スポイト」                                                                                                                             |
+
+塗る場所を空けられるよう、パネルはたためる（本家に無い部品だが iPad では要る）。指が触れているあいだは指の下が見えないので、体の表面の、筆が当たる所に筆の半径の輪を出す（本家はマウスの筆のカーソルで塗る所が分かる）。ブラシの大きさを変えたあとも 1 秒出す。
 
 **Files:**
 
 - Create: `src/lib/games/yappari-chameleon/PaintPanel.svelte`
-- Create: `src/lib/games/yappari-chameleon/HueRing.svelte`
+- Create: `src/lib/games/yappari-chameleon/ColorDisk.svelte`
 - Create: `src/lib/games/yappari-chameleon/ColorSliders.svelte`
 - Create: `src/lib/games/yappari-chameleon/Swatches.svelte`
+- Modify: `src/lib/games/yappari-chameleon/world3d.ts`（筆の輪 `cursor()`）
+- Modify: `src/lib/games/yappari-chameleon/play.svelte.ts`（指が体に触れているあいだと、大きさを変えたあとに輪を出す）
 - Modify: `src/lib/games/yappari-chameleon/Chameleon.svelte`（ペイント中に `PaintPanel` を出す）
 - Test: `src/lib/games/yappari-chameleon/PaintPanel.svelte.test.ts`
 
 **Interfaces:**
 
-- Consumes: `Play`（`brush`・`previous`・`recent`・`setColor`、Task 9）、`hsvToRgb`・`rgbToHsv`・`toHex`・`fromHex`・`SWATCHES`（Task 4）。
+- Consumes: `Play`（`brush`・`previous`・`recent`・`setColor`・`toggleSpoit`・`spoit`、Task 9）、`hsvToRgb`・`rgbToHsv`・`toHex`・`fromHex`・`SWATCHES`（Task 4）。
 - Produces: `PaintPanel.svelte`（props `{ play: Play }`）。スライダーで動かした色は `play.brush.color` に直接入れ、見本・最近の色・前の色を押したときは `play.setColor()`（前の色を入れ替える）を呼ぶ。
+- Produces（`World` に足す）: `cursor(hit: THREE.Intersection | null, radius: number): void`（体の上の当たりに、面に沿った輪を置く。null で隠す）。
+- Produces（`Play` に足す）: `showCursor(x: number, y: number): void`、`#cursorUntil`（大きさを変えたあと輪を出し続ける時刻）。
 
 - [ ] **Step 1: 落ちるテストを書く**
 
@@ -3926,7 +4001,9 @@ function fake() {
     brush: { radius: 0.05, color: [1, 0, 0], opacity: 1, metal: 0, rough: 0.85 },
     previous: [0, 0, 1],
     recent: [[0, 1, 0]],
-    setColor: vi.fn()
+    spoit: false,
+    setColor: vi.fn(),
+    toggleSpoit: vi.fn()
   };
   return play as unknown as Play;
 }
@@ -3938,7 +4015,23 @@ const show = (play: Play) => {
   return { target, app };
 };
 
+const slide = (target: HTMLElement, label: string, value: number) => {
+  const input = target.querySelector(`input[aria-label="${label}"]`) as HTMLInputElement;
+  input.value = String(value);
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  flushSync();
+};
+
 describe('PaintPanel', () => {
+  it('本家の並び（円盤・縦の 2 本・RGBA と HSV・見本・艶・3D スポイト）で出す', () => {
+    const { target, app } = show(fake());
+    const order = [...target.querySelectorAll('[data-part]')].map((e) => e.getAttribute('data-part'));
+    expect(order).toEqual(['disk', 'pair', 'rgba', 'hsv', 'swatches', 'gloss', 'spoit']);
+    for (const l of ['彩度', '明るさ', 'R', 'G', 'B', 'A', 'H', 'S', 'V', 'メタリック', 'ラフネス'])
+      expect(target.querySelector(`input[aria-label="${l}"]`), l).not.toBe(null);
+    unmount(app);
+  });
+
   it('見本を押すと、その色で setColor を呼ぶ', () => {
     const play = fake();
     const { target, app } = show(play);
@@ -3955,25 +4048,37 @@ describe('PaintPanel', () => {
     unmount(app);
   });
 
-  it('R のスライダーを動かすと、筆の色が変わる', () => {
+  it('R を動かすと筆の色が、A を動かすと筆の不透明度が変わる', () => {
     const play = fake();
     const { target, app } = show(play);
-    const r = target.querySelector('input[aria-label="R"]') as HTMLInputElement;
-    r.value = '0.5';
-    r.dispatchEvent(new Event('input', { bubbles: true }));
-    flushSync();
+    slide(target, 'R', 0.5);
     expect(play.brush.color[0]).toBeCloseTo(0.5);
+    slide(target, 'A', 0.4);
+    expect(play.brush.opacity).toBeCloseTo(0.4);
     unmount(app);
   });
 
-  it('メタリックとラフネスのスライダーは筆の艶を変える', () => {
+  it('縦の明るさのスライダーは V と同じ値を動かす', () => {
     const play = fake();
     const { target, app } = show(play);
-    const m = target.querySelector('input[aria-label="メタリック"]') as HTMLInputElement;
-    m.value = '1';
-    m.dispatchEvent(new Event('input', { bubbles: true }));
-    flushSync();
+    slide(target, '明るさ', 0.5);
+    expect(Math.max(...play.brush.color)).toBeCloseTo(0.5);
+    unmount(app);
+  });
+
+  it('メタリックのスライダーは筆の艶を変える', () => {
+    const play = fake();
+    const { target, app } = show(play);
+    slide(target, 'メタリック', 1);
     expect(play.brush.metal).toBe(1);
+    unmount(app);
+  });
+
+  it('いちばん下の 3D スポイトを押すとスポイトにする', () => {
+    const play = fake();
+    const { target, app } = show(play);
+    (target.querySelector('[data-part="spoit"]') as HTMLButtonElement).click();
+    expect(play.toggleSpoit).toHaveBeenCalled();
     unmount(app);
   });
 
@@ -3994,172 +4099,142 @@ Expected: FAIL（`./PaintPanel.svelte` が無い）。
 
 - [ ] **Step 3: 部品を作る**
 
-`src/lib/games/yappari-chameleon/HueRing.svelte`:
+`src/lib/games/yappari-chameleon/ColorDisk.svelte`（色相を角度、彩度を中心からの距離にした円盤。明るさは縦のスライダーで決めるので、円盤はいつも明るさ 1 で描く）:
 
 ```svelte
 <script lang="ts">
   import { onMount } from 'svelte';
 
-  let {
-    hue,
-    value,
-    opacity,
-    color,
-    onhue,
-    onvalue,
-    onopacity
-  }: {
-    hue: number;
-    value: number;
-    opacity: number;
-    color: string;
-    onhue: (h: number) => void;
-    onvalue: (v: number) => void;
-    onopacity: (o: number) => void;
-  } = $props();
+  let { hue, sat, onpick }: { hue: number; sat: number; onpick: (h: number, s: number) => void } = $props();
 
-  const SIZE = 150;
+  const SIZE = 140;
   let canvas: HTMLCanvasElement;
 
   onMount(() => {
-    const g = canvas.getContext('2d')!;
+    const g = canvas.getContext('2d');
+    // テストの DOM（happy-dom）には createConicGradient が無い
+    if (!g || !('createConicGradient' in g)) return;
     canvas.width = canvas.height = SIZE * 2;
-    const grad = g.createConicGradient(-Math.PI / 2, SIZE, SIZE);
-    for (let i = 0; i <= 12; i++) grad.addColorStop(i / 12, `hsl(${i * 30} 100% 50%)`);
-    g.fillStyle = grad;
+    const ring = g.createConicGradient(-Math.PI / 2, SIZE, SIZE);
+    for (let i = 0; i <= 12; i++) ring.addColorStop(i / 12, `hsl(${i * 30} 100% 50%)`);
+    g.fillStyle = ring;
     g.beginPath();
     g.arc(SIZE, SIZE, SIZE, 0, Math.PI * 2);
-    g.arc(SIZE, SIZE, SIZE * 0.72, 0, Math.PI * 2, true);
+    g.fill();
+    const white = g.createRadialGradient(SIZE, SIZE, 0, SIZE, SIZE, SIZE);
+    white.addColorStop(0, '#fff');
+    white.addColorStop(1, 'rgb(255 255 255 / 0)');
+    g.fillStyle = white;
     g.fill();
   });
 
   function pick(e: PointerEvent) {
     if (e.type === 'pointerdown') (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-    else if (!e.buttons && e.pointerType === 'mouse') return;
+    else if (!e.buttons) return;
     const r = canvas.getBoundingClientRect();
-    const a = Math.atan2(e.clientY - r.top - r.height / 2, e.clientX - r.left - r.width / 2);
-    onhue(((((a * 180) / Math.PI + 90) % 360) + 360) % 360);
+    const dx = e.clientX - r.left - r.width / 2;
+    const dy = e.clientY - r.top - r.height / 2;
+    const h = ((Math.atan2(dx, -dy) * 180) / Math.PI + 360) % 360;
+    onpick(h, Math.min(1, Math.hypot(dx, dy) / (r.width / 2)));
   }
+
+  const dot = $derived({
+    x: 50 + Math.sin((hue * Math.PI) / 180) * sat * 50,
+    y: 50 - Math.cos((hue * Math.PI) / 180) * sat * 50
+  });
 </script>
 
-<div class="ring-row">
-  <div class="ring">
-    <canvas bind:this={canvas} onpointerdown={pick} onpointermove={(e) => e.buttons && pick(e)} aria-label="色相"
-    ></canvas>
-    <span class="mark" style:rotate="{hue}deg"></span>
-    <span class="now" style:background={color} style:opacity></span>
-  </div>
-  <input
-    class="tall"
-    type="range"
-    min="0"
-    max="1"
-    step="0.01"
-    {value}
-    oninput={(e) => onvalue(+e.currentTarget.value)}
-    aria-label="明るさ"
-  />
-  <input
-    class="tall"
-    type="range"
-    min="0.05"
-    max="1"
-    step="0.01"
-    value={opacity}
-    oninput={(e) => onopacity(+e.currentTarget.value)}
-    aria-label="不透明度"
-  />
+<div class="disk" data-part="disk">
+  <canvas bind:this={canvas} onpointerdown={pick} onpointermove={pick} aria-label="色相と彩度"></canvas>
+  <span class="dot" style:left="{dot.x}%" style:top="{dot.y}%"></span>
 </div>
 
 <style>
-  .ring-row {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-  }
-
-  .ring {
+  .disk {
     position: relative;
-    width: 150px;
-    height: 150px;
+    width: 140px;
+    height: 140px;
   }
 
   canvas {
     width: 100%;
     height: 100%;
+    border-radius: 50%;
     touch-action: none;
   }
 
-  .mark {
+  .dot {
     position: absolute;
-    left: 50%;
-    top: 0;
-    width: 6px;
-    height: 50%;
-    margin-left: -3px;
-    transform-origin: 50% 100%;
-    pointer-events: none;
-    background: linear-gradient(#fff 0 22%, transparent 22%);
-    filter: drop-shadow(0 0 2px #000);
-  }
-
-  .now {
-    position: absolute;
-    inset: 24%;
-    border: 2px solid #fff;
+    width: 12px;
+    height: 12px;
+    translate: -50% -50%;
+    border: 2px solid #222;
     border-radius: 50%;
+    box-shadow: 0 0 0 1px #fff;
     pointer-events: none;
-  }
-
-  .tall {
-    writing-mode: vertical-lr;
-    direction: rtl;
-    height: 140px;
-    accent-color: #fff;
   }
 </style>
 ```
 
-`src/lib/games/yappari-chameleon/ColorSliders.svelte`:
+`src/lib/games/yappari-chameleon/ColorSliders.svelte`（2 段めの R・G・B・A と H・S・V、4 段めのメタリックとラフネス）:
 
 ```svelte
 <script lang="ts">
   import type { RGB } from './color';
 
+  /** which は、2 段めの色（RGBA と HSV）か、4 段めの艶（メタリックとラフネス）か。本家ではあいだに見本の段が入る */
   let {
+    which,
     hsv,
     rgb,
+    opacity,
     metal,
     rough,
     onhsv,
     onrgb,
+    onopacity,
     onmetal,
     onrough
   }: {
+    which: 'color' | 'gloss';
     hsv: [number, number, number];
     rgb: RGB;
+    opacity: number;
     metal: number;
     rough: number;
     onhsv: (v: [number, number, number]) => void;
     onrgb: (c: RGB) => void;
+    onopacity: (v: number) => void;
     onmetal: (v: number) => void;
     onrough: (v: number) => void;
   } = $props();
 
-  const rows = $derived([
-    { label: 'H', value: hsv[0], max: 360, set: (v: number) => onhsv([v, hsv[1], hsv[2]]) },
-    { label: 'S', value: hsv[1], max: 1, set: (v: number) => onhsv([hsv[0], v, hsv[2]]) },
-    { label: 'V', value: hsv[2], max: 1, set: (v: number) => onhsv([hsv[0], hsv[1], v]) },
-    { label: 'R', value: rgb[0], max: 1, set: (v: number) => onrgb([v, rgb[1], rgb[2]]) },
-    { label: 'G', value: rgb[1], max: 1, set: (v: number) => onrgb([rgb[0], v, rgb[2]]) },
-    { label: 'B', value: rgb[2], max: 1, set: (v: number) => onrgb([rgb[0], rgb[1], v]) },
+  interface Row {
+    label: string;
+    value: number;
+    max: number;
+    set: (v: number) => void;
+  }
+
+  const rgba = $derived<Row[]>([
+    { label: 'R', value: rgb[0], max: 1, set: (v) => onrgb([v, rgb[1], rgb[2]]) },
+    { label: 'G', value: rgb[1], max: 1, set: (v) => onrgb([rgb[0], v, rgb[2]]) },
+    { label: 'B', value: rgb[2], max: 1, set: (v) => onrgb([rgb[0], rgb[1], v]) },
+    { label: 'A', value: opacity, max: 1, set: onopacity }
+  ]);
+  const hsvRows = $derived<Row[]>([
+    { label: 'H', value: hsv[0], max: 360, set: (v) => onhsv([v, hsv[1], hsv[2]]) },
+    { label: 'S', value: hsv[1], max: 1, set: (v) => onhsv([hsv[0], v, hsv[2]]) },
+    { label: 'V', value: hsv[2], max: 1, set: (v) => onhsv([hsv[0], hsv[1], v]) }
+  ]);
+  const gloss = $derived<Row[]>([
     { label: 'メタリック', value: metal, max: 1, set: onmetal },
     { label: 'ラフネス', value: rough, max: 1, set: onrough }
   ]);
 </script>
 
-<div class="rows">
-  {#each rows as row (row.label)}
+{#snippet rows(list: Row[])}
+  {#each list as row (row.label)}
     <label class="row">
       <span class="name">{row.label}</span>
       <input
@@ -4174,23 +4249,38 @@ Expected: FAIL（`./PaintPanel.svelte` が無い）。
       <span class="num">{row.max === 360 ? Math.round(row.value) : row.value.toFixed(2)}</span>
     </label>
   {/each}
-</div>
+{/snippet}
+
+{#if which === 'color'}
+  <div class="two">
+    <div data-part="rgba">{@render rows(rgba)}</div>
+    <div data-part="hsv">{@render rows(hsvRows)}</div>
+  </div>
+{:else}
+  <div class="gloss" data-part="gloss">{@render rows(gloss)}</div>
+{/if}
 
 <style>
-  .rows {
+  .two {
     display: grid;
-    gap: 4px;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
   }
 
   .row {
     display: grid;
-    grid-template-columns: 5.5em 1fr 3em;
+    grid-template-columns: 1.3em 1fr 2.6em;
     align-items: center;
-    gap: 6px;
-    font-size: 13px;
+    gap: 4px;
+    font-size: 12px;
+  }
+
+  .gloss .row {
+    grid-template-columns: 5em 1fr 2.6em;
   }
 
   input {
+    min-width: 0;
     accent-color: #fff;
   }
 
@@ -4201,52 +4291,42 @@ Expected: FAIL（`./PaintPanel.svelte` が無い）。
 </style>
 ```
 
-`src/lib/games/yappari-chameleon/Swatches.svelte`:
+`src/lib/games/yappari-chameleon/Swatches.svelte`（3 段めの最近使った色と見本の格子）:
 
 ```svelte
 <script lang="ts">
   import { fromHex, SWATCHES, toHex, type RGB } from './color';
 
-  let { color, previous, recent, onpick }: { color: RGB; previous: RGB; recent: RGB[]; onpick: (c: RGB) => void } =
-    $props();
+  let { recent, onpick }: { recent: RGB[]; onpick: (c: RGB) => void } = $props();
 </script>
 
-<div class="pair">
-  <span class="current" style:background={toHex(color)} aria-label="今の色"></span>
-  <button class="previous" style:background={toHex(previous)} onclick={() => onpick(previous)} aria-label="前の色"
-  ></button>
-</div>
-{#if recent.length}
-  <div class="line" aria-label="最近使った色">
-    {#each recent as c, i (i)}
-      <button class="chip" style:background={toHex(c)} onclick={() => onpick(c)} aria-label="最近の色 {i + 1}"></button>
+<div data-part="swatches">
+  {#if recent.length}
+    <div class="line" aria-label="最近使った色">
+      {#each recent as c, i (i)}
+        <button class="chip" style:background={toHex(c)} onclick={() => onpick(c)} aria-label="最近の色 {i + 1}"
+        ></button>
+      {/each}
+    </div>
+  {/if}
+  <div class="grid">
+    {#each SWATCHES as hex (hex)}
+      <button
+        class="chip"
+        data-swatch={hex}
+        style:background={hex}
+        onclick={() => onpick(fromHex(hex))}
+        aria-label={hex}
+      ></button>
     {/each}
   </div>
-{/if}
-<div class="grid">
-  {#each SWATCHES as hex (hex)}
-    <button class="chip" data-swatch={hex} style:background={hex} onclick={() => onpick(fromHex(hex))} aria-label={hex}
-    ></button>
-  {/each}
 </div>
 
 <style>
-  .pair {
-    display: flex;
-    gap: 6px;
-  }
-
-  .current,
-  .previous {
-    width: 44px;
-    height: 28px;
-    border: 2px solid #fff;
-    border-radius: 6px;
-  }
-
   .line {
     display: flex;
     gap: 4px;
+    margin-bottom: 6px;
   }
 
   .grid {
@@ -4274,15 +4354,14 @@ Expected: FAIL（`./PaintPanel.svelte` が無い）。
 ```svelte
 <script lang="ts">
   import { hsvToRgb, rgbToHsv, toHex, type RGB } from './color';
+  import ColorDisk from './ColorDisk.svelte';
   import ColorSliders from './ColorSliders.svelte';
-  import HueRing from './HueRing.svelte';
   import type { Play } from './play.svelte';
   import Swatches from './Swatches.svelte';
 
   let { play }: { play: Play } = $props();
   let open = $state(true);
-  /** 色相は持っておく。彩度が 0（白・黒・灰色）になると RGB からは色相が戻らない */
-  // 始めの値は下の $effect.pre が筆の色から入れる
+  /** 色相と彩度は持っておく。彩度か明るさが 0（白・黒・灰色）になると RGB からは戻らない。始めの値は下の $effect.pre が入れる */
   let hsv = $state<[number, number, number]>([0, 0, 1]);
 
   $effect.pre(() => {
@@ -4290,7 +4369,7 @@ Expected: FAIL（`./PaintPanel.svelte` が無い）。
     const mine = hsvToRgb(...hsv);
     if (c.every((v, i) => Math.abs(v - mine[i]) < 0.5 / 255)) return;
     const [h, s, v] = rgbToHsv(c);
-    hsv = [s > 0 ? h : hsv[0], s, v];
+    hsv = [s > 0 ? h : hsv[0], v > 0 ? s : hsv[1], v];
   });
 
   function setHsv(next: [number, number, number]) {
@@ -4304,28 +4383,64 @@ Expected: FAIL（`./PaintPanel.svelte` が無い）。
 </script>
 
 <section class="panel" class:open aria-label="パレット">
-  <button class="fold" onclick={() => (open = !open)}>{open ? 'パレットを とじる' : 'パレット'}</button>
+  <button class="fold" onclick={() => (open = !open)}>{open ? 'パレットを閉じる' : 'パレット'}</button>
   {#if open}
-    <HueRing
-      hue={hsv[0]}
-      value={hsv[2]}
-      opacity={play.brush.opacity}
-      color={toHex(play.brush.color)}
-      onhue={(h) => setHsv([h, hsv[1] || 1, hsv[2] || 1])}
-      onvalue={(v) => setHsv([hsv[0], hsv[1], v])}
-      onopacity={(o) => (play.brush.opacity = o)}
-    />
-    <Swatches color={play.brush.color} previous={play.previous} recent={play.recent} onpick={(c) => play.setColor(c)} />
-    <ColorSliders
-      {hsv}
-      rgb={play.brush.color}
-      metal={play.brush.metal}
-      rough={play.brush.rough}
-      onhsv={setHsv}
-      onrgb={setRgb}
-      onmetal={(v) => (play.brush.metal = v)}
-      onrough={(v) => (play.brush.rough = v)}
-    />
+    <div class="top">
+      <ColorDisk hue={hsv[0]} sat={hsv[1]} onpick={(h, sat) => setHsv([h, sat, hsv[2] || 1])} />
+      <input
+        class="tall"
+        type="range"
+        min="0"
+        max="1"
+        step="0.01"
+        value={hsv[1]}
+        oninput={(e) => setHsv([hsv[0], +e.currentTarget.value, hsv[2]])}
+        aria-label="彩度"
+        style:--from={toHex(hsvToRgb(hsv[0], 0, hsv[2] || 1))}
+        style:--to={toHex(hsvToRgb(hsv[0], 1, hsv[2] || 1))}
+      />
+      <input
+        class="tall"
+        type="range"
+        min="0"
+        max="1"
+        step="0.01"
+        value={hsv[2]}
+        oninput={(e) => setHsv([hsv[0], hsv[1], +e.currentTarget.value])}
+        aria-label="明るさ"
+        style:--from="#000000"
+        style:--to={toHex(hsvToRgb(hsv[0], hsv[1], 1))}
+      />
+      <div class="pair" data-part="pair">
+        <span class="current" style:background={toHex(play.brush.color)} aria-label="今の色"></span>
+        <button
+          class="previous"
+          style:background={toHex(play.previous)}
+          onclick={() => play.setColor(play.previous)}
+          aria-label="前の色"
+        ></button>
+      </div>
+    </div>
+    {#snippet sliders(which: 'color' | 'gloss')}
+      <ColorSliders
+        {which}
+        {hsv}
+        rgb={play.brush.color}
+        opacity={play.brush.opacity}
+        metal={play.brush.metal}
+        rough={play.brush.rough}
+        onhsv={setHsv}
+        onrgb={setRgb}
+        onopacity={(v) => (play.brush.opacity = Math.max(0.05, v))}
+        onmetal={(v) => (play.brush.metal = v)}
+        onrough={(v) => (play.brush.rough = v)}
+      />
+    {/snippet}
+    {@render sliders('color')}
+    <Swatches recent={play.recent} onpick={(c) => play.setColor(c)} />
+    {@render sliders('gloss')}
+    <button class="spoit" class:on={play.spoit} data-part="spoit" onclick={() => play.toggleSpoit()}>3D スポイト</button
+    >
   {/if}
 </section>
 
@@ -4336,7 +4451,7 @@ Expected: FAIL（`./PaintPanel.svelte` が無い）。
     left: max(12px, env(safe-area-inset-left));
     display: grid;
     gap: 10px;
-    width: 300px;
+    width: 330px;
     max-height: calc(100% - 90px);
     overflow-y: auto;
     padding: 12px;
@@ -4361,32 +4476,122 @@ Expected: FAIL（`./PaintPanel.svelte` が無い）。
     color: #fff;
     font: inherit;
   }
+
+  .top {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .tall {
+    writing-mode: vertical-lr;
+    direction: rtl;
+    width: 22px;
+    height: 140px;
+    appearance: none;
+    border-radius: 4px;
+    background: linear-gradient(to top, var(--from), var(--to));
+  }
+
+  .pair {
+    display: grid;
+    gap: 6px;
+  }
+
+  .current,
+  .previous {
+    width: 64px;
+    height: 32px;
+    border: 2px solid #fff;
+    border-radius: 6px;
+  }
+
+  .spoit {
+    padding: 10px;
+    border: 1px solid rgb(255 255 255 / 0.5);
+    border-radius: 8px;
+    background: rgb(255 255 255 / 0.12);
+    color: #fff;
+    font: inherit;
+    font-size: 16px;
+  }
+
+  .spoit.on {
+    background: rgb(255 255 255 / 0.9);
+    color: #1d1a17;
+    text-shadow: none;
+  }
 </style>
 ```
 
-色相の輪を回したとき、白や黒（彩度か明るさが 0）のままでは色が変わって見えないので、0 なら 1 にして色を出す（`onhue` の `|| 1`）。
+円盤で色を選んだとき、明るさが 0（黒）のままでは色が出ないので、0 なら 1 にする（`hsv[2] || 1`）。
 
 `Chameleon.svelte` の `{#if play.mode === 'paint'}` の中に `<PaintPanel {play} />` を足し、`import PaintPanel from './PaintPanel.svelte';` を足す。
 
-- [ ] **Step 4: 通ることを確かめる**
+- [ ] **Step 4: 筆の輪を足す**
+
+`world3d.ts` に、体の表面に沿って置く白い輪を足す（本家の筆のカーソルの代わり）。
+
+```ts
+  #cursor = new THREE.Mesh(
+    new THREE.RingGeometry(0.92, 1, 48),
+    new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.85, depthTest: false })
+  );
+```
+
+コンストラクタの終わりで `this.#cursor.visible = false; this.#cursor.renderOrder = 10; this.scene.add(this.#cursor);` とし、メソッドを足す。
+
+```ts
+  /** 体の上の当たりに、面に沿った筆の半径の輪を置く。指の下が見えないタッチで、塗る所と大きさを見せる */
+  cursor(hit: THREE.Intersection | null, radius: number): void {
+    const c = this.#cursor;
+    c.visible = !!hit?.normal;
+    if (!hit?.normal) return;
+    const n = hit.normal.clone().transformDirection(hit.object.matrixWorld);
+    c.position.copy(hit.point).addScaledVector(n, 0.004);
+    c.lookAt(hit.point.clone().add(n));
+    c.scale.setScalar(radius);
+  }
+```
+
+`play.svelte.ts` に足す。指が体の上にあるあいだ（`#paint` の `start`・`move` と、ペイント中の `pointer('move')`）は `w.cursor(hit, this.brush.radius)`、離したら `w.cursor(null, 0)`。ブラシの大きさを変えたら（`Chameleon.svelte` の `BrushSize` の `oninput`）、画面の真ん中の体の当たりで 1 秒出す。
+
+```ts
+  #cursorUntil = 0;
+
+  showCursor(x: number, y: number): void {
+    this.#cursorUntil = performance.now() + 1000;
+    this.world.cursor(this.world.pickBody(x, y), this.brush.radius);
+  }
+```
+
+`frame` の終わり（`w.render()` の前）で、ペイント中でないか、指が離れていて `now > this.#cursorUntil` なら `w.cursor(null, 0)`。`BrushSize.svelte` に `onchange?: () => void` の props を足して `input` の `oninput` で呼び、`Chameleon.svelte` から `onchange={() => play.showCursor(box.clientWidth / 2, box.clientHeight / 2)}` を渡す。
+
+`play.svelte.test.ts` の偽の World に `cursor: vi.fn()` と `pickBody: () => null` を足す（Task 11 で作るときに入れておく）。
+
+- [ ] **Step 5: 通ることを確かめる**
 
 Run: `pnpm vitest run src/lib/games/yappari-chameleon/PaintPanel.svelte.test.ts && pnpm format && pnpm check && pnpm lint`
-Expected: PASS。happy-dom に `createConicGradient` が無くて落ちるときは、`HueRing.svelte` の `onMount` の描画を `if (!g || !('createConicGradient' in g)) return;` で守る（コメントに「テストの DOM には無い」と書く）。
+Expected: PASS。
 
-- [ ] **Step 5: 画面で確かめる**
+- [ ] **Step 6: 画面で確かめる**
 
-`accept.mjs` と同じ起動で、ペイントモードに入った画面を撮る（`play.togglePaint()` のあと 0.5 秒待つ）。パネル・ブラシの大きさ・右のボタンが重ならず、人形が画面の真ん中に見えることを確かめる。
+`accept.mjs` と同じ起動で、ペイントモードに入った画面を撮る（`play.togglePaint()` のあと 0.5 秒待つ）。次を確かめる。
 
-- [ ] **Step 6: Commit**
+- パネル・ブラシの大きさ・右のボタンが重ならず、人形が画面の真ん中に見える。
+- パネルの並びが、本家の `f11crop.png` と同じ順（円盤と縦の 2 本、RGBA と HSV、見本、艶、3D スポイト）。撮った画面と `f11crop.png` を横に並べた 1 枚も作る。
+- 体の上を指でなぞっている途中（`play.pointer('down' / 'move')` を渡して止めたところ）を撮り、筆の輪が体の面に沿って見える。
+
+- [ ] **Step 7: Commit**
 
 ```bash
 git add src/lib/games/yappari-chameleon
-git commit -m "Add the color panel from the original's paint mode"
+git commit -m "Add the color panel in the original's layout and a brush ring on the body"
 ```
 
-### Task 11: ポーズの輪と、向きロック・その場で回る
+### Task 11: ポーズの輪と、回転ロック・その場で回転
 
-本家の R 長押しの輪をタッチにする。「ポーズ」ボタンに指を置いたまま項目へ滑らせて離すと決まり、ボタンを軽く押しただけなら輪が開いたままになって項目を押して選べる。輪の左右の矢印でページ（6 種ずつ）を替え、下の × で立ち姿に戻す。本家の回転ロック（向きを変えずに横や後ろへ歩く）とその場で回転を「向きロック」と左右の回るボタンにする。
+本家の R 長押しの輪をタッチにする。「ポーズ」ボタンに指を置いたまま項目へ滑らせて離すと決まり、ボタンを軽く押しただけなら輪が開いたままになって項目を押して選べる。輪の左右の矢印でページ（6 種ずつ）を替え、下の × で立ち姿に戻す。本家の回転ロック（向きを変えずに横や後ろへ歩く）を「回転ロック」のボタンに、その場で回転を左右の回るボタン（回転ロックと別にいつでも使える）にする。
 
 **Files:**
 
@@ -4406,7 +4611,7 @@ git commit -m "Add the color panel from the original's paint mode"
 
 - [ ] **Step 1: 落ちるテストを書く**
 
-`src/lib/games/yappari-chameleon/play.svelte.test.ts`（three を使わない偽の World で、張り付いたままのポーズ・ペイント・鬼の目と、向きロックを確かめる）:
+`src/lib/games/yappari-chameleon/play.svelte.test.ts`（three を使わない偽の World で、張り付いたままのポーズ・ペイント・フリーカメラと、向きロックを確かめる）:
 
 ```ts
 import { describe, expect, it, vi } from 'vitest';
@@ -4435,6 +4640,8 @@ function fakeWorld() {
     render: vi.fn(),
     dollCenter: () => [0, 0.6, 0],
     camera: { position: { x: 0, y: 1, z: -2 } },
+    cursor: vi.fn(),
+    pickBody: () => null,
     rig: { mesh: { receiveShadow: true }, paint: { rebuild: vi.fn(), apply: vi.fn() } }
   } as unknown as World;
 }
@@ -4466,7 +4673,7 @@ describe('Play', () => {
     expect(p.pose).toBe('curl');
   });
 
-  it('張り付いたままペイントと鬼の目に出入りしても、張り付いたまま', () => {
+  it('張り付いたままペイントとフリーカメラに出入りしても、張り付いたまま', () => {
     const p = clinging();
     p.togglePaint();
     run(p, 1);
@@ -4478,7 +4685,7 @@ describe('Play', () => {
     expect(p.body.cling?.kind).toBe('wall');
   });
 
-  it('天井にいるまま鬼の目に出入りしても、天井にいる', () => {
+  it('天井にいるままフリーカメラに出入りしても、天井にいる', () => {
     const p = clinging();
     p.held.up = true;
     run(p, 4);
@@ -4491,7 +4698,7 @@ describe('Play', () => {
     expect(p.body.cling?.kind).toBe('ceiling');
   });
 
-  it('向きロックのあいだは、回るボタンで向きだけが変わる', () => {
+  it('回転ロックのあいだは、歩いても向きが変わらず、その場で回転で向きだけが変わる', () => {
     const p = new Play(fakeWorld(), 70);
     run(p, 0.2);
     p.toggleLock();
@@ -4752,7 +4959,7 @@ wheel = $state<{ id: number | null } | null>(null);
 
 - [ ] **Step 5: ボタンと画面に足す**
 
-`Buttons.svelte` の歩くときの並びを、ジャンプ・ポーズ・ペイント・鬼の目・向きロックにする。張り付いているときは、上がる・さがる・はなす・ポーズ・ペイントにする。ポーズのボタンは、押した指で輪を開く。
+`Buttons.svelte` の歩くときの並びを、ジャンプ（壁際ではよじ登り）・ポーズ・ペイントモード・フリーカメラ・回転ロックにする。張り付いているときは、上がる・下がる・張り付き解除・ポーズ・ペイントモードにする。ポーズのボタンは、押した指で輪を開く。
 
 ```svelte
 <button class="btn" class:on={play.pose !== 'stand'} onpointerdown={(e) => play.openWheel(e.pointerId)}>
@@ -4761,10 +4968,10 @@ wheel = $state<{ id: number | null } | null>(null);
 </button>
 ```
 
-これを `{#snippet pose()}` にして、歩くときと張り付いているときの並びの 2 か所で `{@render pose()}` する。向きロックは `{@render button('lock', '向きロック', () => play.toggleLock(), play.lock)}`。ロック中は、列の左に回るボタンを 2 つ並べる（押しているあいだだけ `play.held.turn` を −1 / 1 にする）。
+これを `{#snippet pose()}` にして、歩くときと張り付いているときの並びの 2 か所で `{@render pose()}` する。回転ロックは `{@render button('lock', '回転ロック', () => play.toggleLock(), play.lock)}`。本家のその場で回転は回転ロックと別の操作でいつでも使えるので、歩くときと天井にいるときは、列の左に回るボタン（その場で回転）を 2 つ並べる（押しているあいだだけ `play.held.turn` を −1 / 1 にする）。
 
 ```svelte
-{#if play.lock && play.mode === 'walk' && !play.cling}
+{#if play.mode === 'walk' && play.cling !== 'wall'}
   <div class="spin">
     <button
       class="btn"
@@ -4772,7 +4979,7 @@ wheel = $state<{ id: number | null } | null>(null);
       onpointerup={() => (play.held.turn = 0)}
       onpointercancel={() => (play.held.turn = 0)}
       onpointerleave={() => (play.held.turn = 0)}
-      aria-label="左へ回る"
+      aria-label="その場で回転（左）"
     >
       <span class="mirror"><Icon name="spin" size="30px" /></span>
     </button>
@@ -4782,7 +4989,7 @@ wheel = $state<{ id: number | null } | null>(null);
       onpointerup={() => (play.held.turn = 0)}
       onpointercancel={() => (play.held.turn = 0)}
       onpointerleave={() => (play.held.turn = 0)}
-      aria-label="右へ回る"
+      aria-label="その場で回転（右）"
     >
       <Icon name="spin" size="30px" />
     </button>
@@ -4809,7 +5016,7 @@ wheel = $state<{ id: number | null } | null>(null);
 
 `Chameleon.svelte` の `<Buttons ... />` の前に `{#if play.wheel}<PoseWheel {play} />{/if}` を足し、`import PoseWheel from './PoseWheel.svelte';` を足す。
 
-`Buttons.svelte.test.ts` の期待する並びを直す。歩くときは `['ジャンプ', 'ポーズ', 'ペイント', '鬼の目', '向きロック']`、張り付いているときは `['上がる', 'さがる', 'はなす', 'ポーズ', 'ペイント']`。偽の `Play` に `pose: 'stand'`・`lock: false`・`openWheel: vi.fn()`・`toggleLock: vi.fn()`・`held.turn: 0` を足す。
+`Buttons.svelte.test.ts` の期待する並びを直す。歩くときは `['ジャンプ', 'ポーズ', 'ペイントモード', 'フリーカメラ', '回転ロック']`、張り付いているときは `['上がる', '下がる', '張り付き解除', 'ポーズ', 'ペイントモード']`（列の `.column` の中だけを数える。その場で回転のボタンは `.spin` にある）。偽の `Play` に `pose: 'stand'`・`lock: false`・`openWheel: vi.fn()`・`toggleLock: vi.fn()`・`held.turn: 0` を足す。
 
 - [ ] **Step 6: 通ることを確かめる**
 
@@ -4827,9 +5034,9 @@ git add src/lib/games/yappari-chameleon
 git commit -m "Add the pose wheel, rotation lock and turning in place"
 ```
 
-### Task 12: 物の陰の自分を透かす・カメラを壁の手前で止める
+### Task 12: 貫通描画・カメラ・張り付きの赤い輪・手に持つ筆
 
-本家の「貫通描画」（物の陰にいる自分のまわりだけを丸く透かして見せる）を、屋敷の材質のシェーダーに足す。画面上の自分の位置から半径の中で、自分より手前にある物の画素を、4 × 4 の点々で抜く（中ほど多く抜き、ふちへ向かって少なくする）。影を描くパスは変えないので、影は抜けない。鬼の目では透かさない。三人称のカメラは、壁で縮むときはすぐ、伸びるときはゆっくり戻す。
+本家の「貫通描画」（物の陰にいる自分のまわりだけを、なめらかな丸い窓で透かして見せる）を、屋敷の材質のシェーダーに足す。画面上の自分の位置から半径の中で、自分より手前にある物の画素を、半径の 75% より内側はすっかり抜き、そこからふちまでは 4 × 4 の点々で少しずつ残してぼかす。影を描くパスは変えないので、影は抜けない。フリーカメラでは透かさない。三人称のカメラは、壁で縮むときはすぐ、伸びるときはゆっくり戻す。本家と同じく、張り付いているあいだは体のまわりに赤い輪を壁（天井）の面に沿って出し、ペイントモードのあいだは右手に虹色のまだらの柄の絵筆を持たせる（本家の 2026 年 6 月のスクショ `fig5.png`・`fig7.png`）。
 
 **Files:**
 
@@ -4837,11 +5044,13 @@ git commit -m "Add the pose wheel, rotation lock and turning in place"
 - Modify: `src/lib/games/yappari-chameleon/world3d.ts`（`setStage` で屋敷の材質に `seeThrough` を当てる・`xray(on)`・カメラの距離をなめらかにする）
 - Modify: `src/lib/games/yappari-chameleon/play.svelte.ts`（毎フレーム `world.xray(this.mode !== 'eye')`）
 - Modify: `src/lib/games/yappari-chameleon/test-room.ts`（白い柱を 1 本足す）
+- Modify: `src/lib/games/yappari-chameleon/textures.ts`（絵筆の柄の虹色のまだら `rainbowMottle()`）
 
 **Interfaces:**
 
 - Produces（`xray.ts`）: `XRAY`（4 つの uniform `center`・`radius`・`depth`・`on`）、`seeThrough(m: THREE.Material): void`。
-- Produces（`World` に足す）: `xray(on: boolean): void`（`render()` の前に呼ぶ。自分の画面の位置と深さを uniform に入れる）。
+- Produces（`World` に足す）: `xray(on: boolean): void`（`render()` の前に呼ぶ。自分の画面の位置と深さを uniform に入れる）、`holdBrush(on: boolean): void`。張り付きの赤い輪は `placeDoll` が置く。
+- Produces（`textures.ts`）: `rainbowMottle(): Pattern`（2 段めのハンターのペイント銃にも使う）。
 
 - [ ] **Step 1: `xray.ts` を作る**
 
@@ -4870,7 +5079,7 @@ const CUT = /* glsl */ `
 if (uXrayOn > 0.5) {
   float xd = distance(gl_FragCoord.xy, uXrayCenter);
   if (xd < uXrayRadius && -vViewPosition.z < uXrayDepth) {
-    float edge = smoothstep(uXrayRadius * 0.55, uXrayRadius, xd);
+    float edge = smoothstep(uXrayRadius * 0.75, uXrayRadius, xd);
     if (xrayBayer(gl_FragCoord.xy) > edge) discard;
   }
 }`;
@@ -4948,20 +5157,100 @@ group.add(pillar);
     { min: [1.7, 0, 0.7], max: [2.3, H, 1.3] }
 ```
 
-- [ ] **Step 4: 通ることを確かめる**
+- [ ] **Step 4: 張り付きの赤い輪と、手に持つ筆を足す**
+
+`textures.ts` に、本家のペイント銃と絵筆の柄の虹色のまだらを足す。
+
+```ts
+/** 本家のハンターの銃と絵筆の柄の、虹色のペンキのまだら */
+export function rainbowMottle(): Pattern {
+  return make('rainbow', 128, 128, [0.12, 0.12], (g) => {
+    const r = rng(61);
+    g.fillStyle = '#f4efe6';
+    g.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 60; i++) {
+      g.fillStyle = `hsl(${Math.floor(r() * 360)} 85% 55%)`;
+      g.beginPath();
+      g.ellipse(r() * 128, r() * 128, 6 + r() * 14, 4 + r() * 8, r() * Math.PI, 0, Math.PI * 2);
+      g.fill();
+    }
+  });
+}
+```
+
+`world3d.ts` に `import { finish, rainbowMottle } from './textures';` を足し（`readPick` の import とまとめる）、クラスに輪と筆を足す。
+
+```ts
+  #ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.62, 0.68, 64),
+    new THREE.MeshBasicMaterial({ color: '#e0302a', transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false })
+  );
+  #brush = new THREE.Group();
+```
+
+コンストラクタの終わり（`this.scene.add(this.rig.root);` のあと）に足す。筆は右の前腕の骨に付け、手の楕円体（`doll.ts` の `[-0.538, 0.616, 0]`）の位置に置く（骨の付け根 `[-0.354, 0.745, 0]` からの差）。
+
+```ts
+this.#ring.visible = false;
+this.scene.add(this.#ring);
+const handle = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.012, 0.014, 0.36, 12),
+  finish({ pattern: rainbowMottle(), rough: 0.5 }, [0.08, 0.36])
+);
+const ferrule = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.016, 0.014, 0.05, 12),
+  finish({ tint: '#c9a227', metal: 1, rough: 0.35 }, [0.1, 0.05])
+);
+const tip = new THREE.Mesh(
+  new THREE.ConeGeometry(0.018, 0.07, 12),
+  finish({ tint: '#2b2420', rough: 0.9 }, [0.1, 0.07])
+);
+ferrule.position.y = 0.2;
+tip.position.y = 0.26;
+this.#brush.add(handle, ferrule, tip);
+this.#brush.position.set(-0.184, -0.129, 0.03);
+this.#brush.rotation.set(0.5, 0, 0.9);
+this.#brush.visible = false;
+this.rig.bones['forearm.r'].add(this.#brush);
+```
+
+`placeDoll` の終わり（`root.updateMatrixWorld(true);` の前）に、赤い輪を置く。壁なら体の真ん中の高さで壁の面に沿わせ、天井なら天井のすぐ下に水平に置く。
+
+```ts
+const ring = this.#ring;
+ring.visible = !!b.cling;
+if (b.cling?.kind === 'wall') {
+  ring.position.set(root.position.x, b.pos[1] + 0.58, root.position.z);
+  ring.lookAt(ring.position.x + b.cling.nx, ring.position.y, ring.position.z + b.cling.nz);
+} else if (b.cling?.kind === 'ceiling') {
+  ring.position.set(b.pos[0], b.pos[1] - 0.02, b.pos[2]);
+  ring.lookAt(b.pos[0], b.pos[1] - 1, b.pos[2]);
+}
+```
+
+```ts
+  /** ペイントモードのあいだだけ右手に絵筆を持つ（本家のスクショで、隠れる側が塗るときに持っている） */
+  holdBrush(on: boolean): void {
+    this.#brush.visible = on;
+  }
+```
+
+`play.svelte.ts` の `frame` の `w.render();` の前に `w.holdBrush(this.mode === 'paint');` を足す。手に持った絵筆は塗りの当たり（`pickBody` は人形の体だけを見る）にもスポイト（`spoit` は人形の体と屋敷だけを見る）にも入らない。
+
+- [ ] **Step 5: 通ることを確かめる**
 
 Run: `pnpm format && pnpm check && pnpm lint && pnpm vitest run src/lib/games/yappari-chameleon`
-Expected: PASS（`play.svelte.test.ts` の偽の World に `xray: vi.fn()` を足す）。
+Expected: PASS（`play.svelte.test.ts` の偽の World に `xray: vi.fn()` と `holdBrush: vi.fn()` を足す）。
 
-- [ ] **Step 5: 画面で確かめる**
+- [ ] **Step 6: 画面で確かめる**
 
-`accept.mjs` と同じ起動で、体を柱の向こう（`body.pos = [2, 0, 2]`）に置き、`camYaw = 0`・`camPitch = 0.15` で柱越しに見る位置から撮る（カメラは体の後ろ −z 側、柱は体とカメラのあいだ）。柱の自分のまわりが丸く点々に抜けて人形が見え、柱の影は抜けていないことを確かめる。鬼の目（`play.toggleEye()`）では抜けないことも撮って確かめる。
+`accept.mjs` と同じ起動で、体を柱の向こう（`body.pos = [2, 0, 2]`）に置き、`camYaw = 0`・`camPitch = 0.15` で柱越しに見る位置から撮る（カメラは体の後ろ −z 側、柱は体とカメラのあいだ）。柱の自分のまわりが丸い窓で抜けて（ふちだけ点々でぼけて）人形が見え、柱の影は抜けていないことを確かめる。フリーカメラ（`play.toggleEye()`）では抜けないことも撮って確かめる。壁に張り付いたところ（赤い輪が壁に沿い、斜めから楕円に見える）と、ペイントモードで右手に絵筆を持ったところも撮り、本家の `fig5.png`・`fig7.png` と横に並べる。
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add src/lib/games/yappari-chameleon
-git commit -m "See the doll through things in front of it and ease the camera off walls"
+git commit -m "See the doll through things, ease the camera off walls, show the cling ring and hold a brush"
 ```
 
 ### Task 13: 屋敷の模様
@@ -5239,7 +5528,7 @@ Expected: PASS。
 
 - [ ] **Step 3: 模様のシートを撮る**
 
-scratchpad に `texture-sheet.mjs` を書く。Task 5 の起動の形で、`page.evaluate` の中で `textures.ts` を import し、`damask('#3f5e3a', '#5f8255')`・`damask('#2f4f6f', '#4a6f94')`・`damask('#7a1f2b', '#9c3a46')`・`checker()`・`oilPainting()` と Step 1 の 8 つの `canvas` を、1 枚の canvas に 5 列で並べ（どれも 1m を 200px にそろえ、模様を 2 回ずつ繰り返して継ぎ目が見えるように）、名前を添えて PNG にする。
+scratchpad に `texture-sheet.mjs` を書く。Task 5 の起動の形で、`page.evaluate` の中で `textures.ts` を import し、`damask('#26330a', '#86a63a')`・`damask('#2f4f6f', '#4a6f94')`・`damask('#7a1f2b', '#9c3a46')`・`checker()`・`oilPainting()` と Step 1 の 8 つの `canvas` を、1 枚の canvas に 5 列で並べ（どれも 1m を 200px にそろえ、模様を 2 回ずつ繰り返して継ぎ目が見えるように）、名前を添えて PNG にする。
 
 Run: `node <scratchpad>/texture-sheet.mjs <scratchpad>`
 Expected: `textures.png` に 13 の模様が写る。次を確かめる。
@@ -5249,7 +5538,7 @@ Expected: `textures.png` に 13 の模様が写る。次を確かめる。
 
 - [ ] **Step 4: 雰囲気を確かめてもらう**
 
-`textures.png` を作業の担当へ返す。担当はユーザーに見せ、本家の屋敷の雰囲気との違いを聞いてから Task 14 へ進む。直すのは `textures.ts` の色と形だけ。
+`textures.png` と本家のスクショ（scratchpad の `ss/*.jpg`。緑の壁紙・市松の床・油絵が写っているもの）を横に並べた 1 枚を作業の担当へ返す。担当はユーザーに見せ、本家の屋敷の雰囲気との違いを聞いてから Task 14 へ進む。直すのは `textures.ts` の色と形だけ。
 
 - [ ] **Step 5: Commit**
 
@@ -5532,7 +5821,9 @@ function pieces(): Piece[] {
     p('chandelier', [-4, 5.6, 5]),
     p('chandelier', [0, 5.6, 6]),
     p('chandelier', [4, 5.6, 5]),
-    p('bunting', [0, 5, 4], 1, 14),
+    // 三角旗は部屋や廊下を横切って張る（縦に張ると、正面から旗が隠れてひもだけが線に見える）
+    p('bunting', [0, 5, 4], 0, 14),
+    p('bunting', [0, 5.4, 7.5], 0, 14),
     p('horse', [5.2, FLOOR2, 11], 2),
     p('banner', [-3, FLOOR2 + 1.1, 11.95], 2),
     p('banner', [3, FLOOR2 + 1.1, 11.95], 2),
@@ -5550,7 +5841,9 @@ function pieces(): Piece[] {
     p('balloon', [-12.5, 0, 4.3]),
     p('balloon', [-18, 0, 5.8]),
     p('bookshelf', [-22.75, 0, 5], 1),
-    p('bunting', [-15, 3, 5], 0, 16)
+    p('bunting', [-10, 3, 5], 1, 3.5),
+    p('bunting', [-14, 3, 5], 1, 3.5),
+    p('bunting', [-18, 3, 5], 1, 3.5)
   ];
 }
 
@@ -5608,7 +5901,8 @@ const BLACK: Finish = { tint: '#141414', rough: 0.15 };
 const GOLD: Finish = { tint: '#d4af37', metal: 1, rough: 0.3 };
 const WHITE: Finish = { tint: '#f1ece2', rough: 0.5 };
 const WOOD: Finish = { tint: '#4a2e1a', rough: 0.55 };
-const BALLOONS = ['#d6312b', '#2f6fd1', '#3a9a4a', '#f2c230'];
+/** 本家の床の風船（黄緑・ピンク・黄・青緑・マゼンタ）。つやを写さないと丸まっても化けられない */
+const BALLOONS = ['#9ccc2a', '#f48fb1', '#f6d32d', '#19b3a6', '#d81b8c'];
 
 function box(
   g: THREE.Group,
@@ -5734,7 +6028,7 @@ function balloons(g: THREE.Group, p: Piece) {
     [-0.12, 1.62, -0.15]
   ];
   spots.forEach((at, i) => {
-    ball(g, 0.2, { tint: BALLOONS[(v + i) % 4], rough: 0.25 }, at);
+    ball(g, 0.2, { tint: BALLOONS[(v + i) % BALLOONS.length], rough: 0.18 }, at);
     const s = new THREE.Mesh(
       new THREE.CylinderGeometry(0.004, 0.004, at[1], 4),
       finish({ tint: '#ffffff' }, [0.01, at[1]])
@@ -5748,7 +6042,7 @@ function balloons(g: THREE.Group, p: Piece) {
 }
 
 function balloon(g: THREE.Group, p: Piece) {
-  ball(g, 0.22, { tint: BALLOONS[variant(p) % 4], rough: 0.25 }, [0, 0.22, 0]);
+  ball(g, 0.22, { tint: BALLOONS[variant(p) % BALLOONS.length], rough: 0.18 }, [0, 0.22, 0]);
 }
 
 function horse(g: THREE.Group) {
@@ -5771,21 +6065,35 @@ function horse(g: THREE.Group) {
   box(g, [0.32, 0.16, 0.16], S, [0.62, 1.58, 0]);
 }
 
+/** 本家のシャンデリアは金とクリスタルを何段も重ねた形。輪を 3 段にして、それぞれに灯りとしずくを下げる */
 function chandelier(g: THREE.Group) {
   cyl(g, [0.02, 0.02], 1.4, GOLD, [0, 0.7, 0], 8);
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.03, 8, 48), finish(GOLD, [1, 1]));
-  ring.rotation.x = Math.PI / 2;
-  g.add(ring);
-  for (let i = 0; i < 8; i++) {
-    const a = (i * Math.PI) / 4;
-    const bulb = new THREE.Mesh(
-      new THREE.SphereGeometry(0.05, 12, 8),
-      new THREE.MeshStandardMaterial({ color: '#fff3d0', emissive: '#ffe2a0', emissiveIntensity: 2 })
-    );
-    bulb.position.set(Math.cos(a) * 0.6, 0.08, Math.sin(a) * 0.6);
-    g.add(bulb);
+  const crystal: Finish = { tint: '#e8f1ff', metal: 0.2, rough: 0.05 };
+  const tiers: [number, number, number][] = [
+    [0.7, 0, 10],
+    [0.48, 0.32, 8],
+    [0.26, 0.6, 6]
+  ];
+  for (const [r, y, n] of tiers) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.025, 8, 48), finish(GOLD, [1, 1]));
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = y;
+    g.add(ring);
+    for (let i = 0; i < n; i++) {
+      const a = (i * Math.PI * 2) / n;
+      const bulb = new THREE.Mesh(
+        new THREE.SphereGeometry(0.045, 12, 8),
+        new THREE.MeshStandardMaterial({ color: '#fff3d0', emissive: '#ffe2a0', emissiveIntensity: 2 })
+      );
+      bulb.position.set(Math.cos(a) * r, y + 0.07, Math.sin(a) * r);
+      g.add(bulb);
+      const drop = new THREE.Mesh(new THREE.OctahedronGeometry(0.03), finish(crystal, [0.1, 0.1]));
+      drop.position.set(Math.cos(a + 0.3) * r, y - 0.12, Math.sin(a + 0.3) * r);
+      drop.scale.y = 1.8;
+      g.add(drop);
+    }
   }
-  ball(g, 0.12, GOLD, [0, -0.1, 0]);
+  ball(g, 0.12, GOLD, [0, -0.15, 0]);
 }
 
 function sconce(g: THREE.Group) {
@@ -5813,11 +6121,12 @@ function posterPiece(g: THREE.Group) {
   plane(g, [0.5, 0.75], { pattern: poster(), rough: 0.9 }, [0, 0, 0.01]);
 }
 
+/** 本家のリボンのすだれ。金属の箔の細い帯（幅 5cm）を 1.8m の幅にたくさん下げる */
 function ribbons(g: THREE.Group, p: Piece) {
-  const colors = ['#e53950', '#f6a623', '#f7e14a', '#4cc36f', '#3a8ee6', '#9b59d0'];
-  for (let i = 0; i < 12; i++) {
-    const strip = plane(g, [0.12, 2.8], { tint: colors[(i + variant(p)) % colors.length], rough: 0.6 }, [
-      -0.9 + i * 0.165,
+  const colors = ['#e53950', '#f6a623', '#f7e14a', '#4cc36f', '#3a8ee6', '#9b59d0', '#e0e0e0'];
+  for (let i = 0; i < 34; i++) {
+    const strip = plane(g, [0.05, 2.8], { tint: colors[(i + variant(p)) % colors.length], metal: 0.85, rough: 0.3 }, [
+      -0.9 + i * 0.055,
       1.9,
       (i % 3) * 0.02
     ]);
@@ -5923,7 +6232,7 @@ const LOOKS: Record<Mat, () => Finish> = {
   marble: () => ({ pattern: marble(), rough: 0.25 }),
   coffer: () => ({ pattern: coffer(), rough: 0.7 }),
   checker: () => ({ pattern: checker(), rough: 0.35 }),
-  greenDamask: () => ({ pattern: damask('#3f5e3a', '#5f8255'), rough: 0.8 }),
+  greenDamask: () => ({ pattern: damask('#26330a', '#86a63a'), rough: 0.8 }),
   wainscot: () => ({ pattern: wainscot(), rough: 0.55 }),
   cream: () => ({ tint: '#efe6d2', rough: 0.85 }),
   rail: () => ({ tint: '#3b2414', rough: 0.5 })
@@ -5976,7 +6285,7 @@ Expected: PASS（`play.svelte.test.ts` は偽の World を使うので屋敷に�
 
 - [ ] **Step 8: 部屋のシートを撮る**
 
-scratchpad に `room-sheet.mjs` を書く。`accept.mjs` と同じ起動でゲームを開き、`window.__chameleon` の鬼の目で次の 6 か所から撮って、1 枚に 3 列 × 2 段で並べる。
+scratchpad に `room-sheet.mjs` を書く。`accept.mjs` と同じ起動でゲームを開き、`window.__chameleon` のフリーカメラで次の 6 か所から撮って、1 枚に 3 列 × 2 段で並べる。
 
 1. 大広間の入口から北を見る（`ghost.pos = [0, 0, 0.6]`、`eyeYaw = 0`、`eyePitch = -0.15`）。
 2. 2 階の回廊から南を見下ろす（`[3, 3.5, 11]`、`eyeYaw = π`、`eyePitch = 0.35`）。
@@ -5988,15 +6297,15 @@ scratchpad に `room-sheet.mjs` を書く。`accept.mjs` と同じ起動でゲ�
 Run: `node <scratchpad>/room-sheet.mjs <scratchpad>`
 Expected: `rooms.png` に 6 枚が写る。真っ暗な場所・真っ白に飛んだ場所が無く、家具が床に浮いたり沈んだりしていないこと。
 
-`rooms.png` を作業の担当へ返す（担当がユーザーに見せる）。
+`rooms.png` と本家のスクショ（scratchpad の `ss/*.jpg`）を横に並べた 1 枚を作業の担当へ返す（担当がユーザーに見せる）。
 
 - [ ] **Step 9: 受け入れの 3 枚を撮る**
 
 `accept.mjs` を屋敷に合わせて直す。
 
-1. 壁の色（受け入れの 1 枚め）は、緑の廊下の北の壁の前（`body.pos = [-10.8, 0, 6.5]`）で行い、鬼の目は `[-10.8, 0, 3.5]` から北（`eyeYaw = 0`）を見て撮る（`accept-1.png`）。
-2. 油絵を写す（受け入れの 2 枚め）。体を油絵の前（`[-17.5, 0, 6.5]`）で壁に張り付かせ、上がるで 0.6 秒上げて、体の中心を絵の中心の高さに合わせる。体の頂点を 2 つおきに取り、骨で曲げたあとの位置（`rig.mesh.getVertexPosition(i, v)` に `rig.mesh.matrixWorld` を掛けたもの）を壁の面へまっすぐ写して、その点の油絵の画素の色（絵の外なら金の額の色）で、半径 1.2cm・濃さ 1 の吹き付けを作り、`play.applyDabs()` で当てる（体の前ではなく、壁から離れた側の面の頂点だけ。法線を世界の向きに直して壁の法線と同じ向きのもの）。鬼の目で 2.5m 離れて撮る（`accept-2.png`）。
-3. 市松の床に寝そべる（受け入れの 3 枚め）。体を廊下の床（`[-9.5, 0, 4.5]`）に置き、`play.setPose('lie')` で寝そべらせて 1 秒待つ。上を向いた面の頂点を床へまっすぐ写して、市松の画素の色で 2 と同じように吹き付け、鬼の目で 3m 離れて斜め上から撮る（`accept-3.png`）。
+1. 壁の色（受け入れの 1 枚め）は、緑の廊下の北の壁の前（`body.pos = [-10.8, 0, 6.5]`）で行い、フリーカメラは `[-10.8, 0, 3.5]` から北（`eyeYaw = 0`）を見て撮る（`accept-1.png`）。
+2. 油絵を写す（受け入れの 2 枚め。試しの部屋で決めた細かさを、屋敷の光で撮り直す）。体を油絵の前（`[-17.5, 0, 6.5]`）で壁に張り付かせ、上がるで 0.6 秒上げて、体の中心を絵の中心の高さに合わせる。体の頂点を 2 つおきに取り、骨で曲げたあとの位置（`rig.mesh.getVertexPosition(i, v)` に `rig.mesh.matrixWorld` を掛けたもの）を壁の面へまっすぐ写して、その点の油絵の画素の色（絵の外なら金の額の色）で、半径 1.2cm・濃さ 1 の吹き付けを作り、`play.applyDabs()` で当てる（体の前ではなく、壁から離れた側の面の頂点だけ。法線を世界の向きに直して壁の法線と同じ向きのもの）。フリーカメラで 2.5m 離れて撮る（`accept-2.png`）。
+3. 市松の床に寝そべる（受け入れの 3 枚め）。体を廊下の床（`[-9.5, 0, 4.5]`）に置き、`play.setPose('lie')` で寝そべらせて 1 秒待つ。上を向いた面の頂点を床へまっすぐ写して、市松の画素の色で 2 と同じように吹き付け、フリーカメラで 3m 離れて斜め上から撮る（`accept-3.png`）。
 
 Run: `node <scratchpad>/accept.mjs <scratchpad>`
 Expected: 3 枚とも、人形が背景の模様に紛れて、輪郭と影のほかはほぼ見えない。2 枚めは額の中の絵の一部に見える。写した模様がにじんで見分けられないときは、塗りの細かさが足りないので、作業の担当へ「細かさが足りない」と返す（直し方は担当が決める）。
@@ -6012,7 +6321,7 @@ git commit -m "Build the mansion's great hall and green corridor"
 
 ### Task 15: 60 秒の時計・音・一覧のカード・説明
 
-本家の隠れタイム（既定 60 秒）を、指でどこまで塗れるかを測る時計として上の真ん中に出す。押すと 60 秒から数え、残り 10 秒から 1 秒ごとに音を鳴らし、0 で知らせる（試合はまだ無いので、知らせるだけ）。本家に声は無いので、音は効果音だけ。一覧のカードの絵を実際の画面から撮り、`CLAUDE.md` にゲームの説明を足す。
+本家の隠れタイム（既定 60 秒）を、指でどこまで塗れるかを測る時計として上の真ん中に出す。見た目は本家の HUD と同じく、緑の砂の砂時計・その下に大きな残り秒・その下にフェーズの言葉（「探索開始まで」）で、ペイントモードのあいだは残り秒だけを出す。押すと 60 秒から数え、始まったときに画面の中央へ大きく「隠れタイム」を 1 度出し、0 で知らせる（試合はまだ無いので、知らせるだけ）。本家に無い、残り 10 秒の色替えと秒ごとの音は入れない。本家に声は無いので、音は効果音だけ。一覧のカードの絵を実際の画面から撮り、`CLAUDE.md` にゲームの説明を足す。
 
 **Files:**
 
@@ -6029,8 +6338,8 @@ git commit -m "Build the mansion's great hall and green corridor"
 **Interfaces:**
 
 - Consumes: `tone`・`sweep`・`noise`・`sfx`（`$lib/audio.svelte`）。
-- Produces（`sounds.ts`）: `sounds = { spray(): void; cling(): void; pick(): void; tick(): void; done(): void; button(): void }`。
-- Produces（`Play` に足す）: `timer = $state<number | null>(null)`（残り秒）、`startTimer(): void`、`stopTimer(): void`。
+- Produces（`sounds.ts`）: `sounds = { spray(): void; cling(): void; pick(): void; done(): void; button(): void }`。
+- Produces（`Play` に足す）: `timer = $state<number | null>(null)`（残り秒）、`timerRuns = $state(0)`（始めた回数。中央の「隠れタイム」を出し直すのに使う）、`startTimer(): void`、`stopTimer(): void`。
 - Produces（`scripts/thumbs/scenes.ts` の `Scene`）: `viewport?: { width: number; height: number }`（横持ちのゲームの場面）。
 
 - [ ] **Step 1: 落ちるテストを書く**
@@ -6047,19 +6356,17 @@ vi.mock('$lib/audio.svelte', () => ({
 ```
 
 ```ts
-it('隠れタイムの時計は 60 秒から減り、0 で止まって知らせる', async () => {
-  const { sfx, tone } = await import('$lib/audio.svelte');
+it('隠れタイムの時計は 60 秒から減り、0 で止まって 1 度だけ知らせる', async () => {
+  const { sfx } = await import('$lib/audio.svelte');
   const p = new Play(fakeWorld(), 70);
-  p.startTimer();
-  vi.mocked(tone).mockClear();
   vi.mocked(sfx.finish).mockClear();
+  p.startTimer();
   expect(p.timer).toBe(60);
-  run(p, 49.5);
-  expect(p.timer).toBeGreaterThan(10);
-  expect(tone).not.toHaveBeenCalled();
-  run(p, 5);
-  expect(tone).toHaveBeenCalled();
-  run(p, 6);
+  expect(p.timerRuns).toBe(1);
+  run(p, 59);
+  expect(p.timer).toBeGreaterThan(0);
+  expect(sfx.finish).not.toHaveBeenCalled();
+  run(p, 2);
   expect(p.timer).toBe(null);
   expect(sfx.finish).toHaveBeenCalledTimes(1);
 });
@@ -6088,7 +6395,6 @@ export const sounds = {
   spray: () => noise(120, 0.05),
   cling: () => tone(140, 70, 'sine', 0.2),
   pick: () => sweep(500, 1100, 120, 0.1),
-  tick: () => tone(880, 60, 'square', 0.06),
   done: () => sfx.finish(),
   button: () => tone(660, 40, 'triangle', 0.08)
 };
@@ -6100,11 +6406,11 @@ export const sounds = {
 
 ```ts
   timer = $state<number | null>(null);
-  #lastTick = 0;
+  timerRuns = $state(0);
 
   startTimer(): void {
     this.timer = 60;
-    this.#lastTick = 60;
+    this.timerRuns++;
     sounds.button();
   }
 
@@ -6118,9 +6424,6 @@ export const sounds = {
 ```ts
 if (this.timer !== null) {
   this.timer = Math.max(0, this.timer - dt);
-  const whole = Math.ceil(this.timer);
-  if (whole < this.#lastTick && whole <= 10 && whole > 0) sounds.tick();
-  this.#lastTick = whole;
   if (this.timer === 0) {
     this.timer = null;
     sounds.done();
@@ -6138,37 +6441,39 @@ if (this.timer !== null) {
 
 ```svelte
 <script lang="ts">
+  import Icon from '$lib/components/Icon.svelte';
   import type { Play } from './play.svelte';
 
   let { play }: { play: Play } = $props();
   const shown = $derived(play.timer === null ? null : Math.ceil(play.timer));
 </script>
 
-<button
-  class="timer"
-  class:running={shown !== null}
-  onclick={() => (shown === null ? play.startTimer() : play.stopTimer())}
->
+<button class="timer" onclick={() => (shown === null ? play.startTimer() : play.stopTimer())}>
   {#if shown === null}
-    隠れタイムを はかる
+    隠れタイム計測
   {:else}
-    <span class="word">隠れタイム</span>
-    <span class="num" class:last={shown <= 10}>{shown}</span>
+    <Icon name="hourglass" size="30px" />
+    <span class="num">{shown}</span>
+    {#if play.mode !== 'paint'}<span class="word">探索開始まで</span>{/if}
   {/if}
 </button>
+{#key play.timerRuns}
+  {#if play.timerRuns && shown !== null}
+    <p class="splash">隠れタイム</p>
+  {/if}
+{/key}
 
 <style>
   .timer {
     position: absolute;
-    top: max(12px, env(safe-area-inset-top));
+    top: max(8px, env(safe-area-inset-top));
     left: 50%;
     translate: -50% 0;
     display: grid;
     justify-items: center;
-    padding: 6px 16px;
+    padding: 4px 16px;
     border: 0;
-    border-radius: 12px;
-    background: rgb(0 0 0 / 0.3);
+    background: transparent;
     color: #fff;
     font-family: 'Hiragino Mincho ProN', serif;
     font-size: 15px;
@@ -6181,13 +6486,33 @@ if (this.timer !== null) {
     font-variant-numeric: tabular-nums;
   }
 
-  .num.last {
-    color: #ffd54a;
+  .splash {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    color: #fff;
+    font-family: 'Hiragino Mincho ProN', serif;
+    font-size: min(12cqh, 9cqw);
+    text-shadow: 0 3px 10px #000;
+    pointer-events: none;
+    animation: splash 1.8s forwards;
+  }
+
+  @keyframes splash {
+    0%,
+    60% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
   }
 </style>
 ```
 
-`Chameleon.svelte` の `{#if play}` の中（`Buttons` の前）に `{#if play.mode !== 'eye'}<HideTimer {play} />{/if}` を足す。ペイント中も出す（本家もペイント中は上の残り秒だけを出す）。
+`Chameleon.svelte` の `{#if play}` の中（`Buttons` の前）に `{#if play.mode !== 'eye'}<HideTimer {play} />{/if}` を足す。ペイント中も出す（本家もペイント中は上の残り秒だけを出す）。中央の「隠れタイム」の大きさは `cqh`・`cqw` で決めるので、`.chameleon` に `container-type: size;` を足す。
 
 - [ ] **Step 6: 通ることを確かめる**
 
@@ -6265,7 +6590,7 @@ Expected: `static/thumbs/yappari-chameleon.webp` が、屋敷の壁と半身の�
 `CLAUDE.md` の「## 見た目」の前、ゲームの説明の段落の並び（アニマルサバイバーの段落のあと）に、次の段落を足す。今の仕様だけを書き、経緯は書かない。
 
 ```markdown
-やっぱりカメレオン（`yappari-chameleon`）は、Steam の『めっちゃカメレオン』に寄せたかくれんぼで、今は 1 台で塗る・隠れる・見え方を確かめる試作（`levels: 1`、`ownMenu`）。本家の仕様は `docs/superpowers/specs/2026-10-08-yappari-chameleon-original.md` にまとめてある。横持ちで遊ぶゲームなので、`SoloMeta.landscape` で共通の `.stage` を横向きで回さず（`.wide`）、縦持ちのあいだは描画を止めて「よこむきに してね」を出す。人形（`doll.ts`、白い丸い 4 頭身、背 1.15m）は `$lib/sculpt.ts` の 1 枚の面を骨で曲げ、塗りは体のテクスチャに持つ。三角形を 2 つずつ升に並べた UV（`atlas.ts`。見せる三角形は升のふちから 2 画素縮め、吹き付けの三角形は 1.5 画素広げて 3D の位置も伸ばす）に、吹き付けを描くシェーダー（`paint-gpu.ts`）で、画素の骨で曲げる前の 3D の位置と吹き付けの中心の距離から色を混ぜる（裏を向いた面には付けない）。色は 2048² の sRGB、メタリックとラフネスは 1024²。塗った操作は吹き付けの列（`paint.ts` の `PaintLog`、もどすは新しい 30 筆まで）で持ち、もどすと WebGL のコンテキストが戻ったときは白から列を当て直す。3D スポイトは光が当たる前の色（模様の canvas の画素 × 材質の色、`textures.ts` の `readPick`、人形なら塗りのテクスチャ）を取る。動き（`move.ts`）は体を半径 0.2m のカプセル、屋敷を箱と坂にした自前の計算で、壁際のジャンプで張り付き（上がる・さがる・はなす）、上がり切ると天井に張り付き、向きロックのあいだは向きを変えずに歩いて回るボタンで向きだけ変える。指（`touch.ts`）は左の 45% がスティック、ほかが見回しで、ペイント中は 1 本指で塗り（2 本指のつもりの 1 本めで塗らないよう 80ms か 6px 待つ）、2 本指で回してつまんでズームする。ポーズは本家の輪から 12 種（`poses.ts` の骨ごとの角度、`PoseWheel.svelte` は指を置いたまま滑らせて離すか、開いて押す）。鬼の目は体を置いたまま一人称（縦 72 度、本家の 16:9 での横 105 度と同じ見え方）で歩く。物の陰の自分は、屋敷の材質のシェーダー（`xray.ts`）が自分のまわりを点々に抜いて見せる（鬼の目では抜かない）。屋敷（`mansion/`）は本家のかくれんぼ屋敷の大広間（2 階の回廊・大階段・シャンデリア・ピアノ・円柱・リボン・風船）と緑の廊下（ダマスクの壁紙・市松の床・ソファ・油絵・本棚）で、並びと当たりは `layout.ts`、模様は `textures.ts` の canvas（線と目は 2cm 以上）。上の「隠れタイムを はかる」は 60 秒を数えるだけ。dev では `window.__chameleon` に遊ぶ状態を出し、headless の確かめとカードの撮影が使う。
+やっぱりカメレオン（`yappari-chameleon`）は、Steam の『めっちゃカメレオン』に寄せたかくれんぼで、今は 1 台で塗る・隠れる・見え方を確かめる試作（`levels: 1`、`ownMenu`）。本家の仕様は `docs/superpowers/specs/2026-10-08-yappari-chameleon-original.md` にまとめてあり、画面の言葉（ペイントモード・3D スポイト・回転ロック・その場で回転・よじ登り・張り付き解除・フリーカメラ など）と大人向けの漢字まじりの字も本家に合わせる。横持ちで遊ぶゲームなので、`SoloMeta.landscape` で共通の `.stage` を横向きで回さず（`.wide`）、縦持ちのあいだは描画を止めて「横向きにしてください」を出す。人形（`doll.ts`、白い丸い約 5.5 頭身、小さな頭と太い胴と手足、足は丸い先だけ、背 1.15m）は `$lib/sculpt.ts` の 1 枚の面を骨で曲げ、ペイントモードのあいだは右手に虹色のまだらの絵筆を持つ。塗りは体のテクスチャに持つ。三角形を 2 つずつ升に並べた UV（`atlas.ts`。見せる三角形は升のふちから 2 画素縮め、吹き付けの三角形は 1.5 画素広げて 3D の位置も伸ばす）に、吹き付けを描くシェーダー（`paint-gpu.ts`。three は `position` の数から描く数を決めるので、吹き付けの UV を `position` に入れる）で、画素の骨で曲げる前の 3D の位置と吹き付けの中心の距離から色を混ぜる（裏を向いた面には付けない）。色は 2048² の sRGB、メタリックとラフネスは 1024²。塗った操作は吹き付けの列（`paint.ts` の `PaintLog`、元に戻すは新しい 30 筆まで）で持ち、元に戻すと WebGL のコンテキストが戻ったときは白から列を当て直す。色のパネル（`PaintPanel.svelte`）は本家の並び（色相と彩度の円盤と彩度・明るさの縦の 2 本、RGBA と HSV、見本、メタリックとラフネス、3D スポイト）で、指が体に触れているあいだは体の表面に筆の半径の輪を出す。3D スポイトは光が当たる前の色（模様の canvas の画素 × 材質の色、`textures.ts` の `readPick`、人形なら塗りのテクスチャ）を取る。動き（`move.ts`）は体を半径 0.2m のカプセル、屋敷を箱と坂にした自前の計算で、壁際のよじ登りで張り付き（上がる・下がる・張り付き解除、壁に沿った赤い輪）、上がり切ると天井に張り付く。回転ロックのあいだは向きを変えずに歩き、その場で回転はロックと別にいつでも使える。指（`touch.ts`）は左の 45% がスティック、ほかが見回しで、ペイント中は 1 本指で塗り（2 本指のつもりの 1 本めで塗らないよう 80ms か 6px 待つ）、2 本指で回してつまんでズームする。ポーズは本家の輪から 12 種（`poses.ts` の骨ごとの角度、`PoseWheel.svelte` は指を置いたまま滑らせて離すか、開いて押す）。フリーカメラは体を置いたまま一人称（縦 72 度、本家の 16:9 での横 105 度と同じ見え方）で歩く。物の陰の自分は、屋敷の材質のシェーダー（`xray.ts`、本家の貫通描画）が自分のまわりを丸い窓で抜いて見せる（ふちだけ点々でぼかす。フリーカメラでは抜かない）。屋敷（`mansion/`）は本家のかくれんぼ屋敷の大広間（2 階の回廊・大階段・3 段のシャンデリア・ピアノ・円柱・箔のリボン・風船）と緑の廊下（暗いオリーブに黄緑のダマスクの壁紙・市松の床・ソファ・油絵・本棚）で、並びと当たりは `layout.ts`、模様は `textures.ts` の canvas（線と目は 2cm 以上）。上の「隠れタイム計測」は本家の HUD の見た目で 60 秒を数えるだけ。dev では `window.__chameleon` に遊ぶ状態を出し、headless の確かめとカードの撮影が使う。
 ```
 
 - [ ] **Step 9: 全部を通す**
@@ -6287,7 +6612,7 @@ git commit -m "Time the hiding minute, add sounds, the card picture and the docs
 - 塗り心地（1 本指の吹き付け・ブラシの大きさ・スポイト・もどす）。
 - スティックと見回しの手ざわり。
 - 張り付き・ポーズ・向きロックで、壁や物に合わせられるか。
-- 鬼の目で見て、溶け込むのが楽しいか。
-- 60 秒でどこまで塗れたか。
-- 横持ちで「よこむきに してね」が出ずに遊べるか（ホーム画面のアプリで、manifest の縦固定に縛られないか）。
+- フリーカメラで見て、溶け込むのが楽しいか。
+- 60 秒でどこまで塗れたか。壁の単色・ダマスク・油絵のそれぞれで、溶けたと思うまでに何秒かかったか（2 段めの隠れる時間の既定を決める材料）。
+- 横持ちで「横向きにしてください」が出ずに遊べるか（ホーム画面のアプリで、manifest の縦固定に縛られないか）。
 - 重さ（カクつき・熱）。
