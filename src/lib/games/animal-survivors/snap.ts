@@ -14,6 +14,19 @@ import { addHero, chiefOf, eliteOf, makeEnemy, type GameEvent, type World } from
 /** 協力プレイの知らせの形の版。形を変えたら 1 上げる */
 export const COOP_VERSION = 5;
 
+/** ダメージの数字は子の画面でも 60 個までしか出せない（effects.ts の MAX_NUMBERS）ので、それより多くは送らない */
+export const SNAP_HITS = 60;
+/** 種類ごとに送る行の上限。1 回の大きさをデータチャンネルの上限（256KB）より十分に下に保つ */
+export const SNAP_ROWS = 600;
+
+/** 子の動物のまわり（画面の半分に、画面の対角線ぶんの余白）にあるか。1 人のときはいつも true */
+export function near(w: World, x: number, y: number): boolean {
+  const g = w.heroes[1];
+  if (!g) return true;
+  const pad = Math.hypot(w.view.w, w.view.h);
+  return Math.abs(x - g.player.x) < w.view.w / 2 + pad && Math.abs(y - g.player.y) < w.view.h / 2 + pad;
+}
+
 type Row = (number | string)[];
 
 /**
@@ -68,6 +81,17 @@ function defOf(c: number, max: number | undefined): EnemyDef | null {
 export function makeSnap(w: World, events: GameEvent[]): Snap {
   const rows = <T extends { alive: boolean }>(list: T[], row: (o: T) => Row) =>
     list.flatMap((o, i) => (o.alive ? [[i, ...row(o)]] : []));
+  const around = <T extends { alive: boolean; x: number; y: number }>(list: T[], row: (o: T) => Row) => {
+    const g = w.heroes[1]?.player;
+    const picked = list.flatMap((o, i) => (o.alive && near(w, o.x, o.y) ? [i] : []));
+    if (g && picked.length > SNAP_ROWS)
+      picked.sort(
+        (a, b) => (list[a].x - g.x) ** 2 + (list[a].y - g.y) ** 2 - ((list[b].x - g.x) ** 2 + (list[b].y - g.y) ** 2)
+      );
+    return picked.slice(0, SNAP_ROWS).map((i) => [i, ...row(list[i])]);
+  };
+  let hits = 0;
+  const sent = events.filter((e) => e.type !== 'hit' || hits++ < SNAP_HITS);
   return {
     t: [
       r1(w.time),
@@ -125,7 +149,7 @@ export function makeSnap(w: World, events: GameEvent[]): Snap {
           ]
         : base;
     }),
-    shots: rows(w.shots, (o) => [
+    shots: around(w.shots, (o) => [
       o.kind,
       o.slot,
       r1(o.x),
@@ -137,7 +161,7 @@ export function makeSnap(w: World, events: GameEvent[]): Snap {
       r1(o.age),
       r1(o.life)
     ]),
-    effects: rows(w.effects, (f) => [
+    effects: around(w.effects, (f) => [
       f.kind,
       f.slot,
       r1(f.x),
@@ -148,8 +172,8 @@ export function makeSnap(w: World, events: GameEvent[]): Snap {
       r1(f.angle),
       r1(f.born)
     ]),
-    gems: rows(w.gems, (g) => [r1(g.x), r1(g.y), g.value]),
-    items: rows(w.items, (it) => [
+    gems: around(w.gems, (g) => [r1(g.x), r1(g.y), g.value]),
+    items: around(w.items, (it) => [
       it.kind,
       r1(it.x),
       r1(it.y),
@@ -165,7 +189,7 @@ export function makeSnap(w: World, events: GameEvent[]): Snap {
     shrines: w.shrinesUsed,
     link: { ...w.link, press: [...w.link.press] as [number, number], shows: w.link.shows.map((s) => ({ ...s })) },
     carry: w.carry && { ...w.carry, near: [...w.carry.near] },
-    events
+    events: sent
   };
 }
 
