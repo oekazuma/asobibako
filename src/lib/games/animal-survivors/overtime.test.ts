@@ -18,16 +18,25 @@ function cleared(): World {
   w.weapons = [];
   w.metalAt = -1;
   w.propCd = 1e9;
-  w.player.hp = w.stats.maxHp = 1e9;
+  keepAlive(w);
   w.time = 600 - 1e-6;
   step(w, still, 1 / 60);
   return w;
+}
+
+/**
+ * 時刻を飛ばすと、それまでの出来事とヌシがまとめて出て倒した経験値で育つことがあり、育つと HP が本来の最大値に戻る。
+ * どこまで育つかは端末の浮動小数のわずかな差で変わる（CI の x64 では Lv10 を越えて倒れた）ので、毎回倒れない値へ戻す
+ */
+function keepAlive(w: World) {
+  w.player.hp = w.stats.maxHp = 1e9;
 }
 
 function run(w: World, secs: number, dt = 1 / 30) {
   for (let i = 0; i < secs / dt; i++) {
     w.pending = 0;
     w.chests = 0;
+    keepAlive(w);
     step(w, still, dt);
   }
 }
@@ -61,10 +70,12 @@ describe('延長戦を始める', () => {
       for (let i = 0; i < 15 * 30; i++) {
         w.pending = 0;
         w.chests = 0;
+        keepAlive(w);
         step(w, still, 1 / 30);
         for (const e of w.events) if (e.type === 'warning') warned.push(`${e.boss}@${Math.round(w.time)}`);
       }
     }
+    expect(w.over).toBeNull();
     expect(warned).toEqual(['bear@657', 'spiderQueen@717']);
     const bosses = w.enemies.filter((e) => e.alive && e.def.boss).map((e) => e.def.id);
     expect(bosses).toEqual(expect.arrayContaining(['bear', 'spiderQueen']));
