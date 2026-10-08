@@ -13,6 +13,8 @@ const INK = '#2b2d42';
 const SKIN = '#ffd7b5';
 /** はいしゃさんの道具・歯・バイキンのふち線 */
 const LINE = '#5b4a42';
+/** ボタンの字の色をそのまま使うアイコン用 */
+const C = 'currentColor';
 const circle = (cx: number, cy: number, r: number) =>
   `M${cx - r} ${cy}a${r} ${r} 0 1 0 ${r * 2} 0a${r} ${r} 0 1 0 ${-r * 2} 0z`;
 const ellipse = (cx: number, cy: number, rx: number, ry: number) =>
@@ -589,6 +591,39 @@ export const ICONS = {
     { d: 'M10.5 13.3h3v3.7h-3z', fill: '#e39a00', stroke: LINE, width: 1.2 },
     { d: 'M7.5 17h9v4h-9z', fill: '#a8683f', stroke: LINE, width: 1.4 },
     { d: 'M9 5v3.5', stroke: '#fff3a0', width: 1.4 }
+  ],
+  eye: [
+    { d: 'M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z', stroke: C, width: 2 },
+    { d: circle(12, 12, 3), fill: C }
+  ],
+  dropper: [
+    { d: 'M14.5 6.5l3 3M9 12l-4.5 4.5v3h3L12 15M10.5 10.5l3 3', stroke: C, width: 2 },
+    { d: 'M13 5l1.8-1.8a2.3 2.3 0 0 1 3.3 0l1.7 1.7a2.3 2.3 0 0 1 0 3.3L18 10z', fill: C }
+  ],
+  figure: [
+    { d: circle(12, 4.5, 2.3), fill: C },
+    { d: 'M5 9.5l7 1.2 7-1.2M12 10.7v4.8M12 15.5l-3.6 5.5M12 15.5l3.6 5.5', stroke: C, width: 2 }
+  ],
+  lock: [
+    { d: 'M8 11V8a4 4 0 0 1 8 0v3', stroke: C, width: 2 },
+    { d: 'M5.5 11h13v9.5h-13z', fill: C }
+  ],
+  spin: [{ d: 'M19 12a7 7 0 1 1-2.05-4.95M19 4.5V8h-3.5', stroke: C, width: 2 }],
+  shadow: [
+    { d: circle(12, 12, 8.5), stroke: C, width: 2 },
+    { d: 'M12 3.5a8.5 8.5 0 0 1 0 17z', fill: C }
+  ],
+  lift: [{ d: 'M12 20V5M6 11l6-6 6 6', stroke: C, width: 2.4 }],
+  spray: [
+    { d: 'M8 9h7v11.5H8z', fill: C },
+    { d: 'M9.5 9V6.5h4V9', stroke: C, width: 2 },
+    { d: 'M17 4.5h.01M19.5 6h.01M17.5 7.5h.01M20 3.5h.01', stroke: C, width: 2.2 }
+  ],
+  rewind: [{ d: 'M5 10h9.5a5 5 0 0 1 0 10H10M9 5.5L4.5 10 9 14.5', stroke: C, width: 2.2 }],
+  // 本家の HUD の、緑の砂の砂時計
+  hourglass: [
+    { d: 'M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9s10 4 10 9', stroke: '#ffffff', width: 1.8 },
+    { d: 'M9 6.5h6l-3 3.5zM8 19.5c1.5-3 6.5-3 8 0z', fill: '#7cc243' }
   ]
 } satisfies Record<string, Layer[]>;
 

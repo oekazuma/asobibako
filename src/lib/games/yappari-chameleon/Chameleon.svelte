@@ -1,54 +1,141 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { wake } from '$lib/audio.svelte';
   import type { SoloProps } from '$lib/games';
+  import { animate } from '$lib/loop';
+  import { layAtlas } from './atlas';
+  import BrushSize from './BrushSize.svelte';
+  import Buttons from './Buttons.svelte';
+  import { buildDoll } from './doll';
+  import { makeDoll } from './doll3d';
+  import { COLOR_SIZE } from './paint-gpu';
+  import { Play } from './play.svelte';
+  import StickView from './StickView.svelte';
+  import { testRoom } from './test-room';
+  import { World } from './world3d';
 
   let { onquit }: SoloProps = $props();
+  let canvas: HTMLCanvasElement;
+  let box: HTMLDivElement;
   let portrait = $state(false);
+  let play = $state.raw<Play | null>(null);
+  const radius = 70;
 
   onMount(() => {
     const mq = matchMedia('(orientation: portrait)');
-    const sync = () => (portrait = mq.matches);
-    sync();
-    mq.addEventListener('change', sync);
-    return () => mq.removeEventListener('change', sync);
+    let stop: (() => void) | null = null;
+    let world: World | null = null;
+    const size = () => world?.resize(box.clientWidth, box.clientHeight);
+    const run = () => {
+      stop?.();
+      stop = null;
+      portrait = mq.matches;
+      if (portrait || !play) return;
+      size();
+      const p = play;
+      stop = animate((dt, now) => p.frame(dt, now));
+    };
+    // 人形の面と升目を作るのに数百 ms 止まるので、「準備中」を 1 度描かせてから作る
+    const raf = requestAnimationFrame(() =>
+      setTimeout(() => {
+        const s = buildDoll();
+        const atlas = layAtlas(s.pos, s.idx, COLOR_SIZE);
+        world = new World(
+          canvas,
+          (r) => makeDoll(r, s, atlas),
+          () => play?.rebuildPaint()
+        );
+        world.setStage(testRoom());
+        size();
+        play = new Play(world, radius);
+        if (import.meta.env.DEV) (window as unknown as { __chameleon?: Play }).__chameleon = play;
+        run();
+      })
+    );
+    mq.addEventListener('change', run);
+    const ro = new ResizeObserver(size);
+    ro.observe(box);
+    return () => {
+      cancelAnimationFrame(raf);
+      mq.removeEventListener('change', run);
+      ro.disconnect();
+      stop?.();
+      world?.dispose();
+    };
   });
+
+  function pointer(kind: 'down' | 'move' | 'up' | 'cancel', e: PointerEvent) {
+    if (!play) return;
+    if (kind === 'down') {
+      wake();
+      try {
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      } catch {
+        // 合成イベントでは掴めないが、指の追跡は続けてよい
+      }
+    }
+    const r = box.getBoundingClientRect();
+    play.pointer(kind, e.pointerId, e.clientX - r.left, e.clientY - r.top, r.width);
+  }
 </script>
 
-<div class="chameleon">
-  {#if portrait}
-    <p class="notice">横向きにしてください</p>
+<div class="chameleon" bind:this={box}>
+  <canvas bind:this={canvas}></canvas>
+  <div
+    class="pad"
+    role="presentation"
+    onpointerdown={(e) => pointer('down', e)}
+    onpointermove={(e) => pointer('move', e)}
+    onpointerup={(e) => pointer('up', e)}
+    onpointercancel={(e) => pointer('cancel', e)}
+  ></div>
+  {#if play}
+    {#if play.stick.active}
+      <StickView ox={play.stick.ox} oy={play.stick.oy} x={play.stick.x} y={play.stick.y} r={radius} />
+    {/if}
+    {#if play.mode === 'paint'}
+      <BrushSize bind:value={play.brush.radius} />
+    {/if}
+    <Buttons {play} onquit={() => onquit?.()} />
   {:else}
-    <p class="notice">準備中</p>
+    <p class="notice">準備中…</p>
   {/if}
-  <button class="quit" onclick={() => onquit?.()} aria-label="タイトルへ">✕</button>
+  {#if portrait}
+    <p class="notice cover">横向きにしてください</p>
+  {/if}
 </div>
 
 <style>
   .chameleon {
     position: absolute;
     inset: 0;
-    display: grid;
-    place-items: center;
+    overflow: hidden;
     background: #1d1a17;
   }
 
+  canvas,
+  .pad {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
   .notice {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    margin: 0;
     color: #fff;
     font-family: 'Hiragino Mincho ProN', serif;
     font-size: 28px;
     text-shadow: 0 2px 4px #000;
+    pointer-events: none;
   }
 
-  .quit {
-    position: absolute;
-    top: max(12px, env(safe-area-inset-top));
-    left: max(12px, env(safe-area-inset-left));
-    width: 48px;
-    height: 48px;
-    border: 2px solid #fff;
-    border-radius: 50%;
-    background: rgb(0 0 0 / 0.35);
-    color: #fff;
-    font-size: 22px;
+  .cover {
+    background: #1d1a17;
+    pointer-events: auto;
   }
 </style>
