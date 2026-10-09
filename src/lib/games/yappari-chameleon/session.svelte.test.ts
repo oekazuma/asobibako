@@ -53,7 +53,12 @@ vi.mock('./glow', () => ({
   }
 }));
 const made = vi.hoisted(() => ({
-  remotes: [] as { log: unknown[]; rig: { paint: { rebuild: unknown } } }[],
+  remotes: [] as {
+    log: unknown[];
+    rig: { paint: { rebuild: unknown } };
+    dabs: unknown;
+    lastShow: { visible: boolean; shine?: unknown } | null;
+  }[],
   guns: [] as { visible: boolean; dispose: unknown }[]
 }));
 vi.mock('./remote', () => ({
@@ -73,7 +78,9 @@ vi.mock('./remote', () => ({
     last: Me | null = null;
     dabs = vi.fn();
     clearPaint = vi.fn();
-    update(_dt: number, _now: number, show: { visible: boolean; pin?: Me | null }) {
+    lastShow: { visible: boolean; pin?: Me | null; shine?: unknown } | null = null;
+    update(_dt: number, _now: number, show: { visible: boolean; pin?: Me | null; shine?: unknown }) {
+      this.lastShow = show;
       // 本物と同じく、見せる体の様子は更新のときに決まる
       this.shown = show.pin ?? this.last;
       this.rig.root.visible = !!this.shown && show.visible;
@@ -85,11 +92,12 @@ vi.mock('./remote', () => ({
   }
 }));
 
-/** 床と天井だけの広い部屋（大広間と控室の始める場所を含む） */
+/** 床と天井だけの広い部屋（大広間と控室の始める場所を含む）と、ロビーの床 */
 const level: Level = {
   boxes: [
     { min: [-40, -1, -40], max: [40, 0, 40] },
-    { min: [-40, 6, -40], max: [40, 6.3, 40] }
+    { min: [-40, 6, -40], max: [40, 6.3, 40] },
+    { min: [-8, -1, -68], max: [8, 0, -52] }
   ],
   ramps: [],
   spawn: [0, 0, 1.5]
@@ -114,7 +122,9 @@ function fakeWorld() {
     pickBody: () => ({ object: {}, point: {}, normal: {} }),
     cursor: vi.fn(),
     screen: () => ({ x: 0, y: 0 }),
-    dist: 2.25
+    dist: 2.25,
+    arrange: vi.fn(),
+    podium: vi.fn()
   } as unknown as World;
 }
 
@@ -229,7 +239,7 @@ describe('Session の見つかった人', () => {
     frames(0.2);
     expect(play.role).toBe('hunter');
     expect(play.log.dabs).toHaveLength(0);
-    expect(play.ghost.pos).toEqual([...SPAWNS.hall[2]]);
+    expect(play.ghost.pos).toEqual([...SPAWNS.lobby[2]]);
     expect(play.world.rig.root.visible).toBe(false);
   });
 
@@ -501,5 +511,119 @@ describe('Session の送る量', () => {
     const sent = acts.filter((m) => m.t === 'dabs');
     expect(sent.length).toBeLessThanOrEqual(3);
     expect(sent.reduce((n, m) => n + (m.d as number[]).length, 0)).toBe(6 * DAB_LEN);
+  });
+});
+
+const double = { ...DEFAULTS, mode: 'double' } as const;
+const hunters = { 1: 'hunter', 2: 'hunter', 3: 'hunter' } as const;
+const hiders = { 1: 'hider', 2: 'hider', 3: 'hider' } as const;
+
+describe('Session のロビーと小物', () => {
+  it('ロビーではロビーの部屋の席の場所に出て、北の台を向く', () => {
+    const { play, tell } = setup();
+    play.camYaw = 2;
+    tell(at('lobby'));
+    expect(play.body.pos).toEqual([...SPAWNS.lobby[2]]);
+    expect(play.camYaw).toBe(0);
+  });
+
+  it('種の入った様子で小物を置き直し、同じ種では置き直さない', () => {
+    const { play, tell } = setup();
+    tell(at('lobby'));
+    tell(at('intro', { seed: 5 }));
+    tell(at('hide', { seed: 5 }));
+    tell(at('lobby', { seed: null }));
+    expect(vi.mocked(play.world.arrange).mock.calls).toEqual([[null], [5], [null]]);
+  });
+
+  it('3D を作るあいだに届いていた種も、最初の様子で置く（戻った子と途中で来た子）', () => {
+    const { play } = setup(2, { messages: [at('hide', { seed: 9 })], stop: vi.fn() });
+    expect(play.world.arrange).toHaveBeenCalledWith(9);
+  });
+
+  it('台に誰かが乗っているあいだだけ、台の縁を光らせる', () => {
+    const { s, play, tell } = setup();
+    tell(at('lobby', { wishes: [3] }));
+    s.frame(1 / 60, 0);
+    expect(play.world.podium).toHaveBeenLastCalledWith(true);
+    tell(at('lobby', { wishes: [] }));
+    s.frame(1 / 60, 16);
+    expect(play.world.podium).toHaveBeenLastCalledWith(false);
+  });
+});
+
+describe('Session のダブル', () => {
+  /** 2 の画面。1 と 3 の体と塗りが届き、自分も塗ってから、残した体の知らせと探索の様子が来る */
+  function doubled() {
+    const x = setup();
+    x.tell(meMsg(1, { pos: [1, 0, 1] }));
+    x.tell(meMsg(3, { pos: [3, 0, 3] }));
+    x.tell(at('lobby'));
+    x.tell(at('hide', { settings: double, roles: hiders, first: [], hid: [1, 2, 3] }));
+    const live1 = made.remotes.findLast((r) => (r as unknown as { last: Me }).last?.pos[0] === 1)!;
+    live1.log.push(dab(5));
+    x.play.applyDabs([dab(0), dab(1)]);
+    const before = made.remotes.length;
+    for (const seat of [1, 2, 3] as Seat[]) x.tell({ t: 'left', seat, body: body({ pos: [seat, 0, 9], pose: 'lie' }) });
+    x.tell(at('search', { settings: double, roles: hunters, first: [], hid: [1, 2, 3] }));
+    const pins = made.remotes.slice(before);
+    return { ...x, pins };
+  }
+
+  it('探索に入ると、全員の残した体をそのときの塗りで置き、自分は白い体で入口から探す', () => {
+    const { play, pins } = doubled();
+    expect(pins).toHaveLength(3);
+    expect(pins[0].rig.paint.rebuild).toHaveBeenCalledWith([dab(5)]);
+    expect(pins[1].rig.paint.rebuild).toHaveBeenCalledWith([dab(0), dab(1)]);
+    expect(play.log.dabs).toHaveLength(0);
+    expect(play.role).toBe('hunter');
+    expect(play.ghost.pos).toEqual([...SPAWNS.entrance[2]]);
+  });
+
+  it('見つけた体は見つけた人の画面からだけ消え、答え合わせでは見つかった体を青、まだの体を赤で出す', () => {
+    const { tell, frames, pins } = doubled();
+    tell({ t: 'found', seat: 1, by: 3, at: [1, 1, 9] });
+    tell(at('search', { settings: double, roles: hunters, first: [], hid: [1, 2, 3], caught: { 3: [1] } }));
+    frames(0.1);
+    expect(pins[0].lastShow?.visible).toBe(true);
+    tell({ t: 'found', seat: 3, by: 2, at: [3, 1, 9] });
+    tell(at('search', { settings: double, roles: hunters, first: [], hid: [1, 2, 3], caught: { 3: [1], 2: [3] } }));
+    frames(0.1);
+    expect(pins[2].lastShow?.visible).toBe(false);
+    tell(
+      at('reveal', {
+        settings: double,
+        roles: hunters,
+        first: [],
+        hid: [1, 2, 3],
+        caught: { 3: [1], 2: [3] },
+        winner: 'double'
+      })
+    );
+    frames(0.1);
+    expect(pins.map((p) => [p.lastShow?.visible, p.lastShow?.shine])).toEqual([
+      [true, 'blue'],
+      [true, 'red'],
+      [true, 'blue']
+    ]);
+  });
+
+  it('ダブルで戻った子は、残した体を leftDabs の塗りで作り直し、ハンターの続きの場所から探す', () => {
+    const d = packDabs([dab(0), dab(1), dab(2)]);
+    const messages = [
+      meMsg(2, { pos: [7, 0, 5], yaw: 1.5, pose: AIM.id }),
+      { t: 'dabs', seat: 2, at: 0, d: [] },
+      { t: 'left', seat: 2, body: body({ pos: [2, 0, 9] }) },
+      { t: 'leftDabs', seat: 2, at: 0, d },
+      at('search', { settings: double, roles: hunters, first: [], hid: [1, 2, 3], seed: 4 })
+    ] as Message[];
+    const before = made.remotes.length;
+    const { s, play } = setup(2, { messages, stop: vi.fn() });
+    const pin = made.remotes[before];
+    expect(pin.dabs).toHaveBeenCalledWith(0, d);
+    expect(play.role).toBe('hunter');
+    expect(play.ghost.pos).toEqual([7, 0, 5]);
+    expect(play.world.arrange).toHaveBeenCalledWith(4);
+    expect(s.pinPaint(2)).toBe(0);
   });
 });

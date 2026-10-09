@@ -26,8 +26,6 @@ export interface Plate {
   seat: Seat;
   x: number;
   y: number;
-  /** ハンター希望の赤い印 */
-  wish: boolean;
 }
 
 /**
@@ -73,6 +71,10 @@ export class Session {
   readonly #pins = new SvelteMap<Seat, Remote>();
   /** 見つかった人の、見つかったときの塗り。増え鬼でハンターになると列が白に戻るので、答え合わせの撃たれた場所の体はこれで作る */
   readonly #snaps = new SvelteMap<Seat, Dab[]>();
+  /** 今の小物の置き方の種。最初の様子で必ず当てるよう、まだ当てていないあいだは undefined */
+  #seed: number | null | undefined = undefined;
+  /** ダブルの残した体（席 → 隠れタイムの終わりの体） */
+  readonly #lefts = new SvelteMap<Seat, Me>();
   /** 砕けて見えない残り秒 */
   readonly #shatter = new SvelteMap<Seat, number>();
   #sent = -Infinity;
@@ -117,6 +119,8 @@ export class Session {
       else if (!this.match.synced) this.#ownPaint(m.at as number, m.d as number[]);
     } else if (m.t === 'found') this.#onFound(seat, m.by as Seat, m.body as Me | undefined, m.quiet === true);
     else if (m.t === 'splat') this.#onSplat(m);
+    else if (m.t === 'left') this.#onLeft(seat, m.body as Me);
+    else if (m.t === 'leftDabs') this.#pins.get(seat)?.dabs(m.at as number, m.d as number[]);
     else if (m.t === 'toot') this.#onToot(seat, m.at as V3);
     else if (m.t === 'chameleon-mismatch') this.mismatch = true;
   }
@@ -143,6 +147,11 @@ export class Session {
   #phase(v: View) {
     const first = !this.match.synced;
     const before = this.match.phase;
+    // 戻った子と途中で来た子は最初の様子で種を受けるので、フェーズの変わり目だけでなく、届くたびに見る
+    if (v.seed !== this.#seed) {
+      this.#seed = v.seed;
+      this.play.world.arrange(v.seed);
+    }
     this.match.receive(v);
     if (first) {
       if (!this.#own) this.#place();
@@ -159,6 +168,13 @@ export class Session {
     }
     if (p === 'intro') sounds.intro();
     else sounds.phase();
+    // ダブルの探す人は新しい白い体で入る（残した体は left の知らせで先に写してある）
+    if (p === 'search' && this.match.double) {
+      this.play.interrupt();
+      this.play.log.clear();
+      this.play.rebuildPaint();
+      this.play.canUndo = false;
+    }
     this.#fit(null);
     if (p === 'reveal') this.#reveal();
   }
@@ -177,16 +193,19 @@ export class Session {
     this.#shatter.clear();
     for (const r of this.#pins.values()) r.dispose();
     this.#pins.clear();
+    this.#lefts.clear();
     this.watching = null;
     this.play.unhunt();
     this.play.setPose(STAND.id);
   }
 
-  /** 体を始める場所へ移す。待っているハンターは控室、ほかは大広間 */
+  /** 体を始める場所へ移す。ロビーはロビーの部屋、待っているハンターは控室、ほかは大広間 */
   #place() {
     const p = this.match.phase;
     const room = this.match.role === 'hunter' && (p === 'intro' || p === 'hide');
-    this.play.placeAt(SPAWNS[room ? 'room' : 'hall'][this.match.me]);
+    this.play.placeAt(SPAWNS[p === 'lobby' ? 'lobby' : room ? 'room' : 'hall'][this.match.me]);
+    // 始める場所はどれも北（+z）を向いている。ロビーなら台、大広間なら屋敷の奥が見える
+    this.play.camYaw = 0;
   }
 
   /** 試合の様子に合わせて、ハンター（一人称と銃）か観戦に切り替える。own は戻った子のハンターの続きの場所と向き */
@@ -206,6 +225,16 @@ export class Session {
   }
 
   #onFound(seat: Seat, by: Seat, body: Me | undefined, quiet: boolean) {
+    if (this.match.double) {
+      // 見つけた体はその人の画面からだけ消えるので、ほかの人の画面では何も起きない
+      const pin = this.#pins.get(seat);
+      if (by !== this.match.me || quiet || !pin) return;
+      const at = pin.center();
+      if (at) this.#fx.shatter(at, pin.colors());
+      sounds.shatter();
+      sounds.found();
+      return;
+    }
     if (body) this.#found.set(seat, body);
     const me = this.match.me;
     const live = seat === me ? null : this.#remote(seat);
@@ -284,15 +313,43 @@ export class Session {
     return this.match.phase === 'reveal' && this.match.found(seat) && this.match.roleOf(seat) === 'hunter';
   }
 
-  /** 撃たれた場所に置く 2 つめの体。ハンターになって白に戻る前の、見つかったときの塗りで作る */
-  #pin(seat: Seat, live: Remote): Remote {
+  /** 撃たれた場所（増え鬼の答え合わせ）か残した場所（ダブル）に置く 2 つめの体。作るときの塗りを写して塗る */
+  #pin(seat: Seat, paint: readonly Dab[]): Remote {
     let r = this.#pins.get(seat);
     if (!r) {
       r = new Remote(this.#makeRig(), this.play.world.scene);
-      r.rig.paint.rebuild(this.#snaps.get(seat) ?? live.log);
+      r.log.push(...paint);
+      r.rig.paint.rebuild(r.log);
       this.#pins.set(seat, r);
     }
     return r;
+  }
+
+  /**
+   * ダブルの残した体。親は探索の様子より先にこれを送るので、まだ白に戻っていない今の塗り（自分の列か、その人の Remote の列）を写す。
+   * 写したあとに遅れて届く塗りは生きている体の列にだけ入り、残した体は変わらない。戻った子は塗りがもう白いので、あとから届く
+   * leftDabs で塗り直す
+   */
+  #onLeft(seat: Seat, body: Me) {
+    if (this.#pins.has(seat)) return;
+    this.#lefts.set(seat, body);
+    this.#pin(seat, [...(seat === this.match.me ? this.play.log.dabs : this.#remote(seat).log)]);
+  }
+
+  /** ダブルで、自分がもう見つけた体（探索のあいだは自分の画面から消す） */
+  #caught(seat: Seat): boolean {
+    return this.match.phase !== 'reveal' && (this.match.view.caught[this.match.me] ?? []).includes(seat);
+  }
+
+  /** ダブルの答え合わせで、誰かに見つかった体は青、まだの体は赤 */
+  #leftShine(seat: Seat): Shine {
+    if (this.match.phase !== 'reveal') return null;
+    return Object.values(this.match.view.caught).some((got) => got?.includes(seat)) ? 'blue' : 'red';
+  }
+
+  /** その人の残した体（ダブル）か撃たれた場所の体（増え鬼）の塗りの数。headless の確かめが読む */
+  pinPaint(seat: Seat): number | null {
+    return this.#pins.get(seat)?.log.length ?? null;
   }
 
   #show(seat: Seat): Show {
@@ -339,8 +396,18 @@ export class Session {
     for (const [seat, r] of this.#remotes) {
       r.update(dt, now, this.#show(seat));
       const body = this.#infected(seat) ? this.#found.get(seat) : undefined;
-      if (body) this.#pin(seat, r).update(dt, now, { pin: body, visible: true, armed: false, shine: 'blue' });
+      if (body)
+        this.#pin(seat, this.#snaps.get(seat) ?? r.log).update(dt, now, {
+          pin: body,
+          visible: true,
+          armed: false,
+          shine: 'blue'
+        });
     }
+    for (const [seat, body] of this.#lefts)
+      this.#pins
+        .get(seat)
+        ?.update(dt, now, { pin: body, visible: !this.#caught(seat), armed: false, shine: this.#leftShine(seat) });
     if (this.play.role === 'watch' && this.watching !== null && !this.#watchable().includes(this.watching))
       this.next(1);
     this.play.watch =
@@ -349,6 +416,7 @@ export class Session {
     this.play.frozen = this.#shatter.has(me);
     w.rig.root.visible = (this.play.role === 'hider' && !this.#shatter.has(me)) || pinned;
     this.#glow.set(w.rig.root.visible ? this.#shine(me) : null);
+    w.podium(m.phase === 'lobby' && m.view.wishes.length > 0);
     this.#gun.visible = this.play.role === 'hunter';
     this.#fx.step(dt);
     this.#gun.step(dt);
@@ -408,20 +476,20 @@ export class Session {
     const out: Plate[] = [];
     const add = (seat: Seat, head: V3 | null) => {
       const at = head && w.screen(head);
-      if (at) out.push({ seat, ...at, wish: p === 'lobby' && this.match.view.wishes.includes(seat) });
+      if (at) out.push({ seat, ...at });
     };
+    // ダブルの答え合わせは、探す人の体ではなく残した体の上に札を出す
+    if (p === 'reveal' && this.match.double) {
+      for (const [seat, r] of this.#pins) if (r.rig.root.visible) add(seat, r.head());
+      this.plates = out;
+      return;
+    }
     if (w.rig.root.visible) {
       const h = w.rig.root.localToWorld(new THREE.Vector3(0, HEAD_Y, 0));
       add(this.match.me, [h.x, h.y, h.z]);
     }
     for (const [seat, r] of this.#remotes) if (r.rig.root.visible) add(seat, r.head());
     this.plates = out;
-  }
-
-  /** ハンター希望を切り替える（ロビーだけ） */
-  wish(): void {
-    if (this.match.phase !== 'lobby') return;
-    this.party.act({ t: 'wish', on: !this.match.view.wishes.includes(this.match.me) });
   }
 
   /** もうええよ（隠れタイムと答え合わせ） */
@@ -454,9 +522,15 @@ export class Session {
     const o: V3 = [cam.position.x, cam.position.y, cam.position.z];
     const d: V3 = [dir.x, dir.y, dir.z];
     const targets: Target[] = [];
-    for (const [seat, r] of this.#remotes)
-      if (r.shown && r.rig.root.visible && this.match.roleOf(seat) === 'hider')
-        targets.push({ seat, caps: capsules(poseById(r.shown.pose), placement(r.shown)) });
+    // 手元の筋の当たりも親と同じ的にする
+    if (this.match.double) {
+      for (const [seat, b] of this.#lefts)
+        if (seat !== this.match.me && !this.#caught(seat))
+          targets.push({ seat, caps: capsules(poseById(b.pose), placement(b)) });
+    } else
+      for (const [seat, r] of this.#remotes)
+        if (r.shown && r.rig.root.visible && this.match.roleOf(seat) === 'hider')
+          targets.push({ seat, caps: capsules(poseById(r.shown.pose), placement(r.shown)) });
     const rays = fire(this.play.world.level, o, d, targets);
     const from = this.#gun.muzzle();
     this.#fx.trail(
@@ -481,7 +555,7 @@ export class Session {
   restore(): void {
     this.play.rebuildPaint();
     for (const r of this.#remotes.values()) r.rig.paint.rebuild(r.log);
-    for (const [seat, r] of this.#pins) r.rig.paint.rebuild(this.#snaps.get(seat) ?? []);
+    for (const r of this.#pins.values()) r.rig.paint.rebuild(r.log);
   }
 
   dispose(): void {

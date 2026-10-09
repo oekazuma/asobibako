@@ -7,7 +7,7 @@
   import './round-button.css';
 
   /**
-   * top はつないで遊ぶときに列の上に足すボタン（挑発・ハンター希望）。onquit が無ければ ✕ を出さない（上の画面が持つ）。
+   * top はつないで遊ぶときに列の上に足すボタン（挑発）。onquit が無ければ ✕ を出さない（上の画面が持つ）。
    * free が false ならフリーカメラを出さない（控室で待つハンター）
    */
   let { play, onquit, top, free = true }: { play: Play; onquit?: () => void; top?: Snippet; free?: boolean } = $props();

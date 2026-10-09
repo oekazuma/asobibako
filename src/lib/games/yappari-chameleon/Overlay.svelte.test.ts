@@ -40,9 +40,10 @@ function show(role: PlayRole, v: Partial<View>, me: Seat = 1) {
 }
 
 describe('Overlay', () => {
-  it('ロビーでは右の列にハンター希望と挑発、上に親のマップの設定を出す', () => {
+  it('ロビーでは右の列に挑発、上に親のマップの設定を出し、ハンター希望のボタンは無い（台に乗る）', () => {
     const { labels, done } = show('hider', { phase: 'lobby' });
-    expect(labels()).toEqual(expect.arrayContaining(['ハンター希望', '挑発', 'マップの設定']));
+    expect(labels()).toEqual(expect.arrayContaining(['挑発', 'マップの設定']));
+    expect(labels()).not.toContain('ハンター希望');
     done();
   });
 
