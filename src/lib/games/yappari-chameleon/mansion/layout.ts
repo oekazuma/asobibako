@@ -154,6 +154,7 @@ export interface Mansion {
 }
 
 const HALL_H = 7;
+const GAP = 0.01;
 const FLOOR2 = 3.5;
 const CORR_H = 3.5;
 const T = 0.3;
@@ -171,10 +172,10 @@ function hall(): Slab[] {
     { min: [-7 - T, 0, 0], max: [-7, HALL_H, 4.25], mat: 'woodPanel', face: 'x+' },
     { min: [-7 - T, 0, 5.75], max: [-7, HALL_H, 12], mat: 'woodPanel', face: 'x+' },
     { min: [-7 - T, 2.4, 4.25], max: [-7, HALL_H, 5.75], mat: 'woodPanel', face: 'x+' },
-    // 2 階の回廊の床。下に影を落とす
-    { min: [-7, FLOOR2 - 0.2, 9], max: [7, FLOOR2, 12], mat: 'woodPanel', face: 'y+', shadow: true },
-    { min: [-7, FLOOR2, 8.95], max: [-1.3, FLOOR2 + 0.9, 9.05], mat: 'rail', face: 'z-', shadow: true },
-    { min: [1.3, FLOOR2, 8.95], max: [7, FLOOR2 + 0.9, 9.05], mat: 'rail', face: 'z-', shadow: true }
+    // 2 階の回廊の床。下に影を落とす。床と手すりの端が左右の壁の面と重なるとちらつくので、壁から 1cm 離す
+    { min: [-7 + GAP, FLOOR2 - 0.2, 9], max: [7 - GAP, FLOOR2, 12], mat: 'woodPanel', face: 'y+', shadow: true },
+    { min: [-7 + GAP, FLOOR2, 8.95], max: [-1.3, FLOOR2 + 0.9, 9.05], mat: 'rail', face: 'z-', shadow: true },
+    { min: [1.3, FLOOR2, 8.95], max: [7 - GAP, FLOOR2 + 0.9, 9.05], mat: 'rail', face: 'z-', shadow: true }
   ];
   // 大階段の横の板。坂の高さに手すりの 0.9m を足した段々にし、横から入れず下にももぐれなくする
   const parts = 10;
