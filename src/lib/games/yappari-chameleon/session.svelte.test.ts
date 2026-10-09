@@ -118,6 +118,8 @@ function fakeWorld() {
     xray: vi.fn(),
     snapCamera: vi.fn(),
     holdBrush: vi.fn(),
+    holdGun: vi.fn(),
+    gunMuzzle: () => [9, 9, 9],
     dollCenter: () => [0, 1, 0],
     pickBody: () => ({ object: {}, point: {}, normal: {} }),
     cursor: vi.fn(),
@@ -472,6 +474,33 @@ describe('Session の役の切り替え', () => {
     frames(0.1);
     expect(s.watching).toBe(3);
     expect(s.play.watch).toEqual([3, 0, 0]);
+  });
+
+  it('ハンターの三人称では、一人称の手と銃を隠して自分の体と銃を出し、筋は体の銃口から引く', () => {
+    const { s, play, tell, frames, acts } = setup(3);
+    tell(at('lobby'));
+    tell(at('search'));
+    play.toggleTps();
+    frames(0.1);
+    expect(made.guns.at(-1)!.visible).toBe(false);
+    expect(play.world.rig.root.visible).toBe(true);
+    expect(play.world.holdGun).toHaveBeenLastCalledWith(true);
+    s.shoot();
+    expect(acts.find((m) => m.t === 'shot')!.from).toEqual([9, 9, 9]);
+  });
+
+  it('ハンターは動きにカメラの位置を載せ、隠れる人は載せない', () => {
+    const hunter = setup(3);
+    hunter.tell(at('lobby'));
+    hunter.tell(at('search'));
+    hunter.play.world.camera.position.set(1, 2, 3);
+    hunter.s.frame(1 / 60, 1000);
+    const me = hunter.acts.findLast((m) => m.t === 'me') as unknown as Me;
+    expect(me.eye).toEqual([1, 2, 3]);
+    const hider = setup(2);
+    hider.tell(at('hide'));
+    hider.frames(0.1);
+    expect((hider.acts.findLast((m) => m.t === 'me') as unknown as Me).eye).toBeNull();
   });
 });
 

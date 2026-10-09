@@ -414,10 +414,12 @@ export class Session {
       this.play.role === 'watch' && this.watching !== null ? this.#remotes.get(this.watching)!.center() : null;
     const pinned = m.phase === 'reveal' && m.found() && this.#found.has(me) && !this.#infected(me);
     this.play.frozen = this.#shatter.has(me);
-    w.rig.root.visible = (this.play.role === 'hider' && !this.#shatter.has(me)) || pinned;
-    this.#glow.set(w.rig.root.visible ? this.#shine(me) : null);
+    const tps = this.play.role === 'hunter' && this.play.tps;
+    w.rig.root.visible = ((this.play.role === 'hider' || tps) && !this.#shatter.has(me)) || pinned;
+    this.#glow.set(w.rig.root.visible && !tps ? this.#shine(me) : null);
     w.podium(m.phase === 'lobby' && m.view.wishes.length > 0);
-    this.#gun.visible = this.play.role === 'hunter';
+    this.#gun.visible = this.play.role === 'hunter' && !tps;
+    w.holdGun(tps);
     this.#fx.step(dt);
     this.#gun.step(dt);
     this.play.frame(dt, now);
@@ -532,7 +534,7 @@ export class Session {
         if (r.shown && r.rig.root.visible && this.match.roleOf(seat) === 'hider')
           targets.push({ seat, caps: capsules(poseById(r.shown.pose), placement(r.shown)) });
     const rays = fire(this.play.world.level, o, d, targets);
-    const from = this.#gun.muzzle();
+    const from = this.play.tps ? this.play.world.gunMuzzle() : this.#gun.muzzle();
     this.#fx.trail(
       from,
       rays.map((r) => r.end)

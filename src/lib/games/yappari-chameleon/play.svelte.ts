@@ -2,9 +2,9 @@ import type { V3 } from '$lib/sculpt';
 import type { RGB } from './color';
 import { pushRecent } from './color';
 import { restHit } from './doll3d';
-import { floorBelow, idle, newBody, step, wallNear, type Body } from './move';
+import { floorBelow, idle, newBody, rayDistance, step, wallNear, type Body } from './move';
 import { PaintLog, Stroke, type Brush, type Dab } from './paint';
-import { poseById, STAND } from './poses';
+import { AIM, poseById, STAND } from './poses';
 import { sounds } from './sounds';
 import { TouchPad, type Mode, type PaintEvent } from './touch';
 import type { World } from './world3d';
@@ -22,6 +22,15 @@ const CEILING_PITCH_MAX = -0.25;
 const PAINT_DIST_MIN = 1.2;
 /** 見る中心が切り替わったときのずれが 1/e になる時間。0.3 秒でほぼ収まる */
 const SLIDE_SECS = 0.1;
+/**
+ * ハンターの三人称のカメラが見る点。体の中心から右へ TPS_SIDE、高さ TPS_LIFT（肩の上）。
+ * 画面の中央の十字が自分の体に隠れないように、体を左へずらして見る
+ */
+const TPS_SIDE = 0.45;
+const TPS_LIFT = 1.2;
+const TPS_DIST = 2.4;
+/** 体は壁から 0.2m で止まるので、右肩を壁に寄せると見る点が壁の中に入り、カメラの線が壁の中から始まってしまう。壁からこれだけ離す */
+const TPS_WALL_GAP = 0.15;
 
 /** hider は隠れる人（1 人で試すときも）。hunter と watch（観戦）は一人称の作りで歩き、フリーカメラのボタンでは抜けない */
 export type PlayRole = 'hider' | 'hunter' | 'watch';
@@ -30,6 +39,8 @@ export class Play {
   mode = $state<Mode>('walk');
   role = $state<PlayRole>('hider');
   crouch = $state(false);
+  /** ハンターの三人称。弾はカメラの位置から十字の向きへ飛ぶので、撃ち方は一人称と同じ */
+  tps = $state(false);
   /** 砕けているあいだ（その場で止まって、塗らない）。見つかった場所からハンターになるため */
   frozen = false;
   /** 観戦で見ている人の体の真ん中。毎フレーム入れ直す。null ならフリーカメラで歩く */
@@ -139,6 +150,13 @@ export class Play {
     this.#setMode('eye');
   }
 
+  toggleTps(): void {
+    if (this.role !== 'hunter') return;
+    this.tps = !this.tps;
+    this.eyePitch = Math.min(CAM_PITCH_MAX, Math.max(CAM_PITCH_MIN, this.eyePitch));
+    this.world.snapCamera();
+  }
+
   /** 三人称のカメラのいる所から歩き出す（壁の外へは出ない位置）。天井や壁の高い所にいても、カメラの真下の床から */
   #ghostFromCamera() {
     const c = this.world.camera.position;
@@ -154,6 +172,7 @@ export class Play {
   hunt(at: V3, yaw: number): void {
     this.role = 'hunter';
     this.crouch = false;
+    this.tps = false;
     this.watch = null;
     this.placeAt(at, yaw);
     this.ghost = newBody(at);
@@ -166,6 +185,7 @@ export class Play {
   spectate(): void {
     this.role = 'watch';
     this.crouch = false;
+    this.tps = false;
     this.#ghostFromCamera();
     this.eyeYaw = this.mode === 'eye' ? this.eyeYaw : this.mode === 'paint' ? this.orbitYaw : this.camYaw;
     this.eyePitch = 0;
@@ -180,6 +200,7 @@ export class Play {
   unhunt(): void {
     this.role = 'hider';
     this.crouch = false;
+    this.tps = false;
     this.watch = null;
     if (this.mode !== 'walk') this.#setMode('walk');
   }
@@ -386,8 +407,8 @@ export class Play {
     } else if (this.mode === 'eye') {
       const look = this.pad.takeLook();
       this.eyeYaw -= look.dx * LOOK;
-      // 観戦は三人称の範囲で止める。はみ出した分を溜めると、逆へ動かしても反応しなくなる
-      const [lo, hi] = this.watch ? [CAM_PITCH_MIN, CAM_PITCH_MAX] : [-1.3, 1.3];
+      // 観戦と三人称は歩きのカメラの範囲で止める。はみ出した分を溜めると、逆へ動かしても反応しなくなる
+      const [lo, hi] = this.watch || this.tps ? [CAM_PITCH_MIN, CAM_PITCH_MAX] : [-1.3, 1.3];
       this.eyePitch = Math.min(hi, Math.max(lo, this.eyePitch + look.dy * LOOK));
       // 壁際で跳ぶと張り付いてしまうので、ふつうの跳び上がりのときだけ通す
       const jump = this.#jump && wallNear(this.ghost, w.level) === null;
@@ -409,7 +430,12 @@ export class Play {
     this.cling = clung;
     this.nearWall = !this.body.cling && wallNear(this.body, w.level) !== null;
     // pose は切り替えの行き先なので、ポーズが移るあいだも当たりと同じ深さで面から離す
-    w.placeDoll({ ...this.body, pose: this.pose });
+    const tps = this.role === 'hunter' && this.tps;
+    if (tps) {
+      const want = this.crouch ? 'crouch' : AIM.id;
+      if (this.pose !== want) this.setPose(want);
+    }
+    w.placeDoll(tps ? { ...this.ghost, yaw: this.eyeYaw, pose: this.pose } : { ...this.body, pose: this.pose });
     w.poses.step(dt);
     // 部屋の中と分かっている点（天井では pos が天井の高さなので下へ下げる）。カメラを殻の外へ出さない線の始点
     const inside: V3 = [
@@ -424,7 +450,17 @@ export class Play {
     } else if (this.mode === 'paint')
       w.follow(this.#focus(w.dollCenter(), dt), this.orbitYaw, this.orbitPitch, this.orbitDist, 60, dt, inside);
     else if (this.watch) w.follow(this.watch, this.eyeYaw, this.eyePitch, 2.4, 60, dt, this.watch);
-    else {
+    else if (tps) {
+      const g = this.ghost.pos;
+      const head: V3 = [g[0], g[1] + TPS_LIFT - (this.crouch ? CROUCH : 0), g[2]];
+      const right: V3 = [-Math.cos(this.eyeYaw), 0, Math.sin(this.eyeYaw)];
+      const side = Math.max(
+        0,
+        Math.min(TPS_SIDE, rayDistance(w.level, head, right, TPS_SIDE + TPS_WALL_GAP) - TPS_WALL_GAP)
+      );
+      const target: V3 = [head[0] + right[0] * side, head[1], head[2] + right[2] * side];
+      w.follow(target, this.eyeYaw, this.eyePitch, TPS_DIST, 60, dt, [g[0], g[1] + 0.4, g[2]]);
+    } else {
       const eye = EYE_HEIGHT - (this.crouch ? CROUCH : 0);
       w.eye([this.ghost.pos[0], this.ghost.pos[1] + eye, this.ghost.pos[2]], this.eyeYaw, this.eyePitch);
     }

@@ -4,6 +4,7 @@ import type { Level } from './move';
 import { RADIUS } from './move';
 import type { Dab } from './paint';
 import { CROUCH, Play } from './play.svelte';
+import { AIM } from './poses';
 import type { World } from './world3d';
 
 vi.mock('./doll3d', () => ({
@@ -607,6 +608,64 @@ describe('Play の役', () => {
     p.spectate();
     expect(p.eyeYaw).toBe(1.1);
     expect(p.eyePitch).toBe(0);
+  });
+
+  it('ハンターの三人称は、体の右肩の上を見る歩きと同じ追い方のカメラで、もう一度押すと一人称に戻る', () => {
+    const w = fakeWorld();
+    const p = new Play(w, 70);
+    p.hunt([2, 0, 1], 0.5);
+    p.toggleTps();
+    expect(p.tps).toBe(true);
+    vi.mocked(w.follow).mockClear();
+    vi.mocked(w.eye).mockClear();
+    p.frame(1 / 60, 0);
+    expect(w.eye).not.toHaveBeenCalled();
+    const [target, yaw, , dist, fov] = vi.mocked(w.follow).mock.lastCall!;
+    expect(target[0]).toBeCloseTo(2 - Math.cos(0.5) * 0.45);
+    expect(target[1]).toBeCloseTo(1.2);
+    expect(target[2]).toBeCloseTo(1 + Math.sin(0.5) * 0.45);
+    expect([yaw, dist, fov]).toEqual([0.5, 2.4, 60]);
+    p.toggleTps();
+    vi.mocked(w.eye).mockClear();
+    p.frame(1 / 60, 0);
+    expect(w.eye).toHaveBeenCalled();
+  });
+
+  it('右肩が壁に寄っていると、三人称の見る点を壁の手前で止める', () => {
+    const w = fakeWorld();
+    const p = new Play(w, 70);
+    // 右（−cos, sin）が +z の奥の壁（z = 5）を向く
+    p.hunt([0, 0, 4.75], Math.PI / 2);
+    p.toggleTps();
+    p.frame(1 / 60, 0);
+    const [target] = vi.mocked(w.follow).mock.lastCall!;
+    expect(target[2]).toBeGreaterThanOrEqual(4.75);
+    expect(target[2]).toBeLessThan(5 - 0.1);
+  });
+
+  it('三人称のあいだは自分の体を目の場所に、銃を構えたポーズで置く', () => {
+    const w = fakeWorld();
+    const p = new Play(w, 70);
+    p.hunt([2, 0, 1], 0.5);
+    p.toggleTps();
+    p.frame(1 / 60, 0);
+    const placed = vi.mocked(w.placeDoll).mock.lastCall![0];
+    expect(placed.pos).toEqual([2, 0, 1]);
+    expect(placed.yaw).toBe(0.5);
+    expect(w.poses.to).toHaveBeenLastCalledWith(AIM);
+  });
+
+  it('隠れる人と観戦では三人称に切り替わらず、ハンターになり直すと一人称から', () => {
+    const p = new Play(fakeWorld(), 70);
+    p.toggleTps();
+    expect(p.tps).toBe(false);
+    p.spectate();
+    p.toggleTps();
+    expect(p.tps).toBe(false);
+    p.hunt([0, 0, 0], 0);
+    p.toggleTps();
+    p.hunt([0, 0, 0], 0);
+    expect(p.tps).toBe(false);
   });
 });
 

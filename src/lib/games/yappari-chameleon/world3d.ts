@@ -4,7 +4,7 @@ import type { V3 } from '$lib/sculpt';
 import type { RGB } from './color';
 import { bakePose, PoseAnimator, type DollRig } from './doll3d';
 import { cameraReach, settleDist, type Body, type DistState, type Level } from './move';
-import { brushModel, disposeModel, inHand } from './gun';
+import { brushModel, disposeModel, gunModel, inHand, MUZZLE } from './gun';
 import { placement, type Placeable } from './shots';
 import { readPick } from './textures';
 import { seeThrough, XRAY } from './xray';
@@ -67,6 +67,7 @@ export class World {
     })
   );
   #brush = brushModel();
+  #gun = gunModel();
   #baked = -1;
   #center = new THREE.Vector3();
   #ease: DistState = { dist: 2.4, wait: 0 };
@@ -116,6 +117,7 @@ export class World {
     this.#ring.visible = false;
     this.scene.add(this.#ring);
     inHand(this.rig.bones['forearm.r'], this.#brush, 'brush');
+    inHand(this.rig.bones['forearm.r'], this.#gun, 'gun');
     this.overlay.visible = false;
     this.overlay.add(new THREE.HemisphereLight('#fff4e0', '#5a4a3a', 2), this.hand);
   }
@@ -172,6 +174,17 @@ export class World {
   /** 隠れる側が塗っているのが見えるよう、ペイントモードのあいだだけ右手に絵筆を持つ */
   holdBrush(on: boolean): void {
     this.#brush.visible = on;
+  }
+
+  holdGun(on: boolean): void {
+    this.#gun.visible = on;
+  }
+
+  /** 自分の体の銃口。三人称の弾の筋はここから引く */
+  gunMuzzle(): V3 {
+    this.rig.root.updateMatrixWorld(true);
+    const p = this.#gun.localToWorld(new THREE.Vector3(...MUZZLE));
+    return [p.x, p.y, p.z];
   }
 
   podium(on: boolean): void {
@@ -314,6 +327,7 @@ export class World {
     this.#ring.geometry.dispose();
     this.#ring.material.dispose();
     disposeModel(this.#brush);
+    disposeModel(this.#gun);
     disposeModel(this.overlay);
     this.renderer.dispose();
     // iOS は WebGL の文脈の数に上限があり、ゲームを開閉するたびに残すと古いものから失われていく
