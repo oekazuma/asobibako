@@ -26,6 +26,7 @@ const me = (ms: number, x: number, extra: Partial<Me> = {}): Me => ({
   crouch: false,
   paint: false,
   look: [0, 0],
+  eye: null,
   ...extra
 });
 const show = (extra: Partial<Show> = {}): Show => ({ pin: null, visible: true, armed: false, shine: null, ...extra });

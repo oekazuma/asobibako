@@ -28,7 +28,7 @@
   /** 審判は描画と別に回す。親が縦持ちにして描くのを止めても、試合の時計は進める */
   function hosting(p: Party) {
     unhost();
-    const h = new Host(p, levelOf(mansion()));
+    const h = new Host(p, (seed) => levelOf(mansion(seed)));
     const stop = animate(() => h.step());
     host = h;
     stopHost = () => {

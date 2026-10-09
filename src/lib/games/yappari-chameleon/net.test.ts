@@ -102,7 +102,8 @@ describe('lerpMe', () => {
     pose,
     crouch: false,
     paint: false,
-    look: [yaw, 0]
+    look: [yaw, 0],
+    eye: null
   });
 
   it('位置と向きはあいだを取り、ポーズは近いほう。向きは近い回り方でつなぐ', () => {

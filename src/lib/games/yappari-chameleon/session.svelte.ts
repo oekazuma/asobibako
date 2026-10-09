@@ -364,6 +364,8 @@ export class Session {
   #me(now: number): Me | null {
     const p = this.play;
     if (p.role === 'watch' || this.#shatter.has(this.match.me)) return null;
+    // Play の frame がカメラを動かしたあとに送るので、そのコマのカメラの位置になる
+    const cam = this.play.world.camera.position;
     if (p.role === 'hunter')
       return {
         ms: now,
@@ -373,7 +375,8 @@ export class Session {
         pose: p.crouch ? 'crouch' : AIM.id,
         crouch: p.crouch,
         paint: false,
-        look: [p.eyeYaw, p.eyePitch]
+        look: [p.eyeYaw, p.eyePitch],
+        eye: [cam.x, cam.y, cam.z]
       };
     return {
       ms: now,
@@ -383,7 +386,8 @@ export class Session {
       pose: p.pose,
       crouch: false,
       paint: p.mode === 'paint',
-      look: [p.camYaw, p.camPitch]
+      look: [p.camYaw, p.camPitch],
+      eye: null
     };
   }
 

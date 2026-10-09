@@ -161,6 +161,7 @@ const body = (extra: Partial<Me> = {}): Me => ({
   crouch: false,
   paint: false,
   look: [0, 0],
+  eye: null,
   ...extra
 });
 const meMsg = (seat: Seat, extra: Partial<Me> = {}): Message => ({ t: 'me', seat, ...body(extra) });
@@ -293,6 +294,7 @@ describe('Session の戻った子', () => {
     const me = acts.find((m) => m.t === 'me') as unknown as Me;
     expect(me.pos).toEqual([4, 0, 6]);
     expect(me.pose).toBe('curl');
+    expect(me.eye).toBeNull();
     // 受け取った塗りは送り返さない
     expect(acts.filter((m) => m.t === 'dabs')).toEqual([]);
   });
@@ -391,11 +393,14 @@ describe('Session の役の切り替え', () => {
     tell(at('search'));
     play.ghost.pos = [6, 0, 6];
     play.body.pos = [1, 0, 1];
+    play.world.camera.position.set(1, 2, 3);
     frames(0.1);
     expect(play.world.rig.root.visible).toBe(false);
     const me = acts.findLast((m) => m.t === 'me') as unknown as Me;
     expect(me.pos).toEqual([6, 0, 6]);
     expect(me.pose).toBe(AIM.id);
+    // 親は見落としポイントの視野をカメラの位置から測る
+    expect(me.eye).toEqual([1, 2, 3]);
   });
 
   it('塗っている途中で試合が終わってロビーに戻っても、その指の続きは白に戻した体に塗らない', () => {

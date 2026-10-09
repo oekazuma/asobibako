@@ -5,7 +5,7 @@ import type { Cling } from './move';
 import type { Dab, PaintLog } from './paint';
 
 /** このゲームの知らせの形の版。形を変えたら 1 上げる（Party の PROTOCOL とは別） */
-export const CHAMELEON_VERSION = 1;
+export const CHAMELEON_VERSION = 2;
 export const SEND_MS = 50;
 export const DELAY_MS = 100;
 /** 1 回の知らせの上限。DataChannel の上限（256KB）より十分小さく */
@@ -22,6 +22,8 @@ export interface Me {
   crouch: boolean;
   paint: boolean;
   look: [number, number];
+  /** ハンターの今のカメラの位置（一人称は目、三人称は体の後ろのカメラ）。親は見落としポイントの視野をここから測る。隠れる人は null */
+  eye: V3 | null;
 }
 
 const r4 = (v: number) => Math.round(v * 1e4) / 1e4;
