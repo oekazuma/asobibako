@@ -31,6 +31,9 @@ export class Glow {
       stencilRef: 1,
       stencilZPass: THREE.ReplaceStencilOp
     });
+    // 不透明な物は近い順に描くが、屋敷の部品の位置で比べるので体が柱より先になることがある。
+    // 先に描くと柱の裏の体も深さを通って印を付け、柱越しの影が消えるので、屋敷のあとに描く
+    rig.mesh.renderOrder = 1;
     this.#rimMat.onBeforeCompile = (s) => {
       s.vertexShader = s.vertexShader.replace(
         '#include <skinning_vertex>',

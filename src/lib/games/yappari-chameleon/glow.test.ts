@@ -28,4 +28,10 @@ describe('Glow', () => {
     expect(ghost.visible).toBe(true);
     glow.dispose();
   });
+
+  it('体は屋敷のあとに描く（先に描くと、壁の奥の体も印を付けてしまい、影が出ない）', () => {
+    const rig = makeDoll(renderer, surface, atlas);
+    new Glow(rig).dispose();
+    expect(rig.mesh.renderOrder).toBeGreaterThan(0);
+  });
 });
