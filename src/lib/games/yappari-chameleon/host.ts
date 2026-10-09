@@ -8,7 +8,6 @@ import { poseById } from './poses';
 import * as rules from './referee';
 import { capsules, fire, placement, type Target } from './shots';
 
-/** Party の親の口。テストでは手元の偽物に差し替える */
 export interface Port {
   readonly members: Seat[];
   tell(to: Seat | 'all', message: Message): void;
@@ -44,6 +43,7 @@ export class Host {
   /** 見つかったときの体。戻った子の答え合わせで、その場に戻して見せる */
   readonly #found = new Map<Seat, Me>();
   #sent = '';
+  #phase: rules.Phase = 'lobby';
   #beat = 0;
   #stop: () => void;
 
@@ -186,6 +186,12 @@ export class Host {
   /** 様子が変わったか、間隔が来たら全員へ配る。残り秒は毎フレーム変わるので、変わったかどうかには数えない */
   #push(force: boolean) {
     const v = rules.view(this.match);
+    // 子は lobby と intro に入るとき塗りを全部消す。親も消さないと、いなかった席の古い列が戻ったとき送り直される
+    if (v.phase !== this.#phase && (v.phase === 'lobby' || v.phase === 'intro')) {
+      this.#logs.clear();
+      this.#found.clear();
+    }
+    this.#phase = v.phase;
     const key = JSON.stringify({ ...v, left: 0 });
     if (!force && key === this.#sent) return;
     this.#sent = key;

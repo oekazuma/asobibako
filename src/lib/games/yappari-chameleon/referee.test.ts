@@ -168,9 +168,9 @@ describe('撃つ間隔', () => {
     run(m, 3 + 60);
     expect(shoot(m, 1)).toBe(false);
     expect(shoot(m, 3)).toBe(true);
-    run(m, 1.9);
+    run(m, 1);
     expect(shoot(m, 3)).toBe(false);
-    run(m, 0.1);
+    run(m, 0.9);
     expect(shoot(m, 3)).toBe(true);
   });
 

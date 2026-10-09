@@ -20,6 +20,8 @@ export const LIMITS = { hide: [30, 300], search: [60, 600], reveal: [10, 120], t
 export const INTRO = 3;
 export const COOLDOWN = 2;
 export const TOOT_GAP = 1;
+/** 子は自分の時計で 2.0 秒あけて撃つが、親は届いた順と tick でしか時計が進まない。揺れで間が 2.0 秒を少し切って見えても捨てない */
+export const SHOT_SLACK = 0.15;
 
 /** 小さな dt を足し重ねたずれで、0 になるはずの時計が 0 の手前に残らないようにする */
 const EPS = 1e-6;
@@ -189,7 +191,7 @@ export function join(m: Match, seat: Seat): void {
 
 export function shoot(m: Match, seat: Seat): boolean {
   if (m.roles[seat] !== 'hunter' || (m.phase !== 'search' && m.phase !== 'reveal')) return false;
-  if (m.clock - (m.shots[seat] ?? -Infinity) < COOLDOWN - EPS) return false;
+  if (m.clock - (m.shots[seat] ?? -Infinity) < COOLDOWN - SHOT_SLACK - EPS) return false;
   m.shots[seat] = m.clock;
   return true;
 }

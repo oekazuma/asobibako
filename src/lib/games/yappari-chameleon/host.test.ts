@@ -8,7 +8,6 @@ import { CHAMELEON_VERSION, packDabs, splice, unpackDabs, type Me } from './net'
 import type { Dab } from './paint';
 import { DEFAULTS, type Settings, type View } from './referee';
 
-/** 床だけの部屋 */
 const floor: Level = { boxes: [{ min: [-20, -1, -20], max: [20, 0, 20] }], ramps: [], spawn: [0, 0, 0] };
 
 function setup(members: Seat[] = [1, 2, 3]) {
@@ -164,6 +163,32 @@ describe('Host の当たり', () => {
     expect(of(told, 'splat')).toEqual([]);
   });
 
+  it('撃ち返しの間が 2.0 秒を少し切って届いても受け、1 秒では捨てる', () => {
+    const { act, told, host } = searching();
+    act(me(0, [0, 0, 0]), 3);
+    act({ t: 'shot', o: [0, 1, 0], d: [0, -1, 0], ms: 0 }, 3);
+    for (let i = 0; i < 19; i++) host.tick(0.1);
+    act({ t: 'shot', o: [0, 1, 0], d: [0, -1, 0], ms: 1900 }, 3);
+    expect(of(told, 'splat')).toHaveLength(2);
+    for (let i = 0; i < 10; i++) host.tick(0.1);
+    act({ t: 'shot', o: [0, 1, 0], d: [0, -1, 0], ms: 2900 }, 3);
+    expect(of(told, 'splat')).toHaveLength(2);
+  });
+
+  it.each([
+    ['0.04 秒前（50ms の巻き戻しで届く）', 260],
+    ['0.06 秒前（100ms の巻き戻しだけ届く）', 240]
+  ])('撃つ少し前に動いた隠れる人は、巻き戻しで見つかる（%s）', (_, moved) => {
+    const { act, told, clock } = searching();
+    for (let t = 0; t <= 300; t += 10) {
+      clock.ms = t;
+      act(me(t, [0, 0, 0]), 3);
+      act(me(t, [t >= moved ? 3 : 0, 0, 5]), 2);
+    }
+    act({ ...SHOT, ms: 300 }, 3);
+    expect(of(told, 'found')).toHaveLength(1);
+  });
+
   it('外れた線は面に当たった所としぶきの向きを返す', () => {
     const { act, told } = searching();
     act(me(0, [0, 0, 0]), 3);
@@ -245,6 +270,21 @@ describe('Host の戻った子', () => {
       m: 0,
       ro: 0.8
     }));
+
+  it('ロビーや紹介に入ったら、いなかった席の古い塗りは捨てる', () => {
+    const { act, told, port, host } = setup();
+    act({ t: 'dabs', at: 0, d: packDabs(paint(2)) }, 2);
+    port.members = [1, 3];
+    act({ t: 'leave' }, 2);
+    host.start(DEFAULTS);
+    told.length = 0;
+    port.members = [1, 2, 3];
+    act({ t: 'hi', v: CHAMELEON_VERSION }, 2);
+    act({ t: 'join' }, 2);
+    expect(told.filter((x) => x.to === 2 && x.m.t === 'dabs')).toEqual([]);
+    act({ t: 'dabs', at: 0, d: packDabs(paint(1)) }, 2);
+    expect(of(told, 'dabs')).toHaveLength(2);
+  });
 
   it('戻った子へ、全員の体・塗り・今の様子をこの順に送り、塗りは作り直せる', () => {
     const { act, told, port, host } = searching({ mode: 'normal' });
