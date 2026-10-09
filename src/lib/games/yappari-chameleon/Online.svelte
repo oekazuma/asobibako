@@ -32,7 +32,8 @@
   });
 
   onMount(() => {
-    // 曲はフェーズで急に替わるので、出だしの音の計算で詰まらないよう先に作っておく
+    // ロビーの曲はつないですぐ、ほかの曲はフェーズで急に流れ出すので、出だしの音の計算で詰まらないよう先に作っておく
+    loop.warm(SONGS.lobby.song);
     loop.warm(SONGS.hide.song);
     loop.warm(SONGS.search.song);
     // 曲は AudioContext の時計で 0.5 秒先まで予約するので、描画とは別に 0.1 秒ごとに足せば足りる

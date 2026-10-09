@@ -119,7 +119,7 @@ const LEAD_VOICE: Record<Lead, Instrument> = {
   chip: 'pulse'
 };
 
-/** 曲が使う楽器と高さ。初めて鳴らす音の計算が鳴らす瞬間に重ならないよう、先に作っておくために使う（旋律と drive の伴奏） */
+/** 曲が使う楽器と高さ。初めて鳴らす音の計算が鳴らす瞬間に重ならないよう、先に作っておくために使う（旋律と drive・march・bounce の伴奏） */
 export function voices(song: Song): [Instrument, number][] {
   const sc = scoreOf(song);
   const out = new Map<string, [Instrument, number]>();
@@ -133,6 +133,14 @@ export function voices(song: Song): [Instrument, number][] {
     add('kick', 0);
     add('hat', 0);
     add('snare', 0);
+  }
+  if (song.style === 'march' || song.style === 'bounce') {
+    for (const c of sc.chords) {
+      add('bass', hz(low(c[0])));
+      add('bass', hz(low(c[2])));
+      for (const pc of c) add('harp', hz(near(pc)));
+    }
+    if (song.style === 'march') add('snare', 0);
   }
   return [...out.values()];
 }

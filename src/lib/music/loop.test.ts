@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { renderNote } from './instruments';
 import { Loop } from './loop';
-import type { Song } from './tune';
+import { voices, type Song } from './tune';
 
 const A: Song = {
   beats: 4,
@@ -140,5 +140,23 @@ describe('Loop', () => {
     run(loop, fake, 1);
     expect((fake.ctx as unknown as { made: number }).made).toBeGreaterThan(before + 3);
     expect(fake.starts).toEqual([]);
+  });
+});
+
+describe('voices', () => {
+  const hz = (m: number) => 440 * 2 ** ((m - 69) / 12);
+  const has = (song: Song, name: string, m: number) =>
+    voices(song).some(([i, f]) => i === name && Math.abs(f - hz(m)) < 1e-6);
+
+  it('行進曲と弾む曲は、伴奏の根音と 5 度の低い音・コードのはじく音・行進曲の小太鼓も先に作る', () => {
+    const march: Song = { ...B, lead: 'flute', style: 'march' };
+    // Am の根音 A2（45）と 5 度 E2（40）、コードの音は G3..F#4 に置いた A3・C4・E4
+    for (const song of [march, { ...march, style: 'bounce' } as Song]) {
+      expect(has(song, 'bass', 45)).toBe(true);
+      expect(has(song, 'bass', 40)).toBe(true);
+      for (const m of [57, 60, 64]) expect(has(song, 'harp', m)).toBe(true);
+    }
+    expect(voices(march).some(([i]) => i === 'snare')).toBe(true);
+    expect(voices({ ...march, style: 'bounce' }).some(([i]) => i === 'snare')).toBe(false);
   });
 });
