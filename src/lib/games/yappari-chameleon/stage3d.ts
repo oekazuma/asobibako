@@ -92,3 +92,12 @@ export function touch(play: Play, box: HTMLElement, kind: 'down' | 'move' | 'up'
   const r = box.getBoundingClientRect();
   play.pointer(kind, e.pointerId, e.clientX - r.left, e.clientY - r.top, r.width);
 }
+
+/** 盤面に重ねる .pad の指の口。play は 3D ができるまで無く、box は bind:this で後から入るので、どちらも押したときに引く */
+export function pad(play: () => Play | null | undefined, box: () => HTMLElement) {
+  const on = (kind: 'down' | 'move' | 'up' | 'cancel') => (e: PointerEvent) => {
+    const p = play();
+    if (p) touch(p, box(), kind, e);
+  };
+  return { onpointerdown: on('down'), onpointermove: on('move'), onpointerup: on('up'), onpointercancel: on('cancel') };
+}

@@ -6,7 +6,8 @@
   import PaintPanel from './PaintPanel.svelte';
   import { Play } from './play.svelte';
   import PoseWheel from './PoseWheel.svelte';
-  import { mount3d, touch } from './stage3d';
+  import { mount3d, pad } from './stage3d';
+  import './stage3d.css';
   import StickView from './StickView.svelte';
 
   let { onquit }: { onquit?: () => void } = $props();
@@ -30,10 +31,6 @@
       portrait: (on) => (portrait = on)
     })
   );
-
-  function pointer(kind: 'down' | 'move' | 'up' | 'cancel', e: PointerEvent) {
-    if (play) touch(play, box, kind, e);
-  }
 </script>
 
 <div class="chameleon" bind:this={box}>
@@ -41,10 +38,10 @@
   <div
     class="pad"
     role="presentation"
-    onpointerdown={(e) => pointer('down', e)}
-    onpointermove={(e) => pointer('move', e)}
-    onpointerup={(e) => pointer('up', e)}
-    onpointercancel={(e) => pointer('cancel', e)}
+    {...pad(
+      () => play,
+      () => box
+    )}
   ></div>
   {#if play}
     {#if play.stick.active}
@@ -74,59 +71,3 @@
     <p class="notice cover">横向きにしてください</p>
   {/if}
 </div>
-
-<style>
-  .chameleon {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    container-type: size;
-    background: #1d1a17;
-  }
-
-  canvas,
-  .pad {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-  }
-
-  .notice {
-    position: absolute;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    margin: 0;
-    color: #fff;
-    font-family: 'Hiragino Mincho ProN', serif;
-    font-size: 28px;
-    text-shadow: 0 2px 4px #000;
-    pointer-events: none;
-  }
-
-  .failed {
-    align-content: center;
-    gap: 16px;
-    pointer-events: auto;
-  }
-
-  .failed p {
-    margin: 0;
-  }
-
-  .failed button {
-    padding: 8px 24px;
-    border: 2px solid rgb(255 255 255 / 0.85);
-    border-radius: 24px;
-    background: rgb(0 0 0 / 0.35);
-    color: #fff;
-    font: inherit;
-    font-size: 18px;
-  }
-
-  .cover {
-    background: #1d1a17;
-    pointer-events: auto;
-  }
-</style>

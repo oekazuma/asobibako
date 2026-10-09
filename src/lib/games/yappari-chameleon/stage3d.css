@@ -1,0 +1,54 @@
+/* ひとりで試す画面とつないで遊ぶ画面の 3D の土台。HUD は cqh・cqw で大きさを決めるので、ここを容器にする */
+.chameleon {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  container-type: size;
+  background: #1d1a17;
+}
+
+.chameleon > canvas,
+.chameleon > .pad {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.chameleon > .notice {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: #fff;
+  font-family: 'Hiragino Mincho ProN', serif;
+  font-size: 28px;
+  text-shadow: 0 2px 4px #000;
+  pointer-events: none;
+}
+
+.chameleon > .failed {
+  align-content: center;
+  gap: 16px;
+  pointer-events: auto;
+}
+
+.chameleon > .failed p {
+  margin: 0;
+}
+
+.chameleon > .failed button {
+  padding: 8px 24px;
+  border: 2px solid rgb(255 255 255 / 0.85);
+  border-radius: 24px;
+  background: rgb(0 0 0 / 0.35);
+  color: #fff;
+  font: inherit;
+  font-size: 18px;
+}
+
+.chameleon > .cover {
+  background: #1d1a17;
+  pointer-events: auto;
+}

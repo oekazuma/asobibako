@@ -1,7 +1,7 @@
 import { SvelteMap } from 'svelte/reactivity';
 import * as THREE from 'three';
 import type { Message } from '$lib/net/link';
-import type { Party, Seat } from '$lib/net/party.svelte';
+import type { Party, Pipe, Seat } from '$lib/net/party.svelte';
 import type { V3 } from '$lib/sculpt';
 import { HEIGHT } from './doll';
 import type { DollRig } from './doll3d';
@@ -464,6 +464,11 @@ export class Session {
 
   start(settings: Settings): void {
     this.host?.start(settings);
+  }
+
+  /** 親だけ。2 人めと、切れた子を同じ番号で迎える */
+  invite(link: Pipe): Promise<Seat | null | 'mismatch'> {
+    return this.party.add(link);
   }
 
   /** WebGL のコンテキストが戻った。全員の塗りを列から作り直す */
