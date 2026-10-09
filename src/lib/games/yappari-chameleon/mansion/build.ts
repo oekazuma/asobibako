@@ -10,7 +10,7 @@ const LOOKS: Record<Mat, () => Finish> = {
   woodPanel: () => ({ pattern: woodPanel(), rough: 0.6 }),
   marble: () => ({ pattern: marble(), rough: 0.25 }),
   coffer: () => ({ pattern: coffer(), rough: 0.7 }),
-  checker: () => ({ pattern: checker(), rough: 0.35 }),
+  checker: () => ({ pattern: checker(), rough: 0.5 }),
   greenDamask: () => ({ pattern: damask('#26330a', '#86a63a'), rough: 0.8 }),
   wainscot: () => ({ pattern: wainscot(), rough: 0.55 }),
   cream: () => ({ tint: '#efe6d2', rough: 0.85 }),
@@ -21,7 +21,7 @@ const LOOKS: Record<Mat, () => Finish> = {
   splashCeiling: () => ({ pattern: splashCeiling(), rough: 0.85 }),
   planks: () => ({ pattern: planks(), rough: 0.55 }),
   whiteTile: () => ({ pattern: whiteTile(), rough: 0.3 }),
-  blueHex: () => ({ pattern: blueHex(), rough: 0.35 }),
+  blueHex: () => ({ pattern: blueHex(), rough: 0.5 }),
   brick: () => ({ pattern: brick(), rough: 0.9 })
 };
 
@@ -56,7 +56,7 @@ function slab(s: Slab): THREE.Mesh {
     const mat = f === s.face ? s.mat : f === OPPOSITE[s.face] ? s.back : undefined;
     if (!mat) return plain;
     const m = finish(LOOKS[mat](), faceSize(f));
-    // 合わせるのは裏のある（戸口で分けた）壁だけ。ほかの面は部屋の端から貼った今の見た目のまま
+    // 合わせるのは裏のある（戸口で分けた）壁だけ。1 枚で張った面には継ぎ目が無いので、部屋の端から模様を始める
     if (s.back) anchor(m, f, s);
     return m;
   };

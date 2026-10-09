@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { V3 } from '$lib/sculpt';
-import { idle, newBody, step, type Body, type Level } from '../move';
-import { levelOf, mansion, placeOf } from './layout';
+import { idle, newBody, step, type Body, type Box, type Level } from '../move';
+import { levelOf, mansion, placeOf, SIZES, type Piece } from './layout';
 import { LOBBY } from './lobby';
-import { KITCHEN, LAUNDRY, STUDY } from './rooms';
+import { DOORWAYS, KITCHEN, LAUNDRY, roomPieces, STUDY } from './rooms';
 
 const m = mansion();
 const lv: Level = levelOf(m);
@@ -86,5 +86,40 @@ describe('屋敷の 3 部屋', () => {
     expect(placeOf([-15, 0, -1])).toBe('ランドリー');
     expect(placeOf([0, 0, -60])).toBe('ロビー');
     expect(placeOf([0, 0, -30])).toBe('控室');
+  });
+
+  const boxOf = (q: Piece): Box | null => {
+    const s = SIZES[q.kind];
+    if (!s) return null;
+    const [w, h, d] = q.turn % 2 ? [s[2], s[1], s[0]] : s;
+    return { min: [q.at[0] - w / 2, q.at[1], q.at[2] - d / 2], max: [q.at[0] + w / 2, q.at[1] + h, q.at[2] + d / 2] };
+  };
+  // 並べた本棚のようにぴったり付いた箱は重なりに数えない
+  const hits = (a: Box, b: Box) => [0, 1, 2].every((i) => a.min[i] < b.max[i] - 1e-6 && b.min[i] < a.max[i] - 1e-6);
+
+  it('3 部屋の動かない家具は、戸口の通り道をふさがず、互いに重ならない', () => {
+    const boxes = roomPieces()
+      .map(boxOf)
+      .filter((b): b is Box => b !== null);
+    for (const [i, a] of boxes.entries()) {
+      for (const door of DOORWAYS) expect(hits(a, door), `${a.min}`).toBe(false);
+      for (const b of boxes.slice(i + 1)) expect(hits(a, b), `${a.min} と ${b.min}`).toBe(false);
+    }
+  });
+
+  it('本家の画面にある家具がそろう', () => {
+    const kinds = (name: string) =>
+      new Set(
+        roomPieces()
+          .filter((q) => placeOf(q.at) === name)
+          .map((q) => q.kind)
+      );
+    expect([...kinds('書斎')]).toEqual(
+      expect.arrayContaining(['bookshelf', 'desk', 'globe', 'bust', 'post', 'painting'])
+    );
+    expect([...kinds('キッチン')]).toEqual(
+      expect.arrayContaining(['counter', 'sink', 'plates', 'meat-rack', 'gas', 'duct', 'caution'])
+    );
+    expect([...kinds('ランドリー')]).toEqual(expect.arrayContaining(['washer', 'clothesline']));
   });
 });

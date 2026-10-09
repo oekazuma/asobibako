@@ -48,4 +48,12 @@ export function plane(g: THREE.Group, size: [number, number], f: Finish, at: [nu
   return o;
 }
 
+/** 同じ物を並べるときは形と材質を分け合う（clone は geometry と material を写さずに共有する） */
+export function copy(g: THREE.Group, o: THREE.Mesh, at: [number, number, number]) {
+  const c = o.clone();
+  c.position.set(...at);
+  g.add(c);
+  return c;
+}
+
 export const variant = (p: Piece) => Math.abs(Math.round(p.at[0] * 7 + p.at[2] * 13));

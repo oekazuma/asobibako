@@ -56,7 +56,26 @@ export type Kind =
   | 'banner'
   | 'stairs'
   | 'podium'
-  | 'pedestal';
+  | 'pedestal'
+  | 'post'
+  | 'desk'
+  | 'globe'
+  | 'bust'
+  | 'folding-chair'
+  | 'book-pile'
+  | 'counter'
+  | 'sink'
+  | 'plates'
+  | 'meat-rack'
+  | 'gas'
+  | 'duct'
+  | 'caution'
+  | 'box'
+  | 'bucket'
+  | 'washer'
+  | 'clothesline'
+  | 'towels'
+  | 'cart';
 
 export interface Piece {
   kind: Kind;
@@ -90,7 +109,26 @@ export const SIZES: Record<Kind, V3 | null> = {
   stairs: null,
   // 当たりは solids の八角形
   podium: null,
-  pedestal: [0.9, 1.0, 0.9]
+  pedestal: [0.9, 1.0, 0.9],
+  post: [0.35, 4, 0.35],
+  desk: [1.6, 0.76, 0.8],
+  globe: [0.6, 1.1, 0.6],
+  bust: [0.45, 1.6, 0.45],
+  'folding-chair': [0.45, 0.85, 0.45],
+  'book-pile': [0.4, 0.35, 0.3],
+  counter: [2.0, 0.9, 0.7],
+  sink: [2.0, 0.9, 0.7],
+  plates: null,
+  'meat-rack': [1.6, 2.0, 0.5],
+  gas: [0.35, 1.1, 0.35],
+  duct: null,
+  caution: null,
+  box: [0.6, 0.45, 0.45],
+  bucket: [0.3, 0.3, 0.3],
+  washer: [0.65, 0.85, 0.65],
+  clothesline: null,
+  towels: [0.5, 0.5, 0.4],
+  cart: [0.8, 0.9, 0.55]
 };
 
 export interface Light {
@@ -230,7 +268,7 @@ function pieces(): Piece[] {
     p('banner', [-3, FLOOR2 + 1.1, 11.95], 2),
     p('banner', [3, FLOOR2 + 1.1, 11.95], 2),
     p('sconce', [-10, 2, 6.75], 2),
-    p('sconce', [-15, 2, 6.75], 2),
+    p('sconce', [-14.5, 2, 6.75], 2),
     p('sconce', [-20, 2, 6.75], 2),
     p('sconce', [-12.5, 2, 3.25]),
     p('sconce', [-17.5, 2, 3.25]),
