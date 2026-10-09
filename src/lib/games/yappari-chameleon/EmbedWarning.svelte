@@ -3,7 +3,7 @@
 <style>
   .warn {
     position: absolute;
-    top: 50%;
+    top: 62%;
     left: 50%;
     translate: -50% -50%;
     margin: 0;

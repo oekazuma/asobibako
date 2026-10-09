@@ -77,8 +77,8 @@
   </div>
 {/if}
 {#if phase === 'reveal'}<Iine {session} />{/if}
-{#if session.buried}<EmbedWarning />{/if}
 <Intro {match} />
+{#if session.buried}<EmbedWarning />{/if}
 {#if phase === 'reveal' && won}<Reveal text={won} />{/if}
 <button class="quit" onclick={ask} aria-label="抜ける">✕</button>
 {#if session.party.host}

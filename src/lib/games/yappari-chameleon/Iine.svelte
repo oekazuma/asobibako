@@ -48,6 +48,9 @@
     align-items: center;
     justify-content: flex-end;
     gap: 10px;
+    padding: 2px 6px 2px 12px;
+    border-radius: 999px;
+    background: rgb(0 0 0 / 0.35);
   }
 
   .count {
