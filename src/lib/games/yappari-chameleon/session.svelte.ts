@@ -10,6 +10,7 @@ import { Glow, type Shine } from './glow';
 import type { Host } from './host';
 import { HunterView } from './hunter';
 import { SPAWNS } from './mansion/layout';
+import { Markers } from './markers';
 import { Match } from './match.svelte';
 import { floorBelow } from './move';
 import { CHAMELEON_VERSION, dabMessages, DabOutbox, SEND_MS, splice, unpackDabs, type Me } from './net';
@@ -26,6 +27,8 @@ export interface Plate {
   seat: Seat;
   x: number;
   y: number;
+  /** 答え合わせで受けたええやんの数 */
+  likes: number;
 }
 
 /**
@@ -63,6 +66,7 @@ export class Session {
   readonly #fx: Effects;
   readonly #gun: HunterView;
   readonly #glow: Glow;
+  readonly #marks: Markers;
   // PaintLog.low は送る口が 1 つの前提なので、play.log を送る DabOutbox はここだけに置く
   readonly #out = new DabOutbox();
   /** 見つかったときの体（答え合わせで、その場に戻して光らせる） */
@@ -77,6 +81,8 @@ export class Session {
   readonly #lefts = new SvelteMap<Seat, Me>();
   /** 砕けて見えない残り秒 */
   readonly #shatter = new SvelteMap<Seat, number>();
+  /** この答え合わせでええやんを送った。親の数が届く前に 2 回押しても、2 つめを送らない */
+  #liked = false;
   #sent = -Infinity;
   /** 親から自分の体を受け取った（戻った子は、その場から続ける） */
   #own = false;
@@ -92,6 +98,7 @@ export class Session {
     this.#fx = new Effects(w.scene);
     this.#gun = new HunterView(w);
     this.#glow = new Glow(w.rig);
+    this.#marks = new Markers(w.scene);
     // ためていた口を外して、ためた知らせを順に入れてから聞き始める（間に知らせは割り込まない）
     inbox?.stop();
     this.#stop = party.onTell((m) => this.#receive(m));
@@ -155,6 +162,8 @@ export class Session {
     this.match.receive(v);
     if (first) {
       if (!this.#own) this.#place();
+      // 戻った子には親に残っていた探す前の塗りが届くことがあるが、ダブルの探す人は白い体なので消す（残した体は left で写してある）
+      if (this.match.double && (v.phase === 'search' || v.phase === 'reveal')) this.#whiten();
       this.#fit(this.#own ? this.play.body : null);
       if (v.phase === 'reveal') this.#reveal();
     } else if (before !== v.phase) this.#enter();
@@ -162,6 +171,7 @@ export class Session {
 
   #enter() {
     const p = this.match.phase;
+    if (p === 'reveal') this.#liked = false;
     if (p === 'lobby' || p === 'intro') {
       this.#reset();
       this.#place();
@@ -169,23 +179,14 @@ export class Session {
     if (p === 'intro') sounds.intro();
     else sounds.phase();
     // ダブルの探す人は新しい白い体で入る（残した体は left の知らせで先に写してある）
-    if (p === 'search' && this.match.double) {
-      this.play.interrupt();
-      this.play.log.clear();
-      this.play.rebuildPaint();
-      this.play.canUndo = false;
-    }
+    if (p === 'search' && this.match.double) this.#whiten();
     this.#fit(null);
     if (p === 'reveal') this.#reveal();
   }
 
   /** 試合の始めとロビーに戻ったとき。全員の塗りを白に戻し、しぶきを消す */
   #reset() {
-    // 描きかけの筆を先に切る。白に戻したあとで取り消しや続きの吹き付けが届くと、消した列が食い違う
-    this.play.interrupt();
-    this.play.log.clear();
-    this.play.rebuildPaint();
-    this.play.canUndo = false;
+    this.#whiten();
     for (const r of this.#remotes.values()) r.clearPaint();
     this.#fx.clear();
     this.#found.clear();
@@ -197,6 +198,15 @@ export class Session {
     this.watching = null;
     this.play.unhunt();
     this.play.setPose(STAND.id);
+  }
+
+  /** 自分の塗りを白に戻す */
+  #whiten() {
+    // 描きかけの筆を先に切る。白に戻したあとで取り消しや続きの吹き付けが届くと、消した列が食い違う
+    this.play.interrupt();
+    this.play.log.clear();
+    this.play.rebuildPaint();
+    this.play.canUndo = false;
   }
 
   /** 体を始める場所へ移す。ロビーはロビーの部屋、待っているハンターは控室、ほかは大広間 */
@@ -420,6 +430,7 @@ export class Session {
     w.podium(m.phase === 'lobby' && m.view.wishes.length > 0);
     this.#gun.visible = this.play.role === 'hunter' && !tps;
     w.holdGun(tps);
+    this.#marks.set(this.#exposed(), dt);
     this.#fx.step(dt);
     this.#gun.step(dt);
     this.play.frame(dt, now);
@@ -477,7 +488,7 @@ export class Session {
     const out: Plate[] = [];
     const add = (seat: Seat, head: V3 | null) => {
       const at = head && w.screen(head);
-      if (at) out.push({ seat, ...at });
+      if (at) out.push({ seat, ...at, likes: p === 'reveal' ? (this.match.view.likes[seat] ?? 0) : 0 });
     };
     // ダブルの答え合わせは、探す人の体ではなく残した体の上に札を出す
     if (p === 'reveal' && this.match.double) {
@@ -491,6 +502,40 @@ export class Session {
     }
     for (const [seat, r] of this.#remotes) if (r.rig.root.visible) add(seat, r.head());
     this.plates = out;
+  }
+
+  /** 埋まりすぎて場所を知らされた人の頭。探索のあいだ、ハンターの画面だけに出す */
+  #exposed(): V3[] {
+    const m = this.match;
+    if (this.play.role !== 'hunter' || m.phase !== 'search') return [];
+    const out: V3[] = [];
+    for (const seat of m.view.exposed) {
+      if (seat === m.me) continue;
+      const r = m.double ? (this.#caught(seat) ? undefined : this.#pins.get(seat)) : this.#remotes.get(seat);
+      const head = r?.rig.root.visible ? r.head() : null;
+      if (head) out.push(head);
+    }
+    return out;
+  }
+
+  /** 自分の体が埋まっている（隠れているあいだだけ警告を出す） */
+  get buried(): boolean {
+    return this.match.hiding && this.match.view.buried.includes(this.match.me);
+  }
+
+  /** ええやん。答え合わせのあいだ、自分以外の隠れた人に 1 試合 1 回 */
+  like(seat: Seat): void {
+    const m = this.match;
+    if (
+      this.#liked ||
+      m.phase !== 'reveal' ||
+      seat === m.me ||
+      !m.view.hid.includes(seat) ||
+      m.view.liked.includes(m.me)
+    )
+      return;
+    this.#liked = true;
+    this.party.act({ t: 'iine', to: seat });
   }
 
   /** もうええよ（隠れタイムと答え合わせ） */
@@ -575,6 +620,7 @@ export class Session {
     for (const r of [...this.#remotes.values(), ...this.#pins.values()]) r.dispose();
     this.#fx.dispose();
     this.#glow.dispose();
+    this.#marks.dispose();
     this.#gun.dispose();
   }
 }

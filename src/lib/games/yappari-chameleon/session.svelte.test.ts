@@ -53,6 +53,20 @@ vi.mock('./glow', () => ({
     dispose = vi.fn();
   }
 }));
+const marks = vi.hoisted(() => ({ last: [] as number[][] }));
+vi.mock('./markers', () => ({
+  Markers: class {
+    set(points: number[][]) {
+      marks.last = points;
+    }
+    dispose = vi.fn();
+  }
+}));
+// 撃つときの的を見るため、本物の fire を包む
+vi.mock('./shots', async (orig) => {
+  const real = await orig<typeof import('./shots')>();
+  return { ...real, fire: vi.fn(real.fire) };
+});
 const made = vi.hoisted(() => ({
   remotes: [] as {
     log: unknown[];
@@ -87,7 +101,7 @@ vi.mock('./remote', () => ({
       this.rig.root.visible = !!this.shown && show.visible;
     }
     center = () => (this.shown ? [...this.shown.pos] : null);
-    head = () => null;
+    head = () => (this.shown ? [this.shown.pos[0], 1.35, this.shown.pos[2]] : null);
     colors = () => [];
     dispose = vi.fn();
   }
@@ -685,5 +699,76 @@ describe('Session のダブル', () => {
     expect(play.ghost.pos).toEqual([7, 0, 5]);
     expect(play.world.arrange).toHaveBeenCalledWith(4);
     expect(s.pinPaint(2)).toBe(0);
+  });
+
+  it('ダブルの探索や答え合わせの最中に戻ったハンターは、親に残っていた塗りを消して白い体になる（残した体は塗りを写したまま）', () => {
+    const messages = [
+      meMsg(2, { pos: [7, 0, 5], pose: AIM.id }),
+      { t: 'dabs', seat: 2, at: 0, d: packDabs([dab(0), dab(1)]) },
+      { t: 'left', seat: 2, body: body({ pos: [2, 0, 9] }) },
+      at('search', { settings: double, roles: hunters, first: [], hid: [1, 2, 3] })
+    ] as Message[];
+    const { s, play, frames, acts } = setup(2, { messages, stop: vi.fn() });
+    expect(play.log.dabs).toHaveLength(0);
+    expect(play.canUndo).toBe(false);
+    expect(s.pinPaint(2)).toBe(2);
+    frames(0.1);
+    expect(acts.find((m) => m.t === 'dabs')).toMatchObject({ at: 0, d: [] });
+  });
+
+  it('探索のあいだも自分の残した体は見え、撃つ的には自分の体と見つけた体を入れない', () => {
+    const { s, tell, frames, pins } = doubled();
+    tell(at('search', { settings: double, roles: hunters, first: [], hid: [1, 2, 3], caught: { 2: [1] } }));
+    frames(0.1);
+    expect(pins[1].lastShow?.visible).toBe(true);
+    s.shoot();
+    expect(vi.mocked(fire).mock.lastCall![3].map((t) => t.seat)).toEqual([3]);
+  });
+});
+
+describe('Session のええやんと埋まり', () => {
+  it('ハンターには、埋まりすぎて場所を知らされた人の頭の上に印を出し、隠れる人には出さない', () => {
+    const hunter = setup(3);
+    hunter.tell(meMsg(1, { pos: [4, 0, 4] }));
+    hunter.tell(at('lobby'));
+    hunter.tell(at('search', { exposed: [1], buried: [1] }));
+    hunter.frames(0.2);
+    expect(marks.last).toEqual([[4, 1.35, 4]]);
+    const hider = setup(2);
+    hider.tell(meMsg(1, { pos: [4, 0, 4] }));
+    hider.tell(at('search', { exposed: [1], buried: [1] }));
+    hider.frames(0.2);
+    expect(marks.last).toEqual([]);
+  });
+
+  it('埋まっているあいだ、隠れている本人にだけ警告を出す', () => {
+    const { s, tell } = setup(2);
+    tell(at('hide', { buried: [2] }));
+    expect(s.buried).toBe(true);
+    tell(at('hide', { buried: [] }));
+    expect(s.buried).toBe(false);
+    const hunter = setup(3);
+    hunter.tell(at('search', { buried: [3] }));
+    expect(hunter.s.buried).toBe(false);
+  });
+
+  it('ええやんは答え合わせのあいだ、自分以外の隠れた人に 1 回だけ送る', () => {
+    const { s, tell, acts } = setup(3);
+    s.like(1);
+    tell(at('reveal', { hid: [1, 2], winner: 'chameleon' }));
+    s.like(3);
+    s.like(1);
+    expect(acts.filter((m) => m.t === 'iine')).toEqual([{ t: 'iine', to: 1 }]);
+    tell(at('reveal', { hid: [1, 2], winner: 'chameleon', liked: [3], likes: { 1: 1 } }));
+    s.like(2);
+    expect(acts.filter((m) => m.t === 'iine')).toHaveLength(1);
+  });
+
+  it('答え合わせの名前の札には、ええやんの数を載せる', () => {
+    const { s, tell, frames } = setup(3);
+    tell(meMsg(1, { pos: [4, 0, 4] }));
+    tell(at('reveal', { hid: [1, 2], winner: 'chameleon', likes: { 1: 2 } }));
+    frames(0.1);
+    expect(s.plates.find((p) => p.seat === 1)?.likes).toBe(2);
   });
 });
