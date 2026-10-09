@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { V3 } from '$lib/sculpt';
-import { gunModel, MUZZLE } from './gun';
+import { disposeModel, gunModel, MUZZLE } from './gun';
 import type { World } from './world3d';
 
 const KICK_SECS = 0.25;
@@ -45,6 +45,11 @@ export class HunterView {
       .applyQuaternion(cam.quaternion)
       .add(cam.position);
     return [p.x, p.y, p.z];
+  }
+
+  dispose(): void {
+    this.#gun.removeFromParent();
+    disposeModel(this.#gun);
   }
 
   step(dt: number): void {

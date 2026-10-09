@@ -36,7 +36,11 @@ vi.mock('./effects', () => ({
 }));
 vi.mock('./hunter', () => ({
   HunterView: class {
+    constructor() {
+      made.guns.push(this);
+    }
     visible = false;
+    dispose = vi.fn();
     fire = vi.fn();
     step = vi.fn();
     muzzle = () => [0, 1, 0];
@@ -48,24 +52,30 @@ vi.mock('./glow', () => ({
     dispose = vi.fn();
   }
 }));
-const made = vi.hoisted(() => ({ remotes: 0 }));
+const made = vi.hoisted(() => ({
+  remotes: [] as { log: unknown[]; rig: { paint: { rebuild: unknown } } }[],
+  guns: [] as { visible: boolean; dispose: unknown }[]
+}));
 vi.mock('./remote', () => ({
   HEAD_Y: 1.35,
   paintColors: () => [],
   Remote: class {
     constructor() {
-      made.remotes++;
+      made.remotes.push(this);
     }
     // 本物と同じく、動きが届いて更新されるまでは見えない
     rig = { root: Object.assign(new THREE.Group(), { visible: false }), paint: { rebuild: vi.fn() } };
     log = [];
     shown: Me | null = null;
     push(me: Me) {
-      this.shown = me;
+      this.last = me;
     }
+    last: Me | null = null;
     dabs = vi.fn();
     clearPaint = vi.fn();
-    update(_dt: number, _now: number, show: { visible: boolean }) {
+    update(_dt: number, _now: number, show: { visible: boolean; pin?: Me | null }) {
+      // 本物と同じく、見せる体の様子は更新のときに決まる
+      this.shown = show.pin ?? this.last;
       this.rig.root.visible = !!this.shown && show.visible;
     }
     center = () => (this.shown ? [...this.shown.pos] : null);
@@ -202,6 +212,70 @@ describe('Session の見つかった人', () => {
     frames(0.2);
     expect(play.role).toBe('hunter');
     expect(play.log.dabs).toHaveLength(0);
+    expect(made.guns.at(-1)!.visible).toBe(true);
+  });
+
+  it('最後の隠れる人が撃たれて答え合わせに入っても、破片が消えたあとハンターになり、人形は隠れたまま', () => {
+    const { play, tell, frames } = setup();
+    tell(at('lobby'));
+    tell(at('search'));
+    play.applyDabs([dab(0)]);
+    tell({ t: 'found', seat: 2, by: 3, at: [0, 1, 0], body: body({ pos: [0, 0, 1.5] }) });
+    tell(at('reveal', { roles: { 1: 'hunter', 2: 'hunter', 3: 'hunter' }, found: [1, 2], winner: 'hunter' }));
+    frames(SHATTER_SECS - 0.1);
+    expect(play.role).toBe('hider');
+    expect(play.world.rig.root.visible).toBe(false);
+    frames(0.2);
+    expect(play.role).toBe('hunter');
+    expect(play.log.dabs).toHaveLength(0);
+    expect(play.ghost.pos).toEqual([...SPAWNS.hall[2]]);
+    expect(play.world.rig.root.visible).toBe(false);
+  });
+
+  it('1 回の散弾で 2 人が見つかると、2 人ともハンターになる', () => {
+    const a = setup(1);
+    const b = setup(2);
+    for (const x of [a, b]) {
+      x.tell(at('lobby'));
+      x.tell(at('search'));
+      for (const seat of [1, 2] as const) x.tell({ t: 'found', seat, by: 3, at: [0, 1, 0], body: body() });
+      x.tell(at('reveal', { roles: { 1: 'hunter', 2: 'hunter', 3: 'hunter' }, found: [1, 2], winner: 'hunter' }));
+      x.frames(SHATTER_SECS + 0.1);
+      expect(x.play.role).toBe('hunter');
+    }
+  });
+
+  it('天井に張り付いたまま見つかると、天井の裏ではなく真下の床に立つハンターになる', () => {
+    const { play, tell, frames } = setup();
+    tell(at('lobby'));
+    tell(at('search'));
+    play.body.pos = [2, 6 - 0.01, 3];
+    play.body.cling = { kind: 'ceiling' } as never;
+    tell({ t: 'found', seat: 2, by: 3, at: [0, 1, 0] });
+    tell(at('search', { roles: { 1: 'hider', 2: 'hunter', 3: 'hunter' }, found: [2] }));
+    frames(SHATTER_SECS + 0.1);
+    expect(play.role).toBe('hunter');
+    expect(play.ghost.pos[0]).toBeCloseTo(2);
+    expect(play.ghost.pos[1]).toBeCloseTo(0);
+    expect(play.ghost.pos[2]).toBeCloseTo(3);
+  });
+
+  it('砕けているあいだは動かず、見つかった場所からハンターになる', () => {
+    const { play, tell, frames } = setup();
+    tell(at('lobby'));
+    tell(at('search'));
+    play.body.pos = [0, 0, 0];
+    tell({ t: 'found', seat: 2, by: 3, at: [0, 1, 0] });
+    tell(at('search', { roles: { 1: 'hider', 2: 'hunter', 3: 'hunter' }, found: [2] }));
+    play.pointer('down', 1, 100, 400, 1000);
+    play.pointer('move', 1, 170, 400, 1000);
+    frames(SHATTER_SECS - 0.2);
+    expect(play.frozen).toBe(true);
+    expect(Math.abs(play.body.pos[0]) + Math.abs(play.body.pos[2])).toBeLessThan(1e-6);
+    frames(0.3);
+    expect(play.frozen).toBe(false);
+    expect(play.ghost.pos[0]).toBeCloseTo(0);
+    expect(play.ghost.pos[2]).toBeCloseTo(0);
   });
 });
 
@@ -239,10 +313,11 @@ describe('Session の戻った子', () => {
 
   it('戻ったハンターは、親に残っていた続きの場所から銃を持つ', () => {
     const { play, tell } = setup(3);
-    tell(meMsg(3, { pos: [7, 0, 5], pose: AIM.id }));
+    tell(meMsg(3, { pos: [7, 0, 5], yaw: 1.5, pose: AIM.id }));
     tell(at('search'));
     expect(play.role).toBe('hunter');
     expect(play.ghost.pos).toEqual([7, 0, 5]);
+    expect(play.eyeYaw).toBe(1.5);
   });
 
   it('答え合わせの最中に戻ると、見つかったときの体をその場に戻して見せる（人形は観戦でも隠さない）', () => {
@@ -268,13 +343,32 @@ describe('Session の答え合わせ', () => {
     frames(SHATTER_SECS + 0.1);
     expect(play.role).toBe('hunter');
     play.ghost.pos = [6, 0, 6];
-    const before = made.remotes;
+    const before = made.remotes.length;
     tell(at('reveal', { roles: { 1: 'hunter', 2: 'hunter', 3: 'hunter' }, found: [1, 2], winner: 'hunter' }));
     frames(0.1);
     expect(play.role).toBe('hunter');
     expect(play.ghost.pos).toEqual([6, 0, 6]);
     expect(play.world.rig.root.visible).toBe(false);
-    expect(made.remotes - before).toBe(1);
+    expect(made.remotes.length - before).toBe(1);
+  });
+});
+
+describe('Session の答え合わせの塗り', () => {
+  it('増え鬼で見つかってハンターになった人の撃たれた場所の体は、見つかったときの塗りで作る', () => {
+    const { tell, frames } = setup();
+    tell(meMsg(1, { pos: [1, 0, 0] }));
+    const live = made.remotes.at(-1)!;
+    tell(at('lobby'));
+    tell(at('search'));
+    live.log.push(dab(0), dab(1));
+    tell({ t: 'found', seat: 1, by: 3, at: [1, 1, 0], body: body({ pos: [1, 0, 0] }) });
+    // ハンターになった人は列を消して送り直す
+    live.log.length = 0;
+    tell(at('reveal', { roles: { 1: 'hunter', 2: 'hider', 3: 'hunter' }, found: [1], winner: 'chameleon' }));
+    frames(0.1);
+    const pin = made.remotes.at(-1)!;
+    expect(pin).not.toBe(live);
+    expect(pin.rig.paint.rebuild).toHaveBeenCalledWith([dab(0), dab(1)]);
   });
 });
 
@@ -340,6 +434,7 @@ describe('Session の役の切り替え', () => {
     tell(meMsg(3, { pos: [3, 0, 0] }));
     tell(at('lobby'));
     tell(at('search', { settings: normal }));
+    frames(0.1);
     tell({ t: 'found', seat: 2, by: 3, at: [0, 1, 0] });
     frames(0.1);
     expect(s.watching).toBe(1);
@@ -348,6 +443,14 @@ describe('Session の役の切り替え', () => {
     frames(0.1);
     expect(s.watching).toBe(3);
     expect(s.play.watch).toEqual([3, 0, 0]);
+  });
+});
+
+describe('Session の片づけ', () => {
+  it('片づけると銃の見た目も片づける', () => {
+    const { s } = setup();
+    s.dispose();
+    expect(made.guns.at(-1)!.dispose).toHaveBeenCalled();
   });
 });
 

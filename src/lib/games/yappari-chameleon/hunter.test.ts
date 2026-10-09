@@ -22,4 +22,16 @@ describe('HunterView', () => {
     expect(m[1]).toBeCloseTo(want.y, 6);
     expect(m[2]).toBeCloseTo(want.z, 6);
   });
+
+  it('片づけると、銃を手から外す', () => {
+    const world = {
+      hand: new THREE.Group(),
+      overlay: new THREE.Scene(),
+      camera: new THREE.PerspectiveCamera()
+    } as unknown as World;
+    const view = new HunterView(world);
+    expect(world.hand.children).toHaveLength(1);
+    view.dispose();
+    expect(world.hand.children).toHaveLength(0);
+  });
 });

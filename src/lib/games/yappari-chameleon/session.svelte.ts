@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import type { Message } from '$lib/net/link';
 import type { Party, Seat } from '$lib/net/party.svelte';
 import type { V3 } from '$lib/sculpt';
+import { HEIGHT } from './doll';
 import type { DollRig } from './doll3d';
 import { Effects } from './effects';
 import { Glow, type Shine } from './glow';
@@ -10,7 +11,9 @@ import type { Host } from './host';
 import { HunterView } from './hunter';
 import { SPAWNS } from './mansion/layout';
 import { Match } from './match.svelte';
+import { floorBelow } from './move';
 import { CHAMELEON_VERSION, dabMessages, DabOutbox, SEND_MS, splice, unpackDabs, type Me } from './net';
+import type { Dab } from './paint';
 import type { Play } from './play.svelte';
 import { AIM, poseById, STAND } from './poses';
 import { COOLDOWN, TOOT_GAP, type Settings, type View } from './referee';
@@ -68,6 +71,8 @@ export class Session {
   readonly #found = new SvelteMap<Seat, Me>();
   /** 増え鬼でハンターになった人の、答え合わせで撃たれた場所に置く 2 つめの体（今のハンターの体は銃を持って別に動く） */
   readonly #pins = new SvelteMap<Seat, Remote>();
+  /** 増え鬼で見つかった人の、見つかったときの塗り（そのあとハンターになって列が消えても、答え合わせで見せる） */
+  readonly #snaps = new SvelteMap<Seat, Dab[]>();
   /** 砕けて見えない残り秒 */
   readonly #shatter = new SvelteMap<Seat, number>();
   #sent = -Infinity;
@@ -141,7 +146,7 @@ export class Session {
     this.match.receive(v);
     if (first) {
       if (!this.#own) this.#place();
-      this.#fit(this.#own ? (this.play.body.pos as V3) : null);
+      this.#fit(this.#own ? this.play.body : null);
       if (v.phase === 'reveal') this.#reveal();
     } else if (before !== v.phase) this.#enter();
   }
@@ -166,6 +171,7 @@ export class Session {
     for (const r of this.#remotes.values()) r.clearPaint();
     this.#fx.clear();
     this.#found.clear();
+    this.#snaps.clear();
     this.#shatter.clear();
     for (const r of this.#pins.values()) r.dispose();
     this.#pins.clear();
@@ -181,30 +187,31 @@ export class Session {
     this.play.placeAt(SPAWNS[room ? 'room' : 'hall'][this.match.me]);
   }
 
-  /** 試合の様子に合わせて、ハンター（一人称と銃）か観戦に切り替える。at は戻った子のハンターの続きの場所 */
-  #fit(at: V3 | null) {
+  /** 試合の様子に合わせて、ハンター（一人称と銃）か観戦に切り替える。own は戻った子のハンターの続きの場所と向き */
+  #fit(own: { pos: V3; yaw: number } | null) {
     const m = this.match;
     const armed = m.role === 'hunter' && (m.phase === 'search' || m.phase === 'reveal');
     if (armed && this.play.role !== 'hunter' && !this.#shatter.has(m.me))
-      this.play.hunt(at ?? SPAWNS.entrance[m.me], 0);
+      this.play.hunt(own ? own.pos : SPAWNS.entrance[m.me], own?.yaw ?? 0);
     else if (!armed && m.phase !== 'lobby' && m.watching() && this.play.role !== 'watch') this.#watch();
   }
 
   #reveal() {
     const f = this.#found.get(this.match.me);
-    // 増え鬼でハンターになった自分は撃ちに回っているので、撃たれた場所へは戻さない
-    if (f && this.play.role !== 'hunter') this.#setBody(f);
+    // 増え鬼でハンターになった（なる）自分は撃ちに回っているので、撃たれた場所へは戻さない
+    if (f && !this.#infected(this.match.me)) this.#setBody(f);
     if (this.play.role === 'watch') this.free();
   }
 
   #onFound(seat: Seat, by: Seat, body: Me | undefined, quiet: boolean) {
     if (body) this.#found.set(seat, body);
-    if (quiet) return;
     const me = this.match.me;
+    const live = seat === me ? null : this.#remote(seat);
+    if (live) this.#snaps.set(seat, [...live.log]);
+    if (quiet) return;
     const infect = this.match.view.settings.mode === 'infect';
-    const r = seat === me ? null : this.#remote(seat);
-    const at = r ? r.center() : this.play.world.dollCenter();
-    if (at) this.#fx.shatter(at, r ? r.colors() : paintColors(this.play.log.dabs));
+    const at = live ? live.center() : this.play.world.dollCenter();
+    if (at) this.#fx.shatter(at, live ? live.colors() : paintColors(this.play.log.dabs));
     sounds.shatter();
     if (by === me) sounds.found();
     this.#shatter.set(seat, SHATTER_SECS);
@@ -217,9 +224,13 @@ export class Session {
 
   /** 増え鬼で見つかった自分が、破片が消えたあと白い体のハンターになる */
   #turn() {
+    const b = this.play.body;
     this.play.log.clear();
     this.play.rebuildPaint();
-    this.play.hunt(this.play.body.pos as V3, this.play.body.yaw);
+    // 張り付いたままの位置は壁や天井の面なので、真下の床に立たせる（天井の裏からそのまま立つと天井の上に出る）
+    const [x, y, z] = b.pos;
+    const feet = b.cling ? floorBelow(this.play.world.level, x, z, b.cling.kind === 'ceiling' ? y - HEIGHT : y) : y;
+    this.play.hunt([x, feet, z], b.yaw);
   }
 
   #onSplat(m: Message) {
@@ -276,7 +287,7 @@ export class Session {
     let r = this.#pins.get(seat);
     if (!r) {
       r = new Remote(this.#makeRig(), this.play.world.scene);
-      r.rig.paint.rebuild(live.log);
+      r.rig.paint.rebuild(this.#snaps.get(seat) ?? live.log);
       this.#pins.set(seat, r);
     }
     return r;
@@ -319,7 +330,9 @@ export class Session {
         continue;
       }
       this.#shatter.delete(seat);
-      if (seat === me && m.view.settings.mode === 'infect' && m.phase === 'search') this.#turn();
+      // 最後の隠れる人が撃たれると、すぐ答え合わせに入る
+      if (seat === me && m.view.settings.mode === 'infect' && (m.phase === 'search' || m.phase === 'reveal'))
+        this.#turn();
     }
     for (const [seat, r] of this.#remotes) {
       r.update(dt, now, this.#show(seat));
@@ -330,7 +343,8 @@ export class Session {
       this.next(1);
     this.play.watch =
       this.play.role === 'watch' && this.watching !== null ? this.#remotes.get(this.watching)!.center() : null;
-    const pinned = m.phase === 'reveal' && m.found() && this.#found.has(me) && this.play.role !== 'hunter';
+    const pinned = m.phase === 'reveal' && m.found() && this.#found.has(me) && !this.#infected(me);
+    this.play.frozen = this.#shatter.has(me);
     w.rig.root.visible = (this.play.role === 'hider' && !this.#shatter.has(me)) || pinned;
     this.#glow.set(w.rig.root.visible ? this.#shine(me) : null);
     this.#gun.visible = this.play.role === 'hunter';
@@ -456,7 +470,7 @@ export class Session {
   restore(): void {
     this.play.rebuildPaint();
     for (const r of this.#remotes.values()) r.rig.paint.rebuild(r.log);
-    for (const [seat, r] of this.#pins) r.rig.paint.rebuild(this.#remotes.get(seat)?.log ?? []);
+    for (const [seat, r] of this.#pins) r.rig.paint.rebuild(this.#snaps.get(seat) ?? []);
   }
 
   dispose(): void {
@@ -464,5 +478,6 @@ export class Session {
     for (const r of [...this.#remotes.values(), ...this.#pins.values()]) r.dispose();
     this.#fx.dispose();
     this.#glow.dispose();
+    this.#gun.dispose();
   }
 }

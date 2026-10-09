@@ -30,6 +30,8 @@ export class Play {
   mode = $state<Mode>('walk');
   role = $state<PlayRole>('hider');
   crouch = $state(false);
+  /** 砕けているあいだ（その場で止まって、塗らない）。見つかった場所からハンターになるため */
+  frozen = false;
   /** 観戦で見ている人の体の真ん中。毎フレーム入れ直す。null ならフリーカメラで歩く */
   watch: V3 | null = null;
   brush = $state<Brush>({ radius: 0.05, color: [1, 1, 1], opacity: 1, metal: 0, rough: 0.85 });
@@ -303,6 +305,10 @@ export class Play {
       this.canUndo = this.log.canUndo;
       return;
     }
+    if (this.frozen) {
+      this.#stroke = null;
+      return;
+    }
     if (this.spoit) {
       if (e.kind === 'end') this.spoitAt(e.x, e.y);
       return;
@@ -376,7 +382,7 @@ export class Play {
         this.camPitch =
           Math.abs(to - this.camPitch) < 1e-3 ? to : this.camPitch + (to - this.camPitch) * (1 - Math.exp(-dt * 8));
       } else this.camPitch = fit(this.camPitch + look.dy * LOOK);
-      step(this.body, this.#input(this.camYaw), w.level, dt);
+      step(this.body, this.frozen ? idle() : this.#input(this.camYaw), w.level, dt);
     } else if (this.mode === 'eye') {
       const look = this.pad.takeLook();
       this.eyeYaw -= look.dx * LOOK;

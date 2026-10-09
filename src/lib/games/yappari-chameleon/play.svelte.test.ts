@@ -598,3 +598,22 @@ describe('Play の役', () => {
     expect(p.eyePitch).toBe(0);
   });
 });
+
+describe('Play の止める', () => {
+  it('止めているあいだは、スティックを倒しても歩かず、塗りも付かない', () => {
+    const p = new Play(fakeWorld(true), 70);
+    secs(p, 0.2);
+    p.frozen = true;
+    p.pointer('down', 1, 100, 400, 1000);
+    p.pointer('move', 1, 170, 400, 1000);
+    secs(p, 0.5);
+    expect(Math.abs(p.body.pos[0]) + Math.abs(p.body.pos[2])).toBeLessThan(1e-6);
+    p.pointer('up', 1, 170, 400, 1000);
+    p.togglePaint();
+    stroke(p, 2);
+    expect(p.log.dabs).toHaveLength(0);
+    p.frozen = false;
+    stroke(p, 3);
+    expect(p.log.dabs.length).toBeGreaterThan(0);
+  });
+});
