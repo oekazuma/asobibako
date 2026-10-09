@@ -701,6 +701,20 @@ describe('Session のダブル', () => {
     expect(s.pinPaint(2)).toBe(0);
   });
 
+  it('ダブルの隠れタイムに切れて探索のあいだに戻った子は、隠れ場所ではなく入口の床から探す', () => {
+    // 隠れタイムに天井へ張り付いたまま切れたので、親に残っている体は天井の面（y = 6）にある
+    const messages = [
+      meMsg(2, { pos: [7, 6, 5], yaw: 1.5, cling: { kind: 'ceiling' }, pose: 'curl' }),
+      { t: 'left', seat: 2, body: body({ pos: [7, 6, 5], cling: { kind: 'ceiling' }, pose: 'curl' }) },
+      at('search', { settings: double, roles: hunters, first: [], hid: [1, 2, 3] })
+    ] as Message[];
+    const { play } = setup(2, { messages, stop: vi.fn() });
+    expect(play.role).toBe('hunter');
+    expect(play.ghost.pos).toEqual([...SPAWNS.entrance[2]]);
+    expect(play.body.cling).toBeNull();
+    expect(play.eyeYaw).toBe(0);
+  });
+
   it('ダブルの探索や答え合わせの最中に戻ったハンターは、親に残っていた塗りを消して白い体になる（残した体は塗りを写したまま）', () => {
     const messages = [
       meMsg(2, { pos: [7, 0, 5], pose: AIM.id }),

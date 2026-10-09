@@ -84,8 +84,8 @@ export class Session {
   /** この答え合わせでええやんを送った。親の数が届く前に 2 回押しても、2 つめを送らない */
   #liked = false;
   #sent = -Infinity;
-  /** 親から自分の体を受け取った（戻った子は、その場から続ける） */
-  #own = false;
+  /** 親から受け取った自分の体（戻った子は、その場から続ける） */
+  #own: Me | null = null;
   readonly #stop: () => void;
 
   constructor(party: Party, play: Play, makeRig: () => DollRig, host: Host | null = null, inbox?: Inbox) {
@@ -141,7 +141,7 @@ export class Session {
 
   /** 戻った子が、親に残っていた自分の体を受け取る */
   #ownBody(me: Me) {
-    this.#own = true;
+    this.#own = me;
     this.#setBody(me);
   }
 
@@ -164,7 +164,7 @@ export class Session {
       if (!this.#own) this.#place();
       // 戻った子には親に残っていた探す前の塗りが届くことがあるが、ダブルの探す人は白い体なので消す（残した体は left で写してある）
       if (this.match.double && (v.phase === 'search' || v.phase === 'reveal')) this.#whiten();
-      this.#fit(this.#own ? this.play.body : null);
+      this.#fit(this.#own);
       if (v.phase === 'reveal') this.#reveal();
     } else if (before !== v.phase) this.#enter();
   }
@@ -218,13 +218,17 @@ export class Session {
     this.play.camYaw = 0;
   }
 
-  /** 試合の様子に合わせて、ハンター（一人称と銃）か観戦に切り替える。own は戻った子のハンターの続きの場所と向き */
-  #fit(own: { pos: V3; yaw: number } | null) {
+  /** 試合の様子に合わせて、ハンター（一人称と銃）か観戦に切り替える。own は戻った子が親から受け取った自分の体 */
+  #fit(own: Me | null) {
     const m = this.match;
     const armed = m.role === 'hunter' && (m.phase === 'search' || m.phase === 'reveal');
-    if (armed && this.play.role !== 'hunter' && !this.#shatter.has(m.me))
-      this.play.hunt(own ? own.pos : SPAWNS.entrance[m.me], own?.yaw ?? 0);
-    else if (!armed && m.phase !== 'lobby' && m.watching() && this.play.role !== 'watch') this.#watch();
+    if (armed && this.play.role !== 'hunter' && !this.#shatter.has(m.me)) {
+      // 続きから始めるのは、切れる前もハンターとして歩いていた体だけ。隠れタイムに切れた子の体は控室か、ダブルなら
+      // 隠れ場所（天井に張り付いていれば天井の面）なので、入口から探す
+      const hunting = own && own.cling === null && (own.pose === AIM.id || own.crouch);
+      const [x, y, z] = hunting ? own.pos : SPAWNS.entrance[m.me];
+      this.play.hunt([x, floorBelow(this.play.world.level, x, z, y), z], hunting ? own.yaw : 0);
+    } else if (!armed && m.phase !== 'lobby' && m.watching() && this.play.role !== 'watch') this.#watch();
   }
 
   #reveal() {
