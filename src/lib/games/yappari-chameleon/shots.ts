@@ -1,7 +1,7 @@
 import type { V3 } from '$lib/sculpt';
 import { BONES, dollShapes, JOINTS, PARENT, type Bone } from './doll';
 import { RADIUS, type Cling, type Level, type Ramp } from './move';
-import type { Pose } from './poses';
+import { poseById, STAND, type Pose } from './poses';
 
 export const SPREAD = (2 * Math.PI) / 180;
 /** 屋敷の端から端より長い */
@@ -21,9 +21,11 @@ export interface Placeable {
   pos: V3;
   yaw: number;
   cling: Cling | null;
+  /** ポーズの ID。張り付いた体を、そのポーズの当たりが張り付いた面の奥へ出ない所まで面から離す */
+  pose?: string;
 }
 
-export function placement(b: Placeable): Placement {
+function basePlacement(b: Placeable): Placement {
   const [x, y, z] = b.pos;
   if (b.cling?.kind === 'wall') {
     const k = RADIUS - HALF_DEPTH;
@@ -32,6 +34,45 @@ export function placement(b: Placeable): Placement {
   // 背中を天井に付け、前を下へ向ける
   if (b.cling?.kind === 'ceiling') return { at: [x, y - HALF_DEPTH, z], yaw: b.yaw, tilt: Math.PI / 2 };
   return { at: [x, y, z], yaw: b.yaw, tilt: 0 };
+}
+
+/**
+ * 張り付いた体は、ポーズで面の中へ入らないよう、立つときより深く出るぶんだけ部屋の側へ離す。人形の 3D・親の当たり・
+ * ほかの人の体・見落としと埋まりの判定がみなここを通るので、見た目と当たりはそろう。Body.pos は変えない
+ */
+export function placement(b: Placeable): Placement {
+  const p = basePlacement(b);
+  if (!b.cling || !b.pose) return p;
+  // カプセルは見た目より太く、立って張り付いた体でも面の奥へ出るので、立つときの深さを引いて立つ体は面に付けたままにする
+  const d = Math.max(0, sink(poseById(b.pose), b.cling.kind) - sink(STAND, b.cling.kind));
+  const n: V3 = b.cling.kind === 'wall' ? [b.cling.nx, 0, b.cling.nz] : [0, -1, 0];
+  return { ...p, at: add(p.at, scale(n, d)) };
+}
+
+const SINK = new Map<string, number>();
+
+/**
+ * 張り付いたとき、ポーズの当たりのカプセルの面が張り付いた面の奥へ出るいちばん深い所（0 以上）。
+ * 壁の体はいつも面を向き（張り付くときに yaw を面へ向け、壁ではその場で回れない）、天井は yaw で深さが変わらないので、
+ * 決まった置き方で 1 度だけ測って控える
+ */
+export function sink(pose: Pose, kind: Cling['kind']): number {
+  const key = `${pose.id}:${kind}`;
+  const known = SINK.get(key);
+  if (known !== undefined) return known;
+  const isWall = kind === 'wall';
+  const base = basePlacement({
+    pos: [0, 0, 0],
+    yaw: 0,
+    cling: isWall ? { kind: 'wall', nx: 0, nz: -1 } : { kind: 'ceiling' }
+  });
+  // 部屋の側の向きと、張り付いた面の上の点（壁は体の中心から RADIUS 先、天井は体の高さ）
+  const n: V3 = isWall ? [0, 0, -1] : [0, -1, 0];
+  const s: V3 = isWall ? [0, 0, RADIUS] : [0, 0, 0];
+  let d = 0;
+  for (const c of capsules(pose, base)) for (const q of [c.a, c.b]) d = Math.max(d, c.r - dot(sub(q, s), n));
+  SINK.set(key, d);
+  return d;
 }
 
 type M3 = readonly [number, number, number, number, number, number, number, number, number];

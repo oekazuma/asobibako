@@ -408,7 +408,8 @@ export class Play {
     if (clung && !this.cling) sounds.cling();
     this.cling = clung;
     this.nearWall = !this.body.cling && wallNear(this.body, w.level) !== null;
-    w.placeDoll(this.body);
+    // pose は切り替えの行き先なので、ポーズが移るあいだも当たりと同じ深さで面から離す
+    w.placeDoll({ ...this.body, pose: this.pose });
     w.poses.step(dt);
     // 部屋の中と分かっている点（天井では pos が天井の高さなので下へ下げる）。カメラを殻の外へ出さない線の始点
     const inside: V3 = [

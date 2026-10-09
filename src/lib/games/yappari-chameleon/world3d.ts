@@ -143,13 +143,15 @@ export class World {
     this.camera.updateProjectionMatrix();
   }
 
-  placeDoll(b: Body): void {
+  placeDoll(b: Body & { pose?: string }): void {
     const root = this.rig.root;
     placeRoot(root, b);
     const ring = this.#ring;
     ring.visible = !!b.cling;
     if (b.cling?.kind === 'wall') {
-      ring.position.set(root.position.x, b.pos[1] + 0.58, root.position.z);
+      // ポーズで面から離した根元ではなく、面に付けたときの位置に出す。輪は張り付いた面の印
+      const [x, , z] = placement({ pos: b.pos, yaw: b.yaw, cling: b.cling }).at;
+      ring.position.set(x, b.pos[1] + 0.58, z);
       ring.lookAt(ring.position.x + b.cling.nx, ring.position.y, ring.position.z + b.cling.nz);
     } else if (b.cling?.kind === 'ceiling') {
       // 天井では体が横たわるので、輪は足もとではなく体の真ん中に置く

@@ -238,6 +238,17 @@ describe('Play', () => {
     expect(p.pose).toBe('curl');
   });
 
+  it('ポーズを変えた次のフレームから、人形は行き先のポーズで置き、体の位置は変えない', () => {
+    const p = clinging();
+    const pos = [...p.body.pos];
+    p.setPose('lie');
+    p.frame(1 / 60, 0);
+    expect(p.world.placeDoll).toHaveBeenLastCalledWith(
+      expect.objectContaining({ pose: 'lie', cling: expect.objectContaining({ kind: 'wall' }) })
+    );
+    expect(p.body.pos).toEqual(pos);
+  });
+
   it('張り付いたままペイントとフリーカメラに出入りしても、張り付いたまま', () => {
     const p = clinging();
     p.togglePaint();

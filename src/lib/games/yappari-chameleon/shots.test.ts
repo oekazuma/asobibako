@@ -5,9 +5,9 @@ import { layAtlas } from './atlas';
 import { BONES, buildDoll } from './doll';
 import { makeDoll, PoseAnimator } from './doll3d';
 import { levelOf, mansion } from './mansion/layout';
-import { newBody, type Body, type Level } from './move';
-import { AIM, POSES, poseById, STAND } from './poses';
-import { capsules, fire, frames, placement, rayCapsule, rayLevel, rays, SPREAD, type Target } from './shots';
+import { newBody, RADIUS, type Body, type Cling, type Level } from './move';
+import { AIM, POSES, poseById, STAND, type Pose } from './poses';
+import { capsules, fire, frames, placement, rayCapsule, rayLevel, rays, sink, SPREAD, type Target } from './shots';
 
 const renderer = new Proxy({}, { get: () => () => ({}) }) as unknown as THREE.WebGLRenderer;
 const surface = buildDoll(0.02);
@@ -60,6 +60,59 @@ describe('frames', () => {
           expect(f[bone].p[2], `${pose.id} ${bone}`).toBeCloseTo(want.z, 5);
         }
       }
+  });
+});
+
+describe('張り付いた体の置き方', () => {
+  const ALL = [STAND, AIM, ...POSES];
+  const wall: Cling = { kind: 'wall', nx: 0, nz: -1 };
+  const dot = (a: V3, b: V3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  /** 張り付いた面（部屋の側の向き n、面の上の点 s）の奥へ、カプセルの面がいちばん深く出た長さ */
+  const past = (pose: Pose, b: { pos: V3; yaw: number; cling: Cling; pose?: string }, n: V3, s: V3) =>
+    Math.max(
+      0,
+      ...capsules(pose, placement(b)).flatMap((c) =>
+        [c.a, c.b].map((q) => c.r - dot([q[0] - s[0], q[1] - s[1], q[2] - s[2]], n))
+      )
+    );
+
+  it('どのポーズで壁や天井に張り付いても、当たりのカプセルは立って張り付いた体より 0.01m を超えて面の奥へ出ない', () => {
+    for (const pose of ALL) {
+      // 壁は z = 5 の面で、体は面から RADIUS 手前に立つ。天井は y = 3
+      const w = past(pose, { pos: [0, 0.8, 5 - RADIUS], yaw: 0, cling: wall, pose: pose.id }, [0, 0, -1], [0, 0, 5]);
+      const c = past(
+        pose,
+        { pos: [0, 3, 0], yaw: 1.2, cling: { kind: 'ceiling' }, pose: pose.id },
+        [0, -1, 0],
+        [0, 3, 0]
+      );
+      expect(w, `壁 ${pose.id}`).toBeLessThanOrEqual(sink(STAND, 'wall') + 0.01);
+      expect(c, `天井 ${pose.id}`).toBeLessThanOrEqual(sink(STAND, 'ceiling') + 0.01);
+    }
+  });
+
+  it('離すのは張り付いた体の根元だけで、床の体とポーズの無い置き方と、渡した pos は変えない', () => {
+    const lie = poseById('lie');
+    const pos: V3 = [0, 0.8, 4.8];
+    expect(placement({ pos: [1, 0, 2], yaw: 0.5, cling: null, pose: 'lie' })).toEqual(
+      placement({ pos: [1, 0, 2], yaw: 0.5, cling: null })
+    );
+    const moved = placement({ pos, yaw: 0, cling: wall, pose: 'lie' });
+    const plain = placement({ pos, yaw: 0, cling: wall });
+    expect(plain.at[2] - moved.at[2]).toBeCloseTo(sink(lie, 'wall') - sink(STAND, 'wall'), 6);
+    expect(pos).toEqual([0, 0.8, 4.8]);
+    // 当たりのカプセルが見た目より太いぶん、立って張り付いた体も面の奥へ少し出る。寝そべると壁の奥へ大きく出る
+    expect(sink(STAND, 'wall')).toBeCloseTo(0.055, 2);
+    expect(sink(STAND, 'ceiling')).toBeCloseTo(0.055, 2);
+    expect(sink(lie, 'wall') - sink(STAND, 'wall')).toBeCloseTo(0.475, 2);
+    expect(sink(poseById('bridge'), 'ceiling') - sink(STAND, 'ceiling')).toBeCloseTo(0.44, 2);
+  });
+
+  it('立って張り付いた体は面から離さない', () => {
+    for (const cling of [wall, { kind: 'ceiling' } as Cling]) {
+      const b = { pos: [0, 0.8, 4.8] as V3, yaw: 0.3, cling };
+      expect(placement({ ...b, pose: STAND.id })).toEqual(placement(b));
+    }
   });
 });
 
