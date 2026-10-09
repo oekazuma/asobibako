@@ -12,7 +12,6 @@ import type { World } from './world3d';
 const LOOK = 0.005;
 const ORBIT = 0.006;
 const EYE_HEIGHT = 1.0;
-/** ハンターがしゃがんだときに目を下げる高さ */
 export const CROUCH = 0.45;
 const CAM_PITCH_MIN = -0.5;
 const CAM_PITCH_MAX = 1.2;
@@ -115,6 +114,7 @@ export class Play {
   }
 
   togglePaint(): void {
+    if (this.role !== 'hider') return;
     if (this.mode === 'paint') {
       this.camYaw = this.orbitYaw;
       this.camPitch = Math.min(CAM_PITCH_MAX, Math.max(CAM_PITCH_MIN, this.orbitPitch));
@@ -165,7 +165,8 @@ export class Play {
     this.role = 'watch';
     this.crouch = false;
     this.#ghostFromCamera();
-    this.eyeYaw = this.mode === 'eye' ? this.eyeYaw : this.camYaw;
+    this.eyeYaw = this.mode === 'eye' ? this.eyeYaw : this.mode === 'paint' ? this.orbitYaw : this.camYaw;
+    this.eyePitch = 0;
     this.#setMode('eye');
   }
 
@@ -379,7 +380,9 @@ export class Play {
     } else if (this.mode === 'eye') {
       const look = this.pad.takeLook();
       this.eyeYaw -= look.dx * LOOK;
-      this.eyePitch = Math.min(1.3, Math.max(-1.3, this.eyePitch + look.dy * LOOK));
+      // 観戦は三人称の範囲で止める。はみ出した分を溜めると、逆へ動かしても反応しなくなる
+      const [lo, hi] = this.watch ? [CAM_PITCH_MIN, CAM_PITCH_MAX] : [-1.3, 1.3];
+      this.eyePitch = Math.min(hi, Math.max(lo, this.eyePitch + look.dy * LOOK));
       // 壁際で跳ぶと張り付いてしまうので、ふつうの跳び上がりのときだけ通す
       const jump = this.#jump && wallNear(this.ghost, w.level) === null;
       if (!this.watch) step(this.ghost, { ...this.#input(this.eyeYaw), jump }, w.level, dt);
@@ -413,16 +416,7 @@ export class Play {
       w.follow(this.#focus(t, dt), this.camYaw, this.camPitch, 2.4, 60, dt, inside);
     } else if (this.mode === 'paint')
       w.follow(this.#focus(w.dollCenter(), dt), this.orbitYaw, this.orbitPitch, this.orbitDist, 60, dt, inside);
-    else if (this.watch)
-      w.follow(
-        this.watch,
-        this.eyeYaw,
-        Math.min(CAM_PITCH_MAX, Math.max(CAM_PITCH_MIN, this.eyePitch)),
-        2.4,
-        60,
-        dt,
-        this.watch
-      );
+    else if (this.watch) w.follow(this.watch, this.eyeYaw, this.eyePitch, 2.4, 60, dt, this.watch);
     else {
       const eye = EYE_HEIGHT - (this.crouch ? CROUCH : 0);
       w.eye([this.ghost.pos[0], this.ghost.pos[1] + eye, this.ghost.pos[2]], this.eyeYaw, this.eyePitch);

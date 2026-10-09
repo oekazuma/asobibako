@@ -3,11 +3,9 @@ import type { V3 } from '$lib/sculpt';
 import { gunModel, MUZZLE } from './gun';
 import type { World } from './world3d';
 
-/** 撃ったときに銃が跳ねて戻るまで */
 const KICK_SECS = 0.25;
 const REST: V3 = [0.17, -0.17, -0.38];
 
-/** ハンターの一人称の手と銃。画面の右下に白い丸い手と銃を出し、撃つと少し跳ねる */
 export class HunterView {
   readonly #world: World;
   readonly #gun = gunModel();

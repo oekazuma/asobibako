@@ -552,9 +552,49 @@ describe('Play の役', () => {
     vi.mocked(w.follow).mockClear();
     p.frame(1 / 60, 0);
     expect(vi.mocked(w.follow).mock.lastCall![0]).toEqual([3, 0.6, 2]);
+    // スティックを倒しても、見ている人のまわりを回るだけで足は動かない
+    const at = [...p.ghost.pos];
+    p.pointer('down', 3, 200, 300, 1000);
+    p.pointer('move', 3, 200, 100, 1000);
+    secs(p, 0.5);
+    p.pointer('up', 3, 200, 100, 1000);
+    expect(p.ghost.pos).toEqual(at);
     p.freeCam();
     vi.mocked(w.eye).mockClear();
     p.frame(1 / 60, 0);
     expect(w.eye).toHaveBeenCalled();
+  });
+
+  it('観戦で下へ大きく引いても、すぐ逆へ引けば向きが変わる', () => {
+    const w = fakeWorld();
+    const p = new Play(w, 70);
+    p.spectate();
+    p.watch = [3, 0.6, 2];
+    p.pointer('down', 1, 800, 300, 1000);
+    p.pointer('move', 1, 800, 300 + 800, 1000);
+    secs(p, 0.1);
+    p.pointer('move', 1, 800, 300 + 800 - 60, 1000);
+    secs(p, 0.1);
+    p.pointer('up', 1, 800, 300, 1000);
+    expect(vi.mocked(w.follow).mock.lastCall![2]).toBeCloseTo(1.2 - 0.3, 5);
+    p.freeCam();
+    expect(p.eyePitch).toBeLessThanOrEqual(1.2);
+  });
+
+  it('隠れる人でなければペイントモードに入れない', () => {
+    const p = new Play(fakeWorld(), 70);
+    p.hunt([0, 0, 0], 0);
+    p.togglePaint();
+    expect(p.mode).toBe('eye');
+  });
+
+  it('ペイントから観戦に入ると、見ていた向きを引き継ぎ、仰角は水平に戻す', () => {
+    const p = new Play(fakeWorld(), 70);
+    p.togglePaint();
+    p.orbitYaw = 1.1;
+    p.eyePitch = 0.9;
+    p.spectate();
+    expect(p.eyeYaw).toBe(1.1);
+    expect(p.eyePitch).toBe(0);
   });
 });
