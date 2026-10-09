@@ -112,7 +112,8 @@
     gap: 16px;
   }
 
-  button {
+  .go,
+  .solo {
     border: 2px solid rgb(255 255 255 / 0.85);
     border-radius: 18px;
     background: rgb(0 0 0 / 0.35);
