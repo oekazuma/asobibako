@@ -105,9 +105,12 @@ export function mergeStatic(root: THREE.Object3D, keep: (o: THREE.Object3D) => b
       map.rotation = 0;
       maps.set(image, map);
     }
+    // 属性の型や数がそろわないとまとめられず null が返るので、その組は元の Mesh のまま残す
+    const merged = mergeGeometries(geos);
+    if (!merged) continue;
     // clone は userData を JSON で写し、スポイトの画素（ImageData）を壊すので、値から作り直す
     const one = new THREE.Mesh(
-      mergeGeometries(geos)!,
+      merged,
       new THREE.MeshStandardMaterial({
         color: mat.color,
         emissive: mat.emissive,

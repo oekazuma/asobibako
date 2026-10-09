@@ -78,6 +78,16 @@ describe('mergeStatic', () => {
     expect(corner(5)[0]).toBeCloseTo(5);
   });
 
+  it('まとめられない組（uv の大きさが違う）は、元の Mesh のまま残す', () => {
+    const g = new THREE.Group();
+    const odd = new THREE.BoxGeometry();
+    odd.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(odd.attributes.uv.count * 3), 3));
+    const kept = [new THREE.Mesh(new THREE.BoxGeometry(), mat()), new THREE.Mesh(odd, mat())];
+    g.add(...kept);
+    mergeStatic(g, () => false);
+    expect(meshes(g)).toEqual(kept);
+  });
+
   it('面ごとに材質のある箱は、面を材質ごとに分けてまとめる', () => {
     const g = new THREE.Group();
     for (let i = 0; i < 2; i++) {
