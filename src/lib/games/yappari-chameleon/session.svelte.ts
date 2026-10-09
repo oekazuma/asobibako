@@ -165,6 +165,8 @@ export class Session {
 
   /** 試合の始めとロビーに戻ったとき。全員の塗りを白に戻し、しぶきを消す */
   #reset() {
+    // 描きかけの筆を先に切る。白に戻したあとで取り消しや続きの吹き付けが届くと、消した列が食い違う
+    this.play.interrupt();
     this.play.log.clear();
     this.play.rebuildPaint();
     this.play.canUndo = false;

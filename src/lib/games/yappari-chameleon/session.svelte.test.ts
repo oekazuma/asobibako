@@ -398,6 +398,20 @@ describe('Session の役の切り替え', () => {
     expect(me.pose).toBe(AIM.id);
   });
 
+  it('塗っている途中で試合が終わってロビーに戻っても、その指の続きは白に戻した体に塗らない', () => {
+    const { play, tell, frames } = setup();
+    tell(at('hide'));
+    play.togglePaint();
+    play.pointer('down', 1, 300, 300, 1000);
+    frames(0.2);
+    play.pointer('move', 1, 330, 300, 1000);
+    expect(play.log.dabs.length).toBeGreaterThan(0);
+    tell(at('lobby'));
+    play.pointer('move', 1, 360, 300, 1000);
+    play.pointer('up', 1, 360, 300, 1000);
+    expect(play.log.dabs).toHaveLength(0);
+  });
+
   it('ロビーに戻ると自分の塗りを白に戻し、相手の列も 0 から送り直す', () => {
     const { play, tell, frames, acts } = setup();
     tell(at('lobby'));
