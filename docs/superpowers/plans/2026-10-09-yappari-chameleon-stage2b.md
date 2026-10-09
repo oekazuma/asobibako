@@ -44,7 +44,7 @@
 2. 小物の種が 3D を作り終える前に届く。子は 3D を作るあいだの知らせを `Inbox` にためて Session へ渡すので、最初の様子でも種を当てる（フェーズの変わり目だけで当てると、戻った子と途中で来た子の小物と当たりが親とずれる）。親も種から当たりを作り直す。Task 10 の「始めると種から屋敷の当たりを作り直し」と、Task 12 の「3D を作るあいだに届いていた種も」で確かめる。
 3. 隠れる人が HUNTER の台の縁に半分だけ乗る。当たりの八角形の箱と体の円の重なりで台の上面に立てても、中心が円の外ならハンター希望にしない。跳んでいる最中は台の上なら希望のまま（希望が跳ぶたびに切り替わると、様子が毎フレーム配られる）。Task 5 の「台の縁に半分だけ乗った人」と「跳んでいる最中も」で確かめる。
 4. ハンターが三人称のあいだの見落としポイント。親は three を持たず、三人称のカメラは目より 2.4m 後ろにある。ハンターは動き（`me`）にカメラの位置（`eye`）を載せ、親はそこから視野と遮りを見る。目の位置で見ると、ハンターの背中と三人称のカメラのあいだにいる人に点が入らない。Task 10 の「三人称のハンターは、カメラの位置から見る」で確かめる。
-5. 壁や天井に張り付いたままポーズを取る。張り付きの置き方は体を面に付けるので、ポーズによっては胴や頭の真ん中が張り付いた面の箱へ入る。張り付いた体は、張り付いた面から部屋と逆の向きへ 0.1m 以上入ったときだけ埋まりにする（面にぴったり付けただけのポーズは警告せず、壁の中に隠れるのは止める）。scratch で測った深さは、壁でしゃがむ 0.026m、丸まる 0.24m・前屈 0.279m・寝そべる 0.425m、天井で反る 0.188m・ブリッジ 0.39m、天井で丸まるは −0.164m（面より手前）。Task 4 の「張り付いた面から 0.1m 未満なら」と「0.1m 以上入ると埋まる」で確かめる。
+5. 壁や天井に張り付いたままポーズを取る。2a の置き方は体を面に付けるだけで、丸まる・前屈・寝そべる（壁）と反る・ブリッジ（天井）では体が面の中へ 0.19〜0.43m 入り、見た目にも壁に沈み、埋まりの警告も出る。`placement()` が張り付いた体をポーズごとの深さ（`sink`）だけ部屋の側へ離し、見た目・当たり・判定を同じ置き方にする。押し込まれた体だけは、張り付いた面から 0.1m 以上で埋まりにする。Task 4 の「どのポーズで壁や天井に張り付いても」「壁や天井に張り付いた体は、どのポーズでも埋まらない」「0.15m 奥へ入ると埋まる」で確かめる。
 
 ---
 
@@ -57,6 +57,7 @@
 | `yappari-chameleon/Reveal.svelte`                                                                                           | 勝者の言葉を受け取る                                                                                                     | 1              |
 | `yappari-chameleon/prefs.ts`                                                                                                | 見逃しランキングの設定を読む                                                                                             | 2              |
 | `yappari-chameleon/oversight.ts`                                                                                            | 見落としポイントの視野・遮り・距離・動き                                                                                 | 3              |
+| `yappari-chameleon/shots.ts`                                                                                                | 張り付いた体をポーズごとの深さ（`sink`）だけ面から離す置き方                                                             | 4              |
 | `yappari-chameleon/embed.ts`                                                                                                | 埋まりの判定                                                                                                             | 4              |
 | `yappari-chameleon/mansion/lobby.ts`                                                                                        | ロビーの部屋・台・台の当たり・席ごとの場所・台の上の判定                                                                 | 5              |
 | `yappari-chameleon/mansion/layout.ts`                                                                                       | 材質と家具の種類・戸口・部屋の名前・`mansion(seed)`                                                                      | 5, 6, 7, 8     |
@@ -64,7 +65,7 @@
 | `yappari-chameleon/mansion/shapes.ts`                                                                                       | 家具の部品（箱・筒・球・板）と色                                                                                         | 5              |
 | `yappari-chameleon/mansion/room-furniture.ts`                                                                               | 台・水色の台と 3 部屋の家具の形                                                                                          | 5, 7           |
 | `yappari-chameleon/mansion/build.ts`                                                                                        | 面の裏の材質・台の光・小物を動かす・額の絵を差し替える                                                                   | 5, 6, 8        |
-| `yappari-chameleon/world3d.ts`                                                                                              | 台の光・小物の置き直し・日の影の範囲・三人称の体の銃                                                                     | 5, 6, 8, 13    |
+| `yappari-chameleon/world3d.ts`                                                                                              | 張り付いた体の置き方と面の赤い輪・台の光・小物の置き直し・日の影の範囲・三人称の体の銃                                   | 4, 5, 6, 8, 13 |
 | `yappari-chameleon/mansion/rooms.ts`                                                                                        | 書斎・キッチン・ランドリーの並びと当たり・戸口の通り道・明かり                                                           | 6, 7           |
 | `yappari-chameleon/rng.ts`                                                                                                  | 種から作る乱数（`textures.ts` から移す）                                                                                 | 8              |
 | `yappari-chameleon/mansion/props.ts`                                                                                        | 動く物と置き場所の候補・種から選ぶ置き方・額の絵柄                                                                       | 8              |
@@ -72,7 +73,7 @@
 | `yappari-chameleon/host.ts`                                                                                                 | 台の上の人・種の当たり・ダブルの残した体と的・ええやん・埋まり・見落としポイント・答え合わせの場所                       | 10             |
 | `yappari-chameleon/Yappari.svelte`                                                                                          | 審判に種から当たりを作る口を渡す                                                                                         | 10             |
 | `yappari-chameleon/session.svelte.ts`                                                                                       | 種で小物を動かす・ロビーの席・ダブルの残した体・台の光・三人称・ええやん・埋まりの印と警告                               | 10, 12, 13, 14 |
-| `yappari-chameleon/play.svelte.ts`                                                                                          | ハンターの三人称のカメラ                                                                                                 | 13             |
+| `yappari-chameleon/play.svelte.ts`                                                                                          | 人形にポーズを渡す・ハンターの三人称のカメラ                                                                             | 4, 13          |
 | `yappari-chameleon/markers.ts`                                                                                              | 埋まりすぎた人の赤い下向きの矢印                                                                                         | 14             |
 | `Hud.svelte`・`Intro.svelte`・`Settings.svelte`・`Plates.svelte`・`TopButtons.svelte`・`Ranking.svelte`・`src/lib/icons.ts` | ダブルの HUD と順位表・マゼンタの紹介・設定のダブルと見逃しランキング・札のええやんの数・親指のアイコン                  | 12, 15         |
 | `Overlooked.svelte`・`Spotted.svelte`・`Iine.svelte`・`EmbedWarning.svelte`・`HunterButtons.svelte`・`Overlay.svelte`       | 見落とした敵・見落とされた場所・ええやんの一覧・埋まりの警告・三人称のボタン                                             | 16             |
@@ -946,29 +947,88 @@ git commit -m "Measure the hunter's view cone, line of sight and stillness for o
 
 ---
 
-### Task 4: 埋まりすぎの判定
+### Task 4: 張り付いた体を面から離し、埋まりすぎを判定する
 
 **Files:**
 
+- Modify: `src/lib/games/yappari-chameleon/shots.ts`（`Placeable.pose` と `sink`、張り付いた体を面から離す）
+- Modify: `src/lib/games/yappari-chameleon/world3d.ts`（`placeDoll` がポーズを受け、壁の赤い輪は面に残す）
+- Modify: `src/lib/games/yappari-chameleon/play.svelte.ts`（`placeDoll` に今のポーズを渡す）
 - Create: `src/lib/games/yappari-chameleon/embed.ts`
-- Test: `src/lib/games/yappari-chameleon/embed.test.ts`
+- Test: `src/lib/games/yappari-chameleon/shots.test.ts`、`src/lib/games/yappari-chameleon/embed.test.ts`
 
 **Interfaces:**
 
-- Consumes: `shots.ts` の `capsules`・`placement`、`poses.ts` の `poseById`。
-- Produces: `embedded(lv: Level, b: Pick<Me, 'pos' | 'yaw' | 'cling' | 'pose'>): boolean`、`CLING_DEPTH = 0.1`。
+- Consumes: `shots.ts` の `capsules`・`frames`、`poses.ts` の `poseById`、`move.ts` の `RADIUS`。
+- Produces: `Placeable.pose?: string`（ポーズの ID。`Me` と、`{ ...Body, pose }` を渡す）、`sink(pose: Pose, kind: Cling['kind']): number`（張り付いたとき、そのポーズの当たりのカプセルの面が張り付いた面の奥へ出るいちばん深い所。0 以上、ポーズと面の種類ごとに控える）、`placement(b)` は張り付いた体を部屋の側へ `sink` だけ離す。`World.placeDoll(b: Body & { pose?: string })`。`embedded(lv, b): boolean`、`CLING_DEPTH = 0.1`。
 
-頭の中心と、胴の 3 つの円すいの軸の真ん中のどれかが、屋敷の箱（家具を含む `Level.boxes`）の中にあれば埋まっている。張り付いている体は、箱の中に入った点の深さを、張り付いた面の部屋の側の向き（壁は `cling.nx`・`nz`、天井は下向き）で箱のふちから測り、0.1m 以上なら埋まっている（Review Focus 5）。張り付きの置き方は体を面に付けるので、面に触れているだけの点は数えない。
+2a の張り付きの置き方は体を面に付けるだけで、ポーズによっては体が面の中へ入る（scratch で測ると、カプセルの軸の真ん中で壁の丸まる 0.24m・前屈 0.279m・寝そべる 0.425m、天井の反る 0.188m・ブリッジ 0.39m）。遊べるポーズで体が見た目にも壁に入り、埋まりの警告も出てしまうので、置き方の方で直す。`placement()` は人形の 3D（world3d の `placeRoot`）・親の当たり（`host.ts`）・ほかの人の体（`remote.ts`）・見落としポイント（`oversight.ts`）・埋まり（`embed.ts`）がみな使うので、見た目と当たりは同じまま動く。離すのは描く根元と当たりの形だけで、`Body.pos` は変えない（動き・カメラ・張り付きの計算は今のまま）。ポーズの切り替えの 0.25 秒も、当たりと同じく行き先のポーズの深さを使う（`Play.pose` と `Me.pose` はどちらも行き先のポーズ）。
+
+深さはカプセルの面で測るので、当たりのカプセルの半径（太い側の半径、胴は前後につぶさない）のぶん、立って張り付いた体も 2a より 0.055m 面から離れる。壁の深さは、張り付いた体がいつも面を向く（`move.ts` の `step` が張り付くときに yaw を面へ向け、壁ではその場で回れない）ので、面の向きに対して決まった置き方で 1 度だけ測る。天井は yaw で深さが変わらない。
+
+埋まりは、頭の中心と、胴の 3 つの円すいの軸の真ん中のどれかが、屋敷の箱（家具を含む `Level.boxes`）の中にあれば埋まっている。張り付いている体は、箱の中に入った点の深さを、張り付いた面の部屋の側の向き（壁は `cling.nx`・`nz`、天井は下向き）で箱のふちから測り、0.1m 以上なら埋まっている（Review Focus 5）。面から離したあとの体は、張り付いた面にカプセルが入らないので、押し込まれた体だけが埋まりになる。
 
 - [ ] **Step 1: 落ちるテストを書く**
+
+`shots.test.ts` の import を `import { capsules, fire, frames, placement, rayCapsule, rayLevel, rays, sink, SPREAD, type Target } from './shots';` にし、`import { RADIUS } from './move';` と `import type { Cling } from './move';` を足す（`move` の import がすでにあれば、同じ行に並べる）。`describe('frames', ...)` の下に足す。
+
+```ts
+describe('張り付いた体の置き方', () => {
+  const ALL = [STAND, AIM, ...POSES];
+  const wall: Cling = { kind: 'wall', nx: 0, nz: -1 };
+  const dot = (a: V3, b: V3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  /** 張り付いた面（部屋の側の向き n、面の上の点 s）の奥へ、カプセルの面がいちばん深く出た長さ */
+  const past = (pose: Pose, b: { pos: V3; yaw: number; cling: Cling; pose?: string }, n: V3, s: V3) =>
+    Math.max(
+      0,
+      ...capsules(pose, placement(b)).flatMap((c) =>
+        [c.a, c.b].map((q) => c.r - dot([q[0] - s[0], q[1] - s[1], q[2] - s[2]], n))
+      )
+    );
+
+  it('どのポーズで壁や天井に張り付いても、当たりのカプセルは張り付いた面から 0.01m より奥へ出ない', () => {
+    for (const pose of ALL) {
+      // 壁は z = 5 の面で、体は面から RADIUS 手前に立つ。天井は y = 3
+      const w = past(pose, { pos: [0, 0.8, 5 - RADIUS], yaw: 0, cling: wall, pose: pose.id }, [0, 0, -1], [0, 0, 5]);
+      const c = past(
+        pose,
+        { pos: [0, 3, 0], yaw: 1.2, cling: { kind: 'ceiling' }, pose: pose.id },
+        [0, -1, 0],
+        [0, 3, 0]
+      );
+      expect(w, `壁 ${pose.id}`).toBeLessThanOrEqual(0.01);
+      expect(c, `天井 ${pose.id}`).toBeLessThanOrEqual(0.01);
+    }
+  });
+
+  it('離すのは張り付いた体の根元だけで、床の体とポーズの無い置き方と、渡した pos は変えない', () => {
+    const lie = poseById('lie');
+    const pos: V3 = [0, 0.8, 4.8];
+    expect(placement({ pos: [1, 0, 2], yaw: 0.5, cling: null, pose: 'lie' })).toEqual(
+      placement({ pos: [1, 0, 2], yaw: 0.5, cling: null })
+    );
+    const moved = placement({ pos, yaw: 0, cling: wall, pose: 'lie' });
+    const plain = placement({ pos, yaw: 0, cling: wall });
+    expect(plain.at[2] - moved.at[2]).toBeCloseTo(sink(lie, 'wall'), 6);
+    expect(pos).toEqual([0, 0.8, 4.8]);
+    expect(sink(lie, 'wall')).toBe(sink(lie, 'wall'));
+    expect(sink(STAND, 'ceiling')).toBeGreaterThanOrEqual(0);
+  });
+});
+```
+
+（import に `type Pose` と `poseById` が無ければ `import { AIM, poseById, POSES, STAND, type Pose } from './poses';` にする。）
 
 `src/lib/games/yappari-chameleon/embed.test.ts`:
 
 ```ts
 import { describe, expect, it } from 'vitest';
-import type { Cling, Level } from './move';
+import type { V3 } from '$lib/sculpt';
 import { embedded } from './embed';
+import type { Cling, Level } from './move';
 import { AIM, POSES, STAND } from './poses';
+import { capsules, placement } from './shots';
+import { poseById } from './poses';
 
 // 床（y = 0）・奥の壁（z = 5〜5.3）・天井（y = 3）・ソファくらいの箱
 const level: Level = {
@@ -982,12 +1042,9 @@ const level: Level = {
   spawn: [0, 0, 0]
 };
 const ALL = [STAND, AIM, ...POSES];
-const at = (pos: [number, number, number], pose: string, yaw = 0, cling: Cling | null = null) => ({
-  pos,
-  yaw,
-  cling,
-  pose
-});
+const wall: Cling = { kind: 'wall', nx: 0, nz: -1 };
+const ceiling: Cling = { kind: 'ceiling' };
+const at = (pos: V3, pose: string, yaw = 0, cling: Cling | null = null) => ({ pos, yaw, cling, pose });
 
 describe('埋まりすぎ', () => {
   it('部屋のまん中では、どのポーズでも埋まらない', () => {
@@ -1004,31 +1061,125 @@ describe('埋まりすぎ', () => {
     expect(embedded(level, at([-5, 0, 0], 'stand'))).toBe(true);
   });
 
-  const wall: Cling = { kind: 'wall', nx: 0, nz: -1 };
-  const ceiling: Cling = { kind: 'ceiling' };
-
-  it('張り付いた体は、張り付いた面から 0.1m 未満なら埋まりに数えない（天井で丸まるも）', () => {
-    for (const id of ['stand', 'aim', 'crouch', 'cross', 't', 'one-leg', 'lean', 'split', 'eagle'])
-      expect(embedded(level, at([0, 0.8, 4.8], id, 0, wall)), `壁 ${id}`).toBe(false);
-    for (const id of ['stand', 'curl', 'lie', 'crouch', 'cross', 'bend', 'eagle'])
-      expect(embedded(level, at([0, 3, 0], id, 1.2, ceiling)), `天井 ${id}`).toBe(false);
+  it('壁や天井に張り付いた体は、どのポーズでも埋まらない（壁で丸まる・前屈・寝そべる、天井で反る・ブリッジ・丸まるも）', () => {
+    for (const p of ALL) {
+      expect(embedded(level, at([0, 0.8, 4.8], p.id, 0, wall)), `壁 ${p.id}`).toBe(false);
+      expect(embedded(level, at([0, 3, 0], p.id, 1.2, ceiling)), `天井 ${p.id}`).toBe(false);
+    }
   });
 
-  it('張り付いた面から 0.1m 以上入ると埋まる（0.15m 押し込んだ体・壁で寝そべる・天井でブリッジ）', () => {
-    // 立って張り付いた胴の真ん中は壁の面から 0.12m 手前。0.27m 押し込むと 0.15m 奥になる
-    expect(embedded(level, at([0, 0.8, 4.8 + 0.27], 'stand', 0, wall))).toBe(true);
-    expect(embedded(level, at([0, 0.8, 4.8], 'lie', 0, wall))).toBe(true);
-    expect(embedded(level, at([0, 3, 0], 'bridge', 1.2, ceiling))).toBe(true);
+  it('張り付いたまま壁の中へ押し込まれ、胴の軸の真ん中が面から 0.15m 奥へ入ると埋まる', () => {
+    const mids = (z: number) =>
+      capsules(poseById('stand'), placement({ pos: [0, 0.8, z], yaw: 0, cling: wall, pose: 'stand' }))
+        .slice(1, 4)
+        .map((c) => (c.a[2] + c.b[2]) / 2);
+    // 正しく張り付いた体の胴の真ん中から、面（z = 5）の 0.15m 奥まで押し込む
+    const pushed = 4.8 + (5.15 - Math.max(...mids(4.8)));
+    expect(Math.max(...mids(pushed))).toBeCloseTo(5.15, 6);
+    expect(embedded(level, at([0, 0.8, pushed], 'stand', 0, wall))).toBe(true);
+    expect(embedded(level, at([0, 0.8, pushed - 0.1], 'stand', 0, wall))).toBe(false);
   });
 });
 ```
 
 - [ ] **Step 2: 落ちることを確かめる**
 
-Run: `pnpm vitest run src/lib/games/yappari-chameleon/embed.test.ts`
-Expected: FAIL（`./embed` が無い）。
+Run: `pnpm vitest run src/lib/games/yappari-chameleon/shots.test.ts src/lib/games/yappari-chameleon/embed.test.ts`
+Expected: FAIL（`sink` と `./embed` が無い）。
 
-- [ ] **Step 3: 書く**
+- [ ] **Step 3: 張り付いた体を面から離す**
+
+`shots.ts` の import の `import type { Pose } from './poses';` を `import { poseById, type Pose } from './poses';` にし、`Placeable` と `placement` を次にする。
+
+```ts
+/** Body と、ほかの人から届いた体の様子（net.ts の Me）のどちらも渡せる */
+export interface Placeable {
+  pos: V3;
+  yaw: number;
+  cling: Cling | null;
+  /** ポーズの ID。張り付いた体を、そのポーズの当たりが張り付いた面の奥へ出ない所まで面から離す */
+  pose?: string;
+}
+
+function basePlacement(b: Placeable): Placement {
+  const [x, y, z] = b.pos;
+  if (b.cling?.kind === 'wall') {
+    const k = RADIUS - HALF_DEPTH;
+    return { at: [x - b.cling.nx * k, y, z - b.cling.nz * k], yaw: b.yaw, tilt: 0 };
+  }
+  // 背中を天井に付け、前を下へ向ける
+  if (b.cling?.kind === 'ceiling') return { at: [x, y - HALF_DEPTH, z], yaw: b.yaw, tilt: Math.PI / 2 };
+  return { at: [x, y, z], yaw: b.yaw, tilt: 0 };
+}
+
+/**
+ * 体の根元の置き方。張り付いた体は、ポーズで面の中へ入らないよう部屋の側へ sink だけ離す。人形の 3D・親の当たり・
+ * ほかの人の体・見落としと埋まりの判定がみなここを通るので、見た目と当たりはそろう。Body.pos は変えない
+ */
+export function placement(b: Placeable): Placement {
+  const p = basePlacement(b);
+  if (!b.cling || !b.pose) return p;
+  const d = sink(poseById(b.pose), b.cling.kind);
+  const n: V3 = b.cling.kind === 'wall' ? [b.cling.nx, 0, b.cling.nz] : [0, -1, 0];
+  return { ...p, at: [p.at[0] + n[0] * d, p.at[1] + n[1] * d, p.at[2] + n[2] * d] };
+}
+
+const SINK = new Map<string, number>();
+
+/**
+ * 張り付いたとき、ポーズの当たりのカプセルの面が張り付いた面の奥へ出るいちばん深い所（0 以上）。
+ * 壁の体はいつも面を向き（張り付くときに yaw を面へ向け、壁ではその場で回れない）、天井は yaw で深さが変わらないので、
+ * 決まった置き方で 1 度だけ測って控える
+ */
+export function sink(pose: Pose, kind: Cling['kind']): number {
+  const key = `${pose.id}:${kind}`;
+  const known = SINK.get(key);
+  if (known !== undefined) return known;
+  const isWall = kind === 'wall';
+  const base = basePlacement({
+    pos: [0, 0, 0],
+    yaw: 0,
+    cling: isWall ? { kind: 'wall', nx: 0, nz: -1 } : { kind: 'ceiling' }
+  });
+  // 部屋の側の向きと、張り付いた面の上の点（壁は体の中心から RADIUS 先、天井は体の高さ）
+  const n: V3 = isWall ? [0, 0, -1] : [0, -1, 0];
+  const s: V3 = isWall ? [0, 0, RADIUS] : [0, 0, 0];
+  let d = 0;
+  for (const c of capsules(pose, base)) for (const q of [c.a, c.b]) d = Math.max(d, c.r - dot(sub(q, s), n));
+  SINK.set(key, d);
+  return d;
+}
+```
+
+（`sub` と `dot` は同じファイルの下で定義している。`capsules` と `sink` は関数の宣言なので、上下の順は問わない。`SHAPES` を使う `capsules` を `sink` が初めて呼ぶのは、モジュールを読み終えたあと。）
+
+- [ ] **Step 4: 人形の 3D にポーズを渡す**
+
+`world3d.ts` の `placeDoll` を次にする（壁の赤い輪は、体を離しても張り付いた面に残す）。
+
+```ts
+  placeDoll(b: Body & { pose?: string }): void {
+    const root = this.rig.root;
+    placeRoot(root, b);
+    const ring = this.#ring;
+    ring.visible = !!b.cling;
+    if (b.cling?.kind === 'wall') {
+      // ポーズで面から離した根元ではなく、面にぴったり付けたときの位置に出す
+      const [x, , z] = placement({ pos: b.pos, yaw: b.yaw, cling: b.cling }).at;
+      ring.position.set(x, b.pos[1] + 0.58, z);
+      ring.lookAt(ring.position.x + b.cling.nx, ring.position.y, ring.position.z + b.cling.nz);
+    } else if (b.cling?.kind === 'ceiling') {
+      // 天井では体が横たわるので、輪は足もとではなく体の真ん中に置く
+      const mid = root.localToWorld(new THREE.Vector3(0, 0.58, 0));
+      ring.position.set(mid.x, b.pos[1] - 0.02, mid.z);
+      ring.lookAt(mid.x, b.pos[1] - 1, mid.z);
+    }
+  }
+```
+
+`play.svelte.ts` の `frame` の `w.placeDoll(this.body);` を `w.placeDoll({ ...this.body, pose: this.pose });` にする（`Play.pose` は切り替えの行き先のポーズなので、当たりと同じ深さを使う）。
+
+- [ ] **Step 5: 埋まりを書く**
 
 `src/lib/games/yappari-chameleon/embed.ts`:
 
@@ -1039,11 +1190,11 @@ import type { Me } from './net';
 import { poseById } from './poses';
 import { capsules, placement } from './shots';
 
-const inside = (p: V3, b: Box) =>
-  p[0] > b.min[0] && p[0] < b.max[0] && p[1] > b.min[1] && p[1] < b.max[1] && p[2] > b.min[2] && p[2] < b.max[2];
-
 /** 張り付いた体が、張り付いた面からこの深さ以上入ったら埋まっている（m） */
 export const CLING_DEPTH = 0.1;
+
+const inside = (p: V3, b: Box) =>
+  p[0] > b.min[0] && p[0] < b.max[0] && p[1] > b.min[1] && p[1] < b.max[1] && p[2] > b.min[2] && p[2] < b.max[2];
 
 /** p が箱のふちから、部屋の側の向き n と逆へ入った深さ（n のいちばん大きい軸で測る） */
 function depthIn(p: V3, box: Box, n: V3): number {
@@ -1053,8 +1204,7 @@ function depthIn(p: V3, box: Box, n: V3): number {
 
 /**
  * 体が物に深く埋まっている。頭の中心か、胴の 3 つの円すいの軸の真ん中が、家具まで含めた屋敷の箱の中にある。
- * 張り付きは体を面に付ける置き方で、ポーズによっては胴が面の箱へ少し入るので、張り付いた体は面から CLING_DEPTH 以上
- * 入ったときだけ埋まりにする（壁の中に隠れるのは止める）
+ * 張り付いた体は面に触れているので、張り付いた面から CLING_DEPTH 以上入ったときだけ埋まりにする
  */
 export function embedded(lv: Level, b: Pick<Me, 'pos' | 'yaw' | 'cling' | 'pose'>): boolean {
   const c = capsules(poseById(b.pose), placement(b));
@@ -1069,19 +1219,19 @@ export function embedded(lv: Level, b: Pick<Me, 'pos' | 'yaw' | 'cling' | 'pose'
 }
 ```
 
-- [ ] **Step 4: 通ることを確かめる**
+- [ ] **Step 6: 通ることを確かめる**
 
-Run: `pnpm vitest run src/lib/games/yappari-chameleon/embed.test.ts`
-Expected: PASS。
+Run: `pnpm vitest run src/lib/games/yappari-chameleon`
+Expected: PASS（`shots.test.ts` の「骨の置き方は、three の骨と同じ所に来る」はポーズの ID を渡さない置き方で比べるので今のまま通る。「壁や天井に張り付いた体にも当たる」も、ポーズを渡さないので 2a の置き方で通る。move.test.ts と play.svelte.test.ts の張り付きのテストは `Body.pos` を見るので変わらない）。
 
-- [ ] **Step 5: 全体を通してコミットする**
+- [ ] **Step 7: 全体を通してコミットする**
 
 Run: `pnpm format && pnpm lint && pnpm check && pnpm test:run`
 Expected: PASS。
 
 ```bash
 git add src/lib/games/yappari-chameleon
-git commit -m "Tell when a hider's head or torso sits inside the mansion's boxes"
+git commit -m "Keep clinging poses out of their surface and tell when a body sits too deep in the mansion"
 ```
 
 ---
@@ -4525,7 +4675,7 @@ if (tps) {
   const want = this.crouch ? 'crouch' : AIM.id;
   if (this.pose !== want) this.setPose(want);
 }
-w.placeDoll(tps ? { ...this.ghost, yaw: this.eyeYaw } : this.body);
+w.placeDoll(tps ? { ...this.ghost, yaw: this.eyeYaw, pose: this.pose } : { ...this.body, pose: this.pose });
 ```
 
 カメラの分かれ道の `else if (this.watch) w.follow(...);` の下に足す。
@@ -5944,7 +6094,7 @@ git commit -m "Merge the mansion's static meshes by material to keep draw calls 
 `人は席の番号で「プレイヤー1」〜「プレイヤー3」と呼び、ロビーと答え合わせだけ頭の上に札（`Plates.svelte`）を出す。` を `人は席の番号で「プレイヤー1」〜「プレイヤー3」と呼び、ロビーと答え合わせだけ頭の上に札（`Plates.svelte`。答え合わせではええやんの親指と数）を出す。` にし、その下に足す。
 
 ```markdown
-ダブルは全員が隠れてから全員が探す人になり、隠れた体はその場に残す（`referee.ts` の `caught` と `spot`。最初にほかの全員の体を見つけた人の勝ち、時間切れは見つけた数の多い人、同じ数なら先に届いた人、誰も見つけていなければ勝者なし。抜けても探す人のまま）。親は探索に入るとき全員の体とそのときの塗りの列を控え、様子より先に `left` で配り（持ち主は探索の様子を受けると白い体になるので、その前に写させる）、戻った子へは `left` と `leftDabs` で送り直す。残した体は答え合わせの体と同じ `Session` の `#pins` に置き、見つけた人の画面からだけ消し、答え合わせでは誰かに見つかった体を青、まだの体を赤で光らせる。紹介のモード名はマゼンタ、探索の言葉は全員「全員を見つけよう」、上の人形は全員が赤、HUD の左に順位表（`Ranking.svelte`）。見落としポイントは、親が探索のあいだ毎フレーム、ハンターの今のカメラの位置（`Me.eye`。三人称なら体の後ろのカメラ）から、隠れる人の胴の真ん中か頭が縦 72 度・横の半角 52 度の視野に入り、屋敷の箱に遮られず、直前 0.2 秒に 0.05m 未満しか動かず、15m 以内のとき、1 秒に `10 × (1 − 距離 / 15)` 点を足す（`oversight.ts`。ダブルでは残した体）。点は毎フレーム増えるので様子の変わり目には数えず、1 秒ごとの送り直しで配る。マップの設定の「ハンターに見逃しランキングを表示」がオンなら、ハンターの左に「見落とした敵」（`Overlooked.svelte`、隠せる）を出し、答え合わせでは「見落とされた場所」（`Spotted.svelte`。点と、いた部屋の名前は `layout.ts` の `placeOf`）を出す。ええやんは答え合わせのあいだ、隠れた人の自分以外へ 1 試合 1 回（右の一覧 `Iine.svelte`、数は親が数える。通算は持たない）。埋まりすぎは、体の頭か胴の 3 つの円すいの軸の真ん中が屋敷の箱の中にあるとき（`embed.ts`。張り付いた体は、張り付いた面から 0.1m 以上入ったときだけ）で、親が隠れタイムと探索のあいだだけ時計を持ち、本人の画面の中央に警告（`EmbedWarning.svelte`）、5 秒でハンターの画面にその人の頭の上の赤い下向きの矢印（`markers.ts`。深さを見ずに描いて壁を透かす）を出す。
+ダブルは全員が隠れてから全員が探す人になり、隠れた体はその場に残す（`referee.ts` の `caught` と `spot`。最初にほかの全員の体を見つけた人の勝ち、時間切れは見つけた数の多い人、同じ数なら先に届いた人、誰も見つけていなければ勝者なし。抜けても探す人のまま）。親は探索に入るとき全員の体とそのときの塗りの列を控え、様子より先に `left` で配り（持ち主は探索の様子を受けると白い体になるので、その前に写させる）、戻った子へは `left` と `leftDabs` で送り直す。残した体は答え合わせの体と同じ `Session` の `#pins` に置き、見つけた人の画面からだけ消し、答え合わせでは誰かに見つかった体を青、まだの体を赤で光らせる。紹介のモード名はマゼンタ、探索の言葉は全員「全員を見つけよう」、上の人形は全員が赤、HUD の左に順位表（`Ranking.svelte`）。見落としポイントは、親が探索のあいだ毎フレーム、ハンターの今のカメラの位置（`Me.eye`。三人称なら体の後ろのカメラ）から、隠れる人の胴の真ん中か頭が縦 72 度・横の半角 52 度の視野に入り、屋敷の箱に遮られず、直前 0.2 秒に 0.05m 未満しか動かず、15m 以内のとき、1 秒に `10 × (1 − 距離 / 15)` 点を足す（`oversight.ts`。ダブルでは残した体）。点は毎フレーム増えるので様子の変わり目には数えず、1 秒ごとの送り直しで配る。マップの設定の「ハンターに見逃しランキングを表示」がオンなら、ハンターの左に「見落とした敵」（`Overlooked.svelte`、隠せる）を出し、答え合わせでは「見落とされた場所」（`Spotted.svelte`。点と、いた部屋の名前は `layout.ts` の `placeOf`）を出す。ええやんは答え合わせのあいだ、隠れた人の自分以外へ 1 試合 1 回（右の一覧 `Iine.svelte`、数は親が数える。通算は持たない）。埋まりすぎは、体の頭か胴の 3 つの円すいの軸の真ん中が屋敷の箱の中にあるとき（`embed.ts`。張り付いた体は `shots.ts` の `placement` がポーズごとの深さ `sink` だけ面から離して置くので、押し込まれて張り付いた面から 0.1m 以上入ったときだけ）で、親が隠れタイムと探索のあいだだけ時計を持ち、本人の画面の中央に警告（`EmbedWarning.svelte`）、5 秒でハンターの画面にその人の頭の上の赤い下向きの矢印（`markers.ts`。深さを見ずに描いて壁を透かす）を出す。
 ```
 
 `口笛は吹いた人の向きと距離に合わせて `PannerNode` で鳴らす（`sounds.ts`）。効果音だけで声は無い。` を次にする。
@@ -6329,7 +6479,7 @@ git commit -m "Tune the third-person camera and markers after the three-device r
 | 見落としポイント   | 2（足し算）、3（視野・遮り・動き・距離）、10（毎フレーム親が足し、1 秒ごとに配る）、11（一覧の並び）、15（設定）、16（見落とした敵・見落とされた場所）               |
 | ええやん           | 2（1 試合 1 回）、10（act）、14（送る・札の数）、15（親指のアイコン・札）、16（右の一覧）                                                                            |
 | ハンターの三人称   | 10（`Me.eye`）、13（カメラ・自分の体の銃・筋の始まり）、16（TPS視点・FPS視点のボタン）                                                                               |
-| 埋まりすぎの警告   | 2（時計）、4（判定）、10（親が数える）、14（印と警告の口）、16（警告の字）                                                                                           |
+| 埋まりすぎの警告   | 2（時計）、4（張り付いた体を面から離す・判定）、10（親が数える）、14（印と警告の口）、16（警告の字）                                                                 |
 | BGM                | 17                                                                                                                                                                   |
 | 通信で変わるもの   | 10（`phase` の中身・`iine`・`wish` をなくす・`shot` は今のままカメラの位置から）、12・14（受ける側）                                                                 |
 | 仕組み             | ファイルの地図のとおり（`embed.ts`・`oversight.ts`・`props.ts`・`mansion/lobby.ts`・`mansion/rooms.ts`・`songs.ts`・`bgm.ts`）                                       |
@@ -6338,29 +6488,29 @@ git commit -m "Tune the third-person camera and markers after the three-device r
 
 ### このプランで決めたこと
 
-| 決めたこと                                                                                                                                       | 理由                                                                                                                                                                   |
-| ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 張り付いた体は、張り付いた面から 0.1m 以上入ったときだけ埋まりにする                                                                             | 面に付けただけのポーズは警告せず、壁や天井の中に隠れるのは止める。壁で丸まる・前屈・寝そべる、天井で反る・ブリッジは 0.1m を超えるので、張り付いたまま取ると警告が出る |
-| ダブルの探す人は切れても役を残す（2a の通常と増え鬼のハンターは観戦になる）                                                                      | 全員が探す人で、戻った子が見つけた数を持ったまま探し続けられるように                                                                                                   |
-| 小物は 3D を作り直さず、全部作っておいて位置と向きだけ動かす。動く物の数は種によらず同じ                                                         | 紹介の 3 秒に形・材質・シェーダーを作らない。額の絵は 4 枚の材質を先に作り、透かしのシェーダーも先に当てる                                                             |
-| テーブルと椅子は 1 組で動く                                                                                                                      | 椅子だけ離れて置かれると、部屋の並びとして不自然                                                                                                                       |
-| 部屋の寸法は、書斎 x 7.3〜17.3・z 1〜11・高さ 4m、キッチン x −21〜−11・z 7.05〜15.05・高さ 3.5m、ランドリー x −20〜−10・z −5.05〜2.95・高さ 3.5m | 仕様の 8〜10m 四方・高さ 3.5〜4m の中で、廊下の天井（3.5m）とそろえ、戸口の位置で廊下の飾りを避ける                                                                    |
-| 点光源は新しい部屋とロビーに 1 個ずつ（全部で 13）                                                                                               | 仕様の 1〜2 個の下限。点光源はどの材質の画素にも効くので、2a の 9 から増やしすぎない                                                                                   |
-| ロビーと控室は日の影の外                                                                                                                         | 1 枚の影の範囲を屋敷（x −24〜18、z −7〜17）に絞って細かさを保つ                                                                                                        |
-| 台の上は、跳んでいる最中も希望のまま                                                                                                             | 跳ぶたびに希望が切り替わると、様子を毎フレーム配ってしまう                                                                                                             |
-| ダブルでは強制挑発の時計を持たない                                                                                                               | 探索のあいだ全員が探す人で、吹く隠れる人がいない                                                                                                                       |
-| 三人称の見る点は体の右肩の上（右へ 0.45m、高さ 1.2m）。透かし窓は使わない                                                                        | 十字が自分の体に隠れないように。透かすとハンターが物の向こうを見られる                                                                                                 |
-| 三人称の見落としポイントもカメラの位置（`Me.eye`）から縦 72 度・横の半角 52 度で測る                                                             | 仕様の視野の数で、親は three を持たない。三人称の画角 60 には合わせない                                                                                                |
-| 見落としポイントは様子の変わり目に数えず、1 秒ごとの送り直しで配る                                                                               | 毎フレーム増えるので、数えると毎フレーム配ってしまう                                                                                                                   |
-| 「見落とされた場所」は、いた部屋の名前（大広間・2階の回廊・緑の廊下・書斎・キッチン・ランドリー）                                                | 答え合わせでは体そのものが光って全員に見えているので、一覧には場所の言葉を出す                                                                                         |
-| ダブルの答え合わせの名前の札は、残した体の上に出す                                                                                               | 探す人の体と残した体で札が 2 枚になる                                                                                                                                  |
-| ダブルの残した体は自分の画面にも出す（塗りの面は最大 6 体で約 240MB）                                                                            | 答え合わせで自分の隠れ場所の光り方を見られるように。2a の 5 体（約 200MB）と同じくらい                                                                                 |
-| ダブルの残した体は動かないので、撃った弾はさかのぼらずに調べる                                                                                   | 隠れタイムの終わりで止まった体                                                                                                                                         |
-| ダブルの探索でも、残した体の埋まりを数え続ける                                                                                                   | 仕様の「隠れタイムと探索のあいだだけ数える」。隠れタイムの終わりに埋まっていた体は、探索で 5 秒に届けば知らせる                                                        |
-| ハンターになり直すと一人称から                                                                                                                   | 三人称のまま次の試合が始まると、控室から出たときの見え方が試合ごとに変わる                                                                                             |
-| ひとりで試すでは BGM を流さない                                                                                                                  | 仕様の 3 曲はつないで遊ぶ試合のフェーズの曲                                                                                                                            |
-| `Host` の 2 つめの引数を、種から当たりを作る口 `levelFor` にする                                                                                 | 親も種の置き方で弾と見落としポイントと埋まりを調べる                                                                                                                   |
-| キッチンの点光源は天井のダクトをよけて x −14 に置き、廊下の油絵は x −19 へ移す                                                                   | ダクトの中の光は面を照らさない。油絵がキッチンの戸口の縁にかかる                                                                                                       |
+| 決めたこと                                                                                                                                                      | 理由                                                                                                                                                                 |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 張り付いた体は、ポーズの当たりが面の奥へ出ないよう `placement()` が面から離し（`sink`、行き先のポーズで測る）、埋まりは張り付いた面から 0.1m 以上入ったときだけ | 遊べるポーズで体が壁に沈み警告が出るのは置き方の誤り。見た目と当たりは同じ置き方を通るのでそろう。カプセルの半径で測るので、立って張り付いた体も 0.055m 面から離れる |
+| ダブルの探す人は切れても役を残す（2a の通常と増え鬼のハンターは観戦になる）                                                                                     | 全員が探す人で、戻った子が見つけた数を持ったまま探し続けられるように                                                                                                 |
+| 小物は 3D を作り直さず、全部作っておいて位置と向きだけ動かす。動く物の数は種によらず同じ                                                                        | 紹介の 3 秒に形・材質・シェーダーを作らない。額の絵は 4 枚の材質を先に作り、透かしのシェーダーも先に当てる                                                           |
+| テーブルと椅子は 1 組で動く                                                                                                                                     | 椅子だけ離れて置かれると、部屋の並びとして不自然                                                                                                                     |
+| 部屋の寸法は、書斎 x 7.3〜17.3・z 1〜11・高さ 4m、キッチン x −21〜−11・z 7.05〜15.05・高さ 3.5m、ランドリー x −20〜−10・z −5.05〜2.95・高さ 3.5m                | 仕様の 8〜10m 四方・高さ 3.5〜4m の中で、廊下の天井（3.5m）とそろえ、戸口の位置で廊下の飾りを避ける                                                                  |
+| 点光源は新しい部屋とロビーに 1 個ずつ（全部で 13）                                                                                                              | 仕様の 1〜2 個の下限。点光源はどの材質の画素にも効くので、2a の 9 から増やしすぎない                                                                                 |
+| ロビーと控室は日の影の外                                                                                                                                        | 1 枚の影の範囲を屋敷（x −24〜18、z −7〜17）に絞って細かさを保つ                                                                                                      |
+| 台の上は、跳んでいる最中も希望のまま                                                                                                                            | 跳ぶたびに希望が切り替わると、様子を毎フレーム配ってしまう                                                                                                           |
+| ダブルでは強制挑発の時計を持たない                                                                                                                              | 探索のあいだ全員が探す人で、吹く隠れる人がいない                                                                                                                     |
+| 三人称の見る点は体の右肩の上（右へ 0.45m、高さ 1.2m）。透かし窓は使わない                                                                                       | 十字が自分の体に隠れないように。透かすとハンターが物の向こうを見られる                                                                                               |
+| 三人称の見落としポイントもカメラの位置（`Me.eye`）から縦 72 度・横の半角 52 度で測る                                                                            | 仕様の視野の数で、親は three を持たない。三人称の画角 60 には合わせない                                                                                              |
+| 見落としポイントは様子の変わり目に数えず、1 秒ごとの送り直しで配る                                                                                              | 毎フレーム増えるので、数えると毎フレーム配ってしまう                                                                                                                 |
+| 「見落とされた場所」は、いた部屋の名前（大広間・2階の回廊・緑の廊下・書斎・キッチン・ランドリー）                                                               | 答え合わせでは体そのものが光って全員に見えているので、一覧には場所の言葉を出す                                                                                       |
+| ダブルの答え合わせの名前の札は、残した体の上に出す                                                                                                              | 探す人の体と残した体で札が 2 枚になる                                                                                                                                |
+| ダブルの残した体は自分の画面にも出す（塗りの面は最大 6 体で約 240MB）                                                                                           | 答え合わせで自分の隠れ場所の光り方を見られるように。2a の 5 体（約 200MB）と同じくらい                                                                               |
+| ダブルの残した体は動かないので、撃った弾はさかのぼらずに調べる                                                                                                  | 隠れタイムの終わりで止まった体                                                                                                                                       |
+| ダブルの探索でも、残した体の埋まりを数え続ける                                                                                                                  | 仕様の「隠れタイムと探索のあいだだけ数える」。隠れタイムの終わりに埋まっていた体は、探索で 5 秒に届けば知らせる                                                      |
+| ハンターになり直すと一人称から                                                                                                                                  | 三人称のまま次の試合が始まると、控室から出たときの見え方が試合ごとに変わる                                                                                           |
+| ひとりで試すでは BGM を流さない                                                                                                                                 | 仕様の 3 曲はつないで遊ぶ試合のフェーズの曲                                                                                                                          |
+| `Host` の 2 つめの引数を、種から当たりを作る口 `levelFor` にする                                                                                                | 親も種の置き方で弾と見落としポイントと埋まりを調べる                                                                                                                 |
+| キッチンの点光源は天井のダクトをよけて x −14 に置き、廊下の油絵は x −19 へ移す                                                                                  | ダクトの中の光は面を照らさない。油絵がキッチンの戸口の縁にかかる                                                                                                     |
 
 ### 型と名前のそろい
 
