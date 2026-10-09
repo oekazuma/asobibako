@@ -3,7 +3,10 @@ import { describe, expect, it, vi } from 'vitest';
 import Chameleon from './Chameleon.svelte';
 
 vi.mock('$lib/audio.svelte', () => ({ wake: vi.fn(), tone: vi.fn(), sweep: vi.fn(), noise: vi.fn(), sfx: {} }));
-vi.mock('./doll', () => ({ buildDoll: () => ({ pos: new Float32Array(), idx: new Uint32Array() }) }));
+vi.mock('./doll', async (orig) => ({
+  ...(await orig<typeof import('./doll')>()),
+  buildDoll: () => ({ pos: new Float32Array(), idx: new Uint32Array() })
+}));
 vi.mock('./atlas', () => ({ layAtlas: () => ({}) }));
 vi.mock('./mansion/build', () => ({ buildMansion: () => ({}) }));
 vi.mock('./world3d', () => ({
