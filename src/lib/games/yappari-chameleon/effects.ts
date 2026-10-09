@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { V3 } from '$lib/sculpt';
 import type { RGB } from './color';
-import { rng } from './textures';
+import { rng } from './rng';
 
 /** 1 試合で残すしぶきの数。超えたら古いものから消す */
 export const SPLATS = 60;

@@ -1,54 +1,11 @@
 import * as THREE from 'three';
 import type { Piece } from './layout';
+import { ROOM_MAKERS } from './room-furniture';
+import { ball, BLACK, box, cyl, GOLD, plane, variant, WHITE, WOOD, type Maker } from './shapes';
 import { books, finish, leather, marble, oilPainting, poster, rug, type Finish } from '../textures';
 
-const BLACK: Finish = { tint: '#141414', rough: 0.15 };
-const GOLD: Finish = { tint: '#d4af37', metal: 1, rough: 0.3 };
-const WHITE: Finish = { tint: '#f1ece2', rough: 0.5 };
-const WOOD: Finish = { tint: '#4a2e1a', rough: 0.55 };
 /** 本家の床の風船（黄緑・ピンク・黄・青緑・マゼンタ）。つやを写さないと丸まっても化けられない */
 const BALLOONS = ['#9ccc2a', '#f48fb1', '#f6d32d', '#19b3a6', '#d81b8c'];
-
-function box(
-  g: THREE.Group,
-  size: [number, number, number],
-  f: Finish,
-  at: [number, number, number],
-  face: [number, number] = [size[0], size[1]]
-) {
-  const o = new THREE.Mesh(new THREE.BoxGeometry(...size), finish(f, face));
-  o.position.set(...at);
-  o.castShadow = o.receiveShadow = true;
-  g.add(o);
-  return o;
-}
-
-function cyl(g: THREE.Group, r: [number, number], h: number, f: Finish, at: [number, number, number], seg = 24) {
-  const o = new THREE.Mesh(new THREE.CylinderGeometry(r[0], r[1], h, seg), finish(f, [Math.PI * 2 * r[0], h]));
-  o.position.set(...at);
-  o.castShadow = o.receiveShadow = true;
-  g.add(o);
-  return o;
-}
-
-function ball(g: THREE.Group, r: number, f: Finish, at: [number, number, number]) {
-  const o = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 16), finish(f, [r * 3, r * 3]));
-  o.position.set(...at);
-  o.castShadow = o.receiveShadow = true;
-  g.add(o);
-  return o;
-}
-
-function plane(g: THREE.Group, size: [number, number], f: Finish, at: [number, number, number], rotX = 0) {
-  const o = new THREE.Mesh(new THREE.PlaneGeometry(...size), finish(f, size));
-  o.position.set(...at);
-  o.rotation.x = rotX;
-  o.receiveShadow = true;
-  g.add(o);
-  return o;
-}
-
-const variant = (p: Piece) => Math.abs(Math.round(p.at[0] * 7 + p.at[2] * 13));
 
 function piano(g: THREE.Group) {
   box(g, [1.5, 0.32, 2.0], BLACK, [0, 0.84, 0]);
@@ -292,7 +249,7 @@ function rugPiece(g: THREE.Group) {
   plane(g, [2.4, 3.6], { pattern: rug(), rough: 0.95 }, [0, 0.005, 0], -Math.PI / 2);
 }
 
-const MAKERS: Record<Piece['kind'], (g: THREE.Group, p: Piece) => void> = {
+const MAKERS: Record<Piece['kind'], Maker> = {
   piano,
   rug: rugPiece,
   'table-white': (g) => table(g, '#f4f1ea'),
@@ -313,7 +270,8 @@ const MAKERS: Record<Piece['kind'], (g: THREE.Group, p: Piece) => void> = {
   ribbons,
   bunting,
   banner,
-  stairs
+  stairs,
+  ...ROOM_MAKERS
 };
 
 export function piece(p: Piece): THREE.Group {

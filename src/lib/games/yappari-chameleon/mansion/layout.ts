@@ -1,9 +1,21 @@
 import type { Seat } from '$lib/net/party.svelte';
 import type { V3 } from '$lib/sculpt';
 import type { Box, Level, Ramp } from '../move';
+import { LOBBY_SPAWNS, lobbyLights, lobbyPieces, lobbySlabs, podiumBoxes } from './lobby';
 
 export type Mat =
-  'woodPanel' | 'marble' | 'coffer' | 'checker' | 'greenDamask' | 'wainscot' | 'cream' | 'rail' | 'white';
+  | 'woodPanel'
+  | 'marble'
+  | 'coffer'
+  | 'checker'
+  | 'greenDamask'
+  | 'wainscot'
+  | 'cream'
+  | 'rail'
+  | 'white'
+  | 'splash'
+  | 'splashFloor'
+  | 'splashCeiling';
 export type Face = 'x+' | 'x-' | 'y+' | 'y-' | 'z+' | 'z-';
 
 export interface Slab {
@@ -35,7 +47,9 @@ export type Kind =
   | 'ribbons'
   | 'bunting'
   | 'banner'
-  | 'stairs';
+  | 'stairs'
+  | 'podium'
+  | 'pedestal';
 
 export interface Piece {
   kind: Kind;
@@ -66,15 +80,27 @@ export const SIZES: Record<Kind, V3 | null> = {
   ribbons: null,
   bunting: null,
   banner: null,
-  stairs: null
+  stairs: null,
+  // 当たりは solids の八角形
+  podium: null,
+  pedestal: [0.9, 1.0, 0.9]
 };
+
+export interface Light {
+  at: V3;
+  color: string;
+  power: number;
+  reach: number;
+}
 
 export interface Mansion {
   slabs: Slab[];
   pieces: Piece[];
   ramps: Ramp[];
   spawn: V3;
-  lights: { at: V3; color: string; power: number; reach: number }[];
+  /** 見えない当たり（丸い台の八角形）。カメラの殻には入れない */
+  solids: Box[];
+  lights: Light[];
 }
 
 const HALL_H = 7;
@@ -142,10 +168,11 @@ function room(): Slab[] {
 }
 
 /** 屋敷に扉の形は無いので、探索のハンターは大広間の南の壁の前から北を向いて入る */
-export const SPAWNS: Record<'hall' | 'room' | 'entrance', Record<Seat, V3>> = {
+export const SPAWNS: Record<'hall' | 'room' | 'entrance' | 'lobby', Record<Seat, V3>> = {
   hall: { 1: [0, 0, 1.5], 2: [-1, 0, 1.5], 3: [1, 0, 1.5] },
   room: { 1: [0, 0, -30.8], 2: [-0.9, 0, -29.3], 3: [0.9, 0, -29.3] },
-  entrance: { 1: [0, 0, 0.6], 2: [-0.8, 0, 0.6], 3: [0.8, 0, 0.6] }
+  entrance: { 1: [0, 0, 0.6], 2: [-0.8, 0, 0.6], 3: [0.8, 0, 0.6] },
+  lobby: LOBBY_SPAWNS
 };
 
 const p = (kind: Kind, at: V3, turn: Piece['turn'] = 0, span?: number): Piece => ({ kind, at, turn, span });
@@ -205,12 +232,13 @@ function pieces(): Piece[] {
 }
 
 export function mansion(): Mansion {
-  const all = pieces();
+  const all = [...pieces(), ...lobbyPieces()];
   return {
-    slabs: [...hall(), ...corridor(), ...room()],
+    slabs: [...hall(), ...corridor(), ...room(), ...lobbySlabs()],
     pieces: all,
     ramps: [STAIR],
     spawn: [0, 0, 1.5],
+    solids: podiumBoxes(),
     lights: [
       { at: [0, 2.6, -30], color: '#fff4e0', power: 6, reach: 8 },
       ...all.filter((q) => q.kind === 'chandelier').map((q) => ({ at: q.at, color: '#ffd9a0', power: 14, reach: 14 })),
@@ -221,7 +249,8 @@ export function mansion(): Mansion {
           color: '#ffcf8a',
           power: 3,
           reach: 7
-        }))
+        })),
+      ...lobbyLights()
     ]
   };
 }
@@ -239,5 +268,6 @@ export function levelOf(m: Mansion): Level {
       max: [q.at[0] + w / 2, q.at[1] + h, q.at[2] + d / 2]
     });
   }
+  boxes.push(...m.solids);
   return { boxes, shell, ramps: m.ramps, spawn: m.spawn };
 }

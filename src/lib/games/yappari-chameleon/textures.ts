@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { fromHex, type RGB } from './color';
+import { rng } from './rng';
 
 export interface PickInfo {
   image: ImageData | null;
@@ -17,7 +18,7 @@ export interface Pattern {
 
 const made = new Map<string, Pattern>();
 
-function make(
+export function make(
   key: string,
   w: number,
   h: number,
@@ -34,18 +35,6 @@ function make(
   const p = { canvas, image: g.getImageData(0, 0, w, h), meters };
   made.set(key, p);
   return p;
-}
-
-/** 種から作る乱数。模様は開くたびに同じにする（スポイトで取った色が変わらないように） */
-export function rng(seed: number): () => number {
-  let s = seed >>> 0;
-  return () => {
-    s = (s + 0x6d2b79f5) >>> 0;
-    let t = s;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
 }
 
 /**

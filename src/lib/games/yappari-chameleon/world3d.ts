@@ -15,6 +15,7 @@ export const EYE_FOV = 72;
 export interface Built {
   group: THREE.Group;
   level: Level;
+  glow?: (on: boolean) => void;
 }
 
 /**
@@ -43,6 +44,7 @@ export class World {
   readonly hand = new THREE.Group();
   level: Level = { boxes: [], ramps: [], spawn: [0, 0, 0] };
   #stage: THREE.Group | null = null;
+  #built: Built | null = null;
   #environment: THREE.WebGLRenderTarget | null = null;
   #ray = new THREE.Raycaster();
   #cursor = new THREE.Mesh(
@@ -125,6 +127,7 @@ export class World {
   }
 
   setStage(b: Built): void {
+    this.#built = b;
     this.#stage?.removeFromParent();
     this.#stage = b.group;
     this.level = b.level;
@@ -164,6 +167,10 @@ export class World {
   /** 隠れる側が塗っているのが見えるよう、ペイントモードのあいだだけ右手に絵筆を持つ */
   holdBrush(on: boolean): void {
     this.#brush.visible = on;
+  }
+
+  podium(on: boolean): void {
+    this.#built?.glow?.(on);
   }
 
   /** 今のポーズの当たり用の体。骨が動いたときだけ焼き直す（焼くのに 8ms ほどかかる） */

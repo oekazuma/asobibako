@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { checker, coffer, damask, finish, marble, wainscot, woodPanel, type Finish } from '../textures';
+import { splashCeiling, splashFloor, splashWall } from '../textures-rooms';
 import type { Built } from '../world3d';
 import { piece } from './furniture';
 import { levelOf, mansion, type Face, type Mat, type Slab } from './layout';
@@ -13,7 +14,10 @@ const LOOKS: Record<Mat, () => Finish> = {
   wainscot: () => ({ pattern: wainscot(), rough: 0.55 }),
   cream: () => ({ tint: '#efe6d2', rough: 0.85 }),
   rail: () => ({ tint: '#3b2414', rough: 0.5 }),
-  white: () => ({ tint: '#f2efe9', rough: 0.85 })
+  white: () => ({ tint: '#f2efe9', rough: 0.85 }),
+  splash: () => ({ pattern: splashWall(), rough: 0.85 }),
+  splashFloor: () => ({ pattern: splashFloor(), rough: 0.35 }),
+  splashCeiling: () => ({ pattern: splashCeiling(), rough: 0.85 })
 };
 
 /** BoxGeometry の材質の並び（+x, −x, +y, −y, +z, −z） */
@@ -48,5 +52,15 @@ export function buildMansion(): Built {
     light.position.set(...l.at);
     group.add(light);
   }
-  return { group, level: levelOf(m) };
+  const rims: THREE.MeshStandardMaterial[] = [];
+  group.traverse((o) => {
+    if (o.userData.glow) rims.push((o as THREE.Mesh).material as THREE.MeshStandardMaterial);
+  });
+  return {
+    group,
+    level: levelOf(m),
+    glow: (on) => {
+      for (const r of rims) r.emissiveIntensity = on ? 2.4 : 0.15;
+    }
+  };
 }
