@@ -1,0 +1,468 @@
+import { SvelteMap } from 'svelte/reactivity';
+import * as THREE from 'three';
+import type { Message } from '$lib/net/link';
+import type { Party, Seat } from '$lib/net/party.svelte';
+import type { V3 } from '$lib/sculpt';
+import type { DollRig } from './doll3d';
+import { Effects } from './effects';
+import { Glow, type Shine } from './glow';
+import type { Host } from './host';
+import { HunterView } from './hunter';
+import { SPAWNS } from './mansion/layout';
+import { Match } from './match.svelte';
+import { CHAMELEON_VERSION, dabMessages, DabOutbox, SEND_MS, splice, unpackDabs, type Me } from './net';
+import type { Play } from './play.svelte';
+import { AIM, poseById, STAND } from './poses';
+import { COOLDOWN, TOOT_GAP, type Settings, type View } from './referee';
+import { HEAD_Y, paintColors, Remote, type Show } from './remote';
+import { capsules, fire, placement, type Target } from './shots';
+import { sounds } from './sounds';
+
+/** 頭の上の名前の札（ロビーと答え合わせ） */
+export interface Plate {
+  seat: Seat;
+  x: number;
+  y: number;
+  /** ハンター希望の赤い印 */
+  wish: boolean;
+}
+
+/**
+ * つないでから Session ができるまでに届いた知らせ。親は迎えてすぐ全員の体と塗りを送るが、3D を作るあいだはまだ聞く口が無いので、
+ * つないだときからためておき、Session が受け継ぐ
+ */
+export interface Inbox {
+  messages: Message[];
+  stop: () => void;
+}
+
+/** 撃たれた人の破片が消えるまで。増え鬼では、そのあとハンターになる */
+export const SHATTER_SECS = 1.5;
+
+/**
+ * つないで遊ぶ 1 台ぶん。親から届いた試合の様子で自分の役（隠れる・ハンター・観戦）を切り替え、
+ * 自分の動きと塗りを送り、ほかの人の体・弾・しぶき・口笛を出す
+ */
+export class Session {
+  readonly party: Party;
+  readonly play: Play;
+  readonly match: Match;
+  readonly host: Host | null;
+  /** 次を撃てるまでの残り秒 */
+  cool = $state(0);
+  /** 次の口笛を吹けるまでの残り秒 */
+  tootWait = $state(0);
+  /** 観戦で見ている人。null はフリーカメラ */
+  watching = $state<Seat | null>(null);
+  plates = $state.raw<Plate[]>([]);
+  /** 親とこのゲームの版がちがった。抜けるのは画面側（親は子の回線を閉じられない） */
+  mismatch = $state(false);
+  readonly #makeRig: () => DollRig;
+  readonly #remotes = new SvelteMap<Seat, Remote>();
+  readonly #fx: Effects;
+  readonly #gun: HunterView;
+  readonly #glow: Glow;
+  // PaintLog.low は送る口が 1 つの前提なので、play.log を送る DabOutbox はここだけに置く
+  readonly #out = new DabOutbox();
+  /** 見つかったときの体（答え合わせで、その場に戻して光らせる） */
+  readonly #found = new SvelteMap<Seat, Me>();
+  /** 増え鬼でハンターになった人の、答え合わせで撃たれた場所に置く 2 つめの体（今のハンターの体は銃を持って別に動く） */
+  readonly #pins = new SvelteMap<Seat, Remote>();
+  /** 砕けて見えない残り秒 */
+  readonly #shatter = new SvelteMap<Seat, number>();
+  #sent = -Infinity;
+  /** 親から自分の体を受け取った（戻った子は、その場から続ける） */
+  #own = false;
+  readonly #stop: () => void;
+
+  constructor(party: Party, play: Play, makeRig: () => DollRig, host: Host | null = null, inbox?: Inbox) {
+    this.party = party;
+    this.play = play;
+    this.host = host;
+    this.#makeRig = makeRig;
+    this.match = new Match(() => party.me);
+    const w = play.world;
+    this.#fx = new Effects(w.scene);
+    this.#gun = new HunterView(w);
+    this.#glow = new Glow(w.rig);
+    // ためていた口を外して、ためた知らせを順に入れてから聞き始める（間に知らせは割り込まない）
+    inbox?.stop();
+    this.#stop = party.onTell((m) => this.#receive(m));
+    for (const m of inbox?.messages ?? []) this.#receive(m);
+    // 親は自分の画面へも、子と同じ手順で全員の体と今の様子を送る。子は親が知らせを受け始める合図を、つなぐたびに送る
+    if (host) host.welcome(party.me);
+    else party.act({ t: 'hi', v: CHAMELEON_VERSION });
+  }
+
+  #remote(seat: Seat): Remote {
+    let r = this.#remotes.get(seat);
+    if (!r) this.#remotes.set(seat, (r = new Remote(this.#makeRig(), this.play.world.scene)));
+    return r;
+  }
+
+  #receive(m: Message) {
+    const seat = m.seat as Seat;
+    const mine = seat === this.match.me;
+    if (m.t === 'phase') this.#phase(m.view as View);
+    else if (m.t === 'me') {
+      if (!mine) this.#remote(seat).push(m as unknown as Me, performance.now());
+      else if (!this.match.synced) this.#ownBody(m as unknown as Me);
+    } else if (m.t === 'dabs') {
+      if (!mine) this.#remote(seat).dabs(m.at as number, m.d as number[]);
+      else if (!this.match.synced) this.#ownPaint(m.at as number, m.d as number[]);
+    } else if (m.t === 'found') this.#onFound(seat, m.by as Seat, m.body as Me | undefined, m.quiet === true);
+    else if (m.t === 'splat') this.#onSplat(m);
+    else if (m.t === 'toot') this.#onToot(seat, m.at as V3);
+    else if (m.t === 'chameleon-mismatch') this.mismatch = true;
+  }
+
+  /** 体を me の場所・向き・張り付き・ポーズに置く。銃を構えたポーズは人形にはとらせない */
+  #setBody(me: Me) {
+    this.play.placeAt(me.pos, me.yaw);
+    this.play.body.cling = me.cling;
+    this.play.setPose(me.pose === AIM.id ? STAND.id : me.pose);
+  }
+
+  /** 戻った子が、親に残っていた自分の体を受け取る */
+  #ownBody(me: Me) {
+    this.#own = true;
+    this.#setBody(me);
+  }
+
+  #ownPaint(at: number, d: number[]) {
+    if (splice(this.play.log.dabs, at, unpackDabs(d)) === null) return;
+    this.play.rebuildPaint();
+    this.#out.adopt(this.play.log);
+  }
+
+  #phase(v: View) {
+    const first = !this.match.synced;
+    const before = this.match.phase;
+    this.match.receive(v);
+    if (first) {
+      if (!this.#own) this.#place();
+      this.#fit(this.#own ? (this.play.body.pos as V3) : null);
+      if (v.phase === 'reveal') this.#reveal();
+    } else if (before !== v.phase) this.#enter();
+  }
+
+  #enter() {
+    const p = this.match.phase;
+    if (p === 'lobby' || p === 'intro') {
+      this.#reset();
+      this.#place();
+    }
+    if (p === 'intro') sounds.intro();
+    else sounds.phase();
+    this.#fit(null);
+    if (p === 'reveal') this.#reveal();
+  }
+
+  /** 試合の始めとロビーに戻ったとき。全員の塗りを白に戻し、しぶきを消す */
+  #reset() {
+    this.play.log.clear();
+    this.play.rebuildPaint();
+    this.play.canUndo = false;
+    for (const r of this.#remotes.values()) r.clearPaint();
+    this.#fx.clear();
+    this.#found.clear();
+    this.#shatter.clear();
+    for (const r of this.#pins.values()) r.dispose();
+    this.#pins.clear();
+    this.watching = null;
+    this.play.unhunt();
+    this.play.setPose(STAND.id);
+  }
+
+  /** 体を始める場所へ移す。待っているハンターは控室、ほかは大広間 */
+  #place() {
+    const p = this.match.phase;
+    const room = this.match.role === 'hunter' && (p === 'intro' || p === 'hide');
+    this.play.placeAt(SPAWNS[room ? 'room' : 'hall'][this.match.me]);
+  }
+
+  /** 試合の様子に合わせて、ハンター（一人称と銃）か観戦に切り替える。at は戻った子のハンターの続きの場所 */
+  #fit(at: V3 | null) {
+    const m = this.match;
+    const armed = m.role === 'hunter' && (m.phase === 'search' || m.phase === 'reveal');
+    if (armed && this.play.role !== 'hunter' && !this.#shatter.has(m.me))
+      this.play.hunt(at ?? SPAWNS.entrance[m.me], 0);
+    else if (!armed && m.phase !== 'lobby' && m.watching() && this.play.role !== 'watch') this.#watch();
+  }
+
+  #reveal() {
+    const f = this.#found.get(this.match.me);
+    // 増え鬼でハンターになった自分は撃ちに回っているので、撃たれた場所へは戻さない
+    if (f && this.play.role !== 'hunter') this.#setBody(f);
+    if (this.play.role === 'watch') this.free();
+  }
+
+  #onFound(seat: Seat, by: Seat, body: Me | undefined, quiet: boolean) {
+    if (body) this.#found.set(seat, body);
+    if (quiet) return;
+    const me = this.match.me;
+    const infect = this.match.view.settings.mode === 'infect';
+    const r = seat === me ? null : this.#remote(seat);
+    const at = r ? r.center() : this.play.world.dollCenter();
+    if (at) this.#fx.shatter(at, r ? r.colors() : paintColors(this.play.log.dabs));
+    sounds.shatter();
+    if (by === me) sounds.found();
+    this.#shatter.set(seat, SHATTER_SECS);
+    if (seat !== me) return;
+    // ペイントモードのあいだに見つかったら、ペイントモードを抜ける（本家 v1.4.0）
+    if (this.play.mode === 'paint') this.play.togglePaint();
+    this.play.interrupt();
+    if (!infect) this.#watch();
+  }
+
+  /** 増え鬼で見つかった自分が、破片が消えたあと白い体のハンターになる */
+  #turn() {
+    this.play.log.clear();
+    this.play.rebuildPaint();
+    this.play.hunt(this.play.body.pos as V3, this.play.body.yaw);
+  }
+
+  #onSplat(m: Message) {
+    if (m.by !== this.match.me) {
+      this.#fx.trail(m.from as V3, m.ends as V3[]);
+      sounds.shot();
+    }
+    for (const k of m.marks as { p: V3; n: V3 }[]) this.#fx.splat(k.p, k.n);
+  }
+
+  #onToot(seat: Seat, at: V3) {
+    if (seat === this.match.me) return sounds.whistle([0, 0, -1]);
+    this.#fx.note(at);
+    // 聞く人のカメラから見た位置（右が +x、前が −z）
+    const v = new THREE.Vector3(...at).applyMatrix4(this.play.world.camera.matrixWorldInverse);
+    sounds.whistle([v.x, v.y, v.z]);
+  }
+
+  /** 観戦で見られる人。見えているかは、毎フレームの更新を待たず試合の様子から決める（見つかった直後に選べるように） */
+  #watchable(): Seat[] {
+    return [...this.#remotes]
+      .filter(([s, r]) => r.shown && this.#show(s).visible)
+      .map(([s]) => s)
+      .sort((a, b) => a - b);
+  }
+
+  #watch() {
+    this.play.spectate();
+    this.watching = this.#watchable()[0] ?? null;
+    if (this.watching === null) this.play.freeCam();
+  }
+
+  /** 観戦で、ほかの人を順に見る */
+  next(dir: 1 | -1): void {
+    const list = this.#watchable();
+    if (!list.length) return this.free();
+    const i = this.watching === null ? -1 : list.indexOf(this.watching);
+    this.watching = list[(i + dir + list.length) % list.length];
+  }
+
+  /** 観戦のフリーカメラ */
+  free(): void {
+    this.watching = null;
+    this.play.freeCam();
+  }
+
+  /** 答え合わせで、増え鬼で見つかってハンターになった人 */
+  #infected(seat: Seat): boolean {
+    return this.match.phase === 'reveal' && this.match.found(seat) && this.match.roleOf(seat) === 'hunter';
+  }
+
+  /** 撃たれた場所に置く 2 つめの体。塗りはその人の今の列で作る */
+  #pin(seat: Seat, live: Remote): Remote {
+    let r = this.#pins.get(seat);
+    if (!r) {
+      r = new Remote(this.#makeRig(), this.play.world.scene);
+      r.rig.paint.rebuild(live.log);
+      this.#pins.set(seat, r);
+    }
+    return r;
+  }
+
+  #show(seat: Seat): Show {
+    const m = this.match;
+    const p = m.phase;
+    const role = m.roleOf(seat);
+    const found = m.found(seat);
+    const infected = this.#infected(seat);
+    const pin = p === 'reveal' && found && !infected ? (this.#found.get(seat) ?? null) : null;
+    const away = !this.party.members.includes(seat) && (p === 'lobby' || role !== 'hider');
+    const gone =
+      away || role === 'out' || (found && !pin && (m.view.settings.mode === 'normal' || this.#shatter.has(seat)));
+    return {
+      pin,
+      visible: !gone,
+      armed: !pin && role === 'hunter' && (p === 'search' || p === 'reveal'),
+      shine: infected ? null : this.#shine(seat)
+    };
+  }
+
+  #shine(seat: Seat): Shine {
+    if (this.match.phase !== 'reveal') return null;
+    if (this.match.found(seat)) return 'blue';
+    return this.match.roleOf(seat) === 'hider' ? 'red' : null;
+  }
+
+  frame(dt: number, now: number): void {
+    const m = this.match;
+    const me = m.me;
+    const w = this.play.world;
+    m.advance(dt);
+    this.cool = Math.max(0, this.cool - dt);
+    this.tootWait = Math.max(0, this.tootWait - dt);
+    for (const [seat, left] of this.#shatter) {
+      if (left > dt) {
+        this.#shatter.set(seat, left - dt);
+        continue;
+      }
+      this.#shatter.delete(seat);
+      if (seat === me && m.view.settings.mode === 'infect' && m.phase === 'search') this.#turn();
+    }
+    for (const [seat, r] of this.#remotes) {
+      r.update(dt, now, this.#show(seat));
+      const body = this.#infected(seat) ? this.#found.get(seat) : undefined;
+      if (body) this.#pin(seat, r).update(dt, now, { pin: body, visible: true, armed: false, shine: 'blue' });
+    }
+    if (this.play.role === 'watch' && this.watching !== null && !this.#watchable().includes(this.watching))
+      this.next(1);
+    this.play.watch =
+      this.play.role === 'watch' && this.watching !== null ? this.#remotes.get(this.watching)!.center() : null;
+    const pinned = m.phase === 'reveal' && m.found() && this.#found.has(me) && this.play.role !== 'hunter';
+    w.rig.root.visible = (this.play.role === 'hider' && !this.#shatter.has(me)) || pinned;
+    this.#glow.set(w.rig.root.visible ? this.#shine(me) : null);
+    this.#gun.visible = this.play.role === 'hunter';
+    this.#fx.step(dt);
+    this.#gun.step(dt);
+    this.play.frame(dt, now);
+    this.#plates();
+    if (m.synced && now - this.#sent >= SEND_MS) {
+      this.#sent = now;
+      this.#post(now);
+    }
+  }
+
+  /** 自分の動き。ハンターと観戦では人形は隠れていて動かないので、ハンターは目の位置を、観戦は何も送らない */
+  #me(now: number): Me | null {
+    const p = this.play;
+    if (p.role === 'watch' || this.#shatter.has(this.match.me)) return null;
+    if (p.role === 'hunter')
+      return {
+        ms: now,
+        pos: [...p.ghost.pos],
+        yaw: p.eyeYaw,
+        cling: null,
+        pose: p.crouch ? 'crouch' : AIM.id,
+        crouch: p.crouch,
+        paint: false,
+        look: [p.eyeYaw, p.eyePitch]
+      };
+    return {
+      ms: now,
+      pos: [...p.body.pos],
+      yaw: p.body.yaw,
+      cling: p.body.cling,
+      pose: p.pose,
+      crouch: false,
+      paint: p.mode === 'paint',
+      look: [p.camYaw, p.camPitch]
+    };
+  }
+
+  #post(now: number) {
+    const me = this.#me(now);
+    if (me) this.party.act({ t: 'me', ...me });
+    const d = this.#out.take(this.play.log);
+    if (d) for (const msg of dabMessages(this.match.me, d.at, d.d)) this.party.act(msg);
+  }
+
+  #plates() {
+    const p = this.match.phase;
+    if (p !== 'lobby' && p !== 'reveal') {
+      if (this.plates.length) this.plates = [];
+      return;
+    }
+    const w = this.play.world;
+    const out: Plate[] = [];
+    const add = (seat: Seat, head: V3 | null) => {
+      const at = head && w.screen(head);
+      if (at) out.push({ seat, ...at, wish: p === 'lobby' && this.match.view.wishes.includes(seat) });
+    };
+    if (w.rig.root.visible) {
+      const h = w.rig.root.localToWorld(new THREE.Vector3(0, HEAD_Y, 0));
+      add(this.match.me, [h.x, h.y, h.z]);
+    }
+    for (const [seat, r] of this.#remotes) if (r.rig.root.visible) add(seat, r.head());
+    this.plates = out;
+  }
+
+  /** ハンター希望を切り替える（ロビーだけ） */
+  wish(): void {
+    if (this.match.phase !== 'lobby') return;
+    this.party.act({ t: 'wish', on: !this.match.view.wishes.includes(this.match.me) });
+  }
+
+  /** もうええよ（隠れタイムと答え合わせ） */
+  ready(): void {
+    const m = this.match;
+    if ((m.phase === 'hide' || m.phase === 'reveal') && !m.view.ready.includes(m.me)) this.party.act({ t: 'ready' });
+  }
+
+  /** 挑発できるか（ロビーでは全員、試合中は見つかっていない隠れる人） */
+  get canTaunt(): boolean {
+    return this.match.phase === 'lobby' || this.match.hiding;
+  }
+
+  taunt(): void {
+    if (this.tootWait > 0 || !this.canTaunt) return;
+    this.tootWait = TOOT_GAP;
+    this.party.act({ t: 'taunt' });
+  }
+
+  toggleCrouch(): void {
+    if (this.play.role === 'hunter') this.play.crouch = !this.play.crouch;
+  }
+
+  /** 十字の向きへ撃つ。当たりは親が決め、ここでは銃口から筋を引く（from は筋の始点で、当たりの判定には使わない） */
+  shoot(): void {
+    if (this.cool > 0 || this.play.role !== 'hunter') return;
+    this.cool = COOLDOWN;
+    const cam = this.play.world.camera;
+    const dir = cam.getWorldDirection(new THREE.Vector3());
+    const o: V3 = [cam.position.x, cam.position.y, cam.position.z];
+    const d: V3 = [dir.x, dir.y, dir.z];
+    const targets: Target[] = [];
+    for (const [seat, r] of this.#remotes)
+      if (r.shown && r.rig.root.visible && this.match.roleOf(seat) === 'hider')
+        targets.push({ seat, caps: capsules(poseById(r.shown.pose), placement(r.shown)) });
+    const rays = fire(this.play.world.level, o, d, targets);
+    const from = this.#gun.muzzle();
+    this.#fx.trail(
+      from,
+      rays.map((r) => r.end)
+    );
+    this.#gun.fire();
+    sounds.shot();
+    this.party.act({ t: 'shot', o, d, from, ms: performance.now() });
+  }
+
+  start(settings: Settings): void {
+    this.host?.start(settings);
+  }
+
+  /** WebGL のコンテキストが戻った。全員の塗りを列から作り直す */
+  restore(): void {
+    this.play.rebuildPaint();
+    for (const r of this.#remotes.values()) r.rig.paint.rebuild(r.log);
+    for (const [seat, r] of this.#pins) r.rig.paint.rebuild(this.#remotes.get(seat)?.log ?? []);
+  }
+
+  dispose(): void {
+    this.#stop();
+    for (const r of [...this.#remotes.values(), ...this.#pins.values()]) r.dispose();
+    this.#fx.dispose();
+    this.#glow.dispose();
+  }
+}
