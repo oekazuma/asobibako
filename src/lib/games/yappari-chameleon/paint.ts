@@ -77,6 +77,8 @@ export class Stroke {
 
 export class PaintLog {
   dabs: Dab[] = [];
+  /** 前に相手へ送ってから列がいちばん短くなった長さ。もどす・取り消しで縮んだところから送り直す */
+  low = Infinity;
   #starts: number[] = [];
   /** あと何本もどせるか。描きかけを取り消したときに戻せるよう、筆を始める前の値も持つ */
   #budget = 0;
@@ -99,6 +101,7 @@ export class PaintLog {
   undo(): boolean {
     if (!this.canUndo) return false;
     this.dabs.length = this.#starts.pop()!;
+    this.low = Math.min(this.low, this.dabs.length);
     this.#budget--;
     return true;
   }
@@ -106,12 +109,14 @@ export class PaintLog {
   cancel(): boolean {
     if (!this.#starts.length) return false;
     this.dabs.length = this.#starts.pop()!;
+    this.low = Math.min(this.low, this.dabs.length);
     this.#budget = this.#before;
     return true;
   }
 
   clear(): void {
     this.dabs = [];
+    this.low = 0;
     this.#starts = [];
     this.#budget = this.#before = 0;
   }
