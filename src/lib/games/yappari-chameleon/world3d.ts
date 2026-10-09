@@ -68,7 +68,7 @@ export class World {
   #h = 1;
 
   constructor(canvas: HTMLCanvasElement, rig: (r: THREE.WebGLRenderer) => DollRig, onRestore: () => void) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, stencil: true });
     // 遊ぶ端末（iPad Air 2025）の力に合わせた固定値
     this.renderer.setPixelRatio(Math.min(1.5, devicePixelRatio));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -281,14 +281,7 @@ export class World {
   }
 
   dispose(): void {
-    this.#stage?.traverse((o) => {
-      if (!(o instanceof THREE.Mesh)) return;
-      o.geometry.dispose();
-      for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
-        (m as THREE.MeshStandardMaterial).map?.dispose();
-        m.dispose();
-      }
-    });
+    if (this.#stage) disposeModel(this.#stage);
     XRAY.on.value = 0;
     this.#environment?.dispose();
     this.rig.paint.dispose();

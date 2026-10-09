@@ -108,6 +108,7 @@ export class Remote {
     disposeModel(this.#gun);
     disposeModel(this.#brush);
     this.rig.mesh.geometry.dispose();
+    this.rig.mesh.skeleton.dispose();
     this.rig.pick.geometry.dispose();
     this.rig.material.dispose();
     this.rig.paint.dispose();

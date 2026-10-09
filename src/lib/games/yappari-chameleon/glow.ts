@@ -18,10 +18,19 @@ export class Glow {
     opacity: 0.5,
     depthWrite: false,
     // 手前の物に隠れたところだけを描く。見えているところは体そのものを見せる
-    depthFunc: THREE.GreaterDepth
+    depthFunc: THREE.GreaterDepth,
+    stencilWrite: true,
+    stencilFunc: THREE.NotEqualStencilFunc,
+    stencilRef: 1
   });
 
   constructor(rig: DollRig) {
+    // 見えている体が自分で印を付け、影は印のないところだけを描く。腕が胸の前に重なるところまで色で染めないため
+    Object.assign(rig.material, {
+      stencilWrite: true,
+      stencilRef: 1,
+      stencilZPass: THREE.ReplaceStencilOp
+    });
     this.#rimMat.onBeforeCompile = (s) => {
       s.vertexShader = s.vertexShader.replace(
         '#include <skinning_vertex>',

@@ -28,6 +28,12 @@ export function gunModel(): THREE.Group {
 /** 銃口の位置（gunModel の座標） */
 export const MUZZLE: [number, number, number] = [0, 0.016, -0.51];
 
+/** 左手で支える先台の位置（gunModel の座標） */
+export const FORESTOCK: [number, number, number] = [0, -0.024, -0.16];
+
+/** 左手の楕円体（doll.ts の [0.538, 0.616, 0]）を、前腕の骨の付け根 [0.354, 0.745, 0] からの差で指した位置 */
+export const HAND_LEFT: [number, number, number] = [0.184, -0.129, 0];
+
 /** 隠れる側がペイントモードのあいだ右手に持つ絵筆。虹色のまだらの柄に金の口金と黒い穂先 */
 export function brushModel(): THREE.Group {
   const handle = new THREE.Mesh(
@@ -52,16 +58,18 @@ export function brushModel(): THREE.Group {
 /**
  * 体の右手（前腕の骨の子）に絵筆か銃を持たせる。手の楕円体（doll.ts の [-0.538, 0.616, 0]）を、
  * 前腕の骨の付け根 [-0.354, 0.745, 0] からの差で指す
+ *
+ * 銃の向きと位置は AIM（poses.ts）の腕に合わせた値。銃床の下の握りを右手に、先台を左手に合わせ、
+ * 銃口が水平に前を向いて上が真上になる。AIM の腕を変えたら gun.test.ts が崩れるので、ここも合わせ直す
  */
 export function inHand(forearm: THREE.Bone, o: THREE.Object3D, kind: 'brush' | 'gun'): void {
-  o.position.set(-0.184, -0.129, 0.03);
   if (kind === 'brush') {
+    o.position.set(-0.184, -0.129, 0.03);
     // 穂先を下にして腰のわきへ垂らす（横へ寝かせると床に付く）
     o.rotation.set(Math.PI - 0.5, 0, 0.2);
   } else {
-    // 構えたポーズでは前腕が前を向くので、銃口をひじから手首の向きへ合わせる
-    const along = new THREE.Vector3(-0.184, -0.129, 0).normalize();
-    o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), along);
+    o.quaternion.set(0.1026, 0.235, 0.5533, 0.7926);
+    o.position.set(-0.2702, -0.1143, -0.0098);
   }
   o.visible = false;
   forearm.add(o);

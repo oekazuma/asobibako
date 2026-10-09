@@ -158,10 +158,10 @@ export const AIM: Pose = {
   id: 'aim',
   label: '構える',
   bones: {
-    'upperarm.l': [-1.35, 0, -0.55],
-    'upperarm.r': [-1.45, 0, 0.75],
-    'forearm.l': [0, 0.5, -0.15],
-    'forearm.r': [0, 0, 0.15]
+    'upperarm.l': [-1.53, 0.06, -1.34],
+    'upperarm.r': [-0.66, 0.95, 1.06],
+    'forearm.l': [-0.21, 0.21, -0.05],
+    'forearm.r': [-0.28, 1.61, -0.45]
   }
 };
 
