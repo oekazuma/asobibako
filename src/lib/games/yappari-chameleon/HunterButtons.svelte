@@ -59,10 +59,20 @@
   .shoot {
     width: 128px;
     height: 128px;
+    position: relative;
     border-width: 0;
-    background:
-      radial-gradient(closest-side, rgb(0 0 0 / 0.4) 92%, transparent 93%),
-      conic-gradient(rgb(255 255 255 / 0.25) calc(var(--wait) * 360deg), #fff 0);
+    background: rgb(0 0 0 / 0.4);
     font-size: 16px;
+  }
+
+  /* 待ちの輪はふちだけに描く。下に敷くと、真ん中の白いアイコンが白っぽい地に乗って読めない */
+  .shoot::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(rgb(255 255 255 / 0.25) calc(var(--wait) * 360deg), #fff 0);
+    mask: radial-gradient(closest-side, transparent 92%, #000 93%);
+    pointer-events: none;
   }
 </style>
