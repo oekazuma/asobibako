@@ -66,12 +66,12 @@
     <p class="rule">自分の iPad の画面は見せないでね</p>
     {#if was !== undefined}
       <button class="go" onclick={() => join('guest')}>もう一度つなぐ<small>ホストに QR を出してもらう</small></button>
-    {:else}
-      <div class="row">
-        <button class="go" onclick={() => join('host')}>なかまを呼ぶ<small>この iPad に QR が出る</small></button>
-        <button class="go" onclick={() => join('guest')}>なかまに入る<small>ホストの QR を読み取る</small></button>
-      </div>
     {/if}
+    <!-- 切れた子も、親が戻らなければほかの人と遊び直せるよう、ふだんの 2 つを残す -->
+    <div class="row">
+      <button class="go" onclick={() => join('host')}>なかまを呼ぶ<small>この iPad に QR が出る</small></button>
+      <button class="go" onclick={() => join('guest')}>なかまに入る<small>ホストの QR を読み取る</small></button>
+    </div>
     <button class="solo" onclick={onsolo}>ひとりで試す</button>
   {/if}
   {#if failed || note}<p role="alert">{failed || note}</p>{/if}

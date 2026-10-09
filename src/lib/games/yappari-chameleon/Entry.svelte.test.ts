@@ -28,6 +28,12 @@ describe('Entry', () => {
     const { target, buttons, done } = show({ note: 'ホストとの接続が切れました', was: 2 });
     expect(target.textContent).toContain('ホストとの接続が切れました');
     expect(buttons()[0]).toContain('もう一度つなぐ');
+    // 親が戻らなくても、ほかの人と遊び直せる
+    expect(buttons().slice(1)).toEqual([
+      expect.stringMatching(/^なかまを呼ぶ/),
+      expect.stringMatching(/^なかまに入る/),
+      'ひとりで試す'
+    ]);
     done();
   });
 });
