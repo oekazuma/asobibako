@@ -1,6 +1,6 @@
 import type { V3 } from '$lib/sculpt';
 import { BONES, dollShapes, JOINTS, PARENT, type Bone } from './doll';
-import { RADIUS, type Cling, type Level } from './move';
+import { RADIUS, type Cling, type Level, type Ramp } from './move';
 import type { Pose } from './poses';
 
 export const SPREAD = (2 * Math.PI) / 180;
@@ -29,6 +29,7 @@ export function placement(b: Placeable): Placement {
     const k = RADIUS - HALF_DEPTH;
     return { at: [x - b.cling.nx * k, y, z - b.cling.nz * k], yaw: b.yaw, tilt: 0 };
   }
+  // 背中を天井に付け、前を下へ向ける
   if (b.cling?.kind === 'ceiling') return { at: [x, y - HALF_DEPTH, z], yaw: b.yaw, tilt: Math.PI / 2 };
   return { at: [x, y, z], yaw: b.yaw, tilt: 0 };
 }
@@ -134,40 +135,85 @@ export function rayCapsule(o: V3, d: V3, c: Capsule): number | null {
   return raySphere(o, d, y <= 0 ? c.a : c.b, c.r);
 }
 
-/** カメラの殻（shell）ではなく家具まで含めた boxes で見る。始点を含む箱（撃った人の立つ床など）は数えない */
-export function rayLevel(lv: Level, o: V3, d: V3, max: number): { t: number; n: V3 } | null {
-  let best: { t: number; n: V3 } | null = null;
-  for (const box of lv.boxes) {
-    let t0 = 0;
-    let t1 = best?.t ?? max;
-    let n: V3 = [0, 0, 0];
-    let miss = false;
-    for (let i = 0; i < 3 && !miss; i++) {
-      if (Math.abs(d[i]) < 1e-12) {
-        miss = o[i] < box.min[i] || o[i] > box.max[i];
-        continue;
-      }
-      let a = (box.min[i] - o[i]) / d[i];
-      let c = (box.max[i] - o[i]) / d[i];
-      const face: [number, number, number] = [0, 0, 0];
-      face[i] = d[i] > 0 ? -1 : 1;
-      if (a > c) [a, c] = [c, a];
-      if (a > t0) {
-        t0 = a;
-        n = face;
-      }
-      t1 = Math.min(t1, c);
-      miss = t0 > t1;
+/** f(p) = c + g·p ≥ 0 の側だけを残す平面（坂の表面の下） */
+interface Plane {
+  c: number;
+  g: V3;
+}
+
+/** 線が箱（と平面の下側）に入る距離と、入った面の向き。始点を含む箱は null */
+function enter(min: V3, max: V3, o: V3, d: V3, limit: number, plane?: Plane): { t: number; n: V3 } | null {
+  let t0 = 0;
+  let t1 = limit;
+  let n: V3 = [0, 0, 0];
+  for (let i = 0; i < 3; i++) {
+    if (Math.abs(d[i]) < 1e-12) {
+      if (o[i] < min[i] || o[i] > max[i]) return null;
+      continue;
     }
-    if (!miss && t0 > 0) best = { t: t0, n };
+    let a = (min[i] - o[i]) / d[i];
+    let c = (max[i] - o[i]) / d[i];
+    const face: [number, number, number] = [0, 0, 0];
+    face[i] = d[i] > 0 ? -1 : 1;
+    if (a > c) [a, c] = [c, a];
+    if (a > t0) {
+      t0 = a;
+      n = face;
+    }
+    t1 = Math.min(t1, c);
+    if (t0 > t1) return null;
   }
+  if (plane) {
+    const f0 = plane.c + dot(plane.g, o);
+    const s = dot(plane.g, d);
+    if (Math.abs(s) < 1e-12) {
+      if (f0 < 0) return null;
+    } else {
+      const tp = -f0 / s;
+      if (s > 0) {
+        if (tp > t0) {
+          t0 = tp;
+          n = norm(scale(plane.g, -1));
+        }
+      } else t1 = Math.min(t1, tp);
+      if (t0 > t1) return null;
+    }
+  }
+  return t0 > 0 ? { t: t0, n } : null;
+}
+
+/** 表面 y = h0 + k·u（u は rise の軸）より下の坂の中身 */
+function rampPlane(r: Ramp): Plane {
+  const axis = r.rise[0] === 'x' ? 0 : 2;
+  const up = r.rise[1] === '+';
+  const run = r.max[axis] - r.min[axis];
+  const k = ((r.max[1] - r.min[1]) / run) * (up ? 1 : -1);
+  const h0 = r.min[1] - k * (up ? r.min[axis] : r.max[axis]);
+  const g: [number, number, number] = [0, -1, 0];
+  g[axis] = k;
+  return { c: h0, g };
+}
+
+/**
+ * カメラの殻（shell）ではなく家具まで含めた boxes と、表面より下を中身とみなした坂（ramps）で見る。
+ * 階段は 1 段ずつの塊として描かれているので、弾も段の下へ抜けさせない
+ */
+export function rayLevel(lv: Level, o: V3, d: V3, max: number): { t: number; n: V3 } | null {
+  let best = null as { t: number; n: V3 } | null;
+  const hits = [
+    ...lv.boxes.map((box) => (limit: number) => enter(box.min, box.max, o, d, limit)),
+    ...lv.ramps.map((r) => (limit: number) => enter(r.min, r.max, o, d, limit, rampPlane(r)))
+  ];
+  for (const hit of hits) best = hit(best?.t ?? max) ?? best;
   return best;
 }
 
 /** 向き d（長さ 1）を中心に、上下左右へ SPREAD 開いた 4 本と中心の 5 本 */
 export function rays(d: V3): V3[] {
-  const ref: V3 = Math.abs(d[1]) > 0.95 ? [1, 0, 0] : [0, 1, 0];
-  const r = norm(cross(d, ref));
+  // 真上や真下を向くまで水平を基準にする。途中で基準を替えると、一人称の急な見上げで十字が回って見える
+  let side = cross(d, [0, 1, 0]);
+  if (Math.hypot(...side) < 1e-6) side = cross(d, [1, 0, 0]);
+  const r = norm(side);
   const u = cross(r, d);
   const c = Math.cos(SPREAD);
   const s = Math.sin(SPREAD);

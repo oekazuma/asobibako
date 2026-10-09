@@ -3,7 +3,8 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import type { V3 } from '$lib/sculpt';
 import type { RGB } from './color';
 import { bakePose, PoseAnimator, type DollRig } from './doll3d';
-import { cameraReach, settleDist, RADIUS, type Body, type DistState, type Level } from './move';
+import { cameraReach, settleDist, type Body, type DistState, type Level } from './move';
+import { placement } from './shots';
 import { finish, rainbowMottle, readPick } from './textures';
 import { seeThrough, XRAY } from './xray';
 
@@ -19,9 +20,6 @@ export interface Built {
  * カメラの線の太さ。体は壁から RADIUS 離れて歩くので、同じ太さにすると壁ぎわを歩くあいだ縁の線がずっと壁をかすめて、距離が潰れる
  */
 const CAM_RADIUS = 0.12;
-
-/** 体の厚みの半分。張り付いたときに壁や天井と体の間を空けない */
-const HALF_DEPTH = 0.12;
 
 export class World {
   readonly renderer: THREE.WebGLRenderer;
@@ -150,17 +148,10 @@ export class World {
 
   placeDoll(b: Body): void {
     const root = this.rig.root;
+    const p = placement(b);
     root.rotation.order = 'YXZ';
-    root.rotation.set(0, b.yaw, 0);
-    root.position.set(b.pos[0], b.pos[1], b.pos[2]);
-    if (b.cling?.kind === 'wall') {
-      root.position.x -= b.cling.nx * (RADIUS - HALF_DEPTH);
-      root.position.z -= b.cling.nz * (RADIUS - HALF_DEPTH);
-    } else if (b.cling?.kind === 'ceiling') {
-      // 背中を天井に付け、前を下へ向ける
-      root.rotation.x = Math.PI / 2;
-      root.position.y = b.pos[1] - HALF_DEPTH;
-    }
+    root.rotation.set(p.tilt, p.yaw, 0);
+    root.position.set(...p.at);
     root.updateMatrixWorld(true);
     const ring = this.#ring;
     ring.visible = !!b.cling;

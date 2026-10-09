@@ -71,6 +71,8 @@ describe('rayCapsule', () => {
     expect(rayCapsule([-1, 0.5, 0.2], [1, 0, 0], cap)).toBeNull();
     expect(rayCapsule([1, 0.5, 0], [1, 0, 0], cap)).toBeNull();
     expect(rayCapsule([0, 0, -1], [0, 0, 1], { a: [0, 0, 0], b: [0, 0, 0], r: 0.1 })).toBeCloseTo(0.9);
+    // 上の端の丸みを斜めにかすめる（中心 (0,1,0) の球に y = 1.05 の高さから入る）
+    expect(rayCapsule([-1, 1.05, 0], [1, 0, 0], cap)).toBeCloseTo(1 - Math.sqrt(0.1 ** 2 - 0.05 ** 2));
   });
 });
 
@@ -80,6 +82,22 @@ describe('rayLevel', () => {
     expect(rayLevel(room, [0, 1, 0], [0, -1, 0], 60)).toEqual({ t: 1, n: [0, 1, 0] });
     expect(rayLevel({ ...room, boxes: [{ min: [-1, -1, -1], max: [1, 1, 1] }] }, [0, 0, 0], [0, 0, 1], 60)).toBeNull();
   });
+
+  it('坂は表面より下が中身で、斜めの面の向きを返し、表面の上は抜ける', () => {
+    const ramp: Level = { boxes: [], ramps: [{ min: [-1, 0, 0], max: [1, 2, 4], rise: 'z+' }], spawn: [0, 0, 0] };
+    // 真上から: z = 2 の表面の高さは 1
+    const down = rayLevel(ramp, [0, 3, 2], [0, -1, 0], 60);
+    expect(down?.t).toBeCloseTo(2);
+    expect(down?.n[1]).toBeGreaterThan(0.8);
+    expect(down?.n[2]).toBeLessThan(0);
+    // 低い側の端から段の側面へ
+    expect(rayLevel(ramp, [0, 0.2, -2], [0, 0, 1], 60)?.t).toBeCloseTo(2 + 0.2 * 2);
+    // 表面より上を水平に通る線は当たらない
+    expect(rayLevel(ramp, [0, 2.5, -2], [0, 0, 1], 60)).toBeNull();
+    const down2: Level = { ...ramp, ramps: [{ min: [-1, 0, 0], max: [1, 2, 4], rise: 'z-' }] };
+    expect(rayLevel(down2, [0, 3, 2], [0, -1, 0], 60)?.t).toBeCloseTo(2);
+    expect(rayLevel(down2, [0, 3, 3], [0, -1, 0], 60)?.t).toBeCloseTo(2.5);
+  });
 });
 
 describe('fire', () => {
@@ -87,6 +105,18 @@ describe('fire', () => {
     const d = rays([0, 0, 1]);
     expect(d).toHaveLength(5);
     for (const v of d.slice(1)) expect(Math.acos(v[2])).toBeCloseTo(SPREAD, 6);
+  });
+
+  it('急な見上げでも 5 本の十字は回らず、左右の線は同じ高さ', () => {
+    const pitch = 1.25;
+    const d: V3 = [0, Math.sin(pitch), Math.cos(pitch)];
+    const [, left, right, up, down] = rays(d);
+    expect(left[1]).toBeCloseTo(right[1], 9);
+    expect(left[0]).toBeCloseTo(-right[0], 9);
+    expect(up[1]).toBeGreaterThan(d[1]);
+    expect(down[1]).toBeLessThan(d[1]);
+    expect(up[0]).toBeCloseTo(0, 9);
+    expect(down[0]).toBeCloseTo(0, 9);
   });
 
   it('立った体の胸を撃てば当たり、頭の上を撃てば外れる', () => {
@@ -117,6 +147,12 @@ describe('fire', () => {
     expect(hitSeats(lv, [4, 1, 0.6], [4, 0.3, 4.4], t)).toEqual([]);
     // 同じ体を、ピアノの上から見下ろせば当たる
     expect(hitSeats(lv, [4, 2.6, 6.5], [4, 0.3, 4.4], t)).toContain(2);
+  });
+
+  it('大階段の裏に隠れた体には、階段の手前から撃っても当たらない', () => {
+    const lv = levelOf(mansion());
+    const t = [target(2, body([0, 0, 9.5]))];
+    expect(hitSeats(lv, [0, 1, 1], [0, 0.7, 9.5], t)).toEqual([]);
   });
 
   it('寝そべった体は低い所で当たり、立ったときの頭の高さには何も無い', () => {
