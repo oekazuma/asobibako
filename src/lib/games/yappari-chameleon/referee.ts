@@ -1,4 +1,5 @@
 import type { Seat } from '$lib/net/party.svelte';
+import type { V3 } from '$lib/sculpt';
 
 export type Phase = 'lobby' | 'intro' | 'hide' | 'search' | 'reveal';
 export type GameMode = 'normal' | 'infect' | 'double';
@@ -14,15 +15,27 @@ export interface Settings {
   search: number;
   reveal: number;
   taunt: number;
+  /** ハンターの画面に「見落とした敵」の順位を出す */
+  overlook: boolean;
 }
 
-export const DEFAULTS: Settings = { mode: 'infect', hunters: 1, hide: 120, search: 300, reveal: 30, taunt: 0 };
+export const DEFAULTS: Settings = {
+  mode: 'infect',
+  hunters: 1,
+  hide: 120,
+  search: 300,
+  reveal: 30,
+  taunt: 0,
+  overlook: true
+};
 export const LIMITS = { hide: [30, 300], search: [60, 600], reveal: [10, 120], taunt: [5, 120] } as const;
 export const INTRO = 3;
 export const COOLDOWN = 2;
 export const TOOT_GAP = 1;
 /** 子は自分の時計で 2.0 秒あけて撃つが、親は届いた順と tick でしか時計が進まない。揺れで間が 2.0 秒を少し切って見えても捨てない */
 export const SHOT_SLACK = 0.15;
+/** 埋まったままこの秒たつと、ハンターに場所を知らせる */
+export const EXPOSE = 5;
 
 /** 小さな dt を足し重ねたずれで、0 になるはずの時計が 0 の手前に残らないようにする */
 const EPS = 1e-6;
@@ -38,7 +51,8 @@ export function fit(s: Settings, players: number): Settings {
     hide: clamp(s.hide, LIMITS.hide),
     search: clamp(s.search, LIMITS.search),
     reveal: clamp(s.reveal, LIMITS.reveal),
-    taunt: s.taunt <= 0 ? 0 : clamp(s.taunt, LIMITS.taunt)
+    taunt: s.taunt <= 0 ? 0 : clamp(s.taunt, LIMITS.taunt),
+    overlook: s.overlook !== false
   };
 }
 
@@ -68,6 +82,14 @@ export interface Match {
   champ: Seat | null;
   /** 小物の置き方の種。ロビーでは null（既定の置き方） */
   seed: number | null;
+  /** ええやん（押した人 → 押された人）。1 試合 1 回 */
+  likes: Partial<Record<Seat, Seat>>;
+  /** 体が埋まっている秒（隠れタイムと探索のあいだだけ数える） */
+  buried: Partial<Record<Seat, number>>;
+  /** 見落としポイント（ハンター → 隠れる人 → 点） */
+  overlook: Partial<Record<Seat, Partial<Record<Seat, number>>>>;
+  /** 答え合わせで見せる、隠れた人のいた場所（親が答え合わせに入るときに入れる） */
+  spots: Partial<Record<Seat, V3>>;
 }
 
 export const newMatch = (): Match => ({
@@ -88,7 +110,11 @@ export const newMatch = (): Match => ({
   caught: {},
   reached: {},
   champ: null,
-  seed: null
+  seed: null,
+  likes: {},
+  buried: {},
+  overlook: {},
+  spots: {}
 });
 
 function shuffle<T>(list: T[], rand: () => number): T[] {
@@ -141,7 +167,11 @@ export function start(m: Match, members: Seat[], settings: Settings, rand: () =>
     caught: {},
     reached: {},
     champ: null,
-    seed: 1 + Math.floor(rand() * SEEDS)
+    seed: 1 + Math.floor(rand() * SEEDS),
+    likes: {},
+    buried: {},
+    overlook: {},
+    spots: {}
   } satisfies Partial<Match>);
 }
 
@@ -155,6 +185,7 @@ function enter(m: Match, phase: Phase): void {
     if (m.settings.mode === 'double') for (const s of seatsOf(m, 'hider')) m.roles[s] = 'hunter';
   } else if (phase === 'reveal') {
     m.left = m.settings.reveal;
+    m.buried = {};
     if (m.settings.mode === 'double') {
       m.winner = 'double';
       m.champ ??= leader(m);
@@ -171,7 +202,11 @@ function enter(m: Match, phase: Phase): void {
       caught: {},
       reached: {},
       champ: null,
-      seed: null
+      seed: null,
+      likes: {},
+      buried: {},
+      overlook: {},
+      spots: {}
     } satisfies Partial<Match>);
   }
 }
@@ -263,6 +298,7 @@ export function hit(m: Match, seat: Seat): boolean {
   m.found = [...m.found, seat];
   if (m.settings.mode === 'infect') m.roles[seat] = 'hunter';
   delete m.taunts[seat];
+  delete m.buried[seat];
   if (!hiding(m).length) enter(m, 'reveal');
   return true;
 }
@@ -280,6 +316,27 @@ export function spot(m: Match, by: Seat, seat: Seat): boolean {
     enter(m, 'reveal');
   }
   return true;
+}
+
+/** ええやん。答え合わせのあいだ、隠れた人（自分のほか）へ 1 試合 1 回 */
+export function like(m: Match, from: Seat, to: Seat): boolean {
+  if (m.phase !== 'reveal' || from === to || m.likes[from] !== undefined || !m.hid.includes(to)) return false;
+  m.likes[from] = to;
+  return true;
+}
+
+/** 体が埋まっているか。隠れタイムと探索のあいだだけ秒を足し、解けたら 0 に戻す */
+export function bury(m: Match, seat: Seat, on: boolean, dt: number): void {
+  if (m.phase !== 'hide' && m.phase !== 'search') return;
+  if (on) m.buried[seat] = (m.buried[seat] ?? 0) + dt;
+  else delete m.buried[seat];
+}
+
+/** ハンター by が隠れる人 seat を見落とした点を足す（探索のあいだだけ） */
+export function overlooked(m: Match, by: Seat, seat: Seat, pts: number): void {
+  if (m.phase !== 'search') return;
+  const row = (m.overlook[by] ??= {});
+  row[seat] = (row[seat] ?? 0) + pts;
 }
 
 /** 口笛。ロビーでは全員、試合中は見つかっていない隠れる人だけが、1 秒あけて吹ける。自分で吹くと強制挑発の時計が巻き戻る */
@@ -308,11 +365,33 @@ export interface View {
   reached: Partial<Record<Seat, number>>;
   champ: Seat | null;
   seed: number | null;
+  /** ええやんを受けた数 */
+  likes: Partial<Record<Seat, number>>;
+  /** ええやんを押した人 */
+  liked: Seat[];
+  /** 体が埋まっている人 */
+  buried: Seat[];
+  /** 埋まったまま EXPOSE 秒たち、ハンターに場所を知らせる人 */
+  exposed: Seat[];
+  /** 見落としポイント（ハンター → 隠れる人 → 点、切り捨て） */
+  overlook: Partial<Record<Seat, Partial<Record<Seat, number>>>>;
+  spots: Partial<Record<Seat, V3>>;
 }
 
 export function view(m: Match): View {
   const { phase, settings, roles, first, found, winner, ready, wishes, hid, caught, reached, champ, seed } = m;
   const taunts = Object.fromEntries(Object.entries(m.taunts).map(([s, v]) => [s, Math.ceil(v ?? 0)]));
+  const likes: Partial<Record<Seat, number>> = {};
+  for (const to of Object.values(m.likes)) if (to) likes[to] = (likes[to] ?? 0) + 1;
+  const liked = Object.keys(m.likes).map(Number) as Seat[];
+  const buried = Object.keys(m.buried).map(Number) as Seat[];
+  const exposed = buried.filter((s) => (m.buried[s] ?? 0) >= EXPOSE - EPS);
+  const overlook = Object.fromEntries(
+    Object.entries(m.overlook).map(([h, row]) => [
+      h,
+      Object.fromEntries(Object.entries(row ?? {}).map(([s, v]) => [s, Math.floor(v ?? 0)]))
+    ])
+  ) as View['overlook'];
   return {
     phase,
     left: m.left,
@@ -328,6 +407,12 @@ export function view(m: Match): View {
     caught,
     reached,
     champ,
-    seed
+    seed,
+    likes,
+    liked,
+    buried,
+    exposed,
+    overlook,
+    spots: m.spots
   };
 }

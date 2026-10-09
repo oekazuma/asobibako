@@ -27,4 +27,12 @@ describe('マップの設定', () => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({ hide: 5, reveal: 999 }));
     expect(readSettings()).toMatchObject({ hide: 30, reveal: 120 });
   });
+
+  it('ダブルと見逃しランキングの設定も覚え、前の版の保存は見逃しランキングをオンで読む', () => {
+    saveSettings({ ...DEFAULTS, mode: 'double', overlook: false });
+    expect(readSettings()).toMatchObject({ mode: 'double', overlook: false });
+    // JSON は undefined の項目を書かないので、前の版の保存と同じく overlook の無い形になる
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...DEFAULTS, overlook: undefined, v: 2 }));
+    expect(readSettings().overlook).toBe(true);
+  });
 });

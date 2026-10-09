@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Seat } from '$lib/net/party.svelte';
 import {
+  bury,
   DEFAULTS,
   fit,
   hiding,
@@ -8,7 +9,9 @@ import {
   INTRO,
   join,
   leave,
+  like,
   newMatch,
+  overlooked,
   pickHunters,
   ready,
   shoot,
@@ -42,9 +45,14 @@ function run(m: Match, secs: number): Seat[] {
 
 describe('fit', () => {
   it('範囲の外の値を収め、ハンターは人数−1 まで、強制挑発は 0 か 5〜120', () => {
-    const s = fit({ mode: 'normal', hunters: 5, hide: 10, search: 9999, reveal: 30, taunt: 3 }, 3);
-    expect(s).toEqual({ mode: 'normal', hunters: 2, hide: 30, search: 600, reveal: 30, taunt: 5 });
+    const s = fit({ mode: 'normal', hunters: 5, hide: 10, search: 9999, reveal: 30, taunt: 3, overlook: false }, 3);
+    expect(s).toEqual({ mode: 'normal', hunters: 2, hide: 30, search: 600, reveal: 30, taunt: 5, overlook: false });
     expect(fit({ ...DEFAULTS, hunters: 2, taunt: 0 }, 2)).toMatchObject({ hunters: 1, taunt: 0 });
+  });
+
+  it('見逃しランキングの表示は既定でオン。読めない値もオン', () => {
+    expect(DEFAULTS.overlook).toBe(true);
+    expect(fit({ ...DEFAULTS, overlook: undefined as unknown as boolean }, 3).overlook).toBe(true);
   });
 });
 
@@ -343,5 +351,74 @@ describe('ダブル', () => {
 
   it('マップの設定はダブルを受け付ける', () => {
     expect(fit({ ...DEFAULTS, mode: 'double' }, 2).mode).toBe('double');
+  });
+});
+
+describe('ええやん・埋まり・見落とし', () => {
+  it('ええやんは答え合わせのあいだ、隠れた人へ 1 試合 1 回。自分と最初のハンターには押せない', () => {
+    const m = begun();
+    run(m, INTRO + 60);
+    expect(like(m, 3, 1)).toBe(false);
+    run(m, 300);
+    expect(m.phase).toBe('reveal');
+    expect(like(m, 1, 1)).toBe(false);
+    expect(like(m, 1, 3)).toBe(false);
+    expect(like(m, 3, 1)).toBe(true);
+    expect(like(m, 3, 2)).toBe(false);
+    expect(like(m, 2, 1)).toBe(true);
+    expect(view(m)).toMatchObject({ likes: { 1: 2 }, liked: [2, 3] });
+    run(m, 30);
+    expect(view(m)).toMatchObject({ likes: {}, liked: [] });
+  });
+
+  it('埋まりは隠れタイムと探索のあいだだけ数え、5 秒で場所を知らせる。解けたら消え、答え合わせで止める', () => {
+    const m = begun();
+    bury(m, 1, true, 1);
+    expect(view(m).buried).toEqual([]);
+    run(m, INTRO);
+    bury(m, 1, true, 4.9);
+    expect(view(m)).toMatchObject({ buried: [1], exposed: [] });
+    bury(m, 1, true, 0.1);
+    expect(view(m).exposed).toEqual([1]);
+    bury(m, 1, false, 0.1);
+    expect(view(m)).toMatchObject({ buried: [], exposed: [] });
+    bury(m, 2, true, 6);
+    run(m, 60 + 300);
+    expect(m.phase).toBe('reveal');
+    expect(view(m).buried).toEqual([]);
+    bury(m, 2, true, 1);
+    expect(view(m).buried).toEqual([]);
+  });
+
+  it('見つかった人の埋まりは消す', () => {
+    const m = begun();
+    run(m, INTRO + 60);
+    bury(m, 2, true, 6);
+    expect(view(m).exposed).toEqual([2]);
+    hit(m, 2);
+    expect(view(m).exposed).toEqual([]);
+  });
+
+  it('見落としポイントは探索のあいだだけ足し、配るときは切り捨てる。次の試合では 0 から', () => {
+    const m = begun();
+    run(m, INTRO);
+    overlooked(m, 3, 1, 5);
+    expect(view(m).overlook).toEqual({});
+    run(m, 60);
+    overlooked(m, 3, 1, 2.7);
+    overlooked(m, 3, 1, 1.6);
+    overlooked(m, 3, 2, 0.4);
+    expect(view(m).overlook).toEqual({ 3: { 1: 4, 2: 0 } });
+    run(m, 300 + 30);
+    expect(m.phase).toBe('lobby');
+    expect(view(m).overlook).toEqual({});
+  });
+
+  it('答え合わせで見せる場所は、ロビーに戻ると消す', () => {
+    const m = begun();
+    m.spots[1] = [1, 0, 2];
+    expect(view(m).spots).toEqual({ 1: [1, 0, 2] });
+    run(m, INTRO + 60 + 300 + 30);
+    expect(view(m).spots).toEqual({});
   });
 });
