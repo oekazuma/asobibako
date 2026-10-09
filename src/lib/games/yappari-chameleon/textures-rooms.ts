@@ -213,3 +213,86 @@ export function hunterSign(): Pattern {
     });
   });
 }
+
+/** 書斎の茶色の木の床。幅 15cm の板を長さ方向にずらして張る。継ぎ目と木目は 2cm 以上 */
+export function planks(): Pattern {
+  return make('planks', 512, 512, [1.2, 1.2], (g) => {
+    const r = rng(89);
+    for (let i = 0; i < 8; i++) {
+      const y = i * 64;
+      let x = -r() * 200;
+      while (x < 512) {
+        const len = 180 + r() * 160;
+        g.fillStyle = `hsl(26 ${40 + r() * 10}% ${26 + r() * 8}%)`;
+        g.fillRect(x, y, len, 64);
+        g.strokeStyle = 'rgb(255 230 200 / 0.07)';
+        g.lineWidth = 9;
+        for (let k = 0; k < 3; k++) {
+          g.beginPath();
+          g.moveTo(x, y + 14 + k * 16);
+          g.lineTo(x + len, y + 16 + k * 16);
+          g.stroke();
+        }
+        g.strokeStyle = 'rgb(0 0 0 / 0.35)';
+        g.strokeRect(x, y, len, 64);
+        x += len;
+      }
+    }
+  });
+}
+
+/** キッチンの白いタイルの壁。15cm 角に灰色の目地（2.3cm） */
+export function whiteTile(): Pattern {
+  return make('white-tile', 256, 256, [0.6, 0.6], (g) => {
+    const r = rng(97);
+    g.fillStyle = '#b9bcbf';
+    g.fillRect(0, 0, 256, 256);
+    for (let y = 0; y < 4; y++)
+      for (let x = 0; x < 4; x++) {
+        g.fillStyle = `hsl(200 8% ${92 + r() * 5}%)`;
+        g.fillRect(x * 64 + 5, y * 64 + 5, 54, 54);
+      }
+  });
+}
+
+/**
+ * キッチンの青い六角タイルの床。差し渡し 20cm、目地 2.3cm。縦にとがった六角を、横 √3R・縦 3R の周期で
+ * 2 周期ぶん描いて継ぎ目なく繰り返す（横の周期は 0.7 画素ずれるが、目に見えない）
+ */
+export function blueHex(): Pattern {
+  const R = 46;
+  const w = Math.sqrt(3) * R;
+  return make('blue-hex', 160, 276, [0.348, 0.6], (g) => {
+    const r = rng(101);
+    g.fillStyle = '#e8eef2';
+    g.fillRect(0, 0, 160, 276);
+    for (let k = -1; k <= 4; k++)
+      for (let i = -1; i <= 3; i++) {
+        const cx = i * w + (k % 2 ? w / 2 : 0);
+        const cy = k * 1.5 * R;
+        g.fillStyle = `hsl(208 ${55 + r() * 15}% ${38 + r() * 10}%)`;
+        g.beginPath();
+        for (let s = 0; s < 6; s++) {
+          const a = Math.PI / 6 + (s * Math.PI) / 3;
+          g.lineTo(cx + Math.cos(a) * (R - 6), cy + Math.sin(a) * (R - 6));
+        }
+        g.fill();
+      }
+  });
+}
+
+/** ランドリーの赤いれんがの壁。25 × 7cm のれんがを半分ずつずらして積み、目地は 2cm */
+export function brick(): Pattern {
+  return make('brick', 256, 256, [1.08, 1.08], (g) => {
+    const r = rng(103);
+    g.fillStyle = '#8f8379';
+    g.fillRect(0, 0, 256, 256);
+    const course = 256 / 12;
+    for (let j = 0; j < 12; j++)
+      for (let i = -1; i <= 4; i++) {
+        const x = i * 64 + (j % 2 ? 32 : 0);
+        g.fillStyle = `hsl(${4 + r() * 10} ${55 + r() * 15}% ${32 + r() * 10}%)`;
+        g.fillRect(x + 2.5, j * course + 2.5, 59, course - 5);
+      }
+  });
+}

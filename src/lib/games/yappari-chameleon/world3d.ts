@@ -90,15 +90,15 @@ export class World {
     this.scene.background = new THREE.Color('#1d1a17');
     this.scene.add(new THREE.HemisphereLight('#fff4e0', '#5a4a3a', 1.1));
     const top = this.#sun;
-    // 屋敷の全体（x −24〜8、z −1〜13）を 1 枚の影で覆う
-    top.position.set(-8, 20, 6);
-    top.target.position.set(-8, 0, 6);
+    // 屋敷の全体（x −24〜18、z −7〜17）を 1 枚の影で覆う
+    top.position.set(-3, 20, 5);
+    top.target.position.set(-3, 0, 5);
     top.castShadow = true;
     top.shadow.mapSize.set(2048, 2048);
-    top.shadow.camera.left = -17;
-    top.shadow.camera.right = 17;
-    top.shadow.camera.top = 8;
-    top.shadow.camera.bottom = -8;
+    top.shadow.camera.left = -21;
+    top.shadow.camera.right = 21;
+    top.shadow.camera.top = 12;
+    top.shadow.camera.bottom = -12;
     // 奥行きの範囲を光の高さ（20m）の前後に絞る。既定の far 500 だと bias の -0.0004 が 20cm にもなって影が浮く
     top.shadow.camera.near = 1;
     top.shadow.camera.far = 30;

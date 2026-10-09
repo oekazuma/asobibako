@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { idle, newBody, RADIUS, step, type Body, type Box, type Level } from '../move';
-import { levelOf, mansion, ROOM, SPAWNS } from './layout';
-import { LOBBY } from './lobby';
+import { levelOf, mansion, placeOf, ROOM, SPAWNS } from './layout';
 
 const m = mansion();
 const lv: Level = levelOf(m);
@@ -65,14 +64,8 @@ describe('mansion', () => {
     expect(b.pos[0]).toBeLessThan(-1.4);
   });
 
-  it('家具はどれも大広間か緑の廊下かロビーの中にある', () => {
-    for (const p of m.pieces) {
-      const [x, , z] = p.at;
-      const hall = x >= -7 && x <= 7 && z >= 0 && z <= 12;
-      const corridor = x >= -23 && x <= -7 && z >= 3.25 && z <= 6.75;
-      const lobby = x >= LOBBY.min[0] && x <= LOBBY.max[0] && z >= LOBBY.min[2] && z <= LOBBY.max[2];
-      expect(hall || corridor || lobby, `${p.kind} ${p.at}`).toBe(true);
-    }
+  it('家具はどれも名前のある部屋の中にある', () => {
+    for (const p of m.pieces) expect(placeOf(p.at), `${p.kind} ${p.at}`).not.toBe('屋敷');
   });
 
   it('カメラの殻は部屋の壁を含み、家具や手すりの箱を含まない', () => {

@@ -1,7 +1,8 @@
 import type { Seat } from '$lib/net/party.svelte';
 import type { V3 } from '$lib/sculpt';
 import type { Box, Level, Ramp } from '../move';
-import { LOBBY_SPAWNS, lobbyLights, lobbyPieces, lobbySlabs, podiumBoxes } from './lobby';
+import { LOBBY, LOBBY_SPAWNS, lobbyLights, lobbyPieces, lobbySlabs, podiumBoxes } from './lobby';
+import { roomLights, roomPieces, roomSlabs } from './rooms';
 
 export type Mat =
   | 'woodPanel'
@@ -15,7 +16,11 @@ export type Mat =
   | 'white'
   | 'splash'
   | 'splashFloor'
-  | 'splashCeiling';
+  | 'splashCeiling'
+  | 'planks'
+  | 'whiteTile'
+  | 'blueHex'
+  | 'brick';
 export type Face = 'x+' | 'x-' | 'y+' | 'y-' | 'z+' | 'z-';
 
 export interface Slab {
@@ -23,6 +28,8 @@ export interface Slab {
   max: V3;
   mat: Mat;
   face: Face;
+  /** 面の裏（face の向きの反対）の材質。大広間と廊下の壁の裏が、となりの部屋の壁になる */
+  back?: Mat;
   shadow?: boolean;
 }
 
@@ -115,7 +122,9 @@ function hall(): Slab[] {
     { min: [-7, HALL_H, 0], max: [7, HALL_H + T, 12], mat: 'coffer', face: 'y-' },
     { min: [-7, 0, -T], max: [7, HALL_H, 0], mat: 'woodPanel', face: 'z+' },
     { min: [-7, 0, 12], max: [7, HALL_H, 12 + T], mat: 'woodPanel', face: 'z-' },
-    { min: [7, 0, 0], max: [7 + T, HALL_H, 12], mat: 'woodPanel', face: 'x-' },
+    { min: [7, 0, 0], max: [7 + T, HALL_H, 5.25], mat: 'woodPanel', face: 'x-', back: 'woodPanel' },
+    { min: [7, 0, 6.75], max: [7 + T, HALL_H, 12], mat: 'woodPanel', face: 'x-', back: 'woodPanel' },
+    { min: [7, 2.4, 5.25], max: [7 + T, HALL_H, 6.75], mat: 'woodPanel', face: 'x-', back: 'woodPanel' },
     { min: [-7 - T, 0, 0], max: [-7, HALL_H, 4.25], mat: 'woodPanel', face: 'x+' },
     { min: [-7 - T, 0, 5.75], max: [-7, HALL_H, 12], mat: 'woodPanel', face: 'x+' },
     { min: [-7 - T, 2.4, 4.25], max: [-7, HALL_H, 5.75], mat: 'woodPanel', face: 'x+' },
@@ -136,16 +145,25 @@ function hall(): Slab[] {
   return s;
 }
 
+/** 北の壁にキッチンへ、南の壁にランドリーへの戸口。壁は腰板とダマスクの 2 段で、裏はとなりの部屋の壁 */
 function corridor(): Slab[] {
   const x0 = -23;
   const x1 = -7;
+  const wall = (z0: number, face: Face, back: Mat, door: [number, number]): Slab[] => [
+    ...[
+      [x0, door[0]],
+      [door[1], x1]
+    ].flatMap(([a, b]): Slab[] => [
+      { min: [a, 0, z0], max: [b, 1, z0 + T], mat: 'wainscot', face, back },
+      { min: [a, 1, z0], max: [b, CORR_H, z0 + T], mat: 'greenDamask', face, back }
+    ]),
+    { min: [door[0], 2.4, z0], max: [door[1], CORR_H, z0 + T], mat: 'greenDamask', face, back }
+  ];
   return [
     { min: [x0, -1, 3.25], max: [x1, 0, 6.75], mat: 'checker', face: 'y+' },
     { min: [x0, CORR_H, 3.25], max: [x1, CORR_H + T, 6.75], mat: 'cream', face: 'y-' },
-    { min: [x0, 0, 6.75], max: [x1, 1, 6.75 + T], mat: 'wainscot', face: 'z-' },
-    { min: [x0, 1, 6.75], max: [x1, CORR_H, 6.75 + T], mat: 'greenDamask', face: 'z-' },
-    { min: [x0, 0, 3.25 - T], max: [x1, 1, 3.25], mat: 'wainscot', face: 'z+' },
-    { min: [x0, 1, 3.25 - T], max: [x1, CORR_H, 3.25], mat: 'greenDamask', face: 'z+' },
+    ...wall(6.75, 'z-', 'whiteTile', [-16.75, -15.25]),
+    ...wall(3.25 - T, 'z+', 'brick', [-15.75, -14.25]),
     { min: [x0 - T, 0, 3.25], max: [x0, 1, 6.75], mat: 'wainscot', face: 'x+' },
     { min: [x0 - T, 1, 3.25], max: [x0, CORR_H, 6.75], mat: 'greenDamask', face: 'x+' }
   ];
@@ -219,7 +237,7 @@ function pieces(): Piece[] {
     p('vase', [-8.2, 0, 6.3]),
     p('poster', [-11, 1.6, 6.75], 2),
     p('sofa', [-14, 0, 6.25], 2),
-    p('painting', [-17.5, 1.7, 6.75], 2),
+    p('painting', [-19, 1.7, 6.75], 2),
     p('bench', [-20, 0, 3.5]),
     p('balloon', [-12, 0, 4]),
     p('balloon', [-12.5, 0, 4.3]),
@@ -232,9 +250,9 @@ function pieces(): Piece[] {
 }
 
 export function mansion(): Mansion {
-  const all = [...pieces(), ...lobbyPieces()];
+  const all = [...pieces(), ...roomPieces(), ...lobbyPieces()];
   return {
-    slabs: [...hall(), ...corridor(), ...room(), ...lobbySlabs()],
+    slabs: [...hall(), ...corridor(), ...room(), ...roomSlabs(), ...lobbySlabs()],
     pieces: all,
     ramps: [STAIR],
     spawn: [0, 0, 1.5],
@@ -250,6 +268,7 @@ export function mansion(): Mansion {
           power: 3,
           reach: 7
         })),
+      ...roomLights(),
       ...lobbyLights()
     ]
   };
@@ -270,4 +289,21 @@ export function levelOf(m: Mansion): Level {
   }
   boxes.push(...m.solids);
   return { boxes, shell, ramps: m.ramps, spawn: m.spawn };
+}
+
+/** 答え合わせの「見落とされた場所」に出す部屋の名前。上から順に調べる（回廊は大広間の中の 2 階） */
+export const PLACES: { name: string; min: V3; max: V3 }[] = [
+  { name: '2階の回廊', min: [-7, 3, 9], max: [7, 7, 12] },
+  { name: '大広間', min: [-7, -1, 0], max: [7, 7, 12] },
+  { name: '緑の廊下', min: [-23, -1, 3.25], max: [-7, 4, 6.75] },
+  { name: '書斎', min: [7, -1, 1], max: [17.3, 4.3, 11] },
+  { name: 'キッチン', min: [-21, -1, 6.75], max: [-11, 3.8, 15.05] },
+  { name: 'ランドリー', min: [-20, -1, -5.05], max: [-10, 3.8, 3.25] },
+  { name: '控室', min: [ROOM.min[0], -1, ROOM.min[2]], max: [ROOM.max[0], ROOM.max[1] + 0.3, ROOM.max[2]] },
+  { name: 'ロビー', min: [LOBBY.min[0], -1, LOBBY.min[2]], max: [LOBBY.max[0], LOBBY.max[1] + 0.3, LOBBY.max[2]] }
+];
+
+export function placeOf(at: V3): string {
+  const hit = PLACES.find(({ min, max }) => at.every((v, i) => v >= min[i] && v <= max[i]));
+  return hit?.name ?? '屋敷';
 }
