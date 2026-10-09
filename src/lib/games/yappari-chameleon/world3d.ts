@@ -4,8 +4,9 @@ import type { V3 } from '$lib/sculpt';
 import type { RGB } from './color';
 import { bakePose, PoseAnimator, type DollRig } from './doll3d';
 import { cameraReach, settleDist, type Body, type DistState, type Level } from './move';
-import { placement } from './shots';
-import { finish, rainbowMottle, readPick } from './textures';
+import { brushModel, disposeModel, inHand } from './gun';
+import { placement, type Placeable } from './shots';
+import { readPick } from './textures';
 import { seeThrough, XRAY } from './xray';
 
 /** 一人称の縦の視野。本家の 16:9 の画面での横 105 度と同じ見え方 */
@@ -21,12 +22,25 @@ export interface Built {
  */
 const CAM_RADIUS = 0.12;
 
+/** 体の根元を、張り付き（壁から離す・天井で寝かせる）も込みで置く。ほかの人の体も同じ置き方にする */
+export function placeRoot(root: THREE.Object3D, b: Placeable): void {
+  const p = placement(b);
+  root.rotation.order = 'YXZ';
+  root.rotation.set(p.tilt, p.yaw, 0);
+  root.position.set(...p.at);
+  root.updateMatrixWorld(true);
+}
+
 export class World {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
   readonly camera = new THREE.PerspectiveCamera(60, 1, 0.05, 80);
   readonly rig: DollRig;
   readonly poses: PoseAnimator;
+  /** 一人称の手と銃の場面。屋敷の深さを消してから重ねて描くので、壁に近づいても銃が壁に埋まらない */
+  readonly overlay = new THREE.Scene();
+  /** overlay の中で、描く直前にカメラへ合わせる枠 */
+  readonly hand = new THREE.Group();
   level: Level = { boxes: [], ramps: [], spawn: [0, 0, 0] };
   #stage: THREE.Group | null = null;
   #environment: THREE.WebGLRenderTarget | null = null;
@@ -45,7 +59,7 @@ export class World {
       depthWrite: false
     })
   );
-  #brush = new THREE.Group();
+  #brush = brushModel();
   #baked = -1;
   #center = new THREE.Vector3();
   #ease: DistState = { dist: 2.4, wait: 0 };
@@ -94,26 +108,9 @@ export class World {
     this.scene.add(this.#cursor);
     this.#ring.visible = false;
     this.scene.add(this.#ring);
-    const handle = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.012, 0.014, 0.36, 12),
-      finish({ pattern: rainbowMottle(), rough: 0.5 }, [0.08, 0.36])
-    );
-    const ferrule = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.016, 0.014, 0.05, 12),
-      finish({ tint: '#c9a227', metal: 1, rough: 0.35 }, [0.1, 0.05])
-    );
-    const tip = new THREE.Mesh(
-      new THREE.ConeGeometry(0.018, 0.07, 12),
-      finish({ tint: '#2b2420', rough: 0.9 }, [0.1, 0.07])
-    );
-    ferrule.position.y = 0.2;
-    tip.position.y = 0.26;
-    this.#brush.add(handle, ferrule, tip);
-    // 手の楕円体（doll.ts の [-0.538, 0.616, 0]）を、前腕の骨の付け根 [-0.354, 0.745, 0] からの差で指す。穂先を下にして腰のわきへ垂らす（横へ寝かせると床に付く）
-    this.#brush.position.set(-0.184, -0.129, 0.03);
-    this.#brush.rotation.set(Math.PI - 0.5, 0, 0.2);
-    this.#brush.visible = false;
-    this.rig.bones['forearm.r'].add(this.#brush);
+    inHand(this.rig.bones['forearm.r'], this.#brush, 'brush');
+    this.overlay.visible = false;
+    this.overlay.add(new THREE.HemisphereLight('#fff4e0', '#5a4a3a', 2), this.hand);
   }
 
   #buildEnvironment(): void {
@@ -148,11 +145,7 @@ export class World {
 
   placeDoll(b: Body): void {
     const root = this.rig.root;
-    const p = placement(b);
-    root.rotation.order = 'YXZ';
-    root.rotation.set(p.tilt, p.yaw, 0);
-    root.position.set(...p.at);
-    root.updateMatrixWorld(true);
+    placeRoot(root, b);
     const ring = this.#ring;
     ring.visible = !!b.cling;
     if (b.cling?.kind === 'wall') {
@@ -253,6 +246,12 @@ export class World {
     return { x: ((v.x + 1) / 2) * this.#w, y: ((1 - v.y) / 2) * this.#h };
   }
 
+  /** 画面の位置。カメラの後ろなら null（名前の札を出さない） */
+  screen(p: V3): { x: number; y: number } | null {
+    const v = new THREE.Vector3(...p).applyMatrix4(this.camera.matrixWorldInverse);
+    return v.z < -this.camera.near ? this.project(p) : null;
+  }
+
   // 自分の画面の位置（描画の画素、左下が原点）と、自分までの深さ
   xray(on: boolean): void {
     XRAY.on.value = on ? 1 : 0;
@@ -271,6 +270,14 @@ export class World {
   render(): void {
     this.rig.paint.flush();
     this.renderer.render(this.scene, this.camera);
+    if (!this.overlay.visible) return;
+    this.hand.position.copy(this.camera.position);
+    this.hand.quaternion.copy(this.camera.quaternion);
+    const r = this.renderer;
+    r.autoClear = false;
+    r.clearDepth();
+    r.render(this.overlay, this.camera);
+    r.autoClear = true;
   }
 
   dispose(): void {
@@ -289,12 +296,8 @@ export class World {
     this.#cursor.material.dispose();
     this.#ring.geometry.dispose();
     this.#ring.material.dispose();
-    this.#brush.traverse((o) => {
-      if (!(o instanceof THREE.Mesh)) return;
-      o.geometry.dispose();
-      (o.material as THREE.MeshStandardMaterial).map?.dispose();
-      o.material.dispose();
-    });
+    disposeModel(this.#brush);
+    disposeModel(this.overlay);
     this.renderer.dispose();
     // iOS は WebGL の文脈の数に上限があり、ゲームを開閉するたびに残すと古いものから失われていく
     this.renderer.forceContextLoss();
