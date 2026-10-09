@@ -65,8 +65,8 @@
 {/if}
 {#if (phase === 'hide' || phase === 'reveal') && play.mode !== 'paint'}<Ready {session} />{/if}
 {#if phase !== 'lobby'}
-  <!-- 左上の ✕ の下に、順位表と見落としの一覧を縦に並べる -->
-  <div class="side">
+  <!-- ✕ と重ならないよう、その下に縦に積む。左の操作域の上に載るので、箱そのものは指を受けない（テストが読めるよう style 属性で書く） -->
+  <div class="side" style:pointer-events="none">
     {#if match.double && (phase === 'search' || phase === 'reveal')}<Ranking {match} />{/if}
   </div>
 {/if}

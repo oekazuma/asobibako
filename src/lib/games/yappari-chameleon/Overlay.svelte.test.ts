@@ -90,6 +90,9 @@ describe('Overlay', () => {
     const { target, done } = show('hunter', { phase: 'search', settings, roles, hid: [1, 2], caught: { 2: [1] } }, 1);
     const rows = [...target.querySelectorAll('.ranking li')].map((li) => li.textContent?.replace(/\s+/g, ''));
     expect(rows).toEqual(['#1プレイヤー21/1', '#2プレイヤー10/1']);
+    expect(target.querySelector('.ranking li.me')?.textContent).toContain('プレイヤー1');
+    expect(target.querySelectorAll('.ranking li.me')).toHaveLength(1);
+    expect(target.querySelector<HTMLElement>('.side')!.style.pointerEvents).toBe('none');
     done();
   });
 
