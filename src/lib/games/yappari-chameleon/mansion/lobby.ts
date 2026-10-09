@@ -22,12 +22,17 @@ export function lobbySlabs(): Slab[] {
   ];
 }
 
-/** 丸い台の当たり。乗れる高さ（STEP と同じ）の箱を 3 つ重ねて、半径 1.2m の円に近い八角形にする */
+/**
+ * 丸い台の当たり。乗れる高さ（STEP と同じ）の箱を 5 つ重ねて、角がどれも半径 1.2m の円の上に乗る多角形にする
+ * （角が円の外へ出ると、見えない所で体が台に当たる）
+ */
 export function podiumBoxes(): Box[] {
   const [cx, , cz] = PODIUM.at;
   return [
-    [1.2, 0.5],
-    [0.5, 1.2],
+    [1.18, 0.22],
+    [0.22, 1.18],
+    [1.04, 0.6],
+    [0.6, 1.04],
     [0.85, 0.85]
   ].map(([w, d]) => ({ min: [cx - w, 0, cz - d], max: [cx + w, PODIUM.h, cz + d] }));
 }
@@ -40,7 +45,12 @@ export function lobbyPieces(): Piece[] {
   ];
 }
 
-export const lobbyLights = (): Light[] => [{ at: [0, 5.4, -60], color: '#ffffff', power: 40, reach: 20 }];
+export const lobbyLights = (): Light[] => [{ at: [0, 5.4, -60], color: '#ffffff', power: 14, reach: 20 }];
+
+/** 壁の厚みまで含めたロビーの中か */
+export function inLobby(p: V3): boolean {
+  return [0, 1, 2].every((i) => p[i] >= LOBBY.min[i] - T && p[i] <= LOBBY.max[i] + T);
+}
 
 /** 台の南に並び、北（+z）の台を向いて出る */
 export const LOBBY_SPAWNS: Record<Seat, V3> = { 1: [0, 0, -64.5], 2: [-1.5, 0, -64.5], 3: [1.5, 0, -64.5] };

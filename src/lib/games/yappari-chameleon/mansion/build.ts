@@ -4,6 +4,7 @@ import { splashCeiling, splashFloor, splashWall } from '../textures-rooms';
 import type { Built } from '../world3d';
 import { piece } from './furniture';
 import { levelOf, mansion, type Face, type Mat, type Slab } from './layout';
+import { inLobby } from './lobby';
 
 const LOOKS: Record<Mat, () => Finish> = {
   woodPanel: () => ({ pattern: woodPanel(), rough: 0.6 }),
@@ -16,7 +17,7 @@ const LOOKS: Record<Mat, () => Finish> = {
   rail: () => ({ tint: '#3b2414', rough: 0.5 }),
   white: () => ({ tint: '#f2efe9', rough: 0.85 }),
   splash: () => ({ pattern: splashWall(), rough: 0.85 }),
-  splashFloor: () => ({ pattern: splashFloor(), rough: 0.35 }),
+  splashFloor: () => ({ pattern: splashFloor(), rough: 0.8 }),
   splashCeiling: () => ({ pattern: splashCeiling(), rough: 0.85 })
 };
 
@@ -60,7 +61,8 @@ export function buildMansion(): Built {
     group,
     level: levelOf(m),
     glow: (on) => {
-      for (const r of rims) r.emissiveIntensity = on ? 2.4 : 0.15;
-    }
+      for (const r of rims) r.emissiveIntensity = on ? 3 : 0;
+    },
+    sunless: inLobby
   };
 }

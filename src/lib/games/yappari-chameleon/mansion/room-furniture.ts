@@ -17,8 +17,9 @@ function podium(g: THREE.Group) {
   top.receiveShadow = true;
   g.add(top);
   const rim = new THREE.Mesh(
-    new THREE.TorusGeometry(1.2, 0.035, 10, 96),
-    new THREE.MeshStandardMaterial({ color: '#ff5a3c', emissive: '#ff3b1f', emissiveIntensity: 0.15 })
+    new THREE.TorusGeometry(1.2, 0.05, 10, 96),
+    // 消えているときは台と同じ赤にして、点いたときの黄色い光との差で乗っているのが分かるようにする
+    new THREE.MeshStandardMaterial({ color: '#c8231e', roughness: 0.55, emissive: '#ffd36b', emissiveIntensity: 0 })
   );
   rim.rotation.x = Math.PI / 2;
   rim.position.y = 0.3;

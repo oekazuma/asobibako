@@ -16,12 +16,14 @@ export interface Built {
   group: THREE.Group;
   level: Level;
   glow?: (on: boolean) => void;
+  sunless?: (at: V3) => boolean;
 }
 
 /**
  * カメラの線の太さ。体は壁から RADIUS 離れて歩くので、同じ太さにすると壁ぎわを歩くあいだ縁の線がずっと壁をかすめて、距離が潰れる
  */
 const CAM_RADIUS = 0.12;
+const SUN = 1.6;
 
 /** 体の根元を、張り付き（壁から離す・天井で寝かせる）も込みで置く。ほかの人の体も同じ置き方にする */
 export function placeRoot(root: THREE.Object3D, b: Placeable): void {
@@ -45,6 +47,7 @@ export class World {
   level: Level = { boxes: [], ramps: [], spawn: [0, 0, 0] };
   #stage: THREE.Group | null = null;
   #built: Built | null = null;
+  #sun = new THREE.DirectionalLight('#fff1dc', SUN);
   #environment: THREE.WebGLRenderTarget | null = null;
   #ray = new THREE.Raycaster();
   #cursor = new THREE.Mesh(
@@ -86,7 +89,7 @@ export class World {
     });
     this.scene.background = new THREE.Color('#1d1a17');
     this.scene.add(new THREE.HemisphereLight('#fff4e0', '#5a4a3a', 1.1));
-    const top = new THREE.DirectionalLight('#fff1dc', 1.6);
+    const top = this.#sun;
     // 屋敷の全体（x −24〜8、z −1〜13）を 1 枚の影で覆う
     top.position.set(-8, 20, 6);
     top.target.position.set(-8, 0, 6);
@@ -278,6 +281,10 @@ export class World {
 
   render(): void {
     this.rig.paint.flush();
+    // 日の影は屋敷だけを覆うので、影の外のロビーでは上を向いた面が日で白く飛ぶ。ロビーにカメラがあるあいだは日を消す
+    // （光を足し引きすると材質の shader を作り直して止まるので、強さで消す）
+    const c = this.camera.position;
+    this.#sun.intensity = this.#built?.sunless?.([c.x, c.y, c.z]) ? 0 : SUN;
     this.renderer.render(this.scene, this.camera);
     if (!this.overlay.visible) return;
     this.hand.position.copy(this.camera.position);

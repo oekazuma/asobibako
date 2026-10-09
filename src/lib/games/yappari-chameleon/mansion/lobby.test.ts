@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { idle, newBody, step, type Body, type Level } from '../move';
 import { levelOf, mansion, SPAWNS } from './layout';
-import { LOBBY, onPodium, PODIUM } from './lobby';
+import { inLobby, LOBBY, onPodium, PODIUM, podiumBoxes } from './lobby';
 
 const lv: Level = levelOf(mansion());
 
@@ -64,5 +64,18 @@ describe('ロビーの部屋', () => {
     const shell = lv.shell ?? [];
     expect(shell.some((b) => b.min[2] === LOBBY.min[2] - 0.3 && b.max[2] === LOBBY.min[2])).toBe(true);
     expect(shell.some((b) => b.max[1] === PODIUM.h)).toBe(false);
+  });
+
+  it('台の当たりの角は見える台の円からはみ出さない', () => {
+    const [cx, , cz] = PODIUM.at;
+    for (const b of podiumBoxes())
+      for (const x of [b.min[0], b.max[0]])
+        for (const z of [b.min[2], b.max[2]]) expect(Math.hypot(x - cx, z - cz)).toBeLessThan(PODIUM.r + 0.01);
+  });
+
+  it('日を消すのはロビーの中だけ', () => {
+    expect(inLobby([0, 1.5, -66])).toBe(true);
+    expect(inLobby(SPAWNS.hall[1])).toBe(false);
+    expect(inLobby(SPAWNS.room[1])).toBe(false);
   });
 });

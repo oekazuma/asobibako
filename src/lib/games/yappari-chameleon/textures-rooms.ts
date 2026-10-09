@@ -3,27 +3,43 @@ import { make, type Pattern } from './textures';
 
 const PAINTS = ['#e2262b', '#f6c21c', '#3fae3a', '#8a3fc4'];
 
-/** 本家のロビーの赤・黄・緑・紫の大きなペンキのしぶき。粒は 8px 以上なので、1 枚 8m の模様で 6cm 以上になる */
+/**
+ * 本家のロビーの赤・黄・緑・紫の大きなペンキのしぶき。粒は 8px 以上なので、1 枚 8m の模様で 6cm 以上になる。
+ * 模様は繰り返して貼るので、はみ出したしぶきは反対の端にも描いて継ぎ目で切れないようにする
+ */
 function splats(g: CanvasRenderingContext2D, seed: number, w: number, h: number, count: number, drip: boolean) {
   const r = rng(seed);
   for (let i = 0; i < count; i++) {
     const cx = r() * w;
     const cy = r() * h;
     const big = 50 + r() * 90;
-    g.fillStyle = PAINTS[i % PAINTS.length];
-    g.beginPath();
-    g.arc(cx, cy, big, 0, Math.PI * 2);
-    g.fill();
-    for (let k = 0; k < 14; k++) {
+    const dots = Array.from({ length: 14 }, () => {
       const a = r() * Math.PI * 2;
       const d = big * (0.8 + r() * 0.9);
-      g.beginPath();
-      g.arc(cx + Math.cos(a) * d, cy + Math.sin(a) * d, 8 + r() * big * 0.35, 0, Math.PI * 2);
-      g.fill();
-    }
+      return [Math.cos(a) * d, Math.sin(a) * d, 8 + r() * big * 0.35];
+    });
     // 垂れるのは壁だけ。床と天井では向きが無いので垂らさない
-    if (drip)
-      for (let k = 0; k < 3; k++) g.fillRect(cx - big * 0.5 + r() * big, cy, 10 + r() * 8, big * (0.8 + r() * 1.4));
+    const drips = drip
+      ? Array.from({ length: 3 }, () => [-big * 0.5 + r() * big, 10 + r() * 8, big * (0.8 + r() * 1.4)])
+      : [];
+    g.fillStyle = PAINTS[i % PAINTS.length];
+    for (const ox of [-w, 0, w])
+      for (const oy of [-h, 0, h]) {
+        const x = cx + ox;
+        const y = cy + oy;
+        g.beginPath();
+        g.arc(x, y, big, 0, Math.PI * 2);
+        for (const [dx, dy, rr] of dots) {
+          g.moveTo(x + dx + rr, y + dy);
+          g.arc(x + dx, y + dy, rr, 0, Math.PI * 2);
+        }
+        g.fill();
+        for (const [dx, dw, dl] of drips) {
+          g.beginPath();
+          g.roundRect(x + dx, y, dw, dl, dw / 2);
+          g.fill();
+        }
+      }
   }
 }
 
@@ -75,24 +91,125 @@ export function splashCeiling(): Pattern {
   });
 }
 
-/** ロビーの台の上面。赤地に白いペンキの筆の字で HUNTER。1 枚が台の差し渡し 2.4m で、字の線は 4cm 以上 */
+/** 筆の字の線。0..1 の枠の中の折れ線で、y は下向き */
+const LETTERS: Record<string, [number, number][][]> = {
+  H: [
+    [
+      [0, 0],
+      [0, 1]
+    ],
+    [
+      [1, 0],
+      [1, 1]
+    ],
+    [
+      [0, 0.5],
+      [1, 0.48]
+    ]
+  ],
+  U: [
+    [
+      [0, 0],
+      [0, 0.7],
+      [0.15, 0.95],
+      [0.5, 1],
+      [0.85, 0.95],
+      [1, 0.7],
+      [1, 0]
+    ]
+  ],
+  N: [
+    [
+      [0, 1],
+      [0, 0],
+      [1, 1],
+      [1, 0]
+    ]
+  ],
+  T: [
+    [
+      [-0.15, 0],
+      [1.15, 0.02]
+    ],
+    [
+      [0.5, 0],
+      [0.5, 1]
+    ]
+  ],
+  E: [
+    [
+      [1, 0],
+      [0, 0],
+      [0, 1],
+      [1, 1]
+    ],
+    [
+      [0, 0.5],
+      [0.8, 0.5]
+    ]
+  ],
+  R: [
+    [
+      [0, 1],
+      [0, 0],
+      [0.7, 0],
+      [0.95, 0.12],
+      [0.95, 0.38],
+      [0.7, 0.5],
+      [0, 0.5]
+    ],
+    [
+      [0.45, 0.5],
+      [1, 1]
+    ]
+  ]
+};
+
+/**
+ * ロビーの台の上面。赤地に白いペンキの筆の字で HUNTER。1 枚が台の差し渡し 2.4m で、字の線は 4cm 以上。
+ * 始める場所から低い角度で見るので、字は台の円に収まるいっぱいの大きさにする
+ */
 export function hunterSign(): Pattern {
   return make('hunter-sign', 512, 512, [2.4, 2.4], (g) => {
     const r = rng(71);
-    g.fillStyle = '#c8231e';
+    g.fillStyle = '#a3170f';
     g.fillRect(0, 0, 512, 512);
-    g.font = 'bold 104px "Hiragino Mincho ProN", serif';
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-    g.lineJoin = 'round';
-    // 少しずつずらして重ね、太い筆でこすったように見せる
-    for (let i = 0; i < 5; i++) {
-      g.strokeStyle = `rgb(255 255 255 / ${0.35 + i * 0.12})`;
-      g.lineWidth = 14 - i * 2;
-      g.strokeText('HUNTER', 256 + (r() - 0.5) * 8, 256 + (r() - 0.5) * 8);
-    }
-    g.fillStyle = '#ffffff';
-    g.fillText('HUNTER', 256, 256);
-    for (let i = 0; i < 18; i++) g.fillRect(70 + r() * 372, 290 + r() * 10, 9, 14 + r() * 40);
+    g.strokeStyle = g.fillStyle = '#ffffff';
+    g.lineCap = g.lineJoin = 'round';
+    const [lw, lh, gap, top] = [60, 150, 14, 175];
+    const left = (512 - (lw * 6 + gap * 5)) / 2;
+    [...'HUNTER'].forEach((ch, k) => {
+      const ox = left + k * (lw + gap);
+      for (const line of LETTERS[ch]) {
+        const pts = line.map(([x, y]) => [ox + x * lw + (r() - 0.5) * 4, top + y * lh + (r() - 0.5) * 4]);
+        // 筆は置いたところが太く、払うにつれて細くなる。短い区間ごとに太さを変えて描く
+        const steps = pts.slice(1).map((p, i) => Math.ceil(Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]) / 4));
+        const total = steps.reduce((a, b) => a + b, 0);
+        let n = 0;
+        pts.slice(1).forEach((p, i) => {
+          const [x0, y0] = pts[i];
+          for (let s = 0; s < steps[i]; s++, n++) {
+            g.lineWidth = 24 * (1.1 - 0.45 * (n / total)) + (r() - 0.5) * 3;
+            g.beginPath();
+            g.moveTo(x0 + ((p[0] - x0) * s) / steps[i], y0 + ((p[1] - y0) * s) / steps[i]);
+            g.lineTo(x0 + ((p[0] - x0) * (s + 1)) / steps[i], y0 + ((p[1] - y0) * (s + 1)) / steps[i]);
+            g.stroke();
+          }
+        });
+      }
+      // 字の下から垂れたペンキ。先は丸いしずく
+      if (r() < 0.7) {
+        const x = ox + r() * lw;
+        const len = 20 + r() * 40;
+        g.lineWidth = 7;
+        g.beginPath();
+        g.moveTo(x, top + lh - 4);
+        g.lineTo(x, top + lh + len);
+        g.stroke();
+        g.beginPath();
+        g.arc(x, top + lh + len, 7, 0, Math.PI * 2);
+        g.fill();
+      }
+    });
   });
 }
