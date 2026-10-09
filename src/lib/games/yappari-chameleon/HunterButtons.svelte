@@ -13,6 +13,15 @@
 
 <!-- スティックと見回しの指を置いたまま押すので、pointerdown で受ける -->
 <div class="column">
+  <button
+    class="round-btn"
+    class:on={session.play.tps}
+    aria-pressed={session.play.tps}
+    onpointerdown={() => session.play.toggleTps()}
+  >
+    <Icon name={session.play.tps ? 'eye' : 'figure'} size="30px" />
+    <span>{session.play.tps ? 'FPS視点' : 'TPS視点'}</span>
+  </button>
   <button class="round-btn" onpointerdown={() => session.play.jump()}>
     <Icon name="lift" size="30px" />
     <span>ジャンプ</span>

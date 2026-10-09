@@ -1,12 +1,15 @@
 <script lang="ts">
   import BrushSize from './BrushSize.svelte';
   import Buttons from './Buttons.svelte';
+  import EmbedWarning from './EmbedWarning.svelte';
   import Hud from './Hud.svelte';
   import HunterButtons from './HunterButtons.svelte';
+  import Iine from './Iine.svelte';
   import Intro from './Intro.svelte';
   import Invite from './Invite.svelte';
   import Lobby from './Lobby.svelte';
   import { winnerText } from './match.svelte';
+  import Overlooked from './Overlooked.svelte';
   import PaintPanel from './PaintPanel.svelte';
   import Plates from './Plates.svelte';
   import PoseWheel from './PoseWheel.svelte';
@@ -16,6 +19,7 @@
   import Reveal from './Reveal.svelte';
   import type { Session } from './session.svelte';
   import Spectate from './Spectate.svelte';
+  import Spotted from './Spotted.svelte';
   import StickView from './StickView.svelte';
   import TopButtons from './TopButtons.svelte';
 
@@ -68,8 +72,12 @@
   <!-- ✕ と重ならないよう、その下に縦に積む。左の操作域の上に載るので、箱そのものは指を受けない（テストが読めるよう style 属性で書く） -->
   <div class="side" style:pointer-events="none">
     {#if match.double && (phase === 'search' || phase === 'reveal')}<Ranking {match} />{/if}
+    {#if phase === 'search' && play.role === 'hunter' && match.view.settings.overlook}<Overlooked {match} />{/if}
+    {#if phase === 'reveal'}<Spotted {match} />{/if}
   </div>
 {/if}
+{#if phase === 'reveal'}<Iine {session} />{/if}
+{#if session.buried}<EmbedWarning />{/if}
 <Intro {match} />
 {#if phase === 'reveal' && won}<Reveal text={won} />{/if}
 <button class="quit" onclick={ask} aria-label="抜ける">✕</button>

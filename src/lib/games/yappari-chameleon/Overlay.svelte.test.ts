@@ -7,7 +7,7 @@ import type { PlayRole } from './play.svelte';
 import { DEFAULTS, newMatch, view, type View } from './referee';
 import type { Session } from './session.svelte';
 
-function show(role: PlayRole, v: Partial<View>, me: Seat = 1) {
+function show(role: PlayRole, v: Partial<View>, me: Seat = 1, extra: Partial<Record<string, unknown>> = {}) {
   const match = new Match(() => me);
   match.receive({ ...view(newMatch()), settings: DEFAULTS, roles: { 1: 'hider', 2: 'hunter' }, ...v });
   const play = {
@@ -34,13 +34,14 @@ function show(role: PlayRole, v: Partial<View>, me: Seat = 1) {
     watching: 2,
     buried: false,
     like: vi.fn(),
-    canTaunt: match.phase === 'lobby' || match.hiding
+    canTaunt: match.phase === 'lobby' || match.hiding,
+    ...extra
   } as unknown as Session;
   const target = document.body.appendChild(document.createElement('div'));
   const app = mount(Overlay, { target, props: { session, radius: 70, center: () => [0, 0], onleave: vi.fn() } });
   flushSync();
   const labels = () => [...target.querySelectorAll('button')].map((b) => b.textContent?.trim());
-  return { target, labels, done: () => unmount(app) };
+  return { target, labels, session, done: () => unmount(app) };
 }
 
 describe('Overlay', () => {
@@ -100,6 +101,66 @@ describe('Overlay', () => {
     const { target, done } = show('hider', { phase: 'intro', settings: { ...DEFAULTS, mode: 'double' } });
     expect(['#e8399c', 'rgb(232, 57, 156)']).toContain(target.querySelector<HTMLElement>('.intro .name')?.style.color);
     expect(target.textContent).toContain('その後全員で探索し、最初に全員見つければ勝利');
+    done();
+  });
+
+  it('探索のハンターには見落とした敵を出し、隠すと畳み、開き直せる。設定がオフなら出さない', () => {
+    const v: Partial<View> = { phase: 'search', overlook: { 2: { 1: 12 } } };
+    const { target, done } = show('hunter', v, 2);
+    const list = () => target.querySelector('.overlooked');
+    expect(list()?.textContent).toContain('見落とした敵');
+    expect(list()?.textContent).toContain('プレイヤー1');
+    expect(list()?.textContent).toContain('12');
+    [...target.querySelectorAll('button')]
+      .find((b) => b.textContent?.trim() === '隠す')!
+      .dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    flushSync();
+    expect(list()).toBeNull();
+    [...target.querySelectorAll('button')]
+      .find((b) => b.textContent?.trim() === '見落とした敵')!
+      .dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    flushSync();
+    expect(list()).not.toBeNull();
+    done();
+    const off = show('hunter', { ...v, settings: { ...DEFAULTS, overlook: false } }, 2);
+    expect(off.target.querySelector('.overlooked')).toBeNull();
+    off.done();
+  });
+
+  it('答え合わせでは、見落とされた場所と、ええやんの一覧を出す', () => {
+    const { target, done } = show('hider', {
+      phase: 'reveal',
+      winner: 'chameleon',
+      hid: [1],
+      overlook: { 2: { 1: 7 } },
+      spots: { 1: [-16, 0, 10] },
+      likes: { 1: 2 }
+    });
+    expect(target.querySelector('.spotted')?.textContent).toContain('見落とされた場所');
+    expect(target.querySelector('.spotted')?.textContent).toContain('キッチン');
+    const row = target.querySelector('.iine li')!;
+    expect(row.textContent).toContain('プレイヤー1');
+    expect(row.textContent).toContain('2');
+    // 自分（プレイヤー1）には押せない
+    expect(target.querySelector('.iine button')).toBeNull();
+    done();
+  });
+
+  it('ええやんを押すと、押した人を送る。押したあとは押せない', () => {
+    const v: Partial<View> = { phase: 'reveal', winner: 'chameleon', hid: [1] };
+    const { target, session, done } = show('hunter', v, 2);
+    const button = target.querySelector<HTMLButtonElement>('.iine button[data-seat="1"]')!;
+    button.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    expect(session.like).toHaveBeenCalledWith(1);
+    done();
+    const pressed = show('hunter', { ...v, liked: [2] }, 2);
+    expect(pressed.target.querySelector<HTMLButtonElement>('.iine button')!.disabled).toBe(true);
+    pressed.done();
+  });
+
+  it('埋まっているあいだは、画面の中央に警告を出す', () => {
+    const { target, done } = show('hider', { phase: 'hide' }, 1, { buried: true });
+    expect(target.textContent).toContain('体が埋まりすぎている！この状態が続くと位置が公開されます');
     done();
   });
 });

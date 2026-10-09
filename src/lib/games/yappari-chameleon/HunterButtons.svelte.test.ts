@@ -23,4 +23,23 @@ describe('HunterButtons', () => {
     expect(crouch.getAttribute('aria-pressed')).toBe('true');
     unmount(app);
   });
+
+  it('右の列のいちばん上に TPS視点、三人称のあいだは FPS視点', () => {
+    const session = $state({
+      cool: 0,
+      play: { crouch: false, tps: false, jump: vi.fn(), toggleTps: () => {} },
+      shoot: vi.fn(),
+      toggleCrouch: vi.fn()
+    });
+    session.play.toggleTps = () => (session.play.tps = !session.play.tps);
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(HunterButtons, { target, props: { session: session as unknown as Session } });
+    flushSync();
+    const first = () => target.querySelector('.column button')!;
+    expect(first().textContent).toContain('TPS視点');
+    first().dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    flushSync();
+    expect(first().textContent).toContain('FPS視点');
+    unmount(app);
+  });
 });
