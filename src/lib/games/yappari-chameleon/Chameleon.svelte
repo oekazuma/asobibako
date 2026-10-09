@@ -1,23 +1,15 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { wake } from '$lib/audio.svelte';
-  import type { SoloProps } from '$lib/games';
-  import { animate } from '$lib/loop';
-  import { layAtlas } from './atlas';
   import BrushSize from './BrushSize.svelte';
   import Buttons from './Buttons.svelte';
   import HideTimer from './HideTimer.svelte';
   import PaintPanel from './PaintPanel.svelte';
-  import { buildDoll } from './doll';
-  import { makeDoll } from './doll3d';
-  import { COLOR_SIZE } from './paint-gpu';
   import { Play } from './play.svelte';
   import PoseWheel from './PoseWheel.svelte';
+  import { mount3d, touch } from './stage3d';
   import StickView from './StickView.svelte';
-  import { buildMansion } from './mansion/build';
-  import { World } from './world3d';
 
-  let { onquit }: SoloProps = $props();
+  let { onquit }: { onquit?: () => void } = $props();
   let canvas: HTMLCanvasElement;
   let box: HTMLDivElement;
   let portrait = $state(false);
@@ -25,73 +17,22 @@
   let play = $state.raw<Play | null>(null);
   const radius = 70;
 
-  onMount(() => {
-    const mq = matchMedia('(orientation: portrait)');
-    let stop: (() => void) | null = null;
-    let world: World | null = null;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const size = () => world?.resize(box.clientWidth, box.clientHeight);
-    const run = () => {
-      stop?.();
-      stop = null;
-      portrait = mq.matches;
-      if (portrait) play?.interrupt();
-      if (portrait || !play) return;
-      size();
-      const p = play;
-      stop = animate((dt, now) => p.frame(dt, now));
-    };
-    const build = () => {
-      const s = buildDoll();
-      const atlas = layAtlas(s.pos, s.idx, COLOR_SIZE);
-      try {
-        world = new World(
-          canvas,
-          (r) => makeDoll(r, s, atlas),
-          () => play?.rebuildPaint()
-        );
-      } catch {
-        // WebGL2 が作れない端末やメモリ不足では、準備中のまま固まらず理由を見せる
-        failed = true;
-        return;
-      }
-      world.setStage(buildMansion());
-      size();
-      play = new Play(world, radius);
-      if (import.meta.env.DEV) (window as unknown as { __chameleon?: Play }).__chameleon = play;
-      run();
-    };
-    // 人形の面と升目を作るのに数百 ms 止まるので、「準備中」を 1 度描かせてから作る
-    const raf = requestAnimationFrame(() => (timer = setTimeout(build)));
-    mq.addEventListener('change', run);
-    // 裏に回ると pointerup が届かないことがあるので、押している指とボタンを捨てる
-    const hide = () => document.hidden && play?.interrupt();
-    document.addEventListener('visibilitychange', hide);
-    const ro = new ResizeObserver(size);
-    ro.observe(box);
-    return () => {
-      cancelAnimationFrame(raf);
-      clearTimeout(timer);
-      mq.removeEventListener('change', run);
-      document.removeEventListener('visibilitychange', hide);
-      ro.disconnect();
-      stop?.();
-      world?.dispose();
-    };
-  });
+  onMount(() =>
+    mount3d(canvas, box, {
+      ready: (world) => {
+        play = new Play(world, radius);
+        if (import.meta.env.DEV) (window as unknown as { __chameleon?: Play }).__chameleon = play;
+      },
+      frame: (dt, now) => play?.frame(dt, now),
+      interrupt: () => play?.interrupt(),
+      restore: () => play?.rebuildPaint(),
+      fail: () => (failed = true),
+      portrait: (on) => (portrait = on)
+    })
+  );
 
   function pointer(kind: 'down' | 'move' | 'up' | 'cancel', e: PointerEvent) {
-    if (!play) return;
-    if (kind === 'down') {
-      wake();
-      try {
-        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-      } catch {
-        // 合成イベントでは掴めないが、指の追跡は続けてよい
-      }
-    }
-    const r = box.getBoundingClientRect();
-    play.pointer(kind, e.pointerId, e.clientX - r.left, e.clientY - r.top, r.width);
+    if (play) touch(play, box, kind, e);
   }
 </script>
 
