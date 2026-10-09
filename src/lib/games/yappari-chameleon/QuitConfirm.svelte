@@ -1,7 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte';
 
-  let { onstay, onleave }: { onstay: () => void; onleave: () => void } = $props();
+  let {
+    onstay,
+    onleave,
+    text = 'タイトルへ戻ると、塗った体は消えます。',
+    leave = '戻る'
+  }: { onstay: () => void; onleave: () => void; text?: string; leave?: string } = $props();
   let ready = $state(false);
 
   // ✕ を押した指を離した位置にこのボタンが現れると、iOS が合成 click を当てる。出てすぐは押せなくする
@@ -13,9 +18,9 @@
 
 <div class="back" role="dialog" aria-modal="true" aria-label="タイトルへ戻る確かめ">
   <div class="box">
-    <p>タイトルへ戻ると、塗った体は消えます。</p>
+    <p>{text}</p>
     <div class="row">
-      <button disabled={!ready} onclick={onleave}>戻る</button>
+      <button disabled={!ready} onclick={onleave}>{leave}</button>
       <button disabled={!ready} onclick={onstay}>つづける</button>
     </div>
   </div>

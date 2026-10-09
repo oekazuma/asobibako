@@ -1,10 +1,16 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte';
   import Icon from '$lib/components/Icon.svelte';
   import type { IconName } from '$lib/icons';
   import type { Play } from './play.svelte';
   import QuitConfirm from './QuitConfirm.svelte';
+  import './round-button.css';
 
-  let { play, onquit }: { play: Play; onquit: () => void } = $props();
+  /**
+   * top はつないで遊ぶときに列の上に足すボタン（挑発・ハンター希望）。onquit が無ければ ✕ を出さない（上の画面が持つ）。
+   * free が false ならフリーカメラを出さない（控室で待つハンター）
+   */
+  let { play, onquit, top, free = true }: { play: Play; onquit?: () => void; top?: Snippet; free?: boolean } = $props();
   let asking = $state(false);
 
   function ask() {
@@ -15,7 +21,7 @@
 </script>
 
 {#snippet button(icon: IconName, label: string, onclick: () => void, on = false, rotate = 0)}
-  <button class="btn" class:on {onclick}>
+  <button class="round-btn" class:on {onclick}>
     <Icon name={icon} size="30px" {rotate} />
     <span>{label}</span>
   </button>
@@ -23,7 +29,7 @@
 
 <!-- スティックの指を置いたまま押す 2 本めの指では iOS が click を出さないことがあるので、pointerdown で受ける -->
 {#snippet tap(icon: IconName, label: string, onpress: () => void, on = false)}
-  <button class="btn" class:on onpointerdown={onpress}>
+  <button class="round-btn" class:on onpointerdown={onpress}>
     <Icon name={icon} size="30px" />
     <span>{label}</span>
   </button>
@@ -31,7 +37,7 @@
 
 {#snippet holder(icon: IconName, label: string, key: 'up' | 'down', rotate = 0)}
   <button
-    class="btn"
+    class="round-btn"
     onpointerdown={() => play.hold(key, true)}
     onpointerup={() => play.hold(key, false)}
     onpointercancel={() => play.hold(key, false)}
@@ -43,7 +49,7 @@
 {/snippet}
 
 {#snippet pose()}
-  <button class="btn" class:on={play.pose !== 'stand'} onpointerdown={(e) => play.openWheel(e.pointerId)}>
+  <button class="round-btn" class:on={play.pose !== 'stand'} onpointerdown={(e) => play.openWheel(e.pointerId)}>
     <Icon name="figure" size="30px" />
     <span>ポーズ</span>
   </button>
@@ -51,7 +57,7 @@
 
 {#snippet spinner(turn: number, label: string, mirror = false)}
   <button
-    class="btn"
+    class="round-btn"
     onpointerdown={() => play.turn(turn)}
     onpointerup={() => play.turn(0)}
     onpointercancel={() => play.turn(0)}
@@ -62,9 +68,10 @@
   </button>
 {/snippet}
 
-<button class="quit" onclick={ask} aria-label="タイトルへ">✕</button>
+{#if onquit}<button class="quit" onclick={ask} aria-label="タイトルへ">✕</button>{/if}
 
 <div class="column">
+  {#if play.mode !== 'paint'}{@render top?.()}{/if}
   {#if play.mode === 'paint'}
     {@render button('dropper', '3D スポイト', () => play.toggleSpoit(), play.spoit)}
     {@render button('rewind', '元に戻す', () => play.undo())}
@@ -76,14 +83,14 @@
   {:else if play.cling}
     {@render holder('lift', '上がる', 'up')}
     {@render holder('lift', '下がる', 'down', 180)}
-    <button class="btn" onclick={() => play.release()}><span>張り付き解除</span></button>
+    <button class="round-btn" onclick={() => play.release()}><span>張り付き解除</span></button>
     {@render pose()}
     {@render button('spray', 'ペイントモード', () => play.togglePaint())}
   {:else}
     {@render tap('lift', play.nearWall ? 'よじ登り' : 'ジャンプ', () => play.jump())}
     {@render pose()}
     {@render button('spray', 'ペイントモード', () => play.togglePaint())}
-    {@render button('eye', 'フリーカメラ', () => play.toggleEye())}
+    {#if free}{@render button('eye', 'フリーカメラ', () => play.toggleEye())}{/if}
     {@render tap('lock', '回転ロック', () => play.toggleLock(), play.lock)}
   {/if}
 </div>
@@ -95,7 +102,7 @@
   </div>
 {/if}
 
-{#if asking}
+{#if asking && onquit}
   <QuitConfirm onstay={() => (asking = false)} onleave={onquit} />
 {/if}
 
@@ -132,28 +139,5 @@
   .mirror {
     display: inline-flex;
     scale: -1 1;
-  }
-
-  .btn {
-    display: grid;
-    justify-items: center;
-    align-content: center;
-    width: 88px;
-    height: 88px;
-    border: 2px solid rgb(255 255 255 / 0.85);
-    border-radius: 50%;
-    background: rgb(0 0 0 / 0.35);
-    color: #fff;
-    font-family: 'Hiragino Mincho ProN', serif;
-    font-size: 10px;
-    white-space: nowrap;
-    line-height: 1.15;
-    text-shadow: 0 1px 2px #000;
-  }
-
-  .btn.on {
-    background: rgb(255 255 255 / 0.9);
-    color: #1d1a17;
-    text-shadow: none;
   }
 </style>

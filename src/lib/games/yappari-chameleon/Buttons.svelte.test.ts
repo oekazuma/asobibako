@@ -1,4 +1,4 @@
-import { flushSync, mount, unmount } from 'svelte';
+import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
 import Buttons from './Buttons.svelte';
 import type { Play } from './play.svelte';
@@ -38,6 +38,25 @@ describe('Buttons', () => {
     const app = mount(Buttons, { target, props: { play: fake(), onquit: () => {} } });
     flushSync();
     expect(labels(target)).toEqual(['ジャンプ', 'ポーズ', 'ペイントモード', 'フリーカメラ', '回転ロック']);
+    unmount(app);
+  });
+
+  it('つないで遊ぶとき: onquit が無ければ ✕ が無く、top は列の上に並び、free が false ならフリーカメラが無い', () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const top = createRawSnippet(() => ({ render: () => '<button>挑発</button>' }));
+    const app = mount(Buttons, { target, props: { play: fake(), top, free: false } });
+    flushSync();
+    expect(target.querySelector('.quit')).toBeNull();
+    expect(labels(target)).toEqual(['挑発', 'ジャンプ', 'ポーズ', 'ペイントモード', '回転ロック']);
+    unmount(app);
+  });
+
+  it('ペイントモードのあいだは top を出さない', () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const top = createRawSnippet(() => ({ render: () => '<button>挑発</button>' }));
+    const app = mount(Buttons, { target, props: { play: fake({ mode: 'paint' }), top } });
+    flushSync();
+    expect(labels(target)).not.toContain('挑発');
     unmount(app);
   });
 

@@ -620,6 +620,22 @@ export const ICONS = {
     { d: 'M17 4.5h.01M19.5 6h.01M17.5 7.5h.01M20 3.5h.01', stroke: C, width: 2.2 }
   ],
   rewind: [{ d: 'M5 10h9.5a5 5 0 0 1 0 10H10M9 5.5L4.5 10 9 14.5', stroke: C, width: 2.2 }],
+  // 挑発（口笛）。♪ の形
+  note: [
+    { d: 'M9 17.5V5.5l9-2v11.5', stroke: C, width: 2 },
+    { d: circle(7, 17.5, 2.6), fill: C },
+    { d: circle(16, 15, 2.6), fill: C }
+  ],
+  // うつ。銃の照準
+  aim: [
+    { d: circle(12, 12, 6.5), stroke: C, width: 2 },
+    { d: 'M12 2.5v5M12 16.5v5M2.5 12h5M16.5 12h5', stroke: C, width: 2 }
+  ],
+  // しゃがむ。ひざを曲げた人
+  crouch: [
+    { d: circle(12, 6, 2.3), fill: C },
+    { d: 'M12 9.5v5l-4 1.5 1.5 4.5M12 14.5l4 1.5-1.5 4.5M7 12h10', stroke: C, width: 2 }
+  ],
   // 本家の HUD の、緑の砂の砂時計
   hourglass: [
     { d: 'M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9s10 4 10 9', stroke: '#ffffff', width: 1.8 },
