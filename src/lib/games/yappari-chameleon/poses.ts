@@ -153,4 +153,18 @@ export const POSES: Pose[] = [
   }
 ];
 
-export const poseById = (id: string): Pose => POSES.find((p) => p.id === id) ?? STAND;
+/** ハンターが銃を両手で前に構える形。輪には出さず、ほかの人から見えるハンターの体に使う */
+export const AIM: Pose = {
+  id: 'aim',
+  label: '構える',
+  bones: {
+    'upperarm.l': [-1.35, 0, -0.55],
+    'upperarm.r': [-1.45, 0, 0.75],
+    'forearm.l': [0, 0.5, -0.15],
+    'forearm.r': [0, 0, 0.15]
+  }
+};
+
+const ALL = [AIM, ...POSES];
+
+export const poseById = (id: string): Pose => ALL.find((p) => p.id === id) ?? STAND;
