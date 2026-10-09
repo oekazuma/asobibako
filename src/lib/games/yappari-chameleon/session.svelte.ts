@@ -71,7 +71,7 @@ export class Session {
   readonly #found = new SvelteMap<Seat, Me>();
   /** 増え鬼でハンターになった人の、答え合わせで撃たれた場所に置く 2 つめの体（今のハンターの体は銃を持って別に動く） */
   readonly #pins = new SvelteMap<Seat, Remote>();
-  /** 増え鬼で見つかった人の、見つかったときの塗り（そのあとハンターになって列が消えても、答え合わせで見せる） */
+  /** 見つかった人の、見つかったときの塗り。増え鬼でハンターになると列が白に戻るので、答え合わせの撃たれた場所の体はこれで作る */
   readonly #snaps = new SvelteMap<Seat, Dab[]>();
   /** 砕けて見えない残り秒 */
   readonly #shatter = new SvelteMap<Seat, number>();
@@ -282,7 +282,7 @@ export class Session {
     return this.match.phase === 'reveal' && this.match.found(seat) && this.match.roleOf(seat) === 'hunter';
   }
 
-  /** 撃たれた場所に置く 2 つめの体。塗りはその人の今の列で作る */
+  /** 撃たれた場所に置く 2 つめの体。ハンターになって白に戻る前の、見つかったときの塗りで作る */
   #pin(seat: Seat, live: Remote): Remote {
     let r = this.#pins.get(seat);
     if (!r) {
