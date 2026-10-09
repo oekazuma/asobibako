@@ -28,6 +28,12 @@ describe('Hud', () => {
     done();
   });
 
+  it('強制挑発の秒は砂時計のすぐ右（ハンターの赤い人形より手前）に並べる', () => {
+    const { target, done } = show(1, { phase: 'search', taunts: { 1: 7 } });
+    expect(target.querySelector('.clock')?.nextElementSibling?.className).toContain('taunt');
+    done();
+  });
+
   it('強制挑発の秒は隠れタイムにも出し、間隔が 0 なら 0 を出す', () => {
     const { target, done } = show(1, { phase: 'hide', taunts: { 1: 0 } });
     expect(target.querySelector('.taunt')?.textContent).toBe('0');

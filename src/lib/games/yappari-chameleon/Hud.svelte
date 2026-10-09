@@ -22,12 +22,12 @@
     {#if !painting}<span class="word">{match.word}</span>{/if}
   </span>
   {#if !painting}
-    <span class="dolls red">
-      {#each { length: match.hunters }, i (i)}<Icon name="figure" size="22px" />{/each}
-    </span>
     {#if match.taunt !== null}
       <span class="taunt">{Math.ceil(match.taunt)}</span>
     {/if}
+    <span class="dolls red">
+      {#each { length: match.hunters }, i (i)}<Icon name="figure" size="22px" />{/each}
+    </span>
   {/if}
 </div>
 
