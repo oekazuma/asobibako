@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { idle, newBody, RADIUS, step, type Body, type Box, type Level } from '../move';
-import { levelOf, mansion } from './layout';
+import { levelOf, mansion, ROOM, SPAWNS } from './layout';
 
 const m = mansion();
 const lv: Level = levelOf(m);
@@ -93,5 +93,38 @@ describe('mansion', () => {
     expect(b.cling).toEqual({ kind: 'ceiling' });
     expect(b.pos[1]).toBeCloseTo(3.3, 2);
     expect(b.pos[2] + Math.cos(b.yaw) * 1.15).toBeLessThan(12 - 0.3);
+  });
+
+  it('始める場所はどれも当たりの箱に入らず、控室の場所は控室の中', () => {
+    for (const where of ['hall', 'room', 'entrance'] as const)
+      for (const at of Object.values(SPAWNS[where])) {
+        const b = newBody(at);
+        settle(b);
+        expect(b.pos[0], `${where} ${at}`).toBeCloseTo(at[0], 3);
+        expect(b.pos[2], `${where} ${at}`).toBeCloseTo(at[2], 3);
+        expect(b.pos[1], `${where} ${at}`).toBeCloseTo(0, 3);
+      }
+    for (const at of Object.values(SPAWNS.room)) {
+      expect(at[0] > ROOM.min[0] && at[0] < ROOM.max[0] && at[2] > ROOM.min[2] && at[2] < ROOM.max[2]).toBe(true);
+    }
+  });
+
+  it('控室からは出られず、壁を上っても天井に張り付くだけ', () => {
+    const b = newBody(SPAWNS.room[1]);
+    settle(b);
+    walk(b, 0, 0);
+    expect(b.pos[2]).toBeLessThan(ROOM.max[2]);
+    walk(b, 9, -30);
+    expect(b.pos[0]).toBeLessThan(ROOM.max[0]);
+    step(b, { ...idle(), jump: true }, lv, 1 / 60);
+    expect(b.cling?.kind).toBe('wall');
+    for (let i = 0; i < 60 * 5; i++) step(b, { ...idle(), up: true }, lv, 1 / 60);
+    expect(b.cling).toEqual({ kind: 'ceiling' });
+    expect(b.pos[1]).toBeCloseTo(ROOM.max[1], 2);
+  });
+
+  it('控室の壁はカメラの殻に入る（控室の中から屋敷は見えない）', () => {
+    const shell = lv.shell ?? [];
+    expect(shell.some((b) => b.min[2] === ROOM.min[2] - 0.3 && b.max[2] === ROOM.min[2])).toBe(true);
   });
 });

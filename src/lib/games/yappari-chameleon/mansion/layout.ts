@@ -1,7 +1,9 @@
+import type { Seat } from '$lib/net/party.svelte';
 import type { V3 } from '$lib/sculpt';
 import type { Box, Level, Ramp } from '../move';
 
-export type Mat = 'woodPanel' | 'marble' | 'coffer' | 'checker' | 'greenDamask' | 'wainscot' | 'cream' | 'rail';
+export type Mat =
+  'woodPanel' | 'marble' | 'coffer' | 'checker' | 'greenDamask' | 'wainscot' | 'cream' | 'rail' | 'white';
 export type Face = 'x+' | 'x-' | 'y+' | 'y-' | 'z+' | 'z-';
 
 export interface Slab {
@@ -123,6 +125,29 @@ function corridor(): Slab[] {
   ];
 }
 
+/** 屋敷から 28m 離し、壁で屋敷が見えないようにした 4m 四方の小部屋。出口は無い */
+export const ROOM = { min: [-2, 0, -32] as V3, max: [2, 3, -28] as V3 };
+
+function room(): Slab[] {
+  const [x0, , z0] = ROOM.min;
+  const [x1, h, z1] = ROOM.max;
+  return [
+    { min: [x0, -1, z0], max: [x1, 0, z1], mat: 'woodPanel', face: 'y+' },
+    { min: [x0, h, z0], max: [x1, h + T, z1], mat: 'white', face: 'y-' },
+    { min: [x0, 0, z0 - T], max: [x1, h, z0], mat: 'white', face: 'z+' },
+    { min: [x0, 0, z1], max: [x1, h, z1 + T], mat: 'white', face: 'z-' },
+    { min: [x0 - T, 0, z0], max: [x0, h, z1], mat: 'white', face: 'x+' },
+    { min: [x1, 0, z0], max: [x1 + T, h, z1], mat: 'white', face: 'x-' }
+  ];
+}
+
+/** 屋敷に扉の形は無いので、探索のハンターは大広間の南の壁の前から北を向いて入る */
+export const SPAWNS: Record<'hall' | 'room' | 'entrance', Record<Seat, V3>> = {
+  hall: { 1: [0, 0, 1.5], 2: [-1, 0, 1.5], 3: [1, 0, 1.5] },
+  room: { 1: [0, 0, -30.8], 2: [-0.9, 0, -29.3], 3: [0.9, 0, -29.3] },
+  entrance: { 1: [0, 0, 0.6], 2: [-0.8, 0, 0.6], 3: [0.8, 0, 0.6] }
+};
+
 const p = (kind: Kind, at: V3, turn: Piece['turn'] = 0, span?: number): Piece => ({ kind, at, turn, span });
 
 function pieces(): Piece[] {
@@ -182,11 +207,12 @@ function pieces(): Piece[] {
 export function mansion(): Mansion {
   const all = pieces();
   return {
-    slabs: [...hall(), ...corridor()],
+    slabs: [...hall(), ...corridor(), ...room()],
     pieces: all,
     ramps: [STAIR],
     spawn: [0, 0, 1.5],
     lights: [
+      { at: [0, 2.6, -30], color: '#fff4e0', power: 6, reach: 8 },
       ...all.filter((q) => q.kind === 'chandelier').map((q) => ({ at: q.at, color: '#ffd9a0', power: 14, reach: 14 })),
       ...all
         .filter((q) => q.kind === 'sconce')

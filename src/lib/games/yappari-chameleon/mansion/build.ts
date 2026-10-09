@@ -12,7 +12,8 @@ const LOOKS: Record<Mat, () => Finish> = {
   greenDamask: () => ({ pattern: damask('#26330a', '#86a63a'), rough: 0.8 }),
   wainscot: () => ({ pattern: wainscot(), rough: 0.55 }),
   cream: () => ({ tint: '#efe6d2', rough: 0.85 }),
-  rail: () => ({ tint: '#3b2414', rough: 0.5 })
+  rail: () => ({ tint: '#3b2414', rough: 0.5 }),
+  white: () => ({ tint: '#f2efe9', rough: 0.85 })
 };
 
 /** BoxGeometry の材質の並び（+x, −x, +y, −y, +z, −z） */
