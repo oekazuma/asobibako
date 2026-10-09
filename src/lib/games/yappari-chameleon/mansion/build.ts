@@ -94,7 +94,7 @@ export function buildMansion(): Built {
   const first = m.pieces.length - m.moving;
   const objects = m.pieces.map((p, i) => {
     const o = piece(p);
-    // 動く物は物ごとにまとめる。形に焼くのは物の中の位置なので、置く前（原点）に
+    // 動く物は種を変えるたびに置き直すので屋敷のまとめから外し（下の keep）、物の中の部品だけをまとめる
     if (i >= first) mergeStatic(o, () => false);
     put(o, p);
     side(p.at).add(o);
