@@ -67,9 +67,10 @@
     text-align: center;
   }
 
+  /* 答え合わせの「勝者…!」（Reveal.svelte、上から 84px に 30px の字）の下に置く */
   .lost {
     position: absolute;
-    top: calc(max(10px, env(safe-area-inset-top)) + 110px);
+    top: calc(max(10px, env(safe-area-inset-top)) + 130px);
     left: 50%;
     translate: -50% 0;
     z-index: 4;
