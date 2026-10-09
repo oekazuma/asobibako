@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Icon from '$lib/components/Icon.svelte';
   import { nameOf } from './match.svelte';
   import type { Plate } from './session.svelte';
 
@@ -8,6 +9,7 @@
 {#each plates as p (p.seat)}
   <span class="plate" style:left="{p.x}px" style:top="{p.y}px">
     {nameOf(p.seat)}
+    {#if p.likes}<span class="likes"><Icon name="thumb" size="14px" />{p.likes}</span>{/if}
   </span>
 {/each}
 
@@ -24,5 +26,12 @@
     white-space: nowrap;
     text-shadow: 0 1px 3px #000;
     pointer-events: none;
+  }
+
+  .likes {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    color: #ffd23f;
   }
 </style>

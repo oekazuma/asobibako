@@ -26,14 +26,24 @@
     <span class="pick">
       <button class:on={settings.mode === 'normal'} onclick={() => (settings.mode = 'normal')}>通常</button>
       <button class:on={settings.mode === 'infect'} onclick={() => (settings.mode = 'infect')}>増え鬼</button>
+      <button class:on={settings.mode === 'double'} onclick={() => (settings.mode = 'double')}>ダブル</button>
     </span>
   </div>
-  <div class="row">
+  <!-- ダブルは全員が隠れて全員が探すので、ハンターの人数を使わない -->
+  <div class="row" class:dim={settings.mode === 'double'}>
     <span>ハンターの人数</span>
     <span class="pick">
-      <button aria-label="減らす" onclick={() => (settings.hunters = Math.max(1, hunters - 1))}>−</button>
+      <button
+        aria-label="減らす"
+        disabled={settings.mode === 'double'}
+        onclick={() => (settings.hunters = Math.max(1, hunters - 1))}>−</button
+      >
       <span class="value">{hunters}</span>
-      <button aria-label="増やす" onclick={() => (settings.hunters = Math.min(most, hunters + 1))}>＋</button>
+      <button
+        aria-label="増やす"
+        disabled={settings.mode === 'double'}
+        onclick={() => (settings.hunters = Math.min(most, hunters + 1))}>＋</button
+      >
     </span>
   </div>
   {#each rows as r (r.key)}
@@ -43,6 +53,13 @@
       <span class="value">{settings[r.key]}</span>
     </label>
   {/each}
+  <div class="row">
+    <span>ハンターに見逃しランキングを表示</span>
+    <span class="pick">
+      <button class:on={settings.overlook} onclick={() => (settings.overlook = true)}>オン</button>
+      <button class:on={!settings.overlook} onclick={() => (settings.overlook = false)}>オフ</button>
+    </span>
+  </div>
   {#if players < 2}<p class="note">2人以上そろうと始められます</p>{/if}
   <div class="actions">
     <button onclick={onclose}>閉じる</button>
@@ -84,6 +101,10 @@
     grid-template-columns: 1fr auto auto;
     align-items: center;
     gap: 12px;
+  }
+
+  .dim {
+    opacity: 0.4;
   }
 
   .pick {

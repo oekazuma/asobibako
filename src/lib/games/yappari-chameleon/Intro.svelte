@@ -9,7 +9,7 @@
   <span class="bar top"></span>
   <span class="bar bottom"></span>
   <div class="intro" role="status">
-    <p class="name">{mode.name}</p>
+    <p class="name" style:color={mode.color}>{mode.name}</p>
     <p>{mode.lines[0]}</p>
     <p>{mode.lines[1]}</p>
   </div>
@@ -54,7 +54,6 @@
   }
 
   .name {
-    color: #7cc243;
     font-size: min(12cqh, 9cqw);
   }
 

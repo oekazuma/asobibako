@@ -56,4 +56,16 @@ describe('Hud', () => {
     expect(target.querySelector('.left')).toBeNull();
     done();
   });
+
+  it('ダブルでは白い人形と残り人数を出さず、赤い人形を隠れた人の数だけ出し、モード名をマゼンタにする', () => {
+    const roles = { 1: 'hunter', 2: 'hunter', 3: 'hunter' } as const;
+    const settings = { ...DEFAULTS, mode: 'double' } as const;
+    const { target, done } = show(1, { phase: 'search', settings, roles, hid: [1, 2, 3] }, { role: 'hunter' });
+    expect(target.querySelector('.white')).toBeNull();
+    expect(target.querySelectorAll('.red svg')).toHaveLength(3);
+    expect(target.textContent).toContain('全員を見つけよう');
+    // happy-dom は書いた色をそのまま返すことがあるので、どちらの書き方も受ける
+    expect(['#e8399c', 'rgb(232, 57, 156)']).toContain(target.querySelector<HTMLElement>('.mode .name')?.style.color);
+    done();
+  });
 });

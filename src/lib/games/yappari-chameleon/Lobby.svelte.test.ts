@@ -35,7 +35,8 @@ describe('Lobby', () => {
       'ハンター待機時間（秒）',
       '探索時間（秒）',
       '答え合わせ時間（秒）',
-      '強制挑発間隔（秒）'
+      '強制挑発間隔（秒）',
+      'ハンターに見逃しランキングを表示'
     ])
       expect(target.textContent).toContain(label);
     button('通常')!.click();
@@ -52,6 +53,21 @@ describe('Lobby', () => {
     flushSync();
     expect(button('ゲームを始める')!.disabled).toBe(true);
     expect(target.textContent).toContain('2人以上');
+    done();
+  });
+
+  it('ダブルではハンターの人数を薄くして押せなくし、見逃しランキングはオフにできる', () => {
+    const { target, start, button, done } = show(true, [1, 2, 3]);
+    button('マップの設定')!.click();
+    flushSync();
+    button('ダブル')!.click();
+    flushSync();
+    expect(target.querySelector('.row.dim')?.textContent).toContain('ハンターの人数');
+    expect(button('＋')!.disabled).toBe(true);
+    button('オフ')!.click();
+    flushSync();
+    button('ゲームを始める')!.click();
+    expect(start).toHaveBeenCalledWith(expect.objectContaining({ mode: 'double', overlook: false }));
     done();
   });
 });

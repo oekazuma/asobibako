@@ -8,10 +8,11 @@
   const play = $derived(session.play);
   const painting = $derived(play.mode === 'paint');
   const mode = $derived(MODES[match.view.settings.mode]);
+  const double = $derived(match.double);
 </script>
 
 <div class="top">
-  {#if !painting}
+  {#if !painting && !double}
     <span class="dolls white">
       {#each { length: match.hiders }, i (i)}<Icon name="figure" size="22px" />{/each}
     </span>
@@ -25,8 +26,9 @@
     {#if match.taunt !== null}
       <span class="taunt">{Math.ceil(match.taunt)}</span>
     {/if}
+    <!-- ダブルは全員がハンターなので、上の人形は全員が赤 -->
     <span class="dolls red">
-      {#each { length: match.hunters }, i (i)}<Icon name="figure" size="22px" />{/each}
+      {#each { length: double ? match.view.hid.length : match.hunters }, i (i)}<Icon name="figure" size="22px" />{/each}
     </span>
   {/if}
 </div>
@@ -34,11 +36,11 @@
 {#if !painting && match.phase !== 'intro'}
   {#if play.role === 'hunter'}
     <div class="mode">
-      <span class="name">{mode.name}</span>
+      <span class="name" style:color={mode.color}>{mode.name}</span>
       <span>{mode.lines[0]}</span>
       <span>{mode.lines[1]}</span>
     </div>
-  {:else if match.hiding}
+  {:else if match.hiding && !double}
     <p class="left">残り人数 <span class="big">{match.hiders}</span></p>
   {/if}
 {/if}
@@ -123,7 +125,6 @@
   }
 
   .name {
-    color: #7cc243;
     font-size: 26px;
   }
 </style>

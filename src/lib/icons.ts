@@ -640,6 +640,13 @@ export const ICONS = {
   hourglass: [
     { d: 'M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9s10 4 10 9', stroke: '#ffffff', width: 1.8 },
     { d: 'M9 6.5h6l-3 3.5zM8 19.5c1.5-3 6.5-3 8 0z', fill: '#7cc243' }
+  ],
+  thumb: [
+    { d: 'M3 10.5h3.2v10H3z', fill: C },
+    {
+      d: 'M7.6 10.5h2.6l2.6-6.2a1.8 1.8 0 0 1 3.3 1.2l-.8 4.3h3.9a1.8 1.8 0 0 1 1.8 2.1l-1.2 6.6a2 2 0 0 1-2 1.7H7.6z',
+      fill: C
+    }
   ]
 } satisfies Record<string, Layer[]>;
 

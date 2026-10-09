@@ -20,6 +20,8 @@ function show(role: PlayRole, v: Partial<View>, me: Seat = 1) {
     nearWall: false,
     pose: 'stand',
     lock: false,
+    tps: false,
+    toggleTps: vi.fn(),
     interrupt: vi.fn()
   };
   const session = {
@@ -30,6 +32,8 @@ function show(role: PlayRole, v: Partial<View>, me: Seat = 1) {
     cool: 0,
     tootWait: 0,
     watching: 2,
+    buried: false,
+    like: vi.fn(),
     canTaunt: match.phase === 'lobby' || match.hiding
   } as unknown as Session;
   const target = document.body.appendChild(document.createElement('div'));
@@ -77,6 +81,22 @@ describe('Overlay', () => {
   it('答え合わせでは勝者の言葉を出す', () => {
     const { target, done } = show('hider', { phase: 'reveal', winner: 'chameleon' });
     expect(target.textContent).toContain('勝者カメレオン!');
+    done();
+  });
+
+  it('ダブルの探索と答え合わせでは、左に順位表を出す', () => {
+    const settings = { ...DEFAULTS, mode: 'double' } as const;
+    const roles = { 1: 'hunter', 2: 'hunter' } as const;
+    const { target, done } = show('hunter', { phase: 'search', settings, roles, hid: [1, 2], caught: { 2: [1] } }, 1);
+    const rows = [...target.querySelectorAll('.ranking li')].map((li) => li.textContent?.replace(/\s+/g, ''));
+    expect(rows).toEqual(['#1プレイヤー21/1', '#2プレイヤー10/1']);
+    done();
+  });
+
+  it('紹介のモード名は、ダブルのときマゼンタ', () => {
+    const { target, done } = show('hider', { phase: 'intro', settings: { ...DEFAULTS, mode: 'double' } });
+    expect(['#e8399c', 'rgb(232, 57, 156)']).toContain(target.querySelector<HTMLElement>('.intro .name')?.style.color);
+    expect(target.textContent).toContain('その後全員で探索し、最初に全員見つければ勝利');
     done();
   });
 });

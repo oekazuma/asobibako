@@ -11,6 +11,7 @@
   import Plates from './Plates.svelte';
   import PoseWheel from './PoseWheel.svelte';
   import QuitConfirm from './QuitConfirm.svelte';
+  import Ranking from './Ranking.svelte';
   import Ready from './Ready.svelte';
   import Reveal from './Reveal.svelte';
   import type { Session } from './session.svelte';
@@ -63,6 +64,12 @@
   <Buttons {play} {top} free={!(match.role === 'hunter' && (phase === 'intro' || phase === 'hide'))} />
 {/if}
 {#if (phase === 'hide' || phase === 'reveal') && play.mode !== 'paint'}<Ready {session} />{/if}
+{#if phase !== 'lobby'}
+  <!-- 左上の ✕ の下に、順位表と見落としの一覧を縦に並べる -->
+  <div class="side">
+    {#if match.double && (phase === 'search' || phase === 'reveal')}<Ranking {match} />{/if}
+  </div>
+{/if}
 <Intro {match} />
 {#if phase === 'reveal' && won}<Reveal text={won} />{/if}
 <button class="quit" onclick={ask} aria-label="抜ける">✕</button>
@@ -79,6 +86,15 @@
 {/if}
 
 <style>
+  .side {
+    position: absolute;
+    top: calc(max(12px, env(safe-area-inset-top)) + 62px);
+    left: max(14px, env(safe-area-inset-left));
+    display: grid;
+    justify-items: start;
+    gap: 14px;
+  }
+
   .quit {
     position: absolute;
     top: max(12px, env(safe-area-inset-top));
