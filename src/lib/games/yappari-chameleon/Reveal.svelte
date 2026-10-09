@@ -1,11 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { WINNER } from './match.svelte';
-  import type { Winner } from './referee';
 
-  let { winner }: { winner: Winner } = $props();
+  let { text }: { text: string } = $props();
   let canvas: HTMLCanvasElement;
-  const text = $derived(WINNER[winner]);
 
   // 少しずつずらして重ね、下へ垂れを描いて、緑のペンキを太い筆で塗ったように見せる
   function paint(g: CanvasRenderingContext2D, w: number, h: number) {

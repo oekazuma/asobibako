@@ -6,6 +6,7 @@
   import Intro from './Intro.svelte';
   import Invite from './Invite.svelte';
   import Lobby from './Lobby.svelte';
+  import { winnerText } from './match.svelte';
   import PaintPanel from './PaintPanel.svelte';
   import Plates from './Plates.svelte';
   import PoseWheel from './PoseWheel.svelte';
@@ -28,6 +29,7 @@
   const play = $derived(session.play);
   const match = $derived(session.match);
   const phase = $derived(match.phase);
+  const won = $derived(winnerText(match.view));
 
   function ask() {
     // 確かめが出ているあいだは、押していた指の続きを操作にしない
@@ -62,7 +64,7 @@
 {/if}
 {#if (phase === 'hide' || phase === 'reveal') && play.mode !== 'paint'}<Ready {session} />{/if}
 <Intro {match} />
-{#if phase === 'reveal' && match.view.winner}<Reveal winner={match.view.winner} />{/if}
+{#if phase === 'reveal' && won}<Reveal text={won} />{/if}
 <button class="quit" onclick={ask} aria-label="抜ける">✕</button>
 {#if session.party.host}
   <Invite away={session.party.away} bind:open={inviting} onlink={(link) => session.invite(link)} />

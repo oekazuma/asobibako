@@ -1,10 +1,11 @@
 import type { Seat } from '$lib/net/party.svelte';
 
 export type Phase = 'lobby' | 'intro' | 'hide' | 'search' | 'reveal';
-export type GameMode = 'normal' | 'infect';
+export type GameMode = 'normal' | 'infect' | 'double';
 /** out は試合から抜けたハンターと、試合の途中で来た人（観戦する） */
 export type Role = 'hider' | 'hunter' | 'out';
-export type Winner = 'chameleon' | 'hunter';
+/** double はダブルの決着。勝った人は Match.champ（null なら勝者なし） */
+export type Winner = 'chameleon' | 'hunter' | 'double';
 
 export interface Settings {
   mode: GameMode;
@@ -25,12 +26,14 @@ export const SHOT_SLACK = 0.15;
 
 /** 小さな dt を足し重ねたずれで、0 になるはずの時計が 0 の手前に残らないようにする */
 const EPS = 1e-6;
+/** 小物の置き方の種の数。種は 1 から数え、既定の置き方（null）と取り違えないようにする */
+const SEEDS = 0x7ffffffe;
 
 const clamp = (v: number, [lo, hi]: readonly [number, number]) => Math.min(hi, Math.max(lo, Math.round(v)));
 
 export function fit(s: Settings, players: number): Settings {
   return {
-    mode: s.mode === 'normal' ? 'normal' : 'infect',
+    mode: s.mode === 'normal' || s.mode === 'double' ? s.mode : 'infect',
     hunters: clamp(s.hunters, [1, Math.max(1, players - 1)]),
     hide: clamp(s.hide, LIMITS.hide),
     search: clamp(s.search, LIMITS.search),
@@ -55,6 +58,16 @@ export interface Match {
   clock: number;
   shots: Partial<Record<Seat, number>>;
   toots: Partial<Record<Seat, number>>;
+  /** 試合の始めに隠れた人（ダブルでは全員）。ダブルでは残した体の持ち主 */
+  hid: Seat[];
+  /** ダブルで、探す人ごとの見つけた体の持ち主 */
+  caught: Partial<Record<Seat, Seat[]>>;
+  /** ダブルで、見つけた数がいまの数になった時刻（clock）。同じ数なら早く届いた人が上 */
+  reached: Partial<Record<Seat, number>>;
+  /** ダブルの勝者。null は勝者なし（決着の前も null） */
+  champ: Seat | null;
+  /** 小物の置き方の種。ロビーでは null（既定の置き方） */
+  seed: number | null;
 }
 
 export const newMatch = (): Match => ({
@@ -70,7 +83,12 @@ export const newMatch = (): Match => ({
   taunts: {},
   clock: 0,
   shots: {},
-  toots: {}
+  toots: {},
+  hid: [],
+  caught: {},
+  reached: {},
+  champ: null,
+  seed: null
 });
 
 function shuffle<T>(list: T[], rand: () => number): T[] {
@@ -101,7 +119,9 @@ export const hiding = (m: Match): Seat[] => seatsOf(m, 'hider').filter((s) => !m
 
 export function start(m: Match, members: Seat[], settings: Settings, rand: () => number): void {
   const s = fit(settings, members.length);
-  const hunters = pickHunters(m.wishes, members, s.hunters, rand);
+  const double = s.mode === 'double';
+  // ダブルは全員が隠れてから全員で探すので、最初のハンターはいない
+  const hunters = double ? [] : pickHunters(m.wishes, members, s.hunters, rand);
   const hiders = members.filter((seat) => !hunters.includes(seat));
   Object.assign(m, {
     phase: 'intro',
@@ -112,10 +132,16 @@ export function start(m: Match, members: Seat[], settings: Settings, rand: () =>
     found: [],
     winner: null,
     ready: [],
-    // 隠れタイムから答え合わせまで出し続ける（減るのは探索のあいだだけ）。間隔が 0 なら 0 のまま
-    taunts: Object.fromEntries(hiders.map((seat) => [seat, s.taunt])),
+    // 隠れタイムから答え合わせまで出し続ける（減るのは探索のあいだだけ）。間隔が 0 なら 0 のまま。
+    // ダブルの探索では全員が探す人なので、強制挑発の時計を持たない
+    taunts: double ? {} : Object.fromEntries(hiders.map((seat) => [seat, s.taunt])),
     shots: {},
-    toots: {}
+    toots: {},
+    hid: hiders,
+    caught: {},
+    reached: {},
+    champ: null,
+    seed: 1 + Math.floor(rand() * SEEDS)
   } satisfies Partial<Match>);
 }
 
@@ -123,13 +149,45 @@ function enter(m: Match, phase: Phase): void {
   m.phase = phase;
   m.ready = [];
   if (phase === 'hide') m.left = m.settings.hide;
-  else if (phase === 'search') m.left = m.settings.search;
-  else if (phase === 'reveal') {
+  else if (phase === 'search') {
+    m.left = m.settings.search;
+    // ダブルでは隠れた体を残して、隠れる人の全員が探す人になる（途中で来た観戦の人はそのまま）
+    if (m.settings.mode === 'double') for (const s of seatsOf(m, 'hider')) m.roles[s] = 'hunter';
+  } else if (phase === 'reveal') {
     m.left = m.settings.reveal;
-    m.winner ??= hiding(m).length ? 'chameleon' : 'hunter';
+    if (m.settings.mode === 'double') {
+      m.winner = 'double';
+      m.champ ??= leader(m);
+    } else m.winner ??= hiding(m).length ? 'chameleon' : 'hunter';
   } else if (phase === 'lobby') {
-    Object.assign(m, { left: 0, roles: {}, first: [], found: [], winner: null, taunts: {} } satisfies Partial<Match>);
+    Object.assign(m, {
+      left: 0,
+      roles: {},
+      first: [],
+      found: [],
+      winner: null,
+      taunts: {},
+      hid: [],
+      caught: {},
+      reached: {},
+      champ: null,
+      seed: null
+    } satisfies Partial<Match>);
   }
+}
+
+/** 時間切れのダブルの勝者。見つけた数の多い人、同じ数なら先にその数に届いた人。誰も見つけていなければ null */
+function leader(m: Match): Seat | null {
+  let best: Seat | null = null;
+  for (const [k, got] of Object.entries(m.caught)) {
+    const seat = Number(k) as Seat;
+    const n = got?.length ?? 0;
+    if (!n) continue;
+    const top = best === null ? 0 : (m.caught[best]?.length ?? 0);
+    const earlier = (m.reached[seat] ?? Infinity) < (best === null ? Infinity : (m.reached[best] ?? Infinity));
+    if (n > top || (n === top && earlier)) best = seat;
+  }
+  return best;
 }
 
 const NEXT: Record<Phase, Phase> = { lobby: 'lobby', intro: 'hide', hide: 'search', search: 'reveal', reveal: 'lobby' };
@@ -169,15 +227,18 @@ export function wish(m: Match, seat: Seat, on: boolean): void {
   m.wishes = on ? [...new Set([...m.wishes, seat])] : m.wishes.filter((s) => s !== seat);
 }
 
-/** 切れた。ハンターは試合から抜け、ハンターが全員抜けたら隠れる人の勝ちで答え合わせへ。隠れる人の体はその場に残る */
+/** 切れた。通常と増え鬼のハンターは試合から抜け、いるハンターがいなくなったら答え合わせへ（通常と増え鬼は隠れる人の勝ち）。隠れる人の体はその場に残る */
 export function leave(m: Match, seat: Seat, present: Seat[]): void {
   m.wishes = m.wishes.filter((s) => s !== seat);
   m.ready = m.ready.filter((s) => s !== seat);
   if (m.phase === 'lobby') return;
-  if (m.roles[seat] === 'hunter') m.roles[seat] = 'out';
-  const live = ['intro', 'hide', 'search'].includes(m.phase);
-  if (live && !seatsOf(m, 'hunter').some((s) => present.includes(s))) {
-    m.winner = 'chameleon';
+  // ダブルでは全員が探す人なので、抜けても役を残し、戻れば見つけた数を持ったまま探し続ける
+  if (m.roles[seat] === 'hunter' && m.settings.mode !== 'double') m.roles[seat] = 'out';
+  // ダブルの隠れタイムまでは、まだ誰も探す人ではない
+  const hunting =
+    ['intro', 'hide', 'search'].includes(m.phase) && (m.settings.mode !== 'double' || m.phase === 'search');
+  if (hunting && !seatsOf(m, 'hunter').some((s) => present.includes(s))) {
+    if (m.settings.mode !== 'double') m.winner = 'chameleon';
     enter(m, 'reveal');
     return;
   }
@@ -197,11 +258,27 @@ export function shoot(m: Match, seat: Seat): boolean {
 }
 
 export function hit(m: Match, seat: Seat): boolean {
-  if (m.phase !== 'search' || m.roles[seat] !== 'hider' || m.found.includes(seat)) return false;
+  if (m.settings.mode === 'double' || m.phase !== 'search' || m.roles[seat] !== 'hider' || m.found.includes(seat))
+    return false;
   m.found = [...m.found, seat];
   if (m.settings.mode === 'infect') m.roles[seat] = 'hunter';
   delete m.taunts[seat];
   if (!hiding(m).length) enter(m, 'reveal');
+  return true;
+}
+
+/** ダブルで、by が seat の残した体を見つけた。初めてなら true。ほかの全員の体を見つけたら by の勝ちで答え合わせへ */
+export function spot(m: Match, by: Seat, seat: Seat): boolean {
+  if (m.settings.mode !== 'double' || m.phase !== 'search' || by === seat || !m.hid.includes(seat)) return false;
+  const got = m.caught[by] ?? [];
+  if (got.includes(seat)) return false;
+  const next = [...got, seat];
+  m.caught[by] = next;
+  m.reached[by] = m.clock;
+  if (m.hid.every((s) => s === by || next.includes(s))) {
+    m.champ = by;
+    enter(m, 'reveal');
+  }
   return true;
 }
 
@@ -226,10 +303,31 @@ export interface View {
   wishes: Seat[];
   /** 次の強制挑発までの秒（切り上げ） */
   taunts: Partial<Record<Seat, number>>;
+  hid: Seat[];
+  caught: Partial<Record<Seat, Seat[]>>;
+  reached: Partial<Record<Seat, number>>;
+  champ: Seat | null;
+  seed: number | null;
 }
 
 export function view(m: Match): View {
-  const { phase, settings, roles, first, found, winner, ready, wishes } = m;
+  const { phase, settings, roles, first, found, winner, ready, wishes, hid, caught, reached, champ, seed } = m;
   const taunts = Object.fromEntries(Object.entries(m.taunts).map(([s, v]) => [s, Math.ceil(v ?? 0)]));
-  return { phase, left: m.left, settings, roles, first, found, winner, ready, wishes, taunts };
+  return {
+    phase,
+    left: m.left,
+    settings,
+    roles,
+    first,
+    found,
+    winner,
+    ready,
+    wishes,
+    taunts,
+    hid,
+    caught,
+    reached,
+    champ,
+    seed
+  };
 }

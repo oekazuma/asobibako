@@ -5,12 +5,14 @@ import {
   fit,
   hiding,
   hit,
+  INTRO,
   join,
   leave,
   newMatch,
   pickHunters,
   ready,
   shoot,
+  spot,
   start,
   tick,
   toot,
@@ -227,5 +229,119 @@ describe('口笛と強制挑発', () => {
     run(m, 63);
     hit(m, 1);
     expect(hiding(m)).toEqual([2]);
+  });
+});
+
+describe('ダブル', () => {
+  /** 3 人のダブル。隠れタイムは 60 秒、探索は 300 秒 */
+  function doubled(members: Seat[] = ALL): Match {
+    const m = newMatch();
+    start(m, members, { ...DEFAULTS, mode: 'double', hide: 60, search: 300 }, zero);
+    return m;
+  }
+
+  function searching(): Match {
+    const m = doubled();
+    run(m, INTRO + 60);
+    expect(m.phase).toBe('search');
+    return m;
+  }
+
+  it('全員が隠れる人で始まり、最初のハンターも強制挑発の時計もない', () => {
+    const m = doubled();
+    expect(m.roles).toEqual({ 1: 'hider', 2: 'hider', 3: 'hider' });
+    expect(m.first).toEqual([]);
+    expect(m.hid).toEqual([1, 2, 3]);
+    expect(m.taunts).toEqual({});
+  });
+
+  it('隠れタイムが終わると全員が探す人になり、途中で来た観戦の人はそのまま', () => {
+    const m = doubled([1, 2]);
+    join(m, 3);
+    run(m, INTRO + 60);
+    expect(m.roles).toEqual({ 1: 'hunter', 2: 'hunter', 3: 'out' });
+    expect(hiding(m)).toEqual([]);
+  });
+
+  it('ほかの人の残した体だけを見つけられ、同じ体は 1 度だけ。探索の前は見つけられない', () => {
+    expect(spot(doubled(), 1, 2)).toBe(false);
+    const m = searching();
+    expect(spot(m, 1, 1)).toBe(false);
+    expect(spot(m, 1, 2)).toBe(true);
+    expect(spot(m, 1, 2)).toBe(false);
+    expect(m.caught).toEqual({ 1: [2] });
+    expect(m.phase).toBe('search');
+  });
+
+  it('ほかの全員の体を最初に見つけた人の勝ちで、すぐ答え合わせへ入る', () => {
+    const m = searching();
+    spot(m, 2, 1);
+    spot(m, 3, 1);
+    spot(m, 3, 2);
+    expect(m.phase).toBe('reveal');
+    expect(m.winner).toBe('double');
+    expect(m.champ).toBe(3);
+    expect(spot(m, 2, 3)).toBe(false);
+  });
+
+  it('時間切れは見つけた数の多い人、同じ数なら先にその数に届いた人の勝ち', () => {
+    const m = searching();
+    run(m, 1);
+    spot(m, 2, 3);
+    run(m, 1);
+    spot(m, 1, 3);
+    run(m, 300);
+    expect(m.phase).toBe('reveal');
+    expect(m.champ).toBe(2);
+  });
+
+  it('誰も見つけないまま時間切れなら勝者なし', () => {
+    const m = searching();
+    run(m, 300);
+    expect(m).toMatchObject({ phase: 'reveal', winner: 'double', champ: null });
+  });
+
+  it('隠れタイムに人が抜けても続き、探索で探す人が全員抜けたら答え合わせへ（抜けた人の体は残る）', () => {
+    const m = doubled();
+    run(m, INTRO);
+    leave(m, 3, [1, 2]);
+    expect(m.phase).toBe('hide');
+    run(m, 60);
+    expect(m.roles[3]).toBe('hunter');
+    expect(spot(m, 1, 3)).toBe(true);
+    leave(m, 1, [2]);
+    expect(m.phase).toBe('search');
+    // 抜けても探す人のまま（戻ると続きから探す）
+    expect(m.roles[1]).toBe('hunter');
+    leave(m, 2, []);
+    expect(m).toMatchObject({ phase: 'reveal', winner: 'double', champ: 1 });
+  });
+
+  it('ダブルでは hit で見つからない', () => {
+    const m = searching();
+    expect(hit(m, 2)).toBe(false);
+    expect(m.found).toEqual([]);
+  });
+
+  it('試合を始めるたびに小物の種を決め、ロビーへ戻ると既定の置き方（null）に戻す', () => {
+    const m = begun();
+    expect(m.seed).toBe(1);
+    const other = newMatch();
+    start(other, ALL, DEFAULTS, () => 0.5);
+    expect(other.seed).toBe(1 + Math.floor(0.5 * 0x7ffffffe));
+    run(m, INTRO + 60 + 300 + 30);
+    expect(m.phase).toBe('lobby');
+    expect(m.seed).toBeNull();
+  });
+
+  it('view はダブルの隠れた人・見つけた体・届いた時刻・勝者・種を配る', () => {
+    const m = searching();
+    spot(m, 1, 2);
+    expect(view(m)).toMatchObject({ hid: [1, 2, 3], caught: { 1: [2] }, champ: null, seed: 1 });
+    expect(view(m).reached[1]).toBeCloseTo(m.clock);
+  });
+
+  it('マップの設定はダブルを受け付ける', () => {
+    expect(fit({ ...DEFAULTS, mode: 'double' }, 2).mode).toBe('double');
   });
 });

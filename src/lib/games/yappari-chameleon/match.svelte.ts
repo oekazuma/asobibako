@@ -1,14 +1,27 @@
 import type { Seat } from '$lib/net/party.svelte';
 import { newMatch, view, type GameMode, type Role, type View } from './referee';
 
-export const MODES: Record<GameMode, { name: string; lines: [string, string] }> = {
-  normal: { name: '通常', lines: ['鬼と人間に分かれて隠れる。', '1人でも最後まで隠れ切ると勝利'] },
-  infect: { name: '増え鬼', lines: ['捕まると鬼になる。', '最後まで隠れ切ると勝利'] }
+export const MODES: Record<GameMode, { name: string; lines: [string, string]; color: string }> = {
+  normal: { name: '通常', lines: ['鬼と人間に分かれて隠れる。', '1人でも最後まで隠れ切ると勝利'], color: '#7cc243' },
+  infect: { name: '増え鬼', lines: ['捕まると鬼になる。', '最後まで隠れ切ると勝利'], color: '#7cc243' },
+  // 本家の紹介では、ダブルだけモード名がマゼンタ
+  double: {
+    name: 'ダブル',
+    lines: ['最初に全員で隠れる。', 'その後全員で探索し、最初に全員見つければ勝利'],
+    color: '#e8399c'
+  }
 };
 
 export const WINNER = { chameleon: '勝者カメレオン!', hunter: '勝者ハンター!' } as const;
 
 export const nameOf = (seat: Seat) => `プレイヤー${seat}`;
+
+/** 答え合わせの勝者の言葉。決着の前は null */
+export function winnerText(v: View): string | null {
+  if (!v.winner) return null;
+  if (v.winner === 'double') return v.champ === null ? '勝者なし' : `勝者 ${nameOf(v.champ)}!`;
+  return WINNER[v.winner];
+}
 
 export class Match {
   view = $state.raw<View>(view(newMatch()));
