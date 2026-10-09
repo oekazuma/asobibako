@@ -3,7 +3,7 @@ import { pushRecent } from './color';
 import type { Level } from './move';
 import { RADIUS } from './move';
 import type { Dab } from './paint';
-import { Play } from './play.svelte';
+import { CROUCH, Play } from './play.svelte';
 import type { World } from './world3d';
 
 vi.mock('./doll3d', () => ({
@@ -514,5 +514,47 @@ describe('Play のカメラ', () => {
     const p = new Play(w, 70);
     p.togglePaint();
     expect(p.orbitDist).toBe(1.2);
+  });
+});
+
+describe('Play の役', () => {
+  it('ハンターになると、その場所から一人称で歩き、フリーカメラのボタンでは抜けない', () => {
+    const w = fakeWorld();
+    const p = new Play(w, 70);
+    p.hunt([2, 0, 1], 0.5);
+    expect(p.role).toBe('hunter');
+    expect(p.mode).toBe('eye');
+    expect(p.ghost.pos).toEqual([2, 0, 1]);
+    expect(p.eyeYaw).toBe(0.5);
+    p.toggleEye();
+    expect(p.mode).toBe('eye');
+    p.unhunt();
+    expect(p.role).toBe('hider');
+    expect(p.mode).toBe('walk');
+  });
+
+  it('しゃがむと目の高さを下げる', () => {
+    const w = fakeWorld();
+    const p = new Play(w, 70);
+    p.hunt([0, 0, 0], 0);
+    secs(p, 0.5);
+    const stand = vi.mocked(w.eye).mock.lastCall![0][1];
+    p.crouch = true;
+    p.frame(1 / 60, 0);
+    expect(vi.mocked(w.eye).mock.lastCall![0][1]).toBeCloseTo(stand - CROUCH, 5);
+  });
+
+  it('観戦では見ている人のまわりを回り、その人がいなければフリーカメラで歩く', () => {
+    const w = fakeWorld();
+    const p = new Play(w, 70);
+    p.spectate();
+    p.watch = [3, 0.6, 2];
+    vi.mocked(w.follow).mockClear();
+    p.frame(1 / 60, 0);
+    expect(vi.mocked(w.follow).mock.lastCall![0]).toEqual([3, 0.6, 2]);
+    p.freeCam();
+    vi.mocked(w.eye).mockClear();
+    p.frame(1 / 60, 0);
+    expect(w.eye).toHaveBeenCalled();
   });
 });

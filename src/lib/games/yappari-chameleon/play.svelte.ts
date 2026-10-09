@@ -12,6 +12,8 @@ import type { World } from './world3d';
 const LOOK = 0.005;
 const ORBIT = 0.006;
 const EYE_HEIGHT = 1.0;
+/** ハンターがしゃがんだときに目を下げる高さ */
+export const CROUCH = 0.45;
 const CAM_PITCH_MIN = -0.5;
 const CAM_PITCH_MAX = 1.2;
 /** 天井では見る中心が天井の 0.4m 下なので、上から見ると天井にぶつかって距離がつぶれる。人形の下から見上げる範囲に収める */
@@ -22,8 +24,15 @@ const PAINT_DIST_MIN = 1.2;
 /** 見る中心が切り替わったときのずれが 1/e になる時間。0.3 秒でほぼ収まる */
 const SLIDE_SECS = 0.1;
 
+/** hider は隠れる人（1 人で試すときも）。hunter と watch（観戦）は一人称の作りで歩き、フリーカメラのボタンでは抜けない */
+export type PlayRole = 'hider' | 'hunter' | 'watch';
+
 export class Play {
   mode = $state<Mode>('walk');
+  role = $state<PlayRole>('hider');
+  crouch = $state(false);
+  /** 観戦で見ている人の体の真ん中。毎フレーム入れ直す。null ならフリーカメラで歩く */
+  watch: V3 | null = null;
   brush = $state<Brush>({ radius: 0.05, color: [1, 1, 1], opacity: 1, metal: 0, rough: 0.85 });
   previous = $state<RGB>([1, 1, 1]);
   recent = $state<RGB[]>([]);
@@ -120,14 +129,56 @@ export class Play {
   }
 
   toggleEye(): void {
+    if (this.role !== 'hider') return;
     if (this.mode === 'eye') return this.#setMode('walk');
-    // 三人称のカメラのいる所から歩き出す（壁の外へは出ない位置）
-    const c = this.world.camera.position;
-    // 天井や壁の高い所にいても、カメラの真下の床から歩き出す
-    this.ghost = newBody([c.x, floorBelow(this.world.level, c.x, c.z, c.y), c.z]);
+    this.#ghostFromCamera();
     this.eyeYaw = this.camYaw;
     this.eyePitch = 0;
     this.#setMode('eye');
+  }
+
+  /** 三人称のカメラのいる所から歩き出す（壁の外へは出ない位置）。天井や壁の高い所にいても、カメラの真下の床から */
+  #ghostFromCamera() {
+    const c = this.world.camera.position;
+    this.ghost = newBody([c.x, floorBelow(this.world.level, c.x, c.z, c.y), c.z]);
+  }
+
+  placeAt(at: V3, yaw = 0): void {
+    this.body = newBody(at);
+    this.body.yaw = yaw;
+  }
+
+  /** ハンターになる。置いてきた体も同じ所へ移す（張り付いたまま残さない） */
+  hunt(at: V3, yaw: number): void {
+    this.role = 'hunter';
+    this.crouch = false;
+    this.watch = null;
+    this.placeAt(at, yaw);
+    this.ghost = newBody(at);
+    this.eyeYaw = yaw;
+    this.eyePitch = 0;
+    this.#setMode('eye');
+  }
+
+  /** 観戦に入る。見る人は毎フレーム watch に入れる */
+  spectate(): void {
+    this.role = 'watch';
+    this.crouch = false;
+    this.#ghostFromCamera();
+    this.eyeYaw = this.mode === 'eye' ? this.eyeYaw : this.camYaw;
+    this.#setMode('eye');
+  }
+
+  freeCam(): void {
+    this.watch = null;
+    this.#ghostFromCamera();
+  }
+
+  unhunt(): void {
+    this.role = 'hider';
+    this.crouch = false;
+    this.watch = null;
+    if (this.mode !== 'walk') this.#setMode('walk');
   }
 
   setPose(id: string): void {
@@ -331,7 +382,7 @@ export class Play {
       this.eyePitch = Math.min(1.3, Math.max(-1.3, this.eyePitch + look.dy * LOOK));
       // 壁際で跳ぶと張り付いてしまうので、ふつうの跳び上がりのときだけ通す
       const jump = this.#jump && wallNear(this.ghost, w.level) === null;
-      step(this.ghost, { ...this.#input(this.eyeYaw), jump }, w.level, dt);
+      if (!this.watch) step(this.ghost, { ...this.#input(this.eyeYaw), jump }, w.level, dt);
     } else {
       const o = this.pad.takeOrbit();
       const look = this.pad.takeLook();
@@ -362,7 +413,20 @@ export class Play {
       w.follow(this.#focus(t, dt), this.camYaw, this.camPitch, 2.4, 60, dt, inside);
     } else if (this.mode === 'paint')
       w.follow(this.#focus(w.dollCenter(), dt), this.orbitYaw, this.orbitPitch, this.orbitDist, 60, dt, inside);
-    else w.eye([this.ghost.pos[0], this.ghost.pos[1] + EYE_HEIGHT, this.ghost.pos[2]], this.eyeYaw, this.eyePitch);
+    else if (this.watch)
+      w.follow(
+        this.watch,
+        this.eyeYaw,
+        Math.min(CAM_PITCH_MAX, Math.max(CAM_PITCH_MIN, this.eyePitch)),
+        2.4,
+        60,
+        dt,
+        this.watch
+      );
+    else {
+      const eye = EYE_HEIGHT - (this.crouch ? CROUCH : 0);
+      w.eye([this.ghost.pos[0], this.ghost.pos[1] + eye, this.ghost.pos[2]], this.eyeYaw, this.eyePitch);
+    }
     if (this.mode !== 'paint' || (!this.#stroke && now > this.#cursorUntil)) w.cursor(null, 0);
     // 張り付いているあいだは体が面に載っているので、その面を透かすと穴があくだけになる
     w.xray(this.mode !== 'eye' && !this.body.cling);
