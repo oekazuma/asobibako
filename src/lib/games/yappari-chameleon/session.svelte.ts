@@ -435,7 +435,6 @@ export class Session {
     const p = this.play;
     if (p.role === 'watch' || this.#shatter.has(this.match.me)) return null;
     // Play の frame がカメラを動かしたあとに送るので、そのコマのカメラの位置になる
-    const cam = this.play.world.camera.position;
     if (p.role === 'hunter')
       return {
         ms: now,
@@ -446,7 +445,7 @@ export class Session {
         crouch: p.crouch,
         paint: false,
         look: [p.eyeYaw, p.eyePitch],
-        eye: [cam.x, cam.y, cam.z]
+        eye: this.#aim().o
       };
     return {
       ms: now,
@@ -515,14 +514,25 @@ export class Session {
     if (this.play.role === 'hunter') this.play.crouch = !this.play.crouch;
   }
 
+  /**
+   * 十字の線。三人称のカメラは家具の中に入ることがあり、そこから撃つと弾が家具の中で止まり、体の後ろの人にも当たるので、
+   * 線の始まりを自分の体の深さ（右肩の上の点）まで十字に沿って進める。親は見落としポイントの視野もここから測る
+   */
+  #aim(): { o: V3; d: V3 } {
+    const cam = this.play.world.camera;
+    const v = cam.getWorldDirection(new THREE.Vector3());
+    const d: V3 = [v.x, v.y, v.z];
+    const c = cam.position;
+    const h = this.play.tpsHead;
+    const k = h ? Math.max(0, (h[0] - c.x) * d[0] + (h[1] - c.y) * d[1] + (h[2] - c.z) * d[2]) : 0;
+    return { o: [c.x + d[0] * k, c.y + d[1] * k, c.z + d[2] * k], d };
+  }
+
   /** 十字の向きへ撃つ。当たりは親が決め、ここでは銃口から筋を引く（from は筋の始点で、当たりの判定には使わない） */
   shoot(): void {
     if (this.cool > 0 || this.play.role !== 'hunter') return;
     this.cool = COOLDOWN;
-    const cam = this.play.world.camera;
-    const dir = cam.getWorldDirection(new THREE.Vector3());
-    const o: V3 = [cam.position.x, cam.position.y, cam.position.z];
-    const d: V3 = [dir.x, dir.y, dir.z];
+    const { o, d } = this.#aim();
     const targets: Target[] = [];
     // 手元の筋の当たりも親と同じ的にする
     if (this.match.double) {

@@ -643,6 +643,34 @@ describe('Play の役', () => {
     expect(target[2]).toBeLessThan(5 - 0.1);
   });
 
+  it('右肩に家具の箱があっても、三人称の見る点をその手前で止める', () => {
+    const w = fakeWorld();
+    // 家具は動きの箱にだけあり、カメラの殻には無い
+    w.level = { ...level, shell: level.boxes, boxes: [...level.boxes, { min: [-0.5, 0, 0.4], max: [0.5, 2, 1] }] };
+    const p = new Play(w, 70);
+    p.hunt([0, 0, 0], Math.PI / 2);
+    p.toggleTps();
+    p.frame(1 / 60, 0);
+    const [target] = vi.mocked(w.follow).mock.lastCall!;
+    expect(target[2]).toBeLessThan(0.4 - 0.1);
+    expect(p.tpsHead).toEqual(target);
+  });
+
+  it('右肩のずらしは壁から離れても 1 フレームでは戻らず、なめらかに 0.45m へ戻る', () => {
+    const w = fakeWorld();
+    const p = new Play(w, 70);
+    p.hunt([0, 0, 4.75], Math.PI / 2);
+    p.toggleTps();
+    p.frame(1 / 60, 0);
+    p.ghost.pos = [0, 0, 0];
+    p.frame(1 / 60, 16);
+    expect(vi.mocked(w.follow).mock.lastCall![0][2]).toBeLessThan(0.2);
+    secs(p, 2);
+    expect(vi.mocked(w.follow).mock.lastCall![0][2]).toBeCloseTo(0.45, 2);
+    p.toggleTps();
+    expect(p.tpsHead).toBeNull();
+  });
+
   it('三人称のあいだは自分の体を目の場所に、銃を構えたポーズで置く', () => {
     const w = fakeWorld();
     const p = new Play(w, 70);

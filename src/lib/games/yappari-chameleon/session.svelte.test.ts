@@ -8,9 +8,10 @@ import type { Level } from './move';
 import { CHAMELEON_VERSION, DAB_LEN, packDabs, type Me } from './net';
 import type { Dab } from './paint';
 import { Play } from './play.svelte';
-import { AIM } from './poses';
+import { AIM, STAND } from './poses';
 import { DEFAULTS, newMatch, view, type View } from './referee';
 import { Session, SHATTER_SECS, type Inbox } from './session.svelte';
+import { capsules, fire, placement } from './shots';
 import { sounds } from './sounds';
 import type { World } from './world3d';
 
@@ -487,6 +488,36 @@ describe('Session の役の切り替え', () => {
     expect(play.world.holdGun).toHaveBeenLastCalledWith(true);
     s.shoot();
     expect(acts.find((m) => m.t === 'shot')!.from).toEqual([9, 9, 9]);
+  });
+
+  it('三人称のカメラが家具の中にあっても、弾と視野は十字に沿って体の深さから始まり、体の後ろの人には当たらない', () => {
+    const { s, play, tell, frames, acts } = setup(3);
+    tell(at('lobby'));
+    tell(at('search'));
+    play.toggleTps();
+    play.ghost.pos = [0, 0, 10];
+    play.eyeYaw = 0;
+    frames(0.1);
+    const head = play.tpsHead!;
+    const cam = play.world.camera;
+    cam.position.set(head[0], head[1] + 0.3, head[2] - 2.4);
+    cam.lookAt(...head);
+    const c = cam.position;
+    play.world.level = {
+      ...level,
+      boxes: [...level.boxes, { min: [c.x - 0.5, c.y - 0.5, c.z - 0.5], max: [c.x + 0.5, c.y + 0.5, c.z + 0.5] }]
+    };
+    s.shoot();
+    const shot = acts.find((m) => m.t === 'shot')!;
+    const o = shot.o as [number, number, number];
+    o.forEach((v, i) => expect(v).toBeCloseTo(head[i], 5));
+    const hider = (z: number) => capsules(STAND, placement({ pos: [head[0], 0, z], yaw: Math.PI, cling: null }));
+    const d = shot.d as [number, number, number];
+    expect(fire(play.world.level, o, d, [{ seat: 1, caps: hider(14) }])[0].seat).toBe(1);
+    expect(fire(play.world.level, o, d, [{ seat: 1, caps: hider(8.6) }]).every((r) => r.seat === null)).toBe(true);
+    s.frame(1 / 60, 1e6);
+    const me = acts.findLast((m) => m.t === 'me') as unknown as Me;
+    me.eye!.forEach((v, i) => expect(v).toBeCloseTo(head[i], 5));
   });
 
   it('ハンターは動きにカメラの位置を載せ、隠れる人は載せない', () => {

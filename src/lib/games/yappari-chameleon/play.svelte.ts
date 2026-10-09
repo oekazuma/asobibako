@@ -29,8 +29,10 @@ const SLIDE_SECS = 0.1;
 const TPS_SIDE = 0.45;
 const TPS_LIFT = 1.2;
 const TPS_DIST = 2.4;
-/** 体は壁から 0.2m で止まるので、右肩を壁に寄せると見る点が壁の中に入り、カメラの線が壁の中から始まってしまう。壁からこれだけ離す */
+/** 体は壁から 0.2m で止まるので、右肩を壁や家具に寄せると見る点がその中に入り、カメラの線が中から始まってしまう。これだけ離す */
 const TPS_WALL_GAP = 0.15;
+/** 右肩のずらしが戻るときのずれが 1/e になる時間。戸口の縁を通り過ぎるたびにカメラが横へ跳ばないよう、縮むときだけすぐ合わせる */
+const TPS_SIDE_GROW = 0.25;
 
 /** hider は隠れる人（1 人で試すときも）。hunter と watch（観戦）は一人称の作りで歩き、フリーカメラのボタンでは抜けない */
 export type PlayRole = 'hider' | 'hunter' | 'watch';
@@ -86,6 +88,9 @@ export class Play {
   #slide: V3 = [0, 0, 0];
   #shown: V3 | null = null;
   #slideNext = false;
+  #side = TPS_SIDE;
+  #head: V3 = [0, 0, 0];
+  #snapSide = true;
 
   constructor(world: World, stickRadius: number) {
     this.world = world;
@@ -150,9 +155,17 @@ export class Play {
     this.#setMode('eye');
   }
 
+  /** 三人称のカメラが見る点（右肩の上）。三人称でなければ null。弾と視野の始まりをここの深さまで進める */
+  get tpsHead(): V3 | null {
+    return this.role === 'hunter' && this.tps ? this.#head : null;
+  }
+
   toggleTps(): void {
     if (this.role !== 'hunter') return;
     this.tps = !this.tps;
+    this.#snapSide = true;
+    const g = this.ghost.pos;
+    this.#head = [g[0], g[1] + TPS_LIFT, g[2]];
     this.eyePitch = Math.min(CAM_PITCH_MAX, Math.max(CAM_PITCH_MIN, this.eyePitch));
     this.world.snapCamera();
   }
@@ -454,11 +467,16 @@ export class Play {
       const g = this.ghost.pos;
       const head: V3 = [g[0], g[1] + TPS_LIFT - (this.crouch ? CROUCH : 0), g[2]];
       const right: V3 = [-Math.cos(this.eyeYaw), 0, Math.sin(this.eyeYaw)];
-      const side = Math.max(
-        0,
-        Math.min(TPS_SIDE, rayDistance(w.level, head, right, TPS_SIDE + TPS_WALL_GAP) - TPS_WALL_GAP)
-      );
-      const target: V3 = [head[0] + right[0] * side, head[1], head[2] + right[2] * side];
+      // 殻だけでなく家具の箱にも当てる。背の高い家具の中から見ると、カメラと弾の始まりが家具の中に入る
+      const reach = rayDistance({ ...w.level, shell: undefined }, head, right, TPS_SIDE + TPS_WALL_GAP);
+      const want = Math.max(0, Math.min(TPS_SIDE, reach - TPS_WALL_GAP));
+      this.#side =
+        this.#snapSide || want < this.#side
+          ? want
+          : this.#side + (want - this.#side) * (1 - Math.exp(-dt / TPS_SIDE_GROW));
+      this.#snapSide = false;
+      const target: V3 = [head[0] + right[0] * this.#side, head[1], head[2] + right[2] * this.#side];
+      this.#head = target;
       w.follow(target, this.eyeYaw, this.eyePitch, TPS_DIST, 60, dt, [g[0], g[1] + 0.4, g[2]]);
     } else {
       const eye = EYE_HEIGHT - (this.crouch ? CROUCH : 0);
