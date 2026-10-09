@@ -94,8 +94,6 @@
   .left,
   .mode {
     position: absolute;
-    right: calc(max(14px, env(safe-area-inset-right)) + 110px);
-    bottom: max(14px, env(safe-area-inset-bottom));
     margin: 0;
     color: #fff;
     font-family: 'Hiragino Mincho ProN', serif;
@@ -103,7 +101,10 @@
     pointer-events: none;
   }
 
+  /* 右の列の左に、回転の 2 つのボタンの段の上へ置く（同じ高さだと数字がボタンに重なる） */
   .left {
+    right: calc(max(14px, env(safe-area-inset-right)) + 110px);
+    bottom: calc(max(14px, env(safe-area-inset-bottom)) + 98px);
     font-size: 22px;
   }
 
@@ -112,7 +113,10 @@
     line-height: 1;
   }
 
+  /* ハンターの「うつ」は 128px と大きいので、その左に寄せる */
   .mode {
+    right: calc(max(14px, env(safe-area-inset-right)) + 156px);
+    bottom: max(14px, env(safe-area-inset-bottom));
     display: grid;
     justify-items: end;
     font-size: 15px;
