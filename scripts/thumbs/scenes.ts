@@ -451,7 +451,8 @@ export const SCENES: Scene[] = [
     viewport: { width: 1024, height: 768 },
     clip: { x: 172, y: 184, width: 680, height: 400 },
     play: async (s) => {
-      await s.startSolo();
+      await s.press('button.solo');
+      await s.wait(600);
       await s.wait(2500);
       const hold = (up: boolean) =>
         s.page.evaluate((up) => {

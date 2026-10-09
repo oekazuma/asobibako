@@ -81,8 +81,6 @@ export interface SoloMeta extends BaseMeta {
   anyOrder?: boolean;
   /** 遊んでいるあいだの隅の ✕ と ↻ を出さない。ゲームが自分で一時停止やタイトルへ戻る口を持つ（長い 1 回を押し間違いで失わないため） */
   ownMenu?: boolean;
-  /** 横持ちで遊ぶ。シェルの枠を横向きのタッチ端末で 90 度回さない（端末を手に持って 3D を見回すゲーム） */
-  landscape?: true;
   load: () => Promise<SoloModule>;
 }
 
