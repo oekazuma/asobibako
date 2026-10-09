@@ -1,4 +1,5 @@
 import type { Seat } from '$lib/net/party.svelte';
+import { placeOf } from './mansion/layout';
 import { newMatch, view, type GameMode, type Role, type View } from './referee';
 
 export const MODES: Record<GameMode, { name: string; lines: [string, string]; color: string }> = {
@@ -93,6 +94,41 @@ export class Match {
   get word(): string {
     if (this.phase === 'hide' || this.phase === 'intro') return '探索開始まで';
     if (this.phase === 'reveal') return '答え合わせ';
+    if (this.double) return '全員を見つけよう';
     return this.hiding ? '隠れつづけよう' : '探索時間';
+  }
+
+  get double(): boolean {
+    return this.view.settings.mode === 'double';
+  }
+
+  /** ダブルの順位表。見つけた数の多い順、同じ数なら先にその数に届いた順 */
+  get ranking(): { seat: Seat; got: number; need: number }[] {
+    const v = this.view;
+    const need = Math.max(0, v.hid.length - 1);
+    const at = (s: Seat) => v.reached[s] ?? Infinity;
+    return v.hid
+      .map((seat) => ({ seat, got: v.caught[seat]?.length ?? 0, need }))
+      .sort((a, b) => b.got - a.got || (at(a.seat) === at(b.seat) ? a.seat - b.seat : at(a.seat) - at(b.seat)));
+  }
+
+  /** 自分（ハンター）の見落とした敵。点の多い順で、1 点に満たない人は出さない */
+  get overlooked(): { seat: Seat; pts: number }[] {
+    return (Object.entries(this.view.overlook[this.me] ?? {}) as [string, number][])
+      .map(([s, pts]) => ({ seat: Number(s) as Seat, pts }))
+      .filter((r) => r.pts > 0)
+      .sort((a, b) => b.pts - a.pts || a.seat - b.seat);
+  }
+
+  /** 答え合わせの「見落とされた場所」。隠れた人ごとの全ハンターの点の合計と、いた部屋 */
+  get spotted(): { seat: Seat; pts: number; place: string | null }[] {
+    const v = this.view;
+    return v.hid
+      .map((seat) => {
+        const spot = v.spots[seat];
+        const pts = Object.values(v.overlook).reduce((n, row) => n + (row?.[seat] ?? 0), 0);
+        return { seat, pts, place: spot ? placeOf(spot) : null };
+      })
+      .sort((a, b) => b.pts - a.pts || a.seat - b.seat);
   }
 }

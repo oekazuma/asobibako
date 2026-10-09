@@ -55,4 +55,52 @@ describe('Match', () => {
     expect(MODES.double.lines).toEqual(['最初に全員で隠れる。', 'その後全員で探索し、最初に全員見つければ勝利']);
     expect(MODES.infect.color).toBe('#7cc243');
   });
+
+  const double = { ...DEFAULTS, mode: 'double' } as const;
+
+  it('ダブルでは、隠れタイムは探索開始まで、探索は全員が「全員を見つけよう」', () => {
+    const roles = { 1: 'hunter', 2: 'hunter', 3: 'hunter' } as const;
+    expect(at(1, { phase: 'hide', settings: double, roles: { 1: 'hider', 2: 'hider', 3: 'hider' } }).word).toBe(
+      '探索開始まで'
+    );
+    expect(at(1, { phase: 'search', settings: double, roles }).word).toBe('全員を見つけよう');
+    expect(at(2, { phase: 'search', settings: double, roles }).double).toBe(true);
+  });
+
+  it('順位表は見つけた数の多い順、同じ数なら先に届いた順で、見つける数はほかの人の数', () => {
+    const m = at(1, {
+      phase: 'search',
+      settings: double,
+      hid: [1, 2, 3],
+      caught: { 2: [1], 3: [1] },
+      reached: { 2: 40, 3: 12 }
+    });
+    expect(m.ranking).toEqual([
+      { seat: 3, got: 1, need: 2 },
+      { seat: 2, got: 1, need: 2 },
+      { seat: 1, got: 0, need: 2 }
+    ]);
+  });
+
+  it('見落とした敵は自分の点の多い順で、1 点に満たない人は出さない', () => {
+    const m = at(3, { phase: 'search', overlook: { 3: { 1: 4, 2: 12 }, 2: { 1: 99 } } });
+    expect(m.overlooked).toEqual([
+      { seat: 2, pts: 12 },
+      { seat: 1, pts: 4 }
+    ]);
+    expect(at(3, { phase: 'search', overlook: { 3: { 1: 0 } } }).overlooked).toEqual([]);
+  });
+
+  it('見落とされた場所は、隠れた人ごとの全ハンターの点の合計の順と、いた部屋の名前', () => {
+    const m = at(1, {
+      phase: 'reveal',
+      hid: [1, 2],
+      overlook: { 3: { 1: 4, 2: 12 }, 1: { 2: 3 } },
+      spots: { 1: [-16, 0, 10], 2: [12, 0, 6] }
+    });
+    expect(m.spotted).toEqual([
+      { seat: 2, pts: 15, place: '書斎' },
+      { seat: 1, pts: 4, place: 'キッチン' }
+    ]);
+  });
 });
