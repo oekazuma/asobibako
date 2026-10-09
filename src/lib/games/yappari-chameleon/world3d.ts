@@ -17,6 +17,8 @@ export interface Built {
   level: Level;
   glow?: (on: boolean) => void;
   sunless?: (at: V3) => boolean;
+  /** 試合の小物の置き方にする（3D は作り直さずに動かす）。新しい当たりを返す */
+  arrange?: (seed: number | null) => Level;
 }
 
 /**
@@ -174,6 +176,12 @@ export class World {
 
   podium(on: boolean): void {
     this.#built?.glow?.(on);
+  }
+
+  /** 小物を種の置き方へ動かし、当たりも入れ替える */
+  arrange(seed: number | null): void {
+    const a = this.#built?.arrange;
+    if (a) this.level = a(seed);
   }
 
   /** 今のポーズの当たり用の体。骨が動いたときだけ焼き直す（焼くのに 8ms ほどかかる） */

@@ -1,10 +1,13 @@
 import * as THREE from 'three';
 import { checker, coffer, damask, finish, marble, wainscot, woodPanel, type Finish } from '../textures';
-import { blueHex, brick, planks, splashCeiling, splashFloor, splashWall, whiteTile } from '../textures-rooms';
+import type { Level } from '../move';
+import { artwork, blueHex, brick, planks, splashCeiling, splashFloor, splashWall, whiteTile } from '../textures-rooms';
 import type { Built } from '../world3d';
+import { seeThrough } from '../xray';
 import { piece } from './furniture';
-import { levelOf, mansion, type Face, type Mat, type Slab } from './layout';
+import { levelOf, mansion, type Face, type Mat, type Piece, type Slab } from './layout';
 import { inLobby } from './lobby';
+import { ART } from './props';
 
 const LOOKS: Record<Mat, () => Finish> = {
   woodPanel: () => ({ pattern: woodPanel(), rough: 0.6 }),
@@ -69,16 +72,21 @@ function slab(s: Slab): THREE.Mesh {
   return o;
 }
 
+function put(o: THREE.Object3D, p: Piece) {
+  o.position.set(...p.at);
+  o.rotation.y = (p.turn * Math.PI) / 2;
+}
+
 export function buildMansion(): Built {
   const m = mansion();
   const group = new THREE.Group();
   for (const s of m.slabs) group.add(slab(s));
-  for (const p of m.pieces) {
+  const objects = m.pieces.map((p) => {
     const o = piece(p);
-    o.position.set(...p.at);
-    o.rotation.y = (p.turn * Math.PI) / 2;
+    put(o, p);
     group.add(o);
-  }
+    return o;
+  });
   for (const l of m.lights) {
     const light = new THREE.PointLight(l.color, l.power, l.reach, 2);
     light.position.set(...l.at);
@@ -88,12 +96,35 @@ export function buildMansion(): Built {
   group.traverse((o) => {
     if (o.userData.glow) rims.push((o as THREE.Mesh).material as THREE.MeshStandardMaterial);
   });
+  const frames: THREE.Mesh[] = [];
+  m.pieces.forEach((p, i) => {
+    if (p.kind === 'painting')
+      objects[i].traverse((o) => {
+        if (o.userData.art) frames.push(o as THREE.Mesh);
+      });
+  });
+  // 絵柄は紹介の 3 秒に差し替えるので、材質を先に全部作り、透かしのシェーダーも先に当てて、差し替えでシェーダーを作り直させない
+  const arts = Array.from({ length: ART }, (_, k) => {
+    const mat = finish({ pattern: artwork(k), rough: 0.6 }, [1.2, 0.9]);
+    seeThrough(mat);
+    return mat;
+  });
+  const first = m.pieces.length - m.moving;
+  const arrange = (seed: number | null): Level => {
+    const next = mansion(seed);
+    next.pieces.slice(first).forEach((p, i) => put(objects[first + i], p));
+    next.arts.forEach((k, i) => {
+      if (frames[i]) frames[i].material = arts[k];
+    });
+    return levelOf(next);
+  };
   return {
     group,
-    level: levelOf(m),
+    level: arrange(null),
     glow: (on) => {
       for (const r of rims) r.emissiveIntensity = on ? 3 : 0;
     },
-    sunless: inLobby
+    sunless: inLobby,
+    arrange
   };
 }

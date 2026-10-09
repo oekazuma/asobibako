@@ -176,7 +176,8 @@ function sconce(g: THREE.Group) {
 
 function painting(g: THREE.Group) {
   box(g, [1.5, 1.2, 0.06], GOLD, [0, 0, 0.03]);
-  plane(g, [1.2, 0.9], { pattern: oilPainting(), rough: 0.6 }, [0, 0, 0.062]);
+  // 絵柄は試合ごとに build.ts が材質ごと差し替える
+  plane(g, [1.2, 0.9], { pattern: oilPainting(), rough: 0.6 }, [0, 0, 0.062]).userData.art = true;
 }
 
 function posterPiece(g: THREE.Group) {

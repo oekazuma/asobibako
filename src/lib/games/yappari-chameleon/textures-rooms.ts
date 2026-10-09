@@ -1,5 +1,5 @@
 import { rng } from './rng';
-import { make, type Pattern } from './textures';
+import { make, oilPainting, type Pattern } from './textures';
 
 const PAINTS = ['#e2262b', '#f6c21c', '#3fae3a', '#8a3fc4'];
 
@@ -295,4 +295,154 @@ export function brick(): Pattern {
         g.fillRect(x + 2.5, j * course + 2.5, 59, course - 5);
       }
   });
+}
+
+/** 額の油絵の筆の跡（色の薄い楕円を重ねる） */
+function strokes(g: CanvasRenderingContext2D, r: () => number, hue: number, n = 220) {
+  for (let i = 0; i < n; i++) {
+    g.fillStyle = `hsl(${hue + r() * 25} ${15 + r() * 20}% ${20 + r() * 45}% / 0.12)`;
+    g.beginPath();
+    g.ellipse(r() * 512, r() * 384, 6 + r() * 14, 3 + r() * 6, r() * Math.PI, 0, Math.PI * 2);
+    g.fill();
+  }
+}
+
+/** 黒い上着に白い襟の人の胸から上（書斎の肖像画）。目と口は 2cm 以上 */
+function portrait(): Pattern {
+  return make('art-portrait', 512, 384, [1.2, 0.9], (g) => {
+    const r = rng(107);
+    const bg = g.createRadialGradient(256, 150, 30, 256, 190, 300);
+    bg.addColorStop(0, '#5a4330');
+    bg.addColorStop(1, '#1f1610');
+    g.fillStyle = bg;
+    g.fillRect(0, 0, 512, 384);
+    g.fillStyle = '#16141a';
+    g.beginPath();
+    g.ellipse(256, 384, 170, 150, 0, Math.PI, 0);
+    g.fill();
+    g.fillStyle = '#efe8dc';
+    g.beginPath();
+    g.moveTo(216, 250);
+    g.lineTo(256, 320);
+    g.lineTo(296, 250);
+    g.fill();
+    g.fillStyle = '#d6ac86';
+    g.beginPath();
+    g.ellipse(256, 165, 58, 74, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#3a2a1e';
+    g.beginPath();
+    g.ellipse(256, 115, 64, 40, 0, Math.PI, 0);
+    g.fill();
+    g.fillStyle = '#2a1d14';
+    for (const x of [234, 278]) {
+      g.beginPath();
+      g.arc(x, 165, 6, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.fillRect(244, 205, 24, 9);
+    strokes(g, r, 25);
+  });
+}
+
+/** 空と丘と川と 1 本の木の風景 */
+function landscape(): Pattern {
+  return make('art-landscape', 512, 384, [1.2, 0.9], (g) => {
+    const r = rng(109);
+    const sky = g.createLinearGradient(0, 0, 0, 230);
+    sky.addColorStop(0, '#6f93b4');
+    sky.addColorStop(1, '#e9dcb8');
+    g.fillStyle = sky;
+    g.fillRect(0, 0, 512, 384);
+    g.fillStyle = '#7f8f6a';
+    g.beginPath();
+    g.moveTo(0, 230);
+    g.quadraticCurveTo(140, 150, 300, 220);
+    g.quadraticCurveTo(420, 180, 512, 210);
+    g.lineTo(512, 384);
+    g.lineTo(0, 384);
+    g.fill();
+    g.fillStyle = '#4f6b3c';
+    g.beginPath();
+    g.moveTo(0, 300);
+    g.quadraticCurveTo(220, 250, 512, 290);
+    g.lineTo(512, 384);
+    g.lineTo(0, 384);
+    g.fill();
+    g.fillStyle = '#9db7c9';
+    g.beginPath();
+    g.moveTo(180, 384);
+    g.quadraticCurveTo(250, 320, 330, 300);
+    g.lineTo(350, 304);
+    g.quadraticCurveTo(280, 330, 250, 384);
+    g.fill();
+    g.fillStyle = '#3d2b1c';
+    g.fillRect(392, 190, 14, 110);
+    g.fillStyle = '#35502c';
+    g.beginPath();
+    g.arc(399, 180, 48, 0, Math.PI * 2);
+    g.fill();
+    strokes(g, r, 80);
+  });
+}
+
+/** 机の上の青い花瓶と花と果物 */
+function stillLife(): Pattern {
+  return make('art-still-life', 512, 384, [1.2, 0.9], (g) => {
+    const r = rng(113);
+    g.fillStyle = '#2f3a2a';
+    g.fillRect(0, 0, 512, 384);
+    g.fillStyle = '#5a3d26';
+    g.fillRect(0, 280, 512, 104);
+    g.strokeStyle = '#4f7a3a';
+    g.lineWidth = 9;
+    for (const [x, y] of [
+      [190, 120],
+      [235, 100],
+      [265, 130],
+      [210, 85],
+      [255, 70]
+    ]) {
+      g.beginPath();
+      g.moveTo(220, 170);
+      g.lineTo(x, y);
+      g.stroke();
+    }
+    for (const [x, y, c] of [
+      [190, 120, '#c94f4f'],
+      [235, 100, '#e7c95a'],
+      [265, 130, '#e7e1d0'],
+      [210, 85, '#c94f4f'],
+      [255, 70, '#d98a3a']
+    ] as const) {
+      g.fillStyle = c;
+      g.beginPath();
+      g.arc(x, y, 24, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.fillStyle = '#3c5f8a';
+    g.fillRect(200, 150, 40, 60);
+    g.beginPath();
+    g.ellipse(220, 240, 52, 60, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#b8432f';
+    for (const [x, y, s] of [
+      [360, 300, 30],
+      [410, 312, 26]
+    ]) {
+      g.beginPath();
+      g.arc(x, y, s, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.fillStyle = '#e7c95a';
+    g.beginPath();
+    g.ellipse(318, 316, 30, 20, 0.3, 0, Math.PI * 2);
+    g.fill();
+    strokes(g, r, 60);
+  });
+}
+
+/** 額の絵柄（mansion/props.ts の ART 枚） */
+export function artwork(k: number): Pattern {
+  return [oilPainting, portrait, landscape, stillLife][k % 4]();
 }

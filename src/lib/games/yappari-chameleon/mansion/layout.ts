@@ -2,6 +2,7 @@ import type { Seat } from '$lib/net/party.svelte';
 import type { V3 } from '$lib/sculpt';
 import type { Box, Level, Ramp } from '../move';
 import { LOBBY, LOBBY_SPAWNS, lobbyLights, lobbyPieces, lobbySlabs, podiumBoxes } from './lobby';
+import { artOf, propPieces } from './props';
 import { roomLights, roomPieces, roomSlabs } from './rooms';
 
 export type Mat =
@@ -146,6 +147,10 @@ export interface Mansion {
   /** 見えない当たり（丸い台の八角形）。カメラの殻には入れない */
   solids: Box[];
   lights: Light[];
+  /** pieces の最後の動く物の数（種で位置と向きだけが変わる） */
+  moving: number;
+  /** 額の絵柄（pieces の painting の順） */
+  arts: number[];
 }
 
 const HALL_H = 7;
@@ -238,26 +243,13 @@ function pieces(): Piece[] {
     p('stairs', [0, 0, 3.5]),
     p('rug', [4, 0, 3]),
     p('piano', [4, 0, 3], 1),
-    p('table-white', [-4, 0, 2.5]),
-    p('chair', [-4, 0, 1.6]),
-    p('chair', [-4, 0, 3.4], 2),
-    p('chair', [-4.9, 0, 2.5], 1),
-    p('chair', [-3.1, 0, 2.5], 3),
-    p('table-red', [-4.5, 0, 7]),
-    p('chair', [-4.5, 0, 6.1]),
-    p('chair', [-4.5, 0, 7.9], 2),
     p('column', [-5, 0, 8.75]),
     p('column', [-2.2, 0, 8.75]),
     p('column', [2.2, 0, 8.75]),
     p('column', [5, 0, 8.75]),
     p('ribbons', [-3.6, 0, 8.9]),
     p('ribbons', [3.6, 0, 8.9]),
-    p('balloons', [-6.2, 0, 0.8]),
-    p('balloons', [6.2, 0, 11.2]),
     p('balloons', [-6, FLOOR2, 11.2]),
-    p('balloon', [1.8, 0, 1.2]),
-    p('balloon', [2.4, 0, 1.5]),
-    p('balloon', [-1.5, 0, 10.5]),
     p('chandelier', [-4, 5.6, 5]),
     p('chandelier', [0, 5.6, 6]),
     p('chandelier', [4, 5.6, 5]),
@@ -274,12 +266,7 @@ function pieces(): Piece[] {
     p('sconce', [-17.5, 2, 3.25]),
     p('vase', [-8.2, 0, 6.3]),
     p('poster', [-11, 1.6, 6.75], 2),
-    p('sofa', [-14, 0, 6.25], 2),
     p('painting', [-19, 1.7, 6.75], 2),
-    p('bench', [-20, 0, 3.5]),
-    p('balloon', [-12, 0, 4]),
-    p('balloon', [-12.5, 0, 4.3]),
-    p('balloon', [-18, 0, 5.8]),
     p('bookshelf', [-22.75, 0, 5], 1),
     p('bunting', [-10, 3, 5], 1, 3.5),
     p('bunting', [-14, 3, 5], 1, 3.5),
@@ -287,14 +274,18 @@ function pieces(): Piece[] {
   ];
 }
 
-export function mansion(): Mansion {
-  const all = [...pieces(), ...roomPieces(), ...lobbyPieces()];
+/** seed が null なら既定の置き方（ロビーとひとりで試す）。試合では親が配った種で、どの端末も同じ置き方になる */
+export function mansion(seed: number | null = null): Mansion {
+  const moving = propPieces(seed);
+  const all = [...pieces(), ...roomPieces(), ...lobbyPieces(), ...moving];
   return {
     slabs: [...hall(), ...corridor(), ...room(), ...roomSlabs(), ...lobbySlabs()],
     pieces: all,
     ramps: [STAIR],
     spawn: [0, 0, 1.5],
     solids: podiumBoxes(),
+    moving: moving.length,
+    arts: artOf(seed, all.filter((q) => q.kind === 'painting').length),
     lights: [
       { at: [0, 2.6, -30], color: '#fff4e0', power: 6, reach: 8 },
       ...all.filter((q) => q.kind === 'chandelier').map((q) => ({ at: q.at, color: '#ffd9a0', power: 14, reach: 14 })),
