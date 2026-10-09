@@ -656,6 +656,18 @@ describe('Play の役', () => {
     expect(p.tpsHead).toEqual(target);
   });
 
+  it('右肩に階段の坂があっても、三人称の見る点を坂の中に入れない', () => {
+    const w = fakeWorld();
+    // 肩の高さ（1.2m）より高い側から +z へ下る坂。肩の線は坂の手前の縁（z = 0.4）で中に入る
+    w.level = { ...level, ramps: [{ min: [-0.5, 0, 0.4], max: [0.5, 2, 1], rise: 'z-' }] };
+    const p = new Play(w, 70);
+    p.hunt([0, 0, 0], Math.PI / 2);
+    p.toggleTps();
+    p.frame(1 / 60, 0);
+    const [target] = vi.mocked(w.follow).mock.lastCall!;
+    expect(target[2]).toBeLessThan(0.4 - 0.1);
+  });
+
   it('右肩のずらしは壁から離れても 1 フレームでは戻らず、なめらかに 0.45m へ戻る', () => {
     const w = fakeWorld();
     const p = new Play(w, 70);

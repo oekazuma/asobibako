@@ -2,8 +2,9 @@ import type { V3 } from '$lib/sculpt';
 import type { RGB } from './color';
 import { pushRecent } from './color';
 import { restHit } from './doll3d';
-import { floorBelow, idle, newBody, rayDistance, step, wallNear, type Body } from './move';
+import { floorBelow, idle, newBody, step, wallNear, type Body } from './move';
 import { PaintLog, Stroke, type Brush, type Dab } from './paint';
+import { rayLevel } from './shots';
 import { AIM, poseById, STAND } from './poses';
 import { sounds } from './sounds';
 import { TouchPad, type Mode, type PaintEvent } from './touch';
@@ -467,8 +468,8 @@ export class Play {
       const g = this.ghost.pos;
       const head: V3 = [g[0], g[1] + TPS_LIFT - (this.crouch ? CROUCH : 0), g[2]];
       const right: V3 = [-Math.cos(this.eyeYaw), 0, Math.sin(this.eyeYaw)];
-      // 殻だけでなく家具の箱にも当てる。背の高い家具の中から見ると、カメラと弾の始まりが家具の中に入る
-      const reach = rayDistance({ ...w.level, shell: undefined }, head, right, TPS_SIDE + TPS_WALL_GAP);
+      // 殻だけでなく家具の箱と階段の坂にも当てる。中から見ると、カメラと弾の始まりが家具や段の中に入る
+      const reach = rayLevel(w.level, head, right, TPS_SIDE + TPS_WALL_GAP)?.t ?? TPS_SIDE + TPS_WALL_GAP;
       const want = Math.max(0, Math.min(TPS_SIDE, reach - TPS_WALL_GAP));
       this.#side =
         this.#snapSide || want < this.#side
