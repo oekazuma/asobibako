@@ -15,7 +15,7 @@
 - id は `yappari-chameleon`、フォルダは `src/lib/games/yappari-chameleon/` のまま。three はこのゲームの `load()` から読み込まれる本体の中でだけ import する。
 - `meta.ts` は `PartyMeta`（`players: 2`、`party: true`）。共通のシェルを通らないので、ゲームが自分の `<main class="stage wide">` を持ち、`.stage` を横向きで回さない。縦持ちのあいだは描画を止めて「横向きにしてください」を出す。
 - 「ひとりで試す」は今の `Chameleon.svelte`（隠れタイム計測とフリーカメラつき）を開き、遊び方を変えない。
-- マップの設定の既定と範囲は、ゲームモード 増え鬼（通常・増え鬼）、ハンターの人数 1（1〜人数−1）、ハンター待機時間 60 秒（30〜300）、探索時間 300 秒（60〜600）、答え合わせ時間 30 秒（10〜120）、強制挑発間隔 0（0 か 5〜120）。親の端末の `asobibako:yappari-chameleon:settings` に覚える。
+- マップの設定の既定と範囲は、ゲームモード 増え鬼（通常・増え鬼）、ハンターの人数 1（1〜人数−1）、ハンター待機時間 60 秒（30〜300）、探索時間 300 秒（60〜600）、答え合わせ時間 30 秒（10〜120）、強制挑発間隔 0（0 か 5〜120）。親の端末の `asobibako:yappari-chameleon:settings` に覚える。画面の項目名は本家の「ゲームモード」「ハンターの人数」「ハンター待機時間（秒）」「探索時間（秒）」「答え合わせ時間（秒）」「強制挑発間隔（秒）」で、値は単位を付けない数（強制挑発間隔の 0 も「0」）。
 - 紹介は 3 秒。撃つ間隔は 2.0 秒。散弾は十字の向きを中心に半角 2 度の 5 本（中心と上下左右に 2 度）。弾の筋は 0.3 秒、しぶきは 1 試合 60 枚まで（古いものから消す）、破片は 20 個で 1.5 秒。口笛は吹いたあと 1 秒は吹けず、♪ は吹いた人から水平に 2m 以内にずらして 2 秒浮かべる。
 - 動き（`me`）は 1 秒に 20 回、吹き付け（`dabs`）は 0.05 秒ごとにまとめ、1 回の知らせは 32KB まで。相手の動きは送った時刻から 0.1 秒遅らせてつなぎ、親は撃った時刻から 0.1 秒前まで体をさかのぼって当たりを調べる。
 - 一人称（ハンターとフリーカメラ）の three の `fov` は縦 72 度。控室は 4m 四方、白い壁と木の床、出口なし。
@@ -190,7 +190,7 @@ git commit -m "Move Timeline to the shared net folder and expose its clock offse
 **Interfaces:**
 
 - Consumes: `Seat`（`$lib/net/party.svelte`）。
-- Produces: `type Phase = 'lobby' | 'intro' | 'hide' | 'search' | 'reveal'`、`type GameMode = 'normal' | 'infect'`、`type Role = 'hider' | 'hunter' | 'out'`、`type Winner = 'chameleon' | 'hunter'`、`interface Settings { mode; hunters; hide; search; reveal; taunt }`、`DEFAULTS`、`LIMITS`、`INTRO = 3`、`COOLDOWN = 2`、`TOOT_GAP = 1`、`fit(s, players)`、`interface Match`、`newMatch()`、`pickHunters(wishes, members, n, rand)`、`seatsOf(m, role)`、`hiding(m)`、`start(m, members, settings, rand)`、`tick(m, dt): Seat[]`（強制挑発で吹く人）、`ready(m, seat, present)`、`wish(m, seat, on)`、`leave(m, seat, present)`、`join(m, seat)`、`shoot(m, seat): boolean`、`hit(m, seat): boolean`、`toot(m, seat): boolean`、`interface View` と `view(m): View`。時刻は `tick` の `dt`（秒）だけで進め、`Match.clock` で撃つ間隔と口笛の間隔を測る。
+- Produces: `type Phase = 'lobby' | 'intro' | 'hide' | 'search' | 'reveal'`、`type GameMode = 'normal' | 'infect'`、`type Role = 'hider' | 'hunter' | 'out'`、`type Winner = 'chameleon' | 'hunter'`、`interface Settings { mode; hunters; hide; search; reveal; taunt }`、`DEFAULTS`、`LIMITS`、`INTRO = 3`、`COOLDOWN = 2`、`TOOT_GAP = 1`、`fit(s, players)`、`interface Match`、`newMatch()`、`pickHunters(wishes, members, n, rand)`、`seatsOf(m, role)`、`hiding(m)`、`start(m, members, settings, rand)`、`tick(m, dt): Seat[]`（強制挑発で吹く人。強制挑発の秒は試合の始めに隠れる人ごとに間隔の値で置き、探索のあいだだけ減らし、答え合わせでは止めたまま残す。間隔が 0 なら 0 のまま）、`ready(m, seat, present)`、`wish(m, seat, on)`、`leave(m, seat, present)`、`join(m, seat)`、`shoot(m, seat): boolean`、`hit(m, seat): boolean`、`toot(m, seat): boolean`、`interface View` と `view(m): View`。時刻は `tick` の `dt`（秒）だけで進め、`Match.clock` で撃つ間隔と口笛の間隔を測る。
 
 - [ ] **Step 1: 落ちるテストを書く**
 
@@ -393,10 +393,20 @@ describe('口笛と強制挑発', () => {
     expect(run(m, 10)).toEqual([1]);
   });
 
-  it('隠れタイムと答え合わせでは強制挑発の時計が進まない', () => {
-    const m = begun({ taunt: 5 });
+  it('強制挑発の秒は隠れタイムから出し、探索のあいだだけ減り、答え合わせでは止まる。間隔が 0 なら 0', () => {
+    const m = begun({ taunt: 5, search: 60 });
+    expect(view(m).taunts).toEqual({ 1: 5, 2: 5 });
     expect(run(m, 3 + 60)).toEqual([]);
     expect(view(m).taunts).toEqual({ 1: 5, 2: 5 });
+    run(m, 58);
+    expect(m.phase).toBe('search');
+    run(m, 2);
+    expect(m.phase).toBe('reveal');
+    const frozen = view(m).taunts;
+    expect(frozen[1]).toBeGreaterThan(0);
+    run(m, 5);
+    expect(view(m).taunts).toEqual(frozen);
+    expect(view(begun()).taunts).toEqual({ 1: 0, 2: 0 });
   });
 
   it('口笛は 1 秒あけて吹け、ハンターと見つかった人は吹けない。ロビーでは全員が吹ける', () => {
@@ -488,7 +498,7 @@ export interface Match {
   ready: Seat[];
   /** ハンター希望 */
   wishes: Seat[];
-  /** 次の強制挑発までの秒（隠れる人ごと、探索のあいだだけ減る） */
+  /** 次の強制挑発までの秒（見つかっていない隠れる人ごと。探索のあいだだけ減り、ほかのフェーズでは止まる） */
   taunts: Partial<Record<Seat, number>>;
   /** 審判の時計（秒）。撃つ間隔と口笛の間隔を測る */
   clock: number;
@@ -543,6 +553,7 @@ export const hiding = (m: Match): Seat[] => seatsOf(m, 'hider').filter((s) => !m
 export function start(m: Match, members: Seat[], settings: Settings, rand: () => number): void {
   const s = fit(settings, members.length);
   const hunters = pickHunters(m.wishes, members, s.hunters, rand);
+  const hiders = members.filter((seat) => !hunters.includes(seat));
   Object.assign(m, {
     phase: 'intro',
     left: INTRO,
@@ -552,7 +563,8 @@ export function start(m: Match, members: Seat[], settings: Settings, rand: () =>
     found: [],
     winner: null,
     ready: [],
-    taunts: {},
+    // 隠れタイムから答え合わせまで出し続ける（減るのは探索のあいだだけ）。間隔が 0 なら 0 のまま
+    taunts: Object.fromEntries(hiders.map((seat) => [seat, s.taunt])),
     shots: {},
     toots: {}
   } satisfies Partial<Match>);
@@ -562,12 +574,9 @@ function enter(m: Match, phase: Phase): void {
   m.phase = phase;
   m.ready = [];
   if (phase === 'hide') m.left = m.settings.hide;
-  else if (phase === 'search') {
-    m.left = m.settings.search;
-    if (m.settings.taunt) m.taunts = Object.fromEntries(hiding(m).map((s) => [s, m.settings.taunt]));
-  } else if (phase === 'reveal') {
+  else if (phase === 'search') m.left = m.settings.search;
+  else if (phase === 'reveal') {
     m.left = m.settings.reveal;
-    m.taunts = {};
     m.winner ??= hiding(m).length ? 'chameleon' : 'hunter';
   } else if (phase === 'lobby') {
     Object.assign(m, { left: 0, roles: {}, first: [], found: [], winner: null, taunts: {} } satisfies Partial<Match>);
@@ -711,7 +720,7 @@ git commit -m "Add the match rules: phases, hunter picks, finds, winners, skip v
 - Consumes: `BONES`・`JOINTS`・`PARENT`・`dollShapes()`（`doll.ts`）、`RADIUS`・`Cling`・`Level`（`move.ts`）、`Pose`（`poses.ts`）。
 - Produces: `SPREAD`（2 度）、`RANGE = 60`、`HALF_DEPTH = 0.12`、`interface Placeable { pos: V3; yaw: number; cling: Cling | null }`（`Body` も `Me` も渡せる）、`interface Placement { at; yaw; tilt }`、`placement(b)`、`frames(pose, place): Record<Bone, { p: V3; r: M3 }>`、`interface Capsule { a; b; r }`、`capsules(pose, place)`、`rayCapsule(o, d, c)`、`rayLevel(lv, o, d, max): { t; n } | null`（`lv.boxes` を見る。カメラの殻 `shell` は見ない）、`rays(d): V3[]`（5 本）、`interface Target { seat; caps }`、`interface Ray { end; seat; n }`、`fire(lv, o, d, targets): Ray[]`。`poses.ts` は `AIM: Pose`（id `'aim'`）を足し、`poseById('aim')` が `AIM` を返す。
 
-親は three を持たないので、`PoseAnimator`（骨の角度は x → y → z の Euler、腰は `drop` だけ下げる）と `placeDoll`（根元は y → x の順に回し、壁では `RADIUS − HALF_DEPTH` だけ壁へ寄せ、天井では寝かせて `HALF_DEPTH` 下げる）と同じ鎖を `frames()` がたどる。テストで three の骨と同じ所に来ることを全部のポーズと張り付きで確かめる。親はポーズの切り替えの途中ではなく、送られてきたポーズ（目標の形）で当たりを見る。
+親は three を持たないので、`PoseAnimator`（骨の角度は x → y → z の Euler、腰は `drop` だけ下げる）と `placeDoll`（根元は y → x の順に回し、壁では `RADIUS − HALF_DEPTH` だけ壁へ寄せ、天井では寝かせて `HALF_DEPTH` 下げる）と同じ鎖を `frames()` がたどる。テストで three の骨と同じ所に来ることを全部のポーズと張り付きで確かめる。親はポーズの切り替えの途中ではなく、送られてきたポーズ（目標の形）で当たりを見る。そのため切り替えの 0.25 秒のあいだは、当たりの形と見えている形が少しちがう。iPad 2 台で遊んで気になるようなら、親でも切り替えの途中の形を作って当たりを見る。
 
 - [ ] **Step 1: 落ちるテストを書く**
 
@@ -1662,6 +1671,8 @@ git commit -m "Add the hunters' waiting room and per-seat start spots for the ha
 | `wish`・`ready`         | ルールに入れて、様子を配る                                                                                         |
 | `taunt`                 | 吹けるなら `toot`（席といる所）を全員へ                                                                            |
 | `shot`                  | 当たりを決め、`splat`（筋の始まり `from`・5 本の行き先 `ends`・しぶき `marks`）と見つけた人ごとの `found` を全員へ |
+
+当たりは送られてきたポーズ（目標の形）で見るので、ポーズを切り替える 0.25 秒のあいだは当たりの形と見えている形が少しちがう（iPad 2 台で気になるようなら、親でも切り替えの途中の形で見る）。
 
 `welcome(to)` は、全員の最後の体（`me`）、全員の塗り（`at: 0` からの `dabs`）、見つかった人の体（`found` に `quiet: true`）、試合の様子（`phase`）をこの順に送る。仕様の表の `paint`（戻った子へ全員の塗りと今のフェーズ）は、この並びで送る。
 
@@ -3518,13 +3529,13 @@ git commit -m "Let Play act as a first-person hunter with crouch or a spectator,
 
 役の切り替えは次のとおり。
 
-| とき                     | 自分の端末ですること                                                                                     |
-| ------------------------ | -------------------------------------------------------------------------------------------------------- |
-| 最初の様子が届いた       | 親から自分の体が届いていなければ始める場所へ移し、役に合わせる（戻ったハンターは続きの場所から）         |
-| ロビー・紹介に入った     | 全員の塗りを白に戻し、しぶきを消し、隠れる人に戻して、大広間（紹介のハンターは控室）へ移す               |
-| 探索に入った（ハンター） | 屋敷の入口（`SPAWNS.entrance`）から一人称と銃                                                            |
-| 自分が見つかった         | 砕ける。ペイントモードなら抜ける。通常は観戦、増え鬼は 1.5 秒後に塗りを白に戻してハンター                |
-| 答え合わせに入った       | 見つかった人は撃たれたときの体に戻して青く、見つかっていない隠れる人は赤く光る。観戦の人はフリーカメラへ |
+| とき                     | 自分の端末ですること                                                                                                                                                                                                                                        |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 最初の様子が届いた       | 親から自分の体が届いていなければ始める場所へ移し、役に合わせる（戻ったハンターは続きの場所から）                                                                                                                                                            |
+| ロビー・紹介に入った     | 全員の塗りを白に戻し、しぶきを消し、隠れる人に戻して、大広間（紹介のハンターは控室）へ移す                                                                                                                                                                  |
+| 探索に入った（ハンター） | 屋敷の入口（`SPAWNS.entrance`）から一人称と銃                                                                                                                                                                                                               |
+| 自分が見つかった         | 砕ける。ペイントモードなら抜ける。通常は観戦、増え鬼は 1.5 秒後に塗りを白に戻してハンター                                                                                                                                                                   |
+| 答え合わせに入った       | 見つかった人は撃たれたときの体に戻して青く、見つかっていない隠れる人は赤く光る。観戦の人はフリーカメラへ。増え鬼でハンターになった人は戻さず撃ち続け、ほかの画面には撃たれた場所の青く光る体（2 つめの `Remote`）と、銃を持った今のハンターの体の両方を出す |
 
 ほかの人の体を描くか・銃を持つか・光るかは毎フレーム試合の様子から決める（`#show`）。自分の動きと塗りは、親から最初の様子が届いてから送る（戻った子が、親に残っていた自分の体を始める場所で上書きしない）。
 
@@ -3580,9 +3591,13 @@ vi.mock('./glow', () => ({
     dispose = vi.fn();
   }
 }));
+const made = vi.hoisted(() => ({ remotes: 0 }));
 vi.mock('./remote', () => ({
   paintColors: () => [],
   Remote: class {
+    constructor() {
+      made.remotes++;
+    }
     rig = { root: new THREE.Group(), paint: { rebuild: vi.fn() } };
     log = [];
     shown: Me | null = null;
@@ -3763,6 +3778,39 @@ describe('Session の戻った子', () => {
   });
 });
 
+describe('Session の答え合わせ', () => {
+  it('増え鬼でハンターになった人は撃たれた場所へ戻らず、ほかの画面には撃たれた場所の体と今のハンターの体の両方を出す', () => {
+    const { play, tell, frames } = setup();
+    const at1 = {
+      t: 'me',
+      seat: 1,
+      ms: 0,
+      pos: [1, 0, 0],
+      yaw: 0,
+      cling: null,
+      pose: 'stand',
+      crouch: false,
+      paint: false,
+      look: [0, 0]
+    };
+    tell(at1);
+    tell(at('lobby'));
+    tell(at('search'));
+    tell({ t: 'found', seat: 1, by: 3, at: [4, 1, 4], body: { ...at1, pos: [4, 0, 4] } });
+    tell({ t: 'found', seat: 2, by: 3, at: [0, 1, 0], body: { ...at1, seat: 2, pos: [0, 0, 1.5] } });
+    frames(SHATTER_SECS + 0.1);
+    expect(play.role).toBe('hunter');
+    play.ghost.pos = [6, 0, 6];
+    const before = made.remotes;
+    tell(at('reveal', { roles: { 1: 'hunter', 2: 'hunter', 3: 'hunter' }, found: [1, 2], winner: 'hunter' }));
+    frames(0.1);
+    expect(play.role).toBe('hunter');
+    expect(play.ghost.pos).toEqual([6, 0, 6]);
+    expect(play.world.rig.root.visible).toBe(false);
+    expect(made.remotes - before).toBe(1);
+  });
+});
+
 describe('Session の役の切り替え', () => {
   it('ハンターは紹介で控室へ、探索で屋敷の入口から一人称になる', () => {
     const { play, tell } = setup(3);
@@ -3925,6 +3973,8 @@ export class Session {
   readonly #out = new DabOutbox();
   /** 見つかったときの体（答え合わせで、その場に戻して光らせる） */
   readonly #found = new SvelteMap<Seat, Me>();
+  /** 増え鬼でハンターになった人の、答え合わせで撃たれた場所に置く 2 つめの体（今のハンターの体は銃を持って別に動く） */
+  readonly #pins = new SvelteMap<Seat, Remote>();
   /** 砕けて見えない残り秒 */
   readonly #shatter = new SvelteMap<Seat, number>();
   #sent = -Infinity;
@@ -4019,6 +4069,8 @@ export class Session {
     this.#fx.clear();
     this.#found.clear();
     this.#shatter.clear();
+    for (const r of this.#pins.values()) r.dispose();
+    this.#pins.clear();
     this.watching = null;
     this.play.unhunt();
     this.play.setPose(STAND.id);
@@ -4042,7 +4094,8 @@ export class Session {
 
   #reveal() {
     const f = this.#found.get(this.match.me);
-    if (f) {
+    // 増え鬼でハンターになった自分は撃ちに回っているので、撃たれた場所へは戻さない
+    if (f && this.play.role !== 'hunter') {
       this.play.placeAt(f.pos, f.yaw);
       this.play.body.cling = f.cling;
       this.play.setPose(f.pose === AIM.id ? STAND.id : f.pose);
@@ -4117,12 +4170,29 @@ export class Session {
     this.play.freeCam();
   }
 
+  /** 答え合わせで、増え鬼で見つかってハンターになった人 */
+  #infected(seat: Seat): boolean {
+    return this.match.phase === 'reveal' && this.match.found(seat) && this.match.roleOf(seat) === 'hunter';
+  }
+
+  /** 撃たれた場所に置く 2 つめの体。塗りはその人の今の列で作る */
+  #pin(seat: Seat, live: Remote): Remote {
+    let r = this.#pins.get(seat);
+    if (!r) {
+      r = new Remote(this.#makeRig(), this.play.world.scene);
+      r.rig.paint.rebuild(live.log);
+      this.#pins.set(seat, r);
+    }
+    return r;
+  }
+
   #show(seat: Seat): Show {
     const m = this.match;
     const p = m.phase;
     const role = m.roleOf(seat);
     const found = m.found(seat);
-    const pin = p === 'reveal' && found ? (this.#found.get(seat) ?? null) : null;
+    const infected = this.#infected(seat);
+    const pin = p === 'reveal' && found && !infected ? (this.#found.get(seat) ?? null) : null;
     const away = !this.party.members.includes(seat) && (p === 'lobby' || role !== 'hider');
     const gone =
       away || role === 'out' || (found && !pin && (m.view.settings.mode === 'normal' || this.#shatter.has(seat)));
@@ -4130,7 +4200,7 @@ export class Session {
       pin,
       visible: !gone,
       armed: !pin && role === 'hunter' && (p === 'search' || p === 'reveal'),
-      shine: this.#shine(seat)
+      shine: infected ? null : this.#shine(seat)
     };
   }
 
@@ -4155,14 +4225,18 @@ export class Session {
       this.#shatter.delete(seat);
       if (seat === me && m.view.settings.mode === 'infect' && m.phase === 'search') this.#turn();
     }
-    for (const [seat, r] of this.#remotes) r.update(dt, now, this.#show(seat));
+    for (const [seat, r] of this.#remotes) {
+      r.update(dt, now, this.#show(seat));
+      const body = this.#infected(seat) ? this.#found.get(seat) : undefined;
+      if (body) this.#pin(seat, r).update(dt, now, { pin: body, visible: true, armed: false, shine: 'blue' });
+    }
     if (this.play.role === 'watch' && this.watching !== null) {
       const r = this.#remotes.get(this.watching);
       if (!r?.rig.root.visible) this.next(1);
     }
     this.play.watch =
       this.play.role === 'watch' && this.watching !== null ? this.#remotes.get(this.watching)!.center() : null;
-    const pinned = m.phase === 'reveal' && m.found() && this.#found.has(me);
+    const pinned = m.phase === 'reveal' && m.found() && this.#found.has(me) && this.play.role !== 'hunter';
     w.rig.root.visible = (this.play.role === 'hider' && !this.#shatter.has(me)) || pinned;
     this.#glow.set(w.rig.root.visible ? this.#shine(me) : null);
     this.#gun.visible = this.play.role === 'hunter';
@@ -4288,11 +4362,12 @@ export class Session {
   restore(): void {
     this.play.rebuildPaint();
     for (const r of this.#remotes.values()) r.rig.paint.rebuild(r.log);
+    for (const [seat, r] of this.#pins) r.rig.paint.rebuild(this.#remotes.get(seat)?.log ?? []);
   }
 
   dispose(): void {
     this.#stop();
-    for (const r of this.#remotes.values()) r.dispose();
+    for (const r of [...this.#remotes.values(), ...this.#pins.values()]) r.dispose();
     this.#fx.dispose();
     this.#glow.dispose();
   }
@@ -4639,7 +4714,7 @@ git commit -m "Share the 3D mount between the solo screen and the coming online 
 - Consumes: `Session`（`match`・`play`・`party`・`ready()`）、`Match`、`MODES`・`WINNER`・`nameOf`、`Plate`、`Winner`、`Icon` の `figure`・`hourglass`。
 - Produces: `Hud.svelte`（props `{ session }`）、`Intro.svelte`（`{ match }`）、`Reveal.svelte`（`{ winner }`）、`Ready.svelte`（`{ session }`）、`Plates.svelte`（`{ plates }`）。
 
-本家の HUD の並び（上の中央に緑の砂の砂時計と残り秒とフェーズの言葉、左に隠れている人の白い人形、右にハンターの赤い人形、砂時計の右に次の強制挑発までの黄色の秒、隠れる人の右下に大きく「残り人数 N」、ハンターの右下にモード名と説明 2 行）。ペイントモードのあいだは上の残り秒だけを出す。答え合わせの画面いっぱいの緑のペンキの飾り文字は始めの 3 秒だけ見せて薄くし、白い字の「勝者…!」は出し続ける（飾り文字が答え合わせの 30 秒ずっと画面をふさぐと、全員の場所を見て回れない）。
+本家の HUD の並び（上の中央に緑の砂の砂時計と残り秒とフェーズの言葉、左に隠れている人の白い人形、右にハンターの赤い人形、砂時計の右に次の強制挑発までの黄色の秒（隠れタイムから答え合わせまで出し、減るのは探索のあいだだけ。間隔が 0 なら「0」）、隠れる人の右下に大きく「残り人数 N」、ハンターの右下にモード名と説明 2 行）。ペイントモードのあいだは上の残り秒だけを出す。紹介は本家と同じく、画面の上と下の端の黒い帯（高さ 12cqh ずつ）のあいだの開いた画面に、緑の大きなモード名と説明 2 行を白に黒い影の字で出す。名前の札は白に黒い影の字だけで、地の色を敷かない。答え合わせの画面いっぱいの緑のペンキの飾り文字は 3 秒で消し（2 秒ほど見せてから薄くし、3 秒で見えなくなる）、白い字の「勝者…!」は出し続ける（飾り文字が答え合わせの 30 秒ずっと画面をふさぐと、全員の場所を見て回れない）。
 
 - [ ] **Step 1: 落ちるテストを書く**
 
@@ -4673,6 +4748,12 @@ describe('Hud', () => {
     expect(target.querySelectorAll('.red svg')).toHaveLength(1);
     expect(target.querySelector('.left')?.textContent).toContain('残り人数 2');
     expect(target.querySelector('.taunt')?.textContent).toBe('7');
+    done();
+  });
+
+  it('強制挑発の秒は隠れタイムにも出し、間隔が 0 なら 0 を出す', () => {
+    const { target, done } = show(1, { phase: 'hide', taunts: { 1: 0 } });
+    expect(target.querySelector('.taunt')?.textContent).toBe('0');
     done();
   });
 
@@ -4733,7 +4814,7 @@ Expected: FAIL（`./Hud.svelte` が無い）。
     <span class="dolls red">
       {#each { length: match.hunters }, i (i)}<Icon name="figure" size="22px" />{/each}
     </span>
-    {#if match.taunt !== null && match.phase === 'search'}
+    {#if match.taunt !== null}
       <span class="taunt">{Math.ceil(match.taunt)}</span>
     {/if}
   {/if}
@@ -4847,8 +4928,10 @@ Expected: FAIL（`./Hud.svelte` が無い）。
 </script>
 
 {#if match.phase === 'intro'}
-  <!-- 本家のモード紹介の黒い帯 -->
-  <div class="band" role="status">
+  <!-- 本家のモード紹介。上下の黒い帯のあいだの開いた画面に、モード名と説明 2 行を出す -->
+  <span class="bar top"></span>
+  <span class="bar bottom"></span>
+  <div class="intro" role="status">
     <p class="name">{mode.name}</p>
     <p>{mode.lines[0]}</p>
     <p>{mode.lines[1]}</p>
@@ -4858,30 +4941,44 @@ Expected: FAIL（`./Hud.svelte` が無い）。
 {/if}
 
 <style>
-  .band {
+  .bar {
     position: absolute;
-    top: 50%;
     right: 0;
     left: 0;
-    translate: 0 -50%;
-    display: grid;
-    justify-items: center;
-    gap: 4px;
-    padding: 22px 0;
-    background: rgb(0 0 0 / 0.78);
-    color: #fff;
-    font-family: 'Hiragino Mincho ProN', serif;
-    font-size: 20px;
+    height: 12cqh;
+    background: #000;
     pointer-events: none;
   }
 
-  .band p {
+  .top {
+    top: 0;
+  }
+
+  .bottom {
+    bottom: 0;
+  }
+
+  .intro {
+    position: absolute;
+    inset: 12cqh 0;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 4px;
+    color: #fff;
+    font-family: 'Hiragino Mincho ProN', serif;
+    font-size: 20px;
+    text-shadow: 0 2px 6px #000;
+    pointer-events: none;
+  }
+
+  .intro p {
     margin: 0;
   }
 
   .name {
     color: #7cc243;
-    font-size: min(9cqh, 7cqw);
+    font-size: min(12cqh, 9cqw);
   }
 
   .splash {
@@ -4959,7 +5056,7 @@ Expected: FAIL（`./Hud.svelte` が無い）。
   });
 </script>
 
-<!-- 画面いっぱいのペンキの飾り文字は始めの 3 秒だけ見せて薄くし、答え合わせの体を見て回れるようにする -->
+<!-- 画面いっぱいのペンキの飾り文字は 3 秒で消し、答え合わせの体を見て回れるようにする（白い勝者の言葉は残す） -->
 <canvas class="paint" bind:this={canvas} aria-hidden="true"></canvas>
 <p class="winner" role="status">{text}</p>
 
@@ -4970,12 +5067,12 @@ Expected: FAIL（`./Hud.svelte` が無い）。
     width: 100%;
     height: 100%;
     pointer-events: none;
-    animation: fade 4s forwards;
+    animation: fade 3s forwards;
   }
 
   @keyframes fade {
     0%,
-    75% {
+    65% {
       opacity: 0.9;
     }
     100% {
@@ -5064,13 +5161,11 @@ Expected: FAIL（`./Hud.svelte` が無い）。
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 2px 8px;
-    border-radius: 4px;
-    background: rgb(0 0 0 / 0.45);
     color: #fff;
     font-family: 'Hiragino Mincho ProN', serif;
-    font-size: 13px;
+    font-size: 14px;
     white-space: nowrap;
+    text-shadow: 0 1px 3px #000;
     pointer-events: none;
   }
 
@@ -5120,9 +5215,9 @@ git commit -m "Add the match HUD, mode intro, winner reveal, skip vote button an
 **Interfaces:**
 
 - Consumes: `Session`（`cool`・`play.crouch`・`play.jump()`・`shoot()`・`toggleCrouch()`・`watching`・`next()`・`free()`・`wish()`・`canTaunt`・`tootWait`・`taunt()`・`party`・`start()`）、`COOLDOWN`、`LIMITS`・`Settings`・`DEFAULTS`・`fit`、`nameOf`。
-- Produces: `HunterButtons.svelte`・`Spectate.svelte`・`TopButtons.svelte`（`{ session }`）、`Lobby.svelte`（`{ session, oninvite }`）、`Settings.svelte`（`{ settings (bindable), players, onstart, onclose }`）、`prefs.ts` の `SETTINGS_KEY`・`readSettings()`・`saveSettings(s)`、`Buttons.svelte` の props `{ play; onquit?; top?: Snippet }`（`onquit` が無ければ ✕ を出さない。`top` はペイントモードのあいだ出さない）、`QuitConfirm.svelte` の props `{ onstay; onleave; text?; leave? }`（既定はひとりで試すの文と「戻る」）。
+- Produces: `HunterButtons.svelte`・`Spectate.svelte`・`TopButtons.svelte`（`{ session }`）、`Lobby.svelte`（`{ session, oninvite }`）、`Settings.svelte`（`{ settings (bindable), players, onstart, onclose }`）、`prefs.ts` の `SETTINGS_KEY`・`readSettings()`・`saveSettings(s)`、`Buttons.svelte` の props `{ play; onquit?; top?: Snippet; free? }`（`onquit` が無ければ ✕ を出さない。`top` はペイントモードのあいだ出さない。`free` が false ならフリーカメラを出さない。控室で待つハンターに使い、壁のよじ登りは残す）、`QuitConfirm.svelte` の props `{ onstay; onleave; text?; leave? }`（既定はひとりで試すの文と「戻る」）。
 
-ハンター希望は本家では赤い台に乗るが、台のあるロビーの部屋を作るまでは右の列のボタンで代える。挑発は本家のキー案内の言葉で、ボタンを黄色にする。しゃがむは本家の Ctrl（押しているあいだ）を、指がふさがらないよう押すたびに切り替えるボタンにする。
+ハンター希望は本家では赤い台に乗るが、台のあるロビーの部屋を作るまでは右の列のボタンで代える。挑発は本家のキー案内の言葉で、ボタンを黄色にする。しゃがむは本家の Ctrl（押しているあいだ）を、指がふさがらないよう押すたびに切り替えるボタンにする。マップの設定の項目名は本家の「ハンター待機時間（秒）」「探索時間（秒）」「答え合わせ時間（秒）」「強制挑発間隔（秒）」で、値は単位を付けない数を出す（強制挑発間隔の 0 も「0」）。
 
 - [ ] **Step 1: 落ちるテストを書く**
 
@@ -5277,7 +5372,7 @@ Expected: FAIL（部品と `./prefs` が無い）。
 ```diff
 --- a/src/lib/games/yappari-chameleon/Buttons.svelte
 +++ b/src/lib/games/yappari-chameleon/Buttons.svelte
-@@ -1,10 +1,12 @@
+@@ -1,10 +1,15 @@
  <script lang="ts">
 +  import type { Snippet } from 'svelte';
    import Icon from '$lib/components/Icon.svelte';
@@ -5286,12 +5381,15 @@ Expected: FAIL（部品と `./prefs` が無い）。
    import QuitConfirm from './QuitConfirm.svelte';
 
 -  let { play, onquit }: { play: Play; onquit: () => void } = $props();
-+  /** top はつないで遊ぶときに列の上に足すボタン（挑発・ハンター希望）。onquit が無ければ ✕ を出さない（上の画面が持つ） */
-+  let { play, onquit, top }: { play: Play; onquit?: () => void; top?: Snippet } = $props();
++  /**
++   * top はつないで遊ぶときに列の上に足すボタン（挑発・ハンター希望）。onquit が無ければ ✕ を出さない（上の画面が持つ）。
++   * free が false ならフリーカメラを出さない（控室で待つハンター）
++   */
++  let { play, onquit, top, free = true }: { play: Play; onquit?: () => void; top?: Snippet; free?: boolean } = $props();
    let asking = $state(false);
 
    function ask() {
-@@ -62,9 +64,10 @@
+@@ -62,9 +67,10 @@
    </button>
  {/snippet}
 
@@ -5303,7 +5401,16 @@ Expected: FAIL（部品と `./prefs` が無い）。
    {#if play.mode === 'paint'}
      {@render button('dropper', '3D スポイト', () => play.toggleSpoit(), play.spoit)}
      {@render button('rewind', '元に戻す', () => play.undo())}
-@@ -95,7 +98,7 @@
+@@ -83,7 +89,7 @@
+     {@render tap('lift', play.nearWall ? 'よじ登り' : 'ジャンプ', () => play.jump())}
+     {@render pose()}
+     {@render button('spray', 'ペイントモード', () => play.togglePaint())}
+-    {@render button('eye', 'フリーカメラ', () => play.toggleEye())}
++    {#if free}{@render button('eye', 'フリーカメラ', () => play.toggleEye())}{/if}
+     {@render tap('lock', '回転ロック', () => play.toggleLock(), play.lock)}
+   {/if}
+ </div>
+@@ -95,7 +101,7 @@
    </div>
  {/if}
 
@@ -5648,10 +5755,10 @@ export function saveSettings(s: Settings): void {
   }: { settings: Settings; players: number; onstart: () => void; onclose: () => void } = $props();
 
   const rows = [
-    { key: 'hide', label: 'ハンター待機時間（隠れる時間）', step: 10, range: LIMITS.hide },
-    { key: 'search', label: '探索時間', step: 30, range: LIMITS.search },
-    { key: 'reveal', label: '答え合わせ時間', step: 5, range: LIMITS.reveal },
-    { key: 'taunt', label: '強制挑発間隔', step: 5, range: [0, LIMITS.taunt[1]] }
+    { key: 'hide', label: 'ハンター待機時間（秒）', step: 10, range: LIMITS.hide },
+    { key: 'search', label: '探索時間（秒）', step: 30, range: LIMITS.search },
+    { key: 'reveal', label: '答え合わせ時間（秒）', step: 5, range: LIMITS.reveal },
+    { key: 'taunt', label: '強制挑発間隔（秒）', step: 5, range: [0, LIMITS.taunt[1]] }
   ] as const;
   const most = $derived(Math.max(1, players - 1));
 </script>
@@ -5670,7 +5777,7 @@ export function saveSettings(s: Settings): void {
     <span>ハンターの人数</span>
     <span class="pick">
       <button aria-label="減らす" onclick={() => (settings.hunters = Math.max(1, settings.hunters - 1))}>−</button>
-      <span class="value">{Math.min(settings.hunters, most)}人</span>
+      <span class="value">{Math.min(settings.hunters, most)}</span>
       <button aria-label="増やす" onclick={() => (settings.hunters = Math.min(2, settings.hunters + 1))}>＋</button>
     </span>
   </div>
@@ -5678,7 +5785,7 @@ export function saveSettings(s: Settings): void {
     <label class="row">
       <span>{r.label}</span>
       <input type="range" min={r.range[0]} max={r.range[1]} step={r.step} bind:value={settings[r.key]} />
-      <span class="value">{r.key === 'taunt' && settings.taunt === 0 ? 'なし' : `${settings[r.key]}秒`}</span>
+      <span class="value">{settings[r.key]}</span>
     </label>
   {/each}
   <div class="actions">
@@ -5977,6 +6084,15 @@ describe('Overlay', () => {
     expect(hunter.labels()).not.toContain('挑発');
     expect(hunter.target.querySelector('.cross')).not.toBeNull();
     hunter.done();
+  });
+
+  it('控室で待つハンターにはフリーカメラを出さない', () => {
+    const waiting = show('hider', { phase: 'hide' }, 2);
+    expect(waiting.labels()).not.toContain('フリーカメラ');
+    waiting.done();
+    const hider = show('hider', { phase: 'hide' });
+    expect(hider.labels()).toContain('フリーカメラ');
+    hider.done();
   });
 
   it('観戦中は左下に観戦中と見ている人を出す', () => {
@@ -6325,7 +6441,7 @@ Expected: FAIL（`./Entry.svelte` と `./Overlay.svelte` が無い）。
 {:else if play.role === 'watch'}
   <Spectate {session} />
 {:else}
-  <Buttons {play} {top} />
+  <Buttons {play} {top} free={!(match.role === 'hunter' && (phase === 'intro' || phase === 'hide'))} />
 {/if}
 {#if (phase === 'hide' || phase === 'reveal') && play.mode !== 'paint'}<Ready {session} />{/if}
 <Intro {match} />
@@ -7053,7 +7169,7 @@ Read で `<scratchpad>/e2e/*.png` を見て、次を確かめる。
 | `00-solo`                     | ひとりで試すの大広間と人形・右の列のボタン・上の「隠れタイム計測」（1 段めと同じ）                     |
 | `01-lobby-*`                  | 大広間にほかの 2 人の白い体と頭の上の「プレイヤーN」、上に顔ぶれ、親に「マップの設定」「なかまを呼ぶ」 |
 | `02-settings`                 | マップの設定の 6 項目と「ゲームを始める」                                                              |
-| `03-intro`                    | 黒い帯に緑の「通常」と説明 2 行                                                                        |
+| `03-intro`                    | 上下の端の黒い帯のあいだに緑の「通常」と説明 2 行                                                      |
 | `04-hide-a`・`04-hide-b-room` | a は前を緑に塗った体と「探索開始まで」と「もうええよ 0/3」、b は白い控室                               |
 | `05-search-hunter`            | 右下の白い手とペイント銃、中央の細い十字、うつ・しゃがむ・ジャンプ、右下の「通常」と説明 2 行          |
 | `05-search-host-sees-hunter`  | 銃を両手で構えたハンターの体                                                                           |
@@ -7118,7 +7234,8 @@ git commit -m "Tune the hunter's gun pose after the three-device run"
 | 屋敷の入口は大広間の南の壁の前（北を向く）                                                                                               | 屋敷に扉の形が無い                                                                       |
 | 弾の筋は撃った人の一人称の銃口から引き、ほかの人の画面でも同じ所から引く                                                                 | ハンターの体が持つ銃の銃口の粒をこれで兼ねる                                             |
 | 増え鬼で見つかった人は、ハンターになるときに塗りを白に戻す                                                                               | 仕様の「白い体のまま一人称と銃に替わり」                                                 |
-| 答え合わせの緑のペンキの飾り文字は始めの 3 秒だけ見せて消す                                                                              | 30 秒ずっと画面をふさぐと、全員の場所を見て回れない                                      |
+| 答え合わせの緑のペンキの飾り文字は 3 秒で消す（2 秒ほど見せてから薄くする）                                                              | 30 秒ずっと画面をふさぐと、全員の場所を見て回れない                                      |
+| 増え鬼でハンターになった人は答え合わせで撃たれた場所へ戻さず、ほかの画面には撃たれた場所の青い体と今のハンターの体の両方を出す           | 撃ち続けるハンターの筋が、見えている体から出るようにする                                 |
 | 光るのは隠れる人の体だけ（最初のハンターは光らない）                                                                                     | 仕様の赤と青は隠れる人の見つかった・見つかっていないを分ける色                           |
 | 観戦の人は答え合わせでフリーカメラへ移り、見つかっていない隠れる人は自分で切り替える                                                     | 仕様の「全員がフリーカメラで見て回れる」を、隠れる人の操作を奪わずに満たす               |
 | 試合の途中で来た人と、切れて戻ったハンターは観戦（役 `out`）                                                                             | 本家の途中参加は観戦から始まる                                                           |
