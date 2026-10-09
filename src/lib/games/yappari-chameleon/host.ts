@@ -20,6 +20,11 @@ export const REWIND = [0, 50, 100];
 const BEAT = 1;
 /** 小さな dt を足し重ねたずれで、間隔の手前に残らないようにする */
 const EPS = 1e-6;
+/**
+ * step が進める 1 回の上限（秒）。親のアプリが裏に回ると描画のループごと止まるので、戻ったときの空白で試合を飛ばさず、
+ * 止まっていたことにする
+ */
+const MAX_GAP = 1;
 
 const num = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const v3 = (v: unknown): v is V3 => Array.isArray(v) && v.length === 3 && v.every(num);
@@ -45,6 +50,7 @@ export class Host {
   #sent = '';
   #phase: rules.Phase = 'lobby';
   #beat = 0;
+  #last: number | null = null;
   #stop: () => void;
 
   constructor(port: Port, level: Level, now: () => number = () => performance.now(), rand: () => number = Math.random) {
@@ -59,6 +65,17 @@ export class Host {
     if (this.match.phase !== 'lobby' || this.#port.members.length < 2) return;
     rules.start(this.match, [...this.#port.members], settings, this.#rand);
     this.#push(true);
+  }
+
+  /**
+   * 描画のループから毎コマ呼ぶ。描画の dt は 0.05 秒で切られるので、それで進めると親の重いコマ（GC・体の組み立て）のぶん
+   * 試合の時計が遅れ、子の残り秒が戻り、撃つ間隔の判定もずれる。前に呼ばれてからの実時間で進める
+   */
+  step(): void {
+    const now = this.#now();
+    const gap = this.#last === null ? 0 : Math.min(MAX_GAP, (now - this.#last) / 1000);
+    this.#last = now;
+    if (gap > 0) this.tick(gap);
   }
 
   tick(dt: number): void {

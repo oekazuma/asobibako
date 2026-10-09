@@ -122,6 +122,18 @@ describe('Host の試合', () => {
     for (let i = 0; i < 20; i++) host.tick(0.1);
     expect(views(told).length - n).toBe(2);
   });
+
+  it('描画の重いコマでも、時計は前に進めてからの実時間で進む（裏から戻ったときの空白は 1 秒まで）', () => {
+    const { host, clock } = setup();
+    host.start(DEFAULTS);
+    host.step();
+    clock.ms += 400;
+    host.step();
+    expect(host.match.left).toBeCloseTo(2.6);
+    clock.ms += 60_000;
+    host.step();
+    expect(host.match.left).toBeCloseTo(1.6);
+  });
 });
 
 describe('Host の当たり', () => {

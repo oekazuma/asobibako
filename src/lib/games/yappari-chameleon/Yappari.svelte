@@ -29,7 +29,7 @@
   function hosting(p: Party) {
     unhost();
     const h = new Host(p, levelOf(mansion()));
-    const stop = animate((dt) => h.tick(dt));
+    const stop = animate(() => h.step());
     host = h;
     stopHost = () => {
       stop();
