@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { V3 } from '$lib/sculpt';
 import { checker, coffer, damask, finish, marble, wainscot, woodPanel, type Finish } from '../textures';
 import type { Level } from '../move';
 import { artwork, blueHex, brick, planks, splashCeiling, splashFloor, splashWall, whiteTile } from '../textures-rooms';
@@ -7,6 +8,7 @@ import { seeThrough } from '../xray';
 import { piece } from './furniture';
 import { levelOf, mansion, type Face, type Mat, type Piece, type Slab } from './layout';
 import { inLobby } from './lobby';
+import { mergeStatic } from './merge';
 import { ART } from './props';
 
 const LOOKS: Record<Mat, () => Finish> = {
@@ -50,6 +52,8 @@ function anchor(m: THREE.MeshStandardMaterial, f: Face, s: Slab) {
   t.offset.set(at(u, su) * t.repeat.x, at(v, sv) * t.repeat.y);
 }
 
+const mid = (s: Slab): V3 => [(s.min[0] + s.max[0]) / 2, (s.min[1] + s.max[1]) / 2, (s.min[2] + s.max[2]) / 2];
+
 function slab(s: Slab): THREE.Mesh {
   const size = [0, 1, 2].map((i) => s.max[i] - s.min[i]) as [number, number, number];
   const faceSize = (f: Face): [number, number] =>
@@ -65,7 +69,7 @@ function slab(s: Slab): THREE.Mesh {
   };
   const mats = ORDER.map(look);
   const o = new THREE.Mesh(new THREE.BoxGeometry(...size), mats);
-  o.position.set((s.min[0] + s.max[0]) / 2, (s.min[1] + s.max[1]) / 2, (s.min[2] + s.max[2]) / 2);
+  o.position.set(...mid(s));
   o.receiveShadow = true;
   // 天井と壁は上からの 1 灯を遮らない（遮ると廊下が真っ暗になる）
   o.castShadow = s.shadow ?? false;
@@ -80,11 +84,20 @@ function put(o: THREE.Object3D, p: Piece) {
 export function buildMansion(): Built {
   const m = mansion();
   const group = new THREE.Group();
-  for (const s of m.slabs) group.add(slab(s));
-  const objects = m.pieces.map((p) => {
+  // まとめた 1 つの Mesh がロビーと屋敷にまたがると、どちらにいても両方を描くので、別々にまとめる
+  const house = new THREE.Group();
+  const lobby = new THREE.Group();
+  group.add(house, lobby);
+  const side = (at: V3) => (inLobby(at) ? lobby : house);
+  // 床の箱は床の下へ 1m あり、真ん中ではロビーの外になるので、上の角で見る
+  for (const s of m.slabs) side(s.max).add(slab(s));
+  const first = m.pieces.length - m.moving;
+  const objects = m.pieces.map((p, i) => {
     const o = piece(p);
+    // 動く物は物ごとにまとめる。形に焼くのは物の中の位置なので、置く前（原点）に
+    if (i >= first) mergeStatic(o, () => false);
     put(o, p);
-    group.add(o);
+    side(p.at).add(o);
     return o;
   });
   for (const l of m.lights) {
@@ -109,7 +122,8 @@ export function buildMansion(): Built {
     seeThrough(mat);
     return mat;
   });
-  const first = m.pieces.length - m.moving;
+  const moving = new Set<THREE.Object3D>(objects.slice(first));
+  for (const g of [house, lobby]) mergeStatic(g, (o) => moving.has(o) || !!o.userData.art || !!o.userData.glow);
   const arrange = (seed: number | null): Level => {
     const next = mansion(seed);
     next.pieces.slice(first).forEach((p, i) => put(objects[first + i], p));
