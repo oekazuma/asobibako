@@ -11,17 +11,26 @@ export class Timeline<T> {
     if (this.#gaps.length > 40) this.#gaps.shift();
   }
 
+  /** 届くまでの間と 2 台の時計のずれの和。まだ何も無ければ 0 */
+  offset(): number {
+    return this.#gaps.length ? Math.min(...this.#gaps) : 0;
+  }
+
   /** local の時刻から delay ミリ秒遅らせた時刻の、前後の値と寄せる割合 */
   at(local: number, delay: number): { a: T; b: T; t: number } | null {
     const list = this.#items;
     if (!list.length) return null;
-    const want = local - Math.min(...this.#gaps) - delay;
+    const want = local - this.offset() - delay;
     let k = list.length - 1;
     while (k > 0 && list[k].src > want) k--;
     const a = list[k];
     const b = list[k + 1];
     if (!b || want <= a.src) return { a: a.v, b: a.v, t: 0 };
     return { a: a.v, b: b.v, t: Math.min(1, (want - a.src) / (b.src - a.src)) };
+  }
+
+  last(): T | null {
+    return this.#items.at(-1)?.v ?? null;
   }
 
   clear(): void {

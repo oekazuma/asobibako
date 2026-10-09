@@ -10,7 +10,7 @@ import { Prompts } from './prompts.svelte';
 import { apply, choices, isFiller, type Choice } from './choices';
 import type { GearKey } from './gear';
 import { applySnap, COOP_VERSION, lerpSnap, makeSnap, type Snap } from './snap';
-import { Timeline } from './timeline';
+import { Timeline } from '$lib/net/timeline';
 import { NEVER, pressLink } from './link';
 import type { Ranks } from './upgrades';
 import { PLAYER_R, pushOut } from './obstacles';

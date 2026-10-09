@@ -24,4 +24,15 @@ describe('Timeline', () => {
     line.push(50, 1050, 8);
     expect(line.at(5000, 100)).toEqual({ a: 8, b: 8, t: 0 });
   });
+
+  it('送った側の時刻を受けた側の時刻に直す差（いちばん小さい、届いた時刻 - 送った時刻）と、いちばん新しい値を出す', () => {
+    const line = new Timeline<number>();
+    expect(line.offset()).toBe(0);
+    expect(line.last()).toBeNull();
+    // 送った側の時計は 1000 秒進んでいて、届くまで 50ms と 30ms かかった
+    line.push(1_000_000, 50, 1);
+    line.push(1_000_050, 80, 2);
+    expect(line.offset()).toBe(80 - 1_000_050);
+    expect(line.last()).toBe(2);
+  });
 });
