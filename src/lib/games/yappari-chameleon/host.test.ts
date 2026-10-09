@@ -56,7 +56,7 @@ const of = (told: { m: Message }[], t: string) => told.filter((x) => x.m.t === t
 function searching(settings: Partial<Settings> = {}) {
   const s = setup();
   s.act({ t: 'wish', on: true }, 3);
-  s.host.start({ ...DEFAULTS, ...settings });
+  s.host.start({ ...DEFAULTS, hide: 60, ...settings });
   for (let i = 0; i < 64 * 10; i++) s.host.tick(0.1);
   expect(lastView(s.told).phase).toBe('search');
   return s;

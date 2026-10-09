@@ -41,7 +41,7 @@ describe('Lobby', () => {
     button('通常')!.click();
     flushSync();
     button('ゲームを始める')!.click();
-    expect(start).toHaveBeenCalledWith(expect.objectContaining({ mode: 'normal', hide: 60, search: 300, taunt: 0 }));
+    expect(start).toHaveBeenCalledWith(expect.objectContaining({ mode: 'normal', hide: 120, search: 300, taunt: 0 }));
     expect(JSON.parse(localStorage.getItem(SETTINGS_KEY)!).mode).toBe('normal');
     done();
   });

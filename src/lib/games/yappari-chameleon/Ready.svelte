@@ -4,10 +4,14 @@
   let { session }: { session: Session } = $props();
   const match = $derived(session.match);
   const pressed = $derived(match.view.ready.includes(match.me));
+  // 本家の「もうええよ」だけでは押すと何が起きるか伝わらないので、全員がそろうと起きることを書く
+  const label = $derived(
+    `${match.phase === 'reveal' ? 'ロビーへ戻る' : '隠れタイムを飛ばす'} ${match.view.ready.length}/${session.party.members.length}`
+  );
 </script>
 
 <button class="ready" class:on={pressed} aria-pressed={pressed} onpointerdown={() => session.ready()}>
-  もうええよ {match.view.ready.length}/{session.party.members.length}
+  {label}
 </button>
 
 <style>

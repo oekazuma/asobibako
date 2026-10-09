@@ -15,7 +15,7 @@ export interface Settings {
   taunt: number;
 }
 
-export const DEFAULTS: Settings = { mode: 'infect', hunters: 1, hide: 60, search: 300, reveal: 30, taunt: 0 };
+export const DEFAULTS: Settings = { mode: 'infect', hunters: 1, hide: 120, search: 300, reveal: 30, taunt: 0 };
 export const LIMITS = { hide: [30, 300], search: [60, 600], reveal: [10, 120], taunt: [5, 120] } as const;
 export const INTRO = 3;
 export const COOLDOWN = 2;

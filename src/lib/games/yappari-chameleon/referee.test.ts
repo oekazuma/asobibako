@@ -27,7 +27,7 @@ const zero = () => 0;
 function begun(settings: Partial<Settings> = {}, wishes: Seat[] = [3]): Match {
   const m = newMatch();
   for (const s of wishes) wish(m, s, true);
-  start(m, ALL, { ...DEFAULTS, ...settings }, zero);
+  start(m, ALL, { ...DEFAULTS, hide: 60, ...settings }, zero);
   return m;
 }
 

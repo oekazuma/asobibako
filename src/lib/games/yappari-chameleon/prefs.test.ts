@@ -12,6 +12,13 @@ describe('マップの設定', () => {
     expect(readSettings()).toMatchObject({ mode: 'normal', hide: 120, taunt: 30 });
   });
 
+  it('前の既定の 60 秒のまま覚えていた隠れる時間は 120 秒に読み、新しく選んだ 60 秒はそのまま読む', () => {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...DEFAULTS, hide: 60 }));
+    expect(readSettings().hide).toBe(120);
+    saveSettings({ ...DEFAULTS, hide: 60 });
+    expect(readSettings().hide).toBe(60);
+  });
+
   it('壊れた値や範囲の外の値は、既定か範囲の中に直す', () => {
     localStorage.setItem(SETTINGS_KEY, '{');
     expect(readSettings()).toEqual(DEFAULTS);

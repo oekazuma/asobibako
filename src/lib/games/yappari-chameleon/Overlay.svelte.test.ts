@@ -48,7 +48,7 @@ describe('Overlay', () => {
 
   it('隠れタイムの隠れる人には挑発ともうええよ、ハンターには撃つボタンと十字', () => {
     const hider = show('hider', { phase: 'hide' });
-    expect(hider.labels()).toEqual(expect.arrayContaining(['挑発', 'もうええよ 0/2']));
+    expect(hider.labels()).toEqual(expect.arrayContaining(['挑発', '隠れタイムを飛ばす 0/2']));
     hider.done();
     const hunter = show('hunter', { phase: 'search' }, 2);
     expect(hunter.labels()).toEqual(expect.arrayContaining(['うつ', 'しゃがむ', 'ジャンプ']));
