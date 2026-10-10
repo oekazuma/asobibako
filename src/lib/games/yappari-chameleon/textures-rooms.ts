@@ -44,29 +44,14 @@ function splats(g: CanvasRenderingContext2D, seed: number, w: number, h: number,
 }
 
 /**
- * ロビーの壁。白地に白いアーチの浮き彫り（影とハイライトの線）と、ペンキのしぶき。
- * 1 枚が 8m × 6m で、線は 3cm 以上
+ * ロビーの壁。白地にペンキのしぶき。1 枚が壁 1 面の 16m × 6m（1m が 96 画素。屋敷の模様の画素の上限に収める）で、線は 3cm 以上。
+ * 白いアーチは浮き出させた形で別に置く（lobby.ts）。壁ごとに模様をずらし裏返して、同じしぶきが並ばないようにする
  */
 export function splashWall(): Pattern {
-  return make('splash-wall', 1024, 768, [8, 6], (g) => {
+  return make('splash-wall', 1536, 576, [16, 6], (g) => {
     g.fillStyle = '#f4f2ee';
-    g.fillRect(0, 0, 1024, 768);
-    for (const cx of [256, 768]) {
-      for (const [color, dx] of [
-        ['rgb(0 0 0 / 0.14)', 4],
-        ['rgb(255 255 255 / 0.95)', -4]
-      ] as const) {
-        g.strokeStyle = color;
-        g.lineWidth = 5;
-        g.beginPath();
-        g.moveTo(cx - 200 + dx, 768);
-        g.lineTo(cx - 200 + dx, 330);
-        g.arc(cx + dx, 330, 200, Math.PI, 0);
-        g.lineTo(cx + 200 + dx, 768);
-        g.stroke();
-      }
-    }
-    splats(g, 83, 1024, 768, 9, true);
+    g.fillRect(0, 0, 1536, 576);
+    splats(g, 83, 1536, 576, 16, true);
   });
 }
 

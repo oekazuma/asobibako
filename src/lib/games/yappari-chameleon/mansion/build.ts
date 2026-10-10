@@ -79,6 +79,10 @@ function slab(s: Slab): THREE.Mesh {
     const m = finish(LOOKS[mat](), faceSize(f));
     // 合わせるのは裏のある（戸口で分けた）壁だけ。1 枚で張った面には継ぎ目が無いので、部屋の端から模様を始める
     if (s.back) anchor(m, f, s);
+    if (m.map && f === s.face) {
+      m.map.offset.x += s.shift ?? 0;
+      if (s.flip) m.map.repeat.x *= -1;
+    }
     return m;
   };
   const mats = ORDER.map(look);

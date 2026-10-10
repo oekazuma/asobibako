@@ -25,10 +25,39 @@ function podium(g: THREE.Group) {
   g.add(rim);
 }
 
-/** 本家のロビーの端の水色の台 */
+/**
+ * 本家のロビーの端の水色の台。白い壁の前で埋もれないよう、濃い台座と、上の丸いボタンのまわりに
+ * いつも光る輪を付ける
+ */
 function pedestal(g: THREE.Group) {
-  box(g, [0.9, 0.9, 0.9], { tint: '#7fd1e8', rough: 0.4 }, [0, 0.45, 0]);
-  cyl(g, [0.22, 0.24], 0.1, { tint: '#2f9ec7', rough: 0.3 }, [0, 0.95, 0]);
+  box(g, [0.96, 0.12, 0.96], { tint: '#1f6f8f', rough: 0.4 }, [0, 0.06, 0]);
+  box(g, [0.9, 0.82, 0.9], { tint: '#5fd0f0', rough: 0.35 }, [0, 0.53, 0]);
+  box(g, [0.96, 0.06, 0.96], { tint: '#7fd3e6', rough: 0.4 }, [0, 0.97, 0]);
+  cyl(g, [0.26, 0.28], 0.06, { tint: '#ffffff', rough: 0.3 }, [0, 1.03, 0], 32);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.025, 8, 48), glowing('#7fe6ff', '#4fd8ff', 1.2));
+  ring.rotation.x = Math.PI / 2;
+  ring.position.y = 1.03;
+  g.add(ring);
+}
+
+/**
+ * ロビーの白いアーチ（幅 3.1m、上の半円の中心は 3.4m）。壁から 6cm 浮き出した白い帯と、右下へずらした
+ * 薄い灰色の帯を影にする（ロビーは日を消すので、影は形で描く）。壁に貼るだけなので当たらない
+ */
+function lobbyArch(g: THREE.Group) {
+  const [r, top] = [1.56, 3.42];
+  // [色, 右へ, 下へ, 壁からの位置, 帯の厚みの倍率]
+  for (const [tint, dx, dy, z, depth] of [
+    ['#d6d2cb', 0.05, -0.05, 0.01, 0.15],
+    ['#ffffff', 0, 0, 0.03, 0.6]
+  ] as const) {
+    const band = new THREE.Mesh(new THREE.TorusGeometry(r, 0.07, 8, 32, Math.PI), finish({ tint, rough: 0.6 }, [1, 1]));
+    band.position.set(dx, top + dy, z);
+    band.scale.z = depth;
+    g.add(band);
+    const leg = box(g, [0.14, top, 0.06], { tint, rough: 0.6 }, [-r + dx, top / 2 + dy, z]);
+    copy(g, leg, [r + dx, top / 2 + dy, z]);
+  }
 }
 
 const STEEL: Finish = { tint: '#c9ced3', metal: 0.8, rough: 0.35 };
@@ -235,6 +264,7 @@ function cart(g: THREE.Group) {
 export const ROOM_MAKERS = {
   podium,
   pedestal,
+  'lobby-arch': lobbyArch,
   post,
   desk,
   globe,

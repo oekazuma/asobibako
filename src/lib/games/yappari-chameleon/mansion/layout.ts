@@ -35,6 +35,9 @@ export interface Slab {
   /** 面の裏（face の向きの反対）の材質。大広間と廊下の壁の裏が、となりの部屋の壁になる */
   back?: Mat;
   shadow?: boolean;
+  /** face の模様を横へずらす量（模様 1 枚を 1 とする）と、左右の裏返し。同じ模様の壁を別の見え方にする */
+  shift?: number;
+  flip?: boolean;
 }
 
 export type Kind =
@@ -95,6 +98,7 @@ export type Kind =
   | 'arch-window'
   | 'armchair'
   | 'floor-lamp'
+  | 'lobby-arch'
   | 'range'
   | 'pot-rack'
   | 'pots'
@@ -167,6 +171,7 @@ export const SIZES: Record<Kind, V3 | null> = {
   'arch-window': null,
   armchair: [0.9, 1.0, 0.9],
   'floor-lamp': [0.4, 1.6, 0.4],
+  'lobby-arch': null,
   range: [1.0, 0.9, 0.8],
   'pot-rack': [0.6, 1.8, 0.4],
   pots: null,

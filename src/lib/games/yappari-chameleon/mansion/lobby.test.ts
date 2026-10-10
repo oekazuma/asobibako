@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { idle, newBody, step, type Body, type Level } from '../move';
 import { levelOf, mansion, SPAWNS } from './layout';
-import { inLobby, LOBBY, onPodium, PODIUM, podiumBoxes } from './lobby';
+import { inLobby, LOBBY, lobbyPieces, lobbySlabs, onPodium, PODIUM, podiumBoxes } from './lobby';
 
 const lv: Level = levelOf(mansion());
 
@@ -71,6 +71,16 @@ describe('ロビーの部屋', () => {
     for (const b of podiumBoxes())
       for (const x of [b.min[0], b.max[0]])
         for (const z of [b.min[2], b.max[2]]) expect(Math.hypot(x - cx, z - cz)).toBeLessThan(PODIUM.r + 0.01);
+  });
+
+  it('しぶきの壁は 4 面とも模様のずらし方か裏返しが違い、どの面にも白いアーチが 4 つ並ぶ', () => {
+    const walls = lobbySlabs().filter((s) => s.mat === 'splash');
+    expect(walls).toHaveLength(4);
+    expect(new Set(walls.map((s) => `${s.shift ?? 0}:${!!s.flip}`)).size).toBe(4);
+    const arches = lobbyPieces().filter((q) => q.kind === 'lobby-arch');
+    expect(arches).toHaveLength(16);
+    for (const turn of [0, 1, 2, 3]) expect(arches.filter((q) => q.turn === turn)).toHaveLength(4);
+    for (const q of arches) expect(inLobby(q.at)).toBe(true);
   });
 
   it('日を消すのはロビーの中だけ', () => {

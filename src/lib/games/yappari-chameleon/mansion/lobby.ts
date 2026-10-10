@@ -16,9 +16,9 @@ export function lobbySlabs(): Slab[] {
     { min: [x0, -1, z0], max: [x1, 0, z1], mat: 'splashFloor', face: 'y+' },
     { min: [x0, h, z0], max: [x1, h + T, z1], mat: 'splashCeiling', face: 'y-' },
     { min: [x0, 0, z0 - T], max: [x1, h, z0], mat: 'splash', face: 'z+' },
-    { min: [x0, 0, z1], max: [x1, h, z1 + T], mat: 'splash', face: 'z-' },
-    { min: [x0 - T, 0, z0], max: [x0, h, z1], mat: 'splash', face: 'x+' },
-    { min: [x1, 0, z0], max: [x1 + T, h, z1], mat: 'splash', face: 'x-' }
+    { min: [x0, 0, z1], max: [x1, h, z1 + T], mat: 'splash', face: 'z-', shift: 0.25, flip: true },
+    { min: [x0 - T, 0, z0], max: [x0, h, z1], mat: 'splash', face: 'x+', shift: 0.5 },
+    { min: [x1, 0, z0], max: [x1 + T, h, z1], mat: 'splash', face: 'x-', shift: 0.75, flip: true }
   ];
 }
 
@@ -37,8 +37,21 @@ export function podiumBoxes(): Box[] {
   ].map(([w, d]) => ({ min: [cx - w, 0, cz - d], max: [cx + w, PODIUM.h, cz + d] }));
 }
 
+/** 壁 1 面に 4 つずつの白いアーチ。壁の内側の面に、部屋の中を向けて置く */
+function arches(): Piece[] {
+  const [x0, , z0] = LOBBY.min;
+  const [x1, , z1] = LOBBY.max;
+  return [2, 6, 10, 14].flatMap((d): Piece[] => [
+    { kind: 'lobby-arch', at: [x0 + d, 0, z0], turn: 0 },
+    { kind: 'lobby-arch', at: [x0 + d, 0, z1], turn: 2 },
+    { kind: 'lobby-arch', at: [x0, 0, z0 + d], turn: 1 },
+    { kind: 'lobby-arch', at: [x1, 0, z0 + d], turn: 3 }
+  ]);
+}
+
 export function lobbyPieces(): Piece[] {
   return [
+    ...arches(),
     { kind: 'podium', at: PODIUM.at, turn: 0 },
     // 本家のロビーの端の水色の台（本家はこのそばでマップの設定を開く。こちらは画面のボタンで開く）
     { kind: 'pedestal', at: [6.6, 0, -66.6], turn: 0 }
