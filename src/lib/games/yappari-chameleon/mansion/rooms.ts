@@ -122,7 +122,7 @@ export function roomPieces(): Piece[] {
     p('towel-table', [-14.5, 0, -2.8]),
     p('towel-table', [-16.6, 0, -0.6]),
     p('wood-shelf', [-19.8, 0, -1.2], 1),
-    p('extinguisher', [-19.85, 0, -0.5]),
+    p('extinguisher', [-19.85, 0, -0.5], 1),
     p('vacuum', [-19.7, 0, 0.1]),
     p('vacuum', [-19.2, 0, 0.0], 1),
     p('poster', [-19.99, 1.6, -2.4], 1),

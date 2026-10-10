@@ -129,18 +129,23 @@ function clothesline(g: THREE.Group, p: Piece) {
     m.side = THREE.DoubleSide;
     const cloth = new THREE.Mesh(new THREE.ShapeGeometry(cut(kind)), m);
     cloth.position.set(x, sag(x) - 0.01, 0);
-    cloth.rotation.y = (r() - 0.5) * 0.3;
+    const turn = (r() - 0.5) * 0.3;
+    cloth.rotation.y = turn;
     cloth.castShadow = cloth.receiveShadow = true;
     g.add(cloth);
-    for (const dx of [-0.16, 0.16]) box(g, [0.02, 0.07, 0.03], peg, [x + dx, sag(x + dx) - 0.02, 0]);
+    // 服は縄のまわりに回してあるので、洗濯ばさみも服の上の辺に沿わせる
+    for (const dx of [-0.16, 0.16]) {
+      const px = x + dx * Math.cos(turn);
+      box(g, [0.02, 0.07, 0.03], peg, [px, sag(px) - 0.02, -dx * Math.sin(turn)]).rotation.y = turn;
+    }
   }
 }
 
 /** 本家のタオルの色（白か灰・青・黄色から橙） */
 const TOWELS = ['#d8d8d0', '#3a46c8', '#e0a020', '#efefe8', '#4a56d8'];
 
-/** たたんだタオルを 1 枚ずつ少し回してずらしながら積む。積んだ高さを返す */
-function stack(g: THREE.Group, seed: number, n: number, at: [number, number, number]): number {
+/** 1 枚ずつ少し回してずらすのは、きっちりそろった箱に見えないようにするため */
+function stack(g: THREE.Group, seed: number, n: number, at: [number, number, number]) {
   const r = rng(seed);
   const tint = TOWELS[seed % TOWELS.length];
   let y = at[1];
@@ -154,10 +159,9 @@ function stack(g: THREE.Group, seed: number, n: number, at: [number, number, num
     t.rotation.y = (r() - 0.5) * 0.16;
     y += h;
   }
-  return y;
 }
 
-/** 動く物のタオルの山（当たりは 0.5 × 0.5 × 0.4 のまま） */
+/** 動く物なので当たり（0.5 × 0.5 × 0.4）は props.ts のまま、見た目だけ積み方を変える */
 function towels(g: THREE.Group, p: Piece) {
   stack(g, variant(p), 10, [0, 0, 0]);
 }
