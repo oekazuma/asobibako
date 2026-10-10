@@ -26,10 +26,14 @@ const LEAK = 0.15;
 /** ここを超えたら撃ちに行く。PROBE_AT より下は試し撃ちもしない */
 export const SHOOT_AT = 1;
 export const PROBE_AT = 0.4;
+/** 怪しさの上限。上限が無いと、長く見ていた体は塗り直しても見えた瞬間に撃たれ続ける */
+const CAP = 2 * SHOOT_AT;
 /** 半端に怪しい体へ、見るたびに試し撃ちする確率 */
 const PROBE_CHANCE = 0.1;
 /** これより遠ければ近づいてから撃つ（m） */
 const APPROACH = 10;
+/** 見えたままこれだけ撃っても見つからなければ、体のそばの点まで寄る */
+const MISSES = 3;
 
 export const hidingSeats = (v: View): Seat[] =>
   (Object.keys(v.roles).map(Number) as Seat[]).filter((s) => v.roles[s] === 'hider' && !v.found.includes(s));
@@ -91,11 +95,11 @@ export class HunterBrain {
   #base = 0;
   #check = 0;
   #cool = 0;
-  /** 撃つと決めた体。lost は見失って、最後に見えた所へ向かっている */
-  #aim: { seat: Seat; wait: number; lost: boolean } | null = null;
+  /** 撃つと決めた体。lost は見失って、最後に見えた所へ向かっている。shots は見えたまま撃った数 */
+  #aim: { seat: Seat; wait: number; lost: boolean; shots: number } | null = null;
   /** 前に見たときの体の位置（動いたかを見る） */
   readonly #before = new Map<Seat, V3>();
-  /** 最後に視野・届き・遮りを通ったときの体の位置と胴の真ん中。追うのも撃つのもここへ向ける */
+  /** 最後に視野・届き・遮りを通ったときの体の位置と、そのとき見えた点（胴が見えていれば胴、隠れていれば頭）。追うのも撃つのもここへ向ける */
   readonly #last = new Map<Seat, { pos: V3; mid: V3 }>();
   /** いちばん新しい見るときに見えていた体 */
   #sees = new Set<Seat>();
@@ -109,8 +113,9 @@ export class HunterBrain {
     this.look = [yaw, 0];
     this.#skill = skill;
     this.#rand = rand;
-    // 2 人なら、部屋の並びの反対側から回り始める
+    // 2 人なら、部屋の並びの反対側から回り始める。目立ちを聞くコマもずらし、目の絵 2 人ぶんを同じコマに描かない
     this.#room = (index * 3) % ROOMS.length;
+    this.#check = (index * CHECK) / 2;
     this.walker.go(ROOMS[this.#room].look);
   }
 
@@ -180,25 +185,27 @@ export class HunterBrain {
       const before = this.#before.get(seat);
       let s = this.#sus(seat) - LEAK * CHECK;
       const points = bodyPoints(body);
-      const d = sight(ctx.level, viewer, points, SEARCH_REACH);
+      const hits = points.map((p) => sight(ctx.level, viewer, [p], SEARCH_REACH));
+      const at = points.find((_, i) => hits[i] !== null);
       // 動いたかは、続けて見えた 2 回の位置でだけ比べる
-      if (d === null) this.#before.delete(seat);
+      if (!at) this.#before.delete(seat);
       else {
+        const d = Math.min(...hits.filter((h) => h !== null));
         this.#before.set(seat, body.pos);
         seen.push(seat);
-        this.#last.set(seat, { pos: [...body.pos], mid: points[0] });
+        this.#last.set(seat, { pos: [...body.pos], mid: at });
         // 3D が描けていないあいだ（null）は目立ちを 0 とみなし、動いた体にだけ気づく
-        const loud = ctx.senses?.visible(seat, ctx.me, eye, points[0], this.#skill.diff) ?? 0;
+        const loud = ctx.senses?.visible(seat, ctx.me, eye, at, this.#skill.diff) ?? 0;
         const moving = !!before && !still(body.pos, before);
         s += (loud * GAIN + (moving ? MOVE_GAIN : 0)) * (1 - d / SEARCH_REACH) * CHECK;
       }
-      this.suspicion.set(seat, Math.max(0, s));
+      this.suspicion.set(seat, Math.min(CAP, Math.max(0, s)));
     }
     this.#sees = new Set(seen);
     if (this.#aim) return;
     const top = seen.reduce<Seat | null>((a, s) => (a === null || this.#sus(s) > this.#sus(a) ? s : a), null);
     if (top === null) return;
-    if (this.#sus(top) >= SHOOT_AT) this.#aim = { seat: top, wait: this.#skill.wait, lost: false };
+    if (this.#sus(top) >= SHOOT_AT) this.#aim = { seat: top, wait: this.#skill.wait, lost: false, shots: 0 };
     else if (this.#sus(top) >= PROBE_AT && this.#cool === 0 && this.#rand() < PROBE_CHANCE)
       this.#fire(ctx, top, this.#skill.aim * 2);
   }
@@ -224,7 +231,8 @@ export class HunterBrain {
       return;
     }
     aim.lost = false;
-    if (Math.hypot(...sub(last.mid, this.eye())) > APPROACH) {
+    // 見えた点へ撃っても当たらない（手前の物に弾がかかる）なら、寄って撃ち直す
+    if (aim.shots >= MISSES || Math.hypot(...sub(last.mid, this.eye())) > APPROACH) {
       const to = nearest(last.mid);
       if (this.walker.path.at(-1) !== to) this.walker.go(to);
     } else this.walker.path = [];
@@ -234,6 +242,7 @@ export class HunterBrain {
     if ((aim.wait -= dt) > 0 || this.#cool > 0) return;
     this.#fire(ctx, aim.seat, this.#skill.aim);
     aim.wait = this.#skill.wait;
+    aim.shots++;
   }
 
   /** 狙うのをやめる。at を渡せば、そちらを向いて見回してから見回りに戻る */

@@ -6,8 +6,10 @@ import { levelOf, mansion, placeOf, SPAWNS } from '../mansion/layout';
 import { CROUCH, EYE_HEIGHT } from '../move';
 import type { Me } from '../net';
 import { bodyPoints, sight } from '../oversight';
+import { poseById } from '../poses';
 import { COOLDOWN, DEFAULTS, newMatch, view, type View } from '../referee';
 import { rng } from '../rng';
+import { capsules, fire, placement } from '../shots';
 import { OPEN } from './fixtures';
 import { CHECK, deviate, HunterBrain, LOOK_SECS, SEARCH_REACH, SHOOT_AT, toLook } from './hunter';
 import { SKILLS, type Strength } from './levels';
@@ -364,6 +366,79 @@ describe('探す CPU の気づきと撃つ', () => {
     run(0.3);
     expect(c.shots).toHaveLength(1);
     expect(miss(c.shots[0], target)).toBeCloseTo(SKILLS.normal.aim * 2, 1);
+  });
+
+  it('胴が箱に隠れて頭だけ見える体は、見えている頭を狙い、強いなら 20 秒以内に撃ち当てる', () => {
+    // 体のまわりを高さ 0.95m の囲いで囲む。目の高さ 1m から、頭（1.045m）は見えて胴の真ん中（0.70m）は見えない
+    const [x, , z] = OPEN;
+    const wall = (x0: number, z0: number, x1: number, z1: number) => ({
+      min: [x0, 0, z0] as V3,
+      max: [x1, 0.95, z1] as V3
+    });
+    const pen: typeof lv = {
+      ...lv,
+      boxes: [
+        ...lv.boxes,
+        wall(x - 0.45, z - 0.45, x + 0.45, z - 0.4),
+        wall(x - 0.45, z + 0.4, x + 0.45, z + 0.45),
+        wall(x - 0.45, z - 0.45, x - 0.4, z + 0.45),
+        wall(x + 0.4, z - 0.45, x + 0.45, z + 0.45)
+      ]
+    };
+    const { c, target, run } = hunt('strong', eyes(1));
+    c.level = pen;
+    const caps = [{ seat: 1, caps: capsules(poseById(target.pose), placement(target)) }];
+    let hit: number | null = null;
+    let seen = 0;
+    run(20, (t) => {
+      for (const shot of c.shots.slice(seen)) {
+        if (hit === null && fire(pen, shot.o as V3, shot.d as V3, caps).some((r) => r.seat === 1)) {
+          hit = t;
+          c.view = { ...search, found: [1] };
+        }
+      }
+      seen = c.shots.length;
+    });
+    expect(c.shots.length).toBeGreaterThan(0);
+    expect(hit).not.toBeNull();
+  });
+
+  it('見えたまま 3 発撃っても見つからなければ、体のそばの点まで寄る', () => {
+    const { b, c, target, run } = hunt('strong', eyes(1));
+    const near = nearest(bodyPoints(target)[0]);
+    let walked = false;
+    run(12, () => {
+      if (c.shots.length < 3) expect(b.walker.path.at(-1)).not.toBe(near);
+      else if (b.walker.path.at(-1) === near) walked = true;
+    });
+    expect(walked).toBe(true);
+  });
+
+  it('怪しさには上限があり、見失って 30 秒たてば撃ちに行く線より下がる', () => {
+    const { b, target, run } = hunt('strong', eyes(1));
+    run(60);
+    target.pos = [60, 0, 60];
+    run(30);
+    expect(b.suspicion.get(1)).toBeLessThan(SHOOT_AT);
+  });
+
+  it('2 人の探す CPU は、同じコマで目立ちを聞かない', () => {
+    const steps = [new Set<number>(), new Set<number>()];
+    let k = 0;
+    const two = [0, 1].map((i) => {
+      const b = brain('normal', i);
+      const senses = { ...eyes(0), visible: () => (steps[i].add(k), 0) };
+      const v: View = { ...search, roles: { 1: 'hider', 2: 'hunter', 3: 'hunter' } };
+      return { b, c: ctx({ me: (2 + i) as Seat, view: v, senses, bodies: new Map<Seat, Me>([[1, body(OPEN)]]) }) };
+    });
+    for (; k < 200; k++)
+      for (const { b, c } of two) {
+        c.now += 50;
+        b.step(c, 0.05);
+      }
+    expect(steps[0].size).toBeGreaterThan(0);
+    expect(steps[1].size).toBeGreaterThan(0);
+    expect([...steps[0]].filter((s) => steps[1].has(s))).toEqual([]);
   });
 
   it('toLook は弾の向きの yaw と pitch（下向きが正）、deviate はちょうどその度数だけずらす', () => {
