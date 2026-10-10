@@ -49,6 +49,8 @@ export class World {
   /** overlay の中で、描く直前にカメラへ合わせる枠 */
   readonly hand = new THREE.Group();
   level: Level = { boxes: [], ramps: [], spawn: [0, 0, 0] };
+  /** 最後に描いた時刻。縦持ちで描くのを止めているあいだ、CPU の目と筆は古い体を見ない */
+  renderedAt = -Infinity;
   #stage: THREE.Group | null = null;
   #built: Built | null = null;
   #sun = new THREE.DirectionalLight('#fff1dc', DAY.sun);
@@ -279,6 +281,38 @@ export class World {
     return readPick(Array.isArray(m) ? m[hit.face?.materialIndex ?? 0] : m, hit.uv);
   }
 
+  /** 屋敷の面の、光が当たる前の色。o から向き d（長さ 1）の先で最初に当たる面。三角旗のひもの線は当たりを 1m 広く取るので飛ばす */
+  pickStage(o: V3, d: V3): { color: RGB; metal: number; rough: number } | null {
+    if (!this.#stage) return null;
+    this.#ray.set(new THREE.Vector3(...o), new THREE.Vector3(...d));
+    const hit = this.#ray.intersectObject(this.#stage, true).find((h) => (h.object as THREE.Mesh).isMesh);
+    if (!hit) return null;
+    const m = (hit.object as THREE.Mesh).material;
+    return readPick(Array.isArray(m) ? m[hit.face?.materialIndex ?? 0] : m, hit.uv);
+  }
+
+  /**
+   * CPU の目。cam から rt へ描き、画素を out へ読む。自分の印（張り付きの赤い輪・筆の輪）と透かしの窓は消して描く。
+   * 影は描き直さない（日は動かないので前のコマの影で足りる。描き直すと 2048² の影を目の 1 枚ごとに描く）
+   */
+  look(cam: THREE.Camera, rt: THREE.WebGLRenderTarget, out: Uint8Array): void {
+    const r = this.renderer;
+    const xray = XRAY.on.value;
+    const ring = this.#ring.visible;
+    const cursor = this.#cursor.visible;
+    XRAY.on.value = 0;
+    this.#ring.visible = this.#cursor.visible = false;
+    r.shadowMap.autoUpdate = false;
+    r.setRenderTarget(rt);
+    r.render(this.scene, cam);
+    r.readRenderTargetPixels(rt, 0, 0, rt.width, rt.height, out);
+    r.setRenderTarget(null);
+    r.shadowMap.autoUpdate = true;
+    XRAY.on.value = xray;
+    this.#ring.visible = ring;
+    this.#cursor.visible = cursor;
+  }
+
   project(p: V3): { x: number; y: number } {
     const v = new THREE.Vector3(...p).project(this.camera);
     return { x: ((v.x + 1) / 2) * this.#w, y: ((1 - v.y) / 2) * this.#h };
@@ -325,6 +359,7 @@ export class World {
   }
 
   render(): void {
+    this.renderedAt = performance.now();
     this.rig.paint.flush();
     this.#light();
     this.renderer.render(this.scene, this.camera);

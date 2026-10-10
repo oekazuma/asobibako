@@ -212,6 +212,14 @@ describe('Session のつなぎ方', () => {
     s.start(DEFAULTS);
     expect(host.start).toHaveBeenCalledWith(DEFAULTS);
   });
+
+  it('席の体の 3D を引ける（自分は自分の人形、ほかの人は届いた体の Remote）', () => {
+    const { s, play, tell } = setup(2);
+    expect(s.rigOf(2)).toBe(play.world.rig);
+    expect(s.rigOf(3)).toBeNull();
+    tell(meMsg(3));
+    expect(s.rigOf(3)).toBe(made.remotes.at(-1)!.rig);
+  });
 });
 
 describe('Session の見つかった人', () => {

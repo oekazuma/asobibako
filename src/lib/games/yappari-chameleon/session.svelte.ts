@@ -366,6 +366,11 @@ export class Session {
     return this.#pins.get(seat)?.log.length ?? null;
   }
 
+  /** 席の体の 3D。CPU の目と筆（Senses3d）が、体ありと体なしで描き分け、体の表面を読む */
+  rigOf(seat: Seat): DollRig | null {
+    return seat === this.match.me ? this.play.world.rig : (this.#remotes.get(seat)?.rig ?? null);
+  }
+
   #show(seat: Seat): Show {
     const m = this.match;
     const p = m.phase;
