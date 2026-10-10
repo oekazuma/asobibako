@@ -1,11 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Message } from '$lib/net/link';
 import { Party, type Seat } from '$lib/net/party.svelte';
 import { Host } from '../host';
 import { levelOf, mansion, SPAWNS } from '../mansion/layout';
 import type { Me } from '../net';
 import { DEFAULTS, INTRO } from '../referee';
-import { Bot, REVEAL_READY } from './bot';
+import { Bot, REVEAL_READY, turnAt } from './bot';
 import { pipes } from './pipe';
 
 /** 親の Party と審判に、手元の管で CPU を n 人座らせる。審判と CPU は同じ時計で 0.05 秒ずつ進める */
@@ -32,7 +32,7 @@ async function table(n: number) {
       send(m);
     };
     sends.push(sent);
-    bots.push(new Bot(b));
+    bots.push(new Bot(b, { strength: 'normal', index: i }));
     await party.add(a);
   }
   const run = (secs: number) => {
@@ -104,5 +104,34 @@ describe('CPU の子', () => {
     party.tell(2, { t: 'chameleon-mismatch' });
     await bots[0].gone;
     expect(party.members).toEqual([1]);
+  });
+
+  it('親がページを閉じて管が先に閉じたら、step は何も送らない', async () => {
+    const { party, bots, run } = await table(1);
+    run(0.1);
+    const act = vi.spyOn(bots[0].party, 'act');
+    party.close();
+    await bots[0].gone;
+    expect(bots[0].party.lost).toBe(true);
+    bots[0].step(0.05, 1e9);
+    expect(act).not.toHaveBeenCalled();
+  });
+});
+
+describe('turnAt', () => {
+  it('増え鬼でハンターになる場所は、天井や壁に張り付いていたら真下の床、床ならその場', () => {
+    const lv = levelOf(mansion());
+    expect(
+      turnAt({ pos: [2.5, 7, 6], yaw: 0, cling: { kind: 'ceiling' }, pose: 'stand', tier: 2, slack: 0 }, lv)
+    ).toEqual([2.5, 0, 6]);
+    expect(
+      turnAt(
+        { pos: [-3, 1.5, 0.2], yaw: Math.PI, cling: { kind: 'wall', nx: 0, nz: 1 }, pose: 'stand', tier: 2, slack: 0 },
+        lv
+      )
+    ).toEqual([-3, 0, 0.2]);
+    expect(turnAt({ pos: [3, 3.5, 11.6], yaw: 0, cling: null, pose: 'stand', tier: 0, slack: 0 }, lv)).toEqual([
+      3, 3.5, 11.6
+    ]);
   });
 });

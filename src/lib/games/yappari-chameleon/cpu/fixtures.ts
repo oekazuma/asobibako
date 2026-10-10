@@ -9,7 +9,7 @@ import type { Spot } from './spots';
 export const OPEN: V3 = [3.5, 0, 5.2];
 
 /** spot の体のまわりの、背 h・半径 r の筒の点 */
-export function tube(spot: Spot, n = 3000, r = 0.15, h = 1.15): SurfacePoint[] {
+export function tube(spot: Pick<Spot, 'pos'>, n = 3000, r = 0.15, h = 1.15): SurfacePoint[] {
   return Array.from({ length: n }, (_, i) => {
     const a = i * 2.39996;
     const rest: V3 = [r * Math.cos(a), (i / n) * h, r * Math.sin(a)];

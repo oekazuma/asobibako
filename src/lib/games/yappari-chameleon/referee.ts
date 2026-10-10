@@ -36,6 +36,8 @@ export const TOOT_GAP = 1;
 export const SHOT_SLACK = 0.15;
 /** 埋まったままこの秒たつと、ハンターに場所を知らせる */
 export const EXPOSE = 5;
+/** 撃たれた人の破片が消えるまで（秒）。増え鬼では、そのあとハンターになる（CPU も同じ間をおく） */
+export const SHATTER_SECS = 1.5;
 
 /** 小さな dt を足し重ねたずれで、0 になるはずの時計が 0 の手前に残らないようにする */
 const EPS = 1e-6;

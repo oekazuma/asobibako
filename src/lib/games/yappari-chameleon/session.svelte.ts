@@ -17,7 +17,7 @@ import { CHAMELEON_VERSION, dabMessages, DabOutbox, SEND_MS, splice, unpackDabs,
 import type { Dab } from './paint';
 import type { Play } from './play.svelte';
 import { AIM, poseById, STAND } from './poses';
-import { COOLDOWN, TOOT_GAP, type Settings, type View } from './referee';
+import { COOLDOWN, SHATTER_SECS, TOOT_GAP, type Settings, type View } from './referee';
 import { HEAD_Y, paintColors, Remote, type Show } from './remote';
 import { capsules, fire, placement, type Target } from './shots';
 import { sounds } from './sounds';
@@ -39,9 +39,6 @@ export interface Inbox {
   messages: Message[];
   stop: () => void;
 }
-
-/** 撃たれた人の破片が消えるまで。増え鬼では、そのあとハンターになる */
-export const SHATTER_SECS = 1.5;
 
 /**
  * つないで遊ぶ 1 台ぶん。親から届いた試合の様子で自分の役（隠れる・ハンター・観戦）を切り替え、

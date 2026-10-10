@@ -8,7 +8,7 @@ vi.mock('three', () => {
 
 describe('CPU の頭脳', () => {
   it('three を読み込まない', async () => {
-    await expect(import('./bot')).resolves.toBeDefined();
+    await expect(import('./crew')).resolves.toBeDefined();
   });
 
   it('DOM を使わない（3D に聞くのは senses3d.ts だけ）', () => {
