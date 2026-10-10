@@ -16,6 +16,7 @@ export function tube(spot: Pick<Spot, 'pos'>, n = 3000, r = 0.15, h = 1.15): Sur
     return {
       rest,
       normal: [Math.cos(a), 0, Math.sin(a)],
+      up: 0,
       world: [spot.pos[0] + rest[0], spot.pos[1] + rest[1], spot.pos[2] + rest[2]]
     };
   });

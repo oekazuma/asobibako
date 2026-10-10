@@ -19,7 +19,7 @@ const SET: Settings = { ...DEFAULTS, hide: 30, search: 120, reveal: 10, taunt: 0
 /** 決め打ちの目と筆。プレイヤー（席 1）の体だけが目立ち、CPU の体は目立たない */
 const fake: Senses = {
   visible: (seat) => (seat === 1 ? 0.8 : 0),
-  colorAt: () => ({ color: [0.4, 0.3, 0.2], metal: 0, rough: 0.8 }),
+  colorAt: () => ({ color: [0.4, 0.3, 0.2], metal: 0, rough: 0.8, up: 0 }),
   surface: (_, body) => tube(body)
 };
 

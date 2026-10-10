@@ -20,7 +20,7 @@ export const SEARCH_REACH = 30;
 /** 気づくかを見る間隔（秒）。目立ちを聞くのは 1 体につきこの間隔に 1 回まで */
 export const CHECK = 0.25;
 /** 怪しさの増え方（1 秒あたり。目立ち 1 のときと、動いている体に足す量）と、いつも減る量 */
-const GAIN = 4;
+const GAIN = 2;
 const MOVE_GAIN = 2;
 const LEAK = 0.15;
 /** ここを超えたら撃ちに行く。PROBE_AT より下は試し撃ちもしない */

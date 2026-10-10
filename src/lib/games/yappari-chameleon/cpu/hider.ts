@@ -1,5 +1,6 @@
 import type { V3 } from '$lib/sculpt';
 import type { RGB } from '../color';
+import { moodAt, relight, type Mood } from '../mansion/moods';
 import type { Me } from '../net';
 import { PaintLog, type Dab } from '../paint';
 import type { Skill } from './levels';
@@ -38,7 +39,7 @@ const norm = (v: V3): V3 => {
 
 /**
  * 隠れる CPU。隠れタイムの始めに選んだ場所へ歩かずに置かれ、見られる位置から見て体の向こうにある面の色で自分を塗る。
- * 光が当たる前の色で吹くので、体にも同じ光が当たり、その位置から見るとまわりに溶け込む
+ * 光が当たる前の色を、向こうの面と体の面の向きによる日と半球の光の当たり方の比で直して吹くので、その位置から見るとまわりに溶け込む
  */
 export class HiderBrain {
   readonly spot: Spot;
@@ -51,12 +52,15 @@ export class HiderBrain {
   #next = 0;
   #budget = 0;
   #rate = RATE;
-  readonly #colors = new Map<string, Paint | null>();
+  readonly #colors = new Map<string, (Paint & { up: number }) | null>();
+  /** 体のいる部屋の明るさ。探す人もこの部屋で見るので、その光で塗りを合わせる */
+  readonly #mood: Mood;
 
   constructor(spot: Spot, skill: Skill, rand: () => number) {
     this.spot = spot;
     this.#skill = skill;
     this.#rand = rand;
+    this.#mood = moodAt(spot.pos);
   }
 
   get done(): boolean {
@@ -113,7 +117,7 @@ export class HiderBrain {
           p: p.rest,
           n: p.normal,
           r: this.#skill.brush,
-          c: this.#shift(c.color),
+          c: this.#shift(relight(c.color, this.#mood, c.up, p.up)),
           a: this.#skill.alpha,
           m: c.metal,
           ro: c.rough

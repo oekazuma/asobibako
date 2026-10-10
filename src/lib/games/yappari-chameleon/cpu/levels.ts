@@ -28,7 +28,7 @@ export interface Skill {
 
 export const SKILLS: Record<Strength, Skill> = {
   weak: {
-    diff: 0.25,
+    diff: 0.3,
     wait: 1.5,
     aim: 3,
     pace: 0.6,
@@ -43,7 +43,7 @@ export const SKILLS: Record<Strength, Skill> = {
     alpha: 0.6
   },
   normal: {
-    diff: 0.12,
+    diff: 0.25,
     wait: 0.8,
     aim: 1.5,
     pace: 1,
@@ -58,7 +58,7 @@ export const SKILLS: Record<Strength, Skill> = {
     alpha: 0.8
   },
   strong: {
-    diff: 0.05,
+    diff: 0.12,
     wait: 0.4,
     aim: 0.5,
     pace: 1,

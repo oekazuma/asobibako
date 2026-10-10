@@ -17,7 +17,7 @@ const SIZE = 96;
 const FRAME = HEIGHT / 2 / 0.9;
 /** 最後に描いてからこれだけたった 3D は古い（縦持ちで描くのを止めている）ので答えない */
 const STALE_MS = 250;
-/** 体の点は三角形の角ごとに並び、隣どうしが同じ点なので、間引いて渡す */
+/** 体の点は三角形の角ごとに並び、隣どうしが同じ点なので、三角形ごとに 1 つめの角だけを渡す（いまの法線もその三角形から出す） */
 const STRIDE = 3;
 /** 体の画素がこれより少ない絵（体がほかの物の陰にほとんど隠れている）は、割合がぶれるので目立たないとする */
 const MIN_BODY = 4;
@@ -84,7 +84,7 @@ export class Senses3d implements Senses {
     this.#world.look(this.#world.camera, this.#rt, this.#with);
   }
 
-  colorAt(o: V3, d: V3): Paint | null {
+  colorAt(o: V3, d: V3): (Paint & { up: number }) | null {
     return this.#world.pickStage(o, d);
   }
 
@@ -99,14 +99,25 @@ export class Senses3d implements Senses {
     const rest = rig.mesh.geometry.attributes.position;
     const nrm = rig.mesh.geometry.attributes.normal;
     const m = rig.mesh.matrixWorld;
-    const v = new THREE.Vector3();
+    const [a, b, c] = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+    const [ra, rb, rc] = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+    const n = new THREE.Vector3();
     const out: SurfacePoint[] = [];
-    for (let i = 0; i < baked.count; i += STRIDE) {
-      v.fromBufferAttribute(baked, i).applyMatrix4(m);
+    for (let i = 0; i + 2 < baked.count; i += STRIDE) {
+      a.fromBufferAttribute(baked, i).applyMatrix4(m);
+      b.fromBufferAttribute(baked, i + 1).applyMatrix4(m);
+      c.fromBufferAttribute(baked, i + 2).applyMatrix4(m);
+      // 三角形の巻きの向きは分からないので、休みの形の三角形の向きを休みの法線と比べて、表を向く側を選ぶ
+      ra.fromBufferAttribute(rest, i);
+      rb.fromBufferAttribute(rest, i + 1).sub(ra);
+      rc.fromBufferAttribute(rest, i + 2).sub(ra);
+      const side = Math.sign(rb.cross(rc).dot(n.fromBufferAttribute(nrm, i))) || 1;
+      n.subVectors(b, a).cross(c.sub(a)).normalize().multiplyScalar(side);
       out.push({
-        rest: [rest.getX(i), rest.getY(i), rest.getZ(i)],
+        rest: [ra.x, ra.y, ra.z],
         normal: [nrm.getX(i), nrm.getY(i), nrm.getZ(i)],
-        world: [v.x, v.y, v.z]
+        world: [a.x, a.y, a.z],
+        up: n.y
       });
     }
     return out;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blendK, DAY, moodAt, MOODS } from './moods';
+import { blendK, DAY, irradiance, moodAt, MOODS, relight } from './moods';
 import { PLACES, SPAWNS } from './layout';
 
 describe('部屋ごとの明るさ', () => {
@@ -27,5 +27,24 @@ describe('部屋ごとの明るさ', () => {
     expect(blendK(moodAt([0, 1.5, -66]), 16)).toBe(1);
     expect(blendK(MOODS['キッチン'], 16)).toBeLessThan(0.1);
     expect(blendK(MOODS['キッチン'], null)).toBe(1);
+  });
+
+  it('白い面が向きごとに受ける光は、大広間で描いて測った明るさに近い（上 1.61・横 0.62・下 0.29、緑）', () => {
+    expect(irradiance(DAY, 1)[1]).toBeCloseTo(1.61, 0);
+    expect(irradiance(DAY, 0)[1] / irradiance(DAY, 1)[1]).toBeCloseTo(0.62 / 1.61, 1);
+    expect(irradiance(DAY, -1)[1] / irradiance(DAY, 1)[1]).toBeCloseTo(0.29 / 1.61, 1);
+  });
+
+  it('上を向く床の色を横を向く面に塗ると明るくし、1 を超えるぶんは色合いを保って下げる。同じ向きならそのまま', () => {
+    const floor: [number, number, number] = [0.5, 0.45, 0.4];
+    const leg = relight(floor, DAY, 1, 0);
+    expect(leg[1]).toBeGreaterThan(floor[1] + 0.2);
+    expect(leg[0]).toBeGreaterThan(leg[1]);
+    expect(leg[1]).toBeGreaterThan(leg[2]);
+    const cream = relight([0.95, 0.9, 0.8], DAY, 1, 0);
+    expect(Math.max(...cream)).toBeCloseTo(1, 5);
+    expect(cream[2]).toBeLessThan(0.95);
+    relight(floor, DAY, 0.3, 0.3).forEach((v, i) => expect(v).toBeCloseTo(floor[i], 5));
+    expect(relight(floor, DAY, 0, 1)[1]).toBeLessThan(floor[1]);
   });
 });

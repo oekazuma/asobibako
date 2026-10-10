@@ -18,7 +18,7 @@ function canvas(points: () => SurfacePoint[] | null, rays = { n: 0 }): Senses {
     visible: () => 0,
     colorAt: (_o, d) => {
       rays.n++;
-      return { color: d[1] > 0 ? [1, 0, 0] : [0, 0, 1], metal: 0.1, rough: 0.7 };
+      return { color: d[1] > 0 ? [1, 0, 0] : [0, 0, 1], metal: 0.1, rough: 0.7, up: 0 };
     },
     surface: points
   };
@@ -147,5 +147,17 @@ describe('隠れる CPU', () => {
     });
     run(b, c, SETTLE + 0.5);
     expect(b.me(0).paint).toBe(true);
+  });
+
+  it('上を向く床の色を横を向く体の面に塗るときは、日の当たり方の差のぶん明るくする', () => {
+    const b = brain('strong');
+    const floor: Senses = {
+      visible: () => 0,
+      colorAt: () => ({ color: [0.3, 0.3, 0.3], metal: 0, rough: 0.8, up: 1 }),
+      surface: () => tube(open)
+    };
+    run(b, ctx(floor), 25);
+    expect(b.done).toBe(true);
+    expect(b.log.dabs.every((d) => d.c[1] > 0.45)).toBe(true);
   });
 });

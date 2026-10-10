@@ -6,7 +6,7 @@ import type { RGB } from './color';
 import { bakePose, PoseAnimator, type DollRig } from './doll3d';
 import { cameraReach, settleDist, type Body, type DistState, type Level } from './move';
 import { brushModel, disposeModel, gunModel, inHand, MUZZLE } from './gun';
-import { blendK, DAY, type Mood } from './mansion/moods';
+import { blendK, DAY, SUN_COLOR, type Mood } from './mansion/moods';
 import { placement, type Placeable } from './shots';
 import { readPick } from './textures';
 import { seeThrough, XRAY } from './xray';
@@ -54,7 +54,7 @@ export class World {
   renderedAt = -Infinity;
   #stage: THREE.Group | null = null;
   #built: Built | null = null;
-  #sun = new THREE.DirectionalLight('#fff1dc', DAY.sun);
+  #sun = new THREE.DirectionalLight(SUN_COLOR, DAY.sun);
   #fill = new THREE.HemisphereLight(DAY.sky, DAY.ground, DAY.fill);
   #lit = 0;
   #environment: THREE.WebGLRenderTarget | null = null;
@@ -283,14 +283,21 @@ export class World {
     return readPick(Array.isArray(m) ? m[hit.face?.materialIndex ?? 0] : m, hit.uv);
   }
 
-  /** 屋敷の面の、光が当たる前の色。o から向き d（長さ 1）の先で最初に当たる面。三角旗のひもの線は当たりを 1m 広く取るので飛ばす */
-  pickStage(o: V3, d: V3): { color: RGB; metal: number; rough: number } | null {
+  /**
+   * 屋敷の面の、光が当たる前の色と、こちらを向いた側の法線の y。o から向き d（長さ 1）の先で最初に当たる面。
+   * 三角旗のひもの線は当たりを 1m 広く取るので飛ばす
+   */
+  pickStage(o: V3, d: V3): { color: RGB; metal: number; rough: number; up: number } | null {
     if (!this.#stage) return null;
     this.#ray.set(new THREE.Vector3(...o), new THREE.Vector3(...d));
     const hit = this.#ray.intersectObject(this.#stage, true).find((h) => (h.object as THREE.Mesh).isMesh);
     if (!hit) return null;
     const m = (hit.object as THREE.Mesh).material;
-    return readPick(Array.isArray(m) ? m[hit.face?.materialIndex ?? 0] : m, hit.uv);
+    const pick = readPick(Array.isArray(m) ? m[hit.face?.materialIndex ?? 0] : m, hit.uv);
+    if (!pick || !hit.face) return null;
+    const n = hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
+    // 両面を描く材質は裏から当たることがある
+    return { ...pick, up: n.dot(this.#ray.ray.direction) > 0 ? -n.y : n.y };
   }
 
   /**
