@@ -49,12 +49,12 @@ export function bodyPoints(b: Pick<Me, 'pos' | 'yaw' | 'cling' | 'pose'>): V3[] 
 }
 
 /** 見えている点のうちいちばん近い点までの距離。どれも見えなければ null。遮るのは弾と同じ屋敷の箱と坂 */
-export function sight(lv: Level, v: Viewer, points: V3[]): number | null {
+export function sight(lv: Level, v: Viewer, points: V3[], reach = REACH): number | null {
   let best: number | null = null;
   for (const p of points) {
     const d = sub(p, v.eye);
     const len = Math.hypot(...d);
-    if (len > REACH || len < 1e-6 || !inView(v, p)) continue;
+    if (len > reach || len < 1e-6 || !inView(v, p)) continue;
     if (rayLevel(lv, v.eye, [d[0] / len, d[1] / len, d[2] / len], len)) continue;
     best = best === null ? len : Math.min(best, len);
   }

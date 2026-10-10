@@ -52,6 +52,11 @@ describe('見落としポイントの視野', () => {
     expect(sight(open, eye, [[0, 1, -3]])).toBeNull();
   });
 
+  it('届きは既定で 15m、渡せば延ばせる', () => {
+    expect(sight(open, eye, [toward(0, 0, 20)])).toBeNull();
+    expect(sight(open, eye, [toward(0, 0, 20)], 30)).toBeCloseTo(20);
+  });
+
   it('点は 1 秒に 10 × (1 − 距離 / 15)。近いほど多い', () => {
     expect(rate(0)).toBe(10);
     expect(rate(7.5)).toBeCloseTo(5);
