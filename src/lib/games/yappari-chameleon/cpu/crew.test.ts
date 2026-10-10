@@ -35,7 +35,7 @@ function table() {
     rand
   );
   const crew = new Crew(party, host, rand);
-  crew.senses = fake;
+  crew.useSenses(fake);
   const told: Message[] = [];
   party.onTell((m) => told.push(m));
   let player: Partial<Me> | null = null;

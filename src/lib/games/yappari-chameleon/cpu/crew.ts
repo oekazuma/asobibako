@@ -17,12 +17,11 @@ export const cpuHunters = (c: CpuChoice, members: readonly Seat[]): Seat[] =>
 /** CPU と遊ぶ。CPU を手元の管で親の Party に座らせ、審判のループで進める */
 export class Crew {
   readonly bots: Bot[] = [];
-  /** 親の端末の 3D。つないだ画面が 3D を作ってから入れる */
-  senses: Senses | null = null;
   readonly #party: Party;
   readonly #host: Host;
   readonly #rand: () => number;
   #queued: { choice: CpuChoice; settings: Settings } | null = null;
+  #senses: Senses | null = null;
   #stopped = false;
   #turn: Promise<void> = Promise.resolve();
 
@@ -44,6 +43,11 @@ export class Crew {
     return run;
   }
 
+  /** 親の端末の 3D。つないだ画面が 3D を作ってから入れ、壊すときに null に戻す（画面の props を書き換えず、口を通す） */
+  useSenses(senses: Senses | null): void {
+    this.#senses = senses;
+  }
+
   /** CPU の人数と強さを合わせる */
   seat(c: CpuChoice): Promise<void> {
     return this.#next(() => this.#seat(c));
@@ -62,7 +66,7 @@ export class Crew {
         strength: c.strength,
         index: this.bots.length,
         rand: this.#rand,
-        senses: () => this.senses
+        senses: () => this.#senses
       });
       this.bots.push(bot);
       // 抜けたあとは Party が管を閉じて席を返さない。そこでやめる

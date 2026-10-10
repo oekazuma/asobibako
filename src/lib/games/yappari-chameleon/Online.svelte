@@ -61,7 +61,7 @@
         session = s;
         if (crew) {
           senses = new Senses3d(world, (seat) => s.rigOf(seat));
-          crew.senses = senses;
+          crew.useSenses(senses);
           // 目の絵の shader を作る 1 秒ほどの止まりを、紹介の前に済ませる
           senses.warm();
           crew.go();
@@ -79,7 +79,7 @@
       fail: () => (failed = true),
       portrait: (on) => (portrait = on),
       dispose: () => {
-        if (crew) crew.senses = null;
+        crew?.useSenses(null);
         senses?.dispose();
         session?.dispose();
       }
