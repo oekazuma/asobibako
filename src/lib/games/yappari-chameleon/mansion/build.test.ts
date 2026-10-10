@@ -110,3 +110,21 @@ describe('キッチンの肉の棚', () => {
     for (const n of counts) expect(n >= 2 && n <= 4, `${counts}`).toBe(true);
   });
 });
+
+describe('ランドリーの洗濯ひも', () => {
+  it('縄 1 本に形のある服を 5〜8 枚、洗濯ばさみ 2 つずつで留め、服の裾は人形の頭より上', async () => {
+    const { piece } = await import('./furniture');
+    const line = piece({ kind: 'clothesline', at: [-15, 2.3, -1.5], turn: 0, span: 9 });
+    line.position.y = 2.3;
+    line.updateMatrixWorld(true);
+    const clothes = meshes(line).filter((m) => m.geometry instanceof THREE.ShapeGeometry);
+    expect(clothes.length).toBeGreaterThanOrEqual(5);
+    expect(clothes.length).toBeLessThanOrEqual(8);
+    const pegs = meshes(line).filter(
+      (m) => (m.material as THREE.MeshStandardMaterial).color.getHexString() === 'c9a54a'
+    );
+    expect(pegs).toHaveLength(clothes.length * 2);
+    // 人形の背は 1.15m で、下を歩いても頭が服に重ならない
+    for (const c of clothes) expect(new THREE.Box3().setFromObject(c).min.y).toBeGreaterThan(1.45);
+  });
+});

@@ -181,26 +181,6 @@ function washer(g: THREE.Group, p: Piece) {
   box(g, [0.6, 0.08, 0.02], { tint: '#f1ece2', rough: 0.5 }, [0, 0.78, 0.33]);
 }
 
-/** 洗濯ひもと吊るした服。x の向きに span の長さで張る。当たらない */
-function clothesline(g: THREE.Group, p: Piece) {
-  const span = p.span ?? 8;
-  const line = cyl(g, [0.008, 0.008], span, { tint: '#f4f1ea', rough: 0.8 }, [0, 0, 0], 6);
-  line.rotation.z = Math.PI / 2;
-  line.castShadow = false;
-  const colors = ['#3a6ea5', '#e8e2d4', '#c94f4f', '#5b8c5a', '#d9a441', '#7b5ea7'];
-  for (let i = 0, x = -span / 2 + 0.4; x < span / 2 - 0.3; i++, x += 0.62) {
-    const tall = i % 3 === 1;
-    const cloth = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.42, tall ? 0.8 : 0.55),
-      finish({ tint: colors[(i + variant(p)) % colors.length], rough: 0.9 }, [0.42, 0.6])
-    );
-    cloth.material.side = THREE.DoubleSide;
-    cloth.position.set(x, tall ? -0.4 : -0.28, 0);
-    cloth.castShadow = true;
-    g.add(cloth);
-  }
-}
-
 /** たたんだタオルの山。置いた場所で白・青・黄の並びを変える */
 function towels(g: THREE.Group, p: Piece) {
   const colors = ['#f4f1ea', '#3f7ec7', '#f2c94c'];
@@ -240,7 +220,6 @@ export const ROOM_MAKERS = {
   box: cardboard,
   bucket,
   washer,
-  clothesline,
   towels,
   cart
 } satisfies Partial<Record<Kind, Maker>>;
