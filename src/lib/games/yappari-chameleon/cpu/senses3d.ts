@@ -19,6 +19,25 @@ const FRAME = HEIGHT / 2 / 0.9;
 const STALE_MS = 250;
 /** 体の点は三角形の角ごとに並び、隣どうしが同じ点なので、間引いて渡す */
 const STRIDE = 3;
+/** 体の画素がこれより少ない絵（体がほかの物の陰にほとんど隠れている）は、割合がぶれるので目立たないとする */
+const MIN_BODY = 4;
+
+/** 体の画素（体ありと体なしの 2 枚で少しでも違う画素）のうち、色が diff より違う画素の割合 */
+export function standout(withBody: Uint8Array, without: Uint8Array, diff: number): number {
+  const k = 255 * diff;
+  let body = 0;
+  let n = 0;
+  for (let i = 0; i < withBody.length; i += 4) {
+    const d = Math.max(
+      Math.abs(withBody[i] - without[i]),
+      Math.abs(withBody[i + 1] - without[i + 1]),
+      Math.abs(withBody[i + 2] - without[i + 2])
+    );
+    if (d > 0) body++;
+    if (d > k) n++;
+  }
+  return body < MIN_BODY ? 0 : n / body;
+}
 
 /** 親の端末の 3D で、CPU の頭脳に目立ち・面の色・体の表面を答える */
 export class Senses3d implements Senses {
@@ -32,8 +51,6 @@ export class Senses3d implements Senses {
   constructor(world: World, rigOf: (seat: Seat) => DollRig | null) {
     this.#world = world;
     this.#rigOf = rigOf;
-    // 画面と同じく sRGB で比べる（色の違いの閾値を、見た目の違いに合わせる）
-    this.#rt.texture.colorSpace = THREE.SRGBColorSpace;
   }
 
   #fresh(): boolean {
@@ -59,13 +76,12 @@ export class Senses3d implements Senses {
     this.#world.look(cam, this.#rt, this.#without);
     rig.root.visible = true;
     if (self) self.root.visible = shown;
-    const k = 255 * diff;
-    const a = this.#with;
-    const b = this.#without;
-    let n = 0;
-    for (let i = 0; i < a.length; i += 4)
-      if (Math.max(Math.abs(a[i] - b[i]), Math.abs(a[i + 1] - b[i + 1]), Math.abs(a[i + 2] - b[i + 2])) > k) n++;
-    return n / (SIZE * SIZE);
+    return standout(this.#with, this.#without, diff);
+  }
+
+  /** 目で 1 枚だけ描く。目の絵は画面と別の shader を使うので、最初の 1 回は shader を作って止まる。試合の前に済ませる口 */
+  warm(): void {
+    this.#world.look(this.#world.camera, this.#rt, this.#with);
   }
 
   colorAt(o: V3, d: V3): Paint | null {

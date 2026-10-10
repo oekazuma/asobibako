@@ -25,7 +25,7 @@ export interface Paint {
  * 3D が描けていない（縦持ちで描くのを止めている）あいだは null を返す
  */
 export interface Senses {
-  /** seat の体が eye から見て、まわりと diff より違う色に見える画素の割合（0..1）。by は見ている CPU（その体は描かない） */
+  /** seat の体が eye から見えている画素のうち、まわりと diff より違う色に見える画素の割合（0..1）。by は見ている CPU（その体は描かない） */
   visible(seat: Seat, by: Seat, eye: V3, at: V3, diff: number): number | null;
   /** o から向き d（長さ 1）の先で最初に当たる屋敷の面の色 */
   colorAt(o: V3, d: V3): Paint | null;

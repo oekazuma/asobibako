@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import type { V3 } from '$lib/sculpt';
 import type { RGB } from './color';
 import { bakePose, PoseAnimator, type DollRig } from './doll3d';
@@ -78,6 +79,7 @@ export class World {
   #center = new THREE.Vector3();
   #ease: DistState = { dist: 2.4, wait: 0 };
   #snap = false;
+  #eye: { hdr: THREE.WebGLRenderTarget; tone: OutputPass } | null = null;
   #w = 1;
   #h = 1;
 
@@ -293,7 +295,9 @@ export class World {
 
   /**
    * CPU の目。cam から rt へ描き、画素を out へ読む。自分の印（張り付きの赤い輪・筆の輪）と透かしの窓は消して描く。
-   * 影は描き直さない（日は動かないので前のコマの影で足りる。描き直すと 2048² の影を目の 1 枚ごとに描く）
+   * 影は描き直さない（日は動かないので前のコマの影で足りる。描き直すと 2048² の影を目の 1 枚ごとに描く）。
+   * three はレンダーターゲットへはトーンマッピングを掛けないので、明るさを丸めずに描いてから画面と同じトーンマッピング・露出・sRGB を掛けて rt へ写す
+   * （掛けないと明るい床が白く張り付き、色の違いが画面の見た目とずれる）
    */
   look(cam: THREE.Camera, rt: THREE.WebGLRenderTarget, out: Uint8Array): void {
     const r = this.renderer;
@@ -303,8 +307,14 @@ export class World {
     XRAY.on.value = 0;
     this.#ring.visible = this.#cursor.visible = false;
     r.shadowMap.autoUpdate = false;
-    r.setRenderTarget(rt);
+    const eye = (this.#eye ??= {
+      hdr: new THREE.WebGLRenderTarget(rt.width, rt.height, { type: THREE.HalfFloatType }),
+      tone: new OutputPass()
+    });
+    eye.hdr.setSize(rt.width, rt.height);
+    r.setRenderTarget(eye.hdr);
     r.render(this.scene, cam);
+    eye.tone.render(r, rt, eye.hdr, 0, false);
     r.readRenderTargetPixels(rt, 0, 0, rt.width, rt.height, out);
     r.setRenderTarget(null);
     r.shadowMap.autoUpdate = true;
@@ -377,6 +387,8 @@ export class World {
     if (this.#stage) disposeModel(this.#stage);
     XRAY.on.value = 0;
     this.#environment?.dispose();
+    this.#eye?.hdr.dispose();
+    this.#eye?.tone.dispose();
     this.rig.paint.dispose();
     this.#cursor.geometry.dispose();
     this.#cursor.material.dispose();
