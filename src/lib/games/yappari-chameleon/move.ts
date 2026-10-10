@@ -48,6 +48,9 @@ export const STEP = 0.3;
 export const WALK = 2.0;
 export const RUN = 3.8;
 export const CLIMB = 1.0;
+/** 一人称の目の高さと、しゃがんだときに下げる量（m）。親の見落としポイントと CPU の目も同じ高さから見る */
+export const EYE_HEIGHT = 1.0;
+export const CROUCH = 0.45;
 const JUMP = 4.2;
 const GRAVITY = 12;
 const TURN = 2.5;

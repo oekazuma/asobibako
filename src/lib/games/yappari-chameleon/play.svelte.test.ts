@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { pushRecent } from './color';
 import type { Level } from './move';
-import { RADIUS } from './move';
+import { CROUCH, RADIUS } from './move';
 import type { Dab } from './paint';
-import { CROUCH, Play } from './play.svelte';
+import { Play } from './play.svelte';
 import { AIM } from './poses';
 import type { World } from './world3d';
 

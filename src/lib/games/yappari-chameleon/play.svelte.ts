@@ -2,7 +2,7 @@ import type { V3 } from '$lib/sculpt';
 import type { RGB } from './color';
 import { pushRecent } from './color';
 import { restHit } from './doll3d';
-import { floorBelow, idle, newBody, step, wallNear, type Body } from './move';
+import { CROUCH, EYE_HEIGHT, floorBelow, idle, newBody, step, wallNear, type Body } from './move';
 import { PaintLog, Stroke, type Brush, type Dab } from './paint';
 import { rayLevel } from './shots';
 import { AIM, poseById, STAND } from './poses';
@@ -12,8 +12,6 @@ import type { World } from './world3d';
 
 const LOOK = 0.005;
 const ORBIT = 0.006;
-const EYE_HEIGHT = 1.0;
-export const CROUCH = 0.45;
 const CAM_PITCH_MIN = -0.5;
 const CAM_PITCH_MAX = 1.2;
 /** 天井では見る中心が天井の 0.4m 下なので、上から見ると天井にぶつかって距離がつぶれる。人形の下から見上げる範囲に収める */
