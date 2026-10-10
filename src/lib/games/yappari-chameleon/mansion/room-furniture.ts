@@ -34,7 +34,7 @@ function pedestal(g: THREE.Group) {
   box(g, [0.9, 0.82, 0.9], { tint: '#5fd0f0', rough: 0.35 }, [0, 0.53, 0]);
   box(g, [0.96, 0.06, 0.96], { tint: '#7fd3e6', rough: 0.4 }, [0, 0.97, 0]);
   cyl(g, [0.26, 0.28], 0.06, { tint: '#ffffff', rough: 0.3 }, [0, 1.03, 0], 32);
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.025, 8, 48), glowing('#7fe6ff', '#4fd8ff', 1.2));
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.04, 8, 48), glowing('#7fe6ff', '#4fd8ff', 1.2));
   ring.rotation.x = Math.PI / 2;
   ring.position.y = 1.03;
   g.add(ring);

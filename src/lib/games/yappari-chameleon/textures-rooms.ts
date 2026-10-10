@@ -4,7 +4,7 @@ import { make, oilPainting, type Pattern } from './textures';
 const PAINTS = ['#e2262b', '#f6c21c', '#3fae3a', '#8a3fc4'];
 
 /**
- * 本家のロビーの赤・黄・緑・紫の大きなペンキのしぶき。粒は 8px 以上なので、1 枚 8m の模様で 6cm 以上になる。
+ * 本家のロビーの赤・黄・緑・紫の大きなペンキのしぶき。粒は 8px 以上なので、壁（1m が 96 画素）では約 8cm、床と天井（1m が 128 画素）では約 6cm 以上になる。
  * 模様は繰り返して貼るので、はみ出したしぶきは反対の端にも描いて継ぎ目で切れないようにする
  */
 function splats(g: CanvasRenderingContext2D, seed: number, w: number, h: number, count: number, drip: boolean) {
