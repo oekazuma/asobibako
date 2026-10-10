@@ -4,9 +4,10 @@
   let {
     settings = $bindable(),
     players,
+    cpu = false,
     onstart,
     onclose
-  }: { settings: Settings; players: number; onstart: () => void; onclose: () => void } = $props();
+  }: { settings: Settings; players: number; cpu?: boolean; onstart: () => void; onclose: () => void } = $props();
 
   const rows = [
     { key: 'hide', label: 'ハンター待機時間（秒）', step: 10, range: LIMITS.hide },
@@ -21,31 +22,34 @@
 
 <div class="sheet" role="dialog" aria-label="マップの設定">
   <h2>マップの設定</h2>
-  <div class="row">
-    <span>ゲームモード</span>
-    <span class="pick">
-      <button class:on={settings.mode === 'normal'} onclick={() => (settings.mode = 'normal')}>通常</button>
-      <button class:on={settings.mode === 'infect'} onclick={() => (settings.mode = 'infect')}>増え鬼</button>
-      <button class:on={settings.mode === 'double'} onclick={() => (settings.mode = 'double')}>ダブル</button>
-    </span>
-  </div>
-  <!-- ダブルは全員が隠れて全員が探すので、ハンターの人数を使わない -->
-  <div class="row" class:dim={settings.mode === 'double'}>
-    <span>ハンターの人数</span>
-    <span class="pick">
-      <button
-        aria-label="減らす"
-        disabled={settings.mode === 'double'}
-        onclick={() => (settings.hunters = Math.max(1, hunters - 1))}>−</button
-      >
-      <span class="value">{hunters}</span>
-      <button
-        aria-label="増やす"
-        disabled={settings.mode === 'double'}
-        onclick={() => (settings.hunters = Math.min(most, hunters + 1))}>＋</button
-      >
-    </span>
-  </div>
+  <!-- CPU と遊ぶでは、モードとハンターは CPU の設定の役で決める -->
+  {#if !cpu}
+    <div class="row">
+      <span>ゲームモード</span>
+      <span class="pick">
+        <button class:on={settings.mode === 'normal'} onclick={() => (settings.mode = 'normal')}>通常</button>
+        <button class:on={settings.mode === 'infect'} onclick={() => (settings.mode = 'infect')}>増え鬼</button>
+        <button class:on={settings.mode === 'double'} onclick={() => (settings.mode = 'double')}>ダブル</button>
+      </span>
+    </div>
+    <!-- ダブルは全員が隠れて全員が探すので、ハンターの人数を使わない -->
+    <div class="row" class:dim={settings.mode === 'double'}>
+      <span>ハンターの人数</span>
+      <span class="pick">
+        <button
+          aria-label="減らす"
+          disabled={settings.mode === 'double'}
+          onclick={() => (settings.hunters = Math.max(1, hunters - 1))}>−</button
+        >
+        <span class="value">{hunters}</span>
+        <button
+          aria-label="増やす"
+          disabled={settings.mode === 'double'}
+          onclick={() => (settings.hunters = Math.min(most, hunters + 1))}>＋</button
+        >
+      </span>
+    </div>
+  {/if}
   {#each rows as r (r.key)}
     <label class="row">
       <span>{r.label}</span>

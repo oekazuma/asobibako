@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from 'vitest';
-import { readSettings, saveSettings, SETTINGS_KEY } from './prefs';
+import { CPU_DEFAULT } from './cpu/levels';
+import { CPU_KEY, readCpu, readSettings, saveCpu, saveSettings, SETTINGS_KEY } from './prefs';
 import { DEFAULTS } from './referee';
 
 afterEach(() => localStorage.clear());
@@ -34,5 +35,24 @@ describe('マップの設定', () => {
     // JSON は undefined の項目を書かないので、前の版の保存と同じく overlook の無い形になる
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...DEFAULTS, overlook: undefined, v: 2 }));
     expect(readSettings().overlook).toBe(true);
+  });
+});
+
+describe('CPU の設定', () => {
+  it('覚えた設定を読み、無ければ既定', () => {
+    expect(readCpu()).toEqual(CPU_DEFAULT);
+    saveCpu({ side: 'seek', count: 2, mode: 'infect', strength: 'strong' });
+    expect(readCpu()).toEqual({ side: 'seek', count: 2, mode: 'infect', strength: 'strong' });
+  });
+
+  it('隠れるでは増え鬼を読まず、知らない値や壊れた値は既定に戻す', () => {
+    localStorage.setItem(CPU_KEY, JSON.stringify({ side: 'hide', count: 2, mode: 'infect', strength: 'weak' }));
+    expect(readCpu()).toEqual({ side: 'hide', count: 2, mode: 'normal', strength: 'weak' });
+    localStorage.setItem(CPU_KEY, JSON.stringify({ side: 'x', count: 3, mode: 'double', strength: 'max' }));
+    expect(readCpu()).toEqual(CPU_DEFAULT);
+    localStorage.setItem(CPU_KEY, 'null');
+    expect(readCpu()).toEqual(CPU_DEFAULT);
+    localStorage.setItem(CPU_KEY, '{');
+    expect(readCpu()).toEqual(CPU_DEFAULT);
   });
 });
