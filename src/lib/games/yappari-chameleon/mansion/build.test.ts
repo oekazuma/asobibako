@@ -78,7 +78,7 @@ const thinnest = (p: Pattern) =>
 describe('作り込んだ模様', () => {
   it('線は 2cm 以上（体に写せる太さ）', async () => {
     const rooms = await import('../textures-rooms');
-    for (const [name, p] of Object.entries({ whiteTile: rooms.whiteTile() }))
+    for (const [name, p] of Object.entries({ whiteTile: rooms.whiteTile(), darkPlanks: rooms.darkPlanks() }))
       expect(thinnest(p), name).toBeGreaterThanOrEqual(0.0199);
   });
 

@@ -312,19 +312,26 @@ export function blueHex(): Pattern {
   });
 }
 
-/** ランドリーの赤いれんがの壁。25 × 7cm のれんがを半分ずつずらして積み、目地は 2cm */
-export function brick(): Pattern {
-  return make('brick', 256, 256, [1.08, 1.08], (g) => {
+/** ランドリーと書斎の暗い木の天井。幅 15cm の板に強い木目（2cm 以上）と板の継ぎ目 */
+export function darkPlanks(): Pattern {
+  return make('dark-planks', 512, 512, [1.2, 1.2], (g) => {
     const r = rng(103);
-    g.fillStyle = '#8f8379';
-    g.fillRect(0, 0, 256, 256);
-    const course = 256 / 12;
-    for (let j = 0; j < 12; j++)
-      for (let i = -1; i <= 4; i++) {
-        const x = i * 64 + (j % 2 ? 32 : 0);
-        g.fillStyle = `hsl(${4 + r() * 10} ${55 + r() * 15}% ${32 + r() * 10}%)`;
-        g.fillRect(x + 2.5, j * course + 2.5, 59, course - 5);
+    for (let i = 0; i < 8; i++) {
+      const base = 28 + r() * 6;
+      g.fillStyle = `hsl(20 18% ${base}%)`;
+      g.fillRect(i * 64, 0, 64, 512);
+      for (let k = 0; k < 4; k++) {
+        g.strokeStyle = `hsl(18 20% ${base - 6 + r() * 4}% / 0.8)`;
+        g.lineWidth = 9 + r() * 6;
+        g.beginPath();
+        const x0 = i * 64 + 8 + r() * 48;
+        g.moveTo(x0, 0);
+        for (let y = 0; y <= 512; y += 32) g.lineTo(x0 + Math.sin(y / 60 + k * 2) * 6, y);
+        g.stroke();
       }
+      g.fillStyle = '#0e0907';
+      g.fillRect(i * 64, 0, 9, 512);
+    }
   });
 }
 

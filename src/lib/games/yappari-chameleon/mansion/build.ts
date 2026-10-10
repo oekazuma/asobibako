@@ -2,7 +2,16 @@ import * as THREE from 'three';
 import type { V3 } from '$lib/sculpt';
 import { checker, coffer, damask, finish, marble, wainscot, woodPanel, type Finish } from '../textures';
 import type { Level } from '../move';
-import { artwork, blueHex, brick, planks, splashCeiling, splashFloor, splashWall, whiteTile } from '../textures-rooms';
+import {
+  artwork,
+  blueHex,
+  darkPlanks,
+  planks,
+  splashCeiling,
+  splashFloor,
+  splashWall,
+  whiteTile
+} from '../textures-rooms';
 import type { Built } from '../world3d';
 import { seeThrough } from '../xray';
 import { piece } from './furniture';
@@ -28,7 +37,8 @@ const LOOKS: Record<Mat, () => Finish> = {
   planks: () => ({ pattern: planks(), rough: 0.55 }),
   whiteTile: () => ({ pattern: whiteTile(), rough: 0.3 }),
   blueHex: () => ({ pattern: blueHex(), rough: 0.5 }),
-  brick: () => ({ pattern: brick(), rough: 0.9 })
+  redDamask: () => ({ pattern: damask('#5a1612', '#8a2a20'), rough: 0.85 }),
+  darkPlanks: () => ({ pattern: darkPlanks(), rough: 0.7 })
 };
 
 /** BoxGeometry の材質の並び（+x, −x, +y, −y, +z, −z） */

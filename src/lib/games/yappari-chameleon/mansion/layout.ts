@@ -21,7 +21,8 @@ export type Mat =
   | 'planks'
   | 'whiteTile'
   | 'blueHex'
-  | 'brick';
+  | 'redDamask'
+  | 'darkPlanks';
 export type Face = 'x+' | 'x-' | 'y+' | 'y-' | 'z+' | 'z-';
 
 export interface Slab {
@@ -79,6 +80,8 @@ export type Kind =
   | 'cart'
   | 'drain'
   | 'vent'
+  | 'beam'
+  | 'tube-light'
   | 'range'
   | 'pot-rack'
   | 'pots'
@@ -138,6 +141,8 @@ export const SIZES: Record<Kind, V3 | null> = {
   cart: [0.8, 0.9, 0.55],
   drain: null,
   vent: null,
+  beam: null,
+  'tube-light': null,
   range: [1.0, 0.9, 0.8],
   'pot-rack': [0.6, 1.8, 0.4],
   pots: null,
@@ -219,7 +224,7 @@ function corridor(): Slab[] {
     { min: [x0, -1, 3.25], max: [x1, 0, 6.75], mat: 'checker', face: 'y+' },
     { min: [x0, CORR_H, 3.25], max: [x1, CORR_H + T, 6.75], mat: 'cream', face: 'y-' },
     ...wall(6.75, 'z-', 'whiteTile', [-16.75, -15.25]),
-    ...wall(3.25 - T, 'z+', 'brick', [-15.75, -14.25]),
+    ...wall(3.25 - T, 'z+', 'redDamask', [-15.75, -14.25]),
     { min: [x0 - T, 0, 3.25], max: [x0, 1, 6.75], mat: 'wainscot', face: 'x+' },
     { min: [x0 - T, 1, 3.25], max: [x0, CORR_H, 6.75], mat: 'greenDamask', face: 'x+' }
   ];

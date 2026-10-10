@@ -46,16 +46,16 @@ function kitchen(): Slab[] {
   ];
 }
 
-/** 北の壁は廊下の南の壁の裏 */
+/** 北の壁は廊下の南の壁の裏。壁は暗い赤のダマスクの壁紙、天井は暗い木の板張り */
 function laundry(): Slab[] {
   const [x0, , z0] = LAUNDRY.min;
   const [x1, h, z1] = LAUNDRY.max;
   return [
     { min: [x0, -1, z0], max: [x1, 0, z1 + T], mat: 'checker', face: 'y+' },
-    { min: [x0, h, z0], max: [x1, h + T, z1], mat: 'woodPanel', face: 'y-' },
-    { min: [x0, 0, z0 - T], max: [x1, h, z0], mat: 'brick', face: 'z+' },
-    { min: [x0 - T, 0, z0], max: [x0, h, z1], mat: 'brick', face: 'x+' },
-    { min: [x1, 0, z0], max: [x1 + T, h, z1], mat: 'brick', face: 'x-' }
+    { min: [x0, h, z0], max: [x1, h + T, z1], mat: 'darkPlanks', face: 'y-' },
+    { min: [x0, 0, z0 - T], max: [x1, h, z0], mat: 'redDamask', face: 'z+' },
+    { min: [x0 - T, 0, z0], max: [x0, h, z1], mat: 'redDamask', face: 'x+' },
+    { min: [x1, 0, z0], max: [x1 + T, h, z1], mat: 'redDamask', face: 'x-' }
   ];
 }
 
@@ -106,7 +106,9 @@ export function roomPieces(): Piece[] {
     p('washer', [-10.4, 0, -2.5], 3),
     p('washer', [-10.4, 0, -1.7], 3),
     p('clothesline', [-15, 2.3, -1.5], 0, 9),
-    p('clothesline', [-15, 2.3, 0.5], 0, 9)
+    p('clothesline', [-15, 2.3, 0.5], 0, 9),
+    ...[-3.6, -0.6, 2.2].map((z) => p('beam', [-15, LAUNDRY.max[1], z])),
+    ...[-2.1, 0.9].flatMap((z) => [-18, -15, -12].map((x) => p('tube-light', [x, LAUNDRY.max[1], z])))
   ];
 }
 
