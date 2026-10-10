@@ -74,6 +74,8 @@ export class Host {
   #beat = 0;
   #last: number | null = null;
   #stop: () => void;
+  /** ロビーで台に乗った人をハンター希望にする。CPU と遊ぶではハンターを CPU の設定で決めるので切る */
+  podium = true;
 
   constructor(
     port: Port,
@@ -89,9 +91,9 @@ export class Host {
     this.#stop = port.onAct((m, from) => this.#act(m, from));
   }
 
-  start(settings: rules.Settings): void {
+  start(settings: rules.Settings, hunters?: Seat[]): void {
     if (this.match.phase !== 'lobby' || this.#port.members.length < 2) return;
-    rules.start(this.match, [...this.#port.members], settings, this.#rand);
+    rules.start(this.match, [...this.#port.members], settings, this.#rand, hunters);
     this.#push(true);
   }
 
@@ -198,7 +200,7 @@ export class Host {
     if (m.phase === 'lobby') {
       for (const seat of this.#port.members) {
         const me = this.#lines.get(seat)?.last();
-        rules.wish(m, seat, !!me && onPodium(me));
+        rules.wish(m, seat, this.podium && !!me && onPodium(me));
       }
       return;
     }

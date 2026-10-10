@@ -422,3 +422,36 @@ describe('ええやん・埋まり・見落とし', () => {
     expect(view(m).spots).toEqual({});
   });
 });
+
+describe('決め打ちのハンター', () => {
+  it('渡した席をハンターにし、台の希望は使わない', () => {
+    const m = newMatch();
+    wish(m, 1, true);
+    start(m, ALL, { ...DEFAULTS, mode: 'normal', hunters: 1 }, zero, [3, 2]);
+    expect(m.roles).toEqual({ 1: 'hider', 2: 'hunter', 3: 'hunter' });
+    expect(m.first).toEqual([2, 3]);
+    expect(m.hid).toEqual([1]);
+    expect(m.taunts).toEqual({ 1: 0 });
+  });
+
+  it('いない席は外し、全員か誰も残らなければ台の希望で選ぶ', () => {
+    const a = newMatch();
+    start(a, [1, 2], DEFAULTS, zero, [2, 3]);
+    expect(a.first).toEqual([2]);
+    const b = newMatch();
+    wish(b, 3, true);
+    start(b, ALL, DEFAULTS, zero, [1, 2, 3]);
+    expect(b.first).toEqual([3]);
+    const c = newMatch();
+    wish(c, 3, true);
+    start(c, ALL, DEFAULTS, zero, []);
+    expect(c.first).toEqual([3]);
+  });
+
+  it('ダブルでは渡しても最初のハンターはいない', () => {
+    const m = newMatch();
+    start(m, ALL, { ...DEFAULTS, mode: 'double' }, zero, [2]);
+    expect(m.first).toEqual([]);
+    expect(m.roles).toEqual({ 1: 'hider', 2: 'hider', 3: 'hider' });
+  });
+});

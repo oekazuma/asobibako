@@ -163,6 +163,26 @@ describe('Host の試合', () => {
     host.step();
     expect(host.match.left).toBeCloseTo(1.6);
   });
+
+  it('決め打ちのハンターで始め、台に乗った人がいても使わない', () => {
+    const { host, act, told } = setup();
+    act(me(0, [PODIUM.at[0], PODIUM.h, PODIUM.at[2]]), 3);
+    host.tick(0.1);
+    host.start({ ...DEFAULTS, mode: 'normal' }, [2]);
+    expect(lastView(told).roles).toEqual({ 1: 'hider', 2: 'hunter', 3: 'hider' });
+  });
+
+  it('podium を切ると、ロビーで台に乗ってもハンター希望にしない', () => {
+    const { host, act, told } = setup();
+    host.podium = false;
+    act(me(0, [PODIUM.at[0], PODIUM.h, PODIUM.at[2]]), 3);
+    host.tick(0.1);
+    host.tick(1);
+    expect(lastView(told).wishes).toEqual([]);
+    host.podium = true;
+    host.tick(0.1);
+    expect(lastView(told).wishes).toEqual([3]);
+  });
 });
 
 describe('Host の当たり', () => {

@@ -143,18 +143,24 @@ export const seatsOf = (m: Match, role: Role): Seat[] =>
 
 export const hiding = (m: Match): Seat[] => seatsOf(m, 'hider').filter((s) => !m.found.includes(s));
 
-export function start(m: Match, members: Seat[], settings: Settings, rand: () => number): void {
+/**
+ * 試合を始める。hunters を渡すと、そのうち members にいる席をハンターにする（CPU と遊ぶ）。
+ * ハンターと隠れる人の両方が残らないときは、渡さなかったときと同じく台の希望で選ぶ
+ */
+export function start(m: Match, members: Seat[], settings: Settings, rand: () => number, hunters?: Seat[]): void {
   const s = fit(settings, members.length);
   const double = s.mode === 'double';
+  const chosen = (hunters ?? []).filter((seat) => members.includes(seat)).sort((a, b) => a - b);
+  const fixed = chosen.length > 0 && chosen.length < members.length;
   // ダブルは全員が隠れてから全員で探すので、最初のハンターはいない
-  const hunters = double ? [] : pickHunters(m.wishes, members, s.hunters, rand);
-  const hiders = members.filter((seat) => !hunters.includes(seat));
+  const picked = double ? [] : fixed ? chosen : pickHunters(m.wishes, members, s.hunters, rand);
+  const hiders = members.filter((seat) => !picked.includes(seat));
   Object.assign(m, {
     phase: 'intro',
     left: INTRO,
     settings: s,
-    roles: Object.fromEntries(members.map((seat) => [seat, hunters.includes(seat) ? 'hunter' : 'hider'])),
-    first: hunters,
+    roles: Object.fromEntries(members.map((seat) => [seat, picked.includes(seat) ? 'hunter' : 'hider'])),
+    first: picked,
     found: [],
     winner: null,
     ready: [],
