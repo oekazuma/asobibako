@@ -11,8 +11,13 @@ import { viewOf, type Spot } from './spots';
 export const SETTLE = 1;
 /** 塗り終えるまでの上限（秒）。隠れタイムの最短 30 秒から、置いて落ち着くまでと余裕を引いた長さ */
 export const PAINT_SECS = 20;
-/** 面の色を聞くのは 1 コマにこれだけ（1 回ごとに屋敷の面を全部の三角形で調べるので重い） */
-export const RAYS_PER_STEP = 6;
+/**
+ * 面の色を聞くのは 1 コマにこれだけ（1 回ごとに屋敷の面を全部の三角形で調べ、4〜5ms かかる）。
+ * 聞く升目は 1 人 100 ほどなので 1 本でも数秒で済む。増やすとコマが延び、延びたぶん吹く点が増えてさらに聞く
+ */
+export const RAYS_PER_STEP = 1;
+/** 2 人めが塗り始めるのを遅らせる秒。体の表面を調べる 25ms ほどを 2 人で同じコマに重ねない */
+const STAGGER = 0.25;
 /** 1 秒に吹く点の数。点が多ければ PAINT_SECS で終わる速さに上げる */
 const RATE = 150;
 /** 見られる位置からの向きをまとめる升目（rad）。戸口から数 m 先で 10cm ほど */
@@ -47,7 +52,7 @@ export class HiderBrain {
   painting = false;
   readonly #skill: Skill;
   readonly #rand: () => number;
-  #wait = SETTLE;
+  #wait: number;
   #plan: SurfacePoint[] | null = null;
   #next = 0;
   #budget = 0;
@@ -56,8 +61,9 @@ export class HiderBrain {
   /** 体のいる部屋の明るさ。探す人もこの部屋で見るので、その光で塗りを合わせる */
   readonly #mood: Mood;
 
-  constructor(spot: Spot, skill: Skill, rand: () => number) {
+  constructor(spot: Spot, skill: Skill, rand: () => number, index = 0) {
     this.spot = spot;
+    this.#wait = SETTLE + index * STAGGER;
     this.#skill = skill;
     this.#rand = rand;
     this.#mood = moodAt(spot.pos);

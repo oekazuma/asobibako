@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { levelOf, mansion, placeOf } from '../mansion/layout';
 import { DEFAULTS, newMatch, view, type View } from '../referee';
 import { rng } from '../rng';
-import { HiderBrain, PAINT_SECS, RAYS_PER_STEP, SETTLE, thin } from './hider';
+import { HiderBrain, PAINT_SECS, SETTLE, thin } from './hider';
 import { tube } from './fixtures';
 import { SKILLS, type Strength } from './levels';
 import type { Ctx, Senses, SurfacePoint } from './senses';
@@ -100,18 +100,37 @@ describe('隠れる CPU', () => {
     expect(blind.log.dabs).toEqual([]);
   });
 
-  it('面の色は 1 コマに RAYS_PER_STEP 回までしか聞かない', () => {
-    const rays = { n: 0 };
-    const b = brain('strong');
-    const c = ctx(canvas(() => tube(open), rays));
-    let before = 0;
-    let most = 0;
-    run(b, c, 15, () => {
-      most = Math.max(most, rays.n - before);
-      before = rays.n;
+  it('面の色は 1 コマに 1 本だけ聞き、コマが延びても増やさない（1 本 4〜5ms で、増やすとさらにコマが延びる）', () => {
+    for (const dt of [1 / 60, 0.1]) {
+      const rays = { n: 0 };
+      const b = brain('strong');
+      const c = ctx(canvas(() => tube(open), rays));
+      let most = 0;
+      for (let t = 0; t < 15; t += dt) {
+        const before = rays.n;
+        c.now += dt * 1000;
+        b.step(c, dt);
+        most = Math.max(most, rays.n - before);
+      }
+      expect(rays.n).toBeGreaterThan(0);
+      expect(most).toBe(1);
+    }
+  });
+
+  it('2 人の隠れる CPU は、体の表面（1 回 25ms ほど）を同じコマで調べない', () => {
+    const steps = [new Set<number>(), new Set<number>()];
+    let k = 0;
+    const two = [0, 1].map((i) => {
+      const b = new HiderBrain(open, SKILLS.strong, rng(4), i);
+      return { b, c: ctx(canvas(() => (steps[i].add(k), tube(open)))) };
     });
-    expect(rays.n).toBeGreaterThan(0);
-    expect(most).toBeLessThanOrEqual(RAYS_PER_STEP);
+    for (; k < 30 * 60; k++)
+      for (const { b, c } of two) {
+        c.now += 1000 / 60;
+        b.step(c, 1 / 60);
+      }
+    expect(two.every(({ b }) => b.done)).toBe(true);
+    expect([...steps[0]].filter((s) => steps[1].has(s))).toEqual([]);
   });
 
   it('点が多くても、置いてから SETTLE + PAINT_SECS 秒で塗り終える（隠れタイムの最短 30 秒に収める）', () => {

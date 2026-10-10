@@ -144,7 +144,12 @@ export class Bot {
       this.#rest = { pos: SPAWNS[where][m.me], yaw: 0 };
     } else if (p === 'hide' && m.role === 'hider') {
       const skill = SKILLS[this.strength];
-      this.hider = new HiderBrain(pickSpot(m.view.seed ?? 1, this.#index, skill.tiers, this.#rand), skill, this.#rand);
+      this.hider = new HiderBrain(
+        pickSpot(m.view.seed ?? 1, this.#index, skill.tiers, this.#rand),
+        skill,
+        this.#rand,
+        this.#index
+      );
       this.#out = new DabOutbox();
       this.#flushed = 0;
     } else if (p === 'search' && m.role === 'hunter' && !m.found() && !this.hunter) {
