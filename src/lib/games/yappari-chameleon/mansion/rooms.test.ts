@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { V3 } from '$lib/sculpt';
 import { idle, newBody, step, type Body, type Box, type Level } from '../move';
-import { levelOf, mansion, placeOf, SIZES, type Piece } from './layout';
+import { levelOf, mansion, placeOf, SIZES, SPAWNS, type Piece } from './layout';
 import { LOBBY } from './lobby';
+import { place, SETS } from './props';
 import { DOORWAYS, KITCHEN, LAUNDRY, roomPieces, STUDY } from './rooms';
 
 const m = mansion();
@@ -116,6 +117,27 @@ describe('屋敷の 3 部屋', () => {
     }
   });
 
+  it('3 部屋の動かない家具は、動く物のどの置き場所の候補にも、人の出る場所にも重ならない（選ばれなかった候補も）', () => {
+    const fixed = roomPieces()
+      .map(boxOf)
+      .filter((b): b is Box => b !== null);
+    const bad: string[] = [];
+    for (const set of SETS)
+      for (const slot of set.slots)
+        for (const unit of set.units)
+          for (const q of unit) {
+            const a = boxOf(place(slot, q));
+            if (a) for (const b of fixed) if (hits(a, b)) bad.push(`${q.kind} ${slot.at} と ${b.min}`);
+          }
+    // 体の半径 0.2m ぶん広げた箱で見る
+    for (const where of Object.values(SPAWNS))
+      for (const at of Object.values(where)) {
+        const a: Box = { min: [at[0] - 0.2, 0, at[2] - 0.2], max: [at[0] + 0.2, 1, at[2] + 0.2] };
+        for (const b of fixed) if (hits(a, b)) bad.push(`出る場所 ${at} と ${b.min}`);
+      }
+    expect(bad).toEqual([]);
+  });
+
   it('本家の画面にある家具がそろう', () => {
     const kinds = (name: string) =>
       new Set(
@@ -127,7 +149,21 @@ describe('屋敷の 3 部屋', () => {
       expect.arrayContaining(['bookshelf', 'desk', 'globe', 'bust', 'post', 'painting'])
     );
     expect([...kinds('キッチン')]).toEqual(
-      expect.arrayContaining(['counter', 'sink', 'plates', 'meat-rack', 'gas', 'duct', 'caution'])
+      expect.arrayContaining([
+        'counter',
+        'sink',
+        'plates',
+        'meat-rack',
+        'gas',
+        'duct',
+        'caution',
+        'drain',
+        'vent',
+        'range',
+        'pot-rack',
+        'pots',
+        'board'
+      ])
     );
     expect([...kinds('ランドリー')]).toEqual(expect.arrayContaining(['washer', 'clothesline']));
   });

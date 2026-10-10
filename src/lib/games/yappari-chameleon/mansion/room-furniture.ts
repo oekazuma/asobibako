@@ -113,21 +113,6 @@ function bookPile(g: THREE.Group, p: Piece) {
   }
 }
 
-/** ステンレスの台。前（+z）に扉 2 枚 */
-function counter(g: THREE.Group) {
-  box(g, [2.0, 0.84, 0.7], STEEL, [0, 0.42, 0]);
-  box(g, [2.02, 0.04, 0.72], STEEL, [0, 0.88, 0]);
-  const door = box(g, [0.95, 0.7, 0.01], { tint: '#aeb4b9', metal: 0.8, rough: 0.3 }, [-0.5, 0.45, 0.355]);
-  copy(g, door, [0.5, 0.45, 0.355]);
-}
-
-function sink(g: THREE.Group) {
-  counter(g);
-  box(g, [0.9, 0.02, 0.5], { tint: '#596066', metal: 0.8, rough: 0.25 }, [0, 0.905, 0]);
-  cyl(g, [0.02, 0.02], 0.35, STEEL, [0, 1.07, -0.28]);
-  cyl(g, [0.015, 0.015], 0.22, STEEL, [0, 1.24, -0.18]).rotation.x = Math.PI / 2;
-}
-
 function plates(g: THREE.Group) {
   const plate = cyl(g, [0.12, 0.1], 0.016, WHITE, [-0.18, 0.008, 0], 24);
   for (const [x, n] of [
@@ -249,8 +234,6 @@ export const ROOM_MAKERS = {
   bust,
   'folding-chair': foldingChair,
   'book-pile': bookPile,
-  counter,
-  sink,
   plates,
   duct,
   caution,
