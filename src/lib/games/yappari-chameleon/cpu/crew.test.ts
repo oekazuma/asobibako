@@ -270,6 +270,8 @@ describe('CPU との通しの試合', () => {
     const turned = t.body(2);
     expect(turned.eye).not.toBeNull();
     expect(turned.cling).toBeNull();
+    // 人の子と同じく、ハンターになった体は白に戻す（列を空にする知らせを送る）
+    expect(t.of('dabs', 2).at(-1)).toMatchObject({ at: 0, d: [] });
     expect(t.until(() => t.host.match.phase === 'reveal', 130)).toBe(true);
     t.run(REVEAL_READY + 0.1);
     t.party.act({ t: 'ready' });

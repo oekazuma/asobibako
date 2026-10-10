@@ -167,6 +167,10 @@ export class Bot {
     if ((this.#broken += dt) < SHATTER_SECS) return;
     const spot = this.hider.spot;
     this.hunter = new HunterBrain(turnAt(spot, this.level), spot.yaw, SKILLS[this.strength], this.#index, this.#rand);
+    // 人の子と同じく白い体のハンターになる。列を空にしたことを送らないと、ほかの端末の体に塗りが残る
+    this.hider.log.clear();
+    const d = this.#out.take(this.hider.log);
+    if (d) for (const msg of dabMessages(m.me, d.at, d.d)) this.party.act(msg);
     this.hider = null;
   }
 
