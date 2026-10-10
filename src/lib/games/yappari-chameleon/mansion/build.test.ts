@@ -39,9 +39,9 @@ beforeAll(async () => {
   built = buildMansion();
 });
 
-function meshes(): THREE.Mesh[] {
+function meshes(root: THREE.Object3D = built.group): THREE.Mesh[] {
   const out: THREE.Mesh[] = [];
-  built.group.traverse((o) => {
+  root.traverse((o) => {
     if (o instanceof THREE.Mesh) out.push(o);
   });
   return out;
@@ -89,5 +89,24 @@ describe('作り込んだ模様', () => {
     expect(p.meters[0] / (Math.sqrt(3) * HEX.r)).toBeCloseTo(8, 6);
     expect(p.meters[1] / (3 * HEX.r)).toBeCloseTo(4, 6);
     expect(p.canvas.width / p.meters[0]).toBeCloseTo(p.canvas.height / p.meters[1], -1);
+  });
+});
+
+describe('キッチンの肉の棚', () => {
+  it('霜降りの肉の塊は下の 3 段に 2〜4 個ずつ、浮かず沈まずに棚板の上に載る', async () => {
+    const { piece } = await import('./furniture');
+    const rack = piece({ kind: 'meat-rack', at: [-20.75, 0, 10], turn: 1 });
+    rack.updateMatrixWorld(true);
+    // 棚の中で模様を持つのは霜降りの肉だけ
+    const lumps = meshes(rack).filter((m) => !!(m.material as THREE.MeshStandardMaterial).map);
+    const tops = [0.15, 0.7, 1.25].map((y) => y + 0.0125);
+    const counts = tops.map(() => 0);
+    for (const m of lumps) {
+      const bottom = new THREE.Box3().setFromObject(m).min.y;
+      const k = tops.findIndex((t) => Math.abs(bottom - t) < 0.01);
+      expect(k, `${bottom}`).toBeGreaterThanOrEqual(0);
+      counts[k]++;
+    }
+    for (const n of counts) expect(n >= 2 && n <= 4, `${counts}`).toBe(true);
   });
 });

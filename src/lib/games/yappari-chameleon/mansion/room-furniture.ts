@@ -137,43 +137,6 @@ function plates(g: THREE.Group) {
     for (let i = x === -0.18 ? 1 : 0; i < n; i++) copy(g, plate, [x, 0.008 + i * 0.018, 0]);
 }
 
-/** 金網の棚。前（+z）の段に肉を並べ、上の棒から肉を吊るす */
-function meatRack(g: THREE.Group) {
-  const leg = box(g, [0.04, 2.0, 0.04], IRON, [-0.78, 1.0, -0.23]);
-  for (const [x, z] of [
-    [0.78, -0.23],
-    [-0.78, 0.23],
-    [0.78, 0.23]
-  ])
-    copy(g, leg, [x, 1.0, z]);
-  const shelf = box(g, [1.6, 0.03, 0.5], IRON, [0, 0.35, 0]);
-  for (const y of [0.95, 1.55]) copy(g, shelf, [0, y, 0]);
-  box(g, [1.6, 0.04, 0.04], IRON, [0, 1.98, 0.23]);
-  const meat = ball(g, 0.13, { tint: '#b8434a', rough: 0.6 }, [-0.5, 0.44, 0]);
-  meat.scale.set(1.4, 0.6, 1);
-  const fat = ball(g, 0.05, { tint: '#f1e2d4', rough: 0.7 }, [-0.38, 0.45, 0.05]);
-  for (const y of [0.35, 0.95])
-    for (let i = 0; i < 3; i++) {
-      if (y !== 0.35 || i) {
-        copy(g, meat, [-0.5 + i * 0.5, y + 0.09, 0]);
-        copy(g, fat, [-0.38 + i * 0.5, y + 0.1, 0.05]);
-      }
-    }
-  const hook = cyl(g, [0.005, 0.005], 0.12, IRON, [-0.6, 1.9, 0.23]);
-  for (let i = 0; i < 4; i++) {
-    const x = -0.6 + i * 0.4;
-    if (i) copy(g, hook, [x, 1.9, 0.23]);
-    copy(g, meat, [x, 1.72, 0.23]).scale.set(0.8, 1.5, 0.7);
-  }
-}
-
-function gas(g: THREE.Group) {
-  const can: Finish = { tint: '#9aa3a8', metal: 0.6, rough: 0.4 };
-  cyl(g, [0.17, 0.17], 0.9, can, [0, 0.45, 0]);
-  ball(g, 0.17, can, [0, 0.9, 0]).scale.y = 0.6;
-  cyl(g, [0.03, 0.03], 0.12, IRON, [0, 1.04, 0]);
-}
-
 /** 天井のダクト。置いた向きの z へ 6m 伸びる。当たらない */
 function duct(g: THREE.Group) {
   box(g, [0.6, 0.4, 6], { tint: '#b9bec3', metal: 0.7, rough: 0.4 }, [0, 0, 0]);
@@ -289,8 +252,6 @@ export const ROOM_MAKERS = {
   counter,
   sink,
   plates,
-  'meat-rack': meatRack,
-  gas,
   duct,
   caution,
   box: cardboard,

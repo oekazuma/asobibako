@@ -88,6 +88,15 @@ describe('屋敷の 3 部屋', () => {
     expect(placeOf([0, 0, -30])).toBe('控室');
   });
 
+  it('ガスボンベは 2 本並べて、肉の棚の横に置く', () => {
+    const q = roomPieces();
+    const racks = q.filter((r) => r.kind === 'meat-rack');
+    const gas = q.filter((g) => g.kind === 'gas');
+    expect(gas).toHaveLength(2);
+    for (const g of gas)
+      expect(Math.min(...racks.map((r) => Math.hypot(g.at[0] - r.at[0], g.at[2] - r.at[2])))).toBeLessThan(1.6);
+  });
+
   const boxOf = (q: Piece): Box | null => {
     const s = SIZES[q.kind];
     if (!s) return null;
