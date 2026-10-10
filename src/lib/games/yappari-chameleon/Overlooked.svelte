@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { nameOf, type Match } from './match.svelte';
+  import type { Match } from './match.svelte';
 
   let { match }: { match: Match } = $props();
   let folded = $state(false);
@@ -15,7 +15,7 @@
       <button class="toggle" onpointerdown={() => (folded = true)}>隠す</button>
     </header>
     {#each match.overlooked as r (r.seat)}
-      <p><span>{nameOf(r.seat)}</span><span class="pts">{r.pts}</span></p>
+      <p><span>{match.name(r.seat)}</span><span class="pts">{r.pts}</span></p>
     {/each}
   </section>
 {/if}

@@ -34,7 +34,7 @@
   const play = $derived(session.play);
   const match = $derived(session.match);
   const phase = $derived(match.phase);
-  const won = $derived(winnerText(match.view));
+  const won = $derived(winnerText(match.view, session.party.looks));
 
   function ask() {
     // 確かめが出ているあいだは、押していた指の続きを操作にしない
@@ -45,7 +45,7 @@
 
 {#snippet top()}<TopButtons {session} />{/snippet}
 
-<Plates plates={session.plates} />
+<Plates plates={session.plates} name={(seat) => match.name(seat)} />
 {#if play.stick.active}
   <StickView ox={play.stick.ox} oy={play.stick.oy} x={play.stick.x} y={play.stick.y} r={radius} />
 {/if}

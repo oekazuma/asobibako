@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { nameOf } from './match.svelte';
   import { readSettings, saveSettings } from './prefs';
   import type { Session } from './session.svelte';
   import Settings from './Settings.svelte';
@@ -17,7 +16,7 @@
 </script>
 
 <div class="bar">
-  <p>{party.members.map(nameOf).join('・')}（{party.members.length}/3人）</p>
+  <p>{party.members.map((seat) => session.match.name(seat)).join('・')}（{party.members.length}/3人）</p>
   {#if party.host}
     <button onclick={() => (open = true)}>マップの設定</button>
     {#if party.members.length < 3}<button onclick={oninvite}>なかまを呼ぶ</button>{/if}

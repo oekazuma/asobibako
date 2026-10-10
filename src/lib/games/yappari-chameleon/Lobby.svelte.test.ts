@@ -1,12 +1,13 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Lobby from './Lobby.svelte';
+import { Match } from './match.svelte';
 import { SETTINGS_KEY } from './prefs';
 import type { Session } from './session.svelte';
 
 function show(host: boolean, members = [1, 2]) {
   const start = vi.fn();
-  const session = { party: { host, members }, start } as unknown as Session;
+  const session = { party: { host, members }, match: new Match(() => 1), start } as unknown as Session;
   const target = document.body.appendChild(document.createElement('div'));
   const app = mount(Lobby, { target, props: { session, oninvite: vi.fn() } });
   flushSync();

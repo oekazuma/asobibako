@@ -15,12 +15,14 @@ export const MODES: Record<GameMode, { name: string; lines: [string, string]; co
 
 export const WINNER = { chameleon: '勝者カメレオン!', hunter: '勝者ハンター!' } as const;
 
-export const nameOf = (seat: Seat) => `プレイヤー${seat}`;
+/** 席の呼び名。CPU と遊ぶでは自分がいつも席 1 なので、CPU は席 2 から順に CPU 1・CPU 2 */
+export const nameOf = (seat: Seat, looks: Record<number, string> = {}) =>
+  looks[seat] === 'cpu' ? `CPU ${seat - 1}` : `プレイヤー${seat}`;
 
 /** 答え合わせの勝者の言葉。決着の前は null */
-export function winnerText(v: View): string | null {
+export function winnerText(v: View, looks: Record<number, string> = {}): string | null {
   if (!v.winner) return null;
-  if (v.winner === 'double') return v.champ === null ? '勝者なし' : `勝者 ${nameOf(v.champ)}!`;
+  if (v.winner === 'double') return v.champ === null ? '勝者なし' : `勝者 ${nameOf(v.champ, looks)}!`;
   return WINNER[v.winner];
 }
 
@@ -33,9 +35,16 @@ export class Match {
   synced = $state(false);
   // 子の席の番号はつないだあとに Party へ届くので、値ではなく関数で受ける
   readonly #me: () => Seat;
+  // 動物（CPU の印）は顔ぶれと一緒に Party へ届くので、値ではなく関数で受ける
+  readonly #looks: () => Record<number, string>;
 
-  constructor(me: () => Seat) {
+  constructor(me: () => Seat, looks: () => Record<number, string> = () => ({})) {
     this.#me = me;
+    this.#looks = looks;
+  }
+
+  name(seat: Seat): string {
+    return nameOf(seat, this.#looks());
   }
 
   get me(): Seat {

@@ -1,14 +1,15 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon.svelte';
+  import type { Seat } from '$lib/net/party.svelte';
   import { nameOf } from './match.svelte';
   import type { Plate } from './session.svelte';
 
-  let { plates }: { plates: Plate[] } = $props();
+  let { plates, name = nameOf }: { plates: Plate[]; name?: (seat: Seat) => string } = $props();
 </script>
 
 {#each plates as p (p.seat)}
   <span class="plate" style:left="{p.x}px" style:top="{p.y}px">
-    {nameOf(p.seat)}
+    {name(p.seat)}
     {#if p.likes}<span class="likes"><Icon name="thumb" size="14px" />{p.likes}</span>{/if}
   </span>
 {/each}

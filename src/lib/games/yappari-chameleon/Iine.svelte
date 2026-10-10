@@ -1,6 +1,5 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon.svelte';
-  import { nameOf } from './match.svelte';
   import type { Session } from './session.svelte';
 
   let { session }: { session: Session } = $props();
@@ -12,12 +11,12 @@
 <ul class="iine" aria-label="ええやん">
   {#each match.view.hid as seat (seat)}
     <li>
-      <span>{nameOf(seat)}</span>
+      <span>{match.name(seat)}</span>
       <span class="count"><Icon name="thumb" size="18px" />{match.view.likes[seat] ?? 0}</span>
       {#if seat !== match.me}
         <button
           data-seat={seat}
-          aria-label="{nameOf(seat)}にええやん"
+          aria-label="{match.name(seat)}にええやん"
           disabled={used}
           onpointerdown={() => session.like(seat)}>ええやん</button
         >

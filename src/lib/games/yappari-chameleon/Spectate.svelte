@@ -1,6 +1,5 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon.svelte';
-  import { nameOf } from './match.svelte';
   import './round-button.css';
   import type { Session } from './session.svelte';
 
@@ -12,7 +11,7 @@
 <!-- 左右の矢印でほかの人を順に見るか、フリーカメラで見て回る。スティックの指を置いたまま押すので pointerdown で受ける -->
 <div class="spectate">
   <p class="label">観戦中</p>
-  <p class="who">{watching === null ? 'フリーカメラ' : nameOf(watching)}</p>
+  <p class="who">{watching === null ? 'フリーカメラ' : session.match.name(watching)}</p>
   <div class="row">
     <button class="round-btn small" aria-label="前の人" onpointerdown={() => session.next(-1)}>
       <Icon name="arrow" size="26px" rotate={-90} />

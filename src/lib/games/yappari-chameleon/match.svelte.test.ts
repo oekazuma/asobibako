@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Seat } from '$lib/net/party.svelte';
-import { Match, MODES, winnerText } from './match.svelte';
+import { Match, MODES, nameOf, winnerText } from './match.svelte';
 import { DEFAULTS, newMatch, view, type View } from './referee';
 
 const at = (me: Seat, v: Partial<View>) => {
@@ -102,5 +102,22 @@ describe('Match', () => {
       { seat: 2, pts: 15, place: '書斎' },
       { seat: 1, pts: 4, place: 'キッチン' }
     ]);
+  });
+
+  it('CPU の席は CPU 1・CPU 2、ほかはプレイヤー N と呼ぶ（席 2 が CPU 1）', () => {
+    const looks = { 2: 'cpu', 3: 'cpu' };
+    const m = new Match(
+      () => 1,
+      () => looks
+    );
+    expect(([1, 2, 3] as Seat[]).map((s) => m.name(s))).toEqual(['プレイヤー1', 'CPU 1', 'CPU 2']);
+    expect(nameOf(2)).toBe('プレイヤー2');
+    expect(nameOf(3, { 3: 'cat' })).toBe('プレイヤー3');
+    expect(new Match(() => 1).name(2)).toBe('プレイヤー2');
+  });
+
+  it('ダブルの勝者の言葉も CPU の名前で呼ぶ', () => {
+    const v = view(newMatch());
+    expect(winnerText({ ...v, winner: 'double', champ: 2 }, { 2: 'cpu' })).toBe('勝者 CPU 1!');
   });
 });

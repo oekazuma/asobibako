@@ -93,7 +93,10 @@ export class Session {
     this.play = play;
     this.host = host;
     this.#makeRig = makeRig;
-    this.match = new Match(() => party.me);
+    this.match = new Match(
+      () => party.me,
+      () => party.looks ?? {}
+    );
     const w = play.world;
     this.#fx = new Effects(w.scene);
     this.#gun = new HunterView(w);

@@ -22,4 +22,15 @@ describe('Plates', () => {
     expect(two.querySelector('.likes')).toBeNull();
     unmount(app);
   });
+
+  it('名前を渡せば、その名前で札を出す', () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(Plates, {
+      target,
+      props: { plates: [{ seat: 2, x: 0, y: 0, likes: 0 }], name: (seat: number) => `CPU ${seat - 1}` }
+    });
+    flushSync();
+    expect(target.querySelector('.plate')?.textContent).toContain('CPU 1');
+    unmount(app);
+  });
 });

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { nameOf, type Match } from './match.svelte';
+  import type { Match } from './match.svelte';
 
   let { match }: { match: Match } = $props();
 </script>
@@ -10,7 +10,7 @@
     {#each match.spotted as r, i (r.seat)}
       <li>
         <span class="num">{i + 1}</span>
-        <span>{nameOf(r.seat)}</span>
+        <span>{match.name(r.seat)}</span>
         <span class="num">{r.pts}</span>
         {#if r.place}<span class="place">{r.place}</span>{/if}
       </li>

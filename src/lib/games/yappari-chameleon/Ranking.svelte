@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { nameOf, type Match } from './match.svelte';
+  import type { Match } from './match.svelte';
 
   let { match }: { match: Match } = $props();
 </script>
@@ -8,7 +8,7 @@
   {#each match.ranking as r, i (r.seat)}
     <li class:me={r.seat === match.me}>
       <span class="num">#{i + 1}</span>
-      <span>{nameOf(r.seat)}</span>
+      <span>{match.name(r.seat)}</span>
       <span class="num">{r.got}/{r.need}</span>
     </li>
   {/each}

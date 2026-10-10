@@ -45,7 +45,7 @@
   </div>
 {:else if away.length}
   <p class="lost" role="status">
-    {away.map(nameOf).join('と')}の接続が切れました
+    {away.map((seat) => nameOf(seat)).join('と')}の接続が切れました
     <button onclick={() => (open = true)}>よびなおす</button>
   </p>
 {/if}
