@@ -27,6 +27,8 @@ export class Walker {
 
   go(to: Node): void {
     this.path = route(nearest(this.body.pos), to, this.#blocked);
+    // 前の道で着いた点は、今の道のひとつ前の点ではない
+    this.#prev = null;
     this.#reset();
   }
 
@@ -57,10 +59,14 @@ export class Walker {
     return Math.atan2(dx, dz);
   }
 
-  /** 進めない辺を覚え、ひとつ前の点へ戻ってから道を選び直す */
+  /** 進めない辺を覚え、ひとつ前の点へ戻ってから道を選び直す。戻る点そのものへ進めないなら止まる */
   #unstick(next: Node) {
     const goal = this.path.at(-1)!;
     const back = this.#prev ?? nearest(this.body.pos);
+    if (back === next) {
+      this.path = [];
+      return;
+    }
     this.#blocked.add(`${back}>${next}`);
     this.#blocked.add(`${next}>${back}`);
     this.path = [back, ...route(back, goal, this.#blocked).slice(1)];
