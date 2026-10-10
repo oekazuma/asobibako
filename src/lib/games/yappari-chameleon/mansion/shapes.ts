@@ -56,4 +56,12 @@ export function copy(g: THREE.Group, o: THREE.Mesh, at: [number, number, number]
   return c;
 }
 
+/** 光る材質。スポイトは finish の材質に付く userData.pick しか読めないので、finish から作る */
+export function glowing(tint: string, glow: string, strength: number, rough = 0.8): THREE.MeshStandardMaterial {
+  const m = finish({ tint, rough }, [1, 1]);
+  m.emissive.set(glow);
+  m.emissiveIntensity = strength;
+  return m;
+}
+
 export const variant = (p: Piece) => Math.abs(Math.round(p.at[0] * 7 + p.at[2] * 13));

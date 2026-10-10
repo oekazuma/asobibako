@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { finish, type Finish } from '../textures';
 import { hunterSign } from '../textures-rooms';
 import type { Kind, Piece } from './layout';
-import { ball, box, copy, cyl, plane, variant, WHITE, WOOD, type Maker } from './shapes';
+import { ball, box, copy, cyl, glowing, plane, variant, WHITE, WOOD, type Maker } from './shapes';
 
 /** 縁は乗っている人がいるあいだ光る輪で、build が userData.glow で拾う */
 function podium(g: THREE.Group) {
@@ -16,11 +16,8 @@ function podium(g: THREE.Group) {
   top.position.y = 0.302;
   top.receiveShadow = true;
   g.add(top);
-  const rim = new THREE.Mesh(
-    new THREE.TorusGeometry(1.2, 0.05, 10, 96),
-    // 消えているときは台と同じ赤にして、点いたときの黄色い光との差で乗っているのが分かるようにする
-    new THREE.MeshStandardMaterial({ color: '#c8231e', roughness: 0.55, emissive: '#ffd36b', emissiveIntensity: 0 })
-  );
+  // 消えているときは台と同じ赤にして、点いたときの黄色い光との差で乗っているのが分かるようにする
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(1.2, 0.05, 10, 96), glowing('#c8231e', '#ffd36b', 0, 0.55));
   rim.rotation.x = Math.PI / 2;
   rim.position.y = 0.3;
   rim.userData.glow = true;
@@ -49,10 +46,7 @@ function desk(g: THREE.Group) {
   for (const x of [-0.6, 0.6]) box(g, [0.36, 0.71, 0.72], WOOD, [x, 0.355, 0]);
   cyl(g, [0.07, 0.08], 0.02, BRASS, [0.35, 0.77, -0.15]);
   cyl(g, [0.012, 0.012], 0.32, BRASS, [0.35, 0.93, -0.15]);
-  // スポイトは finish の材質に付く userData.pick しか読めない
-  const glass = finish({ tint: '#1f6b3a', rough: 0.3 }, [0.36, 0.36]);
-  glass.emissive.set('#2f8a4a');
-  glass.emissiveIntensity = 0.25;
+  const glass = glowing('#1f6b3a', '#2f8a4a', 0.25, 0.3);
   glass.side = THREE.DoubleSide;
   const shade = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.36, 24, 1, true, 0, Math.PI), glass);
   shade.rotation.z = Math.PI / 2;

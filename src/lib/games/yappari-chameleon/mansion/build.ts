@@ -9,6 +9,7 @@ import { piece } from './furniture';
 import { levelOf, mansion, type Face, type Mat, type Piece, type Slab } from './layout';
 import { inLobby } from './lobby';
 import { mergeStatic } from './merge';
+import { moodAt } from './moods';
 import { ART } from './props';
 
 const LOOKS: Record<Mat, () => Finish> = {
@@ -138,7 +139,7 @@ export function buildMansion(): Built {
     glow: (on) => {
       for (const r of rims) r.emissiveIntensity = on ? 3 : 0;
     },
-    sunless: inLobby,
+    mood: moodAt,
     arrange
   };
 }

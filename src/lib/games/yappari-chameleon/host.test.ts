@@ -104,6 +104,13 @@ describe('Host の中継', () => {
     expect(told.at(-1)).toEqual({ to: 2, m: { t: 'chameleon-mismatch' } });
   });
 
+  it('家具の当たりが変わる前の子（版 2）は迎えない', () => {
+    const { act, told } = setup([1, 2]);
+    act({ t: 'leave' }, 2);
+    act({ t: 'hi', v: 2 }, 2);
+    expect(told.at(-1)).toEqual({ to: 2, m: { t: 'chameleon-mismatch' } });
+  });
+
   it('版のちがう子には知らせ、その子の動きは配らない', () => {
     const { act, told } = setup([1, 2]);
     act({ t: 'leave' }, 2);

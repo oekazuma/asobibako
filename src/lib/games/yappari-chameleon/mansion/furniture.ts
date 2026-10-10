@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { Piece } from './layout';
 import { ROOM_MAKERS } from './room-furniture';
-import { ball, BLACK, box, cyl, GOLD, plane, variant, WHITE, WOOD, type Maker } from './shapes';
+import { ball, BLACK, box, cyl, glowing, GOLD, plane, variant, WHITE, WOOD, type Maker } from './shapes';
 import { books, finish, leather, marble, oilPainting, poster, rug, type Finish } from '../textures';
 
 /** 本家の床の風船（黄緑・ピンク・黄・青緑・マゼンタ）。つやを写さないと丸まっても化けられない */
@@ -143,10 +143,7 @@ function chandelier(g: THREE.Group) {
     g.add(ring);
     for (let i = 0; i < n; i++) {
       const a = (i * Math.PI * 2) / n;
-      const bulb = new THREE.Mesh(
-        new THREE.SphereGeometry(0.045, 12, 8),
-        new THREE.MeshStandardMaterial({ color: '#fff3d0', emissive: '#ffe2a0', emissiveIntensity: 2 })
-      );
+      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 8), glowing('#fff3d0', '#ffe2a0', 2));
       bulb.position.set(Math.cos(a) * r, y + 0.07, Math.sin(a) * r);
       g.add(bulb);
       const drop = new THREE.Mesh(new THREE.OctahedronGeometry(0.03), finish(crystal, [0.1, 0.1]));
@@ -161,15 +158,9 @@ function chandelier(g: THREE.Group) {
 function sconce(g: THREE.Group) {
   box(g, [0.06, 0.25, 0.04], GOLD, [0, 0, 0.02]);
   box(g, [0.04, 0.04, 0.25], GOLD, [0, 0.1, 0.14]);
-  const shade = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.08, 0.14, 0.18, 20, 1, true),
-    new THREE.MeshStandardMaterial({
-      color: '#f3e3c0',
-      emissive: '#ffcf8a',
-      emissiveIntensity: 0.8,
-      side: THREE.DoubleSide
-    })
-  );
+  const glass = glowing('#f3e3c0', '#ffcf8a', 0.8);
+  glass.side = THREE.DoubleSide;
+  const shade = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.14, 0.18, 20, 1, true), glass);
   shade.position.set(0, 0.22, 0.27);
   g.add(shade);
 }

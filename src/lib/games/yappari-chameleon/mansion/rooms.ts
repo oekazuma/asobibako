@@ -104,10 +104,14 @@ export function roomPieces(): Piece[] {
   ];
 }
 
-/** 書斎は机の上のランプの暖色、キッチンは白い天井灯、ランドリーは少し暗め */
+/**
+ * 書斎は机のランプの暖色、キッチンは少し青緑の白い天井灯、ランドリーは 2 列の蛍光灯の少し青い白。
+ * 部屋の暗さは moods.ts の日と半球の光で作り、点光源は光の溜まりを作る
+ */
 export const roomLights = (): Light[] => [
-  { at: [12.3, 2.4, 6], color: '#ffd59a', power: 12, reach: 12 },
+  { at: [12.3, 1.6, 6], color: '#ffc58a', power: 7, reach: 9 },
   // 天井のダクト（x −16.3〜−15.7）の中に入らないよう、少し東へ寄せる
-  { at: [-14, 3.1, 11], color: '#f2f6ff', power: 8, reach: 13 },
-  { at: [-15, 3.2, -1], color: '#ffe2c4', power: 7, reach: 11 }
+  { at: [-14, 3.1, 11], color: '#dfe8e4', power: 7, reach: 11 },
+  { at: [-16.5, 3.1, -2.1], color: '#f2f4ff', power: 4, reach: 7 },
+  { at: [-13.5, 3.1, 0.9], color: '#f2f4ff', power: 4, reach: 7 }
 ];
