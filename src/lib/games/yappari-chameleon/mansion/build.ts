@@ -36,7 +36,7 @@ const LOOKS: Record<Mat, () => Finish> = {
   splash: () => ({ pattern: splashWall(), rough: 0.85 }),
   splashFloor: () => ({ pattern: splashFloor(), rough: 0.8 }),
   splashCeiling: () => ({ pattern: splashCeiling(), rough: 0.85 }),
-  planks: () => ({ pattern: planks(), rough: 0.3 }),
+  planks: () => ({ pattern: planks(), rough: 0.75 }),
   framedPanel: () => ({ pattern: framedPanel(), rough: 0.6 }),
   whiteTile: () => ({ pattern: whiteTile(), rough: 0.3 }),
   blueHex: () => ({ pattern: blueHex(), rough: 0.5 }),
