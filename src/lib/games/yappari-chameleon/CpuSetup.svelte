@@ -38,9 +38,16 @@
   <div class="row" class:dim={hide}>
     <span>ゲームモード</span>
     <span class="pick">
-      <button class:on={choice.mode === 'normal'} onclick={() => (choice.mode = 'normal')}>通常</button>
-      <button class:on={choice.mode === 'infect'} disabled={hide} onclick={() => (choice.mode = 'infect')}
-        >増え鬼</button
+      <button
+        class:on={choice.mode === 'normal'}
+        aria-pressed={choice.mode === 'normal'}
+        onclick={() => (choice.mode = 'normal')}>通常</button
+      >
+      <button
+        class:on={choice.mode === 'infect'}
+        aria-pressed={choice.mode === 'infect'}
+        disabled={hide}
+        onclick={() => (choice.mode = 'infect')}>増え鬼</button
       >
     </span>
   </div>

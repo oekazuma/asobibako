@@ -47,8 +47,12 @@ describe('CpuSetup', () => {
     expect(button('増え鬼').disabled).toBe(true);
     click('探す');
     expect(button('増え鬼').disabled).toBe(false);
+    expect(button('通常').getAttribute('aria-pressed')).toBe('true');
+    expect(button('増え鬼').getAttribute('aria-pressed')).toBe('false');
     click('増え鬼');
     expect(choice.mode).toBe('infect');
+    expect(button('通常').getAttribute('aria-pressed')).toBe('false');
+    expect(button('増え鬼').getAttribute('aria-pressed')).toBe('true');
     click('隠れる');
     expect(choice).toMatchObject({ side: 'hide', mode: 'normal' });
     done();
