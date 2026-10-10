@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { V3 } from '$lib/sculpt';
-import { checker, coffer, damask, finish, marble, wainscot, woodPanel, type Finish } from '../textures';
+import { checker, coffer, damask, finish, marble, wainscot, woodPanel, wornChecker, type Finish } from '../textures';
 import type { Level } from '../move';
 import {
   artwork,
@@ -26,6 +26,7 @@ const LOOKS: Record<Mat, () => Finish> = {
   marble: () => ({ pattern: marble(), rough: 0.25 }),
   coffer: () => ({ pattern: coffer(), rough: 0.7 }),
   checker: () => ({ pattern: checker(), rough: 0.5 }),
+  wornChecker: () => ({ pattern: wornChecker(), rough: 0.6 }),
   greenDamask: () => ({ pattern: damask('#26330a', '#86a63a'), rough: 0.8 }),
   wainscot: () => ({ pattern: wainscot(), rough: 0.55 }),
   cream: () => ({ tint: '#efe6d2', rough: 0.85 }),

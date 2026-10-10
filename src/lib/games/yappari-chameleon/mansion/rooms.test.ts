@@ -165,6 +165,19 @@ describe('屋敷の 3 部屋', () => {
         'board'
       ])
     );
-    expect([...kinds('ランドリー')]).toEqual(expect.arrayContaining(['washer', 'clothesline', 'beam', 'tube-light']));
+    expect([...kinds('ランドリー')]).toEqual(
+      expect.arrayContaining([
+        'washer',
+        'clothesline',
+        'beam',
+        'tube-light',
+        'towel-table',
+        'wood-shelf',
+        'extinguisher',
+        'vacuum',
+        'jerrycan',
+        'poster-blue'
+      ])
+    );
   });
 });

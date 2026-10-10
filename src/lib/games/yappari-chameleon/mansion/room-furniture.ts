@@ -181,17 +181,6 @@ function washer(g: THREE.Group, p: Piece) {
   box(g, [0.6, 0.08, 0.02], { tint: '#f1ece2', rough: 0.5 }, [0, 0.78, 0.33]);
 }
 
-/** たたんだタオルの山。置いた場所で白・青・黄の並びを変える */
-function towels(g: THREE.Group, p: Piece) {
-  const colors = ['#f4f1ea', '#3f7ec7', '#f2c94c'];
-  for (let i = 0; i < 5; i++)
-    box(g, [0.48 - (i % 2) * 0.02, 0.09, 0.38], { tint: colors[(variant(p) + i) % 3], rough: 0.95 }, [
-      0,
-      0.045 + i * 0.095,
-      0
-    ]);
-}
-
 /** 青い洗濯カート。上の開いた箱に脚と車輪 */
 function cart(g: THREE.Group) {
   const blue: Finish = { tint: '#2f6fb8', rough: 0.5 };
@@ -220,6 +209,5 @@ export const ROOM_MAKERS = {
   box: cardboard,
   bucket,
   washer,
-  towels,
   cart
 } satisfies Partial<Record<Kind, Maker>>;

@@ -51,7 +51,7 @@ function laundry(): Slab[] {
   const [x0, , z0] = LAUNDRY.min;
   const [x1, h, z1] = LAUNDRY.max;
   return [
-    { min: [x0, -1, z0], max: [x1, 0, z1 + T], mat: 'checker', face: 'y+' },
+    { min: [x0, -1, z0], max: [x1, 0, z1 + T], mat: 'wornChecker', face: 'y+' },
     { min: [x0, h, z0], max: [x1, h + T, z1], mat: 'darkPlanks', face: 'y-' },
     { min: [x0, 0, z0 - T], max: [x1, h, z0], mat: 'redDamask', face: 'z+' },
     { min: [x0 - T, 0, z0], max: [x0, h, z1], mat: 'redDamask', face: 'x+' },
@@ -101,10 +101,21 @@ export function roomPieces(): Piece[] {
     p('vent', [-13.2, 2.3, 15.05], 2),
     p('duct', [-16, 3.2, 11]),
     p('caution', [-15, 0, 10.8]),
-    // ランドリー。南と東の壁に洗濯機、部屋を横切る 2 本の洗濯ひも
+    // ランドリー。南・東・西の壁に洗濯機、部屋を横切る 2 本の洗濯ひも
     ...[-19.3, -18.5, -17.7, -16.9].map((x) => p('washer', [x, 0, -4.7])),
-    p('washer', [-10.4, 0, -2.5], 3),
-    p('washer', [-10.4, 0, -1.7], 3),
+    p('washer', [-19.675, 0, -3.9], 1),
+    ...[-3.3, -2.5, -1.7, -0.9, -0.1].map((z) => p('washer', [-10.4, 0, z], 3)),
+    p('towel-table', [-16.1, 0, -2.8]),
+    p('towel-table', [-14.5, 0, -2.8]),
+    p('towel-table', [-16.6, 0, -0.6]),
+    p('wood-shelf', [-19.8, 0, -1.2], 1),
+    p('extinguisher', [-19.85, 0, -0.5]),
+    p('vacuum', [-19.7, 0, 0.1]),
+    p('vacuum', [-19.2, 0, 0.0], 1),
+    p('poster', [-19.99, 1.6, -2.4], 1),
+    p('poster-blue', [-19.99, 1.5, 0.9], 1),
+    p('jerrycan', [-12.0, 0, -4.8]),
+    p('jerrycan', [-12.35, 0, -4.8]),
     p('clothesline', [-15, 2.3, -1.5], 0, 9),
     p('clothesline', [-15, 2.3, 0.5], 0, 9),
     ...[-3.6, -0.6, 2.2].map((z) => p('beam', [-15, LAUNDRY.max[1], z])),

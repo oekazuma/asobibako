@@ -128,6 +128,31 @@ export function checker(): Pattern {
   });
 }
 
+/** ランドリーの市松。廊下のものより暗い、使い込んだ白に黒ずんだ汚れを散らす */
+export function wornChecker(): Pattern {
+  return make('worn-checker', 256, 256, [0.6, 0.6], (g) => {
+    const r = rng(12);
+    for (let i = 0; i < 2; i++)
+      for (let j = 0; j < 2; j++) {
+        g.fillStyle = (i + j) % 2 ? '#1d1c1b' : '#cdc7bb';
+        g.fillRect(i * 128, j * 128, 128, 128);
+        for (let k = 0; k < 24; k++) {
+          g.fillStyle = (i + j) % 2 ? 'rgb(255 255 255 / 0.04)' : 'rgb(70 56 40 / 0.12)';
+          g.fillRect(i * 128 + r() * 128, j * 128 + r() * 128, 8 + r() * 26, 8 + r() * 26);
+        }
+      }
+    g.strokeStyle = '#6e6a63';
+    g.lineWidth = 9;
+    for (const [x, y] of [
+      [0, 0],
+      [128, 128],
+      [128, 0],
+      [0, 128]
+    ])
+      g.strokeRect(x, y, 128, 128);
+  });
+}
+
 /**
  * 金の額に入れる油絵。本家のトレーラーで体に写していた絵に寄せ、灰色がかった緑とオリーブを主に、
  * 左に上がる茶の階段、右に扉の並ぶ廊下、手前に明るいベージュの床を置く

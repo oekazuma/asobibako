@@ -22,7 +22,8 @@ export type Mat =
   | 'whiteTile'
   | 'blueHex'
   | 'redDamask'
-  | 'darkPlanks';
+  | 'darkPlanks'
+  | 'wornChecker';
 export type Face = 'x+' | 'x-' | 'y+' | 'y-' | 'z+' | 'z-';
 
 export interface Slab {
@@ -82,6 +83,12 @@ export type Kind =
   | 'vent'
   | 'beam'
   | 'tube-light'
+  | 'towel-table'
+  | 'wood-shelf'
+  | 'extinguisher'
+  | 'vacuum'
+  | 'jerrycan'
+  | 'poster-blue'
   | 'range'
   | 'pot-rack'
   | 'pots'
@@ -143,6 +150,12 @@ export const SIZES: Record<Kind, V3 | null> = {
   vent: null,
   beam: null,
   'tube-light': null,
+  'towel-table': [1.6, 1.3, 0.75],
+  'wood-shelf': [0.5, 1.1, 0.4],
+  extinguisher: [0.2, 0.55, 0.2],
+  vacuum: [0.4, 0.45, 0.4],
+  jerrycan: [0.3, 0.35, 0.15],
+  'poster-blue': null,
   range: [1.0, 0.9, 0.8],
   'pot-rack': [0.6, 1.8, 0.4],
   pots: null,
