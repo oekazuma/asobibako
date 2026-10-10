@@ -39,6 +39,13 @@ export function placeRoot(root: THREE.Object3D, b: Placeable): void {
   root.updateMatrixWorld(true);
 }
 
+/**
+ * CPU の目の、明るさを丸めずに描く先の型。半精度の浮動小数に描けない端末で半精度を選ぶと何も描かれず、目立ちが黙って 0 になるので、
+ * そこでは 8 bit に描く（明るい所は白に張り付くが、仕上げは同じ OutputPass で掛ける）
+ */
+export const eyeType = (has: (name: string) => boolean): THREE.TextureDataType =>
+  has('EXT_color_buffer_half_float') || has('EXT_color_buffer_float') ? THREE.HalfFloatType : THREE.UnsignedByteType;
+
 export class World {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
@@ -314,20 +321,27 @@ export class World {
     XRAY.on.value = 0;
     this.#ring.visible = this.#cursor.visible = false;
     r.shadowMap.autoUpdate = false;
-    const eye = (this.#eye ??= {
-      hdr: new THREE.WebGLRenderTarget(rt.width, rt.height, { type: THREE.HalfFloatType }),
-      tone: new OutputPass()
-    });
-    eye.hdr.setSize(rt.width, rt.height);
-    r.setRenderTarget(eye.hdr);
-    r.render(this.scene, cam);
-    eye.tone.render(r, rt, eye.hdr, 0, false);
-    r.readRenderTargetPixels(rt, 0, 0, rt.width, rt.height, out);
-    r.setRenderTarget(null);
-    r.shadowMap.autoUpdate = true;
-    XRAY.on.value = xray;
-    this.#ring.visible = ring;
-    this.#cursor.visible = cursor;
+    try {
+      let eye = this.#eye;
+      if (!eye) {
+        const type = eyeType((name) => r.extensions.has(name));
+        eye = this.#eye = { hdr: new THREE.WebGLRenderTarget(rt.width, rt.height, { type }), tone: new OutputPass() };
+        // 描く先がある材質は画面とは別の shader になる。いまの視野の外の部屋の材質も先に作り、探索で初めて見る部屋で止まらない
+        r.setRenderTarget(eye.hdr);
+        r.compile(this.scene, cam);
+      }
+      eye.hdr.setSize(rt.width, rt.height);
+      r.setRenderTarget(eye.hdr);
+      r.render(this.scene, cam);
+      eye.tone.render(r, rt, eye.hdr, 0, false);
+      r.readRenderTargetPixels(rt, 0, 0, rt.width, rt.height, out);
+    } finally {
+      r.setRenderTarget(null);
+      r.shadowMap.autoUpdate = true;
+      XRAY.on.value = xray;
+      this.#ring.visible = ring;
+      this.#cursor.visible = cursor;
+    }
   }
 
   project(p: V3): { x: number; y: number } {

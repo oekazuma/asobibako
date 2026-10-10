@@ -79,7 +79,7 @@ export class Senses3d implements Senses {
     return standout(this.#with, this.#without, diff);
   }
 
-  /** 目で 1 枚だけ描く。目の絵は画面と別の shader を使うので、最初の 1 回は shader を作って止まる。試合の前に済ませる口 */
+  /** 目で 1 枚だけ描く。目の絵は画面と別の shader を使うので、最初の 1 回は屋敷の全部の材質の shader を作って止まる。試合の前に済ませる口 */
   warm(): void {
     this.#world.look(this.#world.camera, this.#rt, this.#with);
   }
