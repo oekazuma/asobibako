@@ -24,6 +24,7 @@ export class Crew {
   readonly #rand: () => number;
   #queued: { choice: CpuChoice; settings: Settings } | null = null;
   #stopped = false;
+  #turn: Promise<void> = Promise.resolve();
 
   constructor(party: Party, host: Host, rand: () => number = Math.random) {
     this.#party = party;
@@ -33,8 +34,23 @@ export class Crew {
     host.podium = false;
   }
 
-  /** CPU の人数と強さを合わせる。減らすときは、閉じた席が顔ぶれから抜け終わるまで待つ */
-  async seat(c: CpuChoice): Promise<void> {
+  /**
+   * 席替えと始めるのを、呼ばれた順に 1 つずつ進める。重ねて呼ぶと 2 つの席替えが入り混じる。
+   * 失敗は呼んだ側へ返さずに知らせる（呼ぶ側はどれも待たずに投げっぱなしにする）
+   */
+  #next(f: () => Promise<void>): Promise<void> {
+    const run = this.#turn.then(f).catch((e: unknown) => console.error(e));
+    this.#turn = run;
+    return run;
+  }
+
+  /** CPU の人数と強さを合わせる */
+  seat(c: CpuChoice): Promise<void> {
+    return this.#next(() => this.#seat(c));
+  }
+
+  /** 減らすときは、閉じた席が顔ぶれから抜け終わるまで待つ */
+  async #seat(c: CpuChoice): Promise<void> {
     while (this.bots.length > c.count) {
       const bot = this.bots.pop()!;
       bot.close();
@@ -55,9 +71,13 @@ export class Crew {
     for (const bot of this.bots) bot.strength = c.strength;
   }
 
-  async play(c: CpuChoice, settings: Settings): Promise<void> {
-    await this.seat(c);
-    if (!this.#stopped) this.#host.start(cpuSettings(settings, c), cpuHunters(c, this.#party.members));
+  play(c: CpuChoice, settings: Settings): Promise<void> {
+    return this.#next(async () => {
+      // 前の play で試合が始まっていれば、試合中の席を変えない
+      if (this.#host.match.phase !== 'lobby') return;
+      await this.#seat(c);
+      if (!this.#stopped) this.#host.start(cpuSettings(settings, c), cpuHunters(c, this.#party.members));
+    });
   }
 
   /** 試合を始めるのを、つないだ画面が 3D を作り終えるまで待たせる（紹介の 3 秒を作るあいだに過ぎさせない） */

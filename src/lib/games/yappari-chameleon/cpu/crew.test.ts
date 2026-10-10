@@ -138,6 +138,44 @@ describe('CPU と遊ぶの設定', () => {
     await settle();
     expect(start).toHaveBeenCalledTimes(1);
   });
+
+  it('保存したマップの設定がダブルでも、モードとハンターは CPU の設定で決め直す（queue と go・play のどちらでも）', async () => {
+    const double = { ...SET, mode: 'double' } as const;
+    const seek = table();
+    await seek.crew.seat(choice({ side: 'seek', count: 2 }));
+    seek.crew.queue(choice({ side: 'seek', count: 2, mode: 'infect' }), double);
+    seek.crew.go();
+    await settle();
+    expect(seek.host.match.settings.mode).toBe('infect');
+    expect(seek.host.match.roles).toEqual({ 1: 'hunter', 2: 'hider', 3: 'hider' });
+    const hide = table();
+    await hide.crew.play(choice({ side: 'hide', count: 2 }), double);
+    expect(hide.host.match.settings.mode).toBe('normal');
+    expect(hide.host.match.roles).toEqual({ 1: 'hider', 2: 'hunter', 3: 'hunter' });
+  });
+
+  it('重ねて呼んだ席替えは 1 つずつ進め、始まったあとに届いた play は席を変えない', async () => {
+    const t = table();
+    await Promise.all([t.crew.seat(choice({ count: 2 })), t.crew.seat(choice({ count: 1 }))]);
+    expect(t.party.members).toEqual([1, 2]);
+    expect(t.crew.bots).toHaveLength(1);
+    await Promise.all([t.crew.play(choice({ count: 2 }), SET), t.crew.play(choice({ count: 1 }), SET)]);
+    expect(t.party.members).toEqual([1, 2, 3]);
+    expect(Object.keys(t.host.match.roles)).toEqual(['1', '2', '3']);
+  });
+
+  it('go で始めるのに失敗しても、未処理の reject にせず知らせる', async () => {
+    const t = table();
+    vi.spyOn(t.host, 'start').mockImplementation(() => {
+      throw new Error('boom');
+    });
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    t.crew.queue(CPU_DEFAULT, SET);
+    t.crew.go();
+    await settle();
+    expect(error).toHaveBeenCalledWith(expect.objectContaining({ message: 'boom' }));
+    error.mockRestore();
+  });
 });
 
 // 隠れるプレイヤーを置く OPEN が入口と大広間の見回す点から見えることは、hunter.test.ts の「的の点は」が確かめる

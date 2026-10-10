@@ -3,13 +3,17 @@
   import Handshake from '$lib/net/Handshake.svelte';
   import type { Link } from '$lib/net/link';
   import { MISMATCH, Party, type Seat } from '$lib/net/party.svelte';
+  import CpuSetup from './CpuSetup.svelte';
+  import type { CpuChoice } from './cpu/levels';
+  import { readCpu, saveCpu } from './prefs';
 
   let {
     note = '',
     was,
     onhost,
     onparty,
-    onsolo
+    onsolo,
+    oncpu
   }: {
     note?: string;
     /** 親とのつながりが切れた子の、切れる前の番号。親が同じ番号で呼び直せるので、すぐ QR を読みに行けるようにする */
@@ -18,10 +22,19 @@
     onhost: (party: Party) => () => void;
     onparty: (party: Party) => void;
     onsolo: () => void;
+    oncpu: (choice: CpuChoice) => void;
   } = $props();
 
   let joining = $state<'host' | 'guest' | null>(null);
   let failed = $state('');
+  let picking = $state(false);
+  let choice = $state(readCpu());
+
+  function startCpu() {
+    saveCpu(choice);
+    picking = false;
+    oncpu($state.snapshot(choice));
+  }
 
   async function linked(link: Link) {
     if (joining !== 'host') {
@@ -72,8 +85,12 @@
       <button class="go" onclick={() => join('host')}>なかまを呼ぶ<small>この iPad に QR が出る</small></button>
       <button class="go" onclick={() => join('guest')}>なかまに入る<small>ホストの QR を読み取る</small></button>
     </div>
-    <button class="solo" onclick={onsolo}>ひとりで試す</button>
+    <div class="row">
+      <button class="cpu" onclick={() => (picking = true)}>CPU と遊ぶ</button>
+      <button class="solo" onclick={onsolo}>ひとりで試す</button>
+    </div>
   {/if}
+  {#if picking}<CpuSetup bind:choice onstart={startCpu} onclose={() => (picking = false)} />{/if}
   {#if failed || note}<p role="alert">{failed || note}</p>{/if}
   <a class="back" href={resolve('/')} aria-label="ゲーム選択へ戻る">✕</a>
 </div>
@@ -113,7 +130,8 @@
   }
 
   .go,
-  .solo {
+  .solo,
+  .cpu {
     border: 2px solid rgb(255 255 255 / 0.85);
     border-radius: 18px;
     background: rgb(0 0 0 / 0.35);
@@ -133,10 +151,14 @@
     font-size: 13px;
   }
 
-  .solo {
+  .solo,
+  .cpu {
     padding: 8px 24px;
-    border-style: dashed;
     font-size: 18px;
+  }
+
+  .solo {
+    border-style: dashed;
   }
 
   /* QR の手順の部品はふだんの紙の地の色で描くので、白い札に載せる */

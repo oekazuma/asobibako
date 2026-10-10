@@ -7,7 +7,13 @@ import type { PlayRole } from './play.svelte';
 import { DEFAULTS, newMatch, view, type View } from './referee';
 import type { Session } from './session.svelte';
 
-function show(role: PlayRole, v: Partial<View>, me: Seat = 1, extra: Partial<Record<string, unknown>> = {}) {
+function show(
+  role: PlayRole,
+  v: Partial<View>,
+  me: Seat = 1,
+  extra: Partial<Record<string, unknown>> = {},
+  props: Record<string, unknown> = {}
+) {
   const match = new Match(() => me);
   match.receive({ ...view(newMatch()), settings: DEFAULTS, roles: { 1: 'hider', 2: 'hunter' }, ...v });
   const play = {
@@ -38,7 +44,10 @@ function show(role: PlayRole, v: Partial<View>, me: Seat = 1, extra: Partial<Rec
     ...extra
   } as unknown as Session;
   const target = document.body.appendChild(document.createElement('div'));
-  const app = mount(Overlay, { target, props: { session, radius: 70, center: () => [0, 0], onleave: vi.fn() } });
+  const app = mount(Overlay, {
+    target,
+    props: { session, radius: 70, center: () => [0, 0], onleave: vi.fn(), ...props }
+  });
   flushSync();
   const labels = () => [...target.querySelectorAll('button')].map((b) => b.textContent?.trim());
   return { target, labels, session, done: () => unmount(app) };
@@ -162,5 +171,17 @@ describe('Overlay', () => {
     const { target, done } = show('hider', { phase: 'hide' }, 1, { buried: true });
     expect(target.textContent).toContain('体が埋まりすぎている！この状態が続くと位置が公開されます');
     done();
+  });
+
+  it('CPU と遊ぶでは「よびなおす」を出さず、ロビーに CPU の設定を出す', () => {
+    const party = { host: true, members: [1, 2], away: [3], looks: { 2: 'cpu' } };
+    const cpu = show('hider', { phase: 'lobby' }, 1, { party }, { crew: { play: vi.fn() } });
+    expect(cpu.labels()).toContain('CPU の設定');
+    expect(cpu.labels()).not.toContain('よびなおす');
+    expect(cpu.labels()).not.toContain('なかまを呼ぶ');
+    cpu.done();
+    const plain = show('hider', { phase: 'lobby' }, 1, { party });
+    expect(plain.labels()).toContain('よびなおす');
+    plain.done();
   });
 });

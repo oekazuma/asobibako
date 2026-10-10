@@ -1,8 +1,9 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { Crew } from './cpu/crew';
 import Lobby from './Lobby.svelte';
 import { Match } from './match.svelte';
-import { SETTINGS_KEY } from './prefs';
+import { CPU_KEY, SETTINGS_KEY } from './prefs';
 import type { Session } from './session.svelte';
 
 function show(host: boolean, members = [1, 2]) {
@@ -69,6 +70,80 @@ describe('Lobby', () => {
     flushSync();
     button('ゲームを始める')!.click();
     expect(start).toHaveBeenCalledWith(expect.objectContaining({ mode: 'double', overlook: false }));
+    done();
+  });
+});
+
+describe('CPU と遊ぶのロビー', () => {
+  function showCpu(members = [1, 2]) {
+    const play = vi.fn();
+    const start = vi.fn();
+    const looks = { 2: 'cpu' };
+    const session = {
+      party: { host: true, members, looks },
+      match: new Match(
+        () => 1,
+        () => looks
+      ),
+      start
+    } as unknown as Session;
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(Lobby, { target, props: { session, crew: { play } as unknown as Crew, oninvite: vi.fn() } });
+    flushSync();
+    const button = (text: string) =>
+      [...target.querySelectorAll('button')].find((b) => b.textContent?.trim() === text) as HTMLButtonElement;
+    const click = (text: string) => {
+      button(text).click();
+      flushSync();
+    };
+    return { target, play, start, button, click, done: () => unmount(app) };
+  }
+
+  it('顔ぶれを CPU の名前で出し、CPU の設定を出して、なかまを呼ぶを出さない', () => {
+    const { target, button, done } = showCpu();
+    expect(target.textContent).toContain('プレイヤー1・CPU 1（2/3人）');
+    expect(button('CPU の設定')).toBeDefined();
+    expect(button('なかまを呼ぶ')).toBeUndefined();
+    done();
+  });
+
+  it('CPU の設定で選んで始めると、覚えて crew.play に渡す（session.start は使わない）', () => {
+    const { click, play, start, done } = showCpu();
+    click('CPU の設定');
+    click('探す');
+    click('増え鬼');
+    click('強い');
+    click('ゲームを始める');
+    expect(play).toHaveBeenCalledWith(
+      { side: 'seek', count: 1, mode: 'infect', strength: 'strong' },
+      expect.objectContaining({ hide: 120 })
+    );
+    expect(start).not.toHaveBeenCalled();
+    expect(JSON.parse(localStorage.getItem(CPU_KEY)!).side).toBe('seek');
+    done();
+  });
+
+  it('マップの設定から始めても crew.play に渡し、ゲームモードとハンターの人数の行を出さない', () => {
+    const { target, click, play, start, done } = showCpu();
+    click('マップの設定');
+    expect(target.textContent).not.toContain('ゲームモード');
+    expect(target.textContent).not.toContain('ハンターの人数');
+    click('ゲームを始める');
+    expect(play).toHaveBeenCalledWith(
+      expect.objectContaining({ side: 'hide' }),
+      expect.objectContaining({ hide: 120 })
+    );
+    expect(start).not.toHaveBeenCalled();
+    done();
+  });
+
+  it('CPU が席に着き終わる前でも、マップの設定の人数は CPU の席を数えて始められる', () => {
+    const { target, button, click, play, done } = showCpu([1]);
+    click('マップの設定');
+    expect(button('ゲームを始める').disabled).toBe(false);
+    expect(target.textContent).not.toContain('2人以上');
+    click('ゲームを始める');
+    expect(play).toHaveBeenCalledTimes(1);
     done();
   });
 });

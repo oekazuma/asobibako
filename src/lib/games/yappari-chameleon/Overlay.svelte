@@ -1,6 +1,7 @@
 <script lang="ts">
   import BrushSize from './BrushSize.svelte';
   import Buttons from './Buttons.svelte';
+  import type { Crew } from './cpu/crew';
   import EmbedWarning from './EmbedWarning.svelte';
   import Hud from './Hud.svelte';
   import HunterButtons from './HunterButtons.svelte';
@@ -27,8 +28,15 @@
     session,
     radius,
     center,
-    onleave
-  }: { session: Session; radius: number; center: () => [number, number]; onleave: () => void } = $props();
+    onleave,
+    crew = null
+  }: {
+    session: Session;
+    radius: number;
+    center: () => [number, number];
+    onleave: () => void;
+    crew?: Crew | null;
+  } = $props();
   let inviting = $state(false);
   let asking = $state(false);
   const play = $derived(session.play);
@@ -55,7 +63,7 @@
 {/if}
 {#if play.wheel}<PoseWheel {play} />{/if}
 {#if phase === 'lobby'}
-  <Lobby {session} oninvite={() => (inviting = true)} />
+  <Lobby {session} {crew} oninvite={() => (inviting = true)} />
 {:else}
   <Hud {session} />
 {/if}
@@ -81,7 +89,8 @@
 {#if session.buried}<EmbedWarning />{/if}
 {#if phase === 'reveal' && won}<Reveal text={won} />{/if}
 <button class="quit" onclick={ask} aria-label="抜ける">✕</button>
-{#if session.party.host}
+<!-- CPU と遊ぶで人数を減らすと、閉じた CPU の席が切れた席として残るので、呼び直しを出さない -->
+{#if session.party.host && !crew}
   <Invite away={session.party.away} bind:open={inviting} onlink={(link) => session.invite(link)} />
 {/if}
 {#if asking}

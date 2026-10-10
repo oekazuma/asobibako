@@ -4,6 +4,8 @@
   import { Loop } from '$lib/music/loop';
   import type { Party } from '$lib/net/party.svelte';
   import { pick } from './bgm';
+  import type { Crew } from './cpu/crew';
+  import { Senses3d } from './cpu/senses3d';
   import type { Host } from './host';
   import Overlay from './Overlay.svelte';
   import { Play } from './play.svelte';
@@ -16,13 +18,21 @@
     party,
     host,
     inbox,
+    crew = null,
     onleave
-  }: { party: Party; host: Host | null; inbox: Inbox | null; onleave: (note?: string) => void } = $props();
+  }: {
+    party: Party;
+    host: Host | null;
+    inbox: Inbox | null;
+    crew?: Crew | null;
+    onleave: (note?: string) => void;
+  } = $props();
   let canvas: HTMLCanvasElement;
   let box: HTMLDivElement;
   let portrait = $state(false);
   let failed = $state(false);
   let session = $state.raw<Session | null>(null);
+  let senses: Senses3d | null = null;
   const radius = 70;
   const loop = new Loop(bus);
 
@@ -47,11 +57,20 @@
   onMount(() =>
     mount3d(canvas, box, {
       ready: (world, makeRig) => {
-        session = new Session(party, new Play(world, radius), makeRig, host, inbox ?? undefined);
+        const s = new Session(party, new Play(world, radius), makeRig, host, inbox ?? undefined);
+        session = s;
+        if (crew) {
+          senses = new Senses3d(world, (seat) => s.rigOf(seat));
+          crew.senses = senses;
+          // 目の絵の shader を作る 1 秒ほどの止まりを、紹介の前に済ませる
+          senses.warm();
+          crew.go();
+        }
         if (import.meta.env.DEV) {
-          const w = window as unknown as { __chameleon?: Play; __session?: Session };
-          w.__chameleon = session.play;
-          w.__session = session;
+          const w = window as unknown as { __chameleon?: Play; __session?: Session; __crew?: Crew | null };
+          w.__chameleon = s.play;
+          w.__session = s;
+          w.__crew = crew;
         }
       },
       frame: (dt, now) => session?.frame(dt, now),
@@ -59,7 +78,11 @@
       restore: () => session?.restore(),
       fail: () => (failed = true),
       portrait: (on) => (portrait = on),
-      dispose: () => session?.dispose()
+      dispose: () => {
+        if (crew) crew.senses = null;
+        senses?.dispose();
+        session?.dispose();
+      }
     })
   );
 
@@ -80,7 +103,13 @@
     )}
   ></div>
   {#if session}
-    <Overlay {session} {radius} center={() => [box.clientWidth / 2, box.clientHeight / 2]} onleave={() => onleave()} />
+    <Overlay
+      {session}
+      {crew}
+      {radius}
+      center={() => [box.clientWidth / 2, box.clientHeight / 2]}
+      onleave={() => onleave()}
+    />
   {:else if failed}
     <div class="notice failed">
       <p>この端末では 3D を表示できません</p>
