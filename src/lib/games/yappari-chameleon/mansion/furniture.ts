@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { Piece } from './layout';
+import { KITCHEN_MAKERS } from './kitchen';
 import { ROOM_MAKERS } from './room-furniture';
 import { ball, BLACK, box, cyl, glowing, GOLD, plane, variant, WHITE, WOOD, type Maker } from './shapes';
 import { books, finish, leather, marble, oilPainting, poster, rug, type Finish } from '../textures';
@@ -263,7 +264,8 @@ const MAKERS: Record<Piece['kind'], Maker> = {
   bunting,
   banner,
   stairs,
-  ...ROOM_MAKERS
+  ...ROOM_MAKERS,
+  ...KITCHEN_MAKERS
 };
 
 export function piece(p: Piece): THREE.Group {

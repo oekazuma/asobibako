@@ -76,7 +76,9 @@ export type Kind =
   | 'washer'
   | 'clothesline'
   | 'towels'
-  | 'cart';
+  | 'cart'
+  | 'drain'
+  | 'vent';
 
 export interface Piece {
   kind: Kind;
@@ -129,7 +131,9 @@ export const SIZES: Record<Kind, V3 | null> = {
   washer: [0.65, 0.85, 0.65],
   clothesline: null,
   towels: [0.5, 0.5, 0.4],
-  cart: [0.8, 0.9, 0.55]
+  cart: [0.8, 0.9, 0.55],
+  drain: null,
+  vent: null
 };
 
 export interface Light {

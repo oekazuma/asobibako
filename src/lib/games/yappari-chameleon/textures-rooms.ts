@@ -241,40 +241,71 @@ export function planks(): Pattern {
   });
 }
 
-/** キッチンの白いタイルの壁。15cm 角に灰色の目地（2.3cm） */
+/**
+ * キッチンの白いタイルの壁。20cm 角のタイルに、溝の輪と、面取りした真ん中の四角の浮き模様（本家の暗い角の壁）。
+ * 目地・溝・面取りはどれも 2cm（屋敷の線は 2cm 以上）。本家の 15cm 角では溝と面取りが収まらないので大きくした。
+ * 面は灰緑がかった白にする。本家のキッチンは薄暗く、真っ白だと照明で飛んで部屋が明るすぎる
+ */
 export function whiteTile(): Pattern {
-  return make('white-tile', 256, 256, [0.6, 0.6], (g) => {
+  return make('white-tile', 512, 512, [0.6, 0.6], (g) => {
     const r = rng(97);
-    g.fillStyle = '#b9bcbf';
-    g.fillRect(0, 0, 256, 256);
-    for (let y = 0; y < 4; y++)
-      for (let x = 0; x < 4; x++) {
-        g.fillStyle = `hsl(200 8% ${92 + r() * 5}%)`;
-        g.fillRect(x * 64 + 5, y * 64 + 5, 54, 54);
+    const cm = 512 / 60;
+    const t = 20 * cm;
+    g.fillStyle = '#9aa09a';
+    g.fillRect(0, 0, 512, 512);
+    g.lineWidth = 2 * cm;
+    for (let j = 0; j < 3; j++)
+      for (let i = 0; i < 3; i++) {
+        const [x0, y0] = [i * t + cm, j * t + cm];
+        const side = t - 2 * cm;
+        g.fillStyle = `hsl(105 ${4 + r() * 3}% ${72 + r() * 4}%)`;
+        g.fillRect(x0, y0, side, side);
+        g.strokeStyle = 'rgb(60 70 60 / 0.16)';
+        g.strokeRect(x0 + 3 * cm, y0 + 3 * cm, side - 6 * cm, side - 6 * cm);
+        // 真ん中の四角の面取り。上と左は明るく、下と右は暗い
+        const [a, b] = [x0 + 6 * cm, x0 + side - 6 * cm];
+        const [c, d] = [y0 + 6 * cm, y0 + side - 6 * cm];
+        for (const [path, color] of [
+          [[a, d, a, c, b, c], 'rgb(255 255 255 / 0.25)'],
+          [[b, c, b, d, a, d], 'rgb(40 50 40 / 0.16)']
+        ] as const) {
+          g.strokeStyle = color;
+          g.beginPath();
+          g.moveTo(path[0], path[1]);
+          g.lineTo(path[2], path[3]);
+          g.lineTo(path[4], path[5]);
+          g.stroke();
+        }
       }
   });
 }
 
 /**
- * キッチンの青い六角タイルの床。差し渡し 20cm、目地 2.3cm。縦にとがった六角を、横 √3R・縦 3R の周期で
- * 2 周期ぶん描いて継ぎ目なく繰り返す（横の周期は 0.7 画素ずれるが、目に見えない）
+ * キッチンの六角のモザイクタイルの床。タイルの差し渡し 7.7cm で、目地は暗く 2cm（屋敷の線は 2cm 以上。
+ * 本家の 5〜6cm にすると目地が半分を占めるので、少し大きくした）。色はティールからコバルトまでむらがある。
+ * 縦にとがった六角を横 √3R・縦 3R の周期で 8 × 4 周期描き、色は周期の中の位置で決めて継ぎ目でも同じ色にする
  */
+export const HEX = { r: 0.05, grout: 0.02 };
 export function blueHex(): Pattern {
-  const R = 46;
+  const px = 640;
+  const R = HEX.r * px;
   const w = Math.sqrt(3) * R;
-  return make('blue-hex', 160, 276, [0.348, 0.6], (g) => {
-    const r = rng(101);
-    g.fillStyle = '#e8eef2';
-    g.fillRect(0, 0, 160, 276);
-    for (let k = -1; k <= 4; k++)
-      for (let i = -1; i <= 3; i++) {
+  const tile = R - (HEX.grout * px) / Math.sqrt(3);
+  const colors = ['#1f6f8f', '#2f86a8', '#3a9cc0', '#25708a', '#2a5f7a', '#253942'];
+  const r = rng(101);
+  const pick = Array.from({ length: 64 }, () => colors[Math.floor(r() * colors.length)]);
+  return make('blue-hex', Math.round(8 * w), 8 * 1.5 * R, [8 * Math.sqrt(3) * HEX.r, 12 * HEX.r], (g) => {
+    g.fillStyle = '#24414b';
+    g.fillRect(0, 0, g.canvas.width, g.canvas.height);
+    for (let k = -1; k <= 8; k++)
+      for (let i = -1; i <= 8; i++) {
         const cx = i * w + (k % 2 ? w / 2 : 0);
         const cy = k * 1.5 * R;
-        g.fillStyle = `hsl(208 ${55 + r() * 15}% ${38 + r() * 10}%)`;
+        g.fillStyle = pick[(((k % 8) + 8) % 8) * 8 + (((i % 8) + 8) % 8)];
         g.beginPath();
         for (let s = 0; s < 6; s++) {
           const a = Math.PI / 6 + (s * Math.PI) / 3;
-          g.lineTo(cx + Math.cos(a) * (R - 6), cy + Math.sin(a) * (R - 6));
+          g.lineTo(cx + Math.cos(a) * tile, cy + Math.sin(a) * tile);
         }
         g.fill();
       }

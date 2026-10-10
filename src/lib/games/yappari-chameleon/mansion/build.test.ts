@@ -1,13 +1,14 @@
 import * as THREE from 'three';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
+import type { Pattern } from '../textures';
 import type { Built } from '../world3d';
 
 /**
  * node には canvas が無いので、描く命令を捨てて空の画素を返す 2D の文脈を渡す。
- * 模様の中身ではなく、材質の種類・スポイトの印・Mesh と模様の数を見る
+ * 模様の中身ではなく、材質の種類・スポイトの印・Mesh と模様の数と、線の太さ（lineWidth に入れた値）を見る
  */
 function fakeCanvas() {
-  const canvas = { width: 0, height: 0, getContext: () => context };
+  const canvas = { width: 0, height: 0, widths: [] as number[], getContext: () => context };
   const context: object = new Proxy(
     {},
     {
@@ -22,7 +23,10 @@ function fakeCanvas() {
         if (String(key).startsWith('create')) return () => ({ addColorStop() {} });
         return () => {};
       },
-      set: () => true
+      set: (_, key, value) => {
+        if (key === 'lineWidth') canvas.widths.push(value);
+        return true;
+      }
     }
   );
   return canvas;
@@ -64,5 +68,26 @@ describe('組み立てた屋敷', () => {
     );
     const bytes = [...canvases].reduce((n, c) => n + c!.width * c!.height * 4, 0);
     expect(bytes).toBeLessThanOrEqual(32e6);
+  });
+});
+
+/** 模様の中でいちばん細い線（m）。線を引かない模様は Infinity */
+const thinnest = (p: Pattern) =>
+  Math.min(...(p.canvas as unknown as { widths: number[] }).widths) * (p.meters[0] / p.canvas.width);
+
+describe('作り込んだ模様', () => {
+  it('線は 2cm 以上（体に写せる太さ）', async () => {
+    const rooms = await import('../textures-rooms');
+    for (const [name, p] of Object.entries({ whiteTile: rooms.whiteTile() }))
+      expect(thinnest(p), name).toBeGreaterThanOrEqual(0.0199);
+  });
+
+  it('六角タイルの目地は 2cm で、模様は周期の整数倍で継ぎ目なく繰り返す', async () => {
+    const { blueHex, HEX } = await import('../textures-rooms');
+    const p = blueHex();
+    expect(HEX.grout).toBeGreaterThanOrEqual(0.02);
+    expect(p.meters[0] / (Math.sqrt(3) * HEX.r)).toBeCloseTo(8, 6);
+    expect(p.meters[1] / (3 * HEX.r)).toBeCloseTo(4, 6);
+    expect(p.canvas.width / p.meters[0]).toBeCloseTo(p.canvas.height / p.meters[1], -1);
   });
 });
