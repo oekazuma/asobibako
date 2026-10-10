@@ -214,30 +214,55 @@ export function hunterSign(): Pattern {
   });
 }
 
-/** 書斎の茶色の木の床。幅 15cm の板を長さ方向にずらして張る。継ぎ目と木目は 2cm 以上 */
+/** 書斎の磨いた赤茶の床。幅 10cm の細い板を長さをふぞろいにずらして張る。板ごとの明るさの差は ±8% までで、継ぎ目と木目は 2cm 以上 */
 export function planks(): Pattern {
   return make('planks', 512, 512, [1.2, 1.2], (g) => {
     const r = rng(89);
-    for (let i = 0; i < 8; i++) {
-      const y = i * 64;
+    const h = 512 / 12;
+    for (let i = 0; i < 12; i++) {
+      const y = i * h;
       let x = -r() * 200;
       while (x < 512) {
-        const len = 180 + r() * 160;
-        g.fillStyle = `hsl(26 ${40 + r() * 10}% ${26 + r() * 8}%)`;
-        g.fillRect(x, y, len, 64);
-        g.strokeStyle = 'rgb(255 230 200 / 0.07)';
+        const len = 150 + r() * 200;
+        g.fillStyle = `hsl(14 ${40 + r() * 12}% ${22 + r() * 16}%)`;
+        g.fillRect(x, y, len, h);
+        g.strokeStyle = 'rgb(255 220 190 / 0.08)';
         g.lineWidth = 9;
-        for (let k = 0; k < 3; k++) {
-          g.beginPath();
-          g.moveTo(x, y + 14 + k * 16);
-          g.lineTo(x + len, y + 16 + k * 16);
-          g.stroke();
-        }
-        g.strokeStyle = 'rgb(0 0 0 / 0.35)';
-        g.strokeRect(x, y, len, 64);
+        g.beginPath();
+        g.moveTo(x, y + h * 0.4);
+        g.lineTo(x + len, y + h * 0.45);
+        g.stroke();
+        g.strokeStyle = 'rgb(20 6 2 / 0.45)';
+        g.strokeRect(x, y, len, h);
         x += len;
       }
     }
+  });
+}
+
+/** 書斎の壁の大きな額縁の羽目板（幅 1.5m・高さ 2m）。濃い茶の枠に、一段下がった鏡板と浮き彫りの縁。溝と縁は 2cm 以上 */
+export function framedPanel(): Pattern {
+  return make('framed-panel', 512, 683, [1.5, 2], (g) => {
+    const r = rng(47);
+    g.fillStyle = '#3a1a0c';
+    g.fillRect(0, 0, 512, 683);
+    for (let k = 0; k < 14; k++) {
+      g.strokeStyle = `hsl(20 50% ${14 + r() * 6}% / 0.6)`;
+      g.lineWidth = 9 + r() * 4;
+      const x = r() * 512;
+      g.beginPath();
+      g.moveTo(x, 0);
+      for (let y = 0; y <= 683; y += 40) g.lineTo(x + Math.sin(y / 90 + k) * 5, y);
+      g.stroke();
+    }
+    g.fillStyle = '#2c1409';
+    g.fillRect(52, 52, 408, 579);
+    g.strokeStyle = '#6e4220';
+    g.lineWidth = 10;
+    g.strokeRect(70, 70, 372, 543);
+    g.strokeStyle = '#150904';
+    g.lineWidth = 12;
+    g.strokeRect(46, 46, 420, 591);
   });
 }
 

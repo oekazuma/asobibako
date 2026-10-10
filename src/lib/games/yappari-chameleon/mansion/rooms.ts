@@ -20,16 +20,16 @@ export const DOORWAYS: Box[] = [
 ];
 const T = 0.3;
 
-/** 西の壁は大広間の東の壁の裏。床は戸口の下（x 7〜7.3）まで伸ばす */
+/** 西の壁は大広間の東の壁の裏。床は戸口の下（x 7〜7.3）まで伸ばす。本家の画面に天井が無いので、ランドリーと同じ暗い板張り */
 function study(): Slab[] {
   const [x0, , z0] = STUDY.min;
   const [x1, h, z1] = STUDY.max;
   return [
     { min: [x0 - T, -1, z0], max: [x1, 0, z1], mat: 'planks', face: 'y+' },
-    { min: [x0, h, z0], max: [x1, h + T, z1], mat: 'coffer', face: 'y-' },
+    { min: [x0, h, z0], max: [x1, h + T, z1], mat: 'darkPlanks', face: 'y-' },
     { min: [x0, 0, z0 - T], max: [x1, h, z0], mat: 'woodPanel', face: 'z+' },
-    { min: [x0, 0, z1], max: [x1, h, z1 + T], mat: 'woodPanel', face: 'z-' },
-    { min: [x1, 0, z0], max: [x1 + T, h, z1], mat: 'woodPanel', face: 'x-' }
+    { min: [x0, 0, z1], max: [x1, h, z1 + T], mat: 'framedPanel', face: 'z-' },
+    { min: [x1, 0, z0], max: [x1 + T, h, z1], mat: 'framedPanel', face: 'x-' }
   ];
 }
 
@@ -79,9 +79,22 @@ export function roomPieces(): Piece[] {
         [14.5, 8.3]
       ] as const
     ).map(([x, z]) => p('post', [x, 0, z])),
+    p('study-rug', [12.25, 0, 6], 1),
     p('desk', [12.25, 0, 6]),
     p('globe', [15.8, 0, 2.2]),
     p('bust', [8.2, 0, 1.7]),
+    p('arch-window', [9.0, 0, 1.0]),
+    p('arch-window', [16.2, 0, 1.0]),
+    ...[10.4, 12.75, 15.1].map((x) => p('pilaster', [x, 0, 1.0])),
+    p('pilaster', [7.3, 0, 4.85], 1),
+    p('pilaster', [7.3, 0, 7.15], 1),
+    // 本家の書斎は、黒い折りたたみ椅子が壁ぞいに散らばる
+    p('folding-chair', [8.0, 0, 3.0], 1),
+    p('folding-chair', [8.0, 0, 8.2], 1),
+    p('folding-chair', [16.3, 0, 9.6], 3),
+    p('folding-chair', [13.5, 0, 9.9], 2),
+    p('armchair', [16.2, 0, 7.6], 3),
+    p('floor-lamp', [16.6, 0, 1.35]),
     // キッチン。北の壁に台と流し、まん中に島の台、西の壁に肉の棚とガスボンベ、東の壁にレンジと針金の棚
     p('counter', [-19.9, 0, 14.7], 2),
     p('counter', [-17.9, 0, 14.7], 2),

@@ -379,7 +379,12 @@ export function books(): Pattern {
     let x = 4;
     while (x < 500) {
       const w = Math.min(500 - x, 13 + Math.floor(r() * 13));
-      const h = 120 + Math.floor(r() * 54);
+      // 背の高さをばらつかせ、ところどころ本を抜いて隙間を空ける
+      if (r() < 0.06) {
+        x += w;
+        continue;
+      }
+      const h = 80 + Math.floor(r() * 96);
       const c = colors[Math.floor(r() * colors.length)];
       g.fillStyle = c;
       g.fillRect(x, 184 - h, w - 2, h);

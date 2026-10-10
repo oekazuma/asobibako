@@ -146,7 +146,20 @@ describe('屋敷の 3 部屋', () => {
           .map((q) => q.kind)
       );
     expect([...kinds('書斎')]).toEqual(
-      expect.arrayContaining(['bookshelf', 'desk', 'globe', 'bust', 'post', 'painting'])
+      expect.arrayContaining([
+        'bookshelf',
+        'desk',
+        'globe',
+        'bust',
+        'post',
+        'painting',
+        'study-rug',
+        'arch-window',
+        'pilaster',
+        'folding-chair',
+        'armchair',
+        'floor-lamp'
+      ])
     );
     expect([...kinds('キッチン')]).toEqual(
       expect.arrayContaining([

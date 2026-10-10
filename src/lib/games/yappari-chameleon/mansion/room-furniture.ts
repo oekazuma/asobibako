@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { V3 } from '$lib/sculpt';
 import { finish, type Finish } from '../textures';
 import { hunterSign } from '../textures-rooms';
 import type { Kind, Piece } from './layout';
@@ -31,7 +32,6 @@ function pedestal(g: THREE.Group) {
 }
 
 const STEEL: Finish = { tint: '#c9ced3', metal: 0.8, rough: 0.35 };
-const IRON: Finish = { tint: '#3b3f43', metal: 0.6, rough: 0.5 };
 const BRASS: Finish = { tint: '#b8933a', metal: 0.9, rough: 0.35 };
 
 function post(g: THREE.Group) {
@@ -46,7 +46,7 @@ function desk(g: THREE.Group) {
   for (const x of [-0.6, 0.6]) box(g, [0.36, 0.71, 0.72], WOOD, [x, 0.355, 0]);
   cyl(g, [0.07, 0.08], 0.02, BRASS, [0.35, 0.77, -0.15]);
   cyl(g, [0.012, 0.012], 0.32, BRASS, [0.35, 0.93, -0.15]);
-  const glass = glowing('#1f6b3a', '#2f8a4a', 0.25, 0.3);
+  const glass = glowing('#5fae3a', '#8fd14f', 1.0, 0.3);
   glass.side = THREE.DoubleSide;
   const shade = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.36, 24, 1, true, 0, Math.PI), glass);
   shade.rotation.z = Math.PI / 2;
@@ -84,18 +84,56 @@ function globe(g: THREE.Group) {
 function bust(g: THREE.Group) {
   const stone: Finish = { tint: '#e9e4da', rough: 0.4 };
   // marble() は床の模様で目地の黒い菱形が台の角に出るので、無地の石にする
-  box(g, [0.45, 1.15, 0.45], { tint: '#ddd5c8', rough: 0.25 }, [0, 0.575, 0]);
-  box(g, [0.38, 0.2, 0.22], stone, [0, 1.25, 0]);
-  cyl(g, [0.06, 0.07], 0.1, stone, [0, 1.38, 0]);
-  ball(g, 0.13, stone, [0, 1.5, 0]);
+  box(g, [0.45, 1.1, 0.45], { tint: '#ddd5c8', rough: 0.25 }, [0, 0.55, 0]);
+  box(g, [0.36, 0.05, 0.36], { tint: '#cfc6b8', rough: 0.25 }, [0, 1.125, 0]);
+  const chest = new THREE.Mesh(
+    new THREE.LatheGeometry(
+      [
+        [0.09, 0],
+        [0.16, 0.06],
+        [0.19, 0.16],
+        [0.17, 0.22],
+        [0.06, 0.25]
+      ].map(([x, y]) => new THREE.Vector2(x, y)),
+      20
+    ),
+    finish(stone, [1, 0.25])
+  );
+  chest.position.y = 1.15;
+  chest.scale.z = 0.6;
+  chest.castShadow = chest.receiveShadow = true;
+  g.add(chest);
+  cyl(g, [0.05, 0.06], 0.1, stone, [0, 1.43, 0]);
+  ball(g, 0.11, stone, [0, 1.55, 0]).scale.set(0.85, 1.05, 0.95);
+  box(g, [0.03, 0.05, 0.04], stone, [0, 1.54, 0.105]);
 }
 
+/** 2 点のあいだに細い管を渡す */
+function pipe(g: THREE.Group, a: V3, b: V3, f: Finish) {
+  const [from, to] = [new THREE.Vector3(...a), new THREE.Vector3(...b)];
+  const dir = to.clone().sub(from);
+  const o = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, dir.length(), 8), finish(f, [0.09, dir.length()]));
+  o.position.copy(from).add(to).multiplyScalar(0.5);
+  o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+  o.castShadow = o.receiveShadow = true;
+  g.add(o);
+}
+
+/**
+ * 日本のパイプ椅子。前脚は 1 本の管が床から背もたれまで通り、座面は前脚の枠につく。後脚は約 20 度うしろへ開く。
+ * 後脚の先まで含めて当たりの幅（0.45m 四方）に収める
+ */
 function foldingChair(g: THREE.Group) {
-  const seat: Finish = { tint: '#6b4a2e', rough: 0.6 };
-  box(g, [0.42, 0.04, 0.4], seat, [0, 0.46, 0]);
-  box(g, [0.42, 0.22, 0.03], seat, [0, 0.74, -0.2]);
-  for (const x of [-0.19, 0.19])
-    for (const tilt of [0.35, -0.35]) box(g, [0.025, 0.9, 0.025], IRON, [x, 0.42, 0]).rotation.x = tilt;
+  const seat: Finish = { tint: '#151515', metal: 0.3, rough: 0.4 };
+  const tube: Finish = { tint: '#1c1c1e', metal: 0.6, rough: 0.35 };
+  box(g, [0.42, 0.04, 0.34], seat, [0, 0.46, 0.03]);
+  const back = box(g, [0.42, 0.2, 0.03], seat, [0, 0.74, -0.075]);
+  back.rotation.x = -0.3;
+  for (const x of [-0.19, 0.19]) {
+    pipe(g, [x, 0, 0.17], [x, 0.85, -0.1], tube);
+    pipe(g, [x, 0.44, -0.02], [x, 0, -0.2], tube);
+  }
+  box(g, [0.38, 0.02, 0.02], tube, [0, 0.2, 0.17 - (0.27 * 0.2) / 0.85]);
 }
 
 function bookPile(g: THREE.Group, p: Piece) {

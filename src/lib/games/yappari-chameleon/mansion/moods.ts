@@ -22,7 +22,7 @@ export const DAY: Mood = { sun: 1.6, sky: '#fff4e0', ground: '#5a4a3a', fill: 1.
 export const MOODS: Record<string, Mood> = {
   キッチン: { sun: 0.4, sky: '#b8c8c0', ground: '#26332f', fill: 0.45, env: 0.3, exposure: 0.72 },
   ランドリー: { sun: 0.3, sky: '#d8c8c0', ground: '#2a1814', fill: 0.42, env: 0.2, exposure: 0.95 },
-  書斎: { sun: 0.5, sky: '#ffd9b0', ground: '#3a2214', fill: 0.6, env: 0.4, exposure: 1.15 }
+  書斎: { sun: 0.5, sky: '#ffd9b0', ground: '#3a2214', fill: 0.6, env: 0.6, exposure: 0.88 }
 };
 
 // 日の影は屋敷だけを覆うので、影の外のロビーでは上を向いた面が日で白く飛ぶ

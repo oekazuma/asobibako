@@ -23,7 +23,8 @@ export type Mat =
   | 'blueHex'
   | 'redDamask'
   | 'darkPlanks'
-  | 'wornChecker';
+  | 'wornChecker'
+  | 'framedPanel';
 export type Face = 'x+' | 'x-' | 'y+' | 'y-' | 'z+' | 'z-';
 
 export interface Slab {
@@ -89,6 +90,11 @@ export type Kind =
   | 'vacuum'
   | 'jerrycan'
   | 'poster-blue'
+  | 'study-rug'
+  | 'pilaster'
+  | 'arch-window'
+  | 'armchair'
+  | 'floor-lamp'
   | 'range'
   | 'pot-rack'
   | 'pots'
@@ -156,6 +162,11 @@ export const SIZES: Record<Kind, V3 | null> = {
   vacuum: [0.4, 0.45, 0.4],
   jerrycan: [0.3, 0.35, 0.15],
   'poster-blue': null,
+  'study-rug': null,
+  pilaster: null,
+  'arch-window': null,
+  armchair: [0.9, 1.0, 0.9],
+  'floor-lamp': [0.4, 1.6, 0.4],
   range: [1.0, 0.9, 0.8],
   'pot-rack': [0.6, 1.8, 0.4],
   pots: null,
