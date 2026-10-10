@@ -5,7 +5,7 @@ import type { RGB } from './color';
 import { bakePose, PoseAnimator, type DollRig } from './doll3d';
 import { cameraReach, settleDist, type Body, type DistState, type Level } from './move';
 import { brushModel, disposeModel, gunModel, inHand, MUZZLE } from './gun';
-import { DAY, type Mood } from './mansion/moods';
+import { blendK, DAY, type Mood } from './mansion/moods';
 import { placement, type Placeable } from './shots';
 import { readPick } from './textures';
 import { seeThrough, XRAY } from './xray';
@@ -313,7 +313,7 @@ export class World {
     const c = this.camera.position;
     const m = this.#built?.mood?.([c.x, c.y, c.z]) ?? DAY;
     const now = performance.now();
-    const k = this.#lit ? 1 - Math.exp(-(now - this.#lit) / 300) : 1;
+    const k = blendK(m, this.#lit ? now - this.#lit : null);
     this.#lit = now;
     const ease = (a: number, b: number) => a + (b - a) * k;
     this.#sun.intensity = ease(this.#sun.intensity, m.sun);

@@ -29,3 +29,10 @@ export const MOODS: Record<string, Mood> = {
 const LOBBY_MOOD: Mood = { ...DAY, sun: 0 };
 
 export const moodAt = (at: V3): Mood => (inLobby(at) ? LOBBY_MOOD : (MOODS[placeOf(at)] ?? DAY));
+
+/**
+ * 今の明るさを目標へ寄せる割合。戸口をまたいだ瞬間に跳ぶと目立つので 0.3 秒ほどで移すが、
+ * 日が 0 の部屋（ロビー）へ入るときは、日の影の外で上を向いた面が白く飛ぶので、すぐに切る
+ */
+export const blendK = (to: Mood, elapsedMs: number | null): number =>
+  elapsedMs === null || to.sun === 0 ? 1 : 1 - Math.exp(-elapsedMs / 300);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DAY, moodAt, MOODS } from './moods';
+import { blendK, DAY, moodAt, MOODS } from './moods';
 import { PLACES, SPAWNS } from './layout';
 
 describe('部屋ごとの明るさ', () => {
@@ -21,5 +21,11 @@ describe('部屋ごとの明るさ', () => {
     expect(moodAt([-15, 1.5, 5])).toBe(DAY);
     expect(moodAt(SPAWNS.room[1])).toBe(DAY);
     expect(moodAt([0, 1.5, -66])).toEqual({ ...DAY, sun: 0 });
+  });
+
+  it('ロビーへ入る最初の 1 フレームで日を切り、部屋どうしの移りはなめらかに寄せる', () => {
+    expect(blendK(moodAt([0, 1.5, -66]), 16)).toBe(1);
+    expect(blendK(MOODS['キッチン'], 16)).toBeLessThan(0.1);
+    expect(blendK(MOODS['キッチン'], null)).toBe(1);
   });
 });
