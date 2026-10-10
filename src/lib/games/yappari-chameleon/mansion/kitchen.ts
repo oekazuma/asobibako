@@ -4,14 +4,14 @@ import { finish, make, type Finish, type Pattern } from '../textures';
 import type { Kind, Piece } from './layout';
 import { ball, box, copy, cyl, plane, type Maker } from './shapes';
 
-/** 台の前の床の排水溝の格子。黒い鉄の棒と隙間はどちらも 2cm */
+/** 台の前の床の排水溝の格子。黒い鉄の棒と隙間はどちらも 4cm で、横に渡す棒（2.5cm）は溝の幅 25cm の真ん中 */
 function grate(): Pattern {
-  return make('grate', 64, 256, [0.08, 0.32], (g) => {
+  return make('grate', 64, 256, [0.08, 0.25], (g) => {
     g.fillStyle = '#050607';
     g.fillRect(0, 0, 64, 256);
     g.fillStyle = '#2a2f33';
     g.fillRect(0, 0, 32, 256);
-    g.fillRect(0, 0, 64, 26);
+    g.fillRect(0, 115, 64, 26);
   });
 }
 
@@ -171,7 +171,7 @@ function gas(g: THREE.Group) {
       finish(can, [0.35, 0.16])
     );
     arc.material.side = THREE.DoubleSide;
-    arc.position.y = 0.95;
+    arc.position.y = 0.91;
     arc.castShadow = true;
     g.add(arc);
   }
@@ -198,7 +198,7 @@ function sink(g: THREE.Group) {
     copy(g, leg, [x, 0.3, z]);
   box(g, [1.96, 0.025, 0.64], steel(), [0, 0.18, 0]);
   tub(g, [2.0, 0.32, 0.7], [0, 0.74, 0]);
-  box(g, [1.96, 0.02, 0.66], DARK_STEEL, [0, 0.59, 0]);
+  box(g, [1.96, 0.02, 0.66], DARK_STEEL, [0, 0.595, 0]);
   box(g, [2.0, 0.25, 0.03], steel(), [0, 1.025, -0.335]);
   cyl(g, [0.018, 0.018], 0.45, steel(), [0.3, 1.2, -0.29], 12);
   const spout = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.016, 8, 16, Math.PI), finish(steel(), [0.4, 0.05]));
@@ -264,10 +264,11 @@ function potRack(g: THREE.Group) {
     copy(g, post, [x, 0.9, z]);
   const shelf = box(g, [0.6, 0.012, 0.4], BLACK_IRON, [0, 0.35, 0]);
   for (const y of [0.8, 1.25, 1.7]) copy(g, shelf, [0, y, 0]);
-  const pot = cyl(g, [0.14, 0.13], 0.2, DARK_STEEL, [-0.1, 0.46, 0]);
-  copy(g, pot, [0.12, 1.36, 0]).scale.set(0.8, 0.9, 0.8);
-  cyl(g, [0.12, 0.11], 0.05, BLACK_IRON, [0.05, 0.835, 0]);
-  box(g, [0.18, 0.02, 0.03], BLACK_IRON, [-0.17, 0.85, 0]);
+  // 棚板は厚さ 1.2cm なので、載せる物の底は板の上面（中心 + 0.6cm）に合わせる
+  const pot = cyl(g, [0.14, 0.13], 0.2, DARK_STEEL, [-0.1, 0.456, 0]);
+  copy(g, pot, [0.12, 1.346, 0]).scale.set(0.8, 0.9, 0.8);
+  cyl(g, [0.12, 0.11], 0.05, BLACK_IRON, [0.05, 0.831, 0]);
+  box(g, [0.18, 0.02, 0.03], BLACK_IRON, [-0.17, 0.816, 0]);
 }
 
 function pots(g: THREE.Group) {
