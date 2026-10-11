@@ -78,6 +78,7 @@ describe('隠れ場所の候補', () => {
       for (const a of STEPS) for (const b of STEPS) expect(placeOf(shifted(s, a, b).pos), name(s)).toBe(placeOf(s.pos));
   });
 
+  // 候補 × ずらし 25 通り × 種 31 通りを調べるので、ほかのテストと並んで走ると数秒かかる
   it('どの種の置き方でも、どれだけずらしても埋まらない', () => {
     const bad: string[] = [];
     for (const seed of SEEDS) {
@@ -85,13 +86,16 @@ describe('隠れ場所の候補', () => {
       for (const s of ALL) if (embedded(lv, s)) bad.push(`${seed} ${name(s)}`);
     }
     expect(bad).toEqual([]);
-  });
+  }, 30_000);
 
   it('ずらしても、動く物の置き場所の候補のどれにもかからない', () => {
     const boxes = SETS.flatMap((set) =>
       set.slots.flatMap((slot) => set.units.flatMap((unit) => unit.map((q) => boxOf(place(slot, q)))))
     ).filter((b): b is Box => b !== null);
-    const bad = ALL.filter((s) => boxes.some((b) => hits(hull(s), b))).map(name);
+    const bad = ALL.filter((s) => {
+      const h = hull(s);
+      return boxes.some((b) => hits(h, b));
+    }).map(name);
     expect(bad).toEqual([]);
   });
 
