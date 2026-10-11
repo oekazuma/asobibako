@@ -19,6 +19,8 @@ export interface Skill {
   stray: { base: number; far: number };
   /** 隠れ場所の段。0 は床に立つ・座る、1 は壁ぎわ・家具の陰、2 は壁や天井の張り付き */
   tiers: number[];
+  /** 部屋の候補のうち、目立たない（Spot.seen の小さい）ほうからこの割合だけを選ぶ候補にする */
+  pick: number;
   /** 筆の半径（m）・色のずれ（0..1）・塗り残す割合・吹き付けの濃さ */
   brush: number;
   jitter: number;
@@ -37,6 +39,7 @@ export const SKILLS: Record<Strength, Skill> = {
     crouch: false,
     stray: { base: 3, far: 0.3 },
     tiers: [0],
+    pick: 1,
     brush: 0.12,
     jitter: 0.15,
     skip: 0.25,
@@ -52,6 +55,7 @@ export const SKILLS: Record<Strength, Skill> = {
     crouch: false,
     stray: { base: 2, far: 0.2 },
     tiers: [1],
+    pick: 0.6,
     brush: 0.07,
     jitter: 0.04,
     skip: 0.05,
@@ -67,6 +71,7 @@ export const SKILLS: Record<Strength, Skill> = {
     crouch: true,
     stray: { base: 1, far: 0.1 },
     tiers: [1, 2],
+    pick: 0.25,
     brush: 0.035,
     jitter: 0.01,
     skip: 0,

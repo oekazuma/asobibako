@@ -6,9 +6,11 @@ import { place, SETS } from '../mansion/props';
 import { EYE_HEIGHT, idle, newBody, step, wallNear, type Box } from '../move';
 import { poseById } from '../poses';
 import { capsules, placement } from '../shots';
+import { rng } from '../rng';
 import { SKILLS } from './levels';
 import { NODES, ROOMS } from './paths';
-import { pickSpot, shifted, SHIFT, SPOTS, viewOf, type Spot } from './spots';
+import { SEEN } from './spot-seen';
+import { pickSpot, shifted, SHIFT, spotKey, SPOTS, viewOf, type Spot } from './spots';
 
 const boxOf = (q: Piece): Box | null => {
   const s = SIZES[q.kind];
@@ -131,9 +133,9 @@ describe('隠れ場所の候補', () => {
   it('同じ種なら同じ置き方、CPU の 1 人めと 2 人めは別々の部屋で、強さの段の候補を slack までずらして選ぶ', () => {
     for (const skill of [SKILLS.weak, SKILLS.normal, SKILLS.strong])
       for (let seed = 1; seed <= 50; seed++) {
-        const a = pickSpot(seed, 0, skill.tiers, () => 0.3);
-        const b = pickSpot(seed, 1, skill.tiers, () => 0.3);
-        expect(pickSpot(seed, 0, skill.tiers, () => 0.3)).toEqual(a);
+        const a = pickSpot(seed, 0, skill, () => 0.3);
+        const b = pickSpot(seed, 1, skill, () => 0.3);
+        expect(pickSpot(seed, 0, skill, () => 0.3)).toEqual(a);
         expect(placeOf(a.pos)).not.toBe(placeOf(b.pos));
         for (const s of [a, b]) {
           expect(skill.tiers).toContain(s.tier);
@@ -143,7 +145,38 @@ describe('隠れ場所の候補', () => {
           expect(SPOTS.some(near), name(s)).toBe(true);
         }
       }
-    const moved = new Set(Array.from({ length: 20 }, (_, i) => pickSpot(i + 1, 0, [0], () => 0).pos.join(',')));
+    const moved = new Set(Array.from({ length: 20 }, (_, i) => pickSpot(i + 1, 0, SKILLS.weak, () => 0).pos.join(',')));
     expect(moved.size).toBeGreaterThan(1);
+  });
+
+  it('どの候補にも pnpm spots で測った目立ち（0..1）があり、表に候補の無い行は無い', () => {
+    for (const s of SPOTS) {
+      expect(SEEN[spotKey(s)], name(s)).toBeTypeOf('number');
+      expect(s.seen).toBe(SEEN[spotKey(s)]);
+      expect(s.seen).toBeGreaterThanOrEqual(0);
+      expect(s.seen).toBeLessThanOrEqual(1);
+    }
+    expect(Object.keys(SEEN).sort()).toEqual(SPOTS.map(spotKey).sort());
+  });
+
+  it('部屋の中では、強さの段の候補を目立たないほうから skill.pick の割合だけ（少なくとも 1 つ）残して選ぶ', () => {
+    for (const skill of [SKILLS.weak, SKILLS.normal, SKILLS.strong])
+      for (let seed = 1; seed <= 40; seed++)
+        for (const index of [0, 1])
+          for (const roll of [0, 0.5, 0.999]) {
+            const s = pickSpot(seed, index, skill, () => roll);
+            const room = SPOTS.filter((o) => skill.tiers.includes(o.tier) && placeOf(o.pos) === placeOf(s.pos));
+            const seens = room.map((o) => o.seen).sort((x, y) => x - y);
+            const n = Math.max(1, Math.floor(seens.length * skill.pick));
+            expect(s.seen, name(s)).toBeLessThanOrEqual(seens[n - 1]);
+          }
+  });
+
+  it('強いが選ぶ場所は、普通が選ぶ場所より平均の目立ちが小さい', () => {
+    const mean = (skill: typeof SKILLS.weak) => {
+      const list = Array.from({ length: 200 }, (_, i) => pickSpot(i + 1, i % 2, skill, rng(i)).seen);
+      return list.reduce((a, v) => a + v, 0) / list.length;
+    };
+    expect(mean(SKILLS.strong)).toBeLessThan(mean(SKILLS.normal));
   });
 });

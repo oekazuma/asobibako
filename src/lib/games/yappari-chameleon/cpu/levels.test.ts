@@ -26,6 +26,10 @@ describe('強さの表', () => {
     expect([SKILLS.weak.tiers, SKILLS.normal.tiers, SKILLS.strong.tiers]).toEqual([[0], [1], [1, 2]]);
   });
 
+  it('部屋の候補のうち目立たないほうから選ぶ割合は、弱いが全部、普通が 60%、強いが 25%', () => {
+    expect([SKILLS.weak.pick, SKILLS.normal.pick, SKILLS.strong.pick]).toEqual([1, 0.6, 0.25]);
+  });
+
   it('歩きは、弱いがゆっくり同じ所も見に行き、普通が決まった順、強いが走ってまだ見ていない部屋から', () => {
     expect(SKILLS.weak).toMatchObject({ pace: 0.6, run: false, order: 'random', crouch: false });
     expect(SKILLS.normal).toMatchObject({ pace: 1, run: false, order: 'loop', crouch: false });

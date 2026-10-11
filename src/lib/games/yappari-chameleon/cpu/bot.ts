@@ -145,7 +145,7 @@ export class Bot {
     } else if (p === 'hide' && m.role === 'hider') {
       const skill = SKILLS[this.strength];
       this.hider = new HiderBrain(
-        pickSpot(m.view.seed ?? 1, this.#index, skill.tiers, this.#rand),
+        pickSpot(m.view.seed ?? 1, this.#index, skill, this.#rand),
         skill,
         this.#rand,
         this.#index

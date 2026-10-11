@@ -18,7 +18,8 @@ const open: Spot = {
   pose: 'stand',
   tier: 0,
   slack: 0,
-  back: [-1, 0, 0]
+  back: [-1, 0, 0],
+  seen: 0
 };
 /** 大広間の入口の先。背の向き（西）の壁は 7m 先 */
 const far: Spot = { ...open, pos: [0, 0, 2.2] };
