@@ -15,6 +15,7 @@
     "test:run": "vitest run",
     "icon": "node scripts/make-icon.ts",
     "thumbs": "node scripts/thumbs.ts",
+    "spots": "node scripts/cpu-spots.ts",
     "vitals": "svelte-vitals .",
     "verify": "pnpm lint && pnpm check && pnpm test:run && pnpm vitals && pnpm build"
   },
