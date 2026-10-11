@@ -5,7 +5,7 @@ import type { Cling } from './move';
 import type { Dab, PaintLog } from './paint';
 
 /** このゲームの知らせの形の版。形か屋敷の当たり（家具の箱）を変えたら 1 上げる。親の弾の当たりと子の歩きがずれるため（Party の PROTOCOL とは別） */
-export const CHAMELEON_VERSION = 3;
+export const CHAMELEON_VERSION = 4;
 export const SEND_MS = 50;
 export const DELAY_MS = 100;
 /** 1 回の知らせの上限。DataChannel の上限（256KB）より十分小さく */

@@ -111,6 +111,13 @@ describe('Host の中継', () => {
     expect(told.at(-1)).toEqual({ to: 2, m: { t: 'chameleon-mismatch' } });
   });
 
+  it('プチカメレオンの前の子（版 3）は迎えない', () => {
+    const { act, told } = setup([1, 2]);
+    act({ t: 'leave' }, 2);
+    act({ t: 'hi', v: 3 }, 2);
+    expect(told.at(-1)).toEqual({ to: 2, m: { t: 'chameleon-mismatch' } });
+  });
+
   it('版のちがう子には知らせ、その子の動きは配らない', () => {
     const { act, told } = setup([1, 2]);
     act({ t: 'leave' }, 2);
@@ -592,5 +599,113 @@ describe('Host の埋まりとええやん', () => {
     act({ t: 'iine', to: 2 }, 3);
     act({ t: 'iine', to: 9 }, 2);
     expect(lastView(told)).toMatchObject({ likes: { 1: 1 }, liked: [3] });
+  });
+});
+
+/** 2 がプチカメレオンを選び、台の上の 3 がハンターで、探索まで進める */
+function petitSearch(levelFor?: (seed: number | null) => Level) {
+  const s = setup([1, 2, 3], levelFor);
+  s.host.allow(true);
+  s.act({ t: 'body', body: 'petit' }, 2);
+  s.act(me(0, [PODIUM.at[0], PODIUM.h, PODIUM.at[2]]), 3);
+  s.host.tick(0.1);
+  s.host.start({ ...DEFAULTS, mode: 'normal', hide: 60, petit: true });
+  for (let i = 0; i < 64 * 10; i++) s.host.tick(0.1);
+  expect(lastView(s.told)).toMatchObject({ phase: 'search', bodies: { 2: 'petit' } });
+  return s;
+}
+
+describe('Host の体型', () => {
+  it('許可がオフなら petit を配らず、オンにするとすぐ配り、オフに戻すと全員 normal。知らない体型は捨てる', () => {
+    const { act, told, host } = setup();
+    act({ t: 'body', body: 'petit' }, 2);
+    expect(lastView(told).bodies).toEqual({});
+    host.allow(true);
+    expect(lastView(told).bodies).toEqual({ 2: 'petit' });
+    act({ t: 'body', body: 'giant' }, 3);
+    act({ t: 'body', body: 'petit' }, 1);
+    expect(lastView(told).bodies).toEqual({ 1: 'petit', 2: 'petit' });
+    host.allow(false);
+    expect(lastView(told).bodies).toEqual({});
+  });
+
+  it('試合のあいだは体型も許可も変わらず、来た子には様子で体型を送る', () => {
+    const { act, told, host } = petitSearch();
+    act({ t: 'body', body: 'normal' }, 2);
+    host.allow(false);
+    expect(lastView(told).bodies).toEqual({ 2: 'petit' });
+    told.length = 0;
+    host.welcome(3);
+    const mine = told.filter((x) => x.to === 3 && x.m.t === 'phase');
+    expect((mine.at(-1)!.m.view as View).bodies).toEqual({ 2: 'petit' });
+  });
+
+  it('始めるときに渡した体型（CPU の席）で配る', () => {
+    const { told, host } = setup();
+    host.start({ ...DEFAULTS, mode: 'normal', petit: true }, [1], { 2: 'petit', 3: 'petit' });
+    expect(lastView(told).bodies).toEqual({ 2: 'petit', 3: 'petit' });
+  });
+
+  it('通常の体なら胸に当たる高さの弾は、プチには当たらず、プチの胸の高さなら当たる', () => {
+    const { act, told, host } = petitSearch();
+    act(me(0, [0, 0, 5]), 2);
+    act(me(0, [0, 0, 0]), 3);
+    act({ ...SHOT, ms: 0 }, 3);
+    expect(of(told, 'found')).toEqual([]);
+    host.tick(2.1);
+    act({ ...SHOT, o: [0, 0.35, 0], ms: 2100 }, 3);
+    expect(of(told, 'found')[0]).toMatchObject({ seat: 2, by: 3 });
+  });
+
+  it('埋まりはプチの体で調べる（通常の体の頭が入る棚の下でも埋まらない）', () => {
+    const shelf: Level = {
+      boxes: [...floor.boxes, { min: [-1, 0.8, 4.5], max: [1, 1.3, 5.5] }],
+      ramps: [],
+      spawn: [0, 0, 0]
+    };
+    const s = petitSearch(() => shelf);
+    hold(s, 1, [[2, me(0, [0, 0, 5])]]);
+    expect(lastView(s.told).buried).toEqual([]);
+    const full = searching({ mode: 'normal' }, () => shelf);
+    hold(full, 1, [[2, me(0, [0, 0, 5])]]);
+    expect(lastView(full.told).buried).toEqual([2]);
+  });
+
+  it('見落としポイントはプチの体の点で測る（低い壁の向こうのプチの頭は見えない）', () => {
+    const low: Level = {
+      boxes: [...floor.boxes, { min: [-5, 0, 3], max: [5, 0.8, 3.3] }],
+      ramps: [],
+      spawn: [0, 0, 0]
+    };
+    const hunter = me(0, [0, 0, 0], { pose: AIM.id, look: [0, 0], eye: [0, 1, 0] });
+    const s = petitSearch(() => low);
+    hold(s, 1, [
+      [2, me(0, [0, 0, 5])],
+      [3, hunter]
+    ]);
+    expect(s.host.match.overlook[3]?.[2] ?? 0).toBe(0);
+    const full = searching({ mode: 'normal' }, () => low);
+    hold(full, 1, [
+      [2, me(0, [0, 0, 5])],
+      [3, hunter]
+    ]);
+    expect(full.host.match.overlook[3]?.[2] ?? 0).toBeGreaterThan(0);
+  });
+
+  it('ダブルの残した体もプチの大きさで当たりを決める（胸の高さの弾はプチの上を抜けて奥の体に当たる）', () => {
+    const s = setup();
+    s.host.allow(true);
+    s.act({ t: 'body', body: 'petit' }, 1);
+    s.host.start({ ...DEFAULTS, mode: 'double', hide: 60, petit: true });
+    s.act(me(0, [0, 0, 5]), 1);
+    s.act(me(0, [0, 0, 8]), 2);
+    s.act(me(0, [0, 0, 2]), 3);
+    for (let i = 0; i < 64 * 10; i++) s.host.tick(0.1);
+    s.act(me(0, [0, 0, 0]), 3);
+    s.act({ ...SHOT, ms: 0 }, 3);
+    expect(of(s.told, 'found').map((m) => m.seat)).toEqual([2]);
+    s.host.tick(2.1);
+    s.act({ ...SHOT, o: [0, 0.35, 0], ms: 2100 }, 3);
+    expect(of(s.told, 'found').map((m) => m.seat)).toEqual([2, 1]);
   });
 });

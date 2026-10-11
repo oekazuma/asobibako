@@ -91,10 +91,17 @@ export class Host {
     this.#stop = port.onAct((m, from) => this.#act(m, from));
   }
 
-  start(settings: rules.Settings, hunters?: Seat[]): void {
+  /** bodies は始めるときに決め打つ体型（CPU の席）。子が送る body の知らせより先に効く */
+  start(settings: rules.Settings, hunters?: Seat[], bodies?: Partial<Record<Seat, rules.BodyType>>): void {
     if (this.match.phase !== 'lobby' || this.#port.members.length < 2) return;
-    rules.start(this.match, [...this.#port.members], settings, this.#rand, hunters);
+    rules.start(this.match, [...this.#port.members], settings, this.#rand, hunters, bodies);
     this.#push(true);
+  }
+
+  /** ロビーのあいだに変えると、すぐ全員の体型に効く */
+  allow(on: boolean): void {
+    rules.allow(this.match, on);
+    this.#push(false);
   }
 
   /**
@@ -151,6 +158,11 @@ export class Host {
     } else if (m.t === 'ready') {
       rules.ready(this.match, from, this.#port.members);
       this.#push(true);
+    } else if (m.t === 'body') {
+      if (rules.BODY_TYPES.includes(m.body as rules.BodyType)) {
+        rules.dress(this.match, from, m.body as rules.BodyType);
+        this.#push(false);
+      }
     } else if (m.t === 'taunt') {
       if (rules.toot(this.match, from)) this.#toot(from);
     } else if (m.t === 'iine') {
@@ -208,7 +220,7 @@ export class Host {
     const bodies = this.#hidden();
     // 切れた人の体は止まったまま残るので、数え続けると知らせが出たままになる
     for (const b of bodies)
-      rules.bury(m, b.seat, this.#port.members.includes(b.seat) && embedded(this.#level, b.body), dt);
+      rules.bury(m, b.seat, this.#port.members.includes(b.seat) && embedded(this.#level, this.#sized(b)), dt);
     if (m.phase !== 'search') return;
     for (const hunter of rules.seatsOf(m, 'hunter')) {
       const eye = this.#port.members.includes(hunter) ? this.#lines.get(hunter)?.last() : undefined;
@@ -216,10 +228,15 @@ export class Host {
       const viewer = { eye: eye.eye, look: eye.look };
       for (const b of bodies) {
         if (b.seat === hunter || !b.still || m.caught[hunter]?.includes(b.seat)) continue;
-        const d = sight(this.#level, viewer, bodyPoints(b.body));
+        const d = sight(this.#level, viewer, bodyPoints(this.#sized(b)));
         if (d !== null) rules.overlooked(m, hunter, b.seat, rate(d) * dt);
       }
     }
+  }
+
+  /** 届いた体の様子には大きさが無いので、その席の体型から付ける */
+  #sized(b: { seat: Seat; body: Me }): Me & { scale: number } {
+    return { ...b.body, scale: rules.scaleOf(rules.bodyIn(this.match, b.seat)) };
   }
 
   /** いま隠れている体。ダブルの探索では残した体（動かない） */
@@ -284,7 +301,7 @@ export class Host {
       for (const back of REWIND) {
         const s = line?.at(at, back);
         if (!s) continue;
-        const me = lerpMe(s.a, s.b, s.t);
+        const me = this.#sized({ seat, body: lerpMe(s.a, s.b, s.t) });
         targets.push({ seat, caps: capsules(poseById(me.pose), placement(me)) });
       }
     }
@@ -295,7 +312,10 @@ export class Host {
     const got = this.match.caught[from] ?? [];
     return [...this.#left]
       .filter(([seat]) => seat !== from && !got.includes(seat))
-      .map(([seat, l]) => ({ seat, caps: capsules(poseById(l.body.pose), placement(l.body)) }));
+      .map(([seat, l]) => ({
+        seat,
+        caps: capsules(poseById(l.body.pose), placement(this.#sized({ seat, body: l.body })))
+      }));
   }
 
   /** フェーズに入ったときの手続き。様子より先に要るもの（ダブルの残した体）は、ここで配る */
