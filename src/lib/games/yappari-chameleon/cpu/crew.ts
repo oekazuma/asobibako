@@ -85,7 +85,11 @@ export class Crew {
       // 前の play で試合が始まっていれば、試合中の席を変えない
       if (this.#host.match.phase !== 'lobby') return;
       await this.#seat(c);
-      if (!this.#stopped) this.#host.start(cpuSettings(settings, c), cpuHunters(c, this.#party.members));
+      if (this.#stopped) return;
+      // CPU が送る知らせは step の中だけなので、体型の知らせでは始めるのに間に合わない。始めるときに決め打つ
+      const body = c.side === 'seek' ? 'petit' : 'normal';
+      const bodies = Object.fromEntries(this.bots.map((b) => [b.party.me, body] as const));
+      this.#host.start(cpuSettings(settings, c), cpuHunters(c, this.#party.members), bodies);
     });
   }
 

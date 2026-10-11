@@ -3,14 +3,14 @@ import type { Message } from '$lib/net/link';
 import { Party, type Seat } from '$lib/net/party.svelte';
 import { Host } from '../host';
 import { levelOf, mansion, SPAWNS } from '../mansion/layout';
-import { DAB_LEN, type Me } from '../net';
+import { DAB_LEN, unpackDabs, type Me } from '../net';
 import { bodyPoints } from '../oversight';
-import { DEFAULTS, INTRO, SHATTER_SECS, type Settings } from '../referee';
+import { DEFAULTS, INTRO, PETIT, SHATTER_SECS, type Settings } from '../referee';
 import { rng } from '../rng';
 import { REVEAL_READY } from './bot';
 import { cpuHunters, cpuSettings, Crew } from './crew';
 import { OPEN, tube } from './fixtures';
-import { CPU_DEFAULT, type CpuChoice } from './levels';
+import { CPU_DEFAULT, SKILLS, type CpuChoice } from './levels';
 import type { Senses } from './senses';
 
 const settle = () => new Promise((resolve) => setTimeout(resolve));
@@ -67,8 +67,8 @@ function table() {
   const of = (t: string, seat: Seat) => told.filter((m) => m.t === t && m.seat === seat);
   const body = (seat: Seat) => of('me', seat).at(-1) as unknown as Me;
   /** プレイヤーのハンターが、seat の体の胴を真上から撃つ（天井に張り付いた体は天井の中から撃つ。中から始まる線は天井に止められない） */
-  const shoot = (seat: Seat) => {
-    const [mid] = bodyPoints(body(seat));
+  const shoot = (seat: Seat, scale = 1) => {
+    const [mid] = bodyPoints({ ...body(seat), scale });
     party.act({ t: 'shot', o: [mid[0], mid[1] + 0.6, mid[2]], d: [0, -1, 0], ms: clock.ms });
   };
   const hunterMe: Partial<Me> = { pos: SPAWNS.room[1], pose: 'aim', eye: [SPAWNS.room[1][0], 1, SPAWNS.room[1][2]] };
@@ -328,5 +328,31 @@ describe('CPU との通しの試合', () => {
     for (const b of bots) b.step(0.05, 2e9);
     expect(heard).toEqual([]);
     for (const act of acts) expect(act).not.toHaveBeenCalled();
+  });
+
+  it('プチカメレオンを許可した探すでは、隠れる CPU は全員プチで、屋敷の中で同じ大きさの筆で塗り、プチの胴を撃てば見つかる', async () => {
+    const t = table();
+    await t.crew.play(choice({ side: 'seek', count: 2, petit: true }), SET);
+    expect(t.host.match.settings.petit).toBe(true);
+    expect(t.host.match.bodies).toMatchObject({ 2: 'petit', 3: 'petit' });
+    t.setPlayer(t.hunterMe);
+    t.run(INTRO + 0.1);
+    expect(t.until(() => [2, 3].every((s) => t.host.match.ready.includes(s as 2 | 3)), 25)).toBe(true);
+    const dabs = t.of('dabs', 2).flatMap((m) => unpackDabs(m.d as number[]));
+    expect(dabs.length).toBeGreaterThan(0);
+    expect(dabs.every((d) => Math.abs(d.r - SKILLS.normal.brush / PETIT) < 1e-3)).toBe(true);
+    t.party.act({ t: 'ready' });
+    expect(t.host.match.phase).toBe('search');
+    t.shoot(2, PETIT);
+    expect(t.host.match.found).toEqual([2]);
+  });
+
+  it('許可しないか、CPU が探す側なら、CPU は通常の体', async () => {
+    const off = table();
+    await off.crew.play(choice({ side: 'seek', count: 1, petit: false }), SET);
+    expect(off.host.match.settings.petit).toBe(false);
+    const hide = table();
+    await hide.crew.play(choice({ side: 'hide', count: 2, petit: true }), SET);
+    expect(hide.host.match.bodies).toMatchObject({ 2: 'normal', 3: 'normal' });
   });
 });

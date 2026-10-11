@@ -3,7 +3,7 @@ import type { Message } from '$lib/net/link';
 import type { Seat } from '$lib/net/party.svelte';
 import type { V3 } from '$lib/sculpt';
 import { levelOf, mansion, placeOf, SPAWNS } from '../mansion/layout';
-import { CROUCH, EYE_HEIGHT } from '../move';
+import { CROUCH, EYE_HEIGHT, type Level } from '../move';
 import type { Me } from '../net';
 import { bodyPoints, sight } from '../oversight';
 import { poseById } from '../poses';
@@ -203,9 +203,9 @@ const norm = (v: V3): V3 => {
   return [v[0] / l, v[1] / l, v[2] / l];
 };
 /** 弾の向きと、目から体の胴の真ん中への向きのあいだの角度（度） */
-function miss(shot: Message, target: Me): number {
+function miss(shot: Message, target: Me, scale = 1): number {
   const o = shot.o as V3;
-  const [mid] = bodyPoints(target);
+  const [mid] = bodyPoints({ ...target, scale });
   const want = norm([mid[0] - o[0], mid[1] - o[1], mid[2] - o[2]]);
   return (Math.acos(Math.min(1, dot(shot.d as V3, want))) * 180) / Math.PI;
 }
@@ -246,6 +246,52 @@ describe('探す CPU の気づきと撃つ', () => {
     expect(shot.ms).toBeGreaterThan(0);
     // 筋は目より少し下の銃口から
     expect((shot.from as V3)[1]).toBeLessThan((shot.o as V3)[1]);
+  });
+
+  it('プチカメレオンの体は、プチの体の点（胴の真ん中）を狙う', () => {
+    const { c, target, run } = hunt('normal', eyes(0.6));
+    c.view = { ...search, settings: { ...search.settings, petit: true }, bodies: { 1: 'petit' } };
+    run(4);
+    expect(c.shots.length).toBeGreaterThan(0);
+    expect(miss(c.shots[0], target, 0.5)).toBeCloseTo(SKILLS.normal.aim, 1);
+  });
+
+  it('小さい体は同じ大きさの体が遠くにいるのと同じ見え方で、同じ場所・同じ目立ちでも怪しさのたまり方が遅い', () => {
+    const reach = (petit: boolean) => {
+      const { b, c, run } = hunt('normal', eyes(0.6));
+      if (petit) c.view = { ...search, settings: { ...search.settings, petit: true }, bodies: { 1: 'petit' } };
+      let at: number | null = null;
+      run(15, (t) => {
+        if (at === null && (b.suspicion.get(1) ?? 0) >= SHOOT_AT) at = t;
+      });
+      return at;
+    };
+    const full = reach(false);
+    const small = reach(true);
+    expect(full).not.toBeNull();
+    expect(small).not.toBeNull();
+    expect(small!).toBeGreaterThan(full! * 1.2);
+  });
+
+  it('届き 30m も実効の距離で見る。20m 先の通常の体は見えるが、同じ所のプチは実効 40m で見えない', () => {
+    const open: Level = { boxes: [{ min: [-60, -1, -60], max: [60, 0, 60] }], ramps: [], spawn: [0, 0, 0] };
+    const asked = (petit: boolean) => {
+      const calls: Seat[] = [];
+      const b = brain('normal');
+      const [x, , z] = b.eye();
+      const target = body([x, 0, z + 20]);
+      const c = ctx({ senses: eyes(0, calls), level: open, bodies: new Map<Seat, Me>([[1, target]]) });
+      if (petit) c.view = { ...search, settings: { ...search.settings, petit: true }, bodies: { 1: 'petit' } };
+      for (let t = 0; t < 1; t += 0.05) {
+        // 向きを +z に留めて、まっすぐ前の体だけを見る
+        b.look = [0, 0];
+        c.now += 50;
+        b.step(c, 0.05);
+      }
+      return calls.length;
+    };
+    expect(asked(false)).toBeGreaterThan(0);
+    expect(asked(true)).toBe(0);
   });
 
   it('撃つと決めてから撃つまで、強さの段のぶん迷う', () => {

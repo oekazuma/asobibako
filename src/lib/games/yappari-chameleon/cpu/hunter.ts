@@ -5,7 +5,7 @@ import { CROUCH, EYE_HEIGHT } from '../move';
 import type { Me } from '../net';
 import { bodyPoints, sight, still } from '../oversight';
 import { AIM } from '../poses';
-import { COOLDOWN, type View } from '../referee';
+import { COOLDOWN, liveScale, type View } from '../referee';
 import type { Skill } from './levels';
 import { nearest, ROOMS, route } from './paths';
 import type { Ctx } from './senses';
@@ -184,13 +184,15 @@ export class HunterBrain {
       if (!body) continue;
       const before = this.#before.get(seat);
       let s = this.#sus(seat) - LEAK * CHECK;
-      const points = bodyPoints(body);
-      const hits = points.map((p) => sight(ctx.level, viewer, [p], SEARCH_REACH));
+      // 小さい体は同じ大きさの体が遠くにいるのと同じ見え方なので、届きと怪しさは距離を体の倍率で割った実効の距離で測る
+      const scale = liveScale(ctx.view, seat);
+      const points = bodyPoints({ ...body, scale });
+      const hits = points.map((p) => sight(ctx.level, viewer, [p], SEARCH_REACH * scale));
       const at = points.find((_, i) => hits[i] !== null);
       // 動いたかは、続けて見えた 2 回の位置でだけ比べる
       if (!at) this.#before.delete(seat);
       else {
-        const d = Math.min(...hits.filter((h) => h !== null));
+        const d = Math.min(...hits.filter((h) => h !== null)) / scale;
         this.#before.set(seat, body.pos);
         seen.push(seat);
         this.#last.set(seat, { pos: [...body.pos], mid: at });
