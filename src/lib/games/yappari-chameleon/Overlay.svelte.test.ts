@@ -4,6 +4,7 @@ import type { Seat } from '$lib/net/party.svelte';
 import { Match } from './match.svelte';
 import Overlay from './Overlay.svelte';
 import type { PlayRole } from './play.svelte';
+import { BODY_KEY } from './prefs';
 import { DEFAULTS, newMatch, view, type View } from './referee';
 import type { Session } from './session.svelte';
 
@@ -40,6 +41,8 @@ function show(
     watching: 2,
     buried: false,
     like: vi.fn(),
+    allow: vi.fn(),
+    dress: vi.fn(),
     canTaunt: match.phase === 'lobby' || match.hiding,
     ...extra
   } as unknown as Session;
@@ -183,5 +186,16 @@ describe('Overlay', () => {
     const plain = show('hider', { phase: 'lobby' }, 1, { party });
     expect(plain.labels()).toContain('よびなおす');
     plain.done();
+  });
+
+  it('試合のあいだは体型を送らず、ロビーの様子が届くたびに覚えた体型を親へ送り直す', () => {
+    localStorage.setItem(BODY_KEY, 'petit');
+    const { session, done } = show('hider', { phase: 'search' }, 2);
+    expect(session.dress).not.toHaveBeenCalled();
+    session.match.receive({ ...view(newMatch()), settings: DEFAULTS, phase: 'lobby' });
+    flushSync();
+    expect(session.dress).toHaveBeenCalledExactlyOnceWith('petit');
+    localStorage.clear();
+    done();
   });
 });

@@ -3,17 +3,25 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Crew } from './cpu/crew';
 import Lobby from './Lobby.svelte';
 import { Match } from './match.svelte';
-import { CPU_KEY, SETTINGS_KEY } from './prefs';
+import { BODY_KEY, CPU_KEY, SETTINGS_KEY } from './prefs';
+import { DEFAULTS, newMatch, view } from './referee';
 import type { Session } from './session.svelte';
 
 function show(host: boolean, members = [1, 2]) {
   const start = vi.fn();
-  const session = { party: { host, members }, match: new Match(() => 1), start } as unknown as Session;
+  const allow = vi.fn();
+  const dress = vi.fn();
+  const match = new Match(() => 1);
+  const session = { party: { host, members }, match, start, allow, dress } as unknown as Session;
   const target = document.body.appendChild(document.createElement('div'));
   const app = mount(Lobby, { target, props: { session, oninvite: vi.fn() } });
   flushSync();
   const button = (text: string) => [...target.querySelectorAll('button')].find((b) => b.textContent?.trim() === text);
-  return { target, start, button, done: () => unmount(app) };
+  const permit = (on: boolean) => {
+    match.receive({ ...view(newMatch()), settings: { ...DEFAULTS, petit: on } });
+    flushSync();
+  };
+  return { target, start, allow, dress, button, permit, done: () => unmount(app) };
 }
 
 afterEach(() => localStorage.clear());
@@ -74,10 +82,53 @@ describe('Lobby', () => {
   });
 });
 
+describe('ロビーの体型', () => {
+  it('許可がオフのあいだは「体型 通常」を押せず、覚えた体型は親へ送る', () => {
+    localStorage.setItem(BODY_KEY, 'petit');
+    const { button, dress, done } = show(false);
+    expect(button('体型 通常')!.disabled).toBe(true);
+    expect(dress).toHaveBeenLastCalledWith('petit');
+    done();
+  });
+
+  it('許可が届くと押せ、押すたびに通常とプチカメレオンが切り替わり、覚えて親へ送る', () => {
+    const { button, dress, permit, done } = show(false);
+    permit(true);
+    button('体型 通常')!.click();
+    flushSync();
+    expect(button('体型 プチカメレオン')).toBeDefined();
+    expect(localStorage.getItem(BODY_KEY)).toBe('petit');
+    expect(dress).toHaveBeenLastCalledWith('petit');
+    button('体型 プチカメレオン')!.click();
+    flushSync();
+    expect(localStorage.getItem(BODY_KEY)).toBe('normal');
+    expect(dress).toHaveBeenLastCalledWith('normal');
+    permit(false);
+    expect(button('体型 通常')!.disabled).toBe(true);
+    done();
+  });
+
+  it('親はマップの設定の「プチカメレオンを許可」を、始める前から審判へ渡す。子は渡さない', () => {
+    const { target, button, allow, done } = show(true);
+    expect(allow).toHaveBeenLastCalledWith(false);
+    button('マップの設定')!.click();
+    flushSync();
+    const row = [...target.querySelectorAll('.row')].find((r) => r.textContent?.includes('プチカメレオンを許可'))!;
+    [...row.querySelectorAll('button')].find((b) => b.textContent === 'オン')!.click();
+    flushSync();
+    expect(allow).toHaveBeenLastCalledWith(true);
+    done();
+    const child = show(false);
+    expect(child.allow).not.toHaveBeenCalled();
+    child.done();
+  });
+});
+
 describe('CPU と遊ぶのロビー', () => {
   function showCpu(members = [1, 2]) {
     const play = vi.fn();
     const start = vi.fn();
+    const allow = vi.fn();
     const looks = { 2: 'cpu' };
     const session = {
       party: { host: true, members, looks },
@@ -85,7 +136,9 @@ describe('CPU と遊ぶのロビー', () => {
         () => 1,
         () => looks
       ),
-      start
+      start,
+      allow,
+      dress: vi.fn()
     } as unknown as Session;
     const target = document.body.appendChild(document.createElement('div'));
     const app = mount(Lobby, { target, props: { session, crew: { play } as unknown as Crew, oninvite: vi.fn() } });
@@ -96,7 +149,7 @@ describe('CPU と遊ぶのロビー', () => {
       button(text).click();
       flushSync();
     };
-    return { target, play, start, button, click, done: () => unmount(app) };
+    return { target, play, start, allow, button, click, done: () => unmount(app) };
   }
 
   it('顔ぶれを CPU の名前で出し、CPU の設定を出して、なかまを呼ぶを出さない', () => {
@@ -144,6 +197,18 @@ describe('CPU と遊ぶのロビー', () => {
     expect(target.textContent).not.toContain('2人以上');
     click('ゲームを始める');
     expect(play).toHaveBeenCalledTimes(1);
+    done();
+  });
+
+  it('CPU と遊ぶでは、CPU の設定のプチカメレオンを審判へ渡し、マップの設定には許可の行を出さない', () => {
+    const { target, click, allow, done } = showCpu();
+    expect(allow).toHaveBeenLastCalledWith(false);
+    click('マップの設定');
+    expect(target.textContent).not.toContain('プチカメレオンを許可');
+    click('閉じる');
+    click('CPU の設定');
+    click('許可する');
+    expect(allow).toHaveBeenLastCalledWith(true);
     done();
   });
 });

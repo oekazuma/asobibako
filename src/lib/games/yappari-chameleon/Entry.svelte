@@ -5,7 +5,7 @@
   import { MISMATCH, Party, type Seat } from '$lib/net/party.svelte';
   import CpuSetup from './CpuSetup.svelte';
   import type { CpuChoice } from './cpu/levels';
-  import { readCpu, saveCpu } from './prefs';
+  import { readBody, readCpu, saveBody, saveCpu } from './prefs';
 
   let {
     note = '',
@@ -29,9 +29,11 @@
   let failed = $state('');
   let picking = $state(false);
   let choice = $state(readCpu());
+  let body = $state(readBody());
 
   function startCpu() {
     saveCpu(choice);
+    saveBody(body);
     picking = false;
     oncpu($state.snapshot(choice));
   }
@@ -90,7 +92,7 @@
       <button class="solo" onclick={onsolo}>ひとりで試す</button>
     </div>
   {/if}
-  {#if picking}<CpuSetup bind:choice onstart={startCpu} onclose={() => (picking = false)} />{/if}
+  {#if picking}<CpuSetup bind:choice bind:body onstart={startCpu} onclose={() => (picking = false)} />{/if}
   {#if failed || note}<p role="alert">{failed || note}</p>{/if}
   <a class="back" href={resolve('/')} aria-label="ゲーム選択へ戻る">✕</a>
 </div>

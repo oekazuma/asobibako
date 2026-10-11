@@ -9,6 +9,7 @@
   import type { Host } from './host';
   import Overlay from './Overlay.svelte';
   import { Play } from './play.svelte';
+  import { readBody } from './prefs';
   import { Session, type Inbox } from './session.svelte';
   import { SONGS } from './songs';
   import { mount3d, pad } from './stage3d';
@@ -59,6 +60,8 @@
       ready: (world, makeRig) => {
         const s = new Session(party, new Play(world, radius), makeRig, host, inbox ?? undefined);
         session = s;
+        // CPU と遊ぶはロビーを通らずに始まるので、ロビーの体型のボタンを待たずに送る（親は試合の前のロビーでだけ受ける）
+        s.dress(readBody());
         if (crew) {
           senses = new Senses3d(world, (seat) => s.rigOf(seat));
           crew.useSenses(senses);

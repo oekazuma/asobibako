@@ -1,11 +1,15 @@
 <script lang="ts">
   import { STRENGTHS, type CpuChoice } from './cpu/levels';
+  import type { BodyType } from './referee';
 
   let {
     choice = $bindable(),
+    body = $bindable(),
     onstart,
     onclose
-  }: { choice: CpuChoice; onstart: () => void; onclose: () => void } = $props();
+  }: { choice: CpuChoice; body: BodyType; onstart: () => void; onclose: () => void } = $props();
+  // 許可しないあいだは選べないので、通常を選んでいる形で出す
+  const petit = $derived(choice.petit && body === 'petit');
   const COUNTS = [1, 2] as const;
   const hide = $derived(choice.side === 'hide');
 
@@ -61,6 +65,27 @@
           onclick={() => (choice.strength = s.id)}>{s.name}</button
         >
       {/each}
+    </span>
+  </div>
+  <div class="row">
+    <span>プチカメレオン</span>
+    <span class="pick">
+      <button class:on={!choice.petit} aria-pressed={!choice.petit} onclick={() => (choice.petit = false)}
+        >許可しない</button
+      >
+      <button class:on={choice.petit} aria-pressed={choice.petit} onclick={() => (choice.petit = true)}>許可する</button
+      >
+    </span>
+  </div>
+  <div class="row" class:dim={!choice.petit}>
+    <span>体型</span>
+    <span class="pick">
+      <button class:on={!petit} aria-pressed={!petit} disabled={!choice.petit} onclick={() => (body = 'normal')}
+        >通常</button
+      >
+      <button class:on={petit} aria-pressed={petit} disabled={!choice.petit} onclick={() => (body = 'petit')}
+        >プチカメレオン</button
+      >
     </span>
   </div>
   <p class="note">{hide ? 'CPU のハンターから隠れる。見つかったら終わり' : '隠れた CPU を探して撃つ'}</p>

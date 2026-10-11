@@ -100,6 +100,9 @@ describe('CPU と遊ぶの設定', () => {
       mode: 'infect',
       hunters: 1
     });
+    // 審判の start は渡した設定で許可を上書きするので、ロビーで渡している CPU の設定の許可と同じ値にする
+    expect(cpuSettings({ ...s, petit: false }, choice({ petit: true })).petit).toBe(true);
+    expect(cpuSettings({ ...s, petit: true }, choice({ petit: false })).petit).toBe(false);
     expect(cpuHunters(choice({ side: 'hide' }), [1, 2, 3])).toEqual([2, 3]);
     expect(cpuHunters(choice({ side: 'seek' }), [1, 2, 3])).toEqual([1]);
   });

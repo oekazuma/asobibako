@@ -8,7 +8,12 @@ import type { Senses } from './senses';
 
 /** 隠れるときはプレイヤー 1 人が隠れ、見つかった時点で終わるので通常にする。ダブルは CPU と遊ぶでは選べない */
 export function cpuSettings(s: Settings, c: CpuChoice): Settings {
-  return { ...s, mode: c.side === 'hide' ? 'normal' : c.mode, hunters: c.side === 'hide' ? c.count : 1 };
+  return {
+    ...s,
+    mode: c.side === 'hide' ? 'normal' : c.mode,
+    hunters: c.side === 'hide' ? c.count : 1,
+    petit: c.petit
+  };
 }
 
 export const cpuHunters = (c: CpuChoice, members: readonly Seat[]): Seat[] =>
