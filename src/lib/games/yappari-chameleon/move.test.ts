@@ -10,11 +10,13 @@ import {
   RADIUS,
   step,
   thickRayDistance,
+  wallNear,
   type Input,
   type Level
 } from './move';
 import type { V3 } from '$lib/sculpt';
 import { HEIGHT } from './doll';
+import { PETIT } from './referee';
 
 // 床（y = 0）・奥の壁（z = 5）・天井（y = 3）・低い台（高さ 1）・段（高さ 0.2）・坂（z が増えると 0 → 1.5）
 const level: Level = {
@@ -329,5 +331,70 @@ describe('move', () => {
     expect(floorBelow(level, 4, -2, 2.9)).toBe(1);
     expect(floorBelow(level, 4, -2, 0.5)).toBe(0);
     expect(floorBelow(level, 99, 99, 2)).toBe(2);
+  });
+});
+
+describe('プチカメレオンの体', () => {
+  const P = PETIT;
+
+  it('壁の手前で 0.1m 離れて止まり、壁のほうへは通常より 0.1m 近く寄れる', () => {
+    const b = newBody([0, 0, 3], P);
+    go(b, { z: 1 }, 3);
+    expect(b.pos[2]).toBeCloseTo(5 - RADIUS * P, 2);
+  });
+
+  it('段を上れる高さは通常と同じで、歩く速さも同じ', () => {
+    const b = newBody([-2.5, 0, -4], P);
+    go(b, { z: 1 }, 0.8);
+    expect(b.pos[1]).toBeCloseTo(0.2, 2);
+    const fast = newBody([0, 0, -8], P);
+    const slow = newBody([0, 0, -8]);
+    go(fast, { x: 1 }, 1);
+    go(slow, { x: 1 }, 1);
+    expect(fast.pos[0]).toBeCloseTo(slow.pos[0], 5);
+  });
+
+  it('通常の体が頭をぶつける低い天井の下にも入れる', () => {
+    const low: Level = {
+      boxes: [
+        { min: [-10, -1, -10], max: [10, 0, 10] },
+        { min: [-1, 0.8, 2], max: [1, 1, 4] }
+      ],
+      ramps: [],
+      spawn: [0, 0, 0]
+    };
+    const walk = (b: ReturnType<typeof newBody>) => {
+      for (let t = 0; t < 3; t += 1 / 60) step(b, { ...idle(), z: 1 }, low, 1 / 60);
+    };
+    const petit = newBody([0, 0, 0], P);
+    const full = newBody([0, 0, 0]);
+    walk(petit);
+    walk(full);
+    expect(petit.pos[2]).toBeGreaterThan(4);
+    expect(full.pos[2]).toBeCloseTo(2 - RADIUS, 2);
+  });
+
+  it('壁に張り付き、上がり続けると天井に張り付き、はなすと床へ戻る', () => {
+    const b = newBody([0, 0, 5 - RADIUS * P - 0.05], P);
+    go(b, {}, 0.2);
+    step(b, { ...idle(), jump: true }, level, 1 / 60);
+    expect(b.cling).toEqual({ kind: 'wall', nx: 0, nz: -1 });
+    expect(wallNear(b, level, { nx: 0, nz: -1 })).not.toBeNull();
+    go(b, {}, 1);
+    expect(b.cling?.kind).toBe('wall');
+    go(b, { up: true }, 4);
+    expect(b.cling).toEqual({ kind: 'ceiling' });
+    expect(b.pos[1]).toBeCloseTo(3, 3);
+    expect(b.pos[2] + Math.cos(b.yaw) * HEIGHT * P).toBeLessThan(5 - 0.1);
+    step(b, { ...idle(), release: true }, level, 1 / 60);
+    go(b, {}, 2);
+    expect(b.cling).toBe(null);
+    expect(b.pos[1]).toBeCloseTo(0, 3);
+  });
+
+  it('天井から落ちるとき、下ろす高さはプチの背の高さ', () => {
+    const b = { ...newBody([0, 3, 0], P), cling: { kind: 'ceiling' } as const };
+    step(b, { ...idle(), release: true }, level, 1 / 60);
+    expect(b.pos[1]).toBeCloseTo(3 - HEIGHT * P, 5);
   });
 });

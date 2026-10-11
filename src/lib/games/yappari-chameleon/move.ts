@@ -29,6 +29,8 @@ export interface Body {
   yaw: number;
   ground: boolean;
   cling: Cling | null;
+  /** 半径と背の高さにだけ掛ける。段を上れる高さ・壁際とみなす距離・速さまで縮めると、プチだけ屋敷の歩き方が変わる */
+  scale?: number;
 }
 
 export interface Input {
@@ -58,7 +60,17 @@ const FACE = 10;
 /** 壁際とみなす、体のふちから壁までの距離 */
 const NEAR = 0.12;
 
-export const newBody = (at: V3): Body => ({ pos: [at[0], at[1], at[2]], vy: 0, yaw: 0, ground: false, cling: null });
+export const newBody = (at: V3, scale = 1): Body => ({
+  pos: [at[0], at[1], at[2]],
+  vy: 0,
+  yaw: 0,
+  ground: false,
+  cling: null,
+  scale
+});
+
+const radiusOf = (b: Body) => RADIUS * (b.scale ?? 1);
+const heightOf = (b: Body) => HEIGHT * (b.scale ?? 1);
 
 export const idle = (): Input => ({
   x: 0,
@@ -75,10 +87,11 @@ export const idle = (): Input => ({
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 /** 体の高さの範囲に掛かる箱（足もとの段は STEP まで上れるので除く） */
-const blocks = (b: Body, box: Box) => box.max[1] > b.pos[1] + STEP && box.min[1] < b.pos[1] + HEIGHT;
+const blocks = (b: Body, box: Box) => box.max[1] > b.pos[1] + STEP && box.min[1] < b.pos[1] + heightOf(b);
 
 /** 体の円を箱の外へ押し出し、押した向き（壁の法線）を返す */
 function pushOut(b: Body, lv: Level): { nx: number; nz: number } | null {
+  const r = radiusOf(b);
   let normal: { nx: number; nz: number } | null = null;
   for (let pass = 0; pass < 2; pass++)
     for (const box of lv.boxes) {
@@ -89,10 +102,10 @@ function pushOut(b: Body, lv: Level): { nx: number; nz: number } | null {
       const dx = x - cx;
       const dz = z - cz;
       const d = Math.hypot(dx, dz);
-      if (d >= RADIUS) continue;
+      if (d >= r) continue;
       if (d > 1e-6) {
-        b.pos[0] = cx + (dx / d) * RADIUS;
-        b.pos[2] = cz + (dz / d) * RADIUS;
+        b.pos[0] = cx + (dx / d) * r;
+        b.pos[2] = cz + (dz / d) * r;
         normal = { nx: dx / d, nz: dz / d };
       } else {
         // 中心が箱の中に入った（速く当たった）ときは、いちばん浅い面から出す
@@ -102,8 +115,8 @@ function pushOut(b: Body, lv: Level): { nx: number; nz: number } | null {
           [z - box.min[2], 0, -1],
           [box.max[2] - z, 0, 1]
         ].sort((p, q) => p[0] - q[0])[0];
-        b.pos[0] += out[1] * (out[0] + RADIUS);
-        b.pos[2] += out[2] * (out[0] + RADIUS);
+        b.pos[0] += out[1] * (out[0] + r);
+        b.pos[2] += out[2] * (out[0] + r);
         normal = { nx: out[1], nz: out[2] };
       }
     }
@@ -116,14 +129,15 @@ export function wallNear(
   lv: Level,
   want?: { nx: number; nz: number }
 ): { nx: number; nz: number; top: number } | null {
+  const r = radiusOf(b);
   let best: { nx: number; nz: number; top: number; d: number } | null = null;
   for (const box of lv.boxes) {
-    if (!(box.max[1] > b.pos[1] + 0.05 && box.min[1] < b.pos[1] + HEIGHT * 0.6)) continue;
+    if (!(box.max[1] > b.pos[1] + 0.05 && box.min[1] < b.pos[1] + heightOf(b) * 0.6)) continue;
     const [x, , z] = b.pos;
     const cx = clamp(x, box.min[0], box.max[0]);
     const cz = clamp(z, box.min[2], box.max[2]);
     const d = Math.hypot(x - cx, z - cz);
-    if (d > RADIUS + NEAR || d < 1e-6) continue;
+    if (d > r + NEAR || d < 1e-6) continue;
     const nx = Math.round((x - cx) / d);
     const nz = Math.round((z - cz) / d);
     if (Math.abs(nx) + Math.abs(nz) !== 1) continue;
@@ -147,9 +161,8 @@ export function rampHeight(r: Ramp, x: number, z: number): number | null {
 }
 
 /** 足もとより STEP までの高さにある、いちばん高い床 */
-function groundAt(lv: Level, x: number, z: number, below: number): number {
+function groundAt(lv: Level, x: number, z: number, below: number, e = RADIUS * 0.7): number {
   let g = -Infinity;
-  const e = RADIUS * 0.7;
   for (const box of lv.boxes)
     if (x > box.min[0] - e && x < box.max[0] + e && z > box.min[2] - e && z < box.max[2] + e && box.max[1] <= below)
       g = Math.max(g, box.max[1]);
@@ -169,7 +182,7 @@ export function floorBelow(lv: Level, x: number, z: number, y: number): number {
 /** 頭の上の、いちばん低い天井（箱の下の面） */
 function ceilingAt(lv: Level, b: Body): number {
   let c = Infinity;
-  const e = RADIUS * 0.7;
+  const e = radiusOf(b) * 0.7;
   for (const box of lv.boxes) {
     const [x, y, z] = b.pos;
     if (x > box.min[0] - e && x < box.max[0] + e && z > box.min[2] - e && z < box.max[2] + e && box.min[1] >= y + STEP)
@@ -188,7 +201,8 @@ function turnToward(b: Body, x: number, z: number, dt: number) {
 function stepWall(b: Body, c: { nx: number; nz: number }, inp: Input, lv: Level, dt: number) {
   const vy = (inp.up ? CLIMB : 0) - (inp.down ? CLIMB : 0);
   // 床は動く前の高さで探す（下がって床より下へ出ると、床が「足もとより上」になって見つからない）
-  const floor = groundAt(lv, b.pos[0], b.pos[2], b.pos[1] + 0.01);
+  const r = radiusOf(b);
+  const floor = groundAt(lv, b.pos[0], b.pos[2], b.pos[1] + 0.01, r * 0.7);
   const tx = -c.nz;
   const tz = c.nx;
   const side = (inp.x * tx + inp.z * tz) * CLIMB * 0.8;
@@ -197,14 +211,14 @@ function stepWall(b: Body, c: { nx: number; nz: number }, inp: Input, lv: Level,
   b.pos[1] += vy * dt;
   if (Math.abs(side) > 1e-6) pushOut(b, lv);
   const ceil = ceilingAt(lv, b);
-  if (b.pos[1] + HEIGHT >= ceil) {
+  if (b.pos[1] + heightOf(b) >= ceil) {
     b.cling = { kind: 'ceiling' };
     b.pos[1] = ceil;
     b.ground = false;
     // 壁を向いたまま寝かせると頭が壁の中へ入る。向きを返し、足を壁に置いて体を部屋のほうへ伸ばす
     b.yaw = Math.atan2(Math.sin(b.yaw + Math.PI), Math.cos(b.yaw + Math.PI));
-    b.pos[0] += c.nx * 0.1;
-    b.pos[2] += c.nz * 0.1;
+    b.pos[0] += c.nx * r * 0.5;
+    b.pos[2] += c.nz * r * 0.5;
     return;
   }
   // 床の高さで張り付いたまま待てるよう、外すのは「さがる」で床まで下りたときだけ
@@ -223,17 +237,18 @@ function stepWall(b: Body, c: { nx: number; nz: number }, inp: Input, lv: Level,
   const top = wallNear({ ...b, pos: [b.pos[0], b.pos[1] - 0.3, b.pos[2]] }, lv, c);
   if (top && inp.up) {
     b.pos[1] = top.top;
-    b.pos[0] -= c.nx * (RADIUS + NEAR + 0.05);
-    b.pos[2] -= c.nz * (RADIUS + NEAR + 0.05);
+    b.pos[0] -= c.nx * (r + NEAR + 0.05);
+    b.pos[2] -= c.nz * (r + NEAR + 0.05);
     b.ground = true;
   }
 }
 
 function stepCeiling(b: Body, inp: Input, lv: Level, dt: number) {
+  const h = heightOf(b);
   if (inp.release || inp.down) {
     b.cling = null;
     b.vy = 0;
-    b.pos[1] -= HEIGHT;
+    b.pos[1] -= h;
     b.ground = false;
     return;
   }
@@ -242,7 +257,7 @@ function stepCeiling(b: Body, inp: Input, lv: Level, dt: number) {
   b.pos[0] += inp.x * CLIMB * dt;
   b.pos[2] += inp.z * CLIMB * dt;
   // 天井ボックスが干渉判定のブロッカーに数えられないよう、吊った体を少し下げる
-  const hang = { ...b, pos: [b.pos[0], b.pos[1] - HEIGHT - 0.01, b.pos[2]] as [number, number, number] };
+  const hang = { ...b, pos: [b.pos[0], b.pos[1] - h - 0.01, b.pos[2]] as [number, number, number] };
   const hx = hang.pos[0];
   const hz = hang.pos[2];
   pushOut(hang, lv);
@@ -250,7 +265,7 @@ function stepCeiling(b: Body, inp: Input, lv: Level, dt: number) {
     b.pos[0] = px;
     b.pos[2] = pz;
   }
-  const checkHang = { ...b, pos: [b.pos[0], b.pos[1] - HEIGHT - 0.01, b.pos[2]] as [number, number, number] };
+  const checkHang = { ...b, pos: [b.pos[0], b.pos[1] - h - 0.01, b.pos[2]] as [number, number, number] };
   if (Math.abs(ceilingAt(lv, checkHang) - b.pos[1]) > 0.01) {
     b.pos[0] = px;
     b.pos[2] = pz;
@@ -280,13 +295,14 @@ export function step(b: Body, inp: Input, lv: Level, dt: number): void {
   const speed = inp.run ? RUN : WALK;
   // 速く歩いても箱を抜けないよう、半径の半分ずつに分けて動かす
   const dist = speed * Math.min(1, len) * dt;
-  const parts = Math.max(1, Math.ceil(dist / (RADIUS * 0.5)));
+  const r = radiusOf(b);
+  const parts = Math.max(1, Math.ceil(dist / (r * 0.5)));
   const wasGround = b.ground;
   for (let i = 0; i < parts; i++) {
     b.pos[0] += (inp.x * speed * dt) / parts;
     b.pos[2] += (inp.z * speed * dt) / parts;
     // 段の上へ乗れるよう、横に動いたあとで床の高さへ持ち上げてから押し出す
-    const g = groundAt(lv, b.pos[0], b.pos[2], b.pos[1] + STEP);
+    const g = groundAt(lv, b.pos[0], b.pos[2], b.pos[1] + STEP, r * 0.7);
     if (b.ground && g > b.pos[1]) b.pos[1] = g;
     pushOut(b, lv);
   }
@@ -309,11 +325,11 @@ export function step(b: Body, inp: Input, lv: Level, dt: number): void {
   b.vy -= GRAVITY * dt;
   b.pos[1] += b.vy * dt;
   const ceil = ceilingAt(lv, b);
-  if (b.pos[1] + HEIGHT > ceil) {
-    b.pos[1] = ceil - HEIGHT;
+  if (b.pos[1] + heightOf(b) > ceil) {
+    b.pos[1] = ceil - heightOf(b);
     b.vy = Math.min(0, b.vy);
   }
-  const g = groundAt(lv, b.pos[0], b.pos[2], b.pos[1] + STEP);
+  const g = groundAt(lv, b.pos[0], b.pos[2], b.pos[1] + STEP, r * 0.7);
   if (b.pos[1] <= g || (wasGround && b.vy <= 0 && b.pos[1] - g < STEP)) {
     b.pos[1] = g;
     b.vy = 0;

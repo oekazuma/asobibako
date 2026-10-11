@@ -3,6 +3,7 @@ import type { V3 } from '$lib/sculpt';
 import { levelOf, mansion, placeOf, PLACES, SPAWNS } from '../mansion/layout';
 import { place, SETS } from '../mansion/props';
 import { idle, newBody, step, WALK, type Body, type Level } from '../move';
+import { PETIT } from '../referee';
 import { EDGES, NODES, nearest, ROOMS, route } from './paths';
 
 /** 動く物を、どの種でも置かれうる候補の全部に同時に置いた屋敷。ここを歩ければ、どの種の置き方でも歩ける */
@@ -19,8 +20,8 @@ const DT = 1 / 30;
 const flat = (b: Body, to: V3) => Math.hypot(to[0] - b.pos[0], to[2] - b.pos[2]);
 
 /** from から to へまっすぐ歩かせる。歩く速さで掛かる時間に 3 秒足しても着かなければ、着いていない体のまま返す */
-function walk(lv: Level, from: V3, to: V3): Body {
-  const b = newBody(from);
+function walk(lv: Level, from: V3, to: V3, scale = 1): Body {
+  const b = newBody(from, scale);
   for (let i = 0; i < 5; i++) step(b, idle(), lv, DT);
   const limit = Math.hypot(to[0] - from[0], to[2] - from[2]) / WALK + 3;
   for (let t = 0; t < limit && flat(b, to) >= 0.2; t += DT) {
@@ -45,14 +46,17 @@ describe('道順の網', () => {
     expect(bad).toEqual([]);
   });
 
-  it('どの種の置き方でも、全部の辺を両向きに歩ける', () => {
+  it.each([
+    ['通常', 1],
+    ['プチカメレオン', PETIT]
+  ])('%sの体で、どの種の置き方でも、全部の辺を両向きに歩ける', (_, scale) => {
     const bad: string[] = [];
     for (const [a, b] of EDGES)
       for (const [p, q] of [
         [a, b],
         [b, a]
       ] as const) {
-        const body = walk(lv, NODES[p], NODES[q]);
+        const body = walk(lv, NODES[p], NODES[q], scale);
         if (flat(body, NODES[q]) > 0.25 || Math.abs(body.pos[1] - NODES[q][1]) > 0.35) bad.push(`${p} → ${q}`);
       }
     expect(bad).toEqual([]);
