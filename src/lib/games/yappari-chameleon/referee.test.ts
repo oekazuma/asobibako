@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { Seat } from '$lib/net/party.svelte';
 import {
+  allow,
   bury,
   DEFAULTS,
+  dress,
   fit,
   hiding,
   hit,
@@ -10,10 +12,13 @@ import {
   join,
   leave,
   like,
+  liveScale,
   newMatch,
   overlooked,
+  PETIT,
   pickHunters,
   ready,
+  scaleOf,
   shoot,
   spot,
   start,
@@ -45,8 +50,20 @@ function run(m: Match, secs: number): Seat[] {
 
 describe('fit', () => {
   it('範囲の外の値を収め、ハンターは人数−1 まで、強制挑発は 0 か 5〜120', () => {
-    const s = fit({ mode: 'normal', hunters: 5, hide: 10, search: 9999, reveal: 30, taunt: 3, overlook: false }, 3);
-    expect(s).toEqual({ mode: 'normal', hunters: 2, hide: 30, search: 600, reveal: 30, taunt: 5, overlook: false });
+    const s = fit(
+      { mode: 'normal', hunters: 5, hide: 10, search: 9999, reveal: 30, taunt: 3, overlook: false, petit: false },
+      3
+    );
+    expect(s).toEqual({
+      mode: 'normal',
+      hunters: 2,
+      hide: 30,
+      search: 600,
+      reveal: 30,
+      taunt: 5,
+      overlook: false,
+      petit: false
+    });
     expect(fit({ ...DEFAULTS, hunters: 2, taunt: 0 }, 2)).toMatchObject({ hunters: 1, taunt: 0 });
   });
 
@@ -453,5 +470,86 @@ describe('決め打ちのハンター', () => {
     start(m, ALL, { ...DEFAULTS, mode: 'double' }, zero, [2]);
     expect(m.first).toEqual([]);
     expect(m.roles).toEqual({ 1: 'hider', 2: 'hider', 3: 'hider' });
+  });
+});
+
+describe('体型', () => {
+  it('プチカメレオンの許可は既定でオフ。読めない値もオフ', () => {
+    expect(DEFAULTS.petit).toBe(false);
+    expect(fit({ ...DEFAULTS, petit: 'yes' as unknown as boolean }, 3).petit).toBe(false);
+    expect(fit({ ...DEFAULTS, petit: true }, 3).petit).toBe(true);
+  });
+
+  it('許可がオフなら petit を配らず、オンにすると配り、オフに戻すと全員 normal', () => {
+    const m = newMatch();
+    dress(m, 2, 'petit');
+    expect(view(m).bodies).toEqual({});
+    allow(m, true);
+    expect(view(m).bodies).toEqual({ 2: 'petit' });
+    dress(m, 3, 'petit');
+    dress(m, 2, 'normal');
+    expect(view(m).bodies).toEqual({ 2: 'normal', 3: 'petit' });
+    allow(m, false);
+    expect(view(m).bodies).toEqual({});
+  });
+
+  it('体型と許可はロビーのあいだだけ変えられ、試合では始めたときの設定で配る。ロビーへ戻っても選んだ体型は残る', () => {
+    const m = newMatch();
+    allow(m, true);
+    dress(m, 2, 'petit');
+    start(m, ALL, { ...DEFAULTS, petit: true }, zero);
+    dress(m, 2, 'normal');
+    dress(m, 1, 'petit');
+    allow(m, false);
+    expect(view(m).bodies).toEqual({ 2: 'petit' });
+    run(m, 999);
+    expect(m.phase).toBe('lobby');
+    expect(view(m).bodies).toEqual({ 2: 'petit' });
+  });
+
+  it('始めるときの設定で許可がオフなら、ロビーで選んでいても全員 normal で配る', () => {
+    const m = newMatch();
+    allow(m, true);
+    dress(m, 2, 'petit');
+    start(m, ALL, { ...DEFAULTS, petit: false }, zero);
+    expect(view(m).bodies).toEqual({});
+  });
+
+  it('始めるときに渡した体型（CPU の席）は、選んだものより先に効く', () => {
+    const m = newMatch();
+    dress(m, 2, 'normal');
+    start(m, ALL, { ...DEFAULTS, petit: true }, zero, [1], { 2: 'petit', 3: 'petit' });
+    expect(view(m).bodies).toEqual({ 2: 'petit', 3: 'petit' });
+  });
+
+  it('生きている体の大きさは、ロビーと隠れる役のあいだだけ体型で、ハンターと観戦は 1', () => {
+    expect(scaleOf('petit')).toBe(PETIT);
+    expect(scaleOf('normal')).toBe(1);
+    expect(scaleOf(undefined)).toBe(1);
+    const bodies = { 1: 'petit', 2: 'petit', 3: 'petit' } as const;
+    expect(liveScale({ phase: 'lobby', roles: {}, bodies }, 1)).toBe(PETIT);
+    const roles = { 1: 'hider', 2: 'hunter', 3: 'out' } as const;
+    expect(liveScale({ phase: 'search', roles, bodies }, 1)).toBe(PETIT);
+    expect(liveScale({ phase: 'search', roles, bodies }, 2)).toBe(1);
+    expect(liveScale({ phase: 'search', roles, bodies }, 3)).toBe(1);
+    expect(liveScale({ phase: 'search', roles, bodies: {} }, 1)).toBe(1);
+  });
+
+  it('増え鬼で見つかってハンターになると通常の体、ダブルの探索では全員が探す人なので通常の体', () => {
+    const m = begun({ mode: 'infect', petit: true }, [3]);
+    m.bodies = { 1: 'petit', 2: 'petit' };
+    run(m, INTRO + 60);
+    expect(m.phase).toBe('search');
+    expect(liveScale(view(m), 1)).toBe(PETIT);
+    hit(m, 1);
+    expect(liveScale(view(m), 1)).toBe(1);
+    expect(view(m).bodies[1]).toBe('petit');
+    const d = begun({ mode: 'double', petit: true }, []);
+    d.bodies = { 1: 'petit' };
+    expect(liveScale(view(d), 1)).toBe(PETIT);
+    run(d, INTRO + 60);
+    expect(d.phase).toBe('search');
+    expect(liveScale(view(d), 1)).toBe(1);
+    expect(view(d).bodies[1]).toBe('petit');
   });
 });

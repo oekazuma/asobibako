@@ -7,6 +7,10 @@ export type GameMode = 'normal' | 'infect' | 'double';
 export type Role = 'hider' | 'hunter' | 'out';
 /** double はダブルの決着。勝った人は Match.champ（null なら勝者なし） */
 export type Winner = 'chameleon' | 'hunter' | 'double';
+export type BodyType = 'normal' | 'petit';
+export const BODY_TYPES: readonly BodyType[] = ['normal', 'petit'];
+/** プチカメレオンは人形をそのまま縮めた体なので、倍率 1 つで大きさにかかわるものを揃える */
+export const PETIT = 0.5;
 
 export interface Settings {
   mode: GameMode;
@@ -17,6 +21,7 @@ export interface Settings {
   taunt: number;
   /** ハンターの画面に「見落とした敵」の順位を出す */
   overlook: boolean;
+  petit: boolean;
 }
 
 export const DEFAULTS: Settings = {
@@ -26,7 +31,8 @@ export const DEFAULTS: Settings = {
   search: 300,
   reveal: 30,
   taunt: 0,
-  overlook: true
+  overlook: true,
+  petit: false
 };
 export const LIMITS = { hide: [30, 300], search: [60, 600], reveal: [10, 120], taunt: [5, 120] } as const;
 export const INTRO = 3;
@@ -54,7 +60,8 @@ export function fit(s: Settings, players: number): Settings {
     search: clamp(s.search, LIMITS.search),
     reveal: clamp(s.reveal, LIMITS.reveal),
     taunt: s.taunt <= 0 ? 0 : clamp(s.taunt, LIMITS.taunt),
-    overlook: s.overlook !== false
+    overlook: s.overlook !== false,
+    petit: s.petit === true
   };
 }
 
@@ -92,6 +99,11 @@ export interface Match {
   overlook: Partial<Record<Seat, Partial<Record<Seat, number>>>>;
   /** 答え合わせで見せる、隠れた人のいた場所（親が答え合わせに入るときに入れる） */
   spots: Partial<Record<Seat, V3>>;
+  /**
+   * 許可がオフのあいだも選んだ体型は覚え、配るときに通常にする。許可をオンに戻したとき、
+   * 子が選び直さなくても選んだ体型に戻る。ロビーの選びなので、試合をまたいで残す
+   */
+  bodies: Partial<Record<Seat, BodyType>>;
 }
 
 export const newMatch = (): Match => ({
@@ -116,7 +128,8 @@ export const newMatch = (): Match => ({
   likes: {},
   buried: {},
   overlook: {},
-  spots: {}
+  spots: {},
+  bodies: {}
 });
 
 function shuffle<T>(list: T[], rand: () => number): T[] {
@@ -149,8 +162,16 @@ export const hiding = (m: Match): Seat[] => seatsOf(m, 'hider').filter((s) => !m
  * 試合を始める。hunters を渡すと、そのうち members にいる席をハンターにする（CPU と遊ぶ）。
  * ハンターと隠れる人の両方が残らないときは、渡さなかったときと同じく台の希望で選ぶ
  */
-export function start(m: Match, members: Seat[], settings: Settings, rand: () => number, hunters?: Seat[]): void {
+export function start(
+  m: Match,
+  members: Seat[],
+  settings: Settings,
+  rand: () => number,
+  hunters?: Seat[],
+  bodies?: Partial<Record<Seat, BodyType>>
+): void {
   const s = fit(settings, members.length);
+  Object.assign(m.bodies, bodies);
   const double = s.mode === 'double';
   const chosen = (hunters ?? []).filter((seat) => members.includes(seat)).sort((a, b) => a - b);
   const fixed = chosen.length > 0 && chosen.length < members.length;
@@ -347,6 +368,23 @@ export function overlooked(m: Match, by: Seat, seat: Seat, pts: number): void {
   row[seat] = (row[seat] ?? 0) + pts;
 }
 
+export function allow(m: Match, on: boolean): void {
+  if (m.phase === 'lobby') m.settings = { ...m.settings, petit: on };
+}
+
+export function dress(m: Match, seat: Seat, body: BodyType): void {
+  if (m.phase === 'lobby') m.bodies[seat] = body;
+}
+
+export const bodyIn = (m: Pick<Match, 'settings' | 'bodies'>, seat: Seat): BodyType =>
+  (m.settings.petit && m.bodies[seat]) || 'normal';
+
+export const scaleOf = (body: BodyType | undefined): number => (body === 'petit' ? PETIT : 1);
+
+/** 体型が効くのはロビーと隠れる役のあいだだけ。増え鬼で見つかってハンターになった人も通常の体に戻る */
+export const liveScale = (v: Pick<View, 'phase' | 'roles' | 'bodies'>, seat: Seat): number =>
+  v.phase === 'lobby' || v.roles[seat] === 'hider' ? scaleOf(v.bodies[seat]) : 1;
+
 /** 口笛。ロビーでは全員、試合中は見つかっていない隠れる人だけが、1 秒あけて吹ける。自分で吹くと強制挑発の時計が巻き戻る */
 export function toot(m: Match, seat: Seat): boolean {
   const may = m.phase === 'lobby' || (m.roles[seat] === 'hider' && !m.found.includes(seat));
@@ -384,6 +422,8 @@ export interface View {
   /** 見落としポイント（ハンター → 隠れる人 → 点、切り捨て） */
   overlook: Partial<Record<Seat, Partial<Record<Seat, number>>>>;
   spots: Partial<Record<Seat, V3>>;
+  /** 体の動きの知らせには大きさを載せないので、各端末は席の体型をここから引く */
+  bodies: Partial<Record<Seat, BodyType>>;
 }
 
 export function view(m: Match): View {
@@ -421,6 +461,7 @@ export function view(m: Match): View {
     buried,
     exposed,
     overlook,
-    spots: m.spots
+    spots: m.spots,
+    bodies: m.settings.petit ? { ...m.bodies } : {}
   };
 }
