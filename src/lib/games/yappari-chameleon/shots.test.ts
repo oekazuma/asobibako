@@ -42,7 +42,10 @@ describe('frames', () => {
     const places = [
       body([1, 0, 2], { yaw: 0.7 }),
       body([0, 1.5, 4.8], { yaw: Math.PI, cling: { kind: 'wall', nx: 0, nz: -1 } }),
-      body([2, 3, 1], { yaw: -1.2, cling: { kind: 'ceiling' } })
+      body([2, 3, 1], { yaw: -1.2, cling: { kind: 'ceiling' } }),
+      body([1, 0, 2], { yaw: 0.7, scale: 0.5 }),
+      body([0, 1.5, 4.9], { yaw: Math.PI, cling: { kind: 'wall', nx: 0, nz: -1 }, scale: 0.5 }),
+      body([2, 3, 1], { yaw: -1.2, cling: { kind: 'ceiling' }, scale: 0.5 })
     ];
     for (const pose of [STAND, AIM, ...POSES])
       for (const b of places) {
@@ -50,6 +53,7 @@ describe('frames', () => {
         const p = placement(b);
         rig.root.rotation.order = 'YXZ';
         rig.root.rotation.set(p.tilt, p.yaw, 0);
+        rig.root.scale.setScalar(p.scale);
         rig.root.position.set(...p.at);
         rig.root.updateMatrixWorld(true);
         const f = frames(pose, p);
@@ -232,5 +236,53 @@ describe('fire', () => {
     const t = [target(2, body([0, 0, 0])), target(3, body([0, 0, 1]))];
     const rs = fire(room, [0, 0.7, -3], [0, 0, 1], t);
     expect(rs[0].seat).toBe(2);
+  });
+});
+
+describe('プチカメレオンの当たり', () => {
+  const P = 0.5;
+  const sub = (a: V3, b: V3): V3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+
+  it('骨ごとのカプセルは、根元から見た位置も半径も通常の 0.5 倍', () => {
+    for (const b of [
+      body([1, 0, 2], { yaw: 0.7 }),
+      body([0, 1.5, 4.9], { yaw: Math.PI, cling: { kind: 'wall', nx: 0, nz: -1 } }),
+      body([2, 3, 1], { yaw: -1.2, cling: { kind: 'ceiling' } })
+    ])
+      for (const pose of [STAND, poseById('lie'), poseById('curl')]) {
+        const full = placement({ ...b, pose: pose.id });
+        const petit = placement({ ...b, pose: pose.id, scale: P });
+        const a = capsules(pose, full);
+        const c = capsules(pose, petit);
+        a.forEach((k, i) => {
+          expect(c[i].r).toBeCloseTo(k.r * P, 9);
+          const want = sub(k.a, full.at).map((v) => v * P);
+          sub(c[i].a, petit.at).forEach((v, j) => expect(v).toBeCloseTo(want[j], 9));
+        });
+      }
+  });
+
+  it('張り付いた体を面から離す量も 0.5 倍で、どのポーズでもプチの立つ体より 0.01m を超えて面の奥へ出ない', () => {
+    const wall: Cling = { kind: 'wall', nx: 0, nz: -1 };
+    const lie = poseById('lie');
+    const pos: V3 = [0, 0.8, 5 - RADIUS * P];
+    const moved = placement({ pos, yaw: 0, cling: wall, pose: 'lie', scale: P });
+    const plain = placement({ pos, yaw: 0, cling: wall, scale: P });
+    expect(plain.at[2]).toBeCloseTo(5 - RADIUS * P + (RADIUS - 0.12) * P, 9);
+    expect(plain.at[2] - moved.at[2]).toBeCloseTo((sink(lie, 'wall') - sink(STAND, 'wall')) * P, 9);
+    const dot = (a: V3, b: V3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    for (const pose of [STAND, AIM, ...POSES]) {
+      const caps = capsules(pose, placement({ pos, yaw: 0, cling: wall, pose: pose.id, scale: P }));
+      const past = Math.max(0, ...caps.flatMap((c) => [c.a, c.b].map((q) => c.r - dot(sub(q, [0, 0, 5]), [0, 0, -1]))));
+      expect(past, pose.id).toBeLessThanOrEqual(sink(STAND, 'wall') * P + 0.01);
+    }
+  });
+
+  it('通常の体なら胸に当たる高さの弾が、同じ所のプチには当たらず、プチの胸の高さなら当たる', () => {
+    const full = [target(2, body([0, 0, 0]))];
+    const petit = [target(2, body([0, 0, 0], { scale: P }))];
+    expect(hitSeats(room, [0, 0.75, -5], [0, 0.75, 0], full)).toContain(2);
+    expect(hitSeats(room, [0, 0.75, -5], [0, 0.75, 0], petit)).toEqual([]);
+    expect(hitSeats(room, [0, 0.35, -5], [0, 0.35, 0], petit)).toContain(2);
   });
 });

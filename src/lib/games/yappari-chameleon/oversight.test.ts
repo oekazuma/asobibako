@@ -74,4 +74,10 @@ describe('見落としポイントの視野', () => {
     expect(mid[1]).toBeCloseTo(0.7025, 3);
     expect(head[1]).toBeCloseTo(1.045, 3);
   });
+
+  it('プチカメレオンの体の点は、足もとから 0.5 倍の高さ', () => {
+    const [mid, head] = bodyPoints({ pos: [0, 0, 0], yaw: 0, cling: null, pose: 'stand', scale: 0.5 });
+    expect(mid[1]).toBeCloseTo(0.7025 / 2, 3);
+    expect(head[1]).toBeCloseTo(1.045 / 2, 3);
+  });
 });

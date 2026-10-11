@@ -42,7 +42,7 @@ export function inView(v: Viewer, p: V3): boolean {
 }
 
 /** 体の真ん中（胴の 2 つめの円すいの中ほど）と頭の中心。dollShapes の並びは頭・胴 3 つ・腕と脚 */
-export function bodyPoints(b: Pick<Me, 'pos' | 'yaw' | 'cling' | 'pose'>): V3[] {
+export function bodyPoints(b: Pick<Me, 'pos' | 'yaw' | 'cling' | 'pose'> & { scale?: number }): V3[] {
   const c = capsules(poseById(b.pose), placement(b));
   const mid = c[2];
   return [[(mid.a[0] + mid.b[0]) / 2, (mid.a[1] + mid.b[1]) / 2, (mid.a[2] + mid.b[2]) / 2], c[0].a];

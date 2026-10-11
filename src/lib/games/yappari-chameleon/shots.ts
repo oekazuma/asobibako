@@ -9,11 +9,12 @@ export const RANGE = 60;
 /** 張り付いたときに壁や天井と体の間を空けない（world3d の placeDoll と同じ値） */
 export const HALF_DEPTH = 0.12;
 
-/** tilt は天井で寝かせる角度（x 軸まわり） */
+/** tilt は天井で寝かせる角度（x 軸まわり）。scale は体の大きさ（根元から全体に掛ける） */
 export interface Placement {
   at: V3;
   yaw: number;
   tilt: number;
+  scale: number;
 }
 
 /** Body と、ほかの人から届いた体の様子（net.ts の Me）のどちらも渡せる */
@@ -23,17 +24,21 @@ export interface Placeable {
   cling: Cling | null;
   /** ポーズの ID。張り付いた体を、そのポーズの当たりが張り付いた面の奥へ出ない所まで面から離す */
   pose?: string;
+  /** 体の大きさ（プチカメレオンは 0.5）。無ければ 1 */
+  scale?: number;
 }
 
 function basePlacement(b: Placeable): Placement {
   const [x, y, z] = b.pos;
+  const size = b.scale ?? 1;
   if (b.cling?.kind === 'wall') {
-    const k = RADIUS - HALF_DEPTH;
-    return { at: [x - b.cling.nx * k, y, z - b.cling.nz * k], yaw: b.yaw, tilt: 0 };
+    const k = (RADIUS - HALF_DEPTH) * size;
+    return { at: [x - b.cling.nx * k, y, z - b.cling.nz * k], yaw: b.yaw, tilt: 0, scale: size };
   }
   // 背中を天井に付け、前を下へ向ける
-  if (b.cling?.kind === 'ceiling') return { at: [x, y - HALF_DEPTH, z], yaw: b.yaw, tilt: Math.PI / 2 };
-  return { at: [x, y, z], yaw: b.yaw, tilt: 0 };
+  if (b.cling?.kind === 'ceiling')
+    return { at: [x, y - HALF_DEPTH * size, z], yaw: b.yaw, tilt: Math.PI / 2, scale: size };
+  return { at: [x, y, z], yaw: b.yaw, tilt: 0, scale: size };
 }
 
 /**
@@ -43,8 +48,9 @@ function basePlacement(b: Placeable): Placement {
 export function placement(b: Placeable): Placement {
   const p = basePlacement(b);
   if (!b.cling || !b.pose) return p;
-  // カプセルは見た目より太く、立って張り付いた体でも面の奥へ出るので、立つときの深さを引いて立つ体は面に付けたままにする
-  const d = Math.max(0, sink(poseById(b.pose), b.cling.kind) - sink(STAND, b.cling.kind));
+  // カプセルは見た目より太く、立って張り付いた体でも面の奥へ出るので、立つときの深さを引いて立つ体は面に付けたままにする。
+  // 深さは体の大きさに比例する（面の上の点も根元のずらしも半径も同じ倍率で縮む）
+  const d = Math.max(0, sink(poseById(b.pose), b.cling.kind) - sink(STAND, b.cling.kind)) * p.scale;
   const n: V3 = b.cling.kind === 'wall' ? [b.cling.nx, 0, b.cling.nz] : [0, -1, 0];
   return { ...p, at: add(p.at, scale(n, d)) };
 }
@@ -120,7 +126,10 @@ export function frames(pose: Pose, place: Placement): Record<Bone, Frame> {
     const from = parent ? out[parent] : root;
     const local = parent ? sub(JOINTS[b], JOINTS[parent]) : add(JOINTS[b], [0, pose.drop ?? 0, 0]);
     const e = pose.bones[b] ?? [0, 0, 0];
-    out[b] = { p: add(from.p, apply(from.r, local)), r: mul(from.r, mul(rx(e[0]), mul(ry(e[1]), rz(e[2])))) };
+    out[b] = {
+      p: add(from.p, apply(from.r, scale(local, place.scale))),
+      r: mul(from.r, mul(rx(e[0]), mul(ry(e[1]), rz(e[2]))))
+    };
   }
   return out;
 }
@@ -136,12 +145,13 @@ const SHAPES = dollShapes();
 /** 円すいは太いほうの半径の筒、楕円体（頭）は最大半径の球にする。当たりは見た目より少し甘くてよい */
 export function capsules(pose: Pose, place: Placement): Capsule[] {
   const f = frames(pose, place);
-  const at = (bone: Bone, p: V3) => add(f[bone].p, apply(f[bone].r, sub(p, JOINTS[bone])));
+  const k = place.scale;
+  const at = (bone: Bone, p: V3) => add(f[bone].p, apply(f[bone].r, scale(sub(p, JOINTS[bone]), k)));
   return SHAPES.map((s) => {
     const bone = s.bone as Bone;
-    if (s.cone) return { a: at(bone, s.a), b: at(bone, s.cone.b), r: Math.max(s.cone.ra, s.cone.rb) };
+    if (s.cone) return { a: at(bone, s.a), b: at(bone, s.cone.b), r: Math.max(s.cone.ra, s.cone.rb) * k };
     const p = at(bone, s.a);
-    return { a: p, b: p, r: Math.max(...(s.ell ?? [0.1, 0.1, 0.1])) };
+    return { a: p, b: p, r: Math.max(...(s.ell ?? [0.1, 0.1, 0.1])) * k };
   });
 }
 

@@ -55,3 +55,18 @@ describe('埋まりすぎ', () => {
     expect(embedded(level, at([0, 0.8, pushed - 0.1], 'stand', 0, wall))).toBe(false);
   });
 });
+
+describe('プチカメレオンの埋まり', () => {
+  it('0.5 倍の体で調べる。通常の体の頭が入る低い棚の下でも、プチは埋まらない', () => {
+    const shelf: Level = { ...level, boxes: [...level.boxes, { min: [-1, 0.8, -1], max: [1, 1.3, 1] }] };
+    expect(embedded(shelf, at([0, 0, 0], 'stand'))).toBe(true);
+    expect(embedded(shelf, { ...at([0, 0, 0], 'stand'), scale: 0.5 })).toBe(false);
+  });
+
+  it('プチが壁や天井に張り付いても、どのポーズでも埋まらない', () => {
+    for (const p of ALL) {
+      expect(embedded(level, { ...at([0, 0.8, 4.9], p.id, 0, wall), scale: 0.5 }), `壁 ${p.id}`).toBe(false);
+      expect(embedded(level, { ...at([0, 3, 0], p.id, 1.2, ceiling), scale: 0.5 }), `天井 ${p.id}`).toBe(false);
+    }
+  });
+});

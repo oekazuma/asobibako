@@ -20,7 +20,7 @@ function depthIn(p: V3, box: Box, n: V3): number {
  * 頭の中心か、胴の 3 つの円すいの軸の真ん中が、家具まで含めた屋敷の箱の中にあれば埋まっている。
  * 張り付いた体は面に触れているので、張り付いた面から CLING_DEPTH 以上入ったときだけ埋まりにする
  */
-export function embedded(lv: Level, b: Pick<Me, 'pos' | 'yaw' | 'cling' | 'pose'>): boolean {
+export function embedded(lv: Level, b: Pick<Me, 'pos' | 'yaw' | 'cling' | 'pose'> & { scale?: number }): boolean {
   const c = capsules(poseById(b.pose), placement(b));
   const points: V3[] = [
     c[0].a,
