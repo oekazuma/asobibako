@@ -56,7 +56,7 @@ describe('Entry', () => {
     click('2');
     click('強い');
     click('ゲームを始める');
-    const want = { side: 'seek', count: 2, mode: 'infect', strength: 'strong' };
+    const want = { side: 'seek', count: 2, mode: 'infect', strength: 'strong', petit: false };
     expect(oncpu).toHaveBeenCalledWith(want);
     expect(JSON.parse(localStorage.getItem(CPU_KEY)!)).toEqual(want);
     expect(target.querySelector('[aria-label="CPU の設定"]')).toBeNull();

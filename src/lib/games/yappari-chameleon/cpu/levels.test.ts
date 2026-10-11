@@ -38,6 +38,6 @@ describe('強さの表', () => {
 
   it('画面の言葉と、選ぶ画面の既定', () => {
     expect(STRENGTHS.map((s) => s.name)).toEqual(['弱い', '普通', '強い']);
-    expect(CPU_DEFAULT).toEqual({ side: 'hide', count: 1, mode: 'normal', strength: 'normal' });
+    expect(CPU_DEFAULT).toEqual({ side: 'hide', count: 1, mode: 'normal', strength: 'normal', petit: false });
   });
 });

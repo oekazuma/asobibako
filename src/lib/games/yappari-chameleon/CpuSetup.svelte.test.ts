@@ -63,7 +63,7 @@ describe('CpuSetup', () => {
     click('探す');
     click('2');
     click('強い');
-    expect({ ...choice }).toEqual({ side: 'seek', count: 2, mode: 'normal', strength: 'strong' });
+    expect({ ...choice }).toEqual({ side: 'seek', count: 2, mode: 'normal', strength: 'strong', petit: false });
     click('ゲームを始める');
     expect(onstart).toHaveBeenCalledTimes(1);
     click('閉じる');

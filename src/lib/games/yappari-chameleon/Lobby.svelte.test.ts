@@ -115,7 +115,7 @@ describe('CPU と遊ぶのロビー', () => {
     click('強い');
     click('ゲームを始める');
     expect(play).toHaveBeenCalledWith(
-      { side: 'seek', count: 1, mode: 'infect', strength: 'strong' },
+      { side: 'seek', count: 1, mode: 'infect', strength: 'strong', petit: false },
       expect.objectContaining({ hide: 120 })
     );
     expect(start).not.toHaveBeenCalled();

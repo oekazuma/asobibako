@@ -91,6 +91,8 @@ export interface CpuChoice {
   count: 1 | 2;
   mode: 'normal' | 'infect';
   strength: Strength;
+  /** 許可すると隠れる CPU は全員プチカメレオン */
+  petit: boolean;
 }
 
-export const CPU_DEFAULT: CpuChoice = { side: 'hide', count: 1, mode: 'normal', strength: 'normal' };
+export const CPU_DEFAULT: CpuChoice = { side: 'hide', count: 1, mode: 'normal', strength: 'normal', petit: false };

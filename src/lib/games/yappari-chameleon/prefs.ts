@@ -1,5 +1,5 @@
 import { CPU_DEFAULT, type CpuChoice } from './cpu/levels';
-import { DEFAULTS, fit, type Settings } from './referee';
+import { BODY_TYPES, DEFAULTS, fit, type BodyType, type Settings } from './referee';
 
 export const SETTINGS_KEY = 'asobibako:yappari-chameleon:settings';
 const NUMBERS = ['hunters', 'hide', 'search', 'reveal', 'taunt'] as const;
@@ -43,7 +43,8 @@ export function readCpu(): CpuChoice {
       count: one(s.count, [1, 2] as const, CPU_DEFAULT.count),
       // 隠れるときはプレイヤー 1 人が隠れ、見つかった時点で終わるので、増え鬼にしない
       mode: side === 'hide' ? 'normal' : one(s.mode, ['normal', 'infect'] as const, CPU_DEFAULT.mode),
-      strength: one(s.strength, ['weak', 'normal', 'strong'] as const, CPU_DEFAULT.strength)
+      strength: one(s.strength, ['weak', 'normal', 'strong'] as const, CPU_DEFAULT.strength),
+      petit: s.petit === true
     };
   } catch {
     return { ...CPU_DEFAULT };
@@ -55,5 +56,23 @@ export function saveCpu(c: CpuChoice): void {
     localStorage.setItem(CPU_KEY, JSON.stringify(c));
   } catch {
     // 覚えられなくても、選んだ設定で始められる
+  }
+}
+
+export const BODY_KEY = 'asobibako:yappari-chameleon:body';
+
+export function readBody(): BodyType {
+  try {
+    return one(localStorage.getItem(BODY_KEY), BODY_TYPES, 'normal');
+  } catch {
+    return 'normal';
+  }
+}
+
+export function saveBody(b: BodyType): void {
+  try {
+    localStorage.setItem(BODY_KEY, b);
+  } catch {
+    // 覚えられなくても、選んだ体型で遊べる
   }
 }

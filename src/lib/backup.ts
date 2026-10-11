@@ -22,7 +22,7 @@ const MAX_CHARS = 16 * 1024 * 1024;
 export const BACKUP_AT_KEY = 'asobibako:backup-at';
 // 書き出しには入れるが「記録がある」とは数えない。ゲームを開くだけ・好みを選ぶだけで書かれるので、これで記録ありとみなすと、
 // 消えたあとの起動で控えから戻さず、空に近い中身で控えを上書きしてしまう
-// 絵柄（らくがきパレード）と動物・遊ぶ長さ（おえかきのもり）と CPU の設定（やっぱりカメレオン）も好みなので数えない。
+// 絵柄（らくがきパレード）と動物・遊ぶ長さ（おえかきのもり）と CPU の設定と体型（やっぱりカメレオン）も好みなので数えない。
 // ゲームの描画を全ページの入口に載せないよう、import せず名前で持つ
 const NOT_RECORDS = new Set([
   BACKUP_AT_KEY,
@@ -33,7 +33,8 @@ const NOT_RECORDS = new Set([
   'asobibako:oekaki-mori:look',
   'asobibako:oekaki-mori:length',
   'asobibako:oekaki-mori:chars',
-  'asobibako:yappari-chameleon:cpu'
+  'asobibako:yappari-chameleon:cpu',
+  'asobibako:yappari-chameleon:body'
 ]);
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);

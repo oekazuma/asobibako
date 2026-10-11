@@ -64,6 +64,16 @@
       <button class:on={!settings.overlook} onclick={() => (settings.overlook = false)}>オフ</button>
     </span>
   </div>
+  <!-- CPU と遊ぶでは、CPU の設定のプチカメレオンで決める -->
+  {#if !cpu}
+    <div class="row">
+      <span>プチカメレオンを許可</span>
+      <span class="pick">
+        <button class:on={settings.petit} onclick={() => (settings.petit = true)}>オン</button>
+        <button class:on={!settings.petit} onclick={() => (settings.petit = false)}>オフ</button>
+      </span>
+    </div>
+  {/if}
   {#if players < 2}<p class="note">2人以上そろうと始められます</p>{/if}
   <div class="actions">
     <button onclick={onclose}>閉じる</button>

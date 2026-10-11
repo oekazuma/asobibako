@@ -1,7 +1,17 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from 'vitest';
 import { CPU_DEFAULT } from './cpu/levels';
-import { CPU_KEY, readCpu, readSettings, saveCpu, saveSettings, SETTINGS_KEY } from './prefs';
+import {
+  BODY_KEY,
+  CPU_KEY,
+  readBody,
+  readCpu,
+  readSettings,
+  saveBody,
+  saveCpu,
+  saveSettings,
+  SETTINGS_KEY
+} from './prefs';
 import { DEFAULTS } from './referee';
 
 afterEach(() => localStorage.clear());
@@ -41,18 +51,40 @@ describe('マップの設定', () => {
 describe('CPU の設定', () => {
   it('覚えた設定を読み、無ければ既定', () => {
     expect(readCpu()).toEqual(CPU_DEFAULT);
-    saveCpu({ side: 'seek', count: 2, mode: 'infect', strength: 'strong' });
-    expect(readCpu()).toEqual({ side: 'seek', count: 2, mode: 'infect', strength: 'strong' });
+    saveCpu({ side: 'seek', count: 2, mode: 'infect', strength: 'strong', petit: true });
+    expect(readCpu()).toEqual({ side: 'seek', count: 2, mode: 'infect', strength: 'strong', petit: true });
   });
 
   it('隠れるでは増え鬼を読まず、知らない値や壊れた値は既定に戻す', () => {
     localStorage.setItem(CPU_KEY, JSON.stringify({ side: 'hide', count: 2, mode: 'infect', strength: 'weak' }));
-    expect(readCpu()).toEqual({ side: 'hide', count: 2, mode: 'normal', strength: 'weak' });
-    localStorage.setItem(CPU_KEY, JSON.stringify({ side: 'x', count: 3, mode: 'double', strength: 'max' }));
+    expect(readCpu()).toEqual({ side: 'hide', count: 2, mode: 'normal', strength: 'weak', petit: false });
+    localStorage.setItem(CPU_KEY, JSON.stringify({ side: 'x', count: 3, mode: 'double', strength: 'max', petit: 1 }));
     expect(readCpu()).toEqual(CPU_DEFAULT);
     localStorage.setItem(CPU_KEY, 'null');
     expect(readCpu()).toEqual(CPU_DEFAULT);
     localStorage.setItem(CPU_KEY, '{');
     expect(readCpu()).toEqual(CPU_DEFAULT);
+  });
+});
+
+describe('自分の体型', () => {
+  it('覚えた体型を読み、無ければ通常。知らない値も通常', () => {
+    expect(readBody()).toBe('normal');
+    saveBody('petit');
+    expect(localStorage.getItem(BODY_KEY)).toBe('petit');
+    expect(readBody()).toBe('petit');
+    localStorage.setItem(BODY_KEY, 'giant');
+    expect(readBody()).toBe('normal');
+  });
+});
+
+describe('プチカメレオンの許可', () => {
+  it('マップの設定に覚え、前の版の保存は許可しないで読む', () => {
+    saveSettings({ ...DEFAULTS, petit: true });
+    expect(readSettings().petit).toBe(true);
+    const old: Partial<typeof DEFAULTS> = { ...DEFAULTS };
+    delete old.petit;
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...old, v: 2 }));
+    expect(readSettings().petit).toBe(false);
   });
 });
