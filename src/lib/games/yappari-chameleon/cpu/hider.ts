@@ -122,6 +122,8 @@ export class HiderBrain {
       if (!points) return;
       this.#plan = thin(points, this.#skill.brush * 0.8).filter(() => this.#rand() >= this.#skill.skip);
       this.#rate = Math.max(RATE, this.#plan.length / PAINT_SECS);
+      // 体の表面を調べたコマはそれだけで重いので、面の色を聞くのは次のコマから
+      return;
     }
     this.painting = true;
     this.#budget += this.#rate * dt;

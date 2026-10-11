@@ -165,6 +165,22 @@ describe('隠れる CPU', () => {
     }
   });
 
+  it('体の表面を調べたコマ（25ms ほど）では、面の色を聞かない', () => {
+    const rays = { n: 0 };
+    let asked = -1;
+    let k = 0;
+    const b = brain('strong');
+    const c = ctx(canvas(() => ((asked = k), tube(open)), rays));
+    for (; k < 120; k++) {
+      const before = rays.n;
+      c.now += 1000 / 60;
+      b.step(c, 1 / 60);
+      if (k === asked) expect(rays.n).toBe(before);
+    }
+    expect(asked).toBeGreaterThan(0);
+    expect(rays.n).toBeGreaterThan(0);
+  });
+
   it('2 人の隠れる CPU は、体の表面（1 回 25ms ほど）を同じコマで調べない', () => {
     const steps = [new Set<number>(), new Set<number>()];
     let k = 0;
