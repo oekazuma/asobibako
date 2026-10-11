@@ -17,7 +17,7 @@ const { values: args } = parseArgs({
 if ((args.skill !== 'strong' || args.from) && !args.out) throw new Error('--skill と --from は --out といっしょに使う');
 
 interface Row {
-  key: string | null;
+  key: string;
   room: string;
   seen: number;
   max: number;
@@ -106,7 +106,7 @@ async function setup(base: string): Promise<number> {
         seen.push(eye.visible(1, 2, e, at, levels.SKILLS.strong.diff) ?? NaN);
       }
       return {
-        key: spots.spotKey?.(spot) ?? null,
+        key: spots.spotKey(spot),
         room,
         seen: seen.reduce((a, v) => a + v, 0) / seen.length,
         max: Math.max(...seen),
@@ -144,9 +144,7 @@ try {
       [i, from?.[i] ?? null, args.skill] as const
     );
     rows.push(row);
-    console.log(
-      `${i} ${row.room} ${row.key ?? ''} seen ${row.seen.toFixed(3)} max ${row.max.toFixed(3)} rays ${row.rays}`
-    );
+    console.log(`${i} ${row.room} ${row.key} seen ${row.seen.toFixed(3)} max ${row.max.toFixed(3)} rays ${row.rays}`);
   }
   if (args.out) await writeFile(args.out, JSON.stringify(rows, null, 2));
   else {
@@ -154,7 +152,7 @@ try {
     await writeFile(
       OUT,
       [
-        '// pnpm spots が書く表。手で直さず、spots.ts の候補を変えたら測り直す',
+        '// pnpm spots が書く表。手で直さず、spots.ts の候補・強い CPU の筆と目・部屋の形や模様を変えたら測り直す',
         '',
         '/** 候補（spotKey）ごとの、その部屋の網の点から強い CPU の目で見た目立ちの平均（0..1） */',
         'export const SEEN: Record<string, number> = {',

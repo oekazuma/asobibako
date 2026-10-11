@@ -5,7 +5,9 @@ import { levelOf, mansion, placeOf, SIZES, type Piece } from '../mansion/layout'
 import { place, SETS } from '../mansion/props';
 import { EYE_HEIGHT, idle, newBody, rampHeight, step, wallNear, type Box } from '../move';
 import { poseById } from '../poses';
-import { capsules, placement } from '../shots';
+import { bodyPoints } from '../oversight';
+import { capsules, placement, rayLevel } from '../shots';
+import { NEAR } from './hider';
 import { rng } from '../rng';
 import { SKILLS } from './levels';
 import { NODES, ROOMS } from './paths';
@@ -20,6 +22,8 @@ const boxOf = (q: Piece): Box | null => {
 };
 const hits = (a: Box, b: Box) => [0, 1, 2].every((i) => a.min[i] < b.max[i] - 1e-6 && b.min[i] < a.max[i] - 1e-6);
 const inside = (p: V3, b: Box) => [0, 1, 2].every((i) => p[i] > b.min[i] && p[i] < b.max[i]);
+/** 近くに面が無く、見られる位置から見た向こうの色で塗る候補（spots.ts の行のコメントに理由） */
+const OPEN = ['9.00,0.00,4.60 stand floor 1,0,0', '-19.00,0.00,9.50 crouch floor -1,0,0'];
 const SEEDS = [null, ...Array.from({ length: 30 }, (_, i) => i + 1)];
 const name = (s: Spot) => `${placeOf(s.pos)} ${s.pos.map((v) => v.toFixed(2)).join(',')} ${s.pose}`;
 const caps = (s: Spot) => capsules(poseById(s.pose), placement(s));
@@ -71,6 +75,14 @@ describe('隠れ場所の候補', () => {
       if (s.cling?.kind === 'wall') expect(s.back, name(s)).toEqual([-s.cling.nx, 0, -s.cling.nz]);
       if (s.cling?.kind === 'ceiling') expect(s.back, name(s)).toEqual([0, 1, 0]);
     }
+  });
+
+  it('壁や家具を背にする候補は、体の真ん中から背の向きに NEAR までのところに面がある', () => {
+    const lv = levelOf(mansion());
+    const far = SPOTS.filter(
+      (s) => Math.abs(s.back[1]) < 0.9 && !rayLevel(lv, bodyPoints(s)[0], s.back, NEAR) && !OPEN.includes(spotKey(s))
+    ).map(name);
+    expect(far).toEqual([]);
   });
 
   it('ずらしても同じ部屋にある', () => {

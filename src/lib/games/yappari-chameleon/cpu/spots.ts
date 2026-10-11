@@ -25,8 +25,10 @@ export interface Spot {
 type Row = Omit<Spot, 'seen'>;
 
 /** spot-seen.ts の表のキー */
-export const spotKey = (s: Pick<Spot, 'pos' | 'pose'>): string =>
-  `${s.pos.map((v) => v.toFixed(2)).join(',')} ${s.pose}`;
+export const spotKey = (s: Pick<Spot, 'pos' | 'pose' | 'cling' | 'back'>): string => {
+  const cling = s.cling?.kind === 'wall' ? `wall ${s.cling.nx + 0},${s.cling.nz + 0}` : (s.cling?.kind ?? 'floor');
+  return `${s.pos.map((v) => v.toFixed(2)).join(',')} ${s.pose} ${cling} ${s.back.map((v) => v + 0).join(',')}`;
+};
 
 /** ずらす量の上限（m） */
 export const SHIFT = 0.25;
@@ -75,7 +77,7 @@ const ROWS: Row[] = [
   floor(-6.5, 0, 3.2, PI / 2, 'stand', 0, W), // 西の壁ぎわ、廊下への戸口の南
   floor(6.4, 0, 10.3, -PI / 2, 'cross', 0, E, 0.05), // 回廊の下の北東の隅
   floor(5.6, 0, 3.0, -PI / 2, 'curl', 1, DOWN, 0.2), // ピアノの東の陰
-  floor(-5.6, 0, 9.3, PI, 'stand', 1, N, 0.15), // 回廊の下、西の円柱のうしろ
+  floor(-5.6, 0, 9.3, PI, 'stand', 1, W, 0.15), // 回廊の下、西の円柱のうしろ
   wall(-3.0, 1.5, 0.2, 0, 1, 'lean'), // 入口の南の壁
   wall(6.8, 2.0, 2.0, -1, 0), // 東の壁、ピアノの南
   ceiling(2.5, 7, 6.0), // 大階段の東の天井
@@ -111,7 +113,7 @@ const ROWS: Row[] = [
   wall(-22.8, 0.6, 5.95, 1, 0, 'lie', 0.05), // 腰板の壁に張り付いて寝そべる
   wall(-14.3, 1.2, 6.55, 0, -1, 'curl'), // 腰板の壁に張り付いて丸まる
   // 書斎
-  floor(9.0, 0, 4.6, 0, 'stand', 0, E), // 南西の柱の西
+  floor(9.0, 0, 4.6, 0, 'stand', 0, E), // 南西の柱の西。柱は細く近くに面が無いので、見られる位置から見た向こうの色で塗る
   floor(15.6, 0, 3.2, PI, 'cross', 0, DOWN), // 地球儀の北
   floor(11.0, 0, 10.35, PI, 'stand', 1, N, 0.05), // 北の壁の本棚の前
   floor(16.5, 0, 8.6, PI, 'curl', 1, DOWN, 0.15), // 肘掛け椅子の北の陰
@@ -126,7 +128,7 @@ const ROWS: Row[] = [
   wall(7.5, 1.8, 7.45, 1, 0, 'stand'), // 木の壁に張り付いて立つ
   // キッチン
   floor(-12.0, 0, 14.6, PI, 'stand', 0, N), // 北東の隅、鍋の棚の北
-  floor(-19.0, 0, 9.5, PI / 2, 'crouch', 0, W), // 肉の棚の東
+  floor(-19.0, 0, 9.5, PI / 2, 'crouch', 0, W), // 肉の棚の東。西の壁まで 1.5m より遠いので、見られる位置から見た向こうの色で塗る
   floor(-14.2, 0, 11.0, PI / 2, 'curl', 1, DOWN), // 島の台の東の陰
   floor(-20.25, 0, 11.1, PI / 2, 'stand', 1, W, 0.1), // 2 つの肉の棚のあいだ
   wall(-11.2, 1.5, 8.5, -1, 0, 'lean'), // 東の壁、レンジの南
@@ -140,7 +142,7 @@ const ROWS: Row[] = [
   wall(-11.2, 0.6, 12.5, -1, 0, 'lie'), // タイルの壁に張り付いて寝そべる
   // ランドリー
   floor(-11.4, 0, 2.4, PI, 'stand', 0, N), // 北東の隅、廊下の壁の下
-  floor(-13.4, 0, -1.8, 0, 'cross', 0, W, 0.2), // タオルの台の東
+  floor(-13.4, 0, -1.8, 0, 'cross', 0, E, 0.2), // タオルの台の東、東の物を背に
   floor(-18.1, 0, -4.1, 0, 'curl', 1, DOWN, 0.05), // 南の洗濯機の前の隅
   floor(-14.5, 0, -3.7, 0, 'stand', 1, S), // タオルの台の南
   wall(-19.8, 1.6, -2.0, 1, 0), // 西の壁、木の棚の南
