@@ -3,7 +3,7 @@ import type { V3 } from '$lib/sculpt';
 import { embedded } from '../embed';
 import { levelOf, mansion, placeOf, SIZES, type Piece } from '../mansion/layout';
 import { place, SETS } from '../mansion/props';
-import { EYE_HEIGHT, idle, newBody, step, wallNear, type Box } from '../move';
+import { EYE_HEIGHT, idle, newBody, rampHeight, step, wallNear, type Box } from '../move';
 import { poseById } from '../poses';
 import { capsules, placement } from '../shots';
 import { rng } from '../rng';
@@ -95,12 +95,15 @@ describe('隠れ場所の候補', () => {
     expect(bad).toEqual([]);
   });
 
-  it('ずらしても、壁や動かない家具の中に体の当たりの軸が入らない', () => {
+  it('ずらしても、壁や動かない家具の中と階段の坂の下に体の当たりの軸が入らない', () => {
     const bad: string[] = [];
     for (const s of ALL)
       for (const k of caps(s)) {
         const mid: V3 = [(k.a[0] + k.b[0]) / 2, (k.a[1] + k.b[1]) / 2, (k.a[2] + k.b[2]) / 2];
         if ([k.a, k.b, mid].some((p) => fixed.boxes.some((b) => inside(p, b)))) bad.push(name(s));
+        // 階段は坂の当たりで、坂の下に入った体は段の絵に隠れて見えなくなる
+        if ([k.a, k.b, mid].some((p) => fixed.ramps.some((r) => (rampHeight(r, p[0], p[2]) ?? -Infinity) > p[1])))
+          bad.push(name(s));
       }
     expect([...new Set(bad)]).toEqual([]);
   });

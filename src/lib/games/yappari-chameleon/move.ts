@@ -133,7 +133,7 @@ export function wallNear(
   return best && { nx: best.nx, nz: best.nz, top: best.top };
 }
 
-function rampHeight(r: Ramp, x: number, z: number): number | null {
+export function rampHeight(r: Ramp, x: number, z: number): number | null {
   if (x < r.min[0] || x > r.max[0] || z < r.min[2] || z > r.max[2]) return null;
   const t =
     r.rise === 'x+'

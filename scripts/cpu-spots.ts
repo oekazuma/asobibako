@@ -150,7 +150,7 @@ try {
   }
   if (args.out) await writeFile(args.out, JSON.stringify(rows, null, 2));
   else {
-    const lines = rows.map((r, i) => `  '${r.key}': ${r.seen.toFixed(3)}${i < rows.length - 1 ? ',' : ''}`);
+    const lines = rows.map((r, i) => `  '${r.key}': ${Number(r.seen.toFixed(3))}${i < rows.length - 1 ? ',' : ''}`);
     await writeFile(
       OUT,
       [
