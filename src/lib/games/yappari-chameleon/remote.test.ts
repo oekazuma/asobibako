@@ -29,7 +29,14 @@ const me = (ms: number, x: number, extra: Partial<Me> = {}): Me => ({
   eye: null,
   ...extra
 });
-const show = (extra: Partial<Show> = {}): Show => ({ pin: null, visible: true, armed: false, shine: null, ...extra });
+const show = (extra: Partial<Show> = {}): Show => ({
+  pin: null,
+  visible: true,
+  armed: false,
+  shine: null,
+  scale: 1,
+  ...extra
+});
 const dab = (i: number): Dab => ({ p: [i / 100, 1, 0], n: [0, 0, 1], r: 0.05, c: [0, 1, 0], a: 0.3, m: 0, ro: 0.8 });
 
 function remote() {
@@ -80,6 +87,23 @@ describe('Remote', () => {
     expect(held()).toBe(1);
     r.update(1 / 60, 500, show({ armed: false, visible: true, pin: me(0, 0) }));
     expect(held()).toBe(0);
+  });
+});
+
+describe('Remote のプチカメレオン', () => {
+  it('見せる大きさで体を置き、頭の上と真ん中もその大きさで測る。張り付いた体もその大きさで面から離す', () => {
+    const r = remote();
+    r.push(me(0, 0), 0);
+    r.update(1 / 60, 500, show({ scale: 0.5 }));
+    expect(r.rig.root.scale.x).toBeCloseTo(0.5);
+    expect(r.head()![1]).toBeCloseTo(1.35 * 0.5);
+    expect(r.center()![1]).toBeCloseTo(0.6 * 0.5);
+    const wall = remote();
+    wall.push(me(0, 0, { pos: [0, 1, 4.9], cling: { kind: 'wall', nx: 0, nz: -1 } }), 0);
+    wall.update(1 / 60, 500, show({ scale: 0.5 }));
+    expect(wall.rig.root.position.z).toBeCloseTo(4.9 + (0.2 - 0.12) * 0.5);
+    r.update(1 / 60, 500, show({ scale: 1 }));
+    expect(r.rig.root.scale.x).toBeCloseTo(1);
   });
 });
 

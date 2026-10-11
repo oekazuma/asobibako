@@ -17,7 +17,16 @@ import { CHAMELEON_VERSION, dabMessages, DabOutbox, SEND_MS, splice, unpackDabs,
 import type { Dab } from './paint';
 import type { Play } from './play.svelte';
 import { AIM, poseById, STAND } from './poses';
-import { COOLDOWN, SHATTER_SECS, TOOT_GAP, type Settings, type View } from './referee';
+import {
+  COOLDOWN,
+  liveScale,
+  scaleOf,
+  SHATTER_SECS,
+  TOOT_GAP,
+  type BodyType,
+  type Settings,
+  type View
+} from './referee';
 import { HEAD_Y, paintColors, Remote, type Show } from './remote';
 import { capsules, fire, placement, type Target } from './shots';
 import { sounds } from './sounds';
@@ -160,6 +169,8 @@ export class Session {
       this.play.world.arrange(v.seed);
     }
     this.match.receive(v);
+    // #place と #fit より前に入れ、置き直す体もハンターになる体もこの大きさで作る
+    this.play.scale = liveScale(v, this.match.me);
     if (first) {
       if (!this.#own) this.#place();
       // 戻った子には親に残っていた探す前の塗りが届くことがあるが、ダブルの探す人は白い体なので消す（残した体は left で写してある）
@@ -385,8 +396,14 @@ export class Session {
       pin,
       visible: !gone,
       armed: !pin && role === 'hunter' && (p === 'search' || p === 'reveal'),
-      shine: infected ? null : this.#shine(seat)
+      shine: infected ? null : this.#shine(seat),
+      scale: pin ? this.#pinScale(seat) : liveScale(m.view, seat)
     };
+  }
+
+  /** 見つかったときの体とダブルの残した体は、増え鬼でハンターになっても隠れたときの体型の大きさ */
+  #pinScale(seat: Seat): number {
+    return scaleOf(this.match.view.bodies[seat]);
   }
 
   #shine(seat: Seat): Shine {
@@ -420,13 +437,18 @@ export class Session {
           pin: body,
           visible: true,
           armed: false,
-          shine: 'blue'
+          shine: 'blue',
+          scale: this.#pinScale(seat)
         });
     }
     for (const [seat, body] of this.#lefts)
-      this.#pins
-        .get(seat)
-        ?.update(dt, now, { pin: body, visible: !this.#caught(seat), armed: false, shine: this.#leftShine(seat) });
+      this.#pins.get(seat)?.update(dt, now, {
+        pin: body,
+        visible: !this.#caught(seat),
+        armed: false,
+        shine: this.#leftShine(seat),
+        scale: this.#pinScale(seat)
+      });
     if (this.play.role === 'watch' && this.watching !== null && !this.#watchable().includes(this.watching))
       this.next(1);
     this.play.watch =
@@ -592,11 +614,13 @@ export class Session {
     if (this.match.double) {
       for (const [seat, b] of this.#lefts)
         if (seat !== this.match.me && !this.#caught(seat))
-          targets.push({ seat, caps: capsules(poseById(b.pose), placement(b)) });
+          targets.push({ seat, caps: capsules(poseById(b.pose), placement({ ...b, scale: this.#pinScale(seat) })) });
     } else
       for (const [seat, r] of this.#remotes)
-        if (r.shown && r.rig.root.visible && this.match.roleOf(seat) === 'hider')
-          targets.push({ seat, caps: capsules(poseById(r.shown.pose), placement(r.shown)) });
+        if (r.shown && r.rig.root.visible && this.match.roleOf(seat) === 'hider') {
+          const scale = liveScale(this.match.view, seat);
+          targets.push({ seat, caps: capsules(poseById(r.shown.pose), placement({ ...r.shown, scale })) });
+        }
     const rays = fire(this.play.world.level, o, d, targets);
     const from = this.play.tps ? this.play.world.gunMuzzle() : this.#gun.muzzle();
     this.#fx.trail(
@@ -610,6 +634,16 @@ export class Session {
 
   start(settings: Settings): void {
     this.host?.start(settings);
+  }
+
+  /** 親はロビーのあいだだけ受け、許可されていれば全員へ配る */
+  dress(body: BodyType): void {
+    this.party.act({ t: 'body', body });
+  }
+
+  /** 親だけ。ロビーのあいだに変えると、すぐ全員の体型に効く */
+  allow(on: boolean): void {
+    this.host?.allow(on);
   }
 
   /** 親だけ。2 人めと、切れた子を同じ番号で迎える */

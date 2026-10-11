@@ -20,6 +20,8 @@ export interface Show {
   /** ハンターとして銃を構える */
   armed: boolean;
   shine: Shine;
+  /** 届いた体の動きには大きさが無いので、見せる側が試合の様子からその席の体型で入れる */
+  scale: number;
 }
 
 /**
@@ -70,7 +72,7 @@ export class Remote {
     this.rig.root.visible = !!me && show.visible;
     this.#glow.set(this.rig.root.visible ? show.shine : null);
     if (!me) return;
-    placeRoot(this.rig.root, me);
+    placeRoot(this.rig.root, { ...me, scale: show.scale });
     if (me.pose !== this.#pose) {
       // 初めて見えたときはポーズの途中から動かさない
       if (this.#pose) this.#poses.to(poseById(me.pose));

@@ -72,7 +72,7 @@ const made = vi.hoisted(() => ({
     log: unknown[];
     rig: { paint: { rebuild: unknown } };
     dabs: unknown;
-    lastShow: { visible: boolean; shine?: unknown } | null;
+    lastShow: { visible: boolean; shine?: unknown; scale?: number } | null;
   }[],
   guns: [] as { visible: boolean; dispose: unknown }[]
 }));
@@ -93,8 +93,8 @@ vi.mock('./remote', () => ({
     last: Me | null = null;
     dabs = vi.fn();
     clearPaint = vi.fn();
-    lastShow: { visible: boolean; pin?: Me | null; shine?: unknown } | null = null;
-    update(_dt: number, _now: number, show: { visible: boolean; pin?: Me | null; shine?: unknown }) {
+    lastShow: { visible: boolean; pin?: Me | null; shine?: unknown; scale?: number } | null = null;
+    update(_dt: number, _now: number, show: { visible: boolean; pin?: Me | null; shine?: unknown; scale?: number }) {
       this.lastShow = show;
       // 本物と同じく、見せる体の様子は更新のときに決まる
       this.shown = show.pin ?? this.last;
@@ -792,5 +792,93 @@ describe('Session のええやんと埋まり', () => {
     tell(at('reveal', { hid: [1, 2], winner: 'chameleon', likes: { 1: 2 } }));
     frames(0.1);
     expect(s.plates.find((p) => p.seat === 1)?.likes).toBe(2);
+  });
+});
+
+describe('Session のプチカメレオン', () => {
+  const petit = { ...DEFAULTS, mode: 'infect', petit: true } as const;
+  const seatOf = (seat: Seat) =>
+    made.remotes.findLast((r) => (r as unknown as { last: Me | null }).last?.pos[0] === seat)!;
+
+  it('自分の体の大きさは届いた様子の体型で決め、ロビーと隠れる役のあいだだけ小さく、ハンターになると 1', () => {
+    const { play, tell, frames } = setup();
+    tell(at('lobby'));
+    expect(play.scale).toBe(1);
+    tell(at('lobby', { bodies: { 2: 'petit' } }));
+    expect(play.scale).toBe(0.5);
+    tell(at('hide', { settings: petit, bodies: { 2: 'petit' } }));
+    expect(play.scale).toBe(0.5);
+    expect(play.body.scale).toBe(0.5);
+    tell(at('search', { settings: petit, bodies: { 2: 'petit' } }));
+    tell({ t: 'found', seat: 2, by: 3, at: [0, 1, 0], body: body({ pos: [0, 0, 1.5] }) });
+    tell(
+      at('search', {
+        settings: petit,
+        roles: { 1: 'hider', 2: 'hunter', 3: 'hunter' },
+        found: [2],
+        bodies: { 2: 'petit' }
+      })
+    );
+    expect(play.scale).toBe(1);
+    frames(SHATTER_SECS + 0.1);
+    expect(play.role).toBe('hunter');
+  });
+
+  it('許可のない様子では、端末にプチを覚えていても自分の体は 1（大きさは親の様子からだけ決める）', () => {
+    localStorage.setItem('asobibako:yappari-chameleon:body', 'petit');
+    const { play, tell } = setup();
+    tell(at('lobby'));
+    tell(at('hide'));
+    expect(play.scale).toBe(1);
+    localStorage.clear();
+  });
+
+  it('ほかの人の体は、隠れる人ならその人の体型で、ハンターなら 1 で見せ、撃つ的もその大きさ', () => {
+    const { s, tell, frames } = setup(3);
+    tell(meMsg(1, { pos: [1, 0, 5] }));
+    tell(meMsg(2, { pos: [2, 0, 5] }));
+    tell(at('lobby'));
+    tell(at('search', { settings: petit, bodies: { 1: 'petit', 3: 'petit' } }));
+    frames(0.2);
+    expect(seatOf(1).lastShow?.scale).toBe(0.5);
+    expect(seatOf(2).lastShow?.scale).toBe(1);
+    vi.mocked(fire).mockClear();
+    s.shoot();
+    const targets = vi.mocked(fire).mock.calls[0][3];
+    const one = targets.find((t) => t.seat === 1)!;
+    const want = capsules(STAND, placement({ ...body({ pos: [1, 0, 5] }), scale: 0.5 }));
+    expect(one.caps[0].r).toBeCloseTo(want[0].r, 9);
+    expect(one.caps[0].a[1]).toBeCloseTo(want[0].a[1], 9);
+  });
+
+  it('増え鬼でハンターになったプチの人は、今の体は 1 で、撃たれた場所の体はプチのまま見せる', () => {
+    const { tell, frames } = setup();
+    tell(meMsg(1, { pos: [1, 0, 0] }));
+    tell(at('lobby'));
+    tell(at('search', { settings: petit, bodies: { 1: 'petit' } }));
+    tell({ t: 'found', seat: 1, by: 3, at: [4, 1, 4], body: body({ pos: [4, 0, 4] }) });
+    frames(SHATTER_SECS + 0.1);
+    const before = made.remotes.length;
+    tell(
+      at('reveal', {
+        settings: petit,
+        roles: { 1: 'hunter', 2: 'hider', 3: 'hunter' },
+        found: [1],
+        winner: 'chameleon',
+        bodies: { 1: 'petit' }
+      })
+    );
+    frames(0.1);
+    expect(seatOf(1).lastShow?.scale).toBe(1);
+    expect(made.remotes.slice(before)[0].lastShow).toMatchObject({ scale: 0.5, shine: 'blue' });
+  });
+
+  it('自分の体型を親へ送り、親は許可を審判へ渡す', () => {
+    const host = { welcome: vi.fn(), allow: vi.fn() } as unknown as Host;
+    const { s, acts } = setup(1, undefined, host);
+    s.dress('petit');
+    expect(acts).toEqual([{ t: 'body', body: 'petit' }]);
+    s.allow(true);
+    expect(host.allow).toHaveBeenCalledWith(true);
   });
 });
