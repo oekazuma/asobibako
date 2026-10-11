@@ -3,7 +3,7 @@ import type { RGB } from './color';
 import { pushRecent } from './color';
 import { restHit } from './doll3d';
 import { CROUCH, EYE_HEIGHT, floorBelow, idle, newBody, step, wallNear, type Body } from './move';
-import { PaintLog, Stroke, type Brush, type Dab } from './paint';
+import { brushIn, PaintLog, Stroke, type Brush, type Dab } from './paint';
 import { rayLevel } from './shots';
 import { AIM, poseById, STAND } from './poses';
 import { sounds } from './sounds';
@@ -19,6 +19,10 @@ const CEILING_PITCH_MIN = -1.2;
 const CEILING_PITCH_MAX = -0.25;
 /** ペイントに入るとき、壁でつぶれた距離を引き継ぐと人形に寄りすぎるので、ここより近くは始めない */
 const PAINT_DIST_MIN = 1.2;
+const PAINT_DIST: [number, number] = [0.5, 3.5];
+const WALK_LIFT = 0.85;
+const CEILING_LIFT = -0.4;
+const WALK_DIST = 2.4;
 /** 見る中心が切り替わったときのずれが 1/e になる時間。0.3 秒でほぼ収まる */
 const SLIDE_SECS = 0.1;
 /**
@@ -90,6 +94,7 @@ export class Play {
   #side = TPS_SIDE;
   #head: V3 = [0, 0, 0];
   #snapSide = true;
+  #scale = 1;
 
   constructor(world: World, stickRadius: number) {
     this.world = world;
@@ -97,6 +102,19 @@ export class Play {
     this.body = newBody(world.level.spawn);
     this.ghost = newBody(world.level.spawn);
     world.placeDoll(this.body);
+  }
+
+  /**
+   * 自分の体の大きさ（プチカメレオンは 0.5）。Session が親から届いた様子で入れる。端末に覚えた体型からは入れない
+   * （親が許していないのに小さく歩くと、親の弾と埋まりの当たりとずれる）
+   */
+  get scale(): number {
+    return this.#scale;
+  }
+
+  set scale(v: number) {
+    this.#scale = v;
+    this.body.scale = v;
   }
 
   /** ボタンを押しているあいだだけ上がる・下がる・回る */
@@ -141,7 +159,8 @@ export class Play {
     // 見ている向き・高さ・距離をそのまま引き継ぐ。塗る手を止めずに済み、見る中心だけが体の真ん中へ移る
     this.orbitYaw = this.camYaw;
     this.orbitPitch = this.camPitch;
-    this.orbitDist = Math.min(3.5, Math.max(PAINT_DIST_MIN, this.world.dist));
+    const s = this.#scale;
+    this.orbitDist = Math.min(PAINT_DIST[1] * s, Math.max(PAINT_DIST_MIN * s, this.world.dist));
     this.#setMode('paint');
   }
 
@@ -176,7 +195,7 @@ export class Play {
   }
 
   placeAt(at: V3, yaw = 0): void {
-    this.body = newBody(at);
+    this.body = newBody(at, this.#scale);
     this.body.yaw = yaw;
   }
 
@@ -346,7 +365,12 @@ export class Play {
       if (e.kind === 'end') this.spoitAt(e.x, e.y);
       return;
     }
-    if (e.kind === 'start') this.#stroke = new Stroke({ ...this.brush, color: [...this.brush.color] });
+    if (e.kind === 'start')
+      this.#stroke = new Stroke({
+        ...this.brush,
+        radius: brushIn(this.brush.radius, this.#scale),
+        color: [...this.brush.color]
+      });
     const hit = this.#stroke && this.world.pickBody(e.x, e.y);
     const rest = hit && restHit(this.world.rig, hit);
     this.world.cursor(e.kind === 'end' ? null : hit, this.brush.radius);
@@ -430,7 +454,8 @@ export class Play {
       const look = this.pad.takeLook();
       this.orbitYaw -= o.dx * ORBIT + look.dx * LOOK;
       this.orbitPitch = Math.min(1.3, Math.max(-1.0, this.orbitPitch + o.dy * ORBIT + look.dy * LOOK));
-      this.orbitDist = Math.min(3.5, Math.max(0.5, this.orbitDist / o.zoom));
+      const s = this.#scale;
+      this.orbitDist = Math.min(PAINT_DIST[1] * s, Math.max(PAINT_DIST[0] * s, this.orbitDist / o.zoom));
     }
     this.#jump = this.#release = false;
     // 押していたボタンは張り付きが終わると消えて pointerup が届かないので、離れたあとに残さない
@@ -450,15 +475,14 @@ export class Play {
     w.placeDoll(tps ? { ...this.ghost, yaw: this.eyeYaw, pose: this.pose } : { ...this.body, pose: this.pose });
     w.poses.step(dt);
     // 部屋の中と分かっている点（天井では pos が天井の高さなので下へ下げる）。カメラを殻の外へ出さない線の始点
-    const inside: V3 = [
-      this.body.pos[0],
-      this.body.pos[1] + (this.body.cling?.kind === 'ceiling' ? -0.4 : 0.4),
-      this.body.pos[2]
-    ];
+    const s = this.#scale;
+    const ceiling = this.body.cling?.kind === 'ceiling';
+    const inside: V3 = [this.body.pos[0], this.body.pos[1] + (ceiling ? -0.4 : 0.4) * s, this.body.pos[2]];
     if (this.mode === 'walk') {
-      const lift = this.body.cling?.kind === 'ceiling' ? -0.4 : 0.85;
+      // 小さい体は見る中心の高さも距離も体に合わせて縮め、画面の中の体の大きさを通常の体とそろえる
+      const lift = (ceiling ? CEILING_LIFT : WALK_LIFT) * s;
       const t: V3 = [this.body.pos[0], this.body.pos[1] + lift, this.body.pos[2]];
-      w.follow(this.#focus(t, dt), this.camYaw, this.camPitch, 2.4, 60, dt, inside);
+      w.follow(this.#focus(t, dt), this.camYaw, this.camPitch, WALK_DIST * s, 60, dt, inside);
     } else if (this.mode === 'paint')
       w.follow(this.#focus(w.dollCenter(), dt), this.orbitYaw, this.orbitPitch, this.orbitDist, 60, dt, inside);
     else if (this.watch) w.follow(this.watch, this.eyeYaw, this.eyePitch, 2.4, 60, dt, this.watch);

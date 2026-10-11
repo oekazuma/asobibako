@@ -31,6 +31,9 @@ export const RADIUS = [0.005, 0.25] as const;
 
 export const spacing = (r: number) => Math.max(0.002, r * 0.3);
 
+/** 吹き付けは骨で曲げる前の体の上に置くので、小さい体では半径を大きさで割り、屋敷の中で同じ大きさの筆にする */
+export const brushIn = (r: number, scale: number) => r / scale;
+
 export function dab(h: Hit, b: Brush): Dab {
   return { p: h.p, n: h.n, r: b.radius, c: b.color, a: b.opacity * FLOW, m: b.metal, ro: b.rough };
 }

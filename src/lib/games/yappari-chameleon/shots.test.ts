@@ -8,6 +8,7 @@ import { levelOf, mansion } from './mansion/layout';
 import { newBody, RADIUS, type Body, type Cling, type Level } from './move';
 import { AIM, POSES, poseById, STAND, type Pose } from './poses';
 import { capsules, fire, frames, placement, rayCapsule, rayLevel, rays, sink, SPREAD, type Target } from './shots';
+import { placeRoot } from './world3d';
 
 const renderer = new Proxy({}, { get: () => () => ({}) }) as unknown as THREE.WebGLRenderer;
 const surface = buildDoll(0.02);
@@ -36,7 +37,7 @@ const hitSeats = (lv: Level, o: V3, at: V3, t: Target[]) =>
     .filter((s) => s !== null);
 
 describe('frames', () => {
-  it('骨の置き方は、three の骨（PoseAnimator と placeDoll）と同じ所に来る', () => {
+  it('骨の置き方は、three の骨（PoseAnimator と placeRoot。小さい体も）と同じ所に来る', () => {
     const rig = makeDoll(renderer, surface, atlas);
     const poses = new PoseAnimator(rig);
     const places = [
@@ -50,13 +51,8 @@ describe('frames', () => {
     for (const pose of [STAND, AIM, ...POSES])
       for (const b of places) {
         poses.snap(pose);
-        const p = placement(b);
-        rig.root.rotation.order = 'YXZ';
-        rig.root.rotation.set(p.tilt, p.yaw, 0);
-        rig.root.scale.setScalar(p.scale);
-        rig.root.position.set(...p.at);
-        rig.root.updateMatrixWorld(true);
-        const f = frames(pose, p);
+        placeRoot(rig.root, b);
+        const f = frames(pose, placement(b));
         for (const bone of BONES) {
           const want = rig.bones[bone].getWorldPosition(new THREE.Vector3());
           expect(f[bone].p[0], `${pose.id} ${bone}`).toBeCloseTo(want.x, 5);

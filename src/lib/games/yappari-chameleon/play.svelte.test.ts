@@ -727,3 +727,60 @@ describe('Play の止める', () => {
     expect(p.log.dabs.length).toBeGreaterThan(0);
   });
 });
+
+describe('Play のプチカメレオン', () => {
+  const follows = (w: World) => vi.mocked(w.follow).mock.calls;
+
+  it('体の大きさを体と人形の置き方に付け、置き直しても保つ', () => {
+    const w = fakeWorld();
+    const p = new Play(w, 70);
+    p.scale = 0.5;
+    expect(p.body.scale).toBe(0.5);
+    p.placeAt([1, 0, 1]);
+    expect(p.body.scale).toBe(0.5);
+    secs(p, 0.1);
+    expect(vi.mocked(w.placeDoll).mock.calls.at(-1)![0]).toMatchObject({ scale: 0.5 });
+    p.scale = 1;
+    expect(p.body.scale).toBe(1);
+  });
+
+  it('壁の手前では、プチの半径だけ離れて止まる', () => {
+    const p = new Play(fakeWorld(), 70);
+    p.scale = 0.5;
+    p.placeAt([0, 0, 3]);
+    p.pad.stick.y = -1;
+    secs(p, 3);
+    expect(p.body.pos[2]).toBeCloseTo(5 - RADIUS * 0.5, 2);
+  });
+
+  it('歩きのカメラは、見る中心の高さと距離を体の大きさに合わせて縮める', () => {
+    const w = fakeWorld();
+    const p = new Play(w, 70);
+    p.scale = 0.5;
+    secs(p, 1);
+    const [target, , , dist, , , inside] = follows(w).at(-1)!;
+    expect(target[1]).toBeCloseTo(0.85 * 0.5, 2);
+    expect(dist).toBeCloseTo(2.4 * 0.5, 5);
+    expect(inside![1]).toBeCloseTo(0.4 * 0.5, 5);
+  });
+
+  it('ペイントのカメラの距離の範囲も体の大きさに合わせる', () => {
+    const w = fakeWorld();
+    (w as unknown as { dist: number }).dist = 0.3;
+    const p = new Play(w, 70);
+    p.scale = 0.5;
+    p.togglePaint();
+    expect(p.orbitDist).toBeCloseTo(1.2 * 0.5, 5);
+  });
+
+  it('筆は屋敷の中で同じ大きさにするため、骨で曲げる前の座標の半径を体の大きさで割る', () => {
+    const w = fakeWorld(true);
+    const p = new Play(w, 70);
+    p.scale = 0.5;
+    p.togglePaint();
+    stroke(p);
+    expect(p.log.dabs.length).toBeGreaterThan(0);
+    expect(p.log.dabs.every((d) => d.r === p.brush.radius / 0.5)).toBe(true);
+    expect(p.brush.radius).toBe(0.05);
+  });
+});

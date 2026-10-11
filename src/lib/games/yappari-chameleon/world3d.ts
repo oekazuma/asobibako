@@ -30,11 +30,12 @@ export interface Built {
 const CAM_RADIUS = 0.12;
 const TINT = new THREE.Color();
 
-/** 体の根元を、張り付き（壁から離す・天井で寝かせる）も込みで置く。ほかの人の体も同じ置き方にする */
+/** 体の根元を、張り付き（壁から離す・天井で寝かせる）と大きさも込みで置く。ほかの人の体も同じ置き方にする */
 export function placeRoot(root: THREE.Object3D, b: Placeable): void {
   const p = placement(b);
   root.rotation.order = 'YXZ';
   root.rotation.set(p.tilt, p.yaw, 0);
+  root.scale.setScalar(p.scale);
   root.position.set(...p.at);
   root.updateMatrixWorld(true);
 }
@@ -173,11 +174,13 @@ export class World {
     const root = this.rig.root;
     placeRoot(root, b);
     const ring = this.#ring;
+    const s = b.scale ?? 1;
     ring.visible = !!b.cling;
+    ring.scale.setScalar(s);
     if (b.cling?.kind === 'wall') {
       // ポーズで面から離した根元ではなく、面に付けたときの位置に出す。輪は張り付いた面の印
-      const [x, , z] = placement({ pos: b.pos, yaw: b.yaw, cling: b.cling }).at;
-      ring.position.set(x, b.pos[1] + 0.58, z);
+      const [x, , z] = placement({ pos: b.pos, yaw: b.yaw, cling: b.cling, scale: s }).at;
+      ring.position.set(x, b.pos[1] + 0.58 * s, z);
       ring.lookAt(ring.position.x + b.cling.nx, ring.position.y, ring.position.z + b.cling.nz);
     } else if (b.cling?.kind === 'ceiling') {
       // 天井では体が横たわるので、輪は足もとではなく体の真ん中に置く
@@ -366,8 +369,9 @@ export class World {
     const s = this.project([c.x, c.y, c.z]);
     const perMeter = (this.#h * pr) / 2 / Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2) / Math.max(dist, 0.1);
     XRAY.center.value.set(s.x * pr, (this.#h - s.y) * pr);
-    XRAY.radius.value = 0.7 * perMeter;
-    XRAY.depth.value = dist - 0.3;
+    const size = this.rig.root.scale.x;
+    XRAY.radius.value = 0.7 * size * perMeter;
+    XRAY.depth.value = dist - 0.3 * size;
   }
 
   /**
