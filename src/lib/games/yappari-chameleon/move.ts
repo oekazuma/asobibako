@@ -200,8 +200,8 @@ function turnToward(b: Body, x: number, z: number, dt: number) {
 
 function stepWall(b: Body, c: { nx: number; nz: number }, inp: Input, lv: Level, dt: number) {
   const vy = (inp.up ? CLIMB : 0) - (inp.down ? CLIMB : 0);
-  // 床は動く前の高さで探す（下がって床より下へ出ると、床が「足もとより上」になって見つからない）
   const r = radiusOf(b);
+  // 床は動く前の高さで探す（下がって床より下へ出ると、床が「足もとより上」になって見つからない）
   const floor = groundAt(lv, b.pos[0], b.pos[2], b.pos[1] + 0.01, r * 0.7);
   const tx = -c.nz;
   const tz = c.nx;

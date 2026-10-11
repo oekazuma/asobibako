@@ -10,6 +10,7 @@ import { rng } from '../rng';
 import { REVEAL_READY } from './bot';
 import { cpuHunters, cpuSettings, Crew } from './crew';
 import { OPEN, tube } from './fixtures';
+import { pipes } from './pipe';
 import { CPU_DEFAULT, SKILLS, type CpuChoice } from './levels';
 import type { Senses } from './senses';
 
@@ -345,6 +346,21 @@ describe('CPU との通しの試合', () => {
     expect(t.host.match.phase).toBe('search');
     t.shoot(2, PETIT);
     expect(t.host.match.found).toEqual([2]);
+  });
+
+  it('席に着けなかった CPU がいても、プレイヤー（席 1）の体型は書き換えない', async () => {
+    const t = table();
+    // 人間の子で席が埋まっていると CPU は着けず、その party.me は初めの 1 のまま bots に残る
+    for (let i = 0; i < 2; i++) {
+      const [a, b] = pipes();
+      Party.guest(b);
+      await t.party.add(a);
+    }
+    await t.crew.seat(choice({ count: 1 }));
+    expect(t.crew.bots).toHaveLength(1);
+    expect(t.party.members).toEqual([1, 2, 3]);
+    await t.crew.play(choice({ side: 'seek', count: 1, petit: true }), SET);
+    expect(t.host.match.bodies).toEqual({ 2: 'petit', 3: 'petit' });
   });
 
   it('許可しないか、CPU が探す側なら、CPU は通常の体', async () => {

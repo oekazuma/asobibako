@@ -88,8 +88,10 @@ export class Crew {
       if (this.#stopped) return;
       // CPU が送る知らせは step の中だけなので、体型の知らせでは始めるのに間に合わない。始めるときに決め打つ
       const body = c.side === 'seek' ? 'petit' : 'normal';
-      const bodies = Object.fromEntries(this.bots.map((b) => [b.party.me, body] as const));
-      this.#host.start(cpuSettings(settings, c), cpuHunters(c, this.#party.members), bodies);
+      // 席に着けなかった bot の party.me は初めの 1 のままなので、bots ではなく席から鍵を取る（席 1 のプレイヤーを上書きしない）
+      const members = this.#party.members;
+      const bodies = Object.fromEntries(members.filter((s) => s !== 1).map((s) => [s, body] as const));
+      this.#host.start(cpuSettings(settings, c), cpuHunters(c, members), bodies);
     });
   }
 

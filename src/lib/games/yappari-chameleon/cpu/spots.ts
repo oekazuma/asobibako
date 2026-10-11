@@ -7,7 +7,7 @@ import type { Skill } from './levels';
 import { NODES, type Node } from './paths';
 import { SEEN } from './spot-seen';
 
-/** 隠れる CPU の置き場所。pos・yaw・cling は Body と同じ（壁なら面から RADIUS の 0.2m で壁を向き、天井なら天井の高さ） */
+/** 隠れる CPU の置き場所。pos・yaw・cling は Body と同じ（壁なら通常の体の半径 RADIUS の 0.2m を面から離して壁を向き（プチは fit が半径の差だけ壁へ寄せる）、天井なら天井の高さ） */
 export interface Spot {
   pos: V3;
   yaw: number;
