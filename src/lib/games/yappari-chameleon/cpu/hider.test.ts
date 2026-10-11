@@ -9,7 +9,9 @@ import { SKILLS, type Strength } from './levels';
 import type { Ctx, Senses, SurfacePoint } from './senses';
 import { SPOTS, viewOf, type Spot } from './spots';
 
-const lv = levelOf(mansion());
+const m = mansion();
+// 動く物は種で置き場所が変わるので、背の面が近いか遠いかを決める当たりは動かない箱だけで作る
+const lv = levelOf({ ...m, pieces: m.pieces.slice(0, m.pieces.length - m.moving) });
 /** 大広間の西の壁ぎわ。背の壁は 0.5m 先 */
 const open: Spot = {
   pos: [-6.5, 0, 3.2],
@@ -71,7 +73,7 @@ describe('隠れる CPU', () => {
     expect(b.painting).toBe(false);
   });
 
-  it('背の面が近ければ、体の点から背の向きへ伸ばした線の先の色で塗り、背の面を向いた点は塗らない', () => {
+  it('背の面が近ければ、体の点から背の向きへ伸ばした線の先の色で塗る。壁を背にすると、壁を向いた点も同じ升目の色で塗る', () => {
     const rays: { o: V3; d: V3 }[] = [];
     const wall: Senses = {
       visible: () => 0,
@@ -90,9 +92,27 @@ describe('隠れる CPU', () => {
       expect(Math.hypot(r.o[0] - open.pos[0], r.o[2] - open.pos[2])).toBeLessThan(0.16);
     }
     expect(b.log.dabs.every((d) => d.c[1] > 0.95 && d.c[0] < 0.05)).toBe(true);
-    expect(b.log.dabs.filter((d) => d.n[0] < -0.3)).toEqual([]);
+    // 体は壁から離れているので、壁に沿って斜めから見ると壁を向いた側も見える
+    expect(b.log.dabs.filter((d) => d.n[0] < -0.3).length).toBeGreaterThan(0);
     expect(b.log.dabs.filter((d) => d.n[0] > 0.3).length).toBeGreaterThan(0);
     expect(b.log.dabs[0]).toMatchObject({ r: SKILLS.strong.brush, a: SKILLS.strong.alpha, m: 0.1, ro: 0.7 });
+  });
+
+  it('床を背にすると、床に触れている下向きの点は塗らない', () => {
+    const lying: Spot = { ...open, pose: 'lie', back: [0, -1, 0] };
+    const bottom = tube(lying, 400, 0.15, 0.3).map((p) => ({
+      ...p,
+      rest: [p.rest[0], 0.02, p.rest[2]] as V3,
+      world: [p.world[0], 0.02, p.world[2]] as V3,
+      normal: [0, -1, 0] as V3,
+      wn: [0, -1, 0] as V3,
+      up: -1
+    }));
+    const b = brain('strong', lying);
+    run(b, ctx(canvas(() => [...tube(lying, 3000, 0.15, 0.3), ...bottom])), 25);
+    expect(b.done).toBe(true);
+    expect(b.log.dabs.filter((d) => d.n[1] < -0.3)).toEqual([]);
+    expect(b.log.dabs.length).toBeGreaterThan(0);
   });
 
   it('背の面の色は、背の向きに直角な面の上の筆ほどの升目ごとに 1 回だけ聞く', () => {

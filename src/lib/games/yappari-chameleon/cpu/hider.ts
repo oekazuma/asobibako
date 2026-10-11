@@ -27,8 +27,11 @@ const CELL = (0.75 * Math.PI) / 180;
  * 背の面がこれより近い点は、背の面の色を写す（m）。体と面のあいだが狭いので、どこから見ても体のうしろの模様がほとんどずれない。
  * 遠い点は面の模様が見る位置でずれるので、見られる位置から見て向こうの色にする
  */
-const NEAR = 1.5;
-/** 法線と背の向きの内積がこれより大きい点は、背の面と向き合って誰にも見えないので塗らない */
+export const NEAR = 1.5;
+/**
+ * 床や天井を背にした体で、法線と背の向きの内積がこれより大きい点は、面に触れていて誰にも見えないので塗らない。
+ * 壁を背にした体は面から 0.2〜0.5m 離れていて、壁に沿って斜めから見ると壁を向いた側も見えるので、同じ升目の色で塗る
+ */
 const FACING = 0.3;
 
 /** 骨で曲げる前の座標で gap の升目に 1 点ずつ残す */
@@ -79,6 +82,8 @@ export class HiderBrain {
   readonly #near = new Map<string, boolean>();
   readonly #axes: [V3, V3];
   readonly #cell: number;
+  /** 床か天井を背にしている */
+  readonly #flat: boolean;
   /** 体のいる部屋の明るさ。探す人もこの部屋で見るので、その光で塗りを合わせる */
   readonly #mood: Mood;
 
@@ -90,6 +95,7 @@ export class HiderBrain {
     this.#mood = moodAt(spot.pos);
     this.#axes = plane(spot.back);
     this.#cell = 2 * skill.brush;
+    this.#flat = Math.abs(spot.back[1]) > 0.9;
   }
 
   get done(): boolean {
@@ -142,7 +148,7 @@ export class HiderBrain {
         near = rayLevel(ctx.level, p.world, back, NEAR) !== null;
         this.#near.set(cell, near);
       }
-      if (near && dot(p.wn, back) > FACING) {
+      if (near && this.#flat && dot(p.wn, back) > FACING) {
         this.#next++;
         continue;
       }
