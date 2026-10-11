@@ -31,8 +31,8 @@ export interface Senses {
   visible(seat: Seat, by: Seat, eye: V3, at: V3, diff: number): number | null;
   /** o から向き d（長さ 1）の先で最初に当たる屋敷の面の色と、その面のこちら側の法線の y */
   colorAt(o: V3, d: V3): (Paint & { up: number }) | null;
-  /** seat の体の表面の点。3D の体がまだ body の場所に無ければ null */
-  surface(seat: Seat, body: Me): SurfacePoint[] | null;
+  /** seat の体の表面の点。3D の体がまだ body の場所と大きさ（scale）に無ければ null */
+  surface(seat: Seat, body: Me, scale: number): SurfacePoint[] | null;
 }
 
 /** 頭脳に毎コマ渡すもの */

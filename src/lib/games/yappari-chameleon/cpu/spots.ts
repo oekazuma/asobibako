@@ -1,6 +1,7 @@
 import type { V3 } from '$lib/sculpt';
 import { placeOf } from '../mansion/layout';
-import { EYE_HEIGHT, type Cling } from '../move';
+import { EYE_HEIGHT, RADIUS, type Cling } from '../move';
+import { scaleOf, type BodyType } from '../referee';
 import { rng } from '../rng';
 import type { Skill } from './levels';
 import { NODES, type Node } from './paths';
@@ -18,11 +19,12 @@ export interface Spot {
   slack: number;
   /** 背にする面への向き（長さ 1、体から面へ）。体の色はこの向きの先の面から写す */
   back: V3;
-  /** その部屋の網の点から強い CPU の目で見た目立ちの平均（0..1、pnpm spots が測った spot-seen.ts の値） */
+  /** その部屋の網の点から強い CPU の目で見た目立ちの平均（0..1、pnpm spots が体型ごとに測った spot-seen.ts の値） */
   seen: number;
+  scale?: number;
 }
 
-type Row = Omit<Spot, 'seen'>;
+type Row = Omit<Spot, 'seen' | 'scale'>;
 
 /** spot-seen.ts の表のキー */
 export const spotKey = (s: Pick<Spot, 'pos' | 'pose' | 'cling' | 'back'>): string => {
@@ -124,7 +126,7 @@ const ROWS: Row[] = [
   floor(15.25, 0, 1.45, 0, 'cross', 1, S), // 木の壁の前であぐら
   floor(7.75, 0, 7.2, PI / 2, 'crouch', 1, W), // 木の壁の前でしゃがむ
   floor(15.25, 0, 5.95, 0.95, 'lie', 1, DOWN, 0.15), // 板の床で寝そべる
-  wall(17.1, 2.4, 8.95, -1, 0, 'curl'), // 本棚に張り付いて丸まる
+  wall(17.1, 2.4, 8.95, -1, 0, 'curl', 0.2), // 本棚の上の壁に張り付いて丸まる。プチは足が本棚の天板より下へ出るので、ずらすのは 0.2m まで
   wall(7.5, 1.8, 7.45, 1, 0, 'stand'), // 木の壁に張り付いて立つ
   // キッチン
   floor(-12.0, 0, 14.6, PI, 'stand', 0, N), // 北東の隅、鍋の棚の北
@@ -156,8 +158,23 @@ const ROWS: Row[] = [
   wall(-19.8, 1.2, -3.1, 1, 0, 'stand') // ダマスクの壁に張り付いて立つ
 ];
 
-// 測っていない候補は、いちばん目立つものとして扱う（spots.test.ts が測り忘れを見る）
-export const SPOTS: Spot[] = ROWS.map((s) => ({ ...s, seen: SEEN[spotKey(s)] ?? 1 }));
+/** 壁の候補は通常の体の半径だけ壁から離れているので、小さい体では半径の差だけ壁へ寄せる（離れたままだと面から浮く） */
+function fit(row: Row, scale: number): Row {
+  if (row.cling?.kind !== 'wall') return row;
+  const k = RADIUS * (1 - scale);
+  const [x, y, z] = row.pos;
+  return { ...row, pos: [x - row.cling.nx * k, y, z - row.cling.nz * k] };
+}
+
+// 測っていない候補は、いちばん目立つものとして扱う（spots.test.ts が測り忘れを見る）。表のキーは体型によらず通常の体の候補
+const spotsOf = (body: BodyType): Spot[] => {
+  const scale = scaleOf(body);
+  return ROWS.map((r) => ({ ...fit(r, scale), seen: SEEN[body][spotKey(r)] ?? 1, scale }));
+};
+
+/** どちらも ROWS と同じ並び（pnpm spots が番号で通常の体の候補のキーを引く） */
+export const SPOTS_OF: Record<BodyType, Spot[]> = { normal: spotsOf('normal'), petit: spotsOf('petit') };
+export const SPOTS = SPOTS_OF.normal;
 
 /** spot を a・b（−1〜1）× spot.slack だけずらす。床と天井は x と z、壁は壁に沿った横と高さ（面からの距離は変えない） */
 export function shifted(spot: Spot, a: number, b: number): Spot {
@@ -187,10 +204,16 @@ export function viewOf(spot: Spot): V3 {
 
 /**
  * 試合の種で部屋の順を決め、CPU の何人めか（index）でその順の別々の部屋を取り、部屋の中の候補は、強さの段の候補を
- * 目立たないほうから skill.pick の割合（少なくとも 1 つ）だけ残して rand で選ぶ。ずれは種と index から決める
+ * 体型の表で目立たないほうから skill.pick の割合（少なくとも 1 つ）だけ残して rand で選ぶ。ずれは種と index から決める
  */
-export function pickSpot(seed: number, index: number, skill: Pick<Skill, 'tiers' | 'pick'>, rand: () => number): Spot {
-  const ok = SPOTS.filter((s) => skill.tiers.includes(s.tier));
+export function pickSpot(
+  seed: number,
+  index: number,
+  skill: Pick<Skill, 'tiers' | 'pick'>,
+  rand: () => number,
+  body: BodyType = 'normal'
+): Spot {
+  const ok = SPOTS_OF[body].filter((s) => skill.tiers.includes(s.tier));
   const rooms = [...new Set(ok.map((s) => placeOf(s.pos)))];
   const r = rng(seed);
   for (let i = rooms.length - 1; i > 0; i--) {

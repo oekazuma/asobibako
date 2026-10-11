@@ -88,12 +88,14 @@ export class Senses3d implements Senses {
     return this.#world.pickStage(o, d);
   }
 
-  surface(seat: Seat, body: Me): SurfacePoint[] | null {
+  surface(seat: Seat, body: Me, scale: number): SurfacePoint[] | null {
     const rig = this.#rigOf(seat);
     if (!this.#fresh() || !rig?.root.visible) return null;
-    const want = placement(body).at;
+    const want = placement({ ...body, scale }).at;
     const p = rig.root.position;
-    if (Math.hypot(p.x - want[0], p.y - want[1], p.z - want[2]) > 0.01) return null;
+    // 3D の体がまだ前の大きさのまま（様子を受けて置き直す前）なら、床の候補でも位置だけでは見分けられない
+    if (Math.hypot(p.x - want[0], p.y - want[1], p.z - want[2]) > 0.01 || Math.abs(rig.root.scale.x - scale) > 1e-6)
+      return null;
     bakePose(rig);
     const baked = rig.pick.geometry.attributes.position;
     const rest = rig.mesh.geometry.attributes.position;

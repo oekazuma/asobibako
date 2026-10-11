@@ -2,7 +2,7 @@ import type { V3 } from '$lib/sculpt';
 import type { RGB } from '../color';
 import { moodAt, relight, type Mood } from '../mansion/moods';
 import type { Me } from '../net';
-import { PaintLog, type Dab } from '../paint';
+import { brushIn, PaintLog, type Dab } from '../paint';
 import { rayLevel } from '../shots';
 import type { Skill } from './levels';
 import type { Ctx, Paint, SurfacePoint } from './senses';
@@ -86,6 +86,8 @@ export class HiderBrain {
   readonly #flat: boolean;
   /** 体のいる部屋の明るさ。探す人もこの部屋で見るので、その光で塗りを合わせる */
   readonly #mood: Mood;
+  /** 吹き付けは骨で曲げる前の体の座標なので、小さい体では大きさで割って屋敷の中で通常の体と同じ筆にする */
+  readonly #brush: number;
 
   constructor(spot: Spot, skill: Skill, rand: () => number, index = 0) {
     this.spot = spot;
@@ -95,6 +97,7 @@ export class HiderBrain {
     this.#mood = moodAt(spot.pos);
     this.#axes = plane(spot.back);
     this.#cell = 2 * skill.brush;
+    this.#brush = brushIn(skill.brush, spot.scale ?? 1);
     this.#flat = Math.abs(spot.back[1]) > 0.9;
   }
 
@@ -124,9 +127,9 @@ export class HiderBrain {
     if ((this.#wait -= dt) > 0) return;
     if (!this.#plan) {
       // 3D の体がまだこの場所に無い（縦持ちで描くのを止めている・体が届いたばかり）なら、次のコマに聞き直す
-      const points = senses.surface(ctx.me, this.me(ctx.now));
+      const points = senses.surface(ctx.me, this.me(ctx.now), this.spot.scale ?? 1);
       if (!points) return;
-      this.#plan = thin(points, this.#skill.brush * 0.8).filter(() => this.#rand() >= this.#skill.skip);
+      this.#plan = thin(points, this.#brush * 0.8).filter(() => this.#rand() >= this.#skill.skip);
       this.#rate = Math.max(RATE, this.#plan.length / PAINT_SECS);
       // 体の表面を調べたコマはそれだけで重いので、面の色を聞くのは次のコマから
       return;
@@ -172,7 +175,7 @@ export class HiderBrain {
         out.push({
           p: p.rest,
           n: p.normal,
-          r: this.#skill.brush,
+          r: this.#brush,
           c: this.#shift(relight(c.color, this.#mood, c.up, p.up)),
           a: this.#skill.alpha,
           m: c.metal,

@@ -3,7 +3,7 @@ import type { V3 } from '$lib/sculpt';
 import { embedded } from '../embed';
 import { levelOf, mansion, placeOf, SIZES, type Piece } from '../mansion/layout';
 import { place, SETS } from '../mansion/props';
-import { EYE_HEIGHT, idle, newBody, rampHeight, step, wallNear, type Box } from '../move';
+import { EYE_HEIGHT, idle, newBody, RADIUS, rampHeight, step, wallNear, type Box } from '../move';
 import { poseById } from '../poses';
 import { bodyPoints } from '../oversight';
 import { capsules, placement, rayLevel } from '../shots';
@@ -12,7 +12,8 @@ import { rng } from '../rng';
 import { SKILLS } from './levels';
 import { NODES, ROOMS } from './paths';
 import { SEEN } from './spot-seen';
-import { pickSpot, shifted, SHIFT, spotKey, SPOTS, viewOf, type Spot } from './spots';
+import { PETIT } from '../referee';
+import { pickSpot, shifted, SHIFT, spotKey, SPOTS, SPOTS_OF, viewOf, type Spot } from './spots';
 
 const boxOf = (q: Piece): Box | null => {
   const s = SIZES[q.kind];
@@ -32,7 +33,9 @@ const caps = (s: Spot) => capsules(poseById(s.pose), placement(s));
  * この刻みで調べれば、刻みのあいだのずれで初めてかかる箱は無い
  */
 const STEPS = [-1, -0.5, 0, 0.5, 1];
-const ALL = SPOTS.flatMap((s) => STEPS.flatMap((a) => STEPS.map((b) => shifted(s, a, b))));
+const shifts = (list: Spot[]) => list.flatMap((s) => STEPS.flatMap((a) => STEPS.map((b) => shifted(s, a, b))));
+const ALL = shifts(SPOTS);
+const PETITS = shifts(SPOTS_OF.petit);
 
 /** 体の当たりの円すいを包む箱 */
 function hull(s: Spot): Box {
@@ -91,29 +94,44 @@ describe('隠れ場所の候補', () => {
   });
 
   // 候補 × ずらし 25 通り × 種 31 通りを調べるので、ほかのテストと並んで走ると数秒かかる
-  it('どの種の置き方でも、どれだけずらしても埋まらない', () => {
-    const bad: string[] = [];
-    for (const seed of SEEDS) {
-      const lv = levelOf(mansion(seed));
-      for (const s of ALL) if (embedded(lv, s)) bad.push(`${seed} ${name(s)}`);
-    }
-    expect(bad).toEqual([]);
-  }, 30_000);
+  it.each([
+    ['通常', ALL],
+    ['プチ', PETITS]
+  ])(
+    '%sの体で、どの種の置き方でも、どれだけずらしても埋まらない',
+    (_, list) => {
+      const bad: string[] = [];
+      for (const seed of SEEDS) {
+        const lv = levelOf(mansion(seed));
+        for (const s of list) if (embedded(lv, s)) bad.push(`${seed} ${name(s)}`);
+      }
+      expect(bad).toEqual([]);
+    },
+    30_000
+  );
 
-  it('ずらしても、動く物の置き場所の候補のどれにもかからない', () => {
+  it.each([
+    ['通常', ALL],
+    ['プチ', PETITS]
+  ])('%sの体で、ずらしても、動く物の置き場所の候補のどれにもかからない', (_, list) => {
     const boxes = SETS.flatMap((set) =>
       set.slots.flatMap((slot) => set.units.flatMap((unit) => unit.map((q) => boxOf(place(slot, q)))))
     ).filter((b): b is Box => b !== null);
-    const bad = ALL.filter((s) => {
-      const h = hull(s);
-      return boxes.some((b) => hits(h, b));
-    }).map(name);
+    const bad = list
+      .filter((s) => {
+        const h = hull(s);
+        return boxes.some((b) => hits(h, b));
+      })
+      .map(name);
     expect(bad).toEqual([]);
   });
 
-  it('ずらしても、壁や動かない家具の中と階段の坂の下に体の当たりの軸が入らない', () => {
+  it.each([
+    ['通常', ALL],
+    ['プチ', PETITS]
+  ])('%sの体で、ずらしても、壁や動かない家具の中と階段の坂の下に体の当たりの軸が入らない', (_, list) => {
     const bad: string[] = [];
-    for (const s of ALL)
+    for (const s of list)
       for (const k of caps(s)) {
         const mid: V3 = [(k.a[0] + k.b[0]) / 2, (k.a[1] + k.b[1]) / 2, (k.a[2] + k.b[2]) / 2];
         if ([k.a, k.b, mid].some((p) => fixed.boxes.some((b) => inside(p, b)))) bad.push(name(s));
@@ -124,11 +142,14 @@ describe('隠れ場所の候補', () => {
     expect([...new Set(bad)]).toEqual([]);
   });
 
-  it('置いてもその場から動かず、張り付きはそのまま。壁の張り付きは壁を向く', () => {
+  it.each([
+    ['通常', ALL],
+    ['プチ', PETITS]
+  ])('%sの体で、置いてもその場から動かず、張り付きはそのまま。壁の張り付きは壁を向く', (_, list) => {
     const lv = levelOf(mansion());
     const bad: string[] = [];
-    for (const s of ALL) {
-      const b = { ...newBody(s.pos), yaw: s.yaw, cling: s.cling, ground: !s.cling };
+    for (const s of list) {
+      const b = { ...newBody(s.pos, s.scale), yaw: s.yaw, cling: s.cling, ground: !s.cling };
       for (let i = 0; i < 10; i++) step(b, idle(), lv, 1 / 30);
       const moved = Math.hypot(b.pos[0] - s.pos[0], b.pos[1] - s.pos[1], b.pos[2] - s.pos[2]);
       if (moved > 0.01 || b.cling?.kind !== s.cling?.kind) bad.push(name(s));
@@ -168,14 +189,44 @@ describe('隠れ場所の候補', () => {
     expect(moved.size).toBeGreaterThan(1);
   });
 
-  it('どの候補にも pnpm spots で測った目立ち（0..1）があり、表に候補の無い行は無い', () => {
-    for (const s of SPOTS) {
-      expect(SEEN[spotKey(s)], name(s)).toBeTypeOf('number');
-      expect(s.seen).toBe(SEEN[spotKey(s)]);
-      expect(s.seen).toBeGreaterThanOrEqual(0);
-      expect(s.seen).toBeLessThanOrEqual(1);
+  it.each(['normal', 'petit'] as const)(
+    '%s の体のどの候補にも pnpm spots で測った目立ち（0..1）があり、表に候補の無い行は無い',
+    (body) => {
+      SPOTS_OF[body].forEach((s, i) => {
+        const key = spotKey(SPOTS[i]);
+        expect(SEEN[body][key], name(s)).toBeTypeOf('number');
+        expect(s.seen).toBe(SEEN[body][key]);
+        expect(s.seen).toBeGreaterThanOrEqual(0);
+        expect(s.seen).toBeLessThanOrEqual(1);
+      });
+      expect(Object.keys(SEEN[body]).sort()).toEqual(SPOTS.map(spotKey).sort());
     }
-    expect(Object.keys(SEEN).sort()).toEqual(SPOTS.map(spotKey).sort());
+  );
+
+  it('プチの候補は通常と同じ並びで、壁の候補だけ半径の差だけ壁へ寄せ、人形は壁に付く', () => {
+    const lv = levelOf(mansion());
+    SPOTS_OF.petit.forEach((s, i) => {
+      const n = SPOTS[i];
+      expect(s.scale).toBe(PETIT);
+      expect({ ...s, pos: n.pos, seen: n.seen, scale: n.scale }).toEqual(n);
+      if (n.cling?.kind !== 'wall') return expect(s.pos).toEqual(n.pos);
+      const k = RADIUS * (1 - PETIT);
+      expect(s.pos[0]).toBeCloseTo(n.pos[0] - n.cling.nx * k, 9);
+      expect(s.pos[2]).toBeCloseTo(n.pos[2] - n.cling.nz * k, 9);
+      // 体の真ん中から壁の向きへ、プチの体の半径ほどで壁に当たる
+      const t = rayLevel(lv, [s.pos[0], s.pos[1] + 0.3, s.pos[2]], s.back, 1)?.t;
+      expect(t, name(s)).toBeCloseTo(RADIUS * PETIT, 2);
+    });
+  });
+
+  it('プチを選ぶと、プチの表の目立ちで選び、壁の候補は壁へ寄せた位置からずらす', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const s = pickSpot(seed, 0, SKILLS.strong, () => 0.5, 'petit');
+      expect(s.scale).toBe(PETIT);
+      const near = (o: Spot) => o.pose === s.pose && o.pos.every((v, i) => Math.abs(v - s.pos[i]) <= o.slack + 1e-9);
+      expect(SPOTS_OF.petit.some(near), name(s)).toBe(true);
+    }
+    expect(pickSpot(3, 0, SKILLS.weak, () => 0.5).scale).toBe(1);
   });
 
   it('部屋の中では、強さの段の候補を目立たないほうから skill.pick の割合だけ（少なくとも 1 つ）残して選ぶ', () => {

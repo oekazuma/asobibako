@@ -138,6 +138,30 @@ describe('隠れる CPU', () => {
     expect(b.log.dabs.filter((d) => d.n[0] < -0.3).length).toBeGreaterThan(0);
   });
 
+  it('プチカメレオンの体は、骨で曲げる前の座標で筆を 2 倍にして（屋敷の中で同じ大きさ）、体の大きさを付けて表面を聞く', () => {
+    const petit: Spot = { ...open, scale: 0.5 };
+    const asked: number[] = [];
+    const senses: Senses = {
+      ...canvas(() => null),
+      surface: (_seat, _body, scale) => {
+        asked.push(scale);
+        return tube(petit, 3000, 0.075, 0.575).map((p) => ({
+          ...p,
+          rest: [p.rest[0] * 2, p.rest[1] * 2, p.rest[2] * 2] as V3
+        }));
+      }
+    };
+    const small = brain('normal', petit);
+    run(small, ctx(senses), 25);
+    expect(small.done).toBe(true);
+    expect(asked).toEqual([0.5]);
+    expect(small.log.dabs.every((d) => d.r === SKILLS.normal.brush * 2)).toBe(true);
+    const full = brain('normal');
+    run(full, ctx(canvas(() => tube(open))), 25);
+    // 体の面は 4 分の 1 で、筆の升目は休みの形で 2 倍なので、吹く数は通常の体の 4 分の 1 ほど
+    expect(small.log.dabs.length).toBeLessThan(full.log.dabs.length / 2.5);
+  });
+
   it('弱いは大きな筆で数が少なく、色がずれ、塗り残す', () => {
     const points = tube(open);
     const weak = brain('weak');

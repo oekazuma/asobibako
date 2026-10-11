@@ -1,20 +1,28 @@
-// 実行: pnpm spots
-// やっぱりカメレオンの隠れる CPU の候補（cpu/spots.ts の SPOTS）を 1 つずつ置いて CPU と同じ塗り方で塗り、
-// その部屋の網の点の目の高さから強い CPU の目で描いた目立ちの平均を cpu/spot-seen.ts に書く。
+// 実行: pnpm spots [--body normal|petit]
+// やっぱりカメレオンの隠れる CPU の候補（cpu/spots.ts の SPOTS_OF の体型の並び）を 1 つずつ置いて CPU と同じ塗り方で塗り、
+// その部屋の網の点の目の高さから強い CPU の目で描いた目立ちの平均を cpu/spot-seen.ts のその体型の表に書く（ほかの体型の表は残す）。
 // --skill weak|normal|strong で塗る強さを、--from <json> で測る候補の並びを替え、--out <json> に点ごとの値を書く（表は書かない）。
 // ブラウザはダウンロードせず、端末の Google Chrome を使う
 import { readFile, writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { chromium, type Browser } from 'playwright-core';
 import { createServer } from 'vite';
+import { SEEN } from '../src/lib/games/yappari-chameleon/cpu/spot-seen.ts';
 import type { Spot } from '../src/lib/games/yappari-chameleon/cpu/spots.ts';
 
 const OUT = 'src/lib/games/yappari-chameleon/cpu/spot-seen.ts';
 const BASE = '/asobibako/src/lib/games/yappari-chameleon';
 const { values: args } = parseArgs({
-  options: { skill: { type: 'string', default: 'strong' }, from: { type: 'string' }, out: { type: 'string' } }
+  options: {
+    skill: { type: 'string', default: 'strong' },
+    from: { type: 'string' },
+    out: { type: 'string' },
+    body: { type: 'string', default: 'normal' }
+  }
 });
 if ((args.skill !== 'strong' || args.from) && !args.out) throw new Error('--skill と --from は --out といっしょに使う');
+const body = args.body;
+if (body !== 'normal' && body !== 'petit') throw new Error('--body は normal か petit');
 
 interface Row {
   key: string;
@@ -27,7 +35,7 @@ interface Row {
 }
 
 /** ページの中で測る口を作る。ひとりで試すの体（席 1）を候補に置き、CPU の頭脳と 3D の目をそのまま使う */
-async function setup(base: string): Promise<number> {
+async function setup([base, kind]: [string, 'normal' | 'petit']): Promise<number> {
   const load = (p: string) => import(/* @vite-ignore */ `${base}/${p}`);
   const [hider, levels, spots, senses3d, paths, layout, move, oversight, rngs] = await Promise.all(
     [
@@ -50,6 +58,7 @@ async function setup(base: string): Promise<number> {
   /** ひとりで試すの Play のうち、ここで使うところ */
   interface Play {
     mode: string;
+    scale: number;
     toggleEye(): void;
     ghost: Body;
     body: Body;
@@ -70,9 +79,10 @@ async function setup(base: string): Promise<number> {
   const frame = () => new Promise((r) => requestAnimationFrame(r));
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
   const H = move.EYE_HEIGHT;
+  const list: Spot[] = spots.SPOTS_OF[kind];
   (window as unknown as { __spots: unknown }).__spots = {
-    list: spots.SPOTS,
-    async measure(spot: Spot, skill: string): Promise<Row> {
+    list,
+    async measure(spot: Spot, skill: string, i: number): Promise<Row> {
       const room: string = layout.placeOf(spot.pos);
       const eyes = Object.entries(paths.NODES as Record<string, V3>)
         .filter(([k, n]) => layout.placeOf(n) === room || (room === '大広間' && k === 'entrance'))
@@ -80,7 +90,8 @@ async function setup(base: string): Promise<number> {
       // カメラ（一人称）を部屋の網の点に置き、画面の明るさをその部屋に合わせる。一人称のあいだ体は動かない
       if (play.mode !== 'eye') play.toggleEye();
       play.ghost = move.newBody([eyes[0][0], eyes[0][1] - H, eyes[0][2]]);
-      play.body = { ...move.newBody([...spot.pos]), yaw: spot.yaw, cling: spot.cling, ground: !spot.cling };
+      play.scale = spot.scale ?? 1;
+      play.body = { ...move.newBody([...spot.pos], play.scale), yaw: spot.yaw, cling: spot.cling, ground: !spot.cling };
       play.setPose(spot.pose);
       play.log.clear();
       play.rebuildPaint();
@@ -105,8 +116,9 @@ async function setup(base: string): Promise<number> {
         await frame();
         seen.push(eye.visible(1, 2, e, at, levels.SKILLS.strong.diff) ?? NaN);
       }
+      // 表のキーは体型によらず通常の体の候補（プチの壁の候補は壁へ寄せてあり、位置がちがう）
       return {
-        key: spots.spotKey(spot),
+        key: spots.spotKey(spots.SPOTS[i] ?? spot),
         room,
         seen: seen.reduce((a, v) => a + v, 0) / seen.length,
         max: Math.max(...seen),
@@ -116,7 +128,7 @@ async function setup(base: string): Promise<number> {
       };
     }
   };
-  return spots.SPOTS.length;
+  return list.length;
 }
 
 const server = await createServer({ server: { port: 0, hmr: false, watch: null }, logLevel: 'error' });
@@ -131,15 +143,18 @@ try {
   await page.goto(`${base}/games/yappari-chameleon`, { waitUntil: 'networkidle' });
   await page.getByRole('button', { name: 'ひとりで試す' }).click();
   await page.waitForFunction(() => 'world' in ((window as unknown as { __chameleon?: object }).__chameleon ?? {}));
-  const count = await page.evaluate(setup, BASE);
+  const count = await page.evaluate(setup, [BASE, body] as [string, 'normal' | 'petit']);
   const from = args.from ? (JSON.parse(await readFile(args.from, 'utf8')) as unknown[]) : null;
   const rows: Row[] = [];
   for (let i = 0; i < (from?.length ?? count); i++) {
     const row = await page.evaluate(
       ([i, spot, skill]) => {
-        const s = (window as unknown as { __spots: { list: unknown[]; measure(s: unknown, k: string): Promise<Row> } })
-          .__spots;
-        return s.measure(spot ?? s.list[i], skill);
+        const s = (
+          window as unknown as {
+            __spots: { list: unknown[]; measure(s: unknown, k: string, i: number): Promise<Row> };
+          }
+        ).__spots;
+        return s.measure(spot ?? s.list[i], skill, spot ? -1 : i);
       },
       [i, from?.[i] ?? null, args.skill] as const
     );
@@ -148,15 +163,23 @@ try {
   }
   if (args.out) await writeFile(args.out, JSON.stringify(rows, null, 2));
   else {
-    const lines = rows.map((r, i) => `  '${r.key}': ${Number(r.seen.toFixed(3))}${i < rows.length - 1 ? ',' : ''}`);
+    const table = { ...SEEN, [body]: Object.fromEntries(rows.map((r) => [r.key, Number(r.seen.toFixed(3))])) };
+    // prettier の形（最後の行にコンマを付けない）で書く
+    const block = (kind: 'normal' | 'petit') =>
+      `  ${kind}: {\n${Object.entries(table[kind])
+        .map(([k, v]) => `    '${k}': ${v}`)
+        .join(',\n')}\n  }`;
     await writeFile(
       OUT,
       [
-        '// pnpm spots が書く表。手で直さず、spots.ts の候補・強い CPU の筆と目・部屋の形や模様を変えたら測り直す',
+        '// pnpm spots が書く表。手で直さず、spots.ts の候補・強い CPU の筆と目・部屋の形や模様・体の形を変えたら測り直す',
         '',
-        '/** 候補（spotKey）ごとの、その部屋の網の点から強い CPU の目で見た目立ちの平均（0..1） */',
-        'export const SEEN: Record<string, number> = {',
-        ...lines,
+        "import type { BodyType } from '../referee';",
+        '',
+        '/** 体型ごと・候補（通常の体の候補の spotKey）ごとの、その部屋の網の点から強い CPU の目で見た目立ちの平均（0..1） */',
+        'export const SEEN: Record<BodyType, Record<string, number>> = {',
+        `${block('normal')},`,
+        block('petit'),
         '};',
         ''
       ].join('\n')
