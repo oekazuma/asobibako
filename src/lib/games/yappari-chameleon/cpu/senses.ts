@@ -6,11 +6,12 @@ import type { Level } from '../move';
 import type { Me } from '../net';
 import type { View } from '../referee';
 
-/** 体の表面の点。rest と normal は骨で曲げる前（吹き付けの Dab と同じ座標）、world と up（法線の y）はいまの屋敷の座標 */
+/** 体の表面の点。rest と normal は骨で曲げる前（吹き付けの Dab と同じ座標）、world と wn（法線）と up（wn の y）はいまの屋敷の座標 */
 export interface SurfacePoint {
   rest: V3;
   normal: V3;
   world: V3;
+  wn: V3;
   up: number;
 }
 

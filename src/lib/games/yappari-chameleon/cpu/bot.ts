@@ -26,7 +26,7 @@ export interface BotOptions {
 }
 
 /** 増え鬼で見つかった隠れる CPU が、ハンターとして歩き出す所。張り付いていたら真下の床（天井の裏から立つと天井の上に出る） */
-export function turnAt(spot: Spot, lv: Level): V3 {
+export function turnAt(spot: Pick<Spot, 'pos' | 'cling'>, lv: Level): V3 {
   const [x, y, z] = spot.pos;
   if (!spot.cling) return [x, y, z];
   return [x, floorBelow(lv, x, z, spot.cling.kind === 'ceiling' ? y - HEIGHT : y), z];

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { levelOf, mansion, placeOf } from '../mansion/layout';
+import type { V3 } from '$lib/sculpt';
+import { levelOf, mansion } from '../mansion/layout';
 import { DEFAULTS, newMatch, view, type View } from '../referee';
 import { rng } from '../rng';
 import { HiderBrain, PAINT_SECS, SETTLE, thin } from './hider';
@@ -9,7 +10,18 @@ import type { Ctx, Senses, SurfacePoint } from './senses';
 import { SPOTS, viewOf, type Spot } from './spots';
 
 const lv = levelOf(mansion());
-const open = SPOTS.find((s) => s.tier === 0 && placeOf(s.pos) === '大広間')!;
+/** 大広間の西の壁ぎわ。背の壁は 0.5m 先 */
+const open: Spot = {
+  pos: [-6.5, 0, 3.2],
+  yaw: Math.PI / 2,
+  cling: null,
+  pose: 'stand',
+  tier: 0,
+  slack: 0,
+  back: [-1, 0, 0]
+};
+/** 大広間の入口の先。背の向き（西）の壁は 7m 先 */
+const far: Spot = { ...open, pos: [0, 0, 2.2] };
 const clung = SPOTS.find((s) => s.cling?.kind === 'wall')!;
 
 /** 見られる位置より上を向く線の先は赤、下は青の面。聞かれた数を rays に数える */
@@ -58,16 +70,51 @@ describe('隠れる CPU', () => {
     expect(b.painting).toBe(false);
   });
 
-  it('見られる位置から体を通した先の面の色で、強さの段の筆で吹く', () => {
+  it('背の面が近ければ、体の点から背の向きへ伸ばした線の先の色で塗り、背の面を向いた点は塗らない', () => {
+    const rays: { o: V3; d: V3 }[] = [];
+    const wall: Senses = {
+      visible: () => 0,
+      colorAt: (o, d) => {
+        rays.push({ o, d });
+        return { color: d[0] < -0.99 ? [0, 1, 0] : [1, 0, 0], metal: 0.1, rough: 0.7, up: 0 };
+      },
+      surface: () => tube(open)
+    };
     const b = brain('strong');
-    run(b, ctx(canvas(() => tube(open))), 25);
-    expect(viewOf(open)[1]).toBeCloseTo(1);
+    run(b, ctx(wall), 25);
+    expect(b.done).toBe(true);
+    expect(rays.length).toBeGreaterThan(0);
+    for (const r of rays) {
+      expect(r.d).toEqual(open.back);
+      expect(Math.hypot(r.o[0] - open.pos[0], r.o[2] - open.pos[2])).toBeLessThan(0.16);
+    }
+    expect(b.log.dabs.every((d) => d.c[1] > 0.95 && d.c[0] < 0.05)).toBe(true);
+    expect(b.log.dabs.filter((d) => d.n[0] < -0.3)).toEqual([]);
+    expect(b.log.dabs.filter((d) => d.n[0] > 0.3).length).toBeGreaterThan(0);
+    expect(b.log.dabs[0]).toMatchObject({ r: SKILLS.strong.brush, a: SKILLS.strong.alpha, m: 0.1, ro: 0.7 });
+  });
+
+  it('背の面の色は、背の向きに直角な面の上の筆ほどの升目ごとに 1 回だけ聞く', () => {
+    const rays = { n: 0 };
+    const b = brain('strong');
+    run(b, ctx(canvas(() => tube(open), rays)), 25);
+    expect(b.done).toBe(true);
+    // 筒は背から見て幅 0.3m・高さ 1.15m。升目の数より多くは聞かない
+    const cell = 2 * SKILLS.strong.brush;
+    expect(rays.n).toBeLessThanOrEqual(Math.ceil(0.3 / cell + 1) * Math.ceil(1.15 / cell + 1));
+    expect(rays.n).toBeLessThan(b.log.dabs.length / 5);
+  });
+
+  it('背の面が遠ければ、見られる位置から体を通した先の面の色で、背を向いた点も塗る', () => {
+    const b = brain('strong', far);
+    run(b, ctx(canvas(() => tube(far))), 25);
+    expect(viewOf(far)[1]).toBeCloseTo(1);
     const high = b.log.dabs.filter((d) => d.p[1] > 1.1);
     const low = b.log.dabs.filter((d) => d.p[1] < 0.9);
     expect(high.length).toBeGreaterThan(0);
     expect(high.every((d) => d.c[0] > 0.95 && d.c[2] < 0.05)).toBe(true);
     expect(low.every((d) => d.c[2] > 0.95 && d.c[0] < 0.05)).toBe(true);
-    expect(b.log.dabs[0]).toMatchObject({ r: SKILLS.strong.brush, a: SKILLS.strong.alpha, m: 0.1, ro: 0.7 });
+    expect(b.log.dabs.filter((d) => d.n[0] < -0.3).length).toBeGreaterThan(0);
   });
 
   it('弱いは大きな筆で数が少なく、色がずれ、塗り残す', () => {

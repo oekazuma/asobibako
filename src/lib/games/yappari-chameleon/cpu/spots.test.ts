@@ -63,6 +63,14 @@ describe('隠れ場所の候補', () => {
     expect(SPOTS.every((s) => s.slack >= 0 && s.slack <= SHIFT)).toBe(true);
   });
 
+  it('背の向きは長さ 1 で、壁の張り付きは壁へ、天井の張り付きは真上', () => {
+    for (const s of SPOTS) {
+      expect(Math.hypot(...s.back), name(s)).toBeCloseTo(1);
+      if (s.cling?.kind === 'wall') expect(s.back, name(s)).toEqual([-s.cling.nx, 0, -s.cling.nz]);
+      if (s.cling?.kind === 'ceiling') expect(s.back, name(s)).toEqual([0, 1, 0]);
+    }
+  });
+
   it('ずらしても同じ部屋にある', () => {
     for (const s of SPOTS)
       for (const a of STEPS) for (const b of STEPS) expect(placeOf(shifted(s, a, b).pos), name(s)).toBe(placeOf(s.pos));

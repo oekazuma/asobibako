@@ -117,6 +117,7 @@ export class Senses3d implements Senses {
         rest: [ra.x, ra.y, ra.z],
         normal: [nrm.getX(i), nrm.getY(i), nrm.getZ(i)],
         world: [a.x, a.y, a.z],
+        wn: [n.x, n.y, n.z],
         up: n.y
       });
     }

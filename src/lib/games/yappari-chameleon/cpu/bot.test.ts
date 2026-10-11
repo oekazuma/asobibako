@@ -121,17 +121,8 @@ describe('CPU の子', () => {
 describe('turnAt', () => {
   it('増え鬼でハンターになる場所は、天井や壁に張り付いていたら真下の床、床ならその場', () => {
     const lv = levelOf(mansion());
-    expect(
-      turnAt({ pos: [2.5, 7, 6], yaw: 0, cling: { kind: 'ceiling' }, pose: 'stand', tier: 2, slack: 0 }, lv)
-    ).toEqual([2.5, 0, 6]);
-    expect(
-      turnAt(
-        { pos: [-3, 1.5, 0.2], yaw: Math.PI, cling: { kind: 'wall', nx: 0, nz: 1 }, pose: 'stand', tier: 2, slack: 0 },
-        lv
-      )
-    ).toEqual([-3, 0, 0.2]);
-    expect(turnAt({ pos: [3, 3.5, 11.6], yaw: 0, cling: null, pose: 'stand', tier: 0, slack: 0 }, lv)).toEqual([
-      3, 3.5, 11.6
-    ]);
+    expect(turnAt({ pos: [2.5, 7, 6], cling: { kind: 'ceiling' } }, lv)).toEqual([2.5, 0, 6]);
+    expect(turnAt({ pos: [-3, 1.5, 0.2], cling: { kind: 'wall', nx: 0, nz: 1 } }, lv)).toEqual([-3, 0, 0.2]);
+    expect(turnAt({ pos: [3, 3.5, 11.6], cling: null }, lv)).toEqual([3, 3.5, 11.6]);
   });
 });
