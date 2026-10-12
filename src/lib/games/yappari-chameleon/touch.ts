@@ -50,10 +50,13 @@ export class TouchPad {
   /** orbit は塗るモードで、指を置いた所が体の外のとき（その指は塗らずにカメラを回す） */
   down(id: number, x: number, y: number, width: number, now: number, orbit = false): PaintEvent[] {
     if (this.mode === 'paint') return this.#paintDown(id, x, y, now, orbit);
-    if (this.#stickId === null && x < width * STICK_AREA) {
+    const right = x >= width * STICK_AREA;
+    if (this.#stickId === null && !right) {
       this.#stickId = id;
       Object.assign(this.stick, { x: 0, y: 0, active: true, ox: x, oy: y });
-    } else if (this.#lookId === null) {
+    } else if (this.#lookId === null || right) {
+      // iPad の Safari は、離した指の pointerup を見回しへ届けないことがある（撃った直後に押せなくなる「うつ」の上で
+      // 離したときなど）。残った見回しの指は二度と動かず、見回しが止まったままになるので、右に置いた新しい指が引き継ぐ
       this.#lookId = id;
       this.#lookAt = { x, y };
     }

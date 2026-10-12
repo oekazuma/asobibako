@@ -31,12 +31,23 @@ describe('TouchPad 歩く', () => {
     expect(t.stick).toMatchObject({ x: 0, y: 0, active: false });
   });
 
-  it('見回しの指が使われているとき、3 本めは何もしない', () => {
+  it('右に新しく置いた指が見回しを引き継ぎ、前の指は見回さない', () => {
     const t = new TouchPad(100);
     t.down(2, 800, 500, W, 0);
     t.down(3, 900, 500, W, 0);
     t.move(3, 950, 500, 10);
-    expect(t.takeLook()).toEqual({ dx: 0, dy: 0 });
+    t.move(2, 700, 500, 10);
+    expect(t.takeLook()).toEqual({ dx: 50, dy: 0 });
+  });
+
+  it('離した知らせが届かなかった見回しの指が残っても、次に置いた指で見回せる', () => {
+    const t = new TouchPad(100);
+    t.down(1, 100, 500, W, 0);
+    t.down(2, 800, 500, W, 0);
+    t.down(3, 820, 400, W, 0);
+    t.move(3, 860, 380, 10);
+    expect(t.takeLook()).toEqual({ dx: 40, dy: -20 });
+    expect(t.stick.active).toBe(true);
   });
 
   it('スティックを使っているとき、左にもう 1 本置くと見回しになる', () => {
