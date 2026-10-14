@@ -170,25 +170,27 @@ export function dropGem(w: World, x: number, y: number, value: number): void {
   pushOut(w.stage.art, at, 4);
   ({ x, y } = at);
   let count = 0;
-  let far: Gem | undefined;
-  let fd = -1;
   let free: Gem | undefined;
-  const p = w.player;
   for (const g of w.gems) {
-    if (!g.alive) {
-      free ??= g;
-      continue;
-    }
-    count++;
-    const d = (g.x - p.x) ** 2 + (g.y - p.y) ** 2;
-    if (d > fd) {
-      fd = d;
-      far = g;
-    }
+    if (!g.alive) free ??= g;
+    else count++;
   }
-  if (count >= MAX_GEMS && far) {
-    far.value += value;
-    return;
+  if (count >= MAX_GEMS) {
+    let far: Gem | undefined;
+    let fd = -1;
+    const p = w.player;
+    for (const g of w.gems) {
+      if (!g.alive) continue;
+      const d = (g.x - p.x) ** 2 + (g.y - p.y) ** 2;
+      if (d > fd) {
+        fd = d;
+        far = g;
+      }
+    }
+    if (far) {
+      far.value += value;
+      return;
+    }
   }
   const g = free ?? (w.gems[w.gems.length] = { alive: false, x: 0, y: 0, value: 0, pulled: false });
   Object.assign(g, { alive: true, x, y, value, pulled: false });
@@ -286,6 +288,12 @@ function pull(w: World, o: { x: number; y: number; pulled: boolean }, reach: num
   return Math.hypot(p.x - o.x, p.y - 4 - o.y) < PICK;
 }
 
+/** 抜けていない全員から far2 より遠いか（`!(… > far2)` は距離が NaN のときも遠くないとみなす今の判定に合わせる） */
+function farFromAll(w: World, x: number, y: number, far2: number): boolean {
+  for (const h of w.heroes) if (!h.gone && !((x - h.player.x) ** 2 + (y - h.player.y) ** 2 > far2)) return false;
+  return true;
+}
+
 /** 玉と品は 1 つずつ、近いほうの動物が吸い寄せて拾う（吸い寄せる範囲と回復はその動物のもの） */
 export function collect(w: World, dt: number): void {
   for (const g of w.gems) {
@@ -300,10 +308,7 @@ export function collect(w: World, dt: number): void {
   const far2 = (FAR_ITEM * Math.hypot(w.view.w, w.view.h)) ** 2;
   for (const it of w.items) {
     if (!it.alive) continue;
-    if (
-      !KEEP.has(it.kind) &&
-      w.heroes.filter((h) => !h.gone).every((h) => (it.x - h.player.x) ** 2 + (it.y - h.player.y) ** 2 > far2)
-    ) {
+    if (!KEEP.has(it.kind) && farFromAll(w, it.x, it.y, far2)) {
       it.alive = false;
       continue;
     }

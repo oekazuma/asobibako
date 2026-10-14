@@ -1,3 +1,6 @@
+/** 歩いた先のセルを覚え続けると延長戦で増え続けるので、これを超えたらまとめて捨てる */
+const KEEP_CELLS = 4096;
+
 /** 当たり判定の格子。毎フレーム作り直すので、セルの配列は使い回して空にするだけにする */
 export class Grid {
   readonly #cell: number;
@@ -15,6 +18,7 @@ export class Grid {
   clear() {
     for (const list of this.#used) list.length = 0;
     this.#used.length = 0;
+    if (this.#cells.size > KEEP_CELLS) this.#cells.clear();
   }
 
   add(i: number, x: number, y: number) {

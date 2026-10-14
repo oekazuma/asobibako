@@ -102,14 +102,16 @@ export function raise(w: World, dt: number): void {
 export function nearestHero(w: World, x: number, y: number): number {
   let best = 0;
   let bd = Infinity;
-  w.heroes.forEach((h, i) => {
-    if (h.down) return;
+  const hs = w.heroes;
+  for (let i = 0; i < hs.length; i++) {
+    const h = hs[i];
+    if (h.down) continue;
     const d = (h.player.x - x) ** 2 + (h.player.y - y) ** 2;
     if (d < bd) {
       bd = d;
       best = i;
     }
-  });
+  }
   return best;
 }
 
