@@ -47,7 +47,7 @@
     const dpr = devicePixelRatio || 1;
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
-    const scale = Math.min(w, (h - 96) / WORLD_H);
+    const scale = Math.max(1, Math.min(w, (h - 96) / WORLD_H));
     view = { scale, ox: (w - scale) / 2, oy: 76 + (h - 96 - scale * WORLD_H) / 2 };
     ctx = canvas.getContext('2d');
     bg ??= document.createElement('canvas');
