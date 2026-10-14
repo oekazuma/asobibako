@@ -37,7 +37,12 @@
     <Icon name="crouch" size="30px" />
     <span>しゃがむ</span>
   </button>
-  <button class="round-btn shoot" style:--wait={wait} disabled={wait > 0 || ammo === 0} onpointerdown={() => session.shoot()}>
+  <button
+    class="round-btn shoot"
+    style:--wait={wait}
+    disabled={wait > 0 || ammo === 0}
+    onpointerdown={() => session.shoot()}
+  >
     <Icon name="aim" size="44px" />
     <span>うつ</span>
   </button>
@@ -68,7 +73,7 @@
     gap: 10px;
   }
 
-.ammo {
+  .ammo {
     position: absolute;
     bottom: max(14px, env(safe-area-inset-bottom));
     left: 50%;

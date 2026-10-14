@@ -414,6 +414,21 @@ describe('探す CPU の気づきと撃つ', () => {
     expect(miss(c.shots[0], target)).toBeCloseTo(SKILLS.normal.aim * 2, 1);
   });
 
+  it('弾数制限で弾が 0 なら撃たない', () => {
+    const { c, run } = hunt('strong', eyes(1));
+    c.view = { ...search, settings: { ...search.settings, ammo: 3 }, ammo: { 2: 0 } };
+    run(10);
+    expect(c.shots).toEqual([]);
+  });
+
+  it('弾数制限のあいだは、半端に怪しい体へ試し撃ちしない', () => {
+    const { b, c, run } = hunt('normal', eyes(0), OPEN, () => 0);
+    c.view = { ...search, settings: { ...search.settings, ammo: 3 }, ammo: { 2: 3 } };
+    b.suspicion.set(1, 0.6);
+    run(0.3);
+    expect(c.shots).toHaveLength(0);
+  });
+
   it('胴が箱に隠れて頭だけ見える体は、見えている頭を狙い、強いなら 20 秒以内に撃ち当てる', () => {
     // 体のまわりを高さ 0.95m の囲いで囲む。目の高さ 1m から、頭（1.045m）は見えて胴の真ん中（0.70m）は見えない
     const [x, , z] = OPEN;

@@ -37,7 +37,13 @@ export const DEFAULTS: Settings = {
   ammo: 0,
   petit: false
 };
-export const LIMITS = { hide: [30, 300], search: [60, 600], reveal: [10, 120], taunt: [5, 120], ammo: [1, 20] } as const;
+export const LIMITS = {
+  hide: [30, 300],
+  search: [60, 600],
+  reveal: [10, 120],
+  taunt: [5, 120],
+  ammo: [1, 20]
+} as const;
 export const INTRO = 3;
 export const COOLDOWN = 2;
 export const TOOT_GAP = 1;

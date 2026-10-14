@@ -208,7 +208,13 @@ export class HunterBrain {
     const top = seen.reduce<Seat | null>((a, s) => (a === null || this.#sus(s) > this.#sus(a) ? s : a), null);
     if (top === null) return;
     if (this.#sus(top) >= SHOOT_AT) this.#aim = { seat: top, wait: this.#skill.wait, lost: false, shots: 0 };
-    else if (this.#sus(top) >= PROBE_AT && this.#cool === 0 && this.#rand() < PROBE_CHANCE)
+    else if (
+      this.#sus(top) >= PROBE_AT &&
+      this.#cool === 0 &&
+      // 弾数制限のあいだは、外すと減るので当てずっぽうに撃たない
+      ctx.view.ammo[ctx.me] === undefined &&
+      this.#rand() < PROBE_CHANCE
+    )
       this.#fire(ctx, top, this.#skill.aim * 2);
   }
 
@@ -241,7 +247,7 @@ export class HunterBrain {
     this.walker.step(ctx.level, dt);
     this.crouch = false;
     this.look = toLook(norm(sub(last.mid, this.eye())));
-    if ((aim.wait -= dt) > 0 || this.#cool > 0) return;
+    if ((aim.wait -= dt) > 0 || this.#cool > 0 || ctx.view.ammo[ctx.me] === 0) return;
     this.#fire(ctx, aim.seat, this.#skill.aim);
     aim.wait = this.#skill.wait;
     aim.shots++;

@@ -53,7 +53,17 @@ function run(m: Match, secs: number): Seat[] {
 describe('fit', () => {
   it('範囲の外の値を収め、ハンターは人数−1 まで、強制挑発は 0 か 5〜120', () => {
     const s = fit(
-      { mode: 'normal', hunters: 5, hide: 10, search: 9999, reveal: 30, taunt: 3, overlook: false, ammo: 0, petit: false },
+      {
+        mode: 'normal',
+        hunters: 5,
+        hide: 10,
+        search: 9999,
+        reveal: 30,
+        taunt: 3,
+        overlook: false,
+        ammo: 0,
+        petit: false
+      },
       3
     );
     expect(s).toEqual({
