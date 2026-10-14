@@ -5,6 +5,7 @@ import { Host } from '../host';
 import { levelOf, mansion, SPAWNS } from '../mansion/layout';
 import type { Me } from '../net';
 import { DEFAULTS, INTRO } from '../referee';
+import { rng } from '../rng';
 import { Bot, REVEAL_READY, turnAt } from './bot';
 import { pipes } from './pipe';
 
@@ -32,7 +33,7 @@ async function table(n: number) {
       send(m);
     };
     sends.push(sent);
-    bots.push(new Bot(b, { strength: 'normal', index: i }));
+    bots.push(new Bot(b, { strength: 'normal', index: i, rand: rng(i + 1) }));
     await party.add(a);
   }
   const run = (secs: number) => {
