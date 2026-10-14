@@ -61,7 +61,8 @@ export function undoBy(s: Shared, seat: Seat): Change | null {
     const dab = s.dabs[i];
     if (dab.seat !== seat) continue;
     s.dabs.splice(i, 1);
-    if (s.colors[dab.region] !== dab.after) continue;
+    // 同じ場所にあとから塗った手順が残っていれば、見えているのはその塗り。色が同じでも、戻すとその人の塗りを消してしまう
+    if (s.colors[dab.region] !== dab.after || s.dabs.slice(i).some((d) => d.region === dab.region)) continue;
     if (dab.before === null) delete s.colors[dab.region];
     else s.colors[dab.region] = dab.before;
     return { region: dab.region, color: dab.before };

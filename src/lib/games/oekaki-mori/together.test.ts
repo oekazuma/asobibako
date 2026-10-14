@@ -52,6 +52,28 @@ describe('undoBy', () => {
     expect(undoBy(s, 2)).toBeNull();
     expect(s.colors).toEqual({ 1: '#00f' });
   });
+
+  // 色が同じかだけを見ると、ほかの人が同じ色で塗り直したところを自分の塗りと見分けられない
+  it('ほかの人が上から同じ色で塗り直していたら、その塗りを消さない', () => {
+    const s = shared();
+    paintBy(s, 2, 1, '#f00');
+    paintBy(s, 3, 1, '#00f');
+    paintBy(s, 3, 1, '#f00');
+    expect(undoBy(s, 2)).toBeNull();
+    expect(s.colors).toEqual({ 1: '#f00' });
+    expect(undoBy(s, 3)).toEqual({ region: 1, color: '#00f' });
+  });
+
+  it('その場所のいちばん新しい自分の塗りでも、いまの色がちがえば戻さない', () => {
+    const s = shared();
+    paintBy(s, 2, 1, '#f00');
+    paintBy(s, 3, 1, '#00f');
+    paintBy(s, 2, 1, '#0f0');
+    expect(undoBy(s, 3)).toBeNull();
+    expect(undoBy(s, 2)).toEqual({ region: 1, color: '#00f' });
+    expect(undoBy(s, 2)).toBeNull();
+    expect(s.colors).toEqual({ 1: '#00f' });
+  });
 });
 
 describe('paintFrom', () => {
