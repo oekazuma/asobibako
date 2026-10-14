@@ -54,4 +54,17 @@ describe('Invite', () => {
     expect(shakes).toHaveLength(2);
     done();
   });
+
+  it('待っているあいだは、帯に遊びを終えるまでの残りの秒を出す', () => {
+    const props = $state({ away: [2] as Seat[], open: false, onlink: vi.fn(), looks: {}, wait: 42 });
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(Invite, { target, props });
+    flushSync();
+    const band = () => target.querySelector('.lost')?.textContent ?? '';
+    expect(band()).toContain('あと 42 びょう');
+    props.wait = 0;
+    flushSync();
+    expect(band()).not.toContain('びょう');
+    unmount(app);
+  });
 });

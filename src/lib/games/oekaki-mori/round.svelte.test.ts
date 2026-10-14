@@ -95,4 +95,14 @@ describe('Round', () => {
     expect(r.gallery[0].misses).toEqual([{ by: 2, text: 'たぬき' }]);
     expect(r.misses).toEqual([]);
   });
+
+  it('待つ残り秒を、クイズとリレーの見え方から受け取り、画面が替わったら 0 にする', () => {
+    const r = new Round();
+    r.receive({ t: 'view', view: view({ wait: 42 }) });
+    expect(r.wait).toBe(42);
+    r.receive({ t: 'screen', screen: 'relay' });
+    expect(r.wait).toBe(0);
+    r.receive({ t: 'relayView', phase: 'play', step: 0, steps: 4, left: 30, done: [], wait: 7 });
+    expect(r.wait).toBe(7);
+  });
 });

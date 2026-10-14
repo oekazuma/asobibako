@@ -8,11 +8,14 @@
     away,
     onlink,
     looks = {},
+    wait = 0,
     open = $bindable(false)
   }: {
     away: Seat[];
     onlink: (link: Link) => Promise<Seat | null | 'mismatch' | undefined>;
     looks?: Record<number, string>;
+    /** 遊びを終えるまでの残り秒。2 人で遊んでいて 1 人が切れたときだけ 0 より大きい */
+    wait?: number;
     open?: boolean;
   } = $props();
   let failed = $state('');
@@ -51,7 +54,7 @@
   </div>
 {:else if away.length}
   <p class="lost" role="status">
-    {away.map((s) => who(s, looks)).join('と')} の つながりが きれました
+    {away.map((s) => who(s, looks)).join('と')} の つながりが きれました{wait ? `。あと ${wait} びょう まつよ` : ''}
     <button class="pill p2" onclick={() => (open = true)}>よびなおす</button>
   </p>
 {/if}

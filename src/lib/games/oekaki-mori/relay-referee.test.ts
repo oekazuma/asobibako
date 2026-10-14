@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Message } from '$lib/net/link';
 import type { Party, Seat } from '$lib/net/party.svelte';
+import { GRACE_S } from './engine';
 import { RelayReferee } from './relay-referee';
 
 const frames = vi.hoisted(() => ({ list: [] as ((dt: number) => void)[] }));
@@ -132,5 +133,15 @@ describe('RelayReferee', () => {
       [1, 0],
       [1, 1]
     ]);
+  });
+
+  it('1 人で待つあいだは、リレーの見え方に遊びを終えるまでの残り秒を載せる', () => {
+    frames.list = [];
+    const { party, told, act } = fakeParty([1, 2]);
+    new RelayReferee(party).start('short', null);
+    frame();
+    act({ t: 'leave' }, 2);
+    frame(1);
+    expect(of(told, 'relayView').at(-1)![1]).toMatchObject({ phase: 'play', wait: GRACE_S - 1 });
   });
 });
