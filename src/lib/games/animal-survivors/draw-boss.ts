@@ -89,11 +89,15 @@ export function hazardsBelow(ctx: CanvasRenderingContext2D, w: World, q: Snap, n
     }
     if ((h.kind === 'slam' || h.kind === 'pounce') && h.delay > 0) {
       const t = Math.max(0, 1 - h.delay / (h.warn || 1));
-      ctx.fillStyle = 'rgb(216 70 60 / 0.25)';
+      // 墨だまりの予告は赤ではなく墨色にして、痛い輪と見分ける
+      const [fill, edge] = h.ink
+        ? ['rgb(39 32 64 / 0.4)', 'rgb(39 32 64 / 0.85)']
+        : ['rgb(216 70 60 / 0.25)', 'rgb(216 70 60 / 0.75)'];
+      ctx.fillStyle = fill;
       ctx.beginPath();
       ctx.ellipse(q(h.x), q(h.y + RING_DY), h.r * t, h.r * t * 0.6, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = 'rgb(216 70 60 / 0.75)';
+      ctx.strokeStyle = edge;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.ellipse(q(h.x), q(h.y + RING_DY), h.r, h.r * 0.6, 0, 0, Math.PI * 2);

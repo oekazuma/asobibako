@@ -1,4 +1,4 @@
-import { hazard } from './bosses';
+import { hazard, queen } from './bosses';
 import type { Enemy, World } from './world';
 
 /** 巨大ガニ。突進とはさみの地ならしを交互に使う */
@@ -72,4 +72,37 @@ export function crab(w: World, i: number, e: Enemy, ux: number, uy: number, dt: 
     e.cd = CRAB.every / (e.def.rage ?? 1);
   }
   return e.state === 2 ? { vx: e.dx * CRAB.dashSpeed, vy: 0 } : STILL;
+}
+
+/** 大ダコ。女王グモと同じ飛び道具と手下の合間に、自分の足もとへ墨だまりを置く */
+export const OCTOPUS = { every: 6, inkWarn: 1, inkR: 40, inkLife: 5 };
+
+/** state 0 女王グモの動き（wait は墨までの経過秒）・1 墨の予告（立ち止まる） */
+export function octopus(w: World, i: number, e: Enemy, ux: number, uy: number, d: number, dt: number) {
+  if (e.state === 0) {
+    e.wait += dt;
+    if (e.wait < OCTOPUS.every / (e.def.rage ?? 1)) return queen(w, e, ux, uy, d, dt);
+    e.state = 1;
+    e.wait = OCTOPUS.inkWarn;
+    hazard(w, {
+      kind: 'slam',
+      owner: i,
+      x: e.x,
+      y: e.y,
+      vx: 0,
+      vy: 0,
+      r: OCTOPUS.inkR,
+      delay: OCTOPUS.inkWarn,
+      life: 0,
+      dmg: 0,
+      ink: true
+    });
+    return STILL;
+  }
+  e.wait -= dt;
+  if (e.wait <= 0) {
+    e.state = 0;
+    e.wait = 0;
+  }
+  return STILL;
 }

@@ -37,7 +37,19 @@ export interface EnemyDef {
   /** 壊せる物（ランタン）。狙われず、数えられず、品を落とす */
   prop?: boolean;
   /** ボスの動き方（bosses.ts）。巨大ベア型は突進と地ならし、女王グモ型は飛び道具と手下 */
-  ai?: 'bear' | 'queen' | 'yeti' | 'dragon' | 'boar' | 'eagle' | 'tree' | 'snake' | 'giant' | 'phoenix' | 'crab';
+  ai?:
+    | 'bear'
+    | 'queen'
+    | 'yeti'
+    | 'dragon'
+    | 'boar'
+    | 'eagle'
+    | 'tree'
+    | 'snake'
+    | 'giant'
+    | 'phoenix'
+    | 'crab'
+    | 'octopus';
   /** 女王グモ型が呼ぶ手下の id */
   minion?: string;
   /** 女王グモ型の飛び道具の絵（ITEM_ART の名前） */
@@ -171,11 +183,10 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
         ai: 'crab',
         epithet: '浜辺の大はさみ'
       },
-      // 大ダコは仮の行（女王グモの数と動き方）
       {
         ...e('octopus', '大ダコ', [550, 38, 25, 16, 0], 'boss', 1, 'octopus'),
-        ai: 'queen',
-        minion: 'spiderling',
+        ai: 'octopus',
+        minion: 'jelly',
         shot: 'web',
         epithet: '渦をまく大足'
       }

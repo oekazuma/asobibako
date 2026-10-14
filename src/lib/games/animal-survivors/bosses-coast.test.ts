@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { CRAB } from './bosses-coast';
+import { CRAB, OCTOPUS } from './bosses-coast';
 import { ENEMIES } from './enemies';
+import { WADE, wadeFactor } from './tide';
 import { createWorld, makeEnemy, step, type World } from './world';
 
 const VIEW = { w: 274, h: 394 };
@@ -104,5 +105,97 @@ describe('巨大ガニ', () => {
       return c.turn;
     };
     expect(attacks(2)).toBeGreaterThan(attacks());
+  });
+});
+
+describe('大ダコ', () => {
+  const octopus = (w: World, x = 120) => {
+    const e = makeEnemy(ENEMIES.octopus, x, 0, 1e6);
+    w.enemies.push(e);
+    return e;
+  };
+  const inks = (w: World) => w.shallows.filter((s) => s.ink && s.life > 0);
+
+  it('墨の弾と小さな手下を出す', () => {
+    const w = quiet();
+    w.player.invuln = 1e6;
+    octopus(w);
+    const kinds = new Set<string>();
+    for (let i = 0; i < 60 * 5; i++) {
+      step(w, still, 1 / 60);
+      for (const h of w.hazards) if (h.alive) kinds.add(h.kind);
+    }
+    expect(kinds.has('web')).toBe(true);
+    expect(w.enemies.some((e) => e.alive && e.def.id === 'jelly')).toBe(true);
+  });
+
+  it('墨だまりは 1 秒の予告のあとに自分の位置へ置かれ、中の自分は遅くなる', () => {
+    const w = quiet();
+    w.player.invuln = 1e6;
+    const o = octopus(w);
+    let warned = false;
+    let x = 0;
+    let y = 0;
+    for (let i = 0; i < 60 * 12 && !inks(w).length; i++) {
+      step(w, still, 1 / 60);
+      const warn = w.hazards.find((h) => h.alive && h.ink);
+      if (warn && !warned) {
+        warned = true;
+        expect(warn.delay).toBeCloseTo(OCTOPUS.inkWarn, 1);
+        x = warn.x;
+        y = warn.y;
+      }
+      if (warned && !inks(w).length) expect(w.shallows.some((s) => s.ink && s.life > 0)).toBe(false);
+    }
+    expect(warned).toBe(true);
+    const pool = inks(w)[0];
+    expect(pool.r).toBe(OCTOPUS.inkR);
+    expect([pool.x, pool.y]).toEqual([x, y]);
+    expect(wadeFactor(w, pool.x, pool.y)).toBe(WADE);
+    expect(o.alive).toBe(true);
+  });
+
+  it('墨だまりは 5 秒で消え、大ダコが倒れても残りの時間で消える', () => {
+    const w = quiet();
+    w.player.invuln = 1e6;
+    const o = octopus(w);
+    for (let i = 0; i < 60 * 12 && !inks(w).length; i++) step(w, still, 1 / 60);
+    const pool = inks(w)[0];
+    expect(pool.life).toBeLessThanOrEqual(OCTOPUS.inkLife);
+    o.alive = false;
+    run(w, 2);
+    expect(pool.life).toBeGreaterThan(0);
+    expect(wadeFactor(w, pool.x, pool.y)).toBe(WADE);
+    run(w, OCTOPUS.inkLife);
+    expect(pool.life).toBeLessThanOrEqual(0);
+    expect(wadeFactor(w, pool.x, pool.y)).toBe(1);
+  });
+
+  it('墨の予告のあいだに倒れたら予告ごと消えて、墨だまりは出ない', () => {
+    const w = quiet();
+    const o = octopus(w);
+    for (let i = 0; i < 60 * 12 && !w.hazards.some((h) => h.alive && h.ink); i++) step(w, still, 1 / 60);
+    o.alive = false;
+    run(w, 2);
+    expect(inks(w)).toHaveLength(0);
+  });
+
+  it('rage の行では墨だまりの間隔が短くなる', () => {
+    const count = (rage?: number) => {
+      const w = quiet();
+      w.player.invuln = 1e6;
+      const e = makeEnemy(rage ? { ...ENEMIES.octopus, rage } : ENEMIES.octopus, 120, 0, 1e6);
+      w.enemies.push(e);
+      let n = 0;
+      let prev = 0;
+      for (let i = 0; i < 60 * 30; i++) {
+        step(w, still, 1 / 60);
+        const now = w.shallows.filter((s) => s.ink && s.life > OCTOPUS.inkLife - 0.05).length;
+        if (now > prev) n++;
+        prev = now;
+      }
+      return n;
+    };
+    expect(count(2)).toBeGreaterThan(count());
   });
 });

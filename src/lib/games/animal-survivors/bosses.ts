@@ -1,7 +1,8 @@
 import { giant, phoenix } from './bosses-volcano';
 import { addLava } from './eruption';
 import { boar, eagle, snake, spawnSegments, tree } from './bosses-forest';
-import { crab } from './bosses-coast';
+import { crab, octopus, OCTOPUS } from './bosses-coast';
+import { addShallow } from './tide';
 import { breathe, dragon, rolled, yeti } from './bosses-snow';
 import { ENEMIES } from './enemies';
 import { dropGem } from './drops';
@@ -30,6 +31,8 @@ export interface Hazard {
   warn?: number;
   /** 当たったところに残す溶岩の池の半径（溶岩の巨人） */
   lava?: number;
+  /** 予告が終わったら、墨だまりを置いて消える（大ダコ）。墨だまりは持ち主を見ずに自分の時計で消える */
+  ink?: boolean;
   dmg: number;
 }
 
@@ -139,7 +142,7 @@ export const RING_DY = 8;
 export function hazard(w: World, h: Omit<Hazard, 'alive'>) {
   const free = w.hazards.find((o) => !o.alive);
   // 使い回す予告に前の溶岩の池が残らないよう、無い欄も書く
-  const full = { lava: 0, ...h, warn: h.warn ?? h.delay, alive: true };
+  const full = { lava: 0, ink: false, ...h, warn: h.warn ?? h.delay, alive: true };
   if (free) Object.assign(free, full);
   else w.hazards.push(full);
 }
@@ -211,7 +214,7 @@ export function circle(e: Enemy, ux: number, uy: number, d: number, keep: number
 }
 
 /** 女王グモ。少し離れた所を保って回り込み、糸の玉を撃ち、子グモを生む */
-function queen(w: World, e: Enemy, ux: number, uy: number, d: number, dt: number) {
+export function queen(w: World, e: Enemy, ux: number, uy: number, d: number, dt: number) {
   e.cd -= dt;
   if (e.cd <= 0) {
     e.cd = QUEEN.webEvery / (e.def.rage ?? 1);
@@ -268,6 +271,7 @@ export function moveBoss(w: World, i: number, dt: number): { vx: number; vy: num
   if (e.def.ai === 'giant') return giant(w, i, e, dx / d, dy / d, dt);
   if (e.def.ai === 'phoenix') return phoenix(w, i, e, dx / d, dy / d, d, dt);
   if (e.def.ai === 'crab') return crab(w, i, e, dx / d, dy / d, dt);
+  if (e.def.ai === 'octopus') return octopus(w, i, e, dx / d, dy / d, d, dt);
   return queen(w, e, dx / d, dy / d, d, dt);
 }
 
@@ -329,6 +333,13 @@ export function updateHazards(w: World, dt: number): void {
     // 予告のあいだに持ち主が倒れたら、予告ごと消す
     if (h.delay > 0 && !(owner?.alive && owner.def.boss)) {
       h.alive = false;
+      continue;
+    }
+    if (h.ink) {
+      if ((h.delay -= dt) <= 0) {
+        addShallow(w, h.x, h.y, h.r, { grow: 0, life: OCTOPUS.inkLife, ink: true });
+        h.alive = false;
+      }
       continue;
     }
     if (h.kind === 'dash') {
