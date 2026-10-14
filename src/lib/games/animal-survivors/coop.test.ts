@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Message } from '$lib/net/link';
 import { Party, type Pipe } from '$lib/net/party.svelte';
 import { CoopGuest, CoopHost } from './coop';
+import { heroRun } from './coop-run';
+import { UPGRADES } from './upgrades';
 import { COOP_VERSION } from './snap';
 import type { Hero } from './heroes';
 import { Prompts } from './prompts.svelte';
@@ -567,5 +569,47 @@ describe('協力プレイのつなぎ', () => {
     expect(g.prompts!.lock.active).toBe(false);
     g.prompts!.lock.lift(7);
     expect(g.prompts!.lock.active).toBe(true);
+  });
+
+  it('親から届いたまとめにコインが欠けていたら、子は記録に入れず、貯めたコインを消さない', async () => {
+    vi.stubGlobal('localStorage', memoryStorage());
+    localStorage.setItem(RECORDS_KEY, JSON.stringify({ ...emptyRecords(), coins: 500 }));
+    const { host, w, g } = await started();
+    w.over = 'dead';
+    const run = JSON.parse(JSON.stringify(heroRun(w, 1)));
+    delete run.part.coins;
+    delete run.full.coins;
+    host.tell(2, { t: 'record', run, final: true });
+    await settle();
+    expect(loadRecords().coins).toBe(500);
+    expect(g.result).toBeNull();
+    // 形の正しいまとめは、そのあとでも記録する
+    host.tell(2, { t: 'record', run: heroRun(w, 1), final: true });
+    await settle();
+    expect(g.result?.run.animal).toBe('cat');
+    expect(loadRecords().coins).toBeGreaterThanOrEqual(500);
+    vi.unstubAllGlobals();
+  });
+
+  it('子が知らない動物を選んだら受け取らず、段と装備は知っているものだけにする', async () => {
+    const { host, guest } = await pair();
+    const h = new CoopHost(host);
+    guest.act({ t: 'hi', v: COOP_VERSION });
+    guest.act({ t: 'pick', animal: 'dragon', ranks: {}, gear: [] });
+    await settle();
+    expect(h.ready).toBe(false);
+    guest.act({ t: 'pick', animal: 'cat', ranks: { might: 99, nope: 3 }, gear: ['hachimaki:2', 'nope:2', 7] });
+    await settle();
+    const max = UPGRADES.find((d) => d.id === 'might')!.max;
+    expect(h.guest).toEqual({ animal: 'cat', ranks: { might: max }, gear: ['hachimaki:2'] });
+  });
+
+  it('子から届いた位置が数でなければ、親の World の子の動物を動かさない', async () => {
+    const { guest, w, h } = await started();
+    const x = w.heroes[1].player.x;
+    guest.act({ t: 'move', ms: performance.now(), x: 'a', y: 0, facing: 1, aimX: 1, aimY: 0, moving: true });
+    await settle();
+    h.before(performance.now() + 1000);
+    expect(w.heroes[1].player.x).toBe(x);
   });
 });
