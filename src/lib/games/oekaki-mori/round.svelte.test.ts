@@ -32,6 +32,14 @@ const view = (over: Partial<View>): View => ({
 });
 
 describe('Round', () => {
+  it('形の違う線の命令は盤面に入れない', () => {
+    const r = new Round();
+    r.receive({ t: 'ink', ink: { k: 'start', color: '#000', size: 0.01, x: 0.1, y: 0.1 } });
+    r.receive({ t: 'ink', ink: { k: 'fill' } });
+    r.receive({ t: 'ink', ink: { k: 'add', pts: 'x' } });
+    expect(r.strokes).toEqual([{ color: '#000', size: 0.01, pts: [0.1, 0.1] }]);
+  });
+
   afterEach(() => vi.clearAllMocks());
 
   it('外れた答えをその番の絵に付け、じかんぎれは入れず、番が変わると空にする', () => {

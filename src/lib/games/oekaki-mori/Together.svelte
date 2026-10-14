@@ -15,7 +15,7 @@
   import { saveImage } from '$lib/share';
   import { catchUpTogether } from './catch-up';
   import Finished from './Finished.svelte';
-  import { paintBy, shared, undoBy } from './together';
+  import { paintFrom, recolor, shared, undoBy } from './together';
 
   let { party, onagain }: { party: Party; onagain: () => void } = $props();
 
@@ -61,12 +61,8 @@
       };
       colors = {};
       phase = 'paint';
-    } else if (m.t === 'painted') {
-      const next = { ...colors };
-      if (m.color === null) delete next[Number(m.region)];
-      else next[Number(m.region)] = String(m.color);
-      colors = next;
-    } else if (m.t === 'undone') sounds.undo();
+    } else if (m.t === 'painted') colors = recolor(colors, m, sheet?.regions.count ?? 0);
+    else if (m.t === 'undone') sounds.undo();
     else if (m.t === 'finished') finish();
   }
 
@@ -108,7 +104,7 @@
           if (closed) return;
           const change =
             m.t === 'paint'
-              ? paintBy(host, from, Number(m.region), String(m.color))
+              ? paintFrom(host, from, m, sheet?.regions.count ?? 0)
               : m.t === 'unpaint'
                 ? undoBy(host, from)
                 : null;

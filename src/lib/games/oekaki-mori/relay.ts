@@ -1,6 +1,6 @@
 import type { Seat } from '$lib/net/party.svelte';
 import { fit, LENGTHS, type Chars, type Length } from './engine';
-import { apply, type Ink, type Stroke } from './strokes';
+import { apply, isInk, type Stroke } from './strokes';
 
 /** だんの数。偶数のだんは描く、奇数のだんは当てるので、最後は必ず当てる */
 export const STEPS: Record<Length, number> = { short: 4, normal: 6, long: 8 };
@@ -121,8 +121,8 @@ export function taskOf(s: Relay, seat: Seat): Task {
   return { kind: 'guess', strokes: prev?.kind === 'draw' ? prev.strokes : [] };
 }
 
-export function addInk(s: Relay, seat: Seat, ink: Ink): void {
-  if (s.phase !== 'play' || !drawing(s.step) || s.done.includes(seat)) return;
+export function addInk(s: Relay, seat: Seat, ink: unknown): void {
+  if (!isInk(ink) || s.phase !== 'play' || !drawing(s.step) || s.done.includes(seat)) return;
   const c = chainOf(s, seat);
   const entry = s.chains[c]?.entries.at(-1);
   if (entry?.kind === 'draw') entry.strokes = apply(entry.strokes, ink);

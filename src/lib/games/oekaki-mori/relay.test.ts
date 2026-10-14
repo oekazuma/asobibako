@@ -26,6 +26,16 @@ const allDone = (s: Relay, text = 'くま') => {
 };
 
 describe('relay', () => {
+  it('形の違う線の命令は捨て、こまの線を壊さない', () => {
+    const s = relay([1, 2]);
+    addInk(s, 1, { k: 'start', color: '#000', size: 0.01, x: 0.1, y: 0.1 });
+    addInk(s, 1, { k: 'fill' });
+    addInk(s, 1, { k: 'add', pts: 'x' });
+    allDone(s);
+    const task = taskOf(s, 2);
+    expect(task.kind === 'guess' && task.strokes).toEqual([{ color: '#000', size: 0.01, pts: [0.1, 0.1] }]);
+  });
+
   it('人数ぶんのリレーを、ちがうお題で始める', () => {
     const s = relay();
     expect(s.chains).toHaveLength(3);

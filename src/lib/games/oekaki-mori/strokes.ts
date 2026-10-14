@@ -31,6 +31,21 @@ export type Ink =
   | { k: 'undo' }
   | { k: 'clear' };
 
+const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+/** 1 回の add の数の上限。描く端末は 1 フレームぶんの点を送るので、数秒引っかかってもここまでたまらない */
+const MAX_ADD = 4096;
+
+/** 子から届いた線の命令の形か。盤面のふちから指がはみ出しても線は続くので、座標は 0..1 に限らない */
+export function isInk(v: unknown): v is Ink {
+  if (typeof v !== 'object' || v === null) return false;
+  const ink = v as Record<string, unknown>;
+  if (ink.k === 'undo' || ink.k === 'clear') return true;
+  if (ink.k === 'start') return typeof ink.color === 'string' && finite(ink.size) && finite(ink.x) && finite(ink.y);
+  const { pts } = ink;
+  return ink.k === 'add' && Array.isArray(pts) && pts.length % 2 === 0 && pts.length <= MAX_ADD && pts.every(finite);
+}
+
 export function apply(strokes: Stroke[], ink: Ink): Stroke[] {
   switch (ink.k) {
     case 'start':
@@ -44,6 +59,9 @@ export function apply(strokes: Stroke[], ink: Ink): Stroke[] {
       return strokes.slice(0, -1);
     case 'clear':
       return [];
+    // 新しい版の命令が届いても、線を消さずにそのまま返す
+    default:
+      return strokes;
   }
 }
 

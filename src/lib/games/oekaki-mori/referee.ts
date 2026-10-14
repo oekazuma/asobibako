@@ -18,6 +18,7 @@ import {
   type Quiz
 } from './engine';
 import { stampOf } from './stamps';
+import { isInk } from './strokes';
 import { WORDS } from './words';
 
 /** 1 人がスタンプを続けて送れる間隔 */
@@ -65,7 +66,7 @@ export class Referee {
     if (message.t === 'start') start(s, from);
     else if (message.t === 'ink') {
       // 描く人の端末は自分で描いているので、ほかの人にだけ配る
-      if (s.phase !== 'draw' || from !== drawer(s)) return;
+      if (s.phase !== 'draw' || from !== drawer(s) || !isInk(message.ink)) return;
       for (const seat of this.#party.members) if (seat !== from) this.#party.tell(seat, message);
     } else if (message.t === 'guess') {
       const text = String(message.text);
