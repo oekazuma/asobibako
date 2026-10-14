@@ -12,10 +12,7 @@ import { viewOf, type Spot } from './spots';
 export const SETTLE = 1;
 /** 塗り終えるまでの上限（秒）。隠れタイムの最短 30 秒から、置いて落ち着くまでと余裕を引いた長さ */
 export const PAINT_SECS = 20;
-/**
- * 面の色を聞くのは 1 コマにこれだけ（1 回ごとに屋敷の面を全部の三角形で調べ、4〜5ms かかる）。
- * 聞く升目は 1 人 100 ほどなので 1 本でも数秒で済む。増やすとコマが延び、延びたぶん吹く点が増えてさらに聞く
- */
+/** 面の色を聞くのは 1 コマにこれだけ。聞く升目は 1 人 100 ほどなので 1 本でも数秒で済み、塗り終わる速さは RATE のほうで決まる */
 export const RAYS_PER_STEP = 1;
 /** 2 人めが塗り始めるのを遅らせる秒。体の表面を調べる 25ms ほどを 2 人で同じコマに重ねない */
 const STAGGER = 0.25;
@@ -144,7 +141,7 @@ export class HiderBrain {
     let rays = RAYS_PER_STEP;
     while (this.#budget >= 1 && this.#next < plan.length) {
       const p = plan[this.#next];
-      // 同じ升目の点は背の面の同じあたりに写るので、色は升目ごとに 1 回だけ聞く（1 本 4〜5ms）
+      // 同じ升目の点は背の面の同じあたりに写るので、色は升目ごとに 1 回だけ聞く
       const cell = `${Math.floor(dot(p.world, u) / this.#cell)}:${Math.floor(dot(p.world, v) / this.#cell)}`;
       let near = this.#near.get(cell);
       if (near === undefined) {

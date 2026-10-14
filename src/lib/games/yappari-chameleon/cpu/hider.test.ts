@@ -192,7 +192,7 @@ describe('隠れる CPU', () => {
     expect(blind.log.dabs).toEqual([]);
   });
 
-  it('面の色は 1 コマに 1 本だけ聞き、コマが延びても増やさない（1 本 4〜5ms で、増やすとさらにコマが延びる）', () => {
+  it('面の色は 1 コマに 1 本だけ聞き、コマが延びても増やさない', () => {
     for (const dt of [1 / 60, 0.1]) {
       const rays = { n: 0 };
       const b = brain('strong');
