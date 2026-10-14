@@ -33,6 +33,12 @@ export class Timeline<T> {
     return this.#items.at(-1)?.v ?? null;
   }
 
+  /** 送る側の端末が替わったかもしれない（時計の起点がちがう）。最後の値は残し、届くまでの間は届く値から見積もり直す */
+  restart(): void {
+    this.#items = this.#items.slice(-1);
+    this.#gaps = [];
+  }
+
   clear(): void {
     this.#items = [];
     this.#gaps = [];

@@ -140,6 +140,7 @@ export class Session {
     else if (m.t === 'splat') this.#onSplat(m);
     else if (m.t === 'left') this.#onLeft(seat, m.body as Me);
     else if (m.t === 'leftDabs') this.#pins.get(seat)?.dabs(m.at as number, m.d as number[]);
+    else if (m.t === 'foundDabs') this.#foundPaint(seat, m.at as number, m.d as number[]);
     else if (m.t === 'toot') this.#onToot(seat, m.at as V3);
     else if (m.t === 'chameleon-mismatch') this.mismatch = true;
   }
@@ -183,6 +184,8 @@ export class Session {
       if (!this.#own || v.phase === 'lobby' || v.phase === 'intro') this.#place();
       // 戻った子には親に残っていた探す前の塗りが届くことがあるが、ダブルの探す人は白い体なので消す（残した体は left で写してある）
       if (this.match.double && (v.phase === 'search' || v.phase === 'reveal')) this.#whiten();
+      // 増え鬼で切れているあいだに撃たれた子は、#turn を通らずにハンターで戻るので、親に残っていた塗りをここで消す
+      if (v.settings.mode === 'infect' && this.match.role === 'hunter' && this.match.found()) this.#whiten();
       this.#fit(this.#own);
       if (v.phase === 'reveal') this.#reveal();
     } else if (before !== v.phase) this.#enter();
@@ -255,6 +258,17 @@ export class Session {
     // 増え鬼でハンターになった（なる）自分は撃ちに回っているので、撃たれた場所へは戻さない
     if (f && !this.#infected(this.match.me)) this.#setBody(f);
     if (this.play.role === 'watch') this.free();
+  }
+
+  /**
+   * 増え鬼の見つかったときの塗り。来た・戻った子へ found のあとに分けて届く。持ち主はハンターになって列を白に戻しているので、
+   * 撃たれた場所の体はこの列で作る。体を作ったあとに届いた分は、その体へ足す
+   */
+  #foundPaint(seat: Seat, at: number, d: number[]) {
+    const pin = this.#pins.get(seat);
+    if (pin) return pin.dabs(at, d);
+    const snap = this.#snaps.get(seat) ?? [];
+    if (splice(snap, at, unpackDabs(d)) !== null) this.#snaps.set(seat, snap);
   }
 
   #onFound(seat: Seat, by: Seat, body: Me | undefined, quiet: boolean) {
