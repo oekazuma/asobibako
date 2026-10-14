@@ -170,13 +170,9 @@ export class PetWorld {
     // この版の PCF は shadow.radius の円盤でぼかす（PCFSoft は廃止された）
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.scene.background = new THREE.Color('#bfe0fb');
-    // 金属のお皿や布のつやに映り込む部屋の明るさ。強いと日なたと日かげの差が消えるので控えめにする
-    const pmrem = new THREE.PMREMGenerator(this.renderer);
-    const env = new RoomEnvironment();
-    this.scene.environment = pmrem.fromScene(env, 0.04).texture;
+    this.#buildEnvironment();
     this.scene.environmentIntensity = 0.35;
-    env.dispose();
-    pmrem.dispose();
+    canvas.addEventListener('webglcontextrestored', this.#onRestored);
     this.scene.add(this.#hemi);
     this.#sun.castShadow = true;
     this.#sun.shadow.mapSize.set(2048, 2048);
@@ -195,6 +191,19 @@ export class PetWorld {
     this.#brush.visible = false;
     this.scene.add(this.#ring, this.#wand.group, this.#brush, this.#sky.group);
   }
+
+  /** 金属のお皿や布のつやに映り込む部屋の明るさ。強いと日なたと日かげの差が消えるので控えめにする（強さは時間帯ごとに書く） */
+  #buildEnvironment(): void {
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    const env = new RoomEnvironment();
+    this.scene.environment = pmrem.fromScene(env, 0.04).texture;
+    env.dispose();
+    pmrem.dispose();
+  }
+
+  // GPU の上でだけ作った画像なので、iOS が裏に回して文脈を失うと空のまま戻り、お皿のつやが消える。
+  // 古い画像は文脈ごと消えているので片付けずに手放す（片付けると別の文脈の物を消そうとして警告が出る）
+  readonly #onRestored = () => this.#buildEnvironment();
 
   resize(w: number, h: number): void {
     this.#w = w;
@@ -626,6 +635,7 @@ export class PetWorld {
     this.#blob.map?.dispose();
     this.#blob.dispose();
     this.scene.environment?.dispose();
+    this.renderer.domElement.removeEventListener('webglcontextrestored', this.#onRestored);
     this.renderer.dispose();
     // dispose() だけではコンテキストが残り、Safari は十数個で古いものを失う
     this.renderer.forceContextLoss();
