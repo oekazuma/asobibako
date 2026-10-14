@@ -56,6 +56,11 @@
       "automerge": false
     },
     {
+      "description": "onnxruntime-web は wasm の実行部分ごと替わり、テストは Worker を偽物にしているので CI では壊れたことが分からない。ぬりえの「AI で せんを かく」を手で確かめてから入れる。lockFileMaintenance で上がらないよう、catalog は版ちょうどにしてある",
+      "matchPackageNames": ["onnxruntime-web"],
+      "automerge": false
+    },
+    {
       "description": "typescript 7 は typescript-eslint（peer <6.1）と svelte-check（peer ^5 || ^6）が未対応。両方が広がったら外す",
       "matchPackageNames": ["typescript"],
       "matchUpdateTypes": ["major"],

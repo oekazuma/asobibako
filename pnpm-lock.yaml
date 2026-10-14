@@ -159,7 +159,7 @@ catalogs:
       specifier: ^5.0.0
       version: 5.0.0
     onnxruntime-web:
-      specifier: ^1.22.0
+      specifier: 1.30.0
       version: 1.30.0
     playwright-core:
       specifier: ^1.63.0
