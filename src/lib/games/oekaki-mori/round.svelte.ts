@@ -4,7 +4,7 @@ import type { Bubble } from './Bubbles.svelte';
 import type { View } from './engine';
 import type { Drawing, Miss } from './Result.svelte';
 import { sounds } from './sounds';
-import { apply, type Ink, type Stroke } from './strokes';
+import { apply, isInk, type Ink, type Stroke } from './strokes';
 import type { Screen } from './sync';
 import { typed } from './typing';
 
@@ -51,7 +51,7 @@ export class Round {
       this.typing = {};
       this.#misses = [];
     } else if (m.t === 'view') this.#show(m.view as View);
-    else if (m.t === 'ink') this.strokes = apply(this.strokes, m.ink as Ink);
+    else if (m.t === 'ink' && isInk(m.ink)) this.strokes = apply(this.strokes, m.ink);
     else if (m.t === 'sync') {
       this.strokes = m.strokes as Stroke[];
       this.gallery = [];

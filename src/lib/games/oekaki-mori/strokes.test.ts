@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { apply, render, renderTail, snap, type Stroke } from './strokes';
+import { apply, isInk, render, renderTail, snap, type Ink, type Stroke } from './strokes';
 
 const start = (x: number, y: number) => ({ k: 'start' as const, color: '#000', size: 0.01, x, y });
 
 describe('apply', () => {
+  it('知らない命令は線をそのまま返す', () => {
+    const s = apply([], start(0, 0));
+    expect(apply(s, { k: 'fill' } as unknown as Ink)).toBe(s);
+  });
+
   it('start で線を始め、add で最後の線に点を足す', () => {
     let s: Stroke[] = [];
     s = apply(s, start(0.1, 0.2));
@@ -78,5 +83,30 @@ describe('snap', () => {
   // 送る数を小数 4 けた（盤面の 1 万分の 1、画素より細かい）に丸め、知らせを小さくする
   it('小数 4 けたに丸める', () => {
     expect(snap(0.123456789)).toBe(0.1235);
+  });
+});
+
+describe('isInk', () => {
+  it('描く端末が送る 4 つの命令を通し、盤面の外へはみ出した座標も通す', () => {
+    expect(isInk({ k: 'start', color: '#2b2d42', size: 0.018, x: -0.02, y: 1.03 })).toBe(true);
+    expect(isInk({ k: 'add', pts: [0.1, 0.2, 1.2, -0.1] })).toBe(true);
+    expect(isInk({ k: 'undo' })).toBe(true);
+    expect(isInk({ k: 'clear' })).toBe(true);
+  });
+
+  it('知らない命令・欠けた値・数でない点・奇数個の点・多すぎる点は通さない', () => {
+    for (const bad of [
+      null,
+      'start',
+      { k: 'fill' },
+      { k: 'start', color: '#2b2d42', size: 0.018, x: 0.1 },
+      { k: 'start', color: 1, size: 0.018, x: 0.1, y: 0.1 },
+      { k: 'add', pts: 'x' },
+      { k: 'add', pts: [0.1, '0.2'] },
+      { k: 'add', pts: [0.1, null] },
+      { k: 'add', pts: [0.1] },
+      { k: 'add', pts: new Array(4098).fill(0.5) }
+    ])
+      expect(isInk(bad)).toBe(false);
   });
 });

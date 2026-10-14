@@ -107,7 +107,7 @@ describe('Together', () => {
     button('できた！')!.click();
     await settle();
     const before = sent.length;
-    party.act({ t: 'paint', region: 0, color: '#f00' });
+    party.act({ t: 'paint', region: 0, color: '#f04438' });
     await settle();
     expect(sent.slice(before).filter((m) => m.t === 'painted')).toEqual([]);
     unmount(app);
@@ -152,7 +152,7 @@ describe('Together', () => {
     const { app, button, party } = show();
     button('りんご')!.click();
     await settle();
-    party.act({ t: 'paint', region: 1, color: '#f00' });
+    party.act({ t: 'paint', region: 0, color: '#f04438' });
     await settle();
     button('できた！')!.click();
     await settle();

@@ -22,6 +22,18 @@ function fakeParty(members: Seat[]) {
 }
 
 describe('Referee', () => {
+  it('描く人の線は形を確かめてからほかの人へ配り、形の違うものは配らない', () => {
+    const { party, told, act } = fakeParty([1, 2, 3]);
+    new Referee(party).start('egokoro');
+    act({ t: 'start' }, 1);
+    told.length = 0;
+    act({ t: 'ink', ink: { k: 'fill' } }, 1);
+    act({ t: 'ink', ink: { k: 'add', pts: 'x' } }, 1);
+    expect(told.filter(([, m]) => m.t === 'ink')).toEqual([]);
+    act({ t: 'ink', ink: { k: 'undo' } }, 1);
+    expect(told.filter(([, m]) => m.t === 'ink').map(([seat]) => seat)).toEqual([2, 3]);
+  });
+
   it('打っている字は、描く人にはそのまま、ほかの当てる人には字数だけ送り、本人には送らない', () => {
     const { party, told, act } = fakeParty([1, 2, 3]);
     new Referee(party).start('egokoro');

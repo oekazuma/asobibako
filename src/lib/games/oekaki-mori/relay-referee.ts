@@ -3,7 +3,6 @@ import type { Message } from '$lib/net/link';
 import type { Party, Seat } from '$lib/net/party.svelte';
 import type { Chars, Length } from './engine';
 import { addInk, createRelay, finish, leave, next, pageOf, rejoin, taskOf, tick, type Relay } from './relay';
-import type { Ink } from './strokes';
 import { WORDS } from './words';
 
 /**
@@ -44,7 +43,7 @@ export class RelayReferee {
   #act(message: Message, from: Seat) {
     const s = this.#state;
     if (!s) return;
-    if (message.t === 'ink') addInk(s, from, message.ink as Ink);
+    if (message.t === 'ink') addInk(s, from, message.ink);
     else if (message.t === 'typing') this.#typed[from] = String(message.text);
     else if (message.t === 'relayDone') {
       // 二度押しや時間切れまぎわの「できた」が遅れて届いても、次のだんのこまを終わらせない

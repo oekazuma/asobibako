@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { paintBy, shared, undoBy } from './together';
+import { MAX_STEPS } from '$lib/coloring/paint';
+import { paintBy, paintFrom, recolor, shared, undoBy } from './together';
 
 describe('paintBy', () => {
   it('塗った場所と色を返し、表に入れる', () => {
@@ -50,5 +51,51 @@ describe('undoBy', () => {
     paintBy(s, 3, 1, '#00f');
     expect(undoBy(s, 2)).toBeNull();
     expect(s.colors).toEqual({ 1: '#00f' });
+  });
+});
+
+describe('paintFrom', () => {
+  it('配った線画にある番号とパレットの形の色だけを塗る', () => {
+    const s = shared();
+    expect(paintFrom(s, 2, { t: 'paint', region: 3, color: '#f04438' }, 4)).toEqual({ region: 3, color: '#f04438' });
+    for (const [region, color] of [
+      [NaN, '#f04438'],
+      [1.5, '#f04438'],
+      [-1, '#f04438'],
+      [4, '#f04438'],
+      ['2', '#f04438'],
+      [2, '#f00'],
+      [2, 'red'],
+      [2, null]
+    ])
+      expect(paintFrom(s, 2, { t: 'paint', region, color }, 4)).toBeNull();
+    expect(s.colors).toEqual({ 3: '#f04438' });
+    expect(s.dabs).toHaveLength(1);
+  });
+
+  it('戻す手順は、ひとりのぬりえと同じ数までにする', () => {
+    const s = shared();
+    for (let i = 0; i < MAX_STEPS + 5; i++) paintBy(s, 2, 0, i % 2 ? '#f04438' : '#3bb54a');
+    expect(s.dabs).toHaveLength(MAX_STEPS);
+  });
+});
+
+describe('recolor', () => {
+  it('色の変化を新しい表にして返し、白に戻す null も受ける', () => {
+    const colors = { 1: '#f04438' };
+    expect(recolor(colors, { t: 'painted', region: 2, color: '#3bb54a' }, 4)).toEqual({ 1: '#f04438', 2: '#3bb54a' });
+    expect(recolor(colors, { t: 'painted', region: 1, color: null }, 4)).toEqual({});
+    expect(colors).toEqual({ 1: '#f04438' });
+  });
+
+  it('形の違う変化は、表をそのまま返す', () => {
+    const colors = { 1: '#f04438' };
+    for (const [region, color] of [
+      [null, '#3bb54a'],
+      [4, '#3bb54a'],
+      [2, 'red'],
+      [2, undefined]
+    ])
+      expect(recolor(colors, { t: 'painted', region, color }, 4)).toBe(colors);
   });
 });
