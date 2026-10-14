@@ -61,6 +61,8 @@ const BODY: Record<string, string> = {
 /** 見た目と音だけの演出。World の出来事を読み、ルールには触らない */
 export class Effects {
   readonly #bits: Bit[] = [];
+  /** 消えた粒の番号。大群を一度に倒すと 1 フレームに数千の粒を足すので、600 個の並びをなめて空きを探さない */
+  readonly #free: number[] = [];
   readonly #numbers: Floater[] = [];
   /** 磁石で画面の縁が青く光る残り時間 */
   edge = 0;
@@ -73,12 +75,13 @@ export class Effects {
   #clock = 0;
 
   #bit(x: number, y: number, vx: number, vy: number, life: number, color: string, size = 2) {
-    let b = this.#bits.find((o) => o.life <= 0);
-    if (!b) {
-      if (this.#bits.length >= MAX_BITS) return;
-      this.#bits.push((b = { x, y, vx, vy, life, max: life, color, size }));
+    const i = this.#free.pop();
+    if (i !== undefined) {
+      Object.assign(this.#bits[i], { x, y, vx, vy, life, max: life, color, size });
+      return;
     }
-    Object.assign(b, { x, y, vx, vy, life, max: life, color, size });
+    if (this.#bits.length >= MAX_BITS) return;
+    this.#bits.push({ x, y, vx, vy, life, max: life, color, size });
   }
 
   #number(t: string, x: number, y: number, color: string, size: 1 | 2) {
@@ -233,13 +236,15 @@ export class Effects {
     this.hurt = Math.max(0, this.hurt - dt);
     this.flash = Math.max(0, this.flash - dt);
     this.edge = Math.max(0, this.edge - dt);
-    for (const b of this.#bits) {
+    for (let i = 0; i < this.#bits.length; i++) {
+      const b = this.#bits[i];
       if (b.life <= 0) continue;
       b.life -= dt;
       b.x += b.vx * dt;
       b.y += b.vy * dt;
       b.vx *= 0.9;
       b.vy = b.vy * 0.9 + 80 * dt;
+      if (b.life <= 0) this.#free.push(i);
     }
     for (const n of this.#numbers) {
       n.age += dt;
