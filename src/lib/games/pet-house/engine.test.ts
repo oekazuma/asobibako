@@ -4,6 +4,7 @@ import {
   addPhoto,
   adopt,
   bathe,
+  BROKEN_KEY,
   brush,
   buy,
   catchUp,
@@ -89,6 +90,25 @@ describe('pet-house engine', () => {
 
     localStorage.setItem(STORAGE_KEY, '{oops');
     expect(loadSave()).toBeNull();
+  });
+
+  it('読めない保存は新しく始める前に broken のキーへ写し、次に読めなくても最初の写しを残す', () => {
+    localStorage.setItem(STORAGE_KEY, '{oops');
+    expect(loadSave()).toBeNull();
+    expect(localStorage.getItem(BROKEN_KEY)).toBe('{oops');
+    expect(localStorage.getItem(STORAGE_KEY)).toBe('{oops');
+
+    localStorage.setItem(STORAGE_KEY, '"text"');
+    expect(loadSave()).toBeNull();
+    expect(localStorage.getItem(BROKEN_KEY)).toBe('{oops');
+  });
+
+  it('保存が無いときと読める保存のときは broken のキーを作らない', () => {
+    expect(loadSave()).toBeNull();
+    const { save } = withPet();
+    writeSave(save);
+    expect(loadSave()).not.toBeNull();
+    expect(localStorage.getItem(BROKEN_KEY)).toBeNull();
   });
 
   it('天気の一言を言った日は保存から戻り、無い・壊れた値は まだ言っていない日にする', () => {

@@ -1,3 +1,4 @@
+import { remember } from '$lib/last-error';
 import { BREED_IDS, BREEDS } from './breeds';
 import type { AccessoryId, BreedId, ContestId, FoodId, Kind, PetAction, Stat, ToyId, TrickId } from './types';
 import {
@@ -83,6 +84,8 @@ export const STORAGE_KEY = 'asobibako:pet-house';
  * 写真で容量があふれてもペットとお金の保存は巻き添えにしない
  */
 export const PHOTOS_KEY = 'asobibako:pet-house:photos';
+/** 読めなかった保存の写し。新しく始めると 1 秒ほどで本体が上書きされ、自動バックアップの控えも新しい中身になるので、大人が直せるよう残す */
+export const BROKEN_KEY = 'asobibako:pet-house:broken';
 export const MAX_PETS = 3;
 export const MAX_PHOTOS = 6;
 export const ALLOWANCE = 500;
@@ -192,11 +195,12 @@ function repairPet(raw: unknown, taken: Set<string>, today: string): Pet | null 
 
 /** 読めない・壊れているときは null。形が古いだけなら足りない項目を補って返す */
 export function loadSave(): Save | null {
+  let text: string | null = null;
   try {
-    const text = localStorage.getItem(STORAGE_KEY);
+    text = localStorage.getItem(STORAGE_KEY);
     if (text === null) return null;
     const raw: unknown = JSON.parse(text);
-    if (!isObj(raw)) return null;
+    if (!isObj(raw)) return keepBroken(text);
     const now = Date.now();
     const base = newSave(now);
     const taken = new Set<string>();
@@ -235,8 +239,20 @@ export function loadSave(): Save | null {
       ) as Record<CounterId, number>
     };
   } catch {
-    return null;
+    return keepBroken(text);
   }
+}
+
+/** 最初に読めなかった中身だけを残す。写しがあるときに上書きすると、直せたかもしれない古いほうを失う */
+function keepBroken(text: string | null): null {
+  try {
+    if (text === null || localStorage.getItem(BROKEN_KEY) !== null) return null;
+    localStorage.setItem(BROKEN_KEY, text);
+    remember(`わんにゃんハウスの記録が読めなかったので ${BROKEN_KEY} に残しました`);
+  } catch {
+    // 写せなくても、新しく始めるのは止めない
+  }
+  return null;
 }
 
 function loadPhotos(): string[] {
