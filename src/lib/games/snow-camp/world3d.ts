@@ -12,7 +12,7 @@ import {
   type GameState
 } from './engine';
 import type { Objective } from './guide';
-import { axe, badge, bear, coin, fire, marker, mat, meat, person, pine, pointer, rabbit } from './models';
+import { axe, badge, bear, bowl, coin, fire, marker, mat, meat, person, pine, pointer, rabbit } from './models';
 
 const CAMP_TOP = HUNT_BOTTOM + 0.1;
 /** カメラは主人公の後ろ上から見下ろす */
@@ -340,13 +340,9 @@ export class CampWorld {
 
     while (this.#meals.children.length < Math.min(state.meals, 6)) {
       const i = this.#meals.children.length;
-      const bowl = new THREE.Group();
-      const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.012, 0.014, 14), mat('#ffffff'));
-      const stew = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.004, 14), mat('#c2542b'));
-      stew.position.y = 0.006;
-      bowl.add(cup, stew);
-      bowl.position.set(-0.06 + (i % 3) * 0.06, 0, i < 3 ? -0.015 : 0.02);
-      this.#meals.add(bowl);
+      const b = bowl();
+      b.position.set(-0.06 + (i % 3) * 0.06, 0, i < 3 ? -0.015 : 0.02);
+      this.#meals.add(b);
     }
     while (this.#meals.children.length > Math.min(state.meals, 6)) this.#meals.remove(this.#meals.children.at(-1)!);
 

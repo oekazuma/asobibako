@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
-import { bear, pine } from './models';
+import { bear, bowl, pine } from './models';
 
 const meshes = (g: THREE.Object3D) => {
   const list: THREE.Mesh[] = [];
@@ -21,5 +21,11 @@ describe('snow-camp models', () => {
     const body = meshes(bear())[0];
     expect(body.scale.toArray()).not.toEqual([1, 1, 1]);
     expect(meshes(bear())[0].geometry).toBe(body.geometry);
+  });
+
+  it('机のお皿は geometry を使い回す', () => {
+    const [a, b] = [meshes(bowl()), meshes(bowl())];
+    expect(a).toHaveLength(2);
+    a.forEach((m, i) => expect(m.geometry).toBe(b[i].geometry));
   });
 });

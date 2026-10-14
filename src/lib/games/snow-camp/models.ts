@@ -122,6 +122,14 @@ export function coin() {
   return m;
 }
 
+/** 机に出すシチューのお皿 */
+export function bowl() {
+  const g = new THREE.Group();
+  g.add(mesh(cyl(0.018, 0.012, 0.014, 14), '#ffffff', 0, 0, 0, {}, false));
+  g.add(mesh(cyl(0.016, 0.016, 0.004, 14), '#c2542b', 0, 0.006, 0, {}, false));
+  return g;
+}
+
 const cone = (r: number, h: number, seg = 10) => geo(`cone:${r}:${h}:${seg}`, () => new THREE.ConeGeometry(r, h, seg));
 
 /** 雪の積もったもみの木 */
