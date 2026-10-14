@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { Link, pack, slim, unpack, type Message } from './link';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { host, join, Link, pack, slim, unpack, type Message } from './link';
 
 describe('pack', () => {
   it('SDP を縮めて URL に使える文字だけにし、元に戻せる', async () => {
@@ -46,5 +46,42 @@ describe('Link', () => {
       { t: 'seat', seat: 2 },
       { t: 'members', members: [1, 2] }
     ]);
+  });
+});
+
+describe('host と join', () => {
+  class FakePc {
+    static made: FakePc[] = [];
+    iceGatheringState = 'complete';
+    localDescription = { sdp: 'v=0\r\n' };
+    close = vi.fn();
+    constructor() {
+      FakePc.made.push(this);
+    }
+    createDataChannel() {
+      return {};
+    }
+    async setLocalDescription() {}
+    async setRemoteDescription() {}
+    addEventListener() {}
+  }
+
+  beforeEach(() => {
+    FakePc.made = [];
+    vi.stubGlobal('RTCPeerConnection', FakePc);
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('親の close は、子の QR が届く前でも接続を閉じる', async () => {
+    const offer = await host();
+    expect(FakePc.made[0].close).not.toHaveBeenCalled();
+    offer.close();
+    expect(FakePc.made[0].close).toHaveBeenCalled();
+  });
+
+  it('子の close は、親が読み取る前でも接続を閉じる', async () => {
+    const answer = await join('O:' + (await pack('v=0\r\n')));
+    answer.close();
+    expect(FakePc.made[0].close).toHaveBeenCalled();
   });
 });

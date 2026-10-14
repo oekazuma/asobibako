@@ -26,6 +26,8 @@
   let wanted = $state.raw<Wanted>();
   /** やめたあとにカメラが開いたり、つながったりしても、拾わずに閉じる */
   let alive = true;
+  /** QR を見せ合っているあいだの接続。Link を渡すまではこちらが持ち、やめたら閉じる（閉じないと待ち受けが残り続ける） */
+  let peer: { close: () => void } | undefined;
 
   const step = $derived(role === 'host' ? (looking ? 2 : 1) : looking ? 1 : 2);
 
@@ -39,12 +41,14 @@
       linking = true;
       connect(text).catch(() => {
         closeCamera(stream);
-        onfail('つながりませんでした。おなじ Wi-Fi に いるか たしかめてね');
+        if (alive) onfail('つながりませんでした。おなじ Wi-Fi に いるか たしかめてね');
       });
     });
   });
 
   function done(link: Link) {
+    // ここから先は Link の持ち主が閉じる。onlink より後に消すと、やめたときに渡した接続まで閉じうる
+    peer = undefined;
     closeCamera(stream);
     if (alive) onlink(link);
     else link.close();
@@ -62,6 +66,8 @@
     }
     if (role === 'host') {
       const offer = await host();
+      if (!alive) return offer.close();
+      peer = offer;
       code = offer.code;
       wanted = { match: isAnswer, connect: async (text) => done(await offer.accept(text)) };
     } else {
@@ -70,6 +76,8 @@
         match: isOffer,
         connect: async (text) => {
           const answer = await join(text);
+          if (!alive) return answer.close();
+          peer = answer;
           code = answer.code;
           done(await answer.link);
         }
@@ -80,12 +88,17 @@
   async function turn() {
     facing = facing === 'user' ? 'environment' : 'user';
     closeCamera(stream);
-    stream = await openCamera(facing);
+    const opened = await openCamera(facing);
+    if (!alive) return closeCamera(opened);
+    // 開くのを待つあいだにもう一度押されていたら、先に開いたほうが stream に入っている
+    closeCamera(stream);
+    stream = opened;
   }
 
   onDestroy(() => {
     alive = false;
     closeCamera(stream);
+    peer?.close();
   });
 </script>
 
