@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { SvelteMap } from 'svelte/reactivity';
   import type { Player } from '$lib/player';
   import type { Orb } from './engine';
 
@@ -16,6 +17,20 @@
 
   const label = (orb: Orb, by: Player) =>
     `プレイヤー${by}の${orb.kind === 'hold' ? '長押しの玉' : orb.kind === 'contest' ? '奪い合いの玉' : '玉'}`;
+
+  /** 長押しの玉の id → 先に押さえた指。ほかの指を玉の上で離しても、押さえている指の長押しは終わらせない */
+  const grips = new SvelteMap<number, number>();
+
+  function grab(event: PointerEvent, orb: Orb) {
+    if (orb.kind === 'hold' && !grips.has(orb.id)) grips.set(orb.id, event.pointerId);
+    ongrab(event, orb, orb.owner as Player);
+  }
+
+  function release(event: PointerEvent, id: number) {
+    if (grips.get(id) !== event.pointerId) return;
+    grips.delete(id);
+    onrelease(id);
+  }
 </script>
 
 {#each orbs as orb (orb.id)}
@@ -26,9 +41,9 @@
       style:left="{orb.x * 100}%"
       style:top="{orb.y * 100}%"
       aria-label={label(orb, orb.owner)}
-      onpointerdown={(e) => ongrab(e, orb, orb.owner as Player)}
-      onpointerup={() => onrelease(orb.id)}
-      onpointercancel={() => onrelease(orb.id)}
+      onpointerdown={(e) => grab(e, orb)}
+      onpointerup={(e) => release(e, orb.id)}
+      onpointercancel={(e) => release(e, orb.id)}
     >
       {#if orb.kind === 'hold'}<span class="fill"></span>{/if}
     </button>
