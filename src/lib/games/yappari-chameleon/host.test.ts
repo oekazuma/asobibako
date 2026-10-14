@@ -118,6 +118,13 @@ describe('Host の中継', () => {
     expect(told.at(-1)).toEqual({ to: 2, m: { t: 'chameleon-mismatch' } });
   });
 
+  it('弾数制限の前の子（版 4）は迎えない', () => {
+    const { act, told } = setup([1, 2]);
+    act({ t: 'leave' }, 2);
+    act({ t: 'hi', v: 4 }, 2);
+    expect(told.at(-1)).toEqual({ to: 2, m: { t: 'chameleon-mismatch' } });
+  });
+
   it('版のちがう子には知らせ、その子の動きは配らない', () => {
     const { act, told } = setup([1, 2]);
     act({ t: 'leave' }, 2);
@@ -193,6 +200,26 @@ describe('Host の試合', () => {
 });
 
 describe('Host の当たり', () => {
+  it('弾数制限のある探索で外すと残りの弾が減り、当てると減らない', () => {
+    const { act, told, host } = searching({ mode: 'normal', ammo: 3 });
+    act(me(0, [0, 0, 5]), 2);
+    act(me(0, [0, 0, 0]), 3);
+    act({ t: 'shot', o: [0, 0.75, 0], d: [1, 0, 0], ms: 0 }, 3);
+    expect(lastView(told).ammo).toEqual({ 3: 2 });
+    host.tick(2);
+    act({ ...SHOT, ms: 0 }, 3);
+    expect(of(told, 'found')).toHaveLength(1);
+    expect(lastView(told).ammo).toEqual({ 3: 2 });
+  });
+
+  it('弾数制限で全ハンターの弾が 0 になると、隠れる側の勝ちで答え合わせへ', () => {
+    const { act, told } = searching({ mode: 'normal', ammo: 1 });
+    act(me(0, [0, 0, 0]), 3);
+    act({ t: 'shot', o: [0, 0.75, 0], d: [1, 0, 0], ms: 0 }, 3);
+    expect(lastView(told).phase).toBe('reveal');
+    expect(lastView(told).winner).toBe('chameleon');
+  });
+
   it('隠れる人に当たれば found と splat を全員へ配り、2 秒以内の次の弾は捨てる', () => {
     const { act, told, host } = searching();
     act(me(0, [0, 0, 5]), 2);
