@@ -155,8 +155,12 @@ export class Session {
   }
 
   #ownPaint(at: number, d: number[]) {
-    if (splice(this.play.log.dabs, at, unpackDabs(d)) === null) return;
-    this.play.rebuildPaint();
+    const add = unpackDabs(d);
+    const how = splice(this.play.log.dabs, at, add);
+    if (how === null) return;
+    // 自分の列は 32KB ずつに分けて届くので、届くたびに塗り直すと長く塗った体ほど戻った直後に止まる
+    if (how === 'append') this.play.world.rig.paint.apply(add);
+    else this.play.rebuildPaint();
     this.#out.adopt(this.play.log);
   }
 
@@ -172,7 +176,8 @@ export class Session {
     // #place と #fit より前に入れ、置き直す体もハンターになる体もこの大きさで作る
     this.play.scale = liveScale(v, this.match.me);
     if (first) {
-      if (!this.#own) this.#place();
+      // ロビーと紹介は #enter でも必ず置き直す。親に残っていた体は前の試合の屋敷の中のことがある
+      if (!this.#own || v.phase === 'lobby' || v.phase === 'intro') this.#place();
       // 戻った子には親に残っていた探す前の塗りが届くことがあるが、ダブルの探す人は白い体なので消す（残した体は left で写してある）
       if (this.match.double && (v.phase === 'search' || v.phase === 'reveal')) this.#whiten();
       this.#fit(this.#own);

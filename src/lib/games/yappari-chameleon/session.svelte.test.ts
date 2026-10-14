@@ -334,6 +334,38 @@ describe('Session の戻った子', () => {
     expect(acts.filter((m) => m.t === 'dabs')).toEqual([]);
   });
 
+  it('試合のあとロビーに戻ってから戻った子は、親に残っていた屋敷の体ではなく、ロビーの席の場所に出る', () => {
+    const { play, tell } = setup();
+    tell(meMsg(2, { pos: [4, 0, 6], pose: 'curl' }));
+    tell(at('lobby'));
+    expect(play.body.pos).toEqual([...SPAWNS.lobby[2]]);
+  });
+
+  it('紹介のあいだに戻った子も、親に残っていた前の試合の体ではなく、紹介の席の場所に出る', () => {
+    const { play, tell } = setup();
+    tell(meMsg(2, { pos: [4, 0, 6] }));
+    tell(at('intro'));
+    expect(play.body.pos).toEqual([...SPAWNS.hall[2]]);
+  });
+
+  it('戻った子へ分けて届く自分の塗りは、足しただけなら足した筆だけを塗り、差し替えたときだけ塗り直す', () => {
+    const { play, tell } = setup();
+    const paint = play.world.rig.paint as unknown as {
+      apply: ReturnType<typeof vi.fn>;
+      rebuild: ReturnType<typeof vi.fn>;
+    };
+    paint.apply.mockClear();
+    paint.rebuild.mockClear();
+    tell({ t: 'dabs', seat: 2, at: 0, d: packDabs([dab(0), dab(1)]) });
+    tell({ t: 'dabs', seat: 2, at: 2, d: packDabs([dab(2)]) });
+    expect(paint.rebuild).not.toHaveBeenCalled();
+    expect(paint.apply).toHaveBeenCalledTimes(2);
+    expect(play.log.dabs).toHaveLength(3);
+    tell({ t: 'dabs', seat: 2, at: 1, d: packDabs([dab(5)]) });
+    expect(paint.rebuild).toHaveBeenCalledTimes(1);
+    expect(play.log.dabs).toHaveLength(2);
+  });
+
   it('3D を作るあいだに届いていた体・塗り・様子も受け取る（つないだときからためておいた知らせ）', () => {
     const stop = vi.fn();
     const messages = [
