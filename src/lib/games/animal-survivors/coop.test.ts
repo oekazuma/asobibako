@@ -494,6 +494,27 @@ describe('協力プレイのつなぎ', () => {
     vi.unstubAllGlobals();
   });
 
+  it('1 回目が終わってから子が抜けても、親のもう一度は前のリザルトを出さず、記録する', async () => {
+    vi.stubGlobal('localStorage', memoryStorage());
+    localStorage.setItem(RECORDS_KEY, JSON.stringify(emptyRecords()));
+    const { w, h, pipe } = await started();
+    w.time = 30;
+    w.over = 'dead';
+    h.finish(true);
+    expect(h.result?.run.time).toBe(30);
+    pipe.close();
+    await settle();
+    const again = createWorld('dog', 2, VIEW);
+    h.start(again);
+    expect(h.result).toBeNull();
+    again.time = 77;
+    again.over = 'dead';
+    h.finish(true);
+    expect(h.result?.run.time).toBe(77);
+    expect(loadRecords().best).toBe(77);
+    vi.unstubAllGlobals();
+  });
+
   it('クリアのあと延長戦を選んでいるあいだに子がやめても、2 回記録しない', async () => {
     vi.stubGlobal('localStorage', memoryStorage());
     localStorage.setItem(RECORDS_KEY, JSON.stringify(emptyRecords()));

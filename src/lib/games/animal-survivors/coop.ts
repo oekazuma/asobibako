@@ -222,14 +222,14 @@ export class CoopHost {
   /** 子の動物を足して、子に始めを知らせる。子は親と同じ種とステージで、描くための World を作る */
   start(w: World, seed = 1, stage = 'forest'): void {
     this.#w = w;
-    // 子が抜けたあとのもう一度は、親が 1 人で遊ぶ
-    if (!this.guest) return;
-    addHero(w, this.guest.animal, this.guest.ranks, this.guest.gear);
     this.#asked = null;
     this.#moves.clear();
     this.#events = [];
     this.result = this.#first = null;
     this.#keep = 0;
+    // 子が抜けたあとのもう一度は、親が 1 人で遊ぶ。前の回の result を残すと finish が記録しない
+    if (!this.guest) return;
+    addHero(w, this.guest.animal, this.guest.ranks, this.guest.gear);
     this.#party.tell(GUEST, { t: 'start', seed, stage, animal: w.heroes[0].animal.id });
   }
 
