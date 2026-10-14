@@ -30,6 +30,13 @@
     if (net && player !== net.me) return;
     wake();
     capture(event);
+    // iPad の Safari は離した指の pointerup を届けないことがある。ほかに触れている指が無いなら、パッドに残っている指はもう離れている
+    if (event.pointerType === 'touch' && event.isPrimary) {
+      pads[1].clear();
+      pads[2].clear();
+      // 2 台で遊ぶときの相手の ready は、相手の端末からの知らせで決まる
+      if (!net) ready[1] = ready[2] = false;
+    }
     pads[player].add(event.pointerId);
     ready[player] = true;
     net?.link.send({ t: 'ready', on: true });

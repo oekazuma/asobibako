@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Settle } from './settle.svelte';
 
 const fire = (type: string) => window.dispatchEvent(new Event(type, { bubbles: true }));
+const touch = (type: string, pointerId: number, isPrimary = false) =>
+  window.dispatchEvent(new PointerEvent(type, { pointerId, pointerType: 'touch', isPrimary, bubbles: true }));
 
 describe('Settle', () => {
   let stop: () => void;
@@ -60,5 +62,23 @@ describe('Settle', () => {
     vi.advanceTimersByTime(350);
     expect(settle.active).toBe(false);
     stop = () => {};
+  });
+
+  it('離した知らせが届かなかった指は、ほかの指の無いタッチで忘れ、350ms で戻る', () => {
+    touch('pointerdown', 1, true);
+    touch('pointerdown', 2, true);
+    touch('pointerup', 2);
+    settle.begin();
+    vi.advanceTimersByTime(350);
+    expect(settle.active).toBe(false);
+  });
+
+  it('ほかの指が触れているあいだのタッチでは、残っている指を忘れない', () => {
+    touch('pointerdown', 1, true);
+    touch('pointerdown', 2);
+    touch('pointerup', 2);
+    settle.begin();
+    vi.advanceTimersByTime(350);
+    expect(settle.active).toBe(true);
   });
 });

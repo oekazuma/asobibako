@@ -22,11 +22,12 @@ const meta = {
 };
 
 /** happy-dom に PointerEvent がなければ MouseEvent に pointerId を生やす */
-function pointer(type: string, pointerId: number, pointerType = 'touch') {
+function pointer(type: string, pointerId: number, pointerType = 'touch', isPrimary = false) {
   const Ctor = (globalThis as { PointerEvent?: typeof MouseEvent }).PointerEvent ?? MouseEvent;
   const e = new Ctor(type, { bubbles: true });
   Object.defineProperty(e, 'pointerId', { value: pointerId });
   Object.defineProperty(e, 'pointerType', { value: pointerType });
+  Object.defineProperty(e, 'isPrimary', { value: isPrimary });
   return e;
 }
 
@@ -95,6 +96,22 @@ describe('GameShell', () => {
   it('マウスなら片方だけで始まる', () => {
     const { app, pad, playing } = show();
     pad(1).dispatchEvent(pointer('pointerdown', 1, 'mouse'));
+    flushSync();
+    vi.advanceTimersByTime(550);
+    flushSync();
+    expect(playing()).toBe(true);
+    unmount(app);
+  });
+
+  it('パッドの指を離した知らせが届かなくても、ほかの指の無いタッチが来たら押していないと数える', () => {
+    const { app, pad, playing } = show();
+    pad(1).dispatchEvent(pointer('pointerdown', 1, 'touch', true));
+    pad(2).dispatchEvent(pointer('pointerdown', 2, 'touch', true));
+    flushSync();
+    vi.advanceTimersByTime(1000);
+    flushSync();
+    expect(playing()).toBe(false);
+    pad(1).dispatchEvent(pointer('pointerdown', 3, 'touch', false));
     flushSync();
     vi.advanceTimersByTime(550);
     flushSync();
