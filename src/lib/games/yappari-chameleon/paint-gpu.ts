@@ -88,10 +88,41 @@ void main() { outColor = uFill; }`;
 // 吹き付けの三角形に覆われた画素は alpha 1、升のすき間は alpha 0 にして区別する。
 // 画面が遠いと mipmap なしの標本が三角形のふちの外（すき間）に当たって白い点になるので、すき間へ近い塗りの色を広げる
 const DILATE = 4;
+// すき間の画素ごとの、いちばん近い塗りの画素へのずれを RG に dx と dy に DILATE + 1 を足して書く（0 は近くに塗りが無い）。
+// 塗りとすき間の並びは升の形だけで決まるので、塗るたびに 81 画素を探さず、塗りを白に戻すときに 1 度だけ作る
+const NEAR_FRAGMENT = `
+precision highp float;
+precision highp sampler2D;
+uniform sampler2D uSrc;
+out vec4 outColor;
+void main() {
+  ivec2 p = ivec2(gl_FragCoord.xy);
+  if (texelFetch(uSrc, p, 0).a > 0.5) {
+    outColor = vec4(0.0);
+    return;
+  }
+  ivec2 lim = textureSize(uSrc, 0) - 1;
+  float best = 1e9;
+  vec2 pick = vec2(0.0);
+  for (int dy = -${DILATE}; dy <= ${DILATE}; dy++) {
+    for (int dx = -${DILATE}; dx <= ${DILATE}; dx++) {
+      ivec2 q = p + ivec2(dx, dy);
+      if (q.x < 0 || q.y < 0 || q.x > lim.x || q.y > lim.y) continue;
+      float d = float(dx * dx + dy * dy);
+      if (texelFetch(uSrc, q, 0).a > 0.5 && d < best) {
+        best = d;
+        pick = vec2(dx + ${DILATE + 1}, dy + ${DILATE + 1});
+      }
+    }
+  }
+  outColor = vec4(pick / 255.0, 0.0, 0.0);
+}`;
+
 const DILATE_FRAGMENT = `
 precision highp float;
 precision highp sampler2D;
 uniform sampler2D uSrc;
+uniform sampler2D uNear;
 out vec4 outColor;
 void main() {
   ivec2 p = ivec2(gl_FragCoord.xy);
@@ -100,22 +131,8 @@ void main() {
     outColor = here;
     return;
   }
-  ivec2 lim = textureSize(uSrc, 0) - 1;
-  float best = 1e9;
-  vec4 pick = here;
-  for (int dy = -${DILATE}; dy <= ${DILATE}; dy++) {
-    for (int dx = -${DILATE}; dx <= ${DILATE}; dx++) {
-      ivec2 q = p + ivec2(dx, dy);
-      if (q.x < 0 || q.y < 0 || q.x > lim.x || q.y > lim.y) continue;
-      vec4 c = texelFetch(uSrc, q, 0);
-      float d = float(dx * dx + dy * dy);
-      if (c.a > 0.5 && d < best) {
-        best = d;
-        pick = c;
-      }
-    }
-  }
-  outColor = vec4(pick.rgb, 0.0);
+  ivec2 o = ivec2(round(texelFetch(uNear, p, 0).rg * 255.0));
+  outColor = vec4(o.x == 0 ? here.rgb : texelFetch(uSrc, p + o - ${DILATE + 1}, 0).rgb, 0.0);
 }`;
 
 const COPY_FRAGMENT = `
@@ -134,13 +151,28 @@ const target = (size: number, colorSpace: THREE.ColorSpace) =>
     magFilter: THREE.LinearFilter
   });
 
+const nearTarget = (size: number) =>
+  new THREE.WebGLRenderTarget(size, size, {
+    format: THREE.RGFormat,
+    depthBuffer: false,
+    generateMipmaps: false,
+    minFilter: THREE.NearestFilter,
+    magFilter: THREE.NearestFilter
+  });
+
 /**
  * すき間へ広げ直すときだけ使う作業用の描き先。flush は同期で全面を描き直してからすぐ写すので、中身を持ち越さない。
- * 同じ描画器の面どうしで 1 組を使い回し、体ごとに約 20MB を持たせない。GPU の領域は World が描画器を捨てるときに文脈ごと返る
+ * 同じ描画器の面どうしで 1 組を使い回し、体ごとに約 20MB を持たせない。GPU の領域は World が描画器を捨てるときに文脈ごと返る。
+ * 近さの表も同じ描画器の面で 1 組を使う。升の並びはアプリに 1 つ（stage3d.ts の layAtlas）なので、どの面から作っても同じ表になる
  */
 const scratches = new WeakMap<
   THREE.WebGLRenderer,
-  { color: THREE.WebGLRenderTarget; gloss: THREE.WebGLRenderTarget }
+  {
+    color: THREE.WebGLRenderTarget;
+    gloss: THREE.WebGLRenderTarget;
+    nearColor: THREE.WebGLRenderTarget;
+    nearGloss: THREE.WebGLRenderTarget;
+  }
 >();
 
 export function scratchFor(renderer: THREE.WebGLRenderer) {
@@ -148,7 +180,9 @@ export function scratchFor(renderer: THREE.WebGLRenderer) {
   if (!s) {
     s = {
       color: target(COLOR_SIZE, THREE.SRGBColorSpace),
-      gloss: target(GLOSS_SIZE, THREE.NoColorSpace)
+      gloss: target(GLOSS_SIZE, THREE.NoColorSpace),
+      nearColor: nearTarget(COLOR_SIZE),
+      nearGloss: nearTarget(GLOSS_SIZE)
     };
     scratches.set(renderer, s);
   }
@@ -175,7 +209,9 @@ export class PaintSurface {
   readonly #cover = new THREE.Scene();
   readonly #dilate = new THREE.Scene();
   readonly #copy = new THREE.Scene();
+  readonly #near = new THREE.Scene();
   readonly #src = { value: null as THREE.Texture | null };
+  readonly #nearMap = { value: null as THREE.Texture | null };
   readonly #fillColor = { value: new THREE.Vector4() };
   #dirty = false;
   readonly #pixel = new Uint8Array(4);
@@ -220,7 +256,8 @@ export class PaintSurface {
       scene.add(m);
     };
     full(this.#fill, raw(FILL_FRAGMENT, { uFill: this.#fillColor }));
-    full(this.#dilate, raw(DILATE_FRAGMENT, { uSrc: this.#src }));
+    full(this.#near, raw(NEAR_FRAGMENT, { uSrc: this.#src }));
+    full(this.#dilate, raw(DILATE_FRAGMENT, { uSrc: this.#src, uNear: this.#nearMap }));
     full(this.#copy, raw(COPY_FRAGMENT, { uSrc: this.#src }));
     const cover = new THREE.Mesh(
       geo,
@@ -262,6 +299,15 @@ export class PaintSurface {
     this.#draw(this.gloss, this.#fill);
     this.#fillColor.value.set(0, WHITE_ROUGH, 0, 1);
     this.#draw(this.gloss, this.#cover);
+    // コンテキストが戻ったときの塗り直しもここを通るので、失われた表もここで作り直る
+    const s = scratchFor(this.#renderer);
+    for (const [from, near] of [
+      [this.color, s.nearColor],
+      [this.gloss, s.nearGloss]
+    ] as const) {
+      this.#src.value = from.texture;
+      this.#draw(near, this.#near);
+    }
   }
 
   /** 塗ったあとの、すき間への色の広げ直し。塗りの変更をまとめて、描く前に 1 回だけ行う */
@@ -269,11 +315,12 @@ export class PaintSurface {
     if (!this.#dirty) return;
     this.#dirty = false;
     const scratch = scratchFor(this.#renderer);
-    for (const [to, tmp] of [
-      [this.color, scratch.color],
-      [this.gloss, scratch.gloss]
+    for (const [to, tmp, near] of [
+      [this.color, scratch.color, scratch.nearColor],
+      [this.gloss, scratch.gloss, scratch.nearGloss]
     ] as const) {
       this.#src.value = to.texture;
+      this.#nearMap.value = near.texture;
       this.#draw(tmp, this.#dilate);
       this.#src.value = tmp.texture;
       this.#draw(to, this.#copy);
@@ -314,7 +361,7 @@ export class PaintSurface {
   dispose(): void {
     this.color.dispose();
     this.gloss.dispose();
-    for (const s of [this.#paint, this.#fill, this.#cover, this.#dilate, this.#copy])
+    for (const s of [this.#paint, this.#fill, this.#cover, this.#dilate, this.#near, this.#copy])
       s.traverse((o) => {
         if (o instanceof THREE.Mesh) {
           o.geometry.dispose();

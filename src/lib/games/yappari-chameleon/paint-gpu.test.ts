@@ -38,8 +38,36 @@ describe('PaintSurface の作業用の描き先', () => {
     const scratch = scratchFor(renderer);
     const color = vi.spyOn(scratch.color, 'dispose');
     const gloss = vi.spyOn(scratch.gloss, 'dispose');
+    const nearColor = vi.spyOn(scratch.nearColor, 'dispose');
+    const nearGloss = vi.spyOn(scratch.nearGloss, 'dispose');
     a.dispose();
     expect(color).not.toHaveBeenCalled();
     expect(gloss).not.toHaveBeenCalled();
+    expect(nearColor).not.toHaveBeenCalled();
+    expect(nearGloss).not.toHaveBeenCalled();
+  });
+});
+
+describe('PaintSurface のすき間の近さの表', () => {
+  it('塗りを白に戻すたびに、描画器で共有する近さの表を作り直す', () => {
+    const { renderer, drawn } = recorder();
+    const a = new PaintSurface(renderer, new THREE.BufferGeometry());
+    const s = scratchFor(renderer);
+    drawn.length = 0;
+    a.rebuild([]);
+    expect(drawn).toContain(s.nearColor);
+    expect(drawn).toContain(s.nearGloss);
+  });
+
+  it('すき間へ広げ直すときは近さの表を読むだけで、描き直さない', () => {
+    const { renderer, drawn } = recorder();
+    const a = new PaintSurface(renderer, new THREE.BufferGeometry());
+    const s = scratchFor(renderer);
+    drawn.length = 0;
+    a.apply([]);
+    a.flush();
+    expect(drawn).toContain(s.color);
+    expect(drawn).not.toContain(s.nearColor);
+    expect(drawn).not.toContain(s.nearGloss);
   });
 });
