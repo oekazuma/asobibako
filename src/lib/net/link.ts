@@ -23,6 +23,8 @@ const MAX_BYTES = 256 * 1024;
 const MAX_SDP = 16 * 1024;
 /** 上限を超える知らせを分けたものの印。古い版の端末は知らない知らせとして読み飛ばすが、分けるのは今は送れない大きさの知らせだけ */
 const PART = '~part';
+/** 分けた知らせをつなぐ数の上限。相手が大きな n を宣言して送り続けても、集めるのは 16MiB（256KiB × 64）まで */
+const MAX_PARTS = 64;
 
 export const isOffer = (text: string) => text.startsWith(OFFER);
 export const isAnswer = (text: string) => text.startsWith(ANSWER);
@@ -43,8 +45,14 @@ export class Link {
       let message = JSON.parse(event.data) as Message;
       if (message.t === PART) {
         if (message.i === 0) this.#parts = [];
+        const n = Number(message.n);
+        // 順を守る channel では i は集めた数と一致する。ずれた・数が不正な列は捨てて、次の知らせから受け直す
+        if (!Number.isInteger(n) || n < 1 || n > MAX_PARTS || message.i !== this.#parts.length) {
+          this.#parts = [];
+          return;
+        }
         this.#parts.push(String(message.s));
-        if (this.#parts.length < Number(message.n)) return;
+        if (this.#parts.length < n) return;
         message = JSON.parse(this.#parts.join('')) as Message;
         this.#parts = [];
       }
