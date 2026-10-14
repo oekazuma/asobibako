@@ -1,3 +1,4 @@
+import { inflate } from '$lib/inflate';
 import { remember } from '$lib/last-error';
 import type { Player } from '$lib/player';
 
@@ -18,6 +19,8 @@ const ANSWER = 'A:';
 const OPEN_MS = 15000;
 /** 1 通の上限が分からないときの値で、上限の上限。Chrome は接続のときに 256KiB と伝え、Firefox は Infinity を返すので、これを超えない */
 const MAX_BYTES = 256 * 1024;
+/** QR から読んだ SDP を戻す上限。縮める前の SDP は数百バイトから 2KB ほどで、これを超えるものは SDP ではない */
+const MAX_SDP = 16 * 1024;
 /** 上限を超える知らせを分けたものの印。古い版の端末は知らない知らせとして読み飛ばすが、分けるのは今は送れない大きさの知らせだけ */
 const PART = '~part';
 
@@ -178,5 +181,5 @@ export async function pack(text: string): Promise<string> {
 
 export async function unpack(code: string): Promise<string> {
   const bytes = Uint8Array.from(atob(code.replaceAll('-', '+').replaceAll('_', '/')), (c) => c.charCodeAt(0));
-  return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+  return new TextDecoder().decode(await inflate(bytes, MAX_SDP));
 }

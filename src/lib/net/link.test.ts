@@ -9,6 +9,10 @@ describe('pack', () => {
     expect(code.length).toBeLessThan(sdp.length / 2);
     expect(await unpack(code)).toBe(sdp);
   });
+
+  it('大きく膨らむ code は、SDP の上限で打ち切って戻す', async () => {
+    expect(await unpack(await pack('a'.repeat(4 * 1024 * 1024)))).toHaveLength(16 * 1024);
+  });
 });
 
 describe('slim', () => {
