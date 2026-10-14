@@ -12,7 +12,7 @@ import { dropFlame, flameAt, growVines, scorch, updateZones, vineAt } from './zo
 export interface Shot {
   alive: boolean;
   slot: number;
-  kind: 'shot' | 'boomerang' | 'homing' | 'orbit';
+  kind: 'shot' | 'boomerang' | 'homing' | 'orbit' | 'bounce';
   x: number;
   y: number;
   vx: number;
@@ -23,7 +23,7 @@ export interface Shot {
   dmg: number;
   pierce: number;
   knock: number;
-  /** shot が当てた敵の番号（同じ敵に 2 度当てない） */
+  /** shot・bounce が当てた敵の番号（同じ敵に 2 度当てない） */
   hits: number[];
   /** orbit は自分の周りの角度、ほかは描くときの向き */
   angle: number;
@@ -69,6 +69,8 @@ const CONE_HALF = (30 * Math.PI) / 180;
 const CONE_STEP = (40 * Math.PI) / 180;
 const SPREAD = (12 * Math.PI) / 180;
 const FAN = (25 * Math.PI) / 180;
+/** 貝ころがしが跳ねる先を探す範囲（ドット） */
+export const BOUNCE_REACH = 60;
 /** 同じ敵へ続けて当てるまでの間（秒） */
 const REHIT = { boomerang: 0.35, orbit: 0.4 };
 /** 芽吹きの森と炎の疾走が、合体武器 1 つにつき同時に置けるツタと炎の数（増やしすぎると端末が重くなる） */
@@ -266,6 +268,10 @@ function launch(w: World, def: WeaponDef, s: WeaponStats, slot: number): boolean
     case 'shot':
       for (let i = 0; i < s.amount; i++)
         shoot(w, slot, 'shot', s, aim + (i - (s.amount - 1) / 2) * SPREAD, (def.size ?? SIZE.shot) * area);
+      return true;
+    case 'bounce':
+      for (let i = 0; i < s.amount; i++)
+        shoot(w, slot, 'bounce', s, aim + (i - (s.amount - 1) / 2) * SPREAD, (def.size ?? SIZE.shot) * area);
       return true;
     case 'nova':
       for (let i = 0; i < s.amount; i++)
@@ -468,9 +474,53 @@ function moveShot(w: World, o: Shot, dt: number) {
   if ((o.x - p.x) ** 2 + (o.y - p.y) ** 2 > far * far) o.alive = false;
 }
 
+const cand: number[] = [];
+
+/** 貝が当たった敵 j に当て、近くの別の敵へ向きを変える。跳ねる回数が尽きたか先がいなければ消える */
+function bounce(w: World, o: Shot, j: number): void {
+  o.hits.push(j);
+  strike(w, j, o.dmg, o.x - o.vx, o.y - o.vy, o.knock, o.slot);
+  const own = weaponAt(w, o.slot);
+  const def = own && WEAPONS[own.id];
+  if (def?.special && own) {
+    // 真珠ころがし: 跳ねた所に小さな波を 1 つ残す
+    const s = limitStats(weaponStats(def, own.level), own.limit);
+    flameAt(w, o.slot, o.x, o.y + 4, 0.6 * s.area * w.stats.area, {
+      ...s,
+      damage: s.damage / 4,
+      duration: 1.2 * w.stats.duration
+    });
+  }
+  let next: Enemy | undefined;
+  if (o.hits.length <= o.pierce) {
+    let bd = Infinity;
+    for (const k of within(w, o.x, o.y, BOUNCE_REACH, cand)) {
+      const e = w.enemies[k];
+      const d = (e.x - o.x) ** 2 + (e.y - o.y) ** 2;
+      if (o.hits.includes(k) || e.def.prop || d >= bd) continue;
+      bd = d;
+      next = e;
+    }
+  }
+  if (!next) {
+    o.alive = false;
+    return;
+  }
+  o.angle = Math.atan2(next.y - o.y, next.x - o.x);
+  o.vx = Math.cos(o.angle) * o.speed;
+  o.vy = Math.sin(o.angle) * o.speed;
+  // 跳ねるたびに飛べる時間を数え直す（1 回の投げが途中で時間切れにならないように）
+  o.age = 0;
+}
+
 function hitShot(w: World, o: Shot) {
   for (const j of within(w, o.x, o.y, o.r, targets)) {
     const e = w.enemies[j];
+    if (o.kind === 'bounce') {
+      if (o.hits.includes(j)) continue;
+      bounce(w, o, j);
+      return;
+    }
     if (o.kind === 'shot') {
       if (o.hits.includes(j)) continue;
       o.hits.push(j);

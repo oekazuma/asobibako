@@ -1,5 +1,16 @@
 export type WeaponKind =
-  'shot' | 'swipe' | 'ring' | 'boomerang' | 'orbit' | 'strike' | 'homing' | 'nova' | 'trail' | 'snare' | 'cone';
+  | 'shot'
+  | 'swipe'
+  | 'ring'
+  | 'boomerang'
+  | 'orbit'
+  | 'strike'
+  | 'homing'
+  | 'nova'
+  | 'trail'
+  | 'snare'
+  | 'cone'
+  | 'bounce';
 
 export interface WeaponStats {
   damage: number;
@@ -7,7 +18,7 @@ export interface WeaponStats {
   amount: number;
   /** 倍率。基本の大きさは arms.ts が武器の種類ごとに持つ */
   area: number;
-  /** shot・boomerang・homing は px/秒、orbit は回る速さ（ラジアン/秒） */
+  /** bounce は跳ねる回数（貫通と同じ欄を使う）。shot・boomerang・homing・bounce は px/秒、orbit は回る速さ（ラジアン/秒） */
   speed: number;
   pierce: number;
   duration: number;
@@ -45,7 +56,7 @@ export type Twist = 'ringBolt' | 'acornVine' | 'dashFlame' | 'clawRoot' | 'fishB
 export const UNION_BOOST = 1.15;
 
 export const MAX_LEVEL = 5;
-const EXCLUSIVE = ['tigerClaw', 'breath', 'fireFeather'];
+const EXCLUSIVE = ['tigerClaw', 'breath', 'fireFeather', 'shellRoll'];
 
 const w = (
   id: string,
@@ -215,6 +226,15 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
       ),
       flameTurn: true
     },
+    w(
+      'shellRoll',
+      '貝ころがし',
+      'いちばん近い敵へ貝を転がし、近くの別の敵へ次々に跳ね返る',
+      'bounce',
+      [16, 1.2, 1, 1, 200, 2, 2, 40],
+      [{ damage: 4, pierce: 1 }, { amount: 1 }, { pierce: 1, area: 0.2 }, { damage: 6, pierce: 1, cooldown: -0.2 }],
+      5
+    ),
     evo('woofEvo', 'ホネのあられ', '骨を 4 本ずつ投げ、敵を貫く', 'shot', [18, 0.5, 4, 1.2, 220, 3, 1.4, 50]),
     evo(
       'pawEvo',
@@ -296,6 +316,15 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
       ),
       flameTurn: true
     },
+    sp(
+      'shellRollSp',
+      'shellRoll',
+      '真珠ころがし',
+      '真珠を 2 つ転がして次々に跳ね返り、跳ねた所に小さな波を残す',
+      'bounce',
+      [44, 0.8, 2, 1.4, 240, 8, 2.4, 60],
+      { size: 7 }
+    ),
     sp('tigerClawSp', 'tigerClaw', '雷虎の牙', '4 方向を雷の爪で裂く', 'swipe', [48, 0.6, 4, 1.8, 0, 99, 0.2, 90]),
     sp(
       'breathSp',
@@ -364,6 +393,7 @@ export function upText(def: WeaponDef, level: number): string {
   const up = def.ups[level - 2];
   return (Object.entries(up) as [keyof WeaponStats, number][])
     .map(([k, v]) => {
+      if (k === 'pierce' && def.kind === 'bounce') return `跳ねる回数 +${v}`;
       if (k === 'amount' || k === 'pierce') return `${LABEL[k]} +${v}`;
       if (k === 'cooldown') return `${LABEL[k]} -${Math.round((-v / def.base.cooldown) * 100)}%`;
       if (k === 'area') return `${LABEL[k]} +${Math.round(v * 100)}%`;

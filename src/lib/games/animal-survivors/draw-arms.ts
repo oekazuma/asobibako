@@ -69,6 +69,7 @@ export function shots(
     if (weapon === 'dash') afterimage(ctx, q, w, o.x, o.y, o.vx, o.vy);
     else if (weapon === 'acorn') rotated(ctx, q, ITEM_ART.acorn, o.x, o.y, o.age * 10, 1, gold);
     else if (o.kind === 'shot') rotated(ctx, q, ITEM_ART.bone, o.x, o.y, o.age * 14, 1, gold);
+    else if (o.kind === 'bounce') rotated(ctx, q, ITEM_ART['weapon-shellRoll'], o.x, o.y, o.age * 12, 0.8, gold);
     else if (weapon === 'fireFeather')
       rotated(ctx, q, ITEM_ART['weapon-fireFeather'], o.x, o.y, Math.atan2(o.vy, o.vx), 1.2, gold);
     else if (o.kind === 'boomerang' || weapon === 'boomerang')

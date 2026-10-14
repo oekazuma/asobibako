@@ -273,6 +273,8 @@ export function pick(w: World, kind: string): void {
   if (!w.picked.includes(kind)) w.picked.push(kind);
 }
 
+const PEARL_REACH = 1.2;
+
 /** 吸い寄せて、届いたら true */
 function pull(w: World, o: { x: number; y: number; pulled: boolean }, reach: number, dt: number): boolean {
   const p = w.player;
@@ -299,7 +301,7 @@ export function collect(w: World, dt: number): void {
   for (const g of w.gems) {
     if (!g.alive) continue;
     w.cur = nearestHero(w, g.x, g.y);
-    if (!pull(w, g, 32 * w.stats.magnet * (1 + w.fx.gemReach), dt)) continue;
+    if (!pull(w, g, 32 * w.stats.magnet * (1 + w.fx.gemReach) * (hasRelic(w, 'pearl') ? PEARL_REACH : 1), dt)) continue;
     g.alive = false;
     const v = g.value * (w.festival > 0 ? 2 : 1) * (w.blessing.xp > 0 ? WISDOM : 1);
     w.events.push({ type: 'pickup', value: v });

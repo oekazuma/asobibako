@@ -3,7 +3,7 @@ import type { RelicId } from '../relics';
 import type { ShrineKind } from '../shrines';
 
 /** 遺物（12 ドット）。地面でも図鑑でも同じ絵。黒曜石のかけらだけ、色の表に無い黒を pal で足す */
-export const RELIC_ART: Record<RelicId | 'pearl', Art> = {
+export const RELIC_ART: Record<RelicId, Art> = {
   map: {
     w: 12,
     h: 12,

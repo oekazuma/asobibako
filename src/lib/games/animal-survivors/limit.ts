@@ -36,7 +36,7 @@ export function limitGain(stat: LimitStat, now: number, kind?: WeaponKind): stri
   return `${name} +${pct(STEP[stat] * d)}`;
 }
 
-const MOVING: WeaponKind[] = ['shot', 'boomerang', 'homing', 'orbit', 'nova'];
+const MOVING: WeaponKind[] = ['shot', 'boomerang', 'homing', 'orbit', 'nova', 'bounce'];
 // 輪は時間をのばすと広がるのが遅くなるだけなので、残る攻撃に入れない
 const LASTING: WeaponKind[] = ['orbit', 'trail', 'snare'];
 

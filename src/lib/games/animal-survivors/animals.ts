@@ -1,6 +1,7 @@
 import type { Stats } from './passives';
 
-export type AnimalId = 'dog' | 'cat' | 'wolf' | 'fox' | 'bear' | 'rabbit' | 'panda' | 'tiger' | 'drake' | 'chick';
+export type AnimalId =
+  'dog' | 'cat' | 'wolf' | 'fox' | 'bear' | 'rabbit' | 'panda' | 'tiger' | 'drake' | 'chick' | 'otter';
 
 export interface Animal {
   id: AnimalId;
@@ -181,6 +182,22 @@ export const ANIMALS: Animal[] = [
     rebirths: 1,
     perk: '一度だけ、倒れてもその場でよみがえる',
     unlock: '火山をクリアすると仲間になる'
+  },
+  {
+    id: 'otter',
+    forms: ['ラッコ', '貝わりラッコ', 'おやかたラッコ'],
+    name: 'ラッコ',
+    style: '最強',
+    tier: 4,
+    blurb: '貝を転がして近くの敵へ次々に跳ね返す。運がよく、宝物が出やすい',
+    hp: 140,
+    speed: 1.1,
+    might: 1.35,
+    weapon: 'shellRoll',
+    special: 'shellRollSp',
+    bonus: { luck: 0.1 },
+    perk: '運 +0.1',
+    unlock: '海岸をクリアすると仲間になる'
   }
 ];
 

@@ -29,12 +29,13 @@ function quiet(): World {
 }
 
 describe('図鑑の表', () => {
-  it('敵 34・ボス 15・姿 30・品 9', () => {
+  it('敵 34・ボス 15・姿 33・品 9', () => {
     expect(BOOK.enemies).toHaveLength(34);
     expect(BOOK.bosses).toHaveLength(15);
     expect(BOOK.bosses).toContain('metal');
-    expect(BOOK.forms).toHaveLength(30);
+    expect(BOOK.forms).toHaveLength(33);
     expect(BOOK.forms).toContain('drake:2');
+    expect(BOOK.forms).toContain('otter:2');
     expect(BOOK.items).toEqual(['meat', 'pouch', 'purse', 'magnet', 'goldMagnet', 'cross', 'clock', 'chest', 'bag']);
     for (const id of BOOK.enemies) expect(ENEMIES[id]).toBeDefined();
   });

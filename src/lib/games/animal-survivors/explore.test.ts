@@ -14,14 +14,13 @@ import { power } from './arms';
 const GROUNDS: Ground[] = ['forest', 'graveyard', 'snow', 'volcano', 'coast'];
 
 describe('遺物の置き場所', () => {
-  it('海岸のほかはステージごとに 2 つで、全部で 9 つ', () => {
-    expect(RELICS).toHaveLength(9);
-    for (const s of STAGES.filter((o) => o.id !== 'coast'))
-      expect(RELICS.filter((r) => r.stage === s.id)).toHaveLength(2);
+  it('ステージごとに 2 つで、全部で 10 こ', () => {
+    expect(RELICS).toHaveLength(10);
+    for (const s of STAGES) expect(RELICS.filter((r) => r.stage === s.id)).toHaveLength(2);
   });
 
   it('1 つめは 700 ドット、2 つめは 1500 ドットほど離れ、障害物の中に無い', () => {
-    for (const s of STAGES.filter((o) => o.id !== 'coast')) {
+    for (const s of STAGES) {
       const [a, b] = RELICS.filter((r) => r.stage === s.id).map((r) => relicSpot(r, s.art));
       expect(Math.hypot(a.x, a.y)).toBeGreaterThan(650);
       expect(Math.hypot(a.x, a.y)).toBeLessThan(760);

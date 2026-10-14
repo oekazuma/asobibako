@@ -130,13 +130,13 @@ describe('実績', () => {
     expect(record(r, run({ time: 320, kills: 120 }))).toEqual([]);
   });
 
-  it('ごほうびで 10 匹がそろうと、同じ判定の中で「10 匹がそろう」も達成する', () => {
+  it('ごほうびで 11 匹がそろうと、同じ判定の中で「11 匹がそろう」も達成する', () => {
     const r = emptyRecords();
-    r.unlocked = ['dog', 'cat', 'wolf', 'fox', 'bear', 'rabbit', 'panda', 'tiger', 'drake'];
-    const got = record(r, run({ time: 900, cleared: true, stage: 'volcano' }));
-    expect(got.map((a) => a.id)).toContain('volcanoClear');
+    r.unlocked = ['dog', 'cat', 'wolf', 'fox', 'bear', 'rabbit', 'panda', 'tiger', 'drake', 'chick'];
+    const got = record(r, run({ time: 900, cleared: true, stage: 'coast' }));
+    expect(got.map((a) => a.id)).toContain('coastClear');
     expect(got.map((a) => a.id)).toContain('allAnimals');
-    expect(r.unlocked).toHaveLength(10);
+    expect(r.unlocked).toHaveLength(11);
   });
 
   it('もう仲間の動物は、実績を後から達成しても新しく仲間になったことにしない', () => {

@@ -31,9 +31,9 @@ function pair(a: 'wolf' | 'dog' | 'cat' = 'wolf', b: 'wolf' | 'dog' | 'cat' = 'w
 }
 
 describe('半分の形', () => {
-  it('10 匹ぶんの半分がある', () => {
+  it('11 匹ぶんの半分がある', () => {
     expect(Object.keys(HALVES).sort()).toEqual(
-      ['bear', 'cat', 'chick', 'dog', 'drake', 'fox', 'panda', 'rabbit', 'tiger', 'wolf'].sort()
+      ['bear', 'cat', 'chick', 'dog', 'drake', 'fox', 'panda', 'rabbit', 'tiger', 'wolf', 'otter'].sort()
     );
   });
 

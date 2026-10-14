@@ -27,7 +27,8 @@ export const HALVES: Record<AnimalId, Half> = {
   panda: { name: '竹林の檻', shape: { kind: 'ring', r: 120 } },
   tiger: { name: '雷虎の十字斬り', shape: { kind: 'beams', angles: [Q, 3 * Q, 5 * Q, 7 * Q], len: 220, width: 32 } },
   drake: { name: '竜の大息吹', shape: { kind: 'cone', spread: (2 * Math.PI) / 3, len: 220 } },
-  chick: { name: '火の鳥の羽ばたき', shape: { kind: 'ring', r: 130 } }
+  chick: { name: '火の鳥の羽ばたき', shape: { kind: 'ring', r: 130 } },
+  otter: { name: '大波の貝ころがし', shape: { kind: 'ring', r: 110 } }
 };
 
 export function linkName(a: AnimalId, b: AnimalId): string {
