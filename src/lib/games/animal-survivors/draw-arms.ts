@@ -1,4 +1,5 @@
 import { ANIMAL_ART } from './art/animals';
+import { shallowArt } from './art/shallows';
 import { goldArt } from './art/evolved';
 import { ITEM_ART } from './art/items';
 import { PALETTE } from './art/palette';
@@ -84,7 +85,12 @@ export function shots(
 export function zonesBelow(ctx: CanvasRenderingContext2D, w: World, q: Snap, now: number): void {
   for (const f of w.effects) {
     if (!f.alive) continue;
-    if (f.kind === 'flame') {
+    if (f.kind === 'flame' && kindOf(w, f.slot) === 'shellRoll') {
+      // 真珠ころがしの水しぶきは炎の区域を借りているだけなので、水面で描く
+      const art = shallowArt(Math.max(3, Math.round(f.r)), 2);
+      ctx.globalAlpha = Math.min(1, (f.life - f.age) / 0.2);
+      ctx.drawImage(bake(art), q(f.x - art.w / 2), q(f.y - art.h / 2));
+    } else if (f.kind === 'flame') {
       const art = isGold(w, f.slot) ? goldArt(ITEM_ART.flame) : ITEM_ART.flame;
       ctx.globalAlpha = Math.min(1, (f.life - f.age) / 0.3);
       ctx.drawImage(bake(art, frameAt(now * 8 + f.x, 2)), q(f.x - art.w / 2), q(f.y - art.h + 2));

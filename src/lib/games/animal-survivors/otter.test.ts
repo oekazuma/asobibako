@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ACHIEVEMENTS } from './achievements';
 import { animal } from './animals';
-import { BOUNCE_REACH } from './arms';
+import { BOUNCE_REACH, power } from './arms';
 import { choices } from './choices';
 import { collect } from './drops';
 import { ENEMIES } from './enemies';
@@ -65,10 +65,9 @@ describe('ラッコ', () => {
     w.enemies.push(...near);
     oneThrow(w);
     const lost = near.map((e) => 1e6 - e.hp);
-    const one = Math.max(...lost);
-    expect(one).toBeGreaterThan(0);
-    // 1 回の投げの 1 発ぶんの倍数ではなく、ちょうど 1 発ぶんか 0 だけ
-    for (const l of lost) expect([0, one]).toContain(l);
+    // 会心は 0 に固定してあるので、1 発のダメージは武器の Lv1 の値から決まる。2 回当たれば 2 倍になって落ちる
+    const one = power(w, WEAPONS.shellRoll.base.damage).dmg;
+    for (const l of lost) expect(Math.min(Math.abs(l), Math.abs(l - one))).toBeCloseTo(0, 6);
     expect(lost.filter((l) => l > 0).length).toBeGreaterThanOrEqual(2);
     expect(w.dealt.shellRoll.damage).toBeCloseTo(lost.reduce((a, b) => a + b, 0));
   });
@@ -80,6 +79,28 @@ describe('ラッコ', () => {
     w.enemies.push(...row);
     oneThrow(w);
     expect(row.filter((e) => e.hp < 1e6)).toHaveLength(3);
+  });
+
+  it('跳ね返ったあと、先の敵が消えても、60 ドットより遠い敵までは飛んでいかない', () => {
+    const w = otterWorld();
+    const [a, b, c] = [20, 60, 150].map((x) => makeEnemy(ENEMIES.crab, w.player.x + x, w.player.y, 1e6));
+    w.enemies.push(a, b, c);
+    let fired = false;
+    w.weapons[0].cd = 0;
+    for (let i = 0; i < 30 * 6; i++) {
+      step(w, { x: 0, y: 0 }, 1 / 30);
+      const shell = alive(w)[0];
+      if (!fired && shell) {
+        fired = true;
+        w.weapons[0].cd = 999;
+      }
+      // 1 体めに当たって b へ向きを変えた直後に、b を消す
+      if (shell?.hits.length === 1) b.alive = false;
+      if (fired && !shell) break;
+    }
+    expect(a.hp).toBeLessThan(1e6);
+    expect(c.hp).toBe(1e6);
+    expect(alive(w)).toHaveLength(0);
   });
 
   it('敵が 1 体だけ、または 60 ドットより遠いときは、跳ねずに消える', () => {

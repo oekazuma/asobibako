@@ -320,7 +320,7 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
       'shellRollSp',
       'shellRoll',
       '真珠ころがし',
-      '真珠を 2 つ転がして次々に跳ね返り、跳ねた所に小さな波を残す',
+      '真珠を 2 つ転がして次々に跳ね返り、跳ねた所に小さな水しぶきを上げる',
       'bounce',
       [44, 0.8, 2, 1.4, 240, 8, 2.4, 60],
       { size: 7 }
