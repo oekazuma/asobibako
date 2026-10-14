@@ -52,6 +52,20 @@ jobs:
       - name: Run Vitest
         run: pnpm test:run
 
+  # 手元の Mac（arm64）と CI（x64）で浮動小数の最後の 1 ビットが違い、長いシミュのテストが片方でだけ落ちたことがある。
+  # 両方の結果を PR に並べる。必須のチェックの名前（test）を変えないよう、matrix にせず別のジョブにする
+  test-arm64:
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Node.js and dependencies
+        uses: ./.github/workflows/setup-node
+      - name: Run Vitest
+        run: pnpm test:run
+
   build:
     # main への push は deploy.yml がビルドするので、ここでは PR だけ
     if: github.event_name == 'pull_request'
