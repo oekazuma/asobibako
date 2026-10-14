@@ -20,9 +20,37 @@ void main() {
   gl_Position = vec4(position * 2.0 - 1.0, 0.0, 1.0);
 }`;
 
+// 三角形の 3 つの角は同じ球（pbound）を持つので、どの吹き付けも届かない三角形は 3 つの角とも画面の外へ出て、まるごと描かれない。
+// 球の中の点はどれも吹き付けの中心から半径以上離れ、FRAGMENT の k は 0 になるので、飛ばしても描き先の画素は変わらない
+const PAINT_VERTEX = `
+precision highp float;
+precision highp int;
+uniform int uCount;
+uniform vec4 uP[${BATCH}];
+in vec2 position;
+in vec3 ppos;
+in vec3 pnrm;
+in vec4 pbound;
+out vec3 vPos;
+out vec3 vNrm;
+void main() {
+  vPos = ppos;
+  vNrm = pnrm;
+  bool near = false;
+  for (int i = 0; i < ${BATCH}; i++) {
+    if (i >= uCount) break;
+    if (distance(pbound.xyz, uP[i].xyz) < pbound.w + uP[i].w) {
+      near = true;
+      break;
+    }
+  }
+  gl_Position = near ? vec4(position * 2.0 - 1.0, 0.0, 1.0) : vec4(2.0, 2.0, 2.0, 1.0);
+}`;
+
 // 16 個の吹き付けを古い順に重ね、前乗算のアルファで出す。描く先とは ONE, ONE_MINUS_SRC_ALPHA で混ぜる
 const FRAGMENT = `
 precision highp float;
+precision highp int;
 uniform int uCount;
 uniform vec4 uP[${BATCH}];
 uniform vec4 uN[${BATCH}];
@@ -160,7 +188,7 @@ export class PaintSurface {
       geo,
       new THREE.RawShaderMaterial({
         glslVersion: THREE.GLSL3,
-        vertexShader: VERTEX,
+        vertexShader: PAINT_VERTEX,
         fragmentShader: FRAGMENT,
         uniforms: this.#u,
         side: THREE.DoubleSide,

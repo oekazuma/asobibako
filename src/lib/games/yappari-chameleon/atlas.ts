@@ -1,12 +1,16 @@
 /** 見せる三角形を升のふちから縮める画素と、吹き付けの三角形をそこから広げる画素 */
 export const GAP = 2;
 export const GROW = 1.5;
+/** 三角形を囲む球の半径に足す余白（m）。float の丸めで角が球のふちからはみ出しても、届く吹き付けを飛ばさない */
+const BOUND_PAD = 0.001;
 
 export interface Atlas {
   corner: Uint32Array;
   uv: Float32Array;
   paintUv: Float32Array;
   paintPos: Float32Array;
+  /** 吹き付けの三角形ごとの、角を全部含む球（中心の xyz と半径）。頂点シェーダーが三角形ごと飛ばせるよう 3 つの角に同じ値を持つ */
+  paintBound: Float32Array;
   cell: number;
 }
 
@@ -30,6 +34,7 @@ export function layAtlas(pos: Float32Array, idx: Uint32Array, size: number): Atl
     uv: new Float32Array(tris * 6),
     paintUv: new Float32Array(tris * 6),
     paintPos: new Float32Array(tris * 9),
+    paintBound: new Float32Array(tris * 12),
     cell
   };
   for (let t = 0; t < tris; t++) {
@@ -60,6 +65,11 @@ export function layAtlas(pos: Float32Array, idx: Uint32Array, size: number): Atl
       out.paintUv[at * 2 + 1] = (oy + iy + (by - iy) * paint) / size;
       for (let j = 0; j < 3; j++) out.paintPos[at * 3 + j] = i3[j] + (pos[idx[at] * 3 + j] - i3[j]) * (paint / show);
     }
+    const pp = (k: number, j: number) => out.paintPos[(t * 3 + k) * 3 + j];
+    const mid = [0, 1, 2].map((j) => (pp(0, j) + pp(1, j) + pp(2, j)) / 3);
+    let r = 0;
+    for (let k = 0; k < 3; k++) r = Math.max(r, Math.hypot(pp(k, 0) - mid[0], pp(k, 1) - mid[1], pp(k, 2) - mid[2]));
+    for (let k = 0; k < 3; k++) out.paintBound.set([mid[0], mid[1], mid[2], r + BOUND_PAD], (t * 3 + k) * 4);
   }
   return out;
 }

@@ -73,6 +73,19 @@ describe('layAtlas', () => {
     }
   });
 
+  it('吹き付けの三角形の 3 つの角は同じ球を持ち、どの角もその球の中にある', () => {
+    for (let t = 0; t < tris; t++) {
+      const b = Array.from(a.paintBound.subarray(t * 12, t * 12 + 4));
+      expect(b[3]).toBeGreaterThan(0);
+      for (let k = 0; k < 3; k++) {
+        const at = t * 3 + k;
+        expect(Array.from(a.paintBound.subarray(at * 4, at * 4 + 4))).toEqual(b);
+        const p = a.paintPos.subarray(at * 3, at * 3 + 3);
+        expect(Math.hypot(p[0] - b[0], p[1] - b[1], p[2] - b[2])).toBeLessThanOrEqual(b[3]);
+      }
+    }
+  });
+
   it('角の頂点の番号は元の並びのまま', () => {
     expect(Array.from(a.corner)).toEqual(Array.from(idx));
   });
