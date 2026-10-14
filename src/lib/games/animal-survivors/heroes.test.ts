@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { nearestHero } from './heroes';
 import { addHero, createWorld } from './world';
 
 const VIEW = { w: 260, h: 380 };
@@ -26,5 +27,19 @@ describe('Hero', () => {
     expect(w.stats.might).toBeGreaterThan(w.heroes[0].stats.might);
     w.cur = 0;
     expect(w.animal.id).toBe('dog');
+  });
+});
+
+describe('いちばん近い動物', () => {
+  it('同じ近さなら番号の小さい動物を選び、倒れた動物は飛ばし、全員倒れていれば 0', () => {
+    const w = createWorld('dog', 1, { w: 274, h: 394 });
+    addHero(w, 'cat');
+    w.heroes[0].player.x = w.heroes[1].player.x = 10;
+    w.heroes[0].player.y = w.heroes[1].player.y = 0;
+    expect(nearestHero(w, 0, 0)).toBe(0);
+    w.heroes[0].down = true;
+    expect(nearestHero(w, 0, 0)).toBe(1);
+    w.heroes[1].down = true;
+    expect(nearestHero(w, 0, 0)).toBe(0);
   });
 });
