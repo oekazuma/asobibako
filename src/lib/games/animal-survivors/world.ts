@@ -283,6 +283,7 @@ export interface World {
       killsBy: Record<string, number>;
       bossTimes: number;
       lavaKills: number;
+      tideKills: number;
       tickets: number[];
       links: number;
       raises: number[];
@@ -1137,6 +1138,8 @@ export interface RunSummary {
   arcana?: ArcanaId[];
   /** 溶岩の池で倒した数 */
   lavaKills?: number;
+  /** 満ち潮のあいだに倒した数 */
+  tideKills?: number;
   /** 持ち帰るガチャ券と、倒れて失ったガチャ券（銅・銀・金） */
   tickets?: number[];
   lost?: number[];
@@ -1161,6 +1164,7 @@ export function summary(w: World): RunSummary {
     heat: w.heat,
     arcana: [...w.arcana],
     lavaKills: w.lavaKills,
+    tideKills: w.tideKills,
     tickets: w.over === 'clear' ? [...w.tickets] : [0, 0, 0],
     lost: w.over === 'clear' ? [0, 0, 0] : [...w.tickets],
     gear: [...w.worn],

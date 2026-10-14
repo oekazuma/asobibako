@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import { ACHIEVEMENTS } from './achievements';
 import { ENEMIES } from './enemies';
-import { canPlay, emptyRecords, parseRecords } from './records';
+import { canPlay, emptyRecords, parseRecords, record } from './records';
 import { STAGES } from './stages';
 import { COAST } from './stages/coast';
 import { FOREST } from './stages/forest';
 import { VOLCANO } from './stages/volcano';
-import { createWorld } from './world';
+import { overtimeRun, startOvertime } from './overtime';
+import { createWorld, summary } from './world';
 
 describe('海岸の表', () => {
   it('火山のあとに並び、火山をクリアすると選べる', () => {
@@ -53,5 +55,49 @@ describe('海岸の表', () => {
     expect(r.stages).toContain('coast');
     expect(r.stage).toBe('coast');
     expect(createWorld('dog', 1, { w: 274, h: 394 }, {}, 'coast').stage).toBe(COAST);
+  });
+});
+
+describe('海岸の実績', () => {
+  const VIEW = { w: 274, h: 394 };
+  const find = (id: string) => ACHIEVEMENTS.find((d) => d.id === id)!;
+
+  it('大ダコと巨大ガニの両方を倒すと満ちる', () => {
+    const a = find('coastBosses');
+    expect(a.done({ ...emptyRecords(), bosses: ['octopus'] }, null)).toBe(false);
+    expect(a.done({ ...emptyRecords(), bosses: ['octopus', 'crabKing'] }, null)).toBe(true);
+  });
+
+  it('満ち潮で倒した数を回ごとに記録へ足し、合計 500 体で満ちる', () => {
+    const r = emptyRecords();
+    const w = createWorld('dog', 1, VIEW, {}, 'coast');
+    w.tideKills = 200;
+    record(r, summary(w));
+    record(r, summary(w));
+    expect(r.tideKills).toBe(400);
+    const a = find('tide500');
+    expect(a.done(r, null)).toBe(false);
+    expect(a.progress?.(r)).toEqual([400, 500]);
+    record(r, summary(w));
+    expect(a.done(r, null)).toBe(true);
+  });
+
+  it('古い記録は満ち潮の数 0 で読める', () => {
+    expect(parseRecords(JSON.stringify({ coins: 3 })).tideKills).toBe(0);
+  });
+
+  it('延長戦の終わりの記録には、延長戦の満ち潮で倒した差だけを足す', () => {
+    const r = emptyRecords();
+    const w = createWorld('dog', 1, VIEW, {}, 'coast');
+    w.tideKills = 30;
+    w.time = 600;
+    w.over = 'clear';
+    record(r, summary(w));
+    w.over = null;
+    startOvertime(w);
+    w.tideKills = 50;
+    w.over = 'dead';
+    record(r, overtimeRun(w));
+    expect(r.tideKills).toBe(50);
   });
 });

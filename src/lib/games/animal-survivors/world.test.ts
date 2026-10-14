@@ -94,6 +94,7 @@ describe('世界', () => {
       heat: { level: 2, bet: 0 },
       arcana: [],
       lavaKills: 0,
+      tideKills: 0,
       tickets: [0, 0, 0],
       lost: [0, 0, 0],
       gear: [],

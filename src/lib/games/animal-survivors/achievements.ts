@@ -188,6 +188,19 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     done: (r) => r.bosses.includes('lavaGiant') && r.bosses.includes('phoenix')
   },
   {
+    id: 'coastBosses',
+    name: '大ダコと巨大ガニを倒す',
+    coins: 500,
+    done: (r) => r.bosses.includes('octopus') && r.bosses.includes('crabKing')
+  },
+  {
+    id: 'tide500',
+    name: '満ち潮のあいだに敵を 500 体倒す',
+    coins: 400,
+    done: (r) => r.tideKills >= 500,
+    progress: (r) => [r.tideKills, 500]
+  },
+  {
     id: 'lava300',
     name: '溶岩の池で敵を 300 体倒す',
     coins: 300,
