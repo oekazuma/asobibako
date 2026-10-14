@@ -77,11 +77,13 @@ export async function listWorks(): Promise<Work[]> {
   return all.sort((a, b) => b.updated - a.updated);
 }
 
-export async function saveWork(work: Work): Promise<void> {
+/** 上限を超えて消した作品の数を返す（画面で知らせるため） */
+export async function saveWork(work: Work): Promise<number> {
   await run('readwrite', (s) => void s.put(work));
   const all = await listWorks();
   const drop = overflow(all);
   if (drop.length) await run('readwrite', (s) => void drop.forEach((id) => s.delete(id)));
+  return drop.length;
 }
 
 export async function removeWork(id: string): Promise<void> {

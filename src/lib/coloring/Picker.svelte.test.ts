@@ -12,8 +12,8 @@ const work: Work = {
   updated: 1
 };
 
-function show() {
-  const props = { works: [work], ontemplate: vi.fn(), onwork: vi.fn(), onphoto: vi.fn(), onremove: vi.fn() };
+function show(extra: { dropped?: number } = {}) {
+  const props = { works: [work], ontemplate: vi.fn(), onwork: vi.fn(), onphoto: vi.fn(), onremove: vi.fn(), ...extra };
   const target = document.body.appendChild(document.createElement('div'));
   const app = mount(Picker, { target, props });
   flushSync();
@@ -27,6 +27,24 @@ function show() {
 describe('Picker', () => {
   afterEach(() => {
     document.body.innerHTML = '';
+  });
+
+  it('ぬりえちょうに、いくつ入っているかと上限を出す', () => {
+    const { app } = show();
+    expect(document.body.textContent).toContain('1 / 30');
+    unmount(app);
+  });
+
+  it('古い作品を消したときだけ、そのことを知らせる', () => {
+    const quiet = show();
+    expect(document.body.querySelector('[role="status"]')).toBeNull();
+    unmount(quiet.app);
+    document.body.innerHTML = '';
+    const { app } = show({ dropped: 1 });
+    expect(document.body.querySelector('[role="status"]')?.textContent?.trim()).toBe(
+      'いちばん ふるい さくひんを けしたよ'
+    );
+    unmount(app);
   });
 
   it('テンプレートを押すとそのテンプレートで始める', () => {

@@ -33,6 +33,8 @@
   let coloring = $state.raw<Coloring>(empty());
   let color = $state<string>(COLORS[0].hex);
   let timer: ReturnType<typeof setTimeout> | undefined;
+  /** この絵を塗るあいだの保存で、あふれて消した古い作品の数。えらぶ画面に戻ったときに知らせる */
+  let dropped = $state(0);
 
   // IndexedDB が開けない端末でも、塗ること自体はできるようにする
   const refresh = async () => (works = await listWorks().catch(() => []));
@@ -42,6 +44,7 @@
     const regions = label(mask);
     current = { ...next, regions: next.art.kind === 'template' ? hideCovered(regions, next.art.cover) : regions };
     coloring = start;
+    dropped = 0;
     screen = 'paint';
   }
 
@@ -73,7 +76,10 @@
     if (!Object.keys(coloring.colors).length) return removeWork(c.id).catch(() => {});
     const thumb = snapshot(c.art, c.regions, coloring.colors, 200, 'image/jpeg');
     const { id, template, photo, lines } = c;
-    return saveWork({ id, template, photo, lines, ...coloring, thumb, updated: Date.now() }).catch(() => {});
+    return saveWork({ id, template, photo, lines, ...coloring, thumb, updated: Date.now() }).then(
+      (n) => void (dropped += n),
+      () => {}
+    );
   }
 
   /** まだ保存していない塗りがあれば、すぐ保存する（閉じる・裏に回るときに最後の塗りを落とさないように） */
@@ -142,6 +148,7 @@
 {:else}
   <Picker
     {works}
+    {dropped}
     ontemplate={fromTemplate}
     onwork={fromWork}
     onphoto={() => (screen = 'photo')}
