@@ -8,6 +8,8 @@ export const CRAB = {
   dashTime: 0.9,
   dashSpeed: 210,
   dashLength: 120,
+  /** 突進中に当たったときの強さ。巨大ベア（体の強さの 1.5 倍）・大イノシシ（1.4 倍）と同じくらいの比にそろえる */
+  dashAtk: 32,
   clawWarn: 1.2,
   clawGap: 40,
   clawR: 36,

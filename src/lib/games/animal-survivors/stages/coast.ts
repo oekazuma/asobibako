@@ -2,7 +2,7 @@ import { ENEMIES } from '../enemies';
 import { bossRun, FOREST, type Stage } from './forest';
 
 /** 森の時刻の流れのまま、敵を海岸の顔ぶれにして、火山より一段強くした面 */
-const HARDER = 1.6;
+const HARDER = 1.47;
 
 const SWAP: Record<string, string> = {
   rat: 'crab',

@@ -16,12 +16,12 @@ describe('海岸の表', () => {
     expect(canPlay({ ...emptyRecords(), stages: ['forest', 'graveyard', 'snow', 'volcano'] }, 'coast')).toBe(true);
   });
 
-  it('時刻は森と同じで、森より 1.6 倍強く、コインは 3 倍、満ち潮は 4 回', () => {
+  it('時刻は森と同じで、森より 1.47 倍強く、コインは 3 倍、満ち潮は 4 回', () => {
     expect(COAST.length).toBe(FOREST.length);
     expect(COAST.bosses.map((b) => b.at)).toEqual(VOLCANO.bosses.map((b) => b.at));
     expect(COAST.events.map((e) => e.at)).toEqual(FOREST.events.map((e) => e.at));
-    expect(COAST.toughness(300)).toBeCloseTo(FOREST.toughness(300) * 1.6);
-    expect(COAST.fury(300)).toBeCloseTo(FOREST.fury(300) * 1.6);
+    expect(COAST.toughness(300)).toBeCloseTo(FOREST.toughness(300) * 1.47);
+    expect(COAST.fury(300)).toBeCloseTo(FOREST.fury(300) * 1.47);
     expect(COAST.coin).toBe(3);
     expect(COAST.tides.map((t) => [t.at, t.len])).toEqual([
       [95, 20],

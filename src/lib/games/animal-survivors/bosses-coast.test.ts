@@ -45,6 +45,24 @@ describe('巨大ガニ', () => {
     }
   });
 
+  it('突進中に当たると、歩いているときより強く当たる', () => {
+    const hit = (state: number) => {
+      const w = quiet();
+      w.player.x = 0;
+      w.player.y = 0;
+      const c = crab(w, 5);
+      c.def = { ...c.def, speed: 0 };
+      c.cd = 1e6;
+      c.state = state;
+      c.wait = 1e6;
+      const before = w.player.hp;
+      step(w, still, 1 / 60);
+      return before - w.player.hp;
+    };
+    expect(hit(0)).toBe(ENEMIES.crabKing.atk);
+    expect(hit(2)).toBe(CRAB.dashAtk);
+  });
+
   it('はさみの地ならしは左右に輪を 2 つ同時に出し、予告のあとに輪の中の自分にだけ当たる', () => {
     const w = quiet();
     const c = crab(w, 40);
