@@ -37,4 +37,16 @@ describe('Settings', () => {
     expect(cpu.target.textContent).not.toContain('プチカメレオンを許可');
     cpu.done();
   });
+
+  it('弾数制限の行は既定でオフと出し、CPU と遊ぶでも出す', () => {
+    for (const cpu of [false, true]) {
+      const { target, settings, done } = show(cpu);
+      const row = [...target.querySelectorAll('.row')].find((r) => r.textContent?.includes('弾数制限（発）'))!;
+      expect(row.querySelector('.value')?.textContent).toBe('オフ');
+      settings.ammo = 5;
+      flushSync();
+      expect(row.querySelector('.value')?.textContent).toBe('5');
+      done();
+    }
+  });
 });

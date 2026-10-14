@@ -2,7 +2,7 @@ import { CPU_DEFAULT, type CpuChoice } from './cpu/levels';
 import { BODY_TYPES, DEFAULTS, fit, type BodyType, type Settings } from './referee';
 
 export const SETTINGS_KEY = 'asobibako:yappari-chameleon:settings';
-const NUMBERS = ['hunters', 'hide', 'search', 'reveal', 'taunt'] as const;
+const NUMBERS = ['hunters', 'hide', 'search', 'reveal', 'taunt', 'ammo'] as const;
 /** 保存の版。印の無い保存の隠れる時間 60 は、選んだ値ではなく前の版の既定なので今の既定で読む */
 const VERSION = 2;
 

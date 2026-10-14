@@ -13,7 +13,8 @@
     { key: 'hide', label: 'ハンター待機時間（秒）', step: 10, range: LIMITS.hide },
     { key: 'search', label: '探索時間（秒）', step: 30, range: LIMITS.search },
     { key: 'reveal', label: '答え合わせ時間（秒）', step: 5, range: LIMITS.reveal },
-    { key: 'taunt', label: '強制挑発間隔（秒）', step: 5, range: [0, LIMITS.taunt[1]] }
+    { key: 'taunt', label: '強制挑発間隔（秒）', step: 5, range: [0, LIMITS.taunt[1]] },
+    { key: 'ammo', label: '弾数制限（発）', step: 1, range: [0, LIMITS.ammo[1]] }
   ] as const;
   const most = $derived(Math.max(1, players - 1));
   // 保存した人数が今の人数より多くても、見せる数と増減はいまの上限に合わせる
@@ -54,7 +55,7 @@
     <label class="row">
       <span>{r.label}</span>
       <input type="range" min={r.range[0]} max={r.range[1]} step={r.step} bind:value={settings[r.key]} />
-      <span class="value">{settings[r.key]}</span>
+      <span class="value">{r.key === 'ammo' && !settings.ammo ? 'オフ' : settings[r.key]}</span>
     </label>
   {/each}
   <div class="row">
