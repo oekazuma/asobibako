@@ -25,6 +25,8 @@ export const READY_S = 3;
 export const REVEAL_S = 3;
 /** はやおし検定で、押した人が候補を選ぶ時間 */
 export const ANSWER_S = 5;
+/** 2 人で遊んでいて 1 人が切れたとき、親が呼び直すのを待つ秒。過ぎたら遊びを終える */
+export const GRACE_S = 60;
 /** 描く時間に対するこの割合が残ったら 1 文字ずつ見せる（エゴコロクイズだけ）。ふつうの 90 秒では残り 45 秒と 20 秒 */
 export const HINTS = [
   [1, 2],
@@ -68,6 +70,8 @@ export interface Quiz {
   options: string[];
   /** おてつきの人 */
   out: Seat[];
+  /** 2 人で遊んでいて 1 人が切れたあと、遊びを終えるまでの残り秒。0 なら待っていない */
+  wait: number;
 }
 
 export function drawer(s: Quiz): Seat {
@@ -131,7 +135,8 @@ export function create(
     answerLeft: 0,
     buzzedAt: 0,
     options: [],
-    out: []
+    out: [],
+    wait: 0
   };
   begin(s, 0, rand, words);
   return s;
@@ -209,6 +214,12 @@ export function answer(s: Quiz, by: Seat, index: number): 'right' | 'wrong' | nu
 /** 答える時間が切れて、おてつきになった人がいればその人を返す（全員への知らせに使う） */
 export function tick(s: Quiz, dt: number, rand = Math.random, words: readonly string[] = WORDS): Seat | null {
   if (s.phase === 'done') return null;
+  // 待つあいだは時計を止める。戻った人が、止めたところから同じ番を続けられるように
+  if (s.wait > 0) {
+    s.wait -= dt;
+    if (s.wait <= 0) s.phase = 'done';
+    return null;
+  }
   s.left -= dt;
   if (s.phase === 'ready') {
     if (s.left <= 0) start(s, drawer(s));
@@ -241,12 +252,13 @@ export function leave(s: Quiz, seat: Seat, rand = Math.random, words: readonly s
   if (!s.players.includes(seat)) return;
   const wasDrawing = drawer(s) === seat && (s.phase === 'ready' || s.phase === 'draw');
   s.players = s.players.filter((p) => p !== seat);
-  s.order = s.order.filter((p, i) => i <= s.turn || p !== seat);
-  if (s.phase === 'done') return;
-  if (s.players.length < 2) {
-    s.phase = 'done';
+  // 2 人のときは呼び直せば戻れるので、番も描く順も残して待つ。戻らなければ tick が終える
+  if (s.phase !== 'done' && s.players.length < 2) {
+    s.wait = GRACE_S;
     return;
   }
+  s.order = s.order.filter((p, i) => i <= s.turn || p !== seat);
+  if (s.phase === 'done') return;
   if (wasDrawing) return begin(s, s.turn + 1, rand, words);
   if (s.phase !== 'draw') return;
   if (s.buzzer === seat) {
@@ -257,11 +269,12 @@ export function leave(s: Quiz, seat: Seat, rand = Math.random, words: readonly s
   if (guessers(s).every((p) => settled.includes(p))) reveal(s);
 }
 
-/** 抜けた人（か途中から来た人）を当てる人として加える。抜けたときに消した描く番は、終わる時間が読めなくなるので戻さない */
+/** 抜けた人（か途中から来た人）を当てる人として加え、待っていればやめる。3 人の遊びで抜けたときに消した描く番は、終わる時間が読めなくなるので戻さない */
 export function rejoin(s: Quiz, seat: Seat): void {
   if (s.phase === 'done' || s.players.includes(seat)) return;
   s.players = [...s.players, seat].sort((a, b) => a - b);
   s.scores[seat] ??= 0;
+  s.wait = 0;
 }
 
 export interface View {
@@ -284,6 +297,8 @@ export interface View {
   /** 答えている本人にだけ */
   options: string[] | null;
   out: Seat[];
+  /** 2 人で遊んでいて 1 人が切れたとき、遊びを終えるまでの残り秒（切り上げ）。待っていなければ 0 */
+  wait?: number;
 }
 
 export function view(s: Quiz, seat: Seat): View {
@@ -305,6 +320,7 @@ export function view(s: Quiz, seat: Seat): View {
     buzzer: s.buzzer,
     answerLeft: Math.max(0, Math.ceil(s.answerLeft)),
     options: s.buzzer === seat ? [...s.options] : null,
-    out: [...s.out]
+    out: [...s.out],
+    wait: Math.max(0, Math.ceil(s.wait))
   };
 }

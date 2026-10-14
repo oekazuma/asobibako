@@ -75,7 +75,14 @@ export class RelayReferee {
   }
 
   #viewOf(s: Relay) {
-    return { phase: s.phase, step: s.step, steps: s.steps, left: Math.max(0, Math.ceil(s.left)), done: [...s.done] };
+    return {
+      phase: s.phase,
+      step: s.step,
+      steps: s.steps,
+      left: Math.max(0, Math.ceil(s.left)),
+      done: [...s.done],
+      wait: Math.max(0, Math.ceil(s.wait))
+    };
   }
 
   #push() {

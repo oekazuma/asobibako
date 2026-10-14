@@ -7,6 +7,7 @@ import {
   create,
   drawer,
   fit,
+  GRACE_S,
   LENGTHS,
   guess,
   leave,
@@ -315,13 +316,49 @@ describe('leave', () => {
     expect(buzz(s, 3, fixed, WORDS)).toBe(true);
   });
 
-  it('1 人になったら done。抜けた人の点は残す', () => {
+  // 2 人のときに切れてすぐ終えると、親が呼び直しても戻る遊びが無い
+  it('2 人で 1 人が抜けたら、時計を止めて GRACE_S 秒待ち、戻らなければ done。抜けた人の点は残す', () => {
     const s = game([1, 2]);
     const word = go(s);
     guess(s, 2, word);
     leave(s, 2, fixed, WORDS);
+    expect(s.phase).toBe('reveal');
+    expect(view(s, 1).wait).toBe(GRACE_S);
+    const left = s.left;
+    run(s, GRACE_S - 1);
+    expect(s.phase).toBe('reveal');
+    expect(s.left).toBe(left);
+    expect(view(s, 1).wait).toBe(1);
+    run(s, 2);
     expect(s.phase).toBe('done');
     expect(s.scores[2]).toBe(3);
+  });
+
+  it('待つあいだに戻ったら、止めたところから続け、抜けた人の描く番も消さない', () => {
+    const s = game([1, 2]);
+    go(s);
+    const order = [...s.order];
+    leave(s, 2, fixed, WORDS);
+    run(s, 5);
+    rejoin(s, 2);
+    expect(s.players).toEqual([1, 2]);
+    expect(s.order).toEqual(order);
+    expect(view(s, 1).wait).toBe(0);
+    const left = s.left;
+    run(s, 1);
+    expect(s.phase).toBe('draw');
+    expect(s.left).toBeLessThan(left);
+  });
+
+  it('2 人で描いている人が抜けても、次の番へ移らずに待つ', () => {
+    const s = game([1, 2]);
+    go(s);
+    leave(s, 1, fixed, WORDS);
+    expect(s.phase).toBe('draw');
+    expect(drawer(s)).toBe(1);
+    rejoin(s, 1);
+    expect(drawer(s)).toBe(1);
+    expect(view(s, 2).wait).toBe(0);
   });
 });
 
@@ -372,6 +409,7 @@ describe('rejoin', () => {
   it('終わった遊びや、いる人には何もしない', () => {
     const s = game([1, 2]);
     leave(s, 2, fixed, WORDS);
+    run(s, GRACE_S + 1);
     rejoin(s, 2);
     expect(s.players).toEqual([1]);
     const t = game();

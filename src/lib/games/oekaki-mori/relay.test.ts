@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Seat } from '$lib/net/party.svelte';
+import { GRACE_S } from './engine';
 import {
   addInk,
   assignee,
@@ -102,7 +103,7 @@ describe('relay', () => {
     expect(UNKNOWN).toContain('わからなかった');
   });
 
-  it('抜けた人のこまは埋めて進め、1 人になったらふりかえりに入る', () => {
+  it('抜けた人のこまは埋めて進め、1 人になったら GRACE_S 秒待ってからふりかえりに入る', () => {
     const s = relay();
     finish(s, 1);
     finish(s, 2);
@@ -110,7 +111,26 @@ describe('relay', () => {
     tick(s, 0, fixed, WORDS, {});
     expect(s.step).toBe(1);
     leave(s, 2);
+    expect(s.phase).toBe('play');
+    const left = s.left;
+    tick(s, GRACE_S - 1, fixed, WORDS, {});
+    expect(s.phase).toBe('play');
+    expect(s.left).toBe(left);
+    tick(s, 2, fixed, WORDS, {});
     expect(s.phase).toBe('reveal');
+  });
+
+  it('1 人で待つあいだはだんを進めず、戻ったら続ける', () => {
+    const s = relay([1, 2]);
+    leave(s, 2);
+    finish(s, 1);
+    tick(s, 0, fixed, WORDS, {});
+    expect(s.step).toBe(0);
+    rejoin(s, 2);
+    expect(s.wait).toBe(0);
+    tick(s, 0, fixed, WORDS, {});
+    expect(s.step).toBe(1);
+    expect(taskOf(s, 2).kind).toBe('guess');
   });
 
   it('戻った人は次のだんから受け持ち、そのだんでは待つ', () => {

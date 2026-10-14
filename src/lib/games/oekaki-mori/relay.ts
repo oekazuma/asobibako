@@ -1,5 +1,5 @@
 import type { Seat } from '$lib/net/party.svelte';
-import { fit, LENGTHS, type Chars, type Length } from './engine';
+import { fit, GRACE_S, LENGTHS, type Chars, type Length } from './engine';
 import { apply, isInk, type Stroke } from './strokes';
 
 /** だんの数。偶数のだんは描く、奇数のだんは当てるので、最後は必ず当てる */
@@ -35,6 +35,8 @@ export interface Relay {
   /** お題の字数の上限。最初のお題と、わからなかったあとに配り直すお題に効く */
   chars: Chars;
   page: { chain: number; index: number };
+  /** 1 人になったあと、ふりかえりへ進むまでの残り秒。0 なら待っていない */
+  wait: number;
 }
 
 export type Task = { kind: 'draw'; word: string } | { kind: 'guess'; strokes: Stroke[] } | { kind: 'wait' };
@@ -104,7 +106,8 @@ export function createRelay(
     done: [],
     used: [],
     chars,
-    page: { chain: 0, index: 0 }
+    page: { chain: 0, index: 0 },
+    wait: 0
   };
   s.chains = players.map(() => ({ start: pick(s, rand, words, chars), entries: [] }));
   open(s, rand, words, chars);
@@ -156,6 +159,14 @@ export function tick(
   typed: Record<number, string>
 ): void {
   if (s.phase !== 'play') return;
+  // 待つあいだは時計もだんも止める。戻った人が同じだんから続けられるように
+  if (s.wait > 0) {
+    s.wait -= dt;
+    if (s.wait > 0) return;
+    s.phase = 'reveal';
+    s.page = { chain: 0, index: 0 };
+    return;
+  }
   s.left -= dt;
   if (s.left <= 0)
     s.chains.forEach((chain, c) => {
@@ -168,18 +179,17 @@ export function tick(
   if (s.chains.every((_, c) => s.done.includes(assignee(s, c, s.step)))) advance(s, rand, words);
 }
 
-/** 抜けた人のいまのこまは、描きかけの線のまま、答えはわからなかったとして埋める。1 人になったらふりかえりへ */
+/** 抜けた人のいまのこまは、描きかけの線のまま、答えはわからなかったとして埋める。1 人になったら、呼び直すのを待ってからふりかえりへ */
 export function leave(s: Relay, seat: Seat): void {
   s.present = s.present.filter((p) => p !== seat);
   if (s.phase === 'play' && chainOf(s, seat) >= 0 && !s.done.includes(seat)) s.done.push(seat);
-  if (s.phase === 'play' && s.present.length < 2) {
-    s.phase = 'reveal';
-    s.page = { chain: 0, index: 0 };
-  }
+  if (s.phase === 'play' && s.present.length < 2) s.wait = GRACE_S;
 }
 
 export function rejoin(s: Relay, seat: Seat): void {
-  if (s.players.includes(seat) && !s.present.includes(seat)) s.present = [...s.present, seat];
+  if (!s.players.includes(seat) || s.present.includes(seat)) return;
+  s.present = [...s.present, seat];
+  s.wait = 0;
 }
 
 export function pageOf(s: Relay): { chain: number; index: number; entry: Entry; last: boolean } | null {
