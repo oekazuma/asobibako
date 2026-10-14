@@ -371,8 +371,10 @@ function enemies(
       continue;
     }
     const art = ART[e.def.id];
-    // 巨大ベアと溶岩の巨人は地ならしの予告のあいだ、宙にいるボスは上げたコマにする（よみがえっている不死鳥は羽ばたく）
-    const up = ((e.def.ai === 'bear' || e.def.ai === 'giant') && e.state === 3) || (airborne(e) && e.state !== 5);
+    // 巨大ベア・溶岩の巨人・巨大ガニは地ならしの予告のあいだ、宙にいるボスは上げたコマにする（よみがえっている不死鳥は羽ばたく）
+    const up =
+      ((e.def.ai === 'bear' || e.def.ai === 'giant' || e.def.ai === 'crab') && e.state === 3) ||
+      (airborne(e) && e.state !== 5);
     const clock = walkClock(e, e.def.boss ? introduced.includes(w.enemies.indexOf(e)) : false, lively);
     const frame = up ? 2 : frameAt(clock * (e.def.boss ? 4 : 6), 2);
     // 敵は追っている動物のほうを向く。逃げるきらきらハリネズミだけは反対を向く

@@ -37,7 +37,7 @@ export interface EnemyDef {
   /** 壊せる物（ランタン）。狙われず、数えられず、品を落とす */
   prop?: boolean;
   /** ボスの動き方（bosses.ts）。巨大ベア型は突進と地ならし、女王グモ型は飛び道具と手下 */
-  ai?: 'bear' | 'queen' | 'yeti' | 'dragon' | 'boar' | 'eagle' | 'tree' | 'snake' | 'giant' | 'phoenix';
+  ai?: 'bear' | 'queen' | 'yeti' | 'dragon' | 'boar' | 'eagle' | 'tree' | 'snake' | 'giant' | 'phoenix' | 'crab';
   /** 女王グモ型が呼ぶ手下の id */
   minion?: string;
   /** 女王グモ型の飛び道具の絵（ITEM_ART の名前） */
@@ -166,12 +166,12 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
       e('walrus', 'セイウチ', [70, 26, 18, 8, 8], 'charge', 0.8),
       e('jelly', 'クラゲ', [18, 36, 9, 6, 3], 'leap', 0.2),
       e('landshark', 'リクザメ', [120, 16, 16, 9, 10], 'chase', 0.9),
-      // 次の 2 体は仮の行（巨大ベアと女王グモの数と動き方）
       {
-        ...e('crabKing', '巨大ガニ', [700, 28, 20, 15, 0], 'boss', 1, 'crabKing'),
-        ai: 'bear',
+        ...e('crabKing', '巨大ガニ', [900, 26, 22, 16, 0], 'boss', 1, 'crabKing'),
+        ai: 'crab',
         epithet: '浜辺の大はさみ'
       },
+      // 大ダコは仮の行（女王グモの数と動き方）
       {
         ...e('octopus', '大ダコ', [550, 38, 25, 16, 0], 'boss', 1, 'octopus'),
         ai: 'queen',
