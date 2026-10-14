@@ -7,6 +7,8 @@
   let { session }: { session: Session } = $props();
   /** 次を撃てるまでを、ボタンのふちを時計のように埋めて見せる（0 で撃てる、1 で撃った直後） */
   const wait = $derived(session.cool / COOLDOWN);
+  // 弾数制限が無いときは null（テストの偽物の session では undefined）
+  const ammo = $derived(session.ammo ?? null);
 </script>
 
 <span class="cross" aria-hidden="true"></span>
@@ -35,11 +37,17 @@
     <Icon name="crouch" size="30px" />
     <span>しゃがむ</span>
   </button>
-  <button class="round-btn shoot" style:--wait={wait} disabled={wait > 0} onpointerdown={() => session.shoot()}>
+  <button
+    class="round-btn shoot"
+    style:--wait={wait}
+    disabled={wait > 0 || ammo === 0}
+    onpointerdown={() => session.shoot()}
+  >
     <Icon name="aim" size="44px" />
     <span>うつ</span>
   </button>
 </div>
+{#if ammo !== null}<p class="ammo" role="status">残り {ammo} 発</p>{/if}
 
 <style>
   .cross {
@@ -63,6 +71,19 @@
     display: grid;
     justify-items: end;
     gap: 10px;
+  }
+
+  .ammo {
+    position: absolute;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    left: 50%;
+    translate: -50% 0;
+    margin: 0;
+    color: #fff;
+    font-family: 'Hiragino Mincho ProN', serif;
+    font-size: 22px;
+    text-shadow: 0 1px 3px #000;
+    pointer-events: none;
   }
 
   .shoot {

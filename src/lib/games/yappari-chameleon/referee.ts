@@ -21,6 +21,8 @@ export interface Settings {
   taunt: number;
   /** ハンターの画面に「見落とした敵」の順位を出す */
   overlook: boolean;
+  /** 弾数制限（ハンター 1 人の弾）。0 は制限なし */
+  ammo: number;
   petit: boolean;
 }
 
@@ -32,9 +34,16 @@ export const DEFAULTS: Settings = {
   reveal: 30,
   taunt: 0,
   overlook: true,
+  ammo: 0,
   petit: false
 };
-export const LIMITS = { hide: [30, 300], search: [60, 600], reveal: [10, 120], taunt: [5, 120] } as const;
+export const LIMITS = {
+  hide: [30, 300],
+  search: [60, 600],
+  reveal: [10, 120],
+  taunt: [5, 120],
+  ammo: [1, 20]
+} as const;
 export const INTRO = 3;
 export const COOLDOWN = 2;
 export const TOOT_GAP = 1;
@@ -61,6 +70,7 @@ export function fit(s: Settings, players: number): Settings {
     reveal: clamp(s.reveal, LIMITS.reveal),
     taunt: s.taunt <= 0 ? 0 : clamp(s.taunt, LIMITS.taunt),
     overlook: s.overlook !== false,
+    ammo: s.ammo > 0 ? clamp(s.ammo, LIMITS.ammo) : 0,
     petit: s.petit === true
   };
 }
@@ -80,6 +90,8 @@ export interface Match {
   taunts: Partial<Record<Seat, number>>;
   clock: number;
   shots: Partial<Record<Seat, number>>;
+  /** 弾数制限で、探索で外した数（ハンターごと）。増え鬼で途中からハンターになった人は 0 から */
+  misses: Partial<Record<Seat, number>>;
   toots: Partial<Record<Seat, number>>;
   /** 試合の始めに隠れた人（ダブルでは全員）。ダブルでは残した体の持ち主 */
   hid: Seat[];
@@ -119,6 +131,7 @@ export const newMatch = (): Match => ({
   taunts: {},
   clock: 0,
   shots: {},
+  misses: {},
   toots: {},
   hid: [],
   caught: {},
@@ -191,6 +204,7 @@ export function start(
     // ダブルの探索では全員が探す人なので、強制挑発の時計を持たない
     taunts: double ? {} : Object.fromEntries(hiders.map((seat) => [seat, s.taunt])),
     shots: {},
+    misses: {},
     toots: {},
     hid: hiders,
     caught: {},
@@ -227,6 +241,7 @@ function enter(m: Match, phase: Phase): void {
       found: [],
       winner: null,
       taunts: {},
+      misses: {},
       hid: [],
       caught: {},
       reached: {},
@@ -306,6 +321,7 @@ export function leave(m: Match, seat: Seat, present: Seat[]): void {
     enter(m, 'reveal');
     return;
   }
+  dry(m, present);
   settle(m, present);
 }
 
@@ -314,8 +330,31 @@ export function join(m: Match, seat: Seat): void {
   if (m.phase !== 'lobby' && !m.roles[seat]) m.roles[seat] = 'out';
 }
 
+/** 弾数制限が効くか。ダブルは全員が探す人で、0 になっても勝つ側がいないので数えない */
+const limited = (m: Match): boolean => m.settings.ammo > 0 && m.settings.mode !== 'double';
+
+export const ammoOf = (m: Match, seat: Seat): number => Math.max(0, m.settings.ammo - (m.misses[seat] ?? 0));
+
+/** いるハンターが全員 0 になったら、隠れる側の勝ちで答え合わせへ */
+function dry(m: Match, present: Seat[]): void {
+  if (!limited(m) || m.phase !== 'search') return;
+  const live = seatsOf(m, 'hunter').filter((s) => present.includes(s));
+  if (live.length && live.every((s) => ammoOf(m, s) === 0)) {
+    m.winner = 'chameleon';
+    enter(m, 'reveal');
+  }
+}
+
+/** 探索で撃った弾がだれにも当たらなかった。撃つと 1 発使い、当てたらその 1 発が戻る、を外した数で数える */
+export function missed(m: Match, seat: Seat, present: Seat[]): void {
+  if (!limited(m) || m.phase !== 'search') return;
+  m.misses[seat] = (m.misses[seat] ?? 0) + 1;
+  dry(m, present);
+}
+
 export function shoot(m: Match, seat: Seat): boolean {
   if (m.roles[seat] !== 'hunter' || (m.phase !== 'search' && m.phase !== 'reveal')) return false;
+  if (m.phase === 'search' && limited(m) && ammoOf(m, seat) === 0) return false;
   if (m.clock - (m.shots[seat] ?? -Infinity) < COOLDOWN - SHOT_SLACK - EPS) return false;
   m.shots[seat] = m.clock;
   return true;
@@ -424,6 +463,8 @@ export interface View {
   spots: Partial<Record<Seat, V3>>;
   /** 体の動きの知らせには大きさを載せないので、各端末は席の体型をここから引く */
   bodies: Partial<Record<Seat, BodyType>>;
+  /** 弾数制限のあるとき、ハンターごとの残りの弾。制限が無いかダブルなら空 */
+  ammo: Partial<Record<Seat, number>>;
 }
 
 export function view(m: Match): View {
@@ -462,6 +503,7 @@ export function view(m: Match): View {
     exposed,
     overlook,
     spots: m.spots,
-    bodies: m.settings.petit ? { ...m.bodies } : {}
+    bodies: m.settings.petit ? { ...m.bodies } : {},
+    ammo: limited(m) ? Object.fromEntries(seatsOf(m, 'hunter').map((s) => [s, ammoOf(m, s)])) : {}
   };
 }

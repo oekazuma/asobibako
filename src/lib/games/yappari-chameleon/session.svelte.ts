@@ -609,9 +609,14 @@ export class Session {
     return { o: [c.x + d[0] * k, c.y + d[1] * k, c.z + d[2] * k], d };
   }
 
+  /** 弾数制限のある探索で、自分の残りの弾。制限が無いか探索でなければ null */
+  get ammo(): number | null {
+    return this.match.phase === 'search' ? (this.match.view.ammo[this.match.me] ?? null) : null;
+  }
+
   /** 十字の向きへ撃つ。当たりは親が決め、ここでは銃口から筋を引く（from は筋の始点で、当たりの判定には使わない） */
   shoot(): void {
-    if (this.cool > 0 || this.play.role !== 'hunter') return;
+    if (this.cool > 0 || this.play.role !== 'hunter' || this.ammo === 0) return;
     this.cool = COOLDOWN;
     const { o, d } = this.#aim();
     const targets: Target[] = [];

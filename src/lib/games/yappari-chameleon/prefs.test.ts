@@ -88,3 +88,12 @@ describe('プチカメレオンの許可', () => {
     expect(readSettings().petit).toBe(false);
   });
 });
+
+describe('弾数制限', () => {
+  it('マップの設定に覚え、前の版の保存（弾数制限の無い形）はオフで読む', () => {
+    saveSettings({ ...DEFAULTS, ammo: 5 });
+    expect(readSettings().ammo).toBe(5);
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ hide: 90, v: 2 }));
+    expect(readSettings().ammo).toBe(0);
+  });
+});

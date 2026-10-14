@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Seat } from '$lib/net/party.svelte';
 import {
   allow,
+  ammoOf,
   bury,
   DEFAULTS,
   dress,
@@ -13,6 +14,7 @@ import {
   leave,
   like,
   liveScale,
+  missed,
   newMatch,
   overlooked,
   PETIT,
@@ -51,7 +53,17 @@ function run(m: Match, secs: number): Seat[] {
 describe('fit', () => {
   it('範囲の外の値を収め、ハンターは人数−1 まで、強制挑発は 0 か 5〜120', () => {
     const s = fit(
-      { mode: 'normal', hunters: 5, hide: 10, search: 9999, reveal: 30, taunt: 3, overlook: false, petit: false },
+      {
+        mode: 'normal',
+        hunters: 5,
+        hide: 10,
+        search: 9999,
+        reveal: 30,
+        taunt: 3,
+        overlook: false,
+        ammo: 0,
+        petit: false
+      },
       3
     );
     expect(s).toEqual({
@@ -62,6 +74,7 @@ describe('fit', () => {
       reveal: 30,
       taunt: 5,
       overlook: false,
+      ammo: 0,
       petit: false
     });
     expect(fit({ ...DEFAULTS, hunters: 2, taunt: 0 }, 2)).toMatchObject({ hunters: 1, taunt: 0 });
@@ -205,6 +218,91 @@ describe('撃つ間隔', () => {
     const m = begun({ hunters: 2 }, [2, 3]);
     run(m, 3 + 60);
     expect([shoot(m, 2), shoot(m, 3)]).toEqual([true, true]);
+  });
+});
+
+describe('弾数制限', () => {
+  it('既定はオフで、範囲の外の値は 1〜20 に収め、0 以下はオフ', () => {
+    expect(DEFAULTS.ammo).toBe(0);
+    expect(fit({ ...DEFAULTS, ammo: 99 }, 3).ammo).toBe(20);
+    expect(fit({ ...DEFAULTS, ammo: -3 }, 3).ammo).toBe(0);
+    expect(fit({ ...DEFAULTS, ammo: undefined as unknown as number }, 3).ammo).toBe(0);
+  });
+
+  it('探索で外すと 1 減り、当てたときは減らない。答え合わせの弾は数えない', () => {
+    const m = begun({ mode: 'normal', ammo: 3 });
+    run(m, 3 + 60);
+    expect(view(m).ammo).toEqual({ 3: 3 });
+    missed(m, 3, ALL);
+    expect(ammoOf(m, 3)).toBe(2);
+    hit(m, 1);
+    expect(ammoOf(m, 3)).toBe(2);
+    hit(m, 2);
+    expect(m.phase).toBe('reveal');
+    missed(m, 3, ALL);
+    expect(ammoOf(m, 3)).toBe(2);
+  });
+
+  it('弾が 0 のハンターは探索では撃てないが、答え合わせでは撃てる', () => {
+    const m = begun({ mode: 'normal', ammo: 1, search: 60 });
+    run(m, 3 + 60);
+    m.misses[3] = 1;
+    expect(shoot(m, 3)).toBe(false);
+    run(m, 60);
+    expect(m.phase).toBe('reveal');
+    expect(shoot(m, 3)).toBe(true);
+  });
+
+  it('いるハンターが全員 0 になったら、隠れる側の勝ちで答え合わせへ入る', () => {
+    const m = begun({ mode: 'normal', ammo: 2, hunters: 2 }, [2, 3]);
+    run(m, 3 + 60);
+    missed(m, 2, ALL);
+    missed(m, 2, ALL);
+    expect(m.phase).toBe('search');
+    missed(m, 3, ALL);
+    missed(m, 3, ALL);
+    expect(m.phase).toBe('reveal');
+    expect(m.winner).toBe('chameleon');
+  });
+
+  it('弾の残ったハンターが抜けて、残りが全員 0 なら、そこで隠れる側の勝ち', () => {
+    const m = begun({ mode: 'normal', ammo: 1, hunters: 2 }, [2, 3]);
+    run(m, 3 + 60);
+    missed(m, 3, ALL);
+    expect(m.phase).toBe('search');
+    leave(m, 2, [1, 3]);
+    expect(m.phase).toBe('reveal');
+    expect(m.winner).toBe('chameleon');
+  });
+
+  it('増え鬼で見つかってハンターになった人は、最初の数の弾を持つ', () => {
+    const m = begun({ mode: 'infect', ammo: 2 });
+    run(m, 3 + 60);
+    missed(m, 3, ALL);
+    hit(m, 2);
+    expect(view(m).ammo).toEqual({ 2: 2, 3: 1 });
+  });
+
+  it('制限がオフか、ダブルなら数えず、View の ammo は空', () => {
+    const off = begun({ mode: 'normal' });
+    run(off, 3 + 60);
+    missed(off, 3, ALL);
+    expect(view(off).ammo).toEqual({});
+    expect(shoot(off, 3)).toBe(true);
+    const double = begun({ mode: 'double', ammo: 1 });
+    run(double, 3 + 60 + 1);
+    missed(double, 1, ALL);
+    expect(view(double).ammo).toEqual({});
+    expect(double.phase).toBe('search');
+  });
+
+  it('次の試合とロビーでは外した数を 0 に戻す', () => {
+    const m = begun({ mode: 'normal', ammo: 2, search: 60 });
+    run(m, 3 + 60);
+    missed(m, 3, ALL);
+    run(m, 60 + 30);
+    expect(m.phase).toBe('lobby');
+    expect(m.misses).toEqual({});
   });
 });
 

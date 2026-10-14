@@ -42,4 +42,27 @@ describe('HunterButtons', () => {
     expect(first().textContent).toContain('FPS視点');
     unmount(app);
   });
+
+  it('弾数制限のあるときは画面下に残りの弾を出し、0 では「うつ」を押せない', () => {
+    const session = $state({
+      cool: 0,
+      ammo: 1 as number | null,
+      play: { crouch: false, jump: vi.fn() },
+      shoot: vi.fn(),
+      toggleCrouch: () => {}
+    });
+    const target = document.body.appendChild(document.createElement('div'));
+    const app = mount(HunterButtons, { target, props: { session: session as unknown as Session } });
+    flushSync();
+    const shoot = target.querySelector<HTMLButtonElement>('.shoot')!;
+    expect(target.querySelector('.ammo')?.textContent).toBe('残り 1 発');
+    expect(shoot.disabled).toBe(false);
+    session.ammo = 0;
+    flushSync();
+    expect(shoot.disabled).toBe(true);
+    session.ammo = null;
+    flushSync();
+    expect(target.querySelector('.ammo')).toBeNull();
+    unmount(app);
+  });
 });

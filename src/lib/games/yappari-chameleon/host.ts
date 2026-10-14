@@ -279,6 +279,7 @@ export class Host {
       ends: rays.map((r) => r.end),
       marks: rays.filter((r) => r.n).map((r) => ({ p: r.end, n: r.n }))
     });
+    let struck = false;
     for (const r of rays) {
       const seat = r.seat as Seat | null;
       if (seat === null) continue;
@@ -287,10 +288,12 @@ export class Host {
         continue;
       }
       if (!rules.hit(this.match, seat)) continue;
+      struck = true;
       const body = this.#lines.get(seat)?.last();
       if (body) this.#found.set(seat, body);
       this.#port.tell('all', { t: 'found', seat, by: from, at: r.end, body });
     }
+    if (!struck) rules.missed(this.match, from, this.#port.members);
     this.#push(true);
   }
 
