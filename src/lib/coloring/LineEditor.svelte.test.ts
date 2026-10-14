@@ -89,4 +89,19 @@ describe('LineEditor', () => {
     expect(Math.max(...xs)).toBeLessThanOrEqual(0.4 + 1e-9);
     unmount(app);
   });
+
+  // iOS が取り消した指（端からのジェスチャーや手のひら）は、線を直すつもりで触れた指ではない
+  it('取り消された指では直さず、次になぞった線はふつうに直す', () => {
+    const { app, onedit, fire, press } = show();
+    press('せんを けす');
+    fire('pointerdown', 0.2);
+    fire('pointermove', 0.5);
+    fire('pointercancel', 0.6);
+    expect(onedit).not.toHaveBeenCalled();
+    fire('pointerdown', 0.3);
+    fire('pointerup', 0.4);
+    expect(onedit).toHaveBeenCalledTimes(1);
+    expect(onedit.mock.lastCall![0].pts[0]).toBeCloseTo(0.3);
+    unmount(app);
+  });
 });

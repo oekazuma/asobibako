@@ -44,13 +44,16 @@
       if (!stroke || event.pointerId !== stroke.id) return;
       const { pts } = stroke;
       stroke = null;
+      // iOS が取り消した指（端からのジェスチャーや手のひら）は、線を直すつもりで触れた指ではない。なぞって見せた跡も消す
+      if (event.type === 'pointercancel') return redraw();
       if (!tool) return;
       pts.push(x, y);
       onedit({ kind: tool, pts, width: WIDTH[tool] });
     }
   });
 
-  $effect(() => {
+  /** 線画を描く。取り消された指でなぞって見せていた跡を消すときにも呼ぶ */
+  function redraw() {
     const g = canvas?.getContext('2d');
     if (!g) return;
     const img = g.createImageData(SIZE, SIZE);
@@ -63,7 +66,9 @@
       d[i * 4 + 3] = 255;
     }
     g.putImageData(img, 0, 0);
-  });
+  }
+
+  $effect(redraw);
 </script>
 
 <div class="editor" class:live={tool} use:input.board>
