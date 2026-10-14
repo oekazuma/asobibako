@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Work } from './book';
+  import { LIMIT, type Work } from './book';
   import { LINE, TEMPLATES, type Template } from './templates';
 
   let {
@@ -8,7 +8,8 @@
     onwork,
     onphoto,
     onremove,
-    onback
+    onback,
+    dropped = 0
   }: {
     works: Work[];
     ontemplate: (t: Template) => void;
@@ -17,6 +18,8 @@
     onremove: (w: Work) => void;
     /** 渡されたときだけ「あそびかたに もどる」を出す（みんなでぬりえの親） */
     onback?: () => void;
+    /** さっき保存したときに、あふれて消した古い作品の数 */
+    dropped?: number;
   } = $props();
 
   /** 押し間違いで消えないよう、「けす」を押しているあいだだけ作品を消せる */
@@ -50,10 +53,12 @@
   {#if works.length}
     <div class="book-head">
       <h2 class="yuru">ぬりえちょう</h2>
+      <span class="count">{works.length} / {LIMIT}</span>
       <button class="pill" aria-pressed={erasing} onclick={() => (erasing = !erasing)}>
         {erasing ? 'けしおわる' : 'けす'}
       </button>
     </div>
+    {#if dropped}<p class="note" role="status">いちばん ふるい さくひんを けしたよ</p>{/if}
     <ul class="grid">
       {#each works as w (w.id)}
         <li>
@@ -136,5 +141,16 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+  }
+
+  .count {
+    margin-right: auto;
+    margin-left: 8px;
+    font-weight: 800;
+  }
+
+  .note {
+    font-weight: 800;
+    color: var(--p2-deep);
   }
 </style>

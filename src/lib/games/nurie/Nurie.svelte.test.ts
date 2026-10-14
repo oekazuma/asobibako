@@ -6,7 +6,7 @@ import Nurie from './Nurie.svelte';
 
 const book = vi.hoisted(() => ({
   works: [] as Work[],
-  saveWork: vi.fn(async () => {}),
+  saveWork: vi.fn(async () => 0),
   removeWork: vi.fn(async () => {})
 }));
 
@@ -53,7 +53,7 @@ async function show() {
 describe('Nurie', () => {
   beforeEach(() => {
     book.works = [];
-    book.saveWork.mockReset().mockResolvedValue(undefined);
+    book.saveWork.mockReset().mockResolvedValue(0);
     book.removeWork.mockReset().mockResolvedValue(undefined);
   });
   afterEach(() => {
@@ -62,11 +62,30 @@ describe('Nurie', () => {
 
   // iOS の IndexedDB は開くところで止まることがある。保存を待って画面が戻らないと、子どもは閉じるしかない
   it('できた！ は保存を待たずに、えらぶ画面へ戻る', async () => {
-    book.saveWork.mockReturnValue(new Promise(() => {}));
+    book.saveWork.mockReturnValue(new Promise<number>(() => {}));
     const { app, target, press } = await show();
     await press('りんご');
     await press('できた！');
     expect(target.textContent).toContain('どれを ぬる？');
+    unmount(app);
+  });
+
+  it('保存で古い作品を消したら、えらぶ画面でそのことを知らせる', async () => {
+    // 知らせはぬりえちょうの見出しの下に出るので、ぬりえちょうに作品を置いておく
+    book.works = [{ id: 'old', template: 'apple', colors: { 0: '#f00' }, history: [], thumb: '', updated: 1 }];
+    book.saveWork.mockResolvedValue(1);
+    const { app, target, press } = await show();
+    await press('りんご');
+    await press('できた！');
+    expect(target.textContent).toContain('いちばん ふるい さくひんを けしたよ');
+    unmount(app);
+  });
+
+  it('消さなかったときは知らせない', async () => {
+    const { app, target, press } = await show();
+    await press('りんご');
+    await press('できた！');
+    expect(target.textContent).not.toContain('さくひんを けしたよ');
     unmount(app);
   });
 
