@@ -56,12 +56,12 @@ export const heroOf = (slot: number) => Math.floor((slot % SLOT_COUNT) / HERO_SL
 export const weaponAt = (w: World, slot: number) => w.heroes[heroOf(slot)]?.weapons[slot % HERO_SLOTS];
 export const anyPending = (w: World) => w.heroes.some((h) => h.pending > 0);
 export const anyChest = (w: World) => w.heroes.some((h) => h.chests > 0);
-/** 抜けていない相棒がいる（自分の端末から見て） */
 /** 浅瀬や割れ目を置く動物。倒れていない動物を呼ぶたびに順に回し、離れた相棒のまわりにも置く。全員倒れていれば undefined */
 export function nextPlacer(w: World, s: { turn: number }): Hero | undefined {
   const up = w.heroes.filter((h) => !h.down);
   return up.length ? up[s.turn++ % up.length] : undefined;
 }
+/** 抜けていない相棒がいる（自分の端末から見て） */
 export const hasMate = (w: World) => w.heroes.some((h, k) => k !== w.cur && !h.gone);
 
 /** 倒れた動物のそばに相棒がこの秒いると起き上がる */
