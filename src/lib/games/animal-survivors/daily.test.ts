@@ -185,6 +185,7 @@ describe('お題の記録', () => {
     for (const bad of [
       { ...good, mods: ['tough', 'tough'] },
       { ...good, mods: ['nope', 'tough'] },
+      { ...good, mods: ['constructor', 'tough'] },
       { ...good, stage: 'moon' },
       { ...good, animal: 7 },
       'x'
