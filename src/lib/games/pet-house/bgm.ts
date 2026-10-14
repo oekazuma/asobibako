@@ -30,17 +30,6 @@ const TRACKS: Record<Track, { song: SongId; bpm: number; gain: number }> = {
 /** BGM の出口。部屋の響きは synth の出口がまとめてかける */
 const output = bgmOut;
 
-/** OfflineAudioContext に 1 曲を seconds 秒ぶん書く（書き出して確かめる用） */
-export function renderTrack(ctx: BaseAudioContext, track: Track, seconds: number): void {
-  const t = TRACKS[track];
-  const sc = scoreOf(SONGS[t.song]);
-  const b = ctx.createGain();
-  b.gain.value = t.gain;
-  b.connect(output(ctx));
-  const sd = 30 / t.bpm;
-  for (let i = 0, at = 0.05; at < seconds; i++, at += sd) playStep(ctx, b, sc, i % sc.notes.length, at, sd);
-}
-
 /** 1 周の秒 */
 export const loopSeconds = (track: Track) => (scoreOf(SONGS[TRACKS[track].song]).notes.length * 30) / TRACKS[track].bpm;
 

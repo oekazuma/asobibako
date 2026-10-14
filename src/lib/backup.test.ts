@@ -1,12 +1,22 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { backupFile, exportAll, hasRecords, importAll, parseBackup, summarize, type Backup } from './backup';
+import { today } from './today';
 
 const file = (data: Record<string, unknown>) => JSON.stringify({ app: 'asobibako', version: 'v', at: 'd', data });
 
 describe('backup', () => {
   beforeEach(() => localStorage.clear());
   afterEach(() => vi.restoreAllMocks());
+
+  it('書き出すファイルには今回の書き出しの日が入り、自動の控えと端末の「最後に書き出した日」は前のまま', async () => {
+    localStorage.setItem('asobibako:reached:maze', '5');
+    localStorage.setItem('asobibako:backup-at', '2026-01-01');
+    const f = backupFile('v');
+    expect(parseBackup(await new Response(f).text()).data['asobibako:backup-at']).toBe(today());
+    expect(parseBackup(exportAll('v')).data['asobibako:backup-at']).toBe('2026-01-01');
+    expect(localStorage.getItem('asobibako:backup-at')).toBe('2026-01-01');
+  });
 
   it('書き出し → 消去 → 読み込みで asobibako: のキーだけが元に戻り、端末ごとの控えは触らない', () => {
     localStorage.setItem('asobibako:reached:maze', '5');

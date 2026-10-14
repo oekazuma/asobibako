@@ -61,18 +61,23 @@ export function backedUpAt(): string | null {
   }
 }
 
-export function exportAll(version: string): string {
+/** at を渡すと、書き出しの日としてその日を入れる（markBackedUp は書き出したあとに呼ぶので、渡さなければ前回の日が入る） */
+export function exportAll(version: string, at?: string): string {
   const data: Record<string, string> = {};
   for (const k of keys()) data[k] = localStorage.getItem(k) ?? '';
+  if (at) data[BACKUP_AT_KEY] = at;
   const b: Backup = { app: 'asobibako', version, at: today(), data };
   return JSON.stringify(b);
 }
 
 export const backupName = () => `asobibako-${today()}.json`;
 
-/** iPad の共有シート（AirDrop・ファイル・メール）に渡すための File。中身は exportAll と同じ */
+/**
+ * 書き出すファイル。共有シート（AirDrop・ファイル・メール）にもダウンロードにも使う。
+ * 今回の書き出しの日を入れる（自動の控えは exportAll をそのまま使うので、書き出していない日は入らない）
+ */
 export const backupFile = (version: string) =>
-  new File([exportAll(version)], backupName(), { type: 'application/json' });
+  new File([exportAll(version, today())], backupName(), { type: 'application/json' });
 
 /** 形が違えば throw する（呼び出し側が「読み込めません」と出す） */
 export function parseBackup(text: string): Backup {

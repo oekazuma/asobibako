@@ -25,15 +25,6 @@ export const limitCount = (n: number) => (n <= 0 ? 0 : n / (1 + (n - 1) / LIMIT_
 export const AMOUNT_CAP = 5;
 const amountOf = (n: number) => Math.min(n, AMOUNT_CAP);
 
-export const LIMIT_TEXT: Record<LimitStat, string> = {
-  damage: `ダメージ +${pct(STEP.damage)}`,
-  cooldown: `待ち時間 −${pct(STEP.cooldown)}`,
-  area: `大きさ +${pct(STEP.area)}`,
-  speed: `速さ +${pct(STEP.speed)}`,
-  duration: `時間 +${pct(STEP.duration)}`,
-  amount: `数 +${STEP.amount}`
-};
-
 /** 次の 1 回で実際に上がるぶんの文（頭打ちのあとの伸び） */
 export function limitGain(stat: LimitStat, now: number, kind?: WeaponKind): string {
   const d = limitCount(now + 1) - limitCount(now);

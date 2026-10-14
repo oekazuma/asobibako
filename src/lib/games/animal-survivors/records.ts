@@ -230,7 +230,7 @@ function dailyOf(v: unknown, ids: AnimalId[]): Daily | null {
     STAGE_IDS.includes(d.stage as string) &&
     mods.length === 2 &&
     mods[0] !== mods[1] &&
-    mods.every((m) => typeof m === 'string' && m in MODS);
+    mods.every((m) => typeof m === 'string' && Object.hasOwn(MODS, m));
   return ok
     ? {
         date: d.date as string,
