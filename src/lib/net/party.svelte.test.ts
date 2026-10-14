@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Message } from './link';
 import { MISMATCH, Party, PROTOCOL, type Pipe, type Seat } from './party.svelte';
 
@@ -43,6 +43,9 @@ async function trio() {
   await host.add(b);
   return { host, g2, g3, a, b };
 }
+
+// 途中の expect で落ちても、後ろのテストを止まった時計で走らせない
+afterEach(() => vi.useRealTimers());
 
 describe('Party', () => {
   it('親は子を 2P・3P の順に迎え、4 人目は断って閉じる', async () => {
@@ -208,7 +211,6 @@ describe('Party', () => {
     const result = host.add(a);
     vi.advanceTimersByTime(3000);
     expect(await result).toBe('mismatch');
-    vi.useRealTimers();
   });
 
   it('子は mismatch を受け取ったら mismatch を立てる', () => {
@@ -242,7 +244,6 @@ describe('Party', () => {
     vi.advanceTimersByTime(1000);
     await Promise.resolve();
     expect(closed).toBe(true);
-    vi.useRealTimers();
   });
 
   // 閉じたことが子に伝わるのを待つと、iOS では 30 秒ほど何も出ない

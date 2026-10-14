@@ -1,5 +1,5 @@
 import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import Buttons from './Buttons.svelte';
 import type { Play } from './play.svelte';
 
@@ -31,6 +31,9 @@ function fake(over: Partial<Play> = {}) {
 }
 
 const labels = (t: HTMLElement) => [...t.querySelectorAll('.column button')].map((b) => b.textContent?.trim());
+
+// 途中の expect で落ちても、後ろのテストを止まった時計で走らせない
+afterEach(() => vi.useRealTimers());
 
 describe('Buttons', () => {
   it('歩くときはジャンプ・ポーズ・ペイントモード・フリーカメラ・回転ロック', () => {
@@ -196,7 +199,6 @@ describe('Buttons', () => {
       flushSync();
       expect(t.dialog()).toBeNull();
       expect(t.onquit).not.toHaveBeenCalled();
-      vi.useRealTimers();
       unmount(t.app);
     });
 
@@ -209,7 +211,6 @@ describe('Buttons', () => {
       t.pick('戻る').click();
       flushSync();
       expect(t.onquit).toHaveBeenCalledTimes(1);
-      vi.useRealTimers();
       unmount(t.app);
     });
   });
