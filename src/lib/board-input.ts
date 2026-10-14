@@ -88,17 +88,23 @@ export class BoardInput {
 
   /** el の大きさを測り、変わるたびに onResize(幅 / 高さ) を呼ぶ。戻り値で見張りをやめる */
   observe(el: HTMLElement, onResize: (aspect: number) => void): () => void {
+    const turned = matchMedia(TURNED_QUERY);
     const measure = () => {
       this.#box = el.getBoundingClientRect();
       this.#size = { width: el.offsetWidth, height: el.offsetHeight };
-      this.#turned = matchMedia(TURNED_QUERY).matches;
-      if (this.#size.height === 0) return;
+      this.#turned = turned.matches;
+      if (this.#size.width === 0 || this.#size.height === 0) return;
       onResize(this.#size.width / this.#size.height);
     };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(el);
-    return () => observer.disconnect();
+    // iPad を回しても .stage は幅と高さが入れ替わるだけで、盤面の大きさが変わらず ResizeObserver は知らせない
+    turned.addEventListener('change', measure);
+    return () => {
+      observer.disconnect();
+      turned.removeEventListener('change', measure);
+    };
   }
 
   /** 盤面の要素に use:input.board={onResize} と書けば、指の配線と大きさの見張りが付く */
