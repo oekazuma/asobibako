@@ -47,6 +47,7 @@ export function makeDoll(renderer: THREE.WebGLRenderer, s: DollSurface, a: Atlas
   paintGeo.setAttribute('position', new THREE.BufferAttribute(a.paintUv, 2));
   paintGeo.setAttribute('ppos', new THREE.BufferAttribute(a.paintPos, 3));
   paintGeo.setAttribute('pnrm', new THREE.BufferAttribute(nrm, 3));
+  paintGeo.setAttribute('pbound', new THREE.BufferAttribute(a.paintBound, 4));
   const paint = new PaintSurface(renderer, paintGeo);
 
   const root = new THREE.Group();
