@@ -1,6 +1,6 @@
 import { eats, type WorldView } from './behavior';
 import type { Core } from './core';
-import { itemName, kindOf, type Pet } from './engine';
+import { itemName, kindOf, type Pet, type Save } from './engine';
 import { sounds } from './sounds';
 import type { FoodId } from './types';
 
@@ -42,9 +42,9 @@ export class Bowls {
     sounds.pop();
   }
 
-  /** お皿は保存しないので、入れたばかりで手つかずのごはんは在庫へ戻す */
-  putBack() {
+  /** お皿は保存しないので、書く写しの在庫へ、入れたばかりで手つかずのごはんを戻す */
+  putBack(food: Save['food']) {
     const bowl = this.state;
-    if (bowl.food && bowl.foodLeft > 0.9) this.#c.s.save.food[bowl.food] += 1;
+    if (bowl.food && bowl.foodLeft > 0.9) food[bowl.food] += 1;
   }
 }

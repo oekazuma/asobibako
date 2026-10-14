@@ -357,7 +357,10 @@ export class Session {
    */
   #write(stamp = true) {
     if (stamp) this.#stamps.add(...check(this.save));
-    if (!writeSave($state.snapshot(this.save)) && !this.#full) {
+    // iOS は隠れたページを dispose なしで終わらせるので、いつ書いても、お皿のごはんが在庫から消えたままにならない形で書く
+    const snap = $state.snapshot(this.save);
+    this.#bowls.putBack(snap.food);
+    if (!writeSave(snap) && !this.#full) {
       // 閉じると進みが戻ってしまうので、遊んでいるうちに大人が気づけるようにする
       this.#full = true;
       this.#say('きろくが いっぱいで のこせないよ。おうちの ひとに みせてね');
@@ -820,7 +823,6 @@ export class Session {
 
   dispose(): void {
     this.activity?.exit?.();
-    this.#bowls.putBack();
     this.#write(false);
     document.removeEventListener('visibilitychange', this.#onVisibility);
     this.#bgm.stop();

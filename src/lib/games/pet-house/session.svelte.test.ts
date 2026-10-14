@@ -199,6 +199,19 @@ describe('Session', () => {
     expect(JSON.parse(localStorage.getItem('asobibako:pet-house')!).food.dogfood).toBe(before);
   });
 
+  it('入れたばかりのごはんは、ふだんの保存でも在庫へ戻した形で書き、遊んでいるあいだの在庫とやめるときの保存は変えない', () => {
+    const s = make();
+    s.adopt('shiba', 'ポチ');
+    const before = s.save.food.dogfood;
+    s.feed('dogfood');
+    frames(s, 2);
+    const saved = () => JSON.parse(localStorage.getItem('asobibako:pet-house')!).food.dogfood;
+    expect(saved()).toBe(before);
+    expect(s.save.food.dogfood).toBe(before - 1);
+    s.dispose();
+    expect(saved()).toBe(before);
+  });
+
   it('遊びのモードが動かすあいだは think と指と芸をモードへ渡し、end で部屋と道具を戻す', () => {
     const s = make();
     s.adopt('shiba', 'ポチ');
