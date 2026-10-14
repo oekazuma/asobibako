@@ -21,6 +21,7 @@ describe('snap', () => {
     w.link.shows[0].t = 0.3;
     const b = JSON.parse(JSON.stringify(makeSnap(w, [])));
     const view = guestView();
+    applySnap(view, a);
     lerpSnap(view, a, b, 0.5);
     expect(view.link.shows[0].t).toBeCloseTo(0.2);
     lerpSnap(view, a, b, 0.5);
@@ -127,6 +128,7 @@ describe('snap', () => {
     w.enemies[0].x = 10;
     const b = makeSnap(w, []);
     const view = guestView();
+    applySnap(view, a);
     lerpSnap(view, a, b, 0.5);
     expect(view.enemies[0].x).toBe(5);
   });

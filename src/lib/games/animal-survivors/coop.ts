@@ -336,6 +336,8 @@ export class CoopGuest {
   readonly #party: Party;
   readonly #snaps = new Timeline<Snap>();
   #shown: Snap | null = null;
+  /** 前のフレームで 2 つのあいだをつないだ（a を書き直さないと、a だけを見せるときに寄せた位置が残る） */
+  #mixed = false;
   #sent = 0;
 
   /** 親が受け取った（子の画面を「おやが えらんでいます」にする） */
@@ -461,8 +463,10 @@ export class CoopGuest {
     const v = this.view;
     const r = this.#snaps.at(now, DELAY_MS);
     if (!v || !r) return;
-    if (r.a !== r.b) lerpSnap(v, r.a, r.b, r.t);
-    else applySnap(v, r.a);
+    // 様子は 1 秒に 20 回しか届かないので、同じ a は書き直さず、あいだのフレームは位置をつなぐだけにする
+    if (r.a !== this.#shown || (r.a === r.b && this.#mixed)) applySnap(v, r.a);
+    this.#mixed = r.a !== r.b;
+    if (this.#mixed) lerpSnap(v, r.a, r.b, r.t);
     // 出来事（倒した・拾った・レベルアップ）は、その様子を初めて見せたときに 1 回だけ渡す
     v.events = r.a === this.#shown ? [] : r.a.events;
     this.#shown = r.a;

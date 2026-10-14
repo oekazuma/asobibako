@@ -300,6 +300,42 @@ describe('協力プレイのつなぎ', () => {
     expect(g.view!.events).toEqual([]);
   });
 
+  it('子の画面は、同じ様子を 2 回目からは書き直さない', async () => {
+    const { h, g } = await started();
+    h.after(0.06);
+    await settle();
+    const now = performance.now() + 1000;
+    g.frame(now);
+    // 書き直せば time が様子の値に戻る
+    g.view!.time = -1;
+    g.frame(now + 16);
+    expect(g.view!.time).toBe(-1);
+  });
+
+  it('子の画面は、2 つの様子のあいだを書き直さずにつなぎ、敵はフレームごとに b へ寄る', async () => {
+    const { w, h, g } = await started();
+    w.enemies.push(makeEnemy(ENEMIES.caterpillar, 40, 0, 50));
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(1000);
+    // 落ちても時計を戻す（戻さないと、このあとのテストの時刻がすべて 1050 になる）
+    try {
+      h.after(0.06);
+      await settle();
+      w.enemies[0].x = 50;
+      clock.mockReturnValue(1050);
+      h.after(0.06);
+      await settle();
+      // 100ms 遅らせて見るので、1125 は 2 つの様子のちょうどまん中
+      g.frame(1125);
+      expect(g.view!.enemies[0].x).toBe(45);
+      g.view!.time = -1;
+      g.frame(1137.5);
+      expect(g.view!.enemies[0].x).toBe(47.5);
+      expect(g.view!.time).toBe(-1);
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
   it('子の動物は、親から届いた遅さで遅くなる', async () => {
     const run = async (slow: number) => {
       const { host, guest } = await pair();
