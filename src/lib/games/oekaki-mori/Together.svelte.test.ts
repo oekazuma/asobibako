@@ -1,6 +1,7 @@
 import { flushSync, mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SIZE } from '$lib/coloring/regions';
+import { encodeLines } from '$lib/coloring/wire';
 import type { Message } from '$lib/net/link';
 import type { Party, Seat } from '$lib/net/party.svelte';
 import Together from './Together.svelte';
@@ -170,6 +171,21 @@ describe('Together', () => {
     (party as unknown as { join: (seat: Seat) => void }).join(2);
     await settle();
     expect(sentTo.filter(([to]) => to === 2).map(([, m]) => m.t)).toEqual(['art']);
+    unmount(app);
+  });
+
+  // 親の画面の色は、線画を戻し終えるまで前のまま。その色を送ると、そのあいだに塗られた色が戻った子に届かない
+  it('親の画面が線画を戻すあいだに戻った子にも、そのあいだの塗りを送る', async () => {
+    const { app, button, party } = show();
+    button('りんご')!.click();
+    await settle();
+    const lines = await encodeLines(new Uint8Array(SIZE * SIZE));
+    party.tell('all', { t: 'art', template: 'apple', lines });
+    party.act({ t: 'paint', region: 0, color: '#f04438' });
+    sentTo.length = 0;
+    (party as unknown as { join: (seat: Seat) => void }).join(2);
+    await settle();
+    expect(sentTo.filter(([to]) => to === 2).map(([, m]) => m.t)).toEqual(['art', 'painted']);
     unmount(app);
   });
 });

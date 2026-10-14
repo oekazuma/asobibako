@@ -35,7 +35,7 @@
   const catchUp = (seat: Seat) =>
     catchUpTogether(
       (m) => party.tell(seat, m),
-      () => ({ dealt, colors, closed })
+      () => ({ dealt, colors: host.colors, closed })
     );
 
   async function send(mask: Uint8Array, template?: Template) {
