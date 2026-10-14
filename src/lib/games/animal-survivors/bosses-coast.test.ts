@@ -129,7 +129,7 @@ describe('大ダコ', () => {
     expect(w.enemies.some((e) => e.alive && e.def.id === 'jelly')).toBe(true);
   });
 
-  it('墨だまりは 1 秒の予告のあとに自分の位置へ置かれ、中の自分は遅くなる', () => {
+  it('墨だまりは 1 秒の予告のあとに狙われている動物の位置へ置かれ、中の自分は遅くなる', () => {
     const w = quiet();
     w.player.invuln = 1e6;
     const o = octopus(w);
@@ -151,6 +151,10 @@ describe('大ダコ', () => {
     const pool = inks(w)[0];
     expect(pool.r).toBe(OCTOPUS.inkR);
     expect([pool.x, pool.y]).toEqual([x, y]);
+    // 大ダコは離れて回り込むので、本体の足もとではなく狙われている動物の位置に置かれる
+    expect(Math.hypot(pool.x - w.player.x, pool.y - w.player.y)).toBeLessThan(1);
+    expect(Math.hypot(pool.x - o.x, pool.y - o.y)).toBeGreaterThan(OCTOPUS.inkR);
+    expect(wadeFactor(w, w.player.x, w.player.y)).toBe(WADE);
     expect(wadeFactor(w, pool.x, pool.y)).toBe(WADE);
     expect(o.alive).toBe(true);
   });

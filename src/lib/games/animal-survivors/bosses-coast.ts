@@ -74,10 +74,10 @@ export function crab(w: World, i: number, e: Enemy, ux: number, uy: number, dt: 
   return e.state === 2 ? { vx: e.dx * CRAB.dashSpeed, vy: 0 } : STILL;
 }
 
-/** 大ダコ。女王グモと同じ飛び道具と手下の合間に、自分の足もとへ墨だまりを置く */
+/** 大ダコ。女王グモと同じ飛び道具と手下の合間に、狙っている動物の足もとへ墨だまりを置く */
 export const OCTOPUS = { every: 6, inkWarn: 1, inkR: 40, inkLife: 5 };
 
-/** state 0 女王グモの動き（wait は墨までの経過秒）・1 墨の予告（立ち止まる） */
+/** state 0 女王グモの動き（wait は墨までの経過秒）・1 墨の予告（立ち止まる。予告の円は始めた瞬間の動物の位置で、本体からは離れている） */
 export function octopus(w: World, i: number, e: Enemy, ux: number, uy: number, d: number, dt: number) {
   if (e.state === 0) {
     e.wait += dt;
@@ -87,8 +87,8 @@ export function octopus(w: World, i: number, e: Enemy, ux: number, uy: number, d
     hazard(w, {
       kind: 'slam',
       owner: i,
-      x: e.x,
-      y: e.y,
+      x: w.player.x,
+      y: w.player.y,
       vx: 0,
       vy: 0,
       r: OCTOPUS.inkR,
