@@ -339,9 +339,11 @@ export function applySnap(view: World, s: Snap): void {
   view.events = s.events;
 }
 
-/** a を書いたあと、敵・弾・玉・ほかの動物の位置を b へ t だけ寄せる（番号と種類が同じものだけ） */
+/**
+ * applySnap(view, a) のあとに呼ぶ。敵・弾・玉・ほかの動物の位置を b へ t だけ寄せる（番号と種類が同じものだけ）。
+ * a と b の値から書くので、同じ a のまま何度呼んでも同じになる
+ */
 export function lerpSnap(view: World, a: Snap, b: Snap, t: number): void {
-  applySnap(view, a);
   const mix = (o: { x: number; y: number }, ra: Row | undefined, rb: Row | undefined, at: number, kind: boolean) => {
     if (!ra || !rb || (kind && ra[1] !== rb[1])) return;
     o.x = (ra[at] as number) + ((rb[at] as number) - (ra[at] as number)) * t;
@@ -358,8 +360,9 @@ export function lerpSnap(view: World, a: Snap, b: Snap, t: number): void {
   }
   // 技の絵の進み具合は 1 秒に 20 回しか届かないので、ほかの位置と同じく 2 つのあいだをつなぐ
   view.link.shows.forEach((s, i) => {
+    const sa = a.link.shows[i];
     const sb = b.link.shows[i];
-    if (sb && sb.hero === s.hero && sb.animal === s.animal) s.t += (sb.t - s.t) * t;
+    if (sa && sb && sb.hero === s.hero && sb.animal === s.animal) s.t = sa.t + (sb.t - sa.t) * t;
   });
   if (view.carry && a.carry && b.carry) {
     view.carry.x = a.carry.x + (b.carry.x - a.carry.x) * t;
