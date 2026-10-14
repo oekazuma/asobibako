@@ -1125,5 +1125,25 @@ export const ITEM_ART: Record<string, Art> = {
         '....k....'
       ]
     ]
+  },
+  'weapon-shellRoll': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '..........w.',
+        '..u......wkw',
+        '.u........w.',
+        '....kkkkkk..',
+        'u..kpwppppk.',
+        '..kpwrpprppk',
+        'u.kpprpprppk',
+        '...kprpprpk.',
+        '....krrrrk..',
+        '....kRRRRk..',
+        '.....kkkk...',
+        '............'
+      ]
+    ]
   }
 };

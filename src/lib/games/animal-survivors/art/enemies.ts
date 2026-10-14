@@ -28,7 +28,14 @@ export const ENEMY_ART: Record<
   | 'rockworm'
   | 'fireboar'
   | 'flamespider'
-  | 'rockcroc',
+  | 'rockcroc'
+  | 'crab'
+  | 'gull'
+  | 'seasnake'
+  | 'hermit'
+  | 'walrus'
+  | 'jelly'
+  | 'landshark',
   Art
 > = {
   rat: {
@@ -1001,6 +1008,252 @@ export const ENEMY_ART: Record<
         'kkkkrroorrrroorrrkk.k.k.k.',
         '....kkSSkkkkSSkkk.........',
         '.....kGGk..kGGk...........'
+      ]
+    ]
+  },
+  crab: {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '............',
+        '.kk......kk.',
+        'krrk....krrk',
+        'k.rkkkkkkr.k',
+        'krrkwkwkkrrk',
+        '.kkrrrrrrkk.',
+        'krrrrrrrrrrk',
+        'kRrorrrrorRk',
+        '.kRRRRRRRRk.',
+        'k.kkkkkkkk.k',
+        'kk.k.kk.k.kk',
+        '............'
+      ],
+      [
+        '............',
+        '............',
+        '.kk......kk.',
+        'krrkkkkkkrrk',
+        'k.rkwkwkkr.k',
+        'krrrrrrrrrrk',
+        '.krrrrrrrrk.',
+        'kRrorrrrorRk',
+        '.kRRRRRRRRk.',
+        '.kkkkkkkkkk.',
+        'k.k.k..k.k.k',
+        '............'
+      ]
+    ]
+  },
+  gull: {
+    w: 14,
+    h: 12,
+    frames: [
+      [
+        '..............',
+        'kk............',
+        'kgGk..........',
+        '.kggGk...kkk..',
+        '.kggggk.kwwwk.',
+        '..kggggkwwkwyk',
+        'kGkkkkwwwwwwYr',
+        '.kGwwwwwwwwkk.',
+        '..kkswwwwwk...',
+        '....kkkkkk....',
+        '..............',
+        '..............'
+      ],
+      [
+        '..............',
+        '..............',
+        '.........kkk..',
+        '........kwwwk.',
+        '........wwkwyk',
+        'kGkkkkkkwwwwYr',
+        '.kGwwwwwwwwkk.',
+        '..kwgggwwwk...',
+        '...kggGkkk....',
+        '....kgGk......',
+        '....kGk.......',
+        '.....kk.......'
+      ]
+    ]
+  },
+  seasnake: {
+    w: 14,
+    h: 12,
+    frames: [
+      [
+        '..............',
+        '.........kkk..',
+        '........kJJJk.',
+        '.......kJJJkwk',
+        '.......knnnJJr',
+        '.......kJJJkk.',
+        '..kk...kJnJk..',
+        '.kJJkkkkJJnk..',
+        'kjnJJJnJJJk...',
+        'kjjjjjjjjnk...',
+        '.kkjjjjjnk....',
+        '...kkkkkk.....'
+      ],
+      [
+        '..............',
+        '.........kkk..',
+        '........kJJJk.',
+        '.......kJJJkwk',
+        '.......knnnJJr',
+        '.......kJJJkk.',
+        '......kkJnJk..',
+        '.kkkkkJJJJnk..',
+        'kjJJnJJnJJk...',
+        'kjnjjjjjJnk...',
+        '.kjjjjjjkk....',
+        '..kkkkkk......'
+      ]
+    ]
+  },
+  hermit: {
+    w: 16,
+    h: 12,
+    frames: [
+      [
+        '................',
+        '....kkkk........',
+        '..kkcccckk......',
+        '.kccttttcck..k.k',
+        '.kctcccctck..o.o',
+        'kctcttccctckkook',
+        'kctcTcctcctkoook',
+        'kcctccctctTkrrok',
+        'kTcctttccTTkrRrk',
+        '.kTTTTTTTTkkokok',
+        '..kkkkkkkk..k.k.',
+        '................'
+      ],
+      [
+        '................',
+        '....kkkk........',
+        '..kkcccckk......',
+        '.kccttttcck..k.k',
+        '.kctcccctck..o.o',
+        'kctcttccctckkook',
+        'kctcTcctcctkoook',
+        'kcctccctctTkrrok',
+        'kTcctttccTTkrRrk',
+        '.kTTTTTTTTkkkook',
+        '..kkkkkkkk...k.k',
+        '................'
+      ]
+    ]
+  },
+  walrus: {
+    w: 20,
+    h: 14,
+    frames: [
+      [
+        '....................',
+        '....................',
+        '..............kkkk..',
+        '.............kttttk.',
+        '.....kkkkkkkktttkttk',
+        '...kkttttttttttttttk',
+        '..ktttttttttttccccck',
+        '.ktttttttttttcccccpk',
+        'ktttttttttttttccccck',
+        'kTttttttttttTTkwkwk.',
+        '.kTTtttttttTTk.w.w..',
+        '..kTTTkkTTTTkk......',
+        '...kTTk.kTTk........',
+        '....kk...kk.........'
+      ],
+      [
+        '....................',
+        '....................',
+        '..............kkkk..',
+        '.............kttttk.',
+        '.....kkkkkkkktttkttk',
+        '...kkttttttttttttttk',
+        '..ktttttttttttccccck',
+        '.ktttttttttttcccccpk',
+        'ktttttttttttttccccck',
+        'kTttttttttttTTkwkwk.',
+        '.kTTtttttttTTk.w.w..',
+        '..kTTTkkTTkkTk......',
+        '..kTTk...kTTk.......',
+        '...kk.....kk........'
+      ]
+    ]
+  },
+  jelly: {
+    w: 16,
+    h: 14,
+    frames: [
+      [
+        '................',
+        '.....kkkkk......',
+        '....kpppppk.....',
+        '...kpwwppppk....',
+        '..kpwwppppppk...',
+        '..kpppppppppk...',
+        '..kppkppkpppk...',
+        '..kvvvvvvvvvk...',
+        '...kvkvkvkvk....',
+        '...kv.vk.v.k....',
+        '....kvk.kvk.....',
+        '.....vk.kv......',
+        '.....k...k......',
+        '................'
+      ],
+      [
+        '................',
+        '................',
+        '......kkkk......',
+        '....kkppppkk....',
+        '...kpwwpppppk...',
+        '..kpwwpppppppk..',
+        '..kppkppkppppk..',
+        '.kvvvvvvvvvvvvk.',
+        '..kkvkkvvkkvkk..',
+        '...kv.kvkv.kk...',
+        '...kvk.kv.kvk...',
+        '..kvk..kv..kvk..',
+        '..kk...kk...kk..',
+        '................'
+      ]
+    ]
+  },
+  landshark: {
+    w: 26,
+    h: 12,
+    frames: [
+      [
+        '..........................',
+        '.............kk...........',
+        '............kSSk..........',
+        '...........kSSSk..........',
+        'kk......kkkkSSSSkkkkkk....',
+        'kSk..kkkSSSSSSSSSSSSSSkk..',
+        '.kSkkSSSSSSSSSSSSSSSSkwSkk',
+        '.kSSSSSSSSSSSSSSSSSSSSSSSk',
+        'kSSkwwwwwwwwwwwwwwwwkwkwkk',
+        'kk..kwwwwwwwwwwwwwwwwkwk..',
+        '.....kSkkkkkkkSkkkkkkk....',
+        '.....kGk.....kGk..........'
+      ],
+      [
+        '..........................',
+        '.............kk...........',
+        '............kSSk..........',
+        '...........kSSSk..........',
+        '.kk.....kkkkSSSSkkkkkk....',
+        '.kSk.kkkSSSSSSSSSSSSSSkk..',
+        '..kSkSSSSSSSSSSSSSSSSkwSkk',
+        '.kSSSSSSSSSSSSSSSSSSSSSSSk',
+        'kSSkwwwwwwwwwwwwwwwwkwkwkk',
+        '.kk.kwwwwwwwwwwwwwwwwkwk..',
+        '......kSkkkkkSkkkkkkkk....',
+        '......kGk...kGk...........'
       ]
     ]
   }

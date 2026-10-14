@@ -3,7 +3,7 @@ import type { RelicId } from '../relics';
 import type { ShrineKind } from '../shrines';
 
 /** 遺物（12 ドット）。地面でも図鑑でも同じ絵。黒曜石のかけらだけ、色の表に無い黒を pal で足す */
-export const RELIC_ART: Record<RelicId, Art> = {
+export const RELIC_ART: Record<RelicId | 'conch' | 'pearl', Art> = {
   map: {
     w: 12,
     h: 12,
@@ -164,6 +164,46 @@ export const RELIC_ART: Record<RelicId, Art> = {
       ]
     ],
     pal: { a: '#3b3537', A: '#24201f' }
+  },
+  conch: {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '....k.......',
+        '...kwk......',
+        '...kcck.....',
+        '..kbbbbk....',
+        '..kwcccck...',
+        '.kbbbbbbk...',
+        '.kwcccccck..',
+        'kbbbbbbbbk..',
+        'kcccccppppk.',
+        'kccccpwwppk.',
+        '.kbbbkpppk..',
+        '..kkkkkkk...'
+      ]
+    ]
+  },
+  pearl: {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '............',
+        '....kkkk....',
+        '...kwwiik...',
+        '..kwwiiiIk..',
+        '..kiiiiiIk..',
+        '..kiiiiIIk..',
+        'kpkkIIIIkkpk',
+        'kppkkkkkkppk',
+        '.kpprpprppk.',
+        '..kpprrppk..',
+        '...kkkkkk...',
+        '............'
+      ]
+    ]
   }
 };
 

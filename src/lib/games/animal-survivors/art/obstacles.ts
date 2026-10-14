@@ -2,7 +2,7 @@ import type { Art } from '../pixels';
 import type { ObstacleId } from '../obstacles';
 
 /** 障害物の絵。黒い溶岩の岩と湯気の出る岩だけは、色の表に無い黒と赤茶を pal で足す */
-export const OBSTACLE_ART: Record<ObstacleId, Art> = {
+export const OBSTACLE_ART: Record<ObstacleId | 'reef' | 'boat', Art> = {
   boulder: {
     w: 42,
     h: 32,
@@ -386,5 +386,79 @@ export const OBSTACLE_ART: Record<ObstacleId, Art> = {
       ]
     ],
     pal: { A: '#24201f', e: '#7c5a50', E: '#4c3530', f: '#a8857a' }
+  },
+  reef: {
+    w: 42,
+    h: 32,
+    frames: [
+      [
+        '..........................................',
+        '..........................................',
+        '............................kk............',
+        '...........................kGGk...........',
+        '..........................kGGGk...........',
+        '........................kkGGGGk...........',
+        '.......................kGGGGGGk...........',
+        '..........kk.........kkGGGGGGGkkk.........',
+        '.........kGGk.......kGGGGGGGGGGGGk........',
+        '.........kGGk......kGGgggggGGGGGGGk.......',
+        '........kGGGk.....kGgggggggggGGGGGGk......',
+        '.......kGGGGGkk..kGGgggggggggGGGGGGGk.....',
+        '.......kGGGGGGGkkkGGgggggggggGGGGGGGk.....',
+        '......kGGGGGGGGGGkGGggggwsgggGGGGGGGGk....',
+        '.....kGggggggGGGGGkkkGGgssGGGGGGGGkkGk....',
+        '....kGggggggggGGGGkGGkGGGGGGGGGGGkGGkk....',
+        '....kGggggggggGGGkGGGkGGGGGGGGwskGGGkk....',
+        '...kGGGGggggGGGGkGGGGkGGGGGGGGssGGGGkk....',
+        '...kGGGGGGwsGGGkGGGGGkkkGGGGGGkGGGGGkk....',
+        '...knGGGGGssGGkGGGGGGGGGkkGGGkGGGGGGGGk...',
+        '...kLGGGGGGGGkGgggggggGGGGkGkGgggggGGGGk..',
+        '....knGGGGGGkGGggggggGGGGGGkGGgggggGwsGGk.',
+        '....kLnGGGGGkGGGGGwsGGGGGGGkGGGGGGGGssGGk.',
+        '.....knnnGGGknGGGGssGGGGGGnknGGGGGGGGGGnk.',
+        '......kLLnnnkLnnGGGGGGGGnnLkLnGGGGGGGGnnk.',
+        '....JJJkknLLnkLnnnnnnnnnnLkkkLnnnnnnnnLk..',
+        '..JJJjjjjkkkkkkkLLnLLnLLkkjjjknLLnLLnLkJ..',
+        '.JJJwwjwjjjjjjjjkkkkkkkkjjjjjjkkkkkkkkJJJ.',
+        '..JJJjjjjjjjjjjjjjjjjjjjjjjjjjjjjwjwwJJJ..',
+        '....JJJJJJjjjjjjjjjjjjjjjjjjjjjjJJJJJJ....',
+        '........JJJJJJJJJJJJJJJJJJJJJJJJJJ........',
+        '..........................................'
+      ]
+    ]
+  },
+  boat: {
+    w: 48,
+    h: 26,
+    frames: [
+      [
+        '................................................',
+        '...........................kk...................',
+        '..........................kck...................',
+        '.........................kck....................',
+        '........................kck.....................',
+        '.......................kck......................',
+        '......................kck.......................',
+        '..........kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk....',
+        '........kkttBBBBBBBBBBBBBBBBBBkkkkkBBtttttttkk..',
+        '.....kkkttBBBBBBBBBkkkkkkBBBBBkccckBBBBBBttttTk.',
+        '...kkTtttBBBBBBBBBBkcccckBBBBBktttkBBBBBBBtttTTk',
+        '..kTTttBBBBBBBBBBBBkttttkBBBBBBBBBBBBBBBBttttTTk',
+        '..kTTttttBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBttttttTTk',
+        '..kTTTttttttBBBBBBBBBBBBBBBBBBBBBBBBttttttttTTTk',
+        '..kMTTTTtttttttttttttttttttttttttttttttttTTTTTTk',
+        '...kTTTTTTtttttttttttttttttttttttttttttTTTTTTTMk',
+        '...kMTTTTTTTTTTTMTTTTTTTTMTTTTTTTMTTTTTTTTTTMMk.',
+        '....kTTTTTrrrrrrrrrrrrrrrrrrrrrrrrrrrrrTTTTMkk..',
+        '....kMTTTTTTTTTTMTTTTTTTTMTTTTTTTMTTTTTTTMMk....',
+        '.....kMTTTTTTTTTMTTTTTTTTMTTTTTTTMTTTTTTMkk.....',
+        '......kMMTTTTTTTMTTTTTTTTMTTTTTTTMTTTTMMk.......',
+        '.......kkMMMMMMMMMMMMMMMMMMMMMMMMMMMMMkk........',
+        '.........kkkkkkkkkkkkkkkkkkkkkkkkkkkkk..........',
+        '................................................',
+        '................................................',
+        '................................................'
+      ]
+    ]
   }
 };

@@ -10,6 +10,8 @@ import { MENU_ART } from './art/menu';
 import { GRAVE_ART } from './art/graveyard';
 import { ITEM_ART } from './art/items';
 import { SNOW_ART } from './art/snow';
+import { COAST_ART } from './art/coast';
+import { inkArt, shallowArt } from './art/shallows';
 import { OBSTACLE_ART } from './art/obstacles';
 import { RELIC_ART, SHRINE_ART } from './art/explore';
 import { goldArt, itemArt } from './art/evolved';
@@ -36,14 +38,21 @@ const all: [string, Art][] = [
   ['snow.grass', SNOW_ART.grass],
   ['snow.dirt', SNOW_ART.dirt],
   ...Object.entries(SNOW_ART.decor),
+  ['coast.grass', COAST_ART.grass],
+  ['coast.dirt', COAST_ART.dirt],
+  ...Object.entries(COAST_ART.decor),
+  ['shallow.0', shallowArt(12, 0)],
+  ['shallow.1', shallowArt(12, 1)],
+  ['shallow.2', shallowArt(20, 2)],
+  ['ink', inkArt(12)],
   ...Object.entries(OBSTACLE_ART),
   ...Object.entries(RELIC_ART),
   ...Object.entries(SHRINE_ART)
 ];
 
 describe('ドット絵の格子', () => {
-  it('遺物 8 つと祠 5 つの絵がある', () => {
-    expect(Object.keys(RELIC_ART)).toHaveLength(8);
+  it('遺物 10 個と祠 5 つの絵がある', () => {
+    expect(Object.keys(RELIC_ART)).toHaveLength(10);
     expect(Object.keys(SHRINE_ART)).toHaveLength(5);
   });
 
@@ -52,8 +61,8 @@ describe('ドット絵の格子', () => {
       expect(ITEM_ART[`weapon-${id}`]).toBeDefined();
   });
 
-  it('障害物の絵は 8 枚で、湯気の出る岩だけ 2 コマ', () => {
-    expect(Object.keys(OBSTACLE_ART)).toHaveLength(8);
+  it('障害物の絵は 10 枚で、湯気の出る岩だけ 2 コマ', () => {
+    expect(Object.keys(OBSTACLE_ART)).toHaveLength(10);
     for (const [id, a] of Object.entries(OBSTACLE_ART)) expect(a.frames).toHaveLength(id === 'steamRock' ? 2 : 1);
   });
 
@@ -164,7 +173,7 @@ describe('ドット絵の格子', () => {
     expect(ITEM_ART.seed).toBeDefined();
   });
 
-  it('10 匹ぶんの絵がある', () => {
+  it('11 匹ぶんの絵がある', () => {
     expect(Object.keys(ANIMAL_ART).sort()).toEqual([
       'bear',
       'cat',
@@ -172,6 +181,7 @@ describe('ドット絵の格子', () => {
       'dog',
       'drake',
       'fox',
+      'otter',
       'panda',
       'rabbit',
       'tiger',
