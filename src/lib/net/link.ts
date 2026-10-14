@@ -1,3 +1,4 @@
+import { remember } from '$lib/last-error';
 import type { Player } from '$lib/player';
 
 /**
@@ -15,6 +16,10 @@ export type Message = { t: string } & Record<string, unknown>;
 const OFFER = 'O:';
 const ANSWER = 'A:';
 const OPEN_MS = 15000;
+/** 1 通の上限が分からないときの値で、上限の上限。Chrome は接続のときに 256KiB と伝え、Firefox は Infinity を返すので、これを超えない */
+const MAX_BYTES = 256 * 1024;
+/** 上限を超える知らせを分けたものの印。古い版の端末は知らない知らせとして読み飛ばすが、分けるのは今は送れない大きさの知らせだけ */
+const PART = '~part';
 
 export const isOffer = (text: string) => text.startsWith(OFFER);
 export const isAnswer = (text: string) => text.startsWith(ANSWER);
@@ -25,13 +30,21 @@ export class Link {
   readonly #listeners = new Set<(message: Message) => void>();
   /** つながった直後に届いた知らせ。受け取る側の部品ができる前に来ても落とさないよう、最初の聞き手が付くまでためる */
   readonly #queue: Message[] = [];
+  #parts: string[] = [];
   readonly closed: Promise<void>;
 
   constructor(pc: RTCPeerConnection, channel: RTCDataChannel) {
     this.#pc = pc;
     this.#channel = channel;
     channel.onmessage = (event) => {
-      const message = JSON.parse(event.data) as Message;
+      let message = JSON.parse(event.data) as Message;
+      if (message.t === PART) {
+        if (message.i === 0) this.#parts = [];
+        this.#parts.push(String(message.s));
+        if (this.#parts.length < Number(message.n)) return;
+        message = JSON.parse(this.#parts.join('')) as Message;
+        this.#parts = [];
+      }
       if (!this.#listeners.size) this.#queue.push(message);
       for (const listener of this.#listeners) listener(message);
     };
@@ -45,7 +58,17 @@ export class Link {
   }
 
   send(message: Message): void {
-    if (this.#channel.readyState === 'open') this.#channel.send(JSON.stringify(message));
+    if (this.#channel.readyState !== 'open') return;
+    const text = JSON.stringify(message);
+    const max = Math.min(this.#pc.sctp?.maxMessageSize || MAX_BYTES, MAX_BYTES);
+    try {
+      // UTF-8 は 1 字 3 バイトまでなので、字数の 3 倍が上限以下なら測らずに 1 通で送る
+      if (text.length * 3 <= max || new TextEncoder().encode(text).byteLength <= max) this.#channel.send(text);
+      else for (const part of split(text, max)) this.#channel.send(part);
+    } catch (e) {
+      // 送れなかった 1 通のせいで、呼んだ側の残り（ほかの人への知らせ・迎えた子の番号を返すこと）まで止めない
+      remember(e instanceof Error ? e.message : String(e));
+    }
   }
 
   /** 戻り値で聞くのをやめる */
@@ -58,6 +81,15 @@ export class Link {
   close(): void {
     this.#pc.close();
   }
+}
+
+/** 包んだ JSON が 1 字 3 バイトでも上限に収まる字数で切る。切り口の片割れのサロゲートは \uXXXX になるので、少し余らせる */
+function split(text: string, max: number): string[] {
+  const size = Math.floor(max / 3) - 64;
+  const n = Math.ceil(text.length / size);
+  return Array.from({ length: n }, (_, i) =>
+    JSON.stringify({ t: PART, i, n, s: text.slice(i * size, (i + 1) * size) })
+  );
 }
 
 function opened(pc: RTCPeerConnection, channel: RTCDataChannel): Promise<Link> {
