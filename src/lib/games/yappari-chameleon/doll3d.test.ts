@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { layAtlas } from './atlas';
 import { buildDoll } from './doll';
-import { bakePose, makeDoll, PoseAnimator, restHit } from './doll3d';
-import { poseById } from './poses';
+import { bakePose, makeDoll, PoseAnimator, poseCenter, restHit } from './doll3d';
+import { POSES, poseById } from './poses';
 
 // 塗りの描き先は GPU に作るので、ここでは何もしない描画器で足りる
 const renderer = new Proxy({}, { get: () => () => ({}) }) as unknown as THREE.WebGLRenderer;
@@ -57,5 +57,23 @@ describe('bakePose', () => {
     const settled = poses.version;
     poses.step(1 / 60);
     expect(poses.version).toBe(settled);
+  });
+
+  it('poseCenter は、どのポーズでも焼き直した体の真ん中と同じ点を返す', () => {
+    const { r, poses } = rig();
+    for (const p of POSES) {
+      poses.snap(p);
+      const c = poseCenter(r).clone();
+      const baked = bakePose(r);
+      expect(c.x).toBeCloseTo(baked.x, 5);
+      expect(c.y).toBeCloseTo(baked.y, 5);
+      expect(c.z).toBeCloseTo(baked.z, 5);
+    }
+  });
+
+  it('poseCenter は同じ位置の角を 1 回しか曲げない（角の数の 4 分の 1 より少ない）', () => {
+    const { r } = rig();
+    expect(r.reps.length).toBeGreaterThan(0);
+    expect(r.reps.length).toBeLessThan(r.mesh.geometry.attributes.position.count / 4);
   });
 });

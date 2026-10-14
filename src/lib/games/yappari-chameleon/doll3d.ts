@@ -11,6 +11,8 @@ export interface DollRig {
   mesh: THREE.SkinnedMesh;
   /** 今のポーズに焼いた見えない体。塗る指の当たり判定と体の中心を、毎回骨で曲げ直さずに出す */
   pick: THREE.Mesh;
+  /** 体の面の頂点ごとに 1 つ選んだ角。角は面ごとに重なっているので、真ん中を出すにはこれだけ曲げれば足りる */
+  reps: Uint32Array;
   bones: Record<Bone, THREE.Bone>;
   paint: PaintSurface;
   material: THREE.MeshStandardMaterial;
@@ -30,6 +32,9 @@ export function makeDoll(renderer: THREE.WebGLRenderer, s: DollSurface, a: Atlas
     skinIndex.set(s.skinIndex.subarray(v * 4, v * 4 + 4), k * 4);
     skinWeight.set(s.skinWeight.subarray(v * 4, v * 4 + 4), k * 4);
   }
+  const first = new Int32Array(s.pos.length / 3).fill(-1);
+  for (let k = 0; k < n; k++) if (first[a.corner[k]] < 0) first[a.corner[k]] = k;
+  const reps = Uint32Array.from(first.filter((k) => k >= 0));
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geo.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
@@ -82,7 +87,7 @@ export function makeDoll(renderer: THREE.WebGLRenderer, s: DollSurface, a: Atlas
   const pick = new THREE.Mesh(pickGeo, material);
   pick.visible = false;
   root.add(pick);
-  return { root, mesh, pick, bones, paint, material };
+  return { root, mesh, pick, reps, bones, paint, material };
 }
 
 /** pick を今のポーズの形に焼き直し、メッシュの座標での体の真ん中を返す */
@@ -100,6 +105,15 @@ export function bakePose(rig: DollRig): THREE.Vector3 {
   rig.pick.geometry.computeBoundingBox();
   rig.pick.geometry.computeBoundingSphere();
   return rig.pick.geometry.boundingSphere!.center;
+}
+
+/** 今のポーズの体の真ん中（メッシュの座標）。bakePose と同じ点を、頂点ごとに 1 つの角だけ曲げて出す */
+export function poseCenter(rig: DollRig): THREE.Vector3 {
+  rig.root.updateMatrixWorld(true);
+  const box = new THREE.Box3();
+  const v = new THREE.Vector3();
+  for (const i of rig.reps) box.expandByPoint(rig.mesh.getVertexPosition(i, v));
+  return box.getCenter(new THREE.Vector3());
 }
 
 export function restHit(rig: DollRig, hit: THREE.Intersection): Hit | null {
