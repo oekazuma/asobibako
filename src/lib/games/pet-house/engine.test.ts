@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   addPhoto,
   adopt,
+  ALLOWANCE,
   bathe,
   BROKEN_KEY,
   brush,
@@ -413,5 +414,31 @@ describe('うちに来た日', () => {
     expect(daysTogether(pet, now)).toBe(1);
     pet.since = day(now - 3 * 24 * HOUR);
     expect(daysTogether(pet, now)).toBe(4);
+  });
+
+  it('時計を前の日へ戻しても、おこづかいは出ない', () => {
+    const { save } = withPet();
+    expect(catchUp(save, NOW + 48 * HOUR).allowance).toBeGreaterThan(0);
+    const money = save.money;
+    expect(catchUp(save, NOW + 24 * HOUR).allowance).toBe(0);
+    expect(save.money).toBe(money);
+  });
+
+  it('時計を 1 日進めて戻してまた進めても、おこづかいは 1 回だけ', () => {
+    const { save } = withPet();
+    const money = save.money;
+    catchUp(save, NOW + 24 * HOUR);
+    catchUp(save, NOW);
+    catchUp(save, NOW + 24 * HOUR);
+    expect(save.money).toBe(money + ALLOWANCE);
+  });
+
+  it('払った日が大きく先の日付になっていたら、払わず今日へ下ろし、次の日からは払う', () => {
+    const { save } = withPet();
+    const at = NOW + 24 * HOUR;
+    save.allowanceDay = day(at + 30 * 24 * HOUR);
+    expect(catchUp(save, at).allowance).toBe(0);
+    expect(save.allowanceDay).toBe(day(at));
+    expect(catchUp(save, at + 24 * HOUR).allowance).toBeGreaterThan(0);
   });
 });

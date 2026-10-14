@@ -290,6 +290,9 @@ export function writePhotos(save: Save): boolean {
   return false;
 }
 
+/** 払った日がこれより先なら、時計の狂いとみてやり直す日数 */
+const CLOCK_BACK_DAYS = 7;
+
 /** 閉じていたあいだの減りとおこづかい。開いたときと画面が前面に戻ったときに呼ぶ */
 export function catchUp(save: Save, now: number): { allowance: number } {
   const hours = Math.max(0, now - save.seen) / 1000 / HOUR;
@@ -302,7 +305,12 @@ export function catchUp(save: Save, now: number): { allowance: number } {
   }
   save.seen = now;
   const today = day(now);
-  if (save.allowanceDay === today) return { allowance: 0 };
+  if (today <= save.allowanceDay) {
+    // 時計を戻して払わない。先の日付は残して、時計を行き来させても 1 日に 2 回払わない。ただし大きく先なら前の時計が
+    // 狂っていたとみて今日へ下ろす（読めない日付は差が NaN になるので同じく下ろす）
+    if (!(Date.parse(save.allowanceDay) - Date.parse(today) <= CLOCK_BACK_DAYS * 86_400_000)) save.allowanceDay = today;
+    return { allowance: 0 };
+  }
   save.allowanceDay = today;
   save.money += ALLOWANCE;
   count(save, 'days');
