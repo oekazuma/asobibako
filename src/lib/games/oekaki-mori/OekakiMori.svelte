@@ -131,6 +131,7 @@
     {#if party.host}<Invite
         away={party.away}
         looks={party.looks}
+        wait={round.wait}
         onlink={async (link) => party?.add(link)}
         bind:open={inviting}
       />{/if}

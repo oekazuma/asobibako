@@ -26,6 +26,8 @@ export class Round {
   typing = $state.raw<Record<number, string>>({});
   stamps = $state.raw<{ key: number; seat: Seat; id: string }[]>([]);
   close = $state(false);
+  /** 2 人で遊んでいて 1 人が切れたとき、遊びを終えるまでの残り秒。親の「よびなおす」の帯に出す */
+  wait = $state(0);
   /** いまの番に外れた答え。答えを見せるときに絵と一緒に残す */
   #misses: Miss[] = [];
   #key = 0;
@@ -33,6 +35,7 @@ export class Round {
   /** つなぎ直すとき。前のつながりの見え方が残ると、番が変わったとみなして送り直された絵を消してしまう */
   reset() {
     this.view = null;
+    this.wait = 0;
     this.strokes = [];
     this.gallery = [];
     this.typing = {};
@@ -45,12 +48,14 @@ export class Round {
     if (m.t === 'screen') {
       this.screen = m.screen as Screen;
       this.view = null;
+      this.wait = 0;
       this.strokes = [];
       this.gallery = [];
       // 1 人が抜けて終わった遊びは番が進まないので、ここで消さないと次の遊びの最初の絵に混ざる
       this.typing = {};
       this.#misses = [];
     } else if (m.t === 'view') this.#show(m.view as View);
+    else if (m.t === 'relayView') this.wait = Number(m.wait) || 0;
     else if (m.t === 'ink' && isInk(m.ink)) this.strokes = apply(this.strokes, m.ink);
     else if (m.t === 'sync') {
       this.strokes = m.strokes as Stroke[];
@@ -103,6 +108,7 @@ export class Round {
       sounds.tick(next.left <= HIGH_FROM);
     if (prev && next.solved.length > prev.solved.length) sounds.right();
     if (prev && next.buzzer !== null && next.buzzer !== prev.buzzer) sounds.buzz();
+    this.wait = next.wait ?? 0;
     this.view = next;
     this.screen = next.phase === 'done' ? 'result' : 'play';
   }
