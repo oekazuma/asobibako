@@ -708,7 +708,7 @@ export function spawnEvents(w: World): void {
   }
 }
 
-function moveEnemy(w: World, i: number, dt: number) {
+function moveEnemy(w: World, i: number, dt: number, decay: number) {
   const e = w.enemies[i];
   if (e.def.part) {
     // 節は大ヘビの頭が動かす
@@ -807,7 +807,6 @@ function moveEnemy(w: World, i: number, dt: number) {
     vx = vy = 0;
     e.kx = e.ky = 0;
   }
-  const decay = Math.pow(1e-4, dt);
   e.x += (vx + e.kx) * dt;
   e.y += (vy + e.ky) * dt;
   e.kx *= decay;
@@ -1041,12 +1040,13 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
 
   const far = Math.hypot(w.view.w, w.view.h) * 0.9;
   w.grid.clear();
+  const decay = Math.pow(1e-4, dt);
   w.enemies.forEach((e, i) => {
     if (!e.alive) return;
     // 敵の動き（ボスの攻撃も）は w.player を狙うので、近いほうの動物を cur にしてから動かす
     w.cur = nearestHero(w, e.x, e.y);
     const q = w.player;
-    moveEnemy(w, i, dt);
+    moveEnemy(w, i, dt, decay);
     if (e.def.prop && (e.x - q.x) ** 2 + (e.y - q.y) ** 2 > far * far) {
       e.alive = false;
       return;

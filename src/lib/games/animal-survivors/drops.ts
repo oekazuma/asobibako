@@ -170,25 +170,27 @@ export function dropGem(w: World, x: number, y: number, value: number): void {
   pushOut(w.stage.art, at, 4);
   ({ x, y } = at);
   let count = 0;
-  let far: Gem | undefined;
-  let fd = -1;
   let free: Gem | undefined;
-  const p = w.player;
   for (const g of w.gems) {
-    if (!g.alive) {
-      free ??= g;
-      continue;
-    }
-    count++;
-    const d = (g.x - p.x) ** 2 + (g.y - p.y) ** 2;
-    if (d > fd) {
-      fd = d;
-      far = g;
-    }
+    if (!g.alive) free ??= g;
+    else count++;
   }
-  if (count >= MAX_GEMS && far) {
-    far.value += value;
-    return;
+  if (count >= MAX_GEMS) {
+    let far: Gem | undefined;
+    let fd = -1;
+    const p = w.player;
+    for (const g of w.gems) {
+      if (!g.alive) continue;
+      const d = (g.x - p.x) ** 2 + (g.y - p.y) ** 2;
+      if (d > fd) {
+        fd = d;
+        far = g;
+      }
+    }
+    if (far) {
+      far.value += value;
+      return;
+    }
   }
   const g = free ?? (w.gems[w.gems.length] = { alive: false, x: 0, y: 0, value: 0, pulled: false });
   Object.assign(g, { alive: true, x, y, value, pulled: false });

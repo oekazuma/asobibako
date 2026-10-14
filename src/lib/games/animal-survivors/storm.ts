@@ -34,7 +34,8 @@ export function stepStorm(w: World, dt: number): void {
 
 /** 動く向きが風と近いほど速く、逆なら遅くする倍率 */
 export function windFactor(w: World, vx: number, vy: number): number {
+  if (w.storm.left <= 0) return 1;
   const sp = Math.hypot(vx, vy);
-  if (w.storm.left <= 0 || sp === 0) return 1;
+  if (sp === 0) return 1;
   return 1 + (STORM_WIND * (vx * w.storm.wx + vy * w.storm.wy)) / sp;
 }
