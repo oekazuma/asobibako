@@ -102,9 +102,10 @@ async function describe(pc: RTCPeerConnection, prefix: string): Promise<string> 
 
 /**
  * 親になる。code を QR で見せ、子の QR を accept に渡すとつながる。
- * Safari と Chrome は、カメラの許可がないページでは自分の LAN のアドレスを伏せる（mDNS 名にする）ので、先にカメラを開いてから呼ぶ
+ * Safari と Chrome は、カメラの許可がないページでは自分の LAN のアドレスを伏せる（mDNS 名にする）ので、先にカメラを開いてから呼ぶ。
+ * close はつながる前にやめるときに呼ぶ。Link を受け取ったあとは Link.close で閉じる
  */
-export async function host(): Promise<{ code: string; accept: (answer: string) => Promise<Link> }> {
+export async function host(): Promise<{ code: string; accept: (answer: string) => Promise<Link>; close: () => void }> {
   const pc = new RTCPeerConnection({ iceServers: [] });
   // offer を作る前に開かないと、SDP にデータ用の行が入らない
   const channel = pc.createDataChannel('game');
@@ -114,19 +115,23 @@ export async function host(): Promise<{ code: string; accept: (answer: string) =
     accept: async (answer) => {
       await pc.setRemoteDescription({ type: 'answer', sdp: await unpack(answer.slice(ANSWER.length)) });
       return opened(pc, channel);
-    }
+    },
+    close: () => pc.close()
   };
 }
 
-/** 子になる。親の QR を渡し、返ってきた code を親に見せる。link は親が読み取るとつながる */
-export async function join(offer: string): Promise<{ code: string; link: Promise<Link> }> {
+/**
+ * 子になる。親の QR を渡し、返ってきた code を親に見せる。link は親が読み取るとつながる。
+ * close はつながる前にやめるときに呼ぶ。Link を受け取ったあとは Link.close で閉じる
+ */
+export async function join(offer: string): Promise<{ code: string; link: Promise<Link>; close: () => void }> {
   const pc = new RTCPeerConnection({ iceServers: [] });
   const channel = new Promise<RTCDataChannel>((resolve) =>
     pc.addEventListener('datachannel', (event) => resolve(event.channel), { once: true })
   );
   await pc.setRemoteDescription({ type: 'offer', sdp: await unpack(offer.slice(OFFER.length)) });
   await pc.setLocalDescription();
-  return { code: await describe(pc, ANSWER), link: channel.then((c) => opened(pc, c)) };
+  return { code: await describe(pc, ANSWER), link: channel.then((c) => opened(pc, c)), close: () => pc.close() };
 }
 
 /** SDP は QR に入れるには長いので、縮めて base64url にする（QR が細かいほど画面越しに読みにくい） */
