@@ -33,7 +33,6 @@
   function joined(next: Party) {
     round.reset();
     note = '';
-    was = undefined;
     party = next;
     next.onTell((m) => round.receive(m));
     if (next.host)
@@ -77,7 +76,8 @@
   $effect(() => {
     if (!party?.lost) return;
     // 版ちがいで切られた子は、同じ番号で戻っても遊べないので、もういちど つなぐ を出さない
-    was = party.mismatch ? undefined : party.me;
+    // me が 1 のままなら席をもらう前に切れたので、前の番号を覚えたままにする（子の番号は 2 か 3）
+    was = party.mismatch ? undefined : party.me === 1 ? was : party.me;
     note = party.mismatch ? MISMATCH : 'つながりが きれました';
     party = null;
     round.screen = 'lobby';

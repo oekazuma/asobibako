@@ -1,7 +1,7 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Message } from '$lib/net/link';
-import type { Party } from '$lib/net/party.svelte';
+import type { Party, Seat } from '$lib/net/party.svelte';
 import OekakiMori from './OekakiMori.svelte';
 import { lobby } from './test/lobby-hold';
 
@@ -38,6 +38,24 @@ function guest() {
     flushSync();
   };
   return { party, tell };
+}
+
+/** 切れたことをテストから起こせる子の Party。me は親から seat が届くまで 1 */
+function linked(me: Seat) {
+  const party = $state({
+    host: false,
+    me,
+    members: [1, me],
+    lost: false,
+    mismatch: false,
+    away: [] as Seat[],
+    looks: {},
+    onTell: () => () => {},
+    onAct: () => () => {},
+    act: () => {},
+    close: () => {}
+  });
+  return party;
 }
 
 const view = (turn: number) => ({
@@ -99,6 +117,24 @@ describe('OekakiMori', () => {
     after.tell({ t: 'sync', strokes: [{ color: '#000', size: 0.01, pts: [0, 0] }] });
     after.tell({ t: 'view', view: view(2) });
     expect(target.querySelector('.stub-strokes')?.textContent).toBe('1');
+    unmount(app);
+  });
+
+  // 子の me は seat が届くまで 1 のまま。それを覚えると、次のつなぎ直しで前の番号に戻れない
+  it('席をもらう前に切れたつなぎ直しでは、切れる前の番号を覚えたままにする', () => {
+    const { app } = show();
+    const seated = linked(2);
+    lobby.onparty!(seated as unknown as Party);
+    flushSync();
+    seated.lost = true;
+    flushSync();
+    expect(lobby.was).toBe(2);
+    const refused = linked(1);
+    lobby.onparty!(refused as unknown as Party);
+    flushSync();
+    refused.lost = true;
+    flushSync();
+    expect(lobby.was).toBe(2);
     unmount(app);
   });
 });
