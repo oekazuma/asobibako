@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { heroRun, recordRun } from './coop-run';
+import { heroRun, recordRun, runOf } from './coop-run';
 import { startOvertime } from './overtime';
 import { emptyRecords } from './records';
 import { addHero, createWorld, summary } from './world';
@@ -49,5 +49,24 @@ describe('協力プレイの記録', () => {
     addHero(w, 'cat');
     w.relicsNow.push('map');
     expect(heroRun(w, 1).part.relics).toEqual(['map']);
+  });
+
+  it('相手の端末から届いたまとめは、正しい形なら通し、欠けた数や知らない面は断る', () => {
+    const w = cleared();
+    const sent = () => JSON.parse(JSON.stringify(heroRun(w, 1)));
+    expect(runOf(sent())).not.toBeNull();
+    startOvertime(w);
+    w.over = 'dead';
+    expect(runOf(sent())).not.toBeNull();
+    const noCoins = sent();
+    delete noCoins.part.coins;
+    expect(runOf(noCoins)).toBeNull();
+    const text = sent();
+    text.full.kills = '9999';
+    expect(runOf(text)).toBeNull();
+    const proto = sent();
+    proto.part.stage = '__proto__';
+    expect(runOf(proto)).toBeNull();
+    expect(runOf(null)).toBeNull();
   });
 });

@@ -1,14 +1,14 @@
 import type { Message } from '$lib/net/link';
 import type { Party } from '$lib/net/party.svelte';
-import type { AnimalId } from './animals';
+import { ANIMALS, type AnimalId } from './animals';
 import type { AchievementDef } from './achievements';
 import { openChest, type Reward } from './chest';
-import { heroRun, recordRun, type HeroRun } from './coop-run';
-import { loadRecords, saveRecords } from './records';
+import { heroRun, recordRun, runOf, type HeroRun } from './coop-run';
+import { loadRecords, ranksOf, saveRecords } from './records';
 import { anyChest, anyPending } from './heroes';
 import { Prompts } from './prompts.svelte';
 import { apply, choices, isFiller, type Choice } from './choices';
-import type { GearKey } from './gear';
+import { keyOf, parseKey, type GearKey } from './gear';
 import { applySnap, COOP_VERSION, lerpSnap, makeSnap, type Snap } from './snap';
 import { Timeline } from '$lib/net/timeline';
 import { NEVER, pressLink } from './link';
@@ -68,6 +68,27 @@ interface Move {
   moving: boolean;
 }
 
+const fin = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+/** 子から届いた位置。数でない値が入ると、親の World の子の動物の座標と、届いた時刻の並び（Timeline）が壊れる */
+const isMove = (m: Message): m is Message & Move & { ms: number } =>
+  fin(m.ms) &&
+  fin(m.x) &&
+  fin(m.y) &&
+  fin(m.aimX) &&
+  fin(m.aimY) &&
+  (m.facing === 1 || m.facing === -1) &&
+  typeof m.moving === 'boolean';
+
+/** 子が選んだもの。知らない動物は断り、段と装備は保存を読むときと同じく知っているものだけにする */
+function meOf(m: Message): Me | null {
+  if (!ANIMALS.some((a) => a.id === m.animal)) return null;
+  const gear = (Array.isArray(m.gear) ? m.gear : []).flatMap((k) => {
+    const p = typeof k === 'string' ? parseKey(k) : null;
+    return p ? [keyOf(p.def.id, p.rarity)] : [];
+  });
+  return { animal: m.animal as AnimalId, ranks: ranksOf(m.ranks), gear };
+}
+
 /** 親の端末。World を進め、子の位置を受け取り、様子を送る */
 export type Pauser = 'host' | 'guest' | null;
 
@@ -100,12 +121,13 @@ export class CoopHost {
         version = m.v === COOP_VERSION;
         if (!version) party.tell(from, { t: 'coop-mismatch' });
       } else if (m.t === 'pick') {
-        if (!version) return;
-        this.guest = { animal: m.animal as AnimalId, ranks: m.ranks as Ranks, gear: m.gear as GearKey[] };
+        const me = meOf(m);
+        if (!version || !me) return;
+        this.guest = me;
         this.ready = true;
         party.tell(from, { t: 'picked' });
       } else if (m.t === 'move') {
-        if (!this.paused) this.#moves.push(m.ms as number, performance.now(), m as unknown as Move);
+        if (!this.paused && isMove(m)) this.#moves.push(m.ms, performance.now(), m);
       } else if (m.t === 'quit') {
         // 抜ける前に子のぶんを記録させる。決着したあと（延長戦を聞いているあいだ）は記録済みなので送らない
         const w = this.#w;
@@ -338,15 +360,17 @@ export class CoopGuest {
         this.result = this.#first = this.kept = null;
         this.done = false;
       } else if (m.t === 'record') {
-        if (this.done) return;
-        const out = store(m.run as HeroRun, this.#first);
+        const run = runOf(m.run);
+        if (this.done || !run) return;
+        const out = store(run, this.#first);
         this.kept = null;
         if (m.final) {
           this.result = out;
           this.done = true;
         } else this.#first = out;
       } else if (m.t === 'end') this.result = this.#first;
-      else if (m.t === 'keep') this.kept = m.run as HeroRun;
+      // 形の違うまとめは捨て、前に届いた正しいまとめを残す
+      else if (m.t === 'keep') this.kept = runOf(m.run) ?? this.kept;
       else if (m.t === 'pause') this.paused = m.by as Pauser;
       else if (m.t === 'resume') this.paused = null;
       else if (m.t === 'offer') this.prompts?.offer(m.options as Choice[], m.tools as Prompts['tools'], this.#finger);

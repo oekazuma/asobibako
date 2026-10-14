@@ -279,7 +279,7 @@ function overtimeOf(v: unknown): Record<string, number> {
 }
 
 /** 知らない品と数でない段は読み飛ばし、段は 0〜最大の整数にする */
-function ranksOf(v: unknown): Ranks {
+export function ranksOf(v: unknown): Ranks {
   const out: Ranks = {};
   if (!v || typeof v !== 'object') return out;
   for (const d of UPGRADES) {
