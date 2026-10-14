@@ -179,10 +179,10 @@ export function tick(
   if (s.chains.every((_, c) => s.done.includes(assignee(s, c, s.step)))) advance(s, rand, words);
 }
 
-/** 抜けた人のいまのこまは、描きかけの線のまま、答えはわからなかったとして埋める。1 人になったら、呼び直すのを待ってからふりかえりへ */
-export function leave(s: Relay, seat: Seat): void {
+/** 抜けた人のいまのこまは、描きかけの線のまま、答えは時間切れと同じく打ちかけの字（無ければわからなかった）で埋める。1 人になったら、呼び直すのを待ってからふりかえりへ */
+export function leave(s: Relay, seat: Seat, typed?: string): void {
   s.present = s.present.filter((p) => p !== seat);
-  if (s.phase === 'play' && chainOf(s, seat) >= 0 && !s.done.includes(seat)) s.done.push(seat);
+  finish(s, seat, typed);
   if (s.phase === 'play' && s.present.length < 2) s.wait = GRACE_S;
 }
 

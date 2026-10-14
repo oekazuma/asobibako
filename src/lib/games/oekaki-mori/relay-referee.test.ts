@@ -144,4 +144,20 @@ describe('RelayReferee', () => {
     frame(1);
     expect(of(told, 'relayView').at(-1)![1]).toMatchObject({ phase: 'play', wait: GRACE_S - 1 });
   });
+
+  // 当てる途中で切れた人の答えが消えると、次に描く人へ新しいお題が配られ、リレーがつながらない
+  it('当てる途中で抜けた人の打ちかけの字を、次に描く人へ渡す', () => {
+    frames.list = [];
+    const { party, told, act } = fakeParty([1, 2, 3]);
+    new RelayReferee(party).start('short', null);
+    for (const seat of [1, 2, 3]) act({ t: 'relayDone', step: 0 }, seat as Seat);
+    frame();
+    act({ t: 'typing', text: 'りん' }, 2);
+    act({ t: 'leave' }, 2);
+    act({ t: 'relayDone', step: 1, text: 'いぬ' }, 1);
+    act({ t: 'relayDone', step: 1, text: 'いぬ' }, 3);
+    frame();
+    const task = of(told, 'relayTask').find(([seat, m]) => seat === 3 && m.step === 2)!;
+    expect(task[1].task).toEqual({ kind: 'draw', word: 'りん' });
+  });
 });

@@ -155,4 +155,14 @@ describe('relay', () => {
     for (let i = 0; i < 5; i++) next(s);
     expect(s.phase).toBe('done');
   });
+
+  it('抜けた人の当てるこまは、時間切れと同じく打ちかけの字を答えにし、無ければわからなかったにする', () => {
+    const s = relay();
+    allDone(s);
+    leave(s, 2, 'りん');
+    leave(s, 3);
+    const guesses = s.chains.map((c) => c.entries.at(-1));
+    expect(guesses).toContainEqual({ kind: 'guess', by: 2, text: 'りん' });
+    expect(guesses).toContainEqual({ kind: 'guess', by: 3, text: null });
+  });
 });

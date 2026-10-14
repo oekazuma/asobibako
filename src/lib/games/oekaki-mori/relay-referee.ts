@@ -50,7 +50,7 @@ export class RelayReferee {
       if (Number(message.step) === s.step)
         finish(s, from, message.text === undefined ? undefined : String(message.text));
     } else if (message.t === 'relayNext' && from === 1) next(s);
-    else if (message.t === 'leave') leave(s, from);
+    else if (message.t === 'leave') leave(s, from, this.#typed[from]);
     else if (message.t === 'join') {
       rejoin(s, from);
       this.#catchUp(s, from);
