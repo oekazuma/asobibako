@@ -3,7 +3,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import type { V3 } from '$lib/sculpt';
 import type { RGB } from './color';
-import { bakePose, PoseAnimator, type DollRig } from './doll3d';
+import { bakePose, PoseAnimator, poseCenter, type DollRig } from './doll3d';
 import { cameraReach, settleDist, type Body, type DistState, type Level } from './move';
 import { brushModel, disposeModel, gunModel, inHand, MUZZLE } from './gun';
 import { blendK, DAY, SUN_COLOR, type Mood } from './mansion/moods';
@@ -84,6 +84,7 @@ export class World {
   #brush = brushModel();
   #gun = gunModel();
   #baked = -1;
+  #centered = -1;
   #center = new THREE.Vector3();
   #ease: DistState = { dist: 2.4, wait: 0 };
   #snap = false;
@@ -216,18 +217,21 @@ export class World {
     if (a) this.level = a(seed);
   }
 
-  /** 今のポーズの当たり用の体。骨が動いたときだけ焼き直す（焼くのに 8ms ほどかかる） */
+  /** 今のポーズの当たり用の体。骨が動いたときだけ焼き直す（焼くのに 8ms ほどかかるので、指で触れたときだけ） */
   #body(): THREE.Mesh {
     if (this.poses.version !== this.#baked) {
       this.#baked = this.poses.version;
-      this.#center.copy(bakePose(this.rig));
+      bakePose(this.rig);
     }
     return this.rig.pick;
   }
 
-  /** 体の真ん中（ペイントのカメラが回る中心）。ポーズで変わるので骨で曲げた形から出す */
+  /** 体の真ん中（ペイントのカメラが回る中心）。毎フレーム呼ばれるので、当たり用の体を焼かずに出す */
   dollCenter(): V3 {
-    this.#body();
+    if (this.poses.version !== this.#centered) {
+      this.#centered = this.poses.version;
+      this.#center.copy(poseCenter(this.rig));
+    }
     const c = this.#center.clone().applyMatrix4(this.rig.mesh.matrixWorld);
     return [c.x, c.y, c.z];
   }
