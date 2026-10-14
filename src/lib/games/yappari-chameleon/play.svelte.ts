@@ -322,13 +322,20 @@ export class Play {
     this.stick = { ...this.pad.stick };
   }
 
-  pointer(kind: 'down' | 'move' | 'up' | 'cancel', id: number, x: number, y: number, width: number): void {
+  pointer(
+    kind: 'down' | 'move' | 'up' | 'cancel',
+    id: number,
+    x: number,
+    y: number,
+    width: number,
+    primary = false
+  ): void {
     const now = performance.now();
     // 体の外に置いた指は塗らずにカメラを回す。スポイトは外でも離した所で色を取るので塗る道を通す。測るのは置いたときの 1 回だけ
     const orbit = kind === 'down' && this.mode === 'paint' && !this.spoit && !this.world.pickBody(x, y);
     const events =
       kind === 'down'
-        ? this.pad.down(id, x, y, width, now, orbit)
+        ? this.pad.down(id, x, y, width, now, orbit, primary)
         : kind === 'move'
           ? this.pad.move(id, x, y, now)
           : kind === 'cancel'

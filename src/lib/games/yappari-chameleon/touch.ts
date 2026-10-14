@@ -47,9 +47,21 @@ export class TouchPad {
     this.#orbit = { dx: 0, dy: 0, zoom: 1 };
   }
 
-  /** orbit は塗るモードで、指を置いた所が体の外のとき（その指は塗らずにカメラを回す） */
-  down(id: number, x: number, y: number, width: number, now: number, orbit = false): PaintEvent[] {
-    if (this.mode === 'paint') return this.#paintDown(id, x, y, now, orbit);
+  #forget(): PaintEvent[] {
+    const f = this.#painting === null ? undefined : this.#fingers.get(this.#painting);
+    this.#reset();
+    // 届かなかったのは離した知らせなので、描きかけは取り消さずに終える（取り消すと塗ったばかりの筆が消える）
+    return f ? [{ kind: 'end', x: f.x, y: f.y }] : [];
+  }
+
+  /**
+   * orbit は塗るモードで、指を置いた所が体の外のとき（その指は塗らずにカメラを回す）。
+   * primary はブラウザがほかに押している指は無いと知っているタッチ（PointerEvent.isPrimary）
+   */
+  down(id: number, x: number, y: number, width: number, now: number, orbit = false, primary = false): PaintEvent[] {
+    // iPad の Safari は離した指の pointerup を届けないことがある。ほかに押している指が無いなら、残っている指はもう離れている
+    const out = primary ? this.#forget() : [];
+    if (this.mode === 'paint') return [...out, ...this.#paintDown(id, x, y, now, orbit)];
     const right = x >= width * STICK_AREA;
     if (this.#stickId === null && !right) {
       this.#stickId = id;
@@ -60,7 +72,7 @@ export class TouchPad {
       this.#lookId = id;
       this.#lookAt = { x, y };
     }
-    return [];
+    return out;
   }
 
   move(id: number, x: number, y: number, now: number): PaintEvent[] {
