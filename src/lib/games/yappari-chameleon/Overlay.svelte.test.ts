@@ -188,6 +188,20 @@ describe('Overlay', () => {
     plain.done();
   });
 
+  it('人の試合の空いた席に CPU がいても、親には「よびなおす」を出す', () => {
+    const party = { host: true, members: [1, 3], away: [2], looks: { 3: 'cpu' } };
+    const mixed = show(
+      'hider',
+      { phase: 'lobby' },
+      1,
+      { party },
+      { crew: { mixed: true, play: vi.fn(), fillSeat: vi.fn() } }
+    );
+    expect(mixed.labels()).toContain('よびなおす');
+    expect(mixed.labels()).not.toContain('CPU の設定');
+    mixed.done();
+  });
+
   it('試合のあいだは体型を送らず、ロビーの様子が届くたびに覚えた体型を親へ送り直す', () => {
     localStorage.setItem(BODY_KEY, 'petit');
     const { session, done } = show('hider', { phase: 'search' }, 2);

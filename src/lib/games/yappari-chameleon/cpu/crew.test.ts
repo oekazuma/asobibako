@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Message } from '$lib/net/link';
 import { Party, type Seat } from '$lib/net/party.svelte';
 import { Host } from '../host';
+import { PODIUM } from '../mansion/lobby';
 import { levelOf, mansion, SPAWNS } from '../mansion/layout';
 import { DAB_LEN, unpackDabs, type Me } from '../net';
 import { bodyPoints } from '../oversight';
@@ -25,7 +26,7 @@ const fake: Senses = {
 };
 
 /** 親の端末。審判と CPU を同じ時計で 0.05 秒ずつ進め、プレイヤーの体を決め打ちで送る */
-function table() {
+function table(mixed = false) {
   const clock = { ms: 0 };
   const party = Party.host();
   const rand = rng(11);
@@ -35,7 +36,7 @@ function table() {
     () => clock.ms,
     rand
   );
-  const crew = new Crew(party, host, rand);
+  const crew = new Crew(party, host, rand, mixed);
   crew.useSenses(fake);
   const told: Message[] = [];
   party.onTell((m) => told.push(m));
@@ -370,5 +371,91 @@ describe('CPU との通しの試合', () => {
     const hide = table();
     await hide.crew.play(choice({ side: 'hide', count: 2, petit: true }), SET);
     expect(hide.host.match.bodies).toMatchObject({ 2: 'normal', 3: 'normal' });
+  });
+});
+
+describe('人の試合の空いた席の CPU', () => {
+  it('ロビーの台は使い続け、空いた席に CPU を 1 人座らせて外せる。外した席は切れた席にも CPU の名前にも残さない', async () => {
+    const t = table(true);
+    expect(t.host.podium).toBe(true);
+    const [a, b] = pipes();
+    Party.guest(b);
+    expect(await t.party.add(a)).toBe(2);
+    await t.crew.fillSeat('normal');
+    expect(t.party.members).toEqual([1, 2, 3]);
+    expect(t.party.looks[3]).toBe('cpu');
+    await t.crew.fillSeat('normal');
+    expect(t.crew.bots).toHaveLength(1);
+    await t.crew.fillSeat(null);
+    expect(t.party.members).toEqual([1, 2]);
+    expect(t.party.away).toEqual([]);
+    expect(t.party.looks[3]).toBeUndefined();
+  });
+
+  it('切れた人がいるあいだは CPU を足さず、戻った人は元の席に戻る', async () => {
+    const t = table(true);
+    const [a, b] = pipes();
+    Party.guest(b);
+    await t.party.add(a);
+    b.close();
+    await settle();
+    expect(t.party.away).toEqual([2]);
+    await t.crew.fillSeat('normal');
+    expect(t.crew.bots).toHaveLength(0);
+    expect(t.party.members).toEqual([1]);
+    const [a2, b2] = pipes();
+    Party.guest(b2, { was: 2 });
+    expect(await t.party.add(a2)).toBe(2);
+    await t.crew.fillSeat('normal');
+    expect(t.party.members).toEqual([1, 2, 3]);
+  });
+
+  it('CPU が座ったあとに人が切れても、戻った人は元の席に戻り、CPU は席を動かない', async () => {
+    const t = table(true);
+    const [a, b] = pipes();
+    Party.guest(b);
+    await t.party.add(a);
+    await t.crew.fillSeat('normal');
+    b.close();
+    await settle();
+    expect(t.party.away).toEqual([2]);
+    const [a2, b2] = pipes();
+    Party.guest(b2, { was: 2 });
+    expect(await t.party.add(a2)).toBe(2);
+    expect(t.party.members).toEqual([1, 2, 3]);
+    expect(t.party.looks[3]).toBe('cpu');
+  });
+
+  it('試合が始まったあとは足しも外しもしない', async () => {
+    const t = table(true);
+    await t.crew.fillSeat('normal');
+    t.host.start(SET);
+    await t.crew.fillSeat(null);
+    expect(t.crew.bots).toHaveLength(1);
+    expect(t.party.members).toEqual([1, 2]);
+  });
+
+  it('ふつうの始め方では台の希望でハンターを決め、隠れる役の CPU が塗って押す', async () => {
+    const t = table(true);
+    await t.crew.fillSeat('strong');
+    t.setPlayer({ pos: [PODIUM.at[0], PODIUM.h, PODIUM.at[2]] });
+    t.run(0.2);
+    expect(t.host.match.wishes).toEqual([1]);
+    t.host.start({ ...SET, mode: 'normal' });
+    expect(t.host.match.roles).toEqual({ 1: 'hunter', 2: 'hider' });
+    t.setPlayer(t.hunterMe);
+    t.run(INTRO + 0.1);
+    expect(t.until(() => t.host.match.ready.includes(2), SET.hide)).toBe(true);
+    expect(t.of('dabs', 2).length).toBeGreaterThan(0);
+  });
+
+  it('CPU の目の準備は、最初の CPU を座らせるときまで待つ', async () => {
+    const t = table(true);
+    const warm = vi.fn();
+    t.crew.useSenses(fake, warm);
+    await t.crew.fillSeat(null);
+    expect(warm).not.toHaveBeenCalled();
+    await t.crew.fillSeat('normal');
+    expect(warm).toHaveBeenCalledTimes(1);
   });
 });

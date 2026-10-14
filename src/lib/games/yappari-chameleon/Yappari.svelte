@@ -47,6 +47,13 @@
     return () => host === h && unhost();
   }
 
+  /** なかまを呼ぶ親。CPU の目は 3D ができたときに Crew へ渡るので、空いた席に CPU を足せるよう先に作っておく */
+  function hostParty(p: Party) {
+    const stop = hosting(p);
+    crew = new Crew(p, host!, Math.random, true);
+    return stop;
+  }
+
   /** CPU を席に着けてからつないだ画面へ移り、試合は 3D ができてから始める（Online が crew.go を呼ぶ） */
   async function cpu(choice: CpuChoice) {
     const p = Party.host();
@@ -101,6 +108,6 @@
   {:else if screen === 'online' && party}
     <Online {party} {host} {inbox} {crew} onleave={(text) => leave(text)} />
   {:else}
-    <Entry {note} {was} onhost={hosting} onparty={joined} onsolo={() => (screen = 'solo')} oncpu={cpu} />
+    <Entry {note} {was} onhost={hostParty} onparty={joined} onsolo={() => (screen = 'solo')} oncpu={cpu} />
   {/if}
 </main>

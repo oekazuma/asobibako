@@ -5,9 +5,17 @@
     settings = $bindable(),
     players,
     cpu = false,
+    nodouble = false,
     onstart,
     onclose
-  }: { settings: Settings; players: number; cpu?: boolean; onstart: () => void; onclose: () => void } = $props();
+  }: {
+    settings: Settings;
+    players: number;
+    cpu?: boolean;
+    nodouble?: boolean;
+    onstart: () => void;
+    onclose: () => void;
+  } = $props();
 
   const rows = [
     { key: 'hide', label: 'ハンター待機時間（秒）', step: 10, range: LIMITS.hide },
@@ -30,7 +38,9 @@
       <span class="pick">
         <button class:on={settings.mode === 'normal'} onclick={() => (settings.mode = 'normal')}>通常</button>
         <button class:on={settings.mode === 'infect'} onclick={() => (settings.mode = 'infect')}>増え鬼</button>
-        <button class:on={settings.mode === 'double'} onclick={() => (settings.mode = 'double')}>ダブル</button>
+        <button class:on={settings.mode === 'double'} disabled={nodouble} onclick={() => (settings.mode = 'double')}
+          >ダブル</button
+        >
       </span>
     </div>
     <!-- ダブルは全員が隠れて全員が探すので、ハンターの人数を使わない -->

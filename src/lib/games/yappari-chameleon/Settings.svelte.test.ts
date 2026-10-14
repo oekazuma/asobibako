@@ -50,3 +50,16 @@ describe('Settings', () => {
     }
   });
 });
+
+it('CPU が座っているあいだは、ダブルを押せない', () => {
+  const settings = $state<S>({ ...DEFAULTS });
+  const target = document.body.appendChild(document.createElement('div'));
+  const app = mount(Settings, {
+    target,
+    props: { settings, players: 3, nodouble: true, onstart: vi.fn(), onclose: vi.fn() }
+  });
+  flushSync();
+  const double = [...target.querySelectorAll('button')].find((b) => b.textContent === 'ダブル')!;
+  expect(double.disabled).toBe(true);
+  unmount(app);
+});

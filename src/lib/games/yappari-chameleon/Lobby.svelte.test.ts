@@ -212,3 +212,57 @@ describe('CPU と遊ぶのロビー', () => {
     done();
   });
 });
+
+describe('人の試合の空いた席の CPU のロビー', () => {
+  function showMixed(members = [1, 2], looks: Record<number, string> = {}, away: number[] = []) {
+    const fillSeat = vi.fn();
+    const start = vi.fn();
+    const session = {
+      party: { host: true, members, looks, away },
+      match: new Match(() => 1),
+      start,
+      allow: vi.fn(),
+      dress: vi.fn()
+    } as unknown as Session;
+    const target = document.body.appendChild(document.createElement('div'));
+    const crew = { mixed: true, fillSeat, play: vi.fn() } as unknown as Crew;
+    const app = mount(Lobby, { target, props: { session, crew, oninvite: vi.fn() } });
+    flushSync();
+    const button = (text: string) =>
+      [...target.querySelectorAll('button')].find((b) => b.textContent?.trim() === text) as
+        HTMLButtonElement | undefined;
+    return { target, fillSeat, start, button, done: () => unmount(app) };
+  }
+
+  it('なかまを呼ぶと並べて「CPU を足す」を出し、最後に選んだ強さで足す', () => {
+    localStorage.setItem(CPU_KEY, JSON.stringify({ strength: 'strong' }));
+    const { button, fillSeat, done } = showMixed();
+    expect(button('なかまを呼ぶ')).toBeDefined();
+    expect(button('CPU の設定')).toBeUndefined();
+    button('CPU を足す')!.click();
+    expect(fillSeat).toHaveBeenCalledWith('strong');
+    done();
+  });
+
+  it('CPU が座っていれば「CPU を外す」、切れた人がいるあいだは「CPU を足す」を押せない', () => {
+    const seated = showMixed([1, 2, 3], { 3: 'cpu' });
+    seated.button('CPU を外す')!.click();
+    expect(seated.fillSeat).toHaveBeenCalledWith(null);
+    expect(seated.button('CPU を足す')).toBeUndefined();
+    seated.done();
+    const away = showMixed([1], {}, [2]);
+    expect(away.button('CPU を足す')!.disabled).toBe(true);
+    away.done();
+  });
+
+  it('CPU が座っていても session.start で始め、保存がダブルなら増え鬼で始める', () => {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...DEFAULTS, mode: 'double' }));
+    const { button, start, done } = showMixed([1, 2, 3], { 3: 'cpu' });
+    button('マップの設定')!.click();
+    flushSync();
+    expect(button('ダブル')!.disabled).toBe(true);
+    button('ゲームを始める')!.click();
+    expect(start).toHaveBeenCalledWith(expect.objectContaining({ mode: 'infect' }));
+    done();
+  });
+});

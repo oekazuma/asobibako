@@ -12,16 +12,19 @@
   let settings = $state(readSettings());
   let choice = $state(readCpu());
   let body = $state(readBody());
+  // crew が人の試合の空いた席の CPU（mixed）なら、ロビーの台・なかまを呼ぶ・マップの設定は人の試合のまま使う
+  const solo = $derived(!!crew && !crew.mixed);
   const party = $derived(session.party);
+  const cpuSeat = $derived(crew?.mixed ? party.members.find((s) => party.looks[s] === 'cpu') : undefined);
   const allowed = $derived(session.match.view.settings.petit);
   const petit = $derived(allowed && body === 'petit');
   // CPU は始めるときに席へ着け直すので、着き終わる前でも CPU の席を数える
-  const players = $derived(crew ? choice.count + 1 : party.members.length);
+  const players = $derived(solo ? choice.count + 1 : party.members.length);
 
   // 親は選んでいる許可を、始める前から審判へ渡す（ロビーの体型のボタンと、選んだ体型の人形にすぐ効かせる）。
   // 親の審判は手元で回り、渡すとすぐ様子が戻って Match を書き換えるので、読み直しで回り直さないよう untrack で呼ぶ
   $effect(() => {
-    const on = crew ? choice.petit : settings.petit;
+    const on = solo ? choice.petit : settings.petit;
     if (party.host) untrack(() => session.allow(on));
   });
 
@@ -37,7 +40,9 @@
 
   /** CPU と遊ぶでは、マップの設定から始めても、ハンターとモードは CPU の設定の役で決める */
   function begin() {
-    if (crew) void crew.play($state.snapshot(choice), $state.snapshot(settings));
+    if (solo && crew) void crew.play($state.snapshot(choice), $state.snapshot(settings));
+    // CPU はダブルの残した体を探せないので、CPU が座っているあいだは増え鬼で始める
+    else if (cpuSeat && settings.mode === 'double') session.start({ ...settings, mode: 'infect' });
     else session.start(settings);
   }
 
@@ -58,10 +63,17 @@
   <p>{party.members.map((seat) => session.match.name(seat)).join('・')}（{party.members.length}/3人）</p>
   {#if party.host}
     <button onclick={() => (open = true)}>マップの設定</button>
-    {#if crew}
+    {#if solo}
       <button onclick={() => (picking = true)}>CPU の設定</button>
-    {:else if party.members.length < 3}
-      <button onclick={oninvite}>なかまを呼ぶ</button>
+    {:else}
+      {#if party.members.length < 3}<button onclick={oninvite}>なかまを呼ぶ</button>{/if}
+      {#if cpuSeat}
+        <button onclick={() => void crew?.fillSeat(null)}>CPU を外す</button>
+      {:else if crew?.mixed && party.members.length < 3}
+        <!-- 切れた人がいるあいだに足すと、戻る人の席を CPU が取る -->
+        <button disabled={party.away.length > 0} onclick={() => void crew?.fillSeat(choice.strength)}>CPU を足す</button
+        >
+      {/if}
     {/if}
   {:else}
     <p role="status">ホストが始めるのを待っています</p>
@@ -71,7 +83,7 @@
   >
 </div>
 {#if open}
-  <Settings bind:settings {players} cpu={!!crew} onstart={start} onclose={() => (open = false)} />
+  <Settings bind:settings {players} cpu={solo} nodouble={!!cpuSeat} onstart={start} onclose={() => (open = false)} />
 {/if}
 {#if picking}<CpuSetup bind:choice bind:body onstart={startCpu} onclose={() => (picking = false)} />{/if}
 

@@ -64,9 +64,8 @@
         s.dress(readBody());
         if (crew) {
           senses = new Senses3d(world, (seat) => s.rigOf(seat));
-          crew.useSenses(senses);
-          // 目の絵の shader を作る 1 秒ほどの止まりを、紹介の前に済ませる
-          senses.warm();
+          // 目の絵の shader を作る 1 秒ほどの止まりは、CPU が座るときに紹介の前へ済ませる
+          crew.useSenses(senses, () => senses?.warm());
           crew.go();
         }
         if (import.meta.env.DEV) {

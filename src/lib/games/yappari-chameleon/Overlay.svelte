@@ -89,8 +89,8 @@
 {#if session.buried}<EmbedWarning />{/if}
 {#if phase === 'reveal' && won}<Reveal text={won} />{/if}
 <button class="quit" onclick={ask} aria-label="抜ける">✕</button>
-<!-- CPU と遊ぶで人数を減らすと、閉じた CPU の席が切れた席として残るので、呼び直しを出さない -->
-{#if session.party.host && !crew}
+<!-- CPU と遊ぶ（1 台）は QR で人を迎えないので、呼び直しを出さない -->
+{#if session.party.host && !(crew && !crew.mixed)}
   <Invite away={session.party.away} bind:open={inviting} onlink={(link) => session.invite(link)} />
 {/if}
 {#if asking}
