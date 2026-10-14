@@ -136,4 +136,31 @@ describe('Referee', () => {
     act({ t: 'stamp', id: 'nope' }, 2);
     expect(told.filter(([, m]) => m.t === 'stamp')).toEqual([]);
   });
+
+  // 戻った子の帯は空から始まるので、打っている人が次の 1 字を打つまで ● が出ない
+  it('戻った人に、いまの番で打っている人の字を見せ方どおりに送り直す', () => {
+    const { party, told, act } = fakeParty([1, 2, 3]);
+    new Referee(party).start('egokoro');
+    act({ t: 'start' }, 1);
+    act({ t: 'typing', text: 'りん' }, 2);
+    act({ t: 'leave' }, 3);
+    told.length = 0;
+    act({ t: 'join' }, 3);
+    expect(told.filter(([seat, m]) => seat === 3 && m.t === 'typing')).toEqual([
+      [3, { t: 'typing', seat: 2, text: '●●' }]
+    ]);
+  });
+
+  // 50 音盤は番が替わると空の字を送らずに作り直されるので、前の番の打ちかけが残っている
+  it('前の番の打ちかけの字は、戻った人へ送らない', () => {
+    const { party, told, act } = fakeParty([1, 2, 3]);
+    new Referee(party).start('egokoro');
+    act({ t: 'start' }, 1);
+    act({ t: 'typing', text: 'り' }, 3);
+    act({ t: 'leave' }, 1);
+    act({ t: 'start' }, 2);
+    told.length = 0;
+    act({ t: 'join' }, 1);
+    expect(told.filter(([, m]) => m.t === 'typing')).toEqual([]);
+  });
 });

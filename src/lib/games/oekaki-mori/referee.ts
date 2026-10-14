@@ -35,6 +35,8 @@ export class Referee {
   #stop: (() => void)[] = [];
   readonly #now: () => number;
   #stamped = new Map<Seat, number>();
+  /** 当てる人ごとのいまの打っている字。50 音盤は番が替わっても空の字を送らないので、打った番も覚えて古い字を見分ける */
+  #typed = new Map<Seat, { turn: number; text: string }>();
 
   constructor(party: Party, now: () => number = () => performance.now()) {
     this.#party = party;
@@ -82,10 +84,15 @@ export class Referee {
       rejoin(s, from);
       // 戻った子の画面は何も持っていないので、前に送った見え方と同じでも送り直す
       this.#sent.delete(from);
+      // 打っている人の ● は字が変わるまで届かないので、いまの番の分を送り直す
+      if (s.phase === 'draw')
+        for (const [seat, typed] of this.#typed)
+          if (seat !== from && typed.turn === s.turn) this.#tellTyping(s, from, seat, typed.text);
     } else if (message.t === 'typing') return this.#typing(s, from, String(message.text));
     else if (message.t === 'stamp') return this.#stamp(s, from, String(message.id));
     else if (message.t === 'leave') {
       leave(s, from);
+      this.#typed.delete(from);
       // 打っている途中で切れた人の ● が、番の終わりまで残らないようにする
       for (const seat of this.#party.members)
         if (seat !== from) this.#party.tell(seat, { t: 'typing', seat: from, text: '' });
@@ -102,18 +109,18 @@ export class Referee {
     this.#party.tell('all', { t: 'stamp', seat: from, id });
   }
 
-  /**
-   * 描く人には打っている字をそのまま、ほかの当てる人には字数だけ見せる（字が見えると答えがばれる）。
-   * 空の字は、当てたあとや描く時間のあとでも配る。50 音盤は答えを送ってから空を知らせるので、捨てると ● が残る
-   */
+  /** 空の字は、当てたあとや描く時間のあとでも配る。50 音盤は答えを送ってから空を知らせるので、捨てると ● が残る */
   #typing(s: Quiz, from: Seat, text: string) {
     if (s.mode !== 'egokoro' || from === drawer(s)) return;
     if (text && (s.phase !== 'draw' || s.solved.includes(from))) return;
-    const hidden = '●'.repeat([...text].length);
-    for (const seat of this.#party.members) {
-      if (seat === from) continue;
-      this.#party.tell(seat, { t: 'typing', seat: from, text: seat === drawer(s) ? text : hidden });
-    }
+    if (text) this.#typed.set(from, { turn: s.turn, text });
+    else this.#typed.delete(from);
+    for (const seat of this.#party.members) if (seat !== from) this.#tellTyping(s, seat, from, text);
+  }
+
+  /** 描く人には打っている字をそのまま、ほかの当てる人には字数だけ見せる（字が見えると答えがばれる） */
+  #tellTyping(s: Quiz, to: Seat, from: Seat, text: string) {
+    this.#party.tell(to, { t: 'typing', seat: from, text: to === drawer(s) ? text : '●'.repeat([...text].length) });
   }
 
   #push() {
