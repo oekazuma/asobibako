@@ -95,6 +95,8 @@ describe('ドット絵の格子', () => {
 
   it('巨大ベアは 3 コマ、女王グモと子グモは 2 コマ', () => {
     expect(BOSS_ART.bear.frames).toHaveLength(3);
+    expect(BOSS_ART.crabKing.frames).toHaveLength(3);
+    expect(BOSS_ART.octopus.frames).toHaveLength(2);
     expect(BOSS_ART.spiderQueen.frames).toHaveLength(2);
     expect(BOSS_ART.spiderling.frames).toHaveLength(2);
     expect(ITEM_ART.web).toBeDefined();

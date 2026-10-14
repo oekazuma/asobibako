@@ -1,3 +1,4 @@
+import { nextPlacer } from './heroes';
 import { hasRelic } from './relics';
 import type { World } from './world';
 
@@ -28,9 +29,11 @@ export interface Tide {
   /** 次の浅瀬までの秒 */
   cd: number;
   warned: boolean;
+  /** 次に置く動物を選ぶ回数（生きている動物を順に回す） */
+  turn: number;
 }
 
-export const lowTide = (): Tide => ({ next: 0, left: 0, cd: 0, warned: false });
+export const lowTide = (): Tide => ({ next: 0, left: 0, cd: 0, warned: false, turn: 0 });
 
 export function addShallow(
   w: World,
@@ -68,10 +71,12 @@ export function stepTide(w: World, dt: number): void {
   if (s.left <= 0) return;
   s.cd -= dt;
   if (s.cd > 0) return;
+  const p = nextPlacer(w, s)?.player;
+  if (!p) return;
   s.cd = 0.9 + w.rand() * 0.3;
   const a = w.rand() * Math.PI * 2;
   const d = 30 + w.rand() * 60;
-  addShallow(w, w.player.x + Math.cos(a) * d, w.player.y + Math.sin(a) * d, 22 + w.rand() * 12);
+  addShallow(w, p.x + Math.cos(a) * d, p.y + Math.sin(a) * d, 22 + w.rand() * 12);
 }
 
 /** にじみ終えた浅瀬の残りを減らす */

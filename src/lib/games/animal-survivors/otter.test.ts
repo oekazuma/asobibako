@@ -1,14 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { ACHIEVEMENTS } from './achievements';
 import { animal } from './animals';
-import { BOUNCE_REACH, power } from './arms';
+import { BOUNCE_REACH, power, SPLASH_SECS } from './arms';
 import { choices } from './choices';
 import { collect } from './drops';
 import { ENEMIES } from './enemies';
+import { limitStats } from './limit';
 import { emptyRecords, parseRecords } from './records';
 import { RELICS } from './relics';
 import { trySpecial } from './specials';
 import { WEAPONS, weaponStats } from './weapons';
+import { flameAt } from './zones';
 import { createWorld, makeEnemy, step } from './world';
 
 const VIEW = { w: 274, h: 394 };
@@ -129,6 +131,20 @@ describe('ラッコ', () => {
     expect(trySpecial(w)).toBe(true);
     expect(w.weapons[0].id).toBe('shellRollSp');
     expect(WEAPONS.shellRollSp).toMatchObject({ special: true, from: 'shellRoll', kind: 'bounce' });
+  });
+
+  it('真珠ころがしの水しぶきは、中の敵に 1 回だけ当たる', () => {
+    const w = otterWorld();
+    w.form = 2;
+    w.weapons[0].level = 5;
+    trySpecial(w);
+    w.weapons[0].cd = 999;
+    const e = makeEnemy(ENEMIES.crab, w.player.x + 20, w.player.y, 1e6);
+    w.enemies.push(e);
+    const s = limitStats(weaponStats(WEAPONS.shellRollSp, 5), w.weapons[0].limit);
+    flameAt(w, 0, e.x, e.y - 4, 0.6, { ...s, damage: s.damage / 4, duration: SPLASH_SECS });
+    for (let i = 0; i < 30 * 0.6; i++) step(w, { x: 0, y: 0 }, 1 / 30);
+    expect(1e6 - e.hp).toBeCloseTo(power(w, s.damage / 4).dmg, 6);
   });
 
   it('真珠ころがしは跳ねるたびに小さな波（炎の区域）を残す', () => {

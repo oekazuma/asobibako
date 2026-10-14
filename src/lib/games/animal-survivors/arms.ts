@@ -71,7 +71,7 @@ const SPREAD = (12 * Math.PI) / 180;
 const FAN = (25 * Math.PI) / 180;
 /** 貝ころがしが跳ねる先を探す範囲（ドット） */
 export const BOUNCE_REACH = 60;
-const SPLASH_SECS = 0.4;
+export const SPLASH_SECS = 0.4;
 /** 同じ敵へ続けて当てるまでの間（秒） */
 const REHIT = { boomerang: 0.35, orbit: 0.4 };
 /** 芽吹きの森と炎の疾走が、合体武器 1 つにつき同時に置けるツタと炎の数（増やしすぎると端末が重くなる） */
@@ -511,8 +511,7 @@ function bounce(w: World, o: Shot, j: number): void {
   o.vx = Math.cos(o.angle) * o.speed;
   o.vy = Math.sin(o.angle) * o.speed;
   // 跳ね返ったあとは次の敵までの距離ぶん（と少しの余白）しか飛ばさない。長く飛ばすと 60 ドットより遠い敵にも当たる
-  o.age = 0;
-  o.life = (Math.hypot(next.x - o.x, next.y - o.y) + BOUNCE_REACH * 0.25) / o.speed;
+  o.life = o.age + (Math.hypot(next.x - o.x, next.y - o.y) + BOUNCE_REACH * 0.25) / o.speed;
 }
 
 function hitShot(w: World, o: Shot) {

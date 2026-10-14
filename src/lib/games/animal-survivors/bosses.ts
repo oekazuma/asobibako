@@ -337,7 +337,7 @@ export function updateHazards(w: World, dt: number): void {
     }
     if (h.ink) {
       if ((h.delay -= dt) <= 0) {
-        addShallow(w, h.x, h.y, h.r, { grow: 0, life: OCTOPUS.inkLife, ink: true });
+        addShallow(w, h.x, h.y + RING_DY, h.r, { grow: 0, life: OCTOPUS.inkLife, ink: true });
         h.alive = false;
       }
       continue;

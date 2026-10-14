@@ -1,4 +1,4 @@
-import { eachHero } from './heroes';
+import { eachHero, nextPlacer } from './heroes';
 import { hurtPlayer, damageEnemy, type World } from './world';
 
 /** 割れ目の予告から溶岩が噴き出すまでの秒、池が残る秒、池が当たる間隔 */
@@ -30,9 +30,11 @@ export interface Eruption {
   /** 次の割れ目までの秒 */
   cd: number;
   warned: boolean;
+  /** 次に置く動物を選ぶ回数（生きている動物を順に回す） */
+  turn: number;
 }
 
-export const quietEarth = (): Eruption => ({ next: 0, left: 0, cd: 0, warned: false });
+export const quietEarth = (): Eruption => ({ next: 0, left: 0, cd: 0, warned: false, turn: 0 });
 
 export function addLava(w: World, x: number, y: number, r: number, warn = CRACK_WARN): void {
   const lava = { x, y, r, warn, life: POOL_LIFE, tick: 0 };
@@ -64,10 +66,12 @@ export function stepEruption(w: World, dt: number): void {
   if (s.left <= 0) return;
   s.cd -= dt;
   if (s.cd > 0) return;
+  const p = nextPlacer(w, s)?.player;
+  if (!p) return;
   s.cd = 0.9 + w.rand() * 0.3;
   const a = w.rand() * Math.PI * 2;
   const d = 30 + w.rand() * 60;
-  addLava(w, w.player.x + Math.cos(a) * d, w.player.y + Math.sin(a) * d, 18 + w.rand() * 8);
+  addLava(w, p.x + Math.cos(a) * d, p.y + Math.sin(a) * d, 18 + w.rand() * 8);
 }
 
 /** 割れ目を噴かせ、池の中の自分と敵に当てる。ボス・ランタン・大ヘビの体・ハリネズミには当てない */

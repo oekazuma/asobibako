@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { RING_DY } from './bosses';
 import { CRAB, OCTOPUS } from './bosses-coast';
 import { ENEMIES } from './enemies';
 import { WADE, wadeFactor } from './tide';
@@ -162,17 +163,19 @@ describe('大ダコ', () => {
         expect(warn.delay).toBeCloseTo(OCTOPUS.inkWarn, 1);
         x = warn.x;
         y = warn.y;
+        // 予告のあとに動物が動いても、墨だまりは予告の位置に落ちる
+        w.player.x += 60;
       }
       if (warned && !inks(w).length) expect(w.shallows.some((s) => s.ink && s.life > 0)).toBe(false);
     }
     expect(warned).toBe(true);
     const pool = inks(w)[0];
     expect(pool.r).toBe(OCTOPUS.inkR);
-    expect([pool.x, pool.y]).toEqual([x, y]);
-    // 大ダコは離れて回り込むので、本体の足もとではなく狙われている動物の位置に置かれる
-    expect(Math.hypot(pool.x - w.player.x, pool.y - w.player.y)).toBeLessThan(1);
+    expect([pool.x, pool.y]).toEqual([x, y + RING_DY]);
+    // 大ダコは離れて回り込むので、本体の足もとではなく予告を出したときに狙われていた位置に置かれる
+    expect(Math.hypot(pool.x - w.player.x, pool.y - RING_DY - w.player.y)).toBeGreaterThan(50);
     expect(Math.hypot(pool.x - o.x, pool.y - o.y)).toBeGreaterThan(OCTOPUS.inkR);
-    expect(wadeFactor(w, w.player.x, w.player.y)).toBe(WADE);
+    expect(wadeFactor(w, w.player.x, w.player.y)).toBe(1);
     expect(wadeFactor(w, pool.x, pool.y)).toBe(WADE);
     expect(o.alive).toBe(true);
   });

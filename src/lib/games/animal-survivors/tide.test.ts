@@ -10,7 +10,7 @@ import {
   WADE,
   wadeFactor
 } from './tide';
-import { createWorld, damageEnemy, makeEnemy, step } from './world';
+import { addHero, createWorld, damageEnemy, makeEnemy, step } from './world';
 
 const VIEW = { w: 274, h: 394 };
 const quiet = () => {
@@ -97,13 +97,40 @@ describe('満ち潮', () => {
     expect(w.shallows.length).toBe(MAX_SHALLOWS);
   });
 
-  it('満ち潮の時計は step の中で進むので、step を呼ばなければ減らない', () => {
+  it('時計の品で止まっているあいだは、満ち潮の残りも次の潮の番号も進まない', () => {
     const w = quiet();
     w.time = 95;
     stepTide(w, 1 / 30);
-    const left = w.tide.left;
-    expect(left).toBeGreaterThan(0);
+    expect(w.tide.left).toBeGreaterThan(0);
+    const { left, next } = w.tide;
+    w.freeze = 5;
+    for (let i = 0; i < 60 * 2; i++) step(w, { x: 0, y: 0 }, 1 / 60);
     expect(w.tide.left).toBe(left);
+    expect(w.tide.next).toBe(next);
+  });
+
+  it('ふたりで遊ぶときは、離れた相棒のまわりにも浅瀬を置く', () => {
+    const w = quiet();
+    addHero(w, 'cat');
+    w.heroes[1].player.x = w.heroes[0].player.x + 800;
+    w.time = 91;
+    for (let i = 0; i < 30 * 10; i++) step(w, { x: 0, y: 0 }, 1 / 30);
+    const near = (k: number) =>
+      w.shallows.filter((s) => Math.hypot(s.x - w.heroes[k].player.x, s.y - w.heroes[k].player.y) < 140).length;
+    expect(near(0)).toBeGreaterThan(1);
+    expect(near(1)).toBeGreaterThan(1);
+  });
+
+  it('倒れた動物のまわりには置かない', () => {
+    const w = quiet();
+    addHero(w, 'cat');
+    w.heroes[0].down = true;
+    w.heroes[1].player.x = w.heroes[0].player.x + 800;
+    w.tide.left = 5;
+    for (let i = 0; i < 30 * 4; i++) step(w, { x: 0, y: 0 }, 1 / 30);
+    expect(w.shallows.length).toBeGreaterThan(0);
+    for (const s of w.shallows)
+      expect(Math.hypot(s.x - w.heroes[0].player.x, s.y - w.heroes[0].player.y)).toBeGreaterThan(400);
   });
 
   it('満ち潮のあいだに倒した敵だけを数える', () => {
