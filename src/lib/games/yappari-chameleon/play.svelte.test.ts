@@ -161,6 +161,22 @@ describe('Play の塗り', () => {
     expect(p.held).toEqual({ up: false, down: false, turn: 0 });
     expect(p.mode).toBe('paint');
   });
+
+  it('塗っている指の pointerup が届かないまま、ほかの指の無いタッチが来ても、塗った筆は消えない', () => {
+    const w = fakeWorld(true);
+    const p = new Play(w, 70);
+    p.togglePaint();
+    p.pointer('down', 1, 400, 300, 1000, true);
+    p.frame(1 / 60, performance.now() + 200);
+    p.pointer('move', 1, 410, 300, 1000);
+    const dabs = p.log.dabs.length;
+    expect(dabs).toBeGreaterThan(0);
+    vi.mocked(w.rig.paint.rebuild).mockClear();
+    p.pointer('down', 2, 600, 300, 1000, true);
+    expect(p.log.dabs.length).toBeGreaterThanOrEqual(dabs);
+    expect(w.rig.paint.rebuild).not.toHaveBeenCalled();
+    expect(p.canUndo).toBe(true);
+  });
 });
 
 describe('Play', () => {

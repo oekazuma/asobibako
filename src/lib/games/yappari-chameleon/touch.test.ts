@@ -57,6 +57,27 @@ describe('TouchPad 歩く', () => {
     t.move(2, 220, 300, 10);
     expect(t.takeLook().dx).toBe(20);
   });
+
+  it('スティックの指を離した知らせが届かなくても、ほかの指の無いタッチを左に置けばその指がスティックになる', () => {
+    const t = new TouchPad(100);
+    t.down(1, 100, 500, W, 0, false, true);
+    t.move(1, 100, 400, 10);
+    t.down(2, 200, 500, W, 20, false, true);
+    expect(t.stick).toMatchObject({ x: 0, y: 0, active: true, ox: 200, oy: 500 });
+    t.move(2, 200, 450, 30);
+    t.move(1, 100, 300, 40);
+    expect(t.stick.y).toBeCloseTo(-0.5);
+    expect(t.takeLook()).toEqual({ dx: 0, dy: 0 });
+  });
+
+  it('ほかの指を押しているときのタッチは、左に置いても今までどおり見回しになる', () => {
+    const t = new TouchPad(100);
+    t.down(1, 100, 500, W, 0, false, true);
+    t.down(2, 200, 300, W, 10, false, false);
+    t.move(2, 220, 300, 20);
+    expect(t.takeLook().dx).toBe(20);
+    expect(t.stick.active).toBe(true);
+  });
 });
 
 describe('TouchPad 塗る', () => {
@@ -143,6 +164,24 @@ describe('TouchPad 塗る', () => {
     t.down(1, 500, 500, W, 0);
     t.tick(100);
     expect(t.cancel(1)).toEqual([{ kind: 'cancel' }]);
+  });
+
+  it('2 本指のあと離した知らせが 1 本届かなくても、ほかの指の無いタッチなら塗れる', () => {
+    const t = paint();
+    t.down(1, 400, 500, W, 0, false, true);
+    t.down(2, 600, 500, W, 10);
+    t.up(2);
+    expect(t.down(3, 500, 500, W, 500, false, true)).toEqual([]);
+    expect(t.tick(600)).toEqual([{ kind: 'start', x: 500, y: 500 }]);
+  });
+
+  it('塗っている指を離した知らせが届かないまま次のタッチが来たら、描きかけは取り消さずに最後の位置で終える', () => {
+    const t = paint();
+    t.down(1, 500, 500, W, 0, false, true);
+    t.tick(100);
+    t.move(1, 520, 500, 110);
+    expect(t.down(2, 300, 300, W, 500, false, true)).toEqual([{ kind: 'end', x: 520, y: 500 }]);
+    expect(t.tick(600)).toEqual([{ kind: 'start', x: 300, y: 300 }]);
   });
 });
 

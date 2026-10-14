@@ -90,7 +90,7 @@ export function touch(play: Play, box: HTMLElement, kind: 'down' | 'move' | 'up'
     }
   }
   const r = box.getBoundingClientRect();
-  play.pointer(kind, e.pointerId, e.clientX - r.left, e.clientY - r.top, r.width);
+  play.pointer(kind, e.pointerId, e.clientX - r.left, e.clientY - r.top, r.width, e.isPrimary);
 }
 
 /** 盤面に重ねる .pad の指の口。play は 3D ができるまで無く、box は bind:this で後から入るので、どちらも押したときに引く */
