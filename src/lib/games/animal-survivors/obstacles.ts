@@ -93,11 +93,12 @@ export function obstaclesNear(g: Ground, x: number, y: number, r: number, out: O
   for (let cx = Math.floor((x - r - REACH) / CELL); cx <= Math.floor((x + r + REACH) / CELL); cx++)
     for (let cy = Math.floor((y - r - REACH) / CELL); cy <= Math.floor((y + r + REACH) / CELL); cy++) {
       const o = obstacleAt(g, cx, cy);
-      if (
-        o &&
-        SHAPES[o.kind].circles.some(([dx, dy, cr]) => Math.hypot(x - o.x - dx, (y - o.y - dy) / SQUASH) < r + cr)
-      )
-        out.push(o);
+      if (!o) continue;
+      for (const [dx, dy, cr] of SHAPES[o.kind].circles)
+        if (Math.hypot(x - o.x - dx, (y - o.y - dy) / SQUASH) < r + cr) {
+          out.push(o);
+          break;
+        }
     }
   return out;
 }
