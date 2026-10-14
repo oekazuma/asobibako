@@ -44,7 +44,13 @@
       host = new CoopHost(p);
       party = p;
       const seat = await p.add(link);
-      if (seat === 'mismatch') failed = MISMATCH;
+      if (typeof seat !== 'number') {
+        // 誰もいないまま動物選びへ進めると、来ない子を待つ画面から「もどる」でしか抜けられない
+        p.close();
+        host = null;
+        party = null;
+        failed = seat === 'mismatch' ? MISMATCH : 'つながりませんでした。もう一度試してください';
+      }
     } else {
       party = Party.guest(link);
       guest = new CoopGuest(party);

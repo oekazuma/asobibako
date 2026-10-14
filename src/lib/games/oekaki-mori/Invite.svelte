@@ -11,17 +11,24 @@
     open = $bindable(false)
   }: {
     away: Seat[];
-    onlink: (link: Link) => Promise<unknown>;
+    onlink: (link: Link) => Promise<Seat | null | 'mismatch' | undefined>;
     looks?: Record<number, string>;
     open?: boolean;
   } = $props();
   let failed = $state('');
-  /** 版ちがいで断った QR は使い終わっているので、数を進めて手順を作り直す */
+  /** 断った・つなげなかった QR は使い終わっているので、数を進めて手順を作り直す */
   let tries = $state(0);
 
   function close() {
     open = false;
     failed = '';
+  }
+
+  /** 閉じたあとに届いた結果は、次に開いた手順のものではないので捨てる */
+  function fail(text: string) {
+    if (!open) return;
+    failed = text;
+    tries++;
   }
 </script>
 
@@ -32,11 +39,11 @@
       <Handshake
         role="host"
         onlink={async (link) => {
-          if ((await onlink(link)) !== 'mismatch') return close();
-          failed = MISMATCH;
-          tries++;
+          const seat = await onlink(link);
+          if (typeof seat === 'number') return close();
+          fail(seat === 'mismatch' ? MISMATCH : 'つながりませんでした。もういちど ためしてね');
         }}
-        onfail={(text) => (failed = text)}
+        onfail={fail}
       />
     {/key}
     {#if failed}<p role="alert">{failed}</p>{/if}

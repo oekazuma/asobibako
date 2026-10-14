@@ -37,10 +37,12 @@
       const p = party ?? Party.host(look);
       // hello を待つあいだも QR の手順の画面のままにする。ロビーに戻すと、もう一度よべて親が 2 つできる
       const seat = await p.add(link);
+      const cancelled = joining !== 'host';
       joining = null;
-      if (seat === 'mismatch') failed = MISMATCH;
-      // 最初の子を断ったら、誰もいない Party でロビーを進めない
-      else if (!party) onparty(p);
+      // 最初の子を迎えそこねた・待つあいだに「やめる」を押したなら、誰もいない Party でロビーを進めない
+      if (typeof seat === 'number' && !cancelled) return party || onparty(p);
+      if (!party) p.close();
+      if (!cancelled) failed = seat === 'mismatch' ? MISMATCH : 'つながりませんでした。もういちど ためしてね';
     } else {
       joining = null;
       onparty(Party.guest(link, { was, look }));
