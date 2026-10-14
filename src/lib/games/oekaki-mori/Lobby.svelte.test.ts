@@ -1,10 +1,13 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Link } from '$lib/net/link';
+import { PROTOCOL } from '$lib/net/party.svelte';
 import Lobby from './Lobby.svelte';
 import { handshake } from './test/handshake-hold';
 
 vi.mock('$lib/net/Handshake.svelte', async () => ({ default: (await import('./test/HandshakeStub.svelte')).default }));
+
+const settle = () => new Promise((r) => setTimeout(r));
 
 function show(props: Record<string, unknown> = {}) {
   const target = document.body.appendChild(document.createElement('div'));
@@ -43,6 +46,42 @@ describe('Lobby', () => {
     handshake.onlink!(silent as unknown as Link);
     flushSync();
     expect(target.querySelector('.stub-handshake')).not.toBeNull();
+    expect(onparty).not.toHaveBeenCalled();
+    unmount(app);
+  });
+
+  it('最初の子を迎えそこねたら、誰もいない仲間でロビーを進めず、理由を出して よぶ・はいる に戻る', async () => {
+    const onparty = vi.fn();
+    const { app, target } = show({ onparty });
+    [...target.querySelectorAll('button')].find((b) => b.textContent?.includes('なかまを よぶ'))!.click();
+    flushSync();
+    const gone = { send: () => {}, on: () => () => {}, closed: Promise.resolve(), close: () => {} };
+    handshake.onlink!(gone as unknown as Link);
+    await settle();
+    flushSync();
+    expect(onparty).not.toHaveBeenCalled();
+    expect(target.textContent).toContain('つながりませんでした');
+    expect(target.textContent).toContain('なかまを よぶ');
+    unmount(app);
+  });
+
+  it('子の hello を待つあいだに やめる を押したら、あとから迎えても進まない', async () => {
+    const onparty = vi.fn();
+    const { app, target } = show({ onparty });
+    [...target.querySelectorAll('button')].find((b) => b.textContent?.includes('なかまを よぶ'))!.click();
+    flushSync();
+    let hello: (m: unknown) => void = () => {};
+    const pipe = {
+      send: () => {},
+      on: (l: (m: unknown) => void) => ((hello = l), () => {}),
+      closed: new Promise(() => {}),
+      close: () => {}
+    };
+    handshake.onlink!(pipe as unknown as Link);
+    [...target.querySelectorAll('button')].find((b) => b.textContent?.includes('やめる'))!.click();
+    flushSync();
+    hello({ t: 'hello', v: PROTOCOL, was: null, look: null });
+    await settle();
     expect(onparty).not.toHaveBeenCalled();
     unmount(app);
   });
