@@ -95,10 +95,14 @@ export class Effects {
     let kill = false;
     // 育つ演出のあいだは効果の時計が止まるので、同じフレームの光と粒は止まったまま演出を覆う。演出が光を出す
     const growing = w.events.some((e) => e.type === 'grow' && ownEvent(w, e));
+    // 1 フレームに何百の数字が出ても残るのは後ろの MAX_NUMBERS 個だけなので、押し出される数字は作らない
+    let skip = -MAX_NUMBERS;
+    for (const e of w.events) if (e.type === 'hit' && ownEvent(w, e)) skip++;
     for (const e of w.events) {
       if (!ownEvent(w, e)) continue;
       if (e.type === 'hit') {
         hit = true;
+        if (skip-- > 0) continue;
         this.#number(
           String(Math.max(1, Math.round(e.dmg))),
           e.x + (Math.random() - 0.5) * 6,

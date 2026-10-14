@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Effects } from './effects';
+import { text } from './font';
 import { createWorld, type World } from './world';
 
 vi.mock('$lib/audio.svelte', () => ({
@@ -10,6 +11,8 @@ vi.mock('$lib/audio.svelte', () => ({
   sweep: () => {},
   noise: () => {}
 }));
+
+vi.mock('./font', () => ({ text: vi.fn(() => 0) }));
 
 const VIEW = { w: 274, h: 394 };
 
@@ -42,5 +45,17 @@ describe('倒した敵の粒', () => {
     kills(w, 100);
     fx.take(w);
     expect(drawn(fx)).toBe(600);
+  });
+});
+
+describe('ダメージの数字', () => {
+  it('1 フレームに 200 回当たっても、後ろの 60 個を古い順に出す', () => {
+    const w = createWorld('dog', 1, VIEW);
+    const fx = new Effects();
+    for (let i = 1; i <= 200; i++) w.events.push({ type: 'hit', x: 0, y: 0, dmg: i, crit: false });
+    fx.take(w);
+    vi.mocked(text).mockClear();
+    drawn(fx);
+    expect(vi.mocked(text).mock.calls.map((c) => c[1])).toEqual(Array.from({ length: 60 }, (_, i) => String(141 + i)));
   });
 });
