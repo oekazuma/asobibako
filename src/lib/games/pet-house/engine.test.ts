@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   addPhoto,
   adopt,
@@ -360,6 +360,15 @@ describe('げんきの戻り方', () => {
 });
 
 describe('うちに来た日', () => {
+  // 来た日はペットを作るときと確かめるときに別々に今日を読むので、0 時をまたぐと 1 日ずれる。今日の昼で止める
+  beforeEach(() => {
+    const noon = new Date();
+    noon.setHours(12, 0, 0, 0);
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(noon);
+  });
+  afterEach(() => vi.useRealTimers());
+
   it('adopt したペットの来た日は今日', () => {
     const { pet } = withPet();
     expect(pet.since).toBe(day(Date.now()));
