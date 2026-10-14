@@ -107,6 +107,27 @@ const target = (size: number, colorSpace: THREE.ColorSpace) =>
   });
 
 /**
+ * すき間へ広げ直すときだけ使う作業用の描き先。flush は同期で全面を描き直してからすぐ写すので、中身を持ち越さない。
+ * 同じ描画器の面どうしで 1 組を使い回し、体ごとに約 20MB を持たせない。GPU の領域は World が描画器を捨てるときに文脈ごと返る
+ */
+const scratches = new WeakMap<
+  THREE.WebGLRenderer,
+  { color: THREE.WebGLRenderTarget; gloss: THREE.WebGLRenderTarget }
+>();
+
+export function scratchFor(renderer: THREE.WebGLRenderer) {
+  let s = scratches.get(renderer);
+  if (!s) {
+    s = {
+      color: target(COLOR_SIZE, THREE.SRGBColorSpace),
+      gloss: target(GLOSS_SIZE, THREE.NoColorSpace)
+    };
+    scratches.set(renderer, s);
+  }
+  return s;
+}
+
+/**
  * 人形の塗り。色の先は sRGB の 8 bit にするので、シェーダーは linear の色を書き、
  * 混ぜるのも linear で行われる（WebGL2 の sRGB の描き先）。読み出すと sRGB の値が返る
  */
@@ -126,8 +147,6 @@ export class PaintSurface {
   readonly #cover = new THREE.Scene();
   readonly #dilate = new THREE.Scene();
   readonly #copy = new THREE.Scene();
-  readonly #scratchColor = target(COLOR_SIZE, THREE.SRGBColorSpace);
-  readonly #scratchGloss = target(GLOSS_SIZE, THREE.NoColorSpace);
   readonly #src = { value: null as THREE.Texture | null };
   readonly #fillColor = { value: new THREE.Vector4() };
   #dirty = false;
@@ -221,13 +240,14 @@ export class PaintSurface {
   flush(): void {
     if (!this.#dirty) return;
     this.#dirty = false;
-    for (const [to, scratch] of [
-      [this.color, this.#scratchColor],
-      [this.gloss, this.#scratchGloss]
+    const scratch = scratchFor(this.#renderer);
+    for (const [to, tmp] of [
+      [this.color, scratch.color],
+      [this.gloss, scratch.gloss]
     ] as const) {
       this.#src.value = to.texture;
-      this.#draw(scratch, this.#dilate);
-      this.#src.value = scratch.texture;
+      this.#draw(tmp, this.#dilate);
+      this.#src.value = tmp.texture;
       this.#draw(to, this.#copy);
     }
   }
@@ -266,8 +286,6 @@ export class PaintSurface {
   dispose(): void {
     this.color.dispose();
     this.gloss.dispose();
-    this.#scratchColor.dispose();
-    this.#scratchGloss.dispose();
     for (const s of [this.#paint, this.#fill, this.#cover, this.#dilate, this.#copy])
       s.traverse((o) => {
         if (o instanceof THREE.Mesh) {
