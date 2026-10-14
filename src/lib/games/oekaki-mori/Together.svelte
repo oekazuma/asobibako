@@ -20,7 +20,7 @@
   let { party, onagain }: { party: Party; onagain: () => void } = $props();
 
   let phase = $state<'pick' | 'photo' | 'wait' | 'paint' | 'done'>('wait');
-  let sheet = $state.raw<{ art: Art; regions: Regions; mask: Uint8Array; template?: string } | null>(null);
+  let sheet = $state.raw<{ art: Art; regions: Regions; mask: Uint8Array; template?: string; id: string } | null>(null);
   let colors = $state.raw<Record<number, string>>({});
   let color = $state<string>(COLORS[0].hex);
   /** 親だけが使う。塗った順番と、戻すための手順 */
@@ -30,7 +30,7 @@
   let note = $state('');
   /** 親が「できた！」を押したあと。まだ届いていない塗りを受け付けると、保存した絵と画面が食い違う */
   let closed = false;
-  /** 配った線画の知らせ。戻った子には、配り終えるのを待ってから同じものを送る */
+  /** 配った線画の知らせ。戻った子には、配り終えるのを待ってから同じものを送る（番号つきなので、送り直した「できた！」も同じ作品に入る） */
   let dealt: Promise<Message> | null = null;
   const catchUp = (seat: Seat) =>
     catchUpTogether(
@@ -42,7 +42,7 @@
     // 配り終えるまでに別の絵を押されると 2 枚配られ、親の塗り手順と画面の色が食い違うので、すぐ待つ画面にする
     phase = 'wait';
     host = shared();
-    dealt = encodeLines(mask).then((lines) => ({ t: 'art', template: template?.id ?? null, lines }));
+    dealt = encodeLines(mask).then((lines) => ({ t: 'art', template: template?.id ?? null, lines, id: newId() }));
     party.tell('all', await dealt);
   }
 
@@ -57,7 +57,8 @@
         art,
         regions: art.kind === 'template' ? hideCovered(regions, art.cover) : regions,
         mask,
-        template: template?.id
+        template: template?.id,
+        id: typeof m.id === 'string' ? m.id : newId()
       };
       colors = {};
       phase = 'paint';
@@ -76,7 +77,7 @@
     const thumb = snapshot(s.art, s.regions, colors, 200, 'image/jpeg');
     const photo = s.template ? undefined : bits;
     const lines = s.template ? bits : undefined;
-    const work = { id: newId(), template: s.template, photo, lines, colors, history: [], thumb };
+    const work = { id: s.id, template: s.template, photo, lines, colors, history: [], thumb };
     saveWork({ ...work, updated: Date.now() }).catch(() => {});
   }
 
@@ -152,9 +153,7 @@
     <Palette
       bind:color
       canUndo={true}
-      onundo={() => {
-        party.act({ t: 'unpaint' });
-      }}
+      onundo={() => party.act({ t: 'unpaint' })}
       ondone={party.host
         ? () => {
             closed = true;

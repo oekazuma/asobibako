@@ -188,4 +188,33 @@ describe('Together', () => {
     expect(sentTo.filter(([to]) => to === 2).map(([, m]) => m.t)).toEqual(['art', 'painted']);
     unmount(app);
   });
+
+  // 戻った子には「できた！」も送り直すので、そのたびに新しい作品にすると、ぬりえちょうに同じ絵が並ぶ
+  it('同じ線画の できた！ が 2 度届いても、ぬりえちょうの同じ作品に入れる', async () => {
+    const { app, party } = show();
+    const lines = await encodeLines(new Uint8Array(SIZE * SIZE));
+    for (let i = 0; i < 2; i++) {
+      party.tell('all', { t: 'art', template: 'apple', lines, id: 'sheet-1' });
+      party.tell('all', { t: 'painted', region: 0, color: '#f04438' });
+      party.tell('all', { t: 'finished' });
+      await settle();
+    }
+    const ids = (book.saveWork.mock.calls as unknown as [{ id: string }][]).map(([w]) => w.id);
+    expect(ids).toEqual(['sheet-1', 'sheet-1']);
+    unmount(app);
+  });
+
+  it('親は、配った線画の知らせと同じ番号で作品を入れる', async () => {
+    const { app, button, party } = show();
+    button('りんご')!.click();
+    await settle();
+    party.act({ t: 'paint', region: 0, color: '#f04438' });
+    await settle();
+    button('できた！')!.click();
+    await settle();
+    const art = sent.find((m) => m.t === 'art')!;
+    expect(typeof art.id).toBe('string');
+    expect((book.saveWork.mock.calls as unknown as [{ id: string }][])[0][0].id).toBe(art.id);
+    unmount(app);
+  });
 });
