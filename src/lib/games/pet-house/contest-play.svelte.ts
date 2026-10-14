@@ -190,9 +190,10 @@ export class ContestPlay implements Activity {
       this.round = 1;
       this.#step = 'wait';
     }
-    // ふだんの頭（think）に戻る種目は、止まったところから動きはじめる
+    // ふだんの頭（think）に戻る種目は、止まったところから動きはじめる。出たあとのげんきは夜の眠気の線より低いことが
+    // あるので、終わるまで眠らせない。このコマのうちに think が先に 1 コマぶん減らすので、時計より少し長くする
     const a = host.actor;
-    if (a) [a.mode, a.t, a.v] = ['idle', 0.5, 0];
+    if (a) [a.mode, a.t, a.v, a.awake] = ['idle', 0.5, 0, this.contest.seconds + 1];
   }
 
   #play(a: Actor, dt: number) {

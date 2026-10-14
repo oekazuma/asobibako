@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Activity, ActivityHost, ActivityScene, SceneHost, Visit } from './activity';
+import { ENTRY_ENERGY } from './contest';
 import { PARK } from './layout';
 import { createActor, throwToy, type Actor, type WorldView } from './behavior';
 import type { Pet } from './engine';
@@ -76,8 +77,10 @@ vi.mock('./world3d', () => ({
   }
 }));
 vi.mock('./sounds', () => ({ sounds: new Proxy({}, { get: () => () => {} }) }));
+vi.mock('./contest-sounds', () => ({ contestSounds: new Proxy({}, { get: () => () => {} }) }));
 
 const { Session } = await import('./session.svelte');
+const { ContestPlay } = await import('./contest-play.svelte');
 type S = InstanceType<typeof Session>;
 
 function make(): S {
@@ -431,6 +434,27 @@ describe('Session', () => {
       const again = make();
       expect(again.toast).toBe('');
       again.dispose();
+    } finally {
+      delete clock.__asobibakoClock;
+    }
+  });
+
+  it('夜にフリスビー大会へ出た子は、出たあとのげんきが夜の眠気の線より低くても、大会のあいだ眠らない', () => {
+    const clock = globalThis as { __asobibakoClock?: { hour?: number; weather?: string } };
+    clock.__asobibakoClock = { hour: 22, weather: 'sunny' };
+    try {
+      const s = make();
+      s.adopt('shiba', 'ポチ');
+      expect(s.sky.phase).toBe('night');
+      s.save.pets[0].stats.energy = ENTRY_ENERGY;
+      const play = new ContestPlay('frisbee', 0);
+      s.start(play, 'コンテストの かいじょうへ いくよ');
+      frames(s, 0.5);
+      expect(s.activity).toBe(play);
+      play.begin();
+      expect(frames(s, 4, () => play.phase === 'play')).toBe(true);
+      expect(seen.view?.night).toBeGreaterThan(0.9);
+      expect(frames(s, play.contest.seconds - 1, () => s.asleep)).toBe(false);
     } finally {
       delete clock.__asobibakoClock;
     }
