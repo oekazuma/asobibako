@@ -779,7 +779,6 @@ export class Session {
 
   photo(): void {
     addPhoto(this.save, this.#world.snapshot());
-    this.#count('photo');
     if (!writePhotos(this.save)) {
       // 保存できず save.photos は元に戻っているので、撮れた体で見せる成功のトーストは出さない
       if (!this.#full) {
@@ -789,6 +788,7 @@ export class Session {
       this.#say('しゃしんが いっぱいで のこせないよ');
       return;
     }
+    this.#count('photo');
     this.#fx.flash();
     sounds.shutter();
     this.#say('しゃしんを とったよ');

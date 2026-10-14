@@ -656,4 +656,26 @@ describe('Session', () => {
     expect([...toasts].filter((t) => t.startsWith('スタンプ ゲット'))).toEqual(['スタンプ ゲット！']);
     localStorage.clear();
   });
+  it('写真が保存できなかったときは、撮った回数を数えない', () => {
+    const s = make();
+    s.adopt('shiba', 'ポチ');
+    s.photo();
+    expect(s.save.counters.photo).toBe(1);
+    const real = localStorage;
+    vi.stubGlobal('localStorage', {
+      getItem: real.getItem.bind(real),
+      removeItem: real.removeItem.bind(real),
+      setItem: (key: string, value: string) => {
+        if (key === 'asobibako:pet-house:photos') throw new DOMException('full', 'QuotaExceededError');
+        real.setItem(key, value);
+      }
+    });
+    try {
+      s.photo();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(s.save.counters.photo).toBe(1);
+    expect(s.toast).toBe('しゃしんが いっぱいで のこせないよ');
+  });
 });
