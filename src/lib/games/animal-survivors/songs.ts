@@ -2,7 +2,7 @@ import type { Song } from '$lib/music/tune';
 
 /** 画面ごとの BGM。書き方は $lib/music/tune の Song。効果音が聞こえるよう gain は小さめ */
 export const SONGS: Record<
-  'menu' | 'field' | 'grave' | 'snow' | 'volcano' | 'boss',
+  'menu' | 'field' | 'grave' | 'snow' | 'volcano' | 'coast' | 'boss',
   { song: Song; bpm: number; gain: number }
 > = {
   /** キャラ選択・店・実績・リザルト。軽く弾む */
@@ -76,6 +76,21 @@ export const SONGS: Record<
         e5 . d5 . c5 . b4 . | c5 . b4 . a4 - g4 . | f4 . a4 . c5 - b4 a4 | g#4 - b4 - e5 - . . |
         e4 . f4 . g4 . a4 . | b4 . c5 . b4 . a4 . | g#4 . a4 . b4 - d5 . | e5 - - - . . . .`,
       chords: 'Em Em Am Em Em Am Dm G C Am F E Em G E E'
+    }
+  },
+  /** 海岸。長調で明るく軽い 8 ビート */
+  coast: {
+    bpm: 132,
+    gain: 0.55,
+    song: {
+      beats: 4,
+      lead: 'mallet',
+      style: 'drive',
+      melody: `g4 . b4 . d5 . b4 . | e5 . d5 . c5 - b4 . | a4 . c5 . e5 . c5 . | d5 - - - . . . . |
+        g4 . b4 . d5 . g5 . | f#5 . e5 . d5 - b4 . | e5 . d5 . c5 . b4 . | a4 - - - d5 - . . |
+        e5 . g5 . e5 . d5 . | c5 . e5 . g5 - e5 . | d5 . f#5 . a5 . f#5 . | g5 - - - . . . . |
+        g5 . e5 . c5 . e5 . | d5 . b4 . g4 - b4 . | c5 . e5 . a4 . c5 . | g4 - - - . . . .`,
+      chords: 'G C Am D G D C D C C D G C G Am G'
     }
   },
   /** ボス。短調で速い */

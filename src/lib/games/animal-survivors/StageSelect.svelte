@@ -6,6 +6,7 @@
   import { GRAVE_ART } from './art/graveyard';
   import { SNOW_ART } from './art/snow';
   import { VOLCANO_ART } from './art/volcano';
+  import { COAST_ART } from './art/coast';
   import { heatLabel } from './cauldron';
   import { clock } from './hud';
   import PixelIcon from './PixelIcon.svelte';
@@ -21,7 +22,8 @@
     forest: { tile: FOREST_ART.grass, mark: FOREST_ART.decor.tree },
     graveyard: { tile: GRAVE_ART.grass, mark: GRAVE_ART.decor.tomb },
     snow: { tile: SNOW_ART.grass, mark: SNOW_ART.decor.pine },
-    volcano: { tile: VOLCANO_ART.grass, mark: VOLCANO_ART.decor.smoke }
+    volcano: { tile: VOLCANO_ART.grass, mark: VOLCANO_ART.decor.smoke },
+    coast: { tile: COAST_ART.grass, mark: COAST_ART.decor.shell }
   };
 </script>
 

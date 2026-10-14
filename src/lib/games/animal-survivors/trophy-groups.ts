@@ -3,7 +3,19 @@ export const TROPHY_GROUPS: [string, string[]][] = [
   ['生き延びる', ['survive1', 'survive5', 'survive10', 'clear', 'overtime5', 'overtime10']],
   [
     'ステージ',
-    ['graveClear', 'snowClear', 'volcanoClear', 'clear3', 'clear7', 'heat5', 'heat9', 'relic1', 'relicAll', 'shrine10']
+    [
+      'graveClear',
+      'snowClear',
+      'volcanoClear',
+      'coastClear',
+      'clear3',
+      'clear7',
+      'heat5',
+      'heat9',
+      'relic1',
+      'relicAll',
+      'shrine10'
+    ]
   ],
   ['倒す', ['run100', 'run1000', 'run3000', 'total3000', 'total20000', 'total30000', 'metal', 'lava300']],
   ['ボス', ['bear', 'queen', 'forestFinale', 'bothBosses', 'graveBosses', 'yeti', 'snowBosses', 'volcanoBosses']],

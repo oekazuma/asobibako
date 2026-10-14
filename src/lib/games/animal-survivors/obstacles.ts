@@ -1,7 +1,8 @@
 /** 地形の障害物。位置のハッシュで決まるので、毎回同じ場所に出て、協力プレイの 2 台でもそろう */
 
-export type Ground = 'forest' | 'graveyard' | 'snow' | 'volcano';
-export type ObstacleId = 'boulder' | 'log' | 'bigTomb' | 'fence' | 'icy' | 'snowTree' | 'lavaRock' | 'steamRock';
+export type Ground = 'forest' | 'graveyard' | 'snow' | 'volcano' | 'coast';
+export type ObstacleId =
+  'boulder' | 'log' | 'bigTomb' | 'fence' | 'icy' | 'snowTree' | 'lavaRock' | 'steamRock' | 'reef' | 'boat';
 export interface Obstacle {
   x: number;
   y: number;
@@ -60,14 +61,31 @@ export const SHAPES: Record<ObstacleId, { circles: readonly (readonly [number, n
     ],
     foot: 12
   },
-  steamRock: { circles: [[0, 0, 15]], foot: 14 }
+  steamRock: { circles: [[0, 0, 15]], foot: 14 },
+  reef: {
+    circles: [
+      [-9, 0, 9],
+      [6, -2, 12],
+      [13, 1, 6]
+    ],
+    foot: 12
+  },
+  boat: {
+    circles: [
+      [-14, 0, 8],
+      [-2, 0, 9],
+      [10, 0, 9]
+    ],
+    foot: 11
+  }
 };
 
 const KINDS: Record<Ground, readonly [ObstacleId, ObstacleId]> = {
   forest: ['boulder', 'log'],
   graveyard: ['bigTomb', 'fence'],
   snow: ['icy', 'snowTree'],
-  volcano: ['lavaRock', 'steamRock']
+  volcano: ['lavaRock', 'steamRock'],
+  coast: ['reef', 'boat']
 };
 
 const REACH = Math.max(...Object.values(SHAPES).flatMap((s) => s.circles.map(([dx, dy, r]) => Math.hypot(dx, dy) + r)));

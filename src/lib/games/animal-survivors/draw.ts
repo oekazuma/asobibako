@@ -9,6 +9,7 @@ import { GEAR_ART } from './art/gear';
 import { ITEM_ART } from './art/items';
 import { SNOW_ART } from './art/snow';
 import { VOLCANO_ART } from './art/volcano';
+import { COAST_ART } from './art/coast';
 import { PALETTE } from './art/palette';
 import { shots, swipes, zonesBelow } from './draw-arms';
 import { bossBars, hazardsAbove, hazardsBelow, introDust, introEdge } from './draw-boss';
@@ -155,6 +156,17 @@ const GROUNDS = {
       [1, 'spire']
     ],
     shadowed: ['spire', 'basalt', 'smoke']
+  },
+  coast: {
+    art: COAST_ART,
+    decor: [
+      [0.66, null],
+      [0.76, 'pebble'],
+      [0.86, 'shell'],
+      [0.93, 'starfish'],
+      [1, 'seaweed']
+    ],
+    shadowed: ['seaweed']
   }
 } as const;
 

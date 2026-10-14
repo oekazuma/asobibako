@@ -11,7 +11,9 @@ export type BossId =
   | 'oldTree'
   | 'bigSnake'
   | 'lavaGiant'
-  | 'phoenix';
+  | 'phoenix'
+  | 'crabKing'
+  | 'octopus';
 
 export interface EnemyDef {
   id: string;
@@ -156,6 +158,26 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
         ...e('phoenix', '不死鳥', [1100, 42, 26, 17, 0], 'boss', 1, 'phoenix'),
         ai: 'phoenix',
         epithet: '炎よりよみがえる鳥'
+      },
+      e('crab', 'カニ', [6, 40, 5, 5, 1], 'chase', 0),
+      e('gull', 'カモメ', [4, 58, 4, 5, 1], 'wave', 0),
+      e('seasnake', 'ウミヘビ', [14, 34, 8, 6, 2], 'snake', 0.2),
+      e('hermit', 'ヤドカリ', [40, 20, 10, 7, 5], 'chase', 0.6),
+      e('walrus', 'セイウチ', [70, 26, 18, 8, 8], 'charge', 0.8),
+      e('jelly', 'クラゲ', [18, 36, 9, 6, 3], 'leap', 0.2),
+      e('landshark', 'リクザメ', [120, 16, 16, 9, 10], 'chase', 0.9),
+      // 次の 2 体は仮の行（巨大ベアと女王グモの数と動き方）
+      {
+        ...e('crabKing', '巨大ガニ', [700, 28, 20, 15, 0], 'boss', 1, 'crabKing'),
+        ai: 'bear',
+        epithet: '浜辺の大はさみ'
+      },
+      {
+        ...e('octopus', '大ダコ', [550, 38, 25, 16, 0], 'boss', 1, 'octopus'),
+        ai: 'queen',
+        minion: 'spiderling',
+        shot: 'web',
+        epithet: '渦をまく大足'
       }
     ] satisfies EnemyDef[]
   ).map((d) => [d.id, d])

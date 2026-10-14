@@ -21,6 +21,7 @@ export const GRAVEYARD: Stage = {
   after: 'forest',
   storms: [],
   eruptions: [],
+  tides: [],
   length: 600,
   events: FOREST.events.map((ev) => {
     const to = SWAP[ev.enemy];
