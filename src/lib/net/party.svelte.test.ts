@@ -184,6 +184,48 @@ describe('Party', () => {
     expect([back3.me, back2.me]).toEqual([3, 2]);
   });
 
+  // iOS では親が切れたと気づくまで 30 秒ほどかかる。そのあいだに戻った子が別の番号になると、点数と番を失う
+  it('親が切れたと気づく前に同じ端末が前の番号でつなぎ直すと、古い管を切れたことにして同じ番号で迎える', async () => {
+    const host = Party.host();
+    const [a, a2] = pipes();
+    Party.guest(a2);
+    await host.add(a);
+    const acts: [string, Seat][] = [];
+    host.onAct((m, from) => acts.push([m.t, from]));
+    let oldClosed = false;
+    a2.closed.then(() => (oldClosed = true));
+    const [c, c2] = pipes();
+    const back = Party.guest(c2, { was: 2 });
+    expect(await host.add(c)).toBe(2);
+    await settle();
+    expect(back.me).toBe(2);
+    expect(oldClosed).toBe(true);
+    expect(host.members).toEqual([1, 2]);
+    expect(host.away).toEqual([]);
+    expect(acts).toEqual([
+      ['leave', 2],
+      ['join', 2]
+    ]);
+  });
+
+  // 切れた人の番号は次に来た別の子にも渡すので、前にその番号だった子が戻っても、今いる子を切らない
+  it('前の番号を名乗っても、端末の印がちがうか無ければ今の管を残し、空いた番号で迎える', async () => {
+    for (const id of ['ほかの端末', undefined]) {
+      const host = Party.host();
+      const [a, a2] = pipes();
+      Party.guest(a2);
+      await host.add(a);
+      let oldClosed = false;
+      a2.closed.then(() => (oldClosed = true));
+      const [c, c2] = pipes();
+      c2.send({ t: 'hello', v: PROTOCOL, was: 2, look: null, ...(id ? { id } : {}) });
+      expect(await host.add(c)).toBe(3);
+      await settle();
+      expect(oldClosed).toBe(false);
+      expect(host.members).toEqual([1, 2, 3]);
+    }
+  });
+
   it('閉じたら、切れた子の番号も忘れる', async () => {
     const { host, a } = await trio();
     a.close();

@@ -18,6 +18,8 @@ export const MISMATCH = 'アプリの はんが ちがうよ。どちらも さ�
 const HELLO_MS = 3000;
 /** 断る理由を送ってから閉じるまで */
 const CLOSE_AFTER_MS = 1000;
+/** ページを開くたびに作る端末の印。親が切れたと気づく前に戻った子が、前の番号の古い管と同じ端末かを見分ける（秘密ではない） */
+const DEVICE = Math.random().toString(36).slice(2);
 
 type ActListener = (message: Message, from: Seat) => void;
 type TellListener = (message: Message) => void;
@@ -42,6 +44,8 @@ export class Party {
   readonly #pipes = new SvelteMap<Seat, Pipe>();
   readonly #acts = new SvelteSet<ActListener>();
   readonly #tells = new SvelteSet<TellListener>();
+  /** 親だけ。番号 → 迎えた子の端末の印 */
+  readonly #ids = new SvelteMap<Seat, string>();
 
   private constructor(host: boolean) {
     this.host = host;
@@ -70,7 +74,7 @@ export class Party {
       } else for (const listener of party.#tells) listener(message);
     });
     pipe.closed.then(() => (party.lost = true));
-    pipe.send({ t: 'hello', v: PROTOCOL, was: hello.was ?? null, look: hello.look ?? null });
+    pipe.send({ t: 'hello', v: PROTOCOL, was: hello.was ?? null, look: hello.look ?? null, id: DEVICE });
     return party;
   }
 
@@ -100,7 +104,14 @@ export class Party {
         clearTimeout(timer);
         if (message.v !== PROTOCOL) return refuse();
         greeted = true;
-        resolve(this.#seat(pipe, message.was as Seat | null, message.look as string | null));
+        resolve(
+          this.#seat(
+            pipe,
+            message.was as Seat | null,
+            message.look as string | null,
+            typeof message.id === 'string' ? message.id : null
+          )
+        );
       });
       pipe.closed.then(() => {
         clearTimeout(timer);
@@ -109,7 +120,15 @@ export class Party {
     });
   }
 
-  #seat(pipe: Pipe, was: Seat | null, look: string | null): Seat | null {
+  #seat(pipe: Pipe, was: Seat | null, look: string | null, id: string | null): Seat | null {
+    // 親が切れたと気づくまで iOS では 30 秒ほどかかる。そのあいだに同じ端末が戻ったら、前の管は切れたものとして片づける
+    if (was !== null && id !== null && this.#ids.get(was) === id) {
+      const old = this.#pipes.get(was);
+      if (old) {
+        this.#drop(was, old);
+        old.close();
+      }
+    }
     const free = (s: Seat) => !this.#pipes.has(s);
     const back = was !== null && this.away.includes(was) && free(was) ? was : undefined;
     const seat = back ?? this.away.find(free) ?? ([2, 3] as const).find((s) => free(s) && !this.away.includes(s));
@@ -120,6 +139,8 @@ export class Party {
     this.away = this.away.filter((s) => s !== seat);
     if (look) this.looks = { ...this.looks, [seat]: look };
     this.#pipes.set(seat, pipe);
+    if (id === null) this.#ids.delete(seat);
+    else this.#ids.set(seat, id);
     pipe.on((message) => this.#act(message, seat));
     pipe.closed.then(() => this.#drop(seat, pipe));
     pipe.send({ t: 'seat', seat });
@@ -158,6 +179,7 @@ export class Party {
     // ページを閉じてから戻る（bfcache）と同じ Party が生き返るので、つながっていない人を顔ぶれに残さない
     this.members = [this.me];
     this.away = [];
+    this.#ids.clear();
     for (const pipe of pipes) pipe.close();
   }
 
