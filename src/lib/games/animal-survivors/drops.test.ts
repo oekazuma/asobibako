@@ -3,7 +3,7 @@ import { apply, choices, SLOTS } from './choices';
 import { collect, dropGem, gainXp, MAX_GEMS, xpNeed } from './drops';
 import { PASSIVES } from './passives';
 import { MAX_LEVEL, WEAPONS } from './weapons';
-import { createWorld } from './world';
+import { addHero, createWorld } from './world';
 
 const VIEW = { w: 260, h: 380 };
 const fresh = () => createWorld('dog', 2, VIEW);
@@ -105,5 +105,22 @@ describe('3 択', () => {
     w.pending = 1;
     apply(w, { kind: 'weapon', id: 'woof', level: 2 });
     expect(w.weapons[0].level).toBe(2);
+  });
+});
+
+describe('遠い品を消す', () => {
+  it('抜けた動物のそばの品は、残った動物から遠ければ消え、残った動物に近ければ残る', () => {
+    const w = createWorld('dog', 1, { w: 274, h: 394 });
+    addHero(w, 'cat');
+    const mate = w.heroes[1];
+    mate.gone = mate.down = true;
+    mate.player.x = 5000;
+    mate.player.y = 0;
+    const p = w.heroes[0].player;
+    w.items.push({ alive: true, kind: 'magnet', x: 5000, y: 0, pulled: false });
+    w.items.push({ alive: true, kind: 'magnet', x: p.x + 1000, y: p.y, pulled: false });
+    collect(w, 1 / 60);
+    expect(w.items.at(-2)!.alive).toBe(false);
+    expect(w.items.at(-1)!.alive).toBe(true);
   });
 });
