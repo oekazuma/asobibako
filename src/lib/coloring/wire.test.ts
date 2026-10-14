@@ -30,4 +30,15 @@ describe('encodeLines と decodeLines', () => {
   it('テンプレートくらいの線画は 16 KB より小さい', async () => {
     expect((await encodeLines(rings())).length).toBeLessThan(16 * 1024);
   });
+
+  it('線画より大きく膨らむデータは、線画の大きさで打ち切って戻す', async () => {
+    const huge = new Uint8Array(8 * 1024 * 1024).fill(255);
+    const packed = new Uint8Array(
+      await new Response(new Blob([huge]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer()
+    );
+    expect(packed.length).toBeLessThan(60000);
+    const mask = await decodeLines(btoa(String.fromCharCode(...packed)));
+    expect(mask).toHaveLength(SIZE * SIZE);
+    expect(mask.every((v) => v === 1)).toBe(true);
+  });
 });

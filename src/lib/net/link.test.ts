@@ -9,6 +9,10 @@ describe('pack', () => {
     expect(code.length).toBeLessThan(sdp.length / 2);
     expect(await unpack(code)).toBe(sdp);
   });
+
+  it('大きく膨らむ code は、SDP の上限で打ち切って戻す', async () => {
+    expect(await unpack(await pack('a'.repeat(4 * 1024 * 1024)))).toHaveLength(16 * 1024);
+  });
 });
 
 describe('slim', () => {
@@ -147,6 +151,28 @@ describe('Link', () => {
     deliver(JSON.stringify(ink));
     sent.slice(1).forEach(deliver);
     expect(got).toEqual([ink, message]);
+  });
+
+  it('つなぐ数の上限を超える n や、正の整数でない n の列は捨てて、次の知らせは受ける', () => {
+    const { got, deliver } = receiver();
+    for (const n of [65, 0, -1, 1.5, 'x']) deliver(JSON.stringify({ t: '~part', i: 0, n, s: '{}' }));
+    expect(got).toEqual([]);
+    const ink = { t: 'ink', ink: { k: 'add', pts: [0.5, 0.5] } };
+    deliver(JSON.stringify(ink));
+    expect(got).toEqual([ink]);
+  });
+
+  it('分けた知らせの順がずれたら集めたものを捨て、次の知らせは受ける', () => {
+    const { link, sent } = sender();
+    const message = big(60000);
+    link.send(message);
+    const { got, deliver } = receiver();
+    deliver(sent[0]);
+    deliver(sent[2]);
+    sent.slice(1).forEach(deliver);
+    expect(got).toEqual([]);
+    sent.forEach(deliver);
+    expect(got).toEqual([message]);
   });
 
   // 投げると、親が子を迎える途中（席を返す前の join）や、人ごとに送るループの途中で止まる

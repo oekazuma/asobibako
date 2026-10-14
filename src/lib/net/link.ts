@@ -1,3 +1,4 @@
+import { inflate } from '$lib/inflate';
 import { remember } from '$lib/last-error';
 import type { Player } from '$lib/player';
 
@@ -18,8 +19,12 @@ const ANSWER = 'A:';
 const OPEN_MS = 15000;
 /** 1 通の上限が分からないときの値で、上限の上限。Chrome は接続のときに 256KiB と伝え、Firefox は Infinity を返すので、これを超えない */
 const MAX_BYTES = 256 * 1024;
+/** QR から読んだ SDP を戻す上限。縮める前の SDP は数百バイトから 2KB ほどで、これを超えるものは SDP ではない */
+const MAX_SDP = 16 * 1024;
 /** 上限を超える知らせを分けたものの印。古い版の端末は知らない知らせとして読み飛ばすが、分けるのは今は送れない大きさの知らせだけ */
 const PART = '~part';
+/** 分けた知らせをつなぐ数の上限。相手が大きな n を宣言して送り続けても、集めるのは 16MiB（256KiB × 64）まで */
+const MAX_PARTS = 64;
 
 export const isOffer = (text: string) => text.startsWith(OFFER);
 export const isAnswer = (text: string) => text.startsWith(ANSWER);
@@ -40,8 +45,14 @@ export class Link {
       let message = JSON.parse(event.data) as Message;
       if (message.t === PART) {
         if (message.i === 0) this.#parts = [];
+        const n = Number(message.n);
+        // 順を守る channel では i は集めた数と一致する。ずれた・数が不正な列は捨てて、次の知らせから受け直す
+        if (!Number.isInteger(n) || n < 1 || n > MAX_PARTS || message.i !== this.#parts.length) {
+          this.#parts = [];
+          return;
+        }
         this.#parts.push(String(message.s));
-        if (this.#parts.length < Number(message.n)) return;
+        if (this.#parts.length < n) return;
         message = JSON.parse(this.#parts.join('')) as Message;
         this.#parts = [];
       }
@@ -178,5 +189,5 @@ export async function pack(text: string): Promise<string> {
 
 export async function unpack(code: string): Promise<string> {
   const bytes = Uint8Array.from(atob(code.replaceAll('-', '+').replaceAll('_', '/')), (c) => c.charCodeAt(0));
-  return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+  return new TextDecoder().decode(await inflate(bytes, MAX_SDP));
 }

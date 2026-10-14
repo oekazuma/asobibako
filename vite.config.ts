@@ -50,7 +50,9 @@ export default defineConfig({
       // pollInterval: 開いている間は 5 分ごとに _app/version.json を見て updated.current を立てる
       version: { name: `${process.env.TD_BUILD}-${gitHash}`, pollInterval: 300_000 },
       // GitHub Pages はヘッダを出せないので <meta http-equiv> で CSP を出す（プリレンダーなので hash）。
-      // 依存パッケージ経由で混入したコードが外へ通信するのを connect-src で止めるのが目的。
+      // 依存パッケージ経由で混入したコードが外へ通信するのを connect-src で止めるのが目的だが、効くのはページの中だけ。
+      // Web Worker（ぬりえの AI の coloring/ai-worker.ts と onnxruntime-web）と Service Worker は自分のファイルの応答ヘッダの CSP に従い、
+      // <meta> を受け継がないので、その中の通信は止まらない。worker-src は、ページが作れる worker のファイルを限るだけ
       // style は style:--b={} などのインライン style 属性を使うので unsafe-inline
       csp: {
         mode: 'hash',
