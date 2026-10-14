@@ -416,6 +416,13 @@ describe('うちに来た日', () => {
     expect(daysTogether(pet, now)).toBe(4);
   });
 
+  it('来た日が今日より先になっていても、daysTogether は 1 にちめ', () => {
+    const { pet } = withPet();
+    const now = Date.now();
+    pet.since = day(now + 3 * 24 * HOUR);
+    expect(daysTogether(pet, now)).toBe(1);
+  });
+
   it('時計を前の日へ戻しても、おこづかいは出ない', () => {
     const { save } = withPet();
     expect(catchUp(save, NOW + 48 * HOUR).allowance).toBeGreaterThan(0);

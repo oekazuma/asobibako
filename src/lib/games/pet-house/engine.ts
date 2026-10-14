@@ -129,7 +129,7 @@ export function day(ms: number): string {
 
 /** うちに来た日を 1 にちめとした、今日までの日数 */
 export function daysTogether(pet: Pet, now: number): number {
-  return Math.round((Date.parse(day(now)) - Date.parse(pet.since)) / 86_400_000) + 1;
+  return Math.max(1, Math.round((Date.parse(day(now)) - Date.parse(pet.since)) / 86_400_000) + 1);
 }
 
 export function newSave(now: number): Save {
