@@ -65,8 +65,8 @@ export class Host {
   /** 席ごとの吹き付けの列（数の列のまま）。戻った子へ全員の塗りを送り直すのに使う */
   readonly #logs = new Map<Seat, number[]>();
   readonly #greeted = new Set<Seat>([1]);
-  /** 見つかったときの体。戻った子の答え合わせで、その場に戻して見せる */
-  readonly #found = new Map<Seat, Me>();
+  /** 見つかったときの体と、そのときの塗りの列。戻った子の答え合わせで、その場に戻して見せる（増え鬼でハンターになった人の今の列は白） */
+  readonly #found = new Map<Seat, { body: Me; log: number[] }>();
   /** ダブルの残した体と、そのときの塗りの列。撃った弾の的にし、戻った子へ送り直す */
   readonly #left = new Map<Seat, { body: Me; log: number[] }>();
   #sent = '';
@@ -134,6 +134,8 @@ export class Host {
       return;
     }
     if (m.t === 'join') {
+      // 切れた席には別の端末やページを読み直した端末も入る。前の端末の時計で見積もった差を使うと、弾のさかのぼりがずれる
+      this.#lines.get(from)?.restart();
       rules.join(this.match, from);
       this.welcome(from);
       return this.#push(true);
@@ -182,7 +184,7 @@ export class Host {
   }
 
   /**
-   * 来た・戻った人へ、全員の体・塗り・見つかったときの体・ダブルの残した体とその塗り・今の試合の様子を送る。
+   * 来た・戻った人へ、全員の体・塗り・見つかったときの体（増え鬼ではそのときの塗りも）・ダブルの残した体とその塗り・今の試合の様子を送る。
    * 様子は最後に送り、受けた人はそれを受けてから自分の動きを送り始める（残っていた自分の体を上書きしない）
    */
   welcome(to: Seat): void {
@@ -192,8 +194,12 @@ export class Host {
     }
     for (const [seat, log] of this.#logs) for (const m of dabMessages(seat, 0, log)) this.#port.tell(to, m);
     for (const seat of this.match.found) {
-      const body = this.#found.get(seat);
-      if (body) this.#port.tell(to, { t: 'found', seat, by: 0, at: body.pos, body, quiet: true });
+      const found = this.#found.get(seat);
+      if (!found) continue;
+      this.#port.tell(to, { t: 'found', seat, by: 0, at: found.body.pos, body: found.body, quiet: true });
+      // 増え鬼でハンターになった人の今の列は白いので、撃たれた場所の体はこの列で作らせる（found より後に送る。found が列を写し直すため）
+      if (this.match.settings.mode === 'infect')
+        for (const m of dabMessages(seat, 0, found.log)) this.#port.tell(to, { ...m, t: 'foundDabs' });
     }
     for (const [seat, left] of this.#left) {
       this.#port.tell(to, { t: 'left', seat, body: left.body });
@@ -303,7 +309,7 @@ export class Host {
       if (!rules.hit(this.match, seat, from)) continue;
       struck = true;
       const body = this.#lines.get(seat)?.last();
-      if (body) this.#found.set(seat, body);
+      if (body) this.#found.set(seat, { body, log: [...(this.#logs.get(seat) ?? [])] });
       this.#port.tell('all', { t: 'found', seat, by: from, at: r.end, body });
     }
     if (!struck) rules.missed(this.match, from, this.#port.members);
@@ -355,7 +361,7 @@ export class Host {
       for (const seat of m.hid) {
         // 逆算チキンレースの #left は見せた瞬間の体で、そのあと動いていることがある
         const left = m.settings.mode === 'double' ? this.#left.get(seat)?.body : undefined;
-        const at = left ?? this.#found.get(seat) ?? this.#lines.get(seat)?.last();
+        const at = left ?? this.#found.get(seat)?.body ?? this.#lines.get(seat)?.last();
         if (at) m.spots[seat] = at.pos;
       }
   }

@@ -410,6 +410,52 @@ describe('Host の戻った子', () => {
     // 見つかったときの体も、演出なしで送り直す
     expect(mine.find((m) => m.t === 'found')).toMatchObject({ seat: 2, quiet: true, body: { pos: [0, 0, 5] } });
   });
+
+  it('増え鬼で見つかった人の、見つかったときの塗りを覚え、来た子へ found のあとに foundDabs で送る（持ち主の今の列は白）', () => {
+    const { act, told, host } = searching();
+    act(me(0, [0, 0, 5]), 2);
+    act({ t: 'dabs', at: 0, d: packDabs(paint(5)) }, 2);
+    act(me(0, [0, 0, 0]), 3);
+    act({ ...SHOT, ms: 0 }, 3);
+    expect(of(told, 'found')).toHaveLength(1);
+    // ハンターになった持ち主は列を白に戻して送り直す
+    act({ t: 'dabs', at: 0, d: [] }, 2);
+    told.length = 0;
+    host.welcome(3);
+    const mine = told.filter((x) => x.to === 3).map((x) => x.m);
+    const sent = mine.filter((m) => m.t === 'foundDabs' && m.seat === 2);
+    expect(sent.reduce((n, m) => n + (m.d as number[]).length, 0)).toBe(5 * DAB_LEN);
+    expect(mine.findIndex((m) => m.t === 'found' && m.seat === 2)).toBeLessThan(
+      mine.findIndex((m) => m.t === 'foundDabs')
+    );
+    expect(mine.findIndex((m) => m.t === 'phase')).toBe(mine.length - 1);
+    expect(mine.filter((m) => m.t === 'dabs' && m.seat === 2).every((m) => (m.d as number[]).length === 0)).toBe(true);
+  });
+
+  // 前の端末の時計の差が残ると、2 秒ほど撃った時刻ではない体で当たりを決める
+  it('切れた席に時計のちがう別の端末が来ても、撃った時刻の体で決める', () => {
+    const { act, told, clock, port } = searching({ mode: 'normal' });
+    const skew = 1_000_000;
+    // 前の端末（時計が 1000 秒進んでいる）が席 2 で隠れていた
+    for (let t = 0; t <= 300; t += 50) {
+      clock.ms = t + 30;
+      act(me(t + skew, [9, 0, 9]), 2);
+    }
+    port.members = [1, 3];
+    act({ t: 'leave' }, 2);
+    port.members = [1, 2, 3];
+    act({ t: 'hi', v: CHAMELEON_VERSION }, 2);
+    act({ t: 'join' }, 2);
+    // 別の端末（親と同じ時計）が同じ席で続ける。親の時計で 1300ms に撃ち、2 はその直後に横へ 3m 動いた
+    for (let t = 1000; t <= 1500; t += 50) {
+      clock.ms = t + 30;
+      act(me(t, t <= 1300 ? [0, 0, 5] : [3, 0, 5]), 2);
+      act(me(t, [0, 0, 0]), 3);
+    }
+    clock.ms = 1540;
+    act({ ...SHOT, ms: 1300 }, 3);
+    expect(of(told, 'found')).toHaveLength(1);
+  });
 });
 
 /** 体を動かさずに secs 秒、0.1 秒ごとに全員の動きを送りながら進める */
@@ -776,6 +822,13 @@ describe('Host の逆算チキンレース', () => {
     const { act, told } = setup([1, 2]);
     act({ t: 'leave' }, 2);
     act({ t: 'hi', v: 5 }, 2);
+    expect(told.at(-1)).toEqual({ to: 2, m: { t: 'chameleon-mismatch' } });
+  });
+
+  it('増え鬼の見つかったときの塗りを受けない前の子（版 6）は迎えない', () => {
+    const { act, told } = setup([1, 2]);
+    act({ t: 'leave' }, 2);
+    act({ t: 'hi', v: 6 }, 2);
     expect(told.at(-1)).toEqual({ to: 2, m: { t: 'chameleon-mismatch' } });
   });
 });

@@ -399,6 +399,21 @@ describe('Session の戻った子', () => {
     expect(play.body.pos).toEqual([3, 0, 3]);
     expect(play.world.rig.root.visible).toBe(true);
   });
+
+  it('増え鬼で切れているあいだに見つかって戻った子は、親に残っていた塗りを消して白い体のハンターになる', () => {
+    const messages = [
+      meMsg(2, { pos: [4, 0, 6], pose: 'curl' }),
+      { t: 'dabs', seat: 2, at: 0, d: packDabs([dab(0), dab(1)]) },
+      { t: 'found', seat: 2, by: 3, at: [4, 1, 6], body: body({ pos: [4, 0, 6], pose: 'curl' }), quiet: true },
+      at('search', { roles: { 1: 'hider', 2: 'hunter', 3: 'hunter' }, found: [2] })
+    ] as Message[];
+    const { play, frames, acts } = setup(2, { messages, stop: vi.fn() });
+    expect(play.role).toBe('hunter');
+    expect(play.log.dabs).toHaveLength(0);
+    expect(play.canUndo).toBe(false);
+    frames(0.1);
+    expect(acts.find((m) => m.t === 'dabs')).toMatchObject({ at: 0, d: [] });
+  });
 });
 
 describe('Session の答え合わせ', () => {
@@ -438,6 +453,34 @@ describe('Session の答え合わせの塗り', () => {
     const pin = made.remotes.at(-1)!;
     expect(pin).not.toBe(live);
     expect(pin.rig.paint.rebuild).toHaveBeenCalledWith([dab(0), dab(1)]);
+  });
+
+  it('増え鬼の答え合わせに来た子は、ハンターになった人の撃たれた場所の体を foundDabs の塗りで作る（今の列は白）', () => {
+    const messages = [
+      meMsg(1, { pos: [6, 0, 6], pose: AIM.id }),
+      { t: 'found', seat: 1, by: 3, at: [1, 1, 0], body: body({ pos: [1, 0, 0] }), quiet: true },
+      { t: 'foundDabs', seat: 1, at: 0, d: packDabs([dab(0), dab(1)]) },
+      at('reveal', { roles: { 1: 'hunter', 2: 'hider', 3: 'hunter' }, found: [1], winner: 'chameleon' })
+    ] as Message[];
+    const { frames } = setup(2, { messages, stop: vi.fn() });
+    frames(0.1);
+    const pin = made.remotes.at(-1)!;
+    expect(pin.rig.paint.rebuild).toHaveBeenCalledWith([dab(0), dab(1)]);
+  });
+
+  it('撃たれた場所の体を作ったあとに届いた foundDabs は、その体へ足す', () => {
+    const messages = [
+      meMsg(1, { pos: [6, 0, 6], pose: AIM.id }),
+      { t: 'found', seat: 1, by: 3, at: [1, 1, 0], body: body({ pos: [1, 0, 0] }), quiet: true },
+      { t: 'foundDabs', seat: 1, at: 0, d: packDabs([dab(0)]) },
+      at('reveal', { roles: { 1: 'hunter', 2: 'hider', 3: 'hunter' }, found: [1], winner: 'chameleon' })
+    ] as Message[];
+    const { frames, tell } = setup(2, { messages, stop: vi.fn() });
+    frames(0.1);
+    const pin = made.remotes.at(-1)!;
+    const d = packDabs([dab(1)]);
+    tell({ t: 'foundDabs', seat: 1, at: 1, d });
+    expect(pin.dabs).toHaveBeenCalledWith(1, d);
   });
 });
 

@@ -35,4 +35,15 @@ describe('Timeline', () => {
     expect(line.offset()).toBe(80 - 1_000_050);
     expect(line.last()).toBe(2);
   });
+
+  it('送る端末が替わったら、最後の値は残し、届くまでの間を新しい時計で見積もり直す', () => {
+    const line = new Timeline<number>();
+    line.push(1_000_000, 50, 1);
+    line.restart();
+    expect(line.last()).toBe(1);
+    expect(line.offset()).toBe(0);
+    line.push(100, 130, 2);
+    expect(line.offset()).toBe(30);
+    expect(line.at(1000, 0)).toEqual({ a: 2, b: 2, t: 0 });
+  });
 });
