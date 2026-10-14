@@ -25,19 +25,43 @@ describe('Menu', () => {
   afterEach(() => {
     document.body.innerHTML = '';
     vi.clearAllMocks();
+    vi.useRealTimers();
   });
 
   // 押し間違いで抜けるとつながりが切れるので、確かめてから抜ける
-  it('ぬける… で確かめを出し、ぬけるを押したときだけ閉じて一覧へ戻る', () => {
+  it('ぬける… で確かめを出し、出てから 350ms たって ぬけるを押したときだけ閉じて一覧へ戻る', () => {
+    vi.useFakeTimers();
     const { app, target, party, press } = show(true);
     press('button', 'ぬける…');
     expect(target.textContent).toContain('みんなの あそびが おわるよ');
     press('button', 'もどる');
     expect(party.close).not.toHaveBeenCalled();
     press('button', 'ぬける…');
+    vi.advanceTimersByTime(350);
+    flushSync();
     press('.confirm .leave');
     expect(party.close).toHaveBeenCalled();
     expect(nav.goto).toHaveBeenCalled();
+    unmount(app);
+  });
+
+  // 確かめの ぬける は、いま押した ぬける… とほぼ同じ高さに出る。2 度たたいた 2 回めで抜けない
+  it('確かめが出てすぐの ぬける は押せず、もどるで閉じて開き直すとまた待つ', () => {
+    vi.useFakeTimers();
+    const { app, party, press } = show(true);
+    press('button', 'ぬける…');
+    press('.confirm .leave');
+    vi.advanceTimersByTime(349);
+    flushSync();
+    press('.confirm .leave');
+    expect(party.close).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    flushSync();
+    press('button', 'もどる');
+    press('button', 'ぬける…');
+    press('.confirm .leave');
+    expect(party.close).not.toHaveBeenCalled();
+    expect(nav.goto).not.toHaveBeenCalled();
     unmount(app);
   });
 
