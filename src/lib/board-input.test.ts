@@ -1,6 +1,24 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BoardInput, toBoardPoint } from './board-input';
 
+// wake() は AudioContext を作るが、node には無い
+vi.mock('./audio.svelte', () => ({ wake: () => {} }));
+
+/** 盤面の指の知らせ。#box の初期値は 1 x 1 なので、clientX と clientY がそのまま盤面の 0..1 になる */
+function finger(type: string, pointerId: number, x: number, y: number, pointerType = 'touch', isPrimary = false) {
+  return {
+    type,
+    pointerId,
+    clientX: x,
+    clientY: y,
+    timeStamp: 0,
+    pointerType,
+    isPrimary,
+    preventDefault() {},
+    currentTarget: null
+  } as unknown as PointerEvent;
+}
+
 describe('toBoardPoint', () => {
   const box = { left: 0, top: 0, right: 1024, width: 1024, height: 768 };
 
@@ -74,5 +92,54 @@ describe('BoardInput の大きさの見張り', () => {
     new BoardInput().observe(board(0, 800), onResize);
     new BoardInput().observe(board(600, 0), onResize);
     expect(onResize).not.toHaveBeenCalled();
+  });
+});
+
+describe('BoardInput の残った指', () => {
+  function make() {
+    const up = vi.fn();
+    /** down の hook が呼ばれた時点の指の数 */
+    const sizes: number[] = [];
+    const input: BoardInput = new BoardInput({ down: () => sizes.push(input.fingers.all.size), up });
+    return { input, up, sizes };
+  }
+
+  it('pointerup が届かなかった指は、ほかの指の無いタッチが来たら pointercancel として up に渡して忘れる', () => {
+    const { input, up, sizes } = make();
+    input.down(finger('pointerdown', 1, 0.2, 0.8, 'touch', true));
+    input.move(finger('pointermove', 1, 0.3, 0.8));
+    input.down(finger('pointerdown', 2, 0.5, 0.5, 'touch', true));
+    expect(up).toHaveBeenCalledTimes(1);
+    const [event, last, x, y] = up.mock.calls[0];
+    expect(event).toMatchObject({ type: 'pointercancel', pointerId: 1 });
+    expect(last.x).toBe(0.3);
+    expect([x, y]).toEqual([0.3, 0.8]);
+    expect([...input.fingers.all.keys()]).toEqual([2]);
+    expect(sizes).toEqual([1, 1]);
+  });
+
+  it('ほかの指が触れているあいだのタッチでは、残っている指を忘れない', () => {
+    const { input, up } = make();
+    input.down(finger('pointerdown', 1, 0.2, 0.8, 'touch', true));
+    input.down(finger('pointerdown', 2, 0.5, 0.5, 'touch', false));
+    expect(up).not.toHaveBeenCalled();
+    expect([...input.fingers.all.keys()]).toEqual([1, 2]);
+  });
+
+  it('ペンで描いているあいだに手のひらが触れても、ペンの指は忘れない', () => {
+    const { input, up } = make();
+    input.down(finger('pointerdown', 1, 0.2, 0.8, 'pen', true));
+    input.down(finger('pointerdown', 2, 0.5, 0.5, 'touch', true));
+    expect(up).not.toHaveBeenCalled();
+    expect([...input.fingers.all.keys()]).toEqual([1, 2]);
+  });
+
+  it('ふつうに離した指は、次のタッチで二度 up に渡さない', () => {
+    const { input, up } = make();
+    input.down(finger('pointerdown', 1, 0.2, 0.8, 'touch', true));
+    input.up(finger('pointerup', 1, 0.2, 0.8));
+    input.down(finger('pointerdown', 2, 0.5, 0.5, 'touch', true));
+    expect(up).toHaveBeenCalledTimes(1);
+    expect(up.mock.calls[0][0]).toMatchObject({ type: 'pointerup', pointerId: 1 });
   });
 });

@@ -48,6 +48,8 @@ export class BoardInput {
   /** 回転する前の、盤面そのものの大きさ。描画の位置はこの座標系で書く */
   #size = { width: 1, height: 1 };
   #turned = false;
+  /** 指（touch）の pointerId。ペンで描いているあいだに手のひらが触れても、ペンの指は忘れない */
+  readonly #touches = new Set<number>();
   readonly #hooks: Hooks;
 
   constructor(hooks: Hooks = {}) {
@@ -69,8 +71,11 @@ export class BoardInput {
     // iOS は操作イベントの中でしか音を鳴らし始められない
     wake();
     capture(event);
+    // iPad の Safari は離した指の pointerup を届けないことがある。ほかに触れている指が無いなら、残っている指はもう離れている
+    if (event.pointerType === 'touch' && event.isPrimary) this.#forget(event.timeStamp);
     const [x, y] = this.at(event);
     this.fingers.down(event.pointerId, x, y, event.timeStamp);
+    if (event.pointerType === 'touch') this.#touches.add(event.pointerId);
     this.#hooks.down?.(event, x, y);
   };
 
@@ -81,10 +86,26 @@ export class BoardInput {
   };
 
   up = (event: PointerEvent) => {
+    this.#touches.delete(event.pointerId);
     const [x, y] = this.at(event);
     const finger = this.fingers.up(event.pointerId, x, y, event.timeStamp);
     if (finger) this.#hooks.up?.(event, finger, x, y);
   };
+
+  /**
+   * いつどこで離したか分からない指なので、OS に取り上げられた指と同じ pointercancel として各ゲームの up へ渡す。
+   * はじく速さや離した位置で決まることをさせない
+   */
+  #forget(t: number) {
+    for (const id of this.#touches) {
+      this.#touches.delete(id);
+      const f = this.fingers.all.get(id);
+      if (!f) continue;
+      this.fingers.up(id, f.x, f.y, t);
+      const event = { type: 'pointercancel', pointerId: id, pointerType: 'touch', timeStamp: t } as PointerEvent;
+      this.#hooks.up?.(event, f, f.x, f.y);
+    }
+  }
 
   /** el の大きさを測り、変わるたびに onResize(幅 / 高さ) を呼ぶ。戻り値で見張りをやめる */
   observe(el: HTMLElement, onResize: (aspect: number) => void): () => void {

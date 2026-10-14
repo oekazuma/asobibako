@@ -68,7 +68,7 @@ bomb-relay と hockey は物理があるのでループで動かす。ルール�
 
 ## 入力
 
-2 人が同時に触るので、入力は必ず `pointerdown` と `pointerId` で扱う。長押しは `setPointerCapture`（合成イベントでは失敗しうるので try/catch）。`touch-action: none` と `user-select: none` を全体にかけ、iOS の長押しメニュー・選択・ダブルタップズームを封じる。
+2 人が同時に触るので、入力は必ず `pointerdown` と `pointerId` で扱う。長押しは `setPointerCapture`（合成イベントでは失敗しうるので try/catch）。`touch-action: none` と `user-select: none` を全体にかけ、iOS の長押しメニュー・選択・ダブルタップズームを封じる。iPad の Safari は離した指の `pointerup` を届けないことがあるので、`BoardInput`・`Settle`・`GameShell` のパッドは、ほかに触れている指の無いタッチ（`pointerType` が `touch` で `isPrimary`）が来たら、残っている指を離れたものとして忘れる（`BoardInput` は各ゲームの `up` へ `pointercancel` として渡し、ペンの指は忘れない）。
 
 決着した指を離した位置に結果画面のボタンが現れると、iOS Safari はそこへ合成 `click` を飛ばす。`preventDefault()` では止まらず、リンクは SvelteKit のルーターが先に拾う。そこで決着後は、画面上の指がすべて離れてから 350ms（取りこぼしに備えて最長 3 秒）経つまで、結果画面と端のボタンを `pointer-events: none` にして当たり判定ごと消す（`GameShell.svelte` の `settling`）。爆弾を握ったまま勝つゲームもあるので、決着の時刻からではなく指が離れた時刻から数える。
 
