@@ -3,7 +3,7 @@
   import { version } from '$app/environment';
   import Icon from './Icon.svelte';
   import BackupConfirm from './BackupConfirm.svelte';
-  import { backedUpAt, backupFile, backupName, exportAll, markBackedUp, parseBackup, type Backup } from '$lib/backup';
+  import { backedUpAt, backupFile, backupName, markBackedUp, parseBackup, type Backup } from '$lib/backup';
 
   let pending = $state<Backup | null>(null);
   let error = $state('');
@@ -18,7 +18,7 @@
   });
 
   function save() {
-    const url = URL.createObjectURL(new Blob([exportAll(version)], { type: 'application/json' }));
+    const url = URL.createObjectURL(backupFile(version));
     const a = document.createElement('a');
     a.href = url;
     a.download = backupName();
