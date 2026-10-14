@@ -117,6 +117,7 @@ export class Host {
 
   tick(dt: number): void {
     for (const seat of rules.tick(this.match, dt)) this.#toot(seat);
+    this.#preview();
     this.#watch(dt);
     this.#beat += dt;
     this.#push(this.#beat >= BEAT - EPS);
@@ -206,6 +207,18 @@ export class Host {
     if (me) this.#port.tell('all', { t: 'toot', seat, at: me.pos });
   }
 
+  /** 逆算チキンレースの隠れタイムの終わりに、隠れた人の今の体と塗りを全員へ配る。ハンターは控室でその姿を見る */
+  #preview() {
+    const m = this.match;
+    if (m.settings.mode !== 'race' || m.phase !== 'hide' || m.left > rules.PREVIEW + EPS || this.#left.size) return;
+    for (const seat of m.hid) {
+      const body = this.#lines.get(seat)?.last();
+      if (!body) continue;
+      this.#left.set(seat, { body, log: [...(this.#logs.get(seat) ?? [])] });
+      this.#port.tell('all', { t: 'left', seat, body });
+    }
+  }
+
   /** 台の上の人（ロビー）・埋まり（隠れタイムと探索）・見落としポイント（探索）を、届いた体から決める */
   #watch(dt: number) {
     const m = this.match;
@@ -287,7 +300,7 @@ export class Host {
         if (rules.spot(this.match, from, seat)) this.#port.tell('all', { t: 'found', seat, by: from, at: r.end });
         continue;
       }
-      if (!rules.hit(this.match, seat)) continue;
+      if (!rules.hit(this.match, seat, from)) continue;
       struck = true;
       const body = this.#lines.get(seat)?.last();
       if (body) this.#found.set(seat, body);
@@ -340,7 +353,9 @@ export class Host {
       }
     if (phase === 'reveal')
       for (const seat of m.hid) {
-        const at = this.#left.get(seat)?.body ?? this.#found.get(seat) ?? this.#lines.get(seat)?.last();
+        // 逆算チキンレースの #left は見せた瞬間の体で、そのあと動いていることがある
+        const left = m.settings.mode === 'double' ? this.#left.get(seat)?.body : undefined;
+        const at = left ?? this.#found.get(seat) ?? this.#lines.get(seat)?.last();
         if (at) m.spots[seat] = at.pos;
       }
   }

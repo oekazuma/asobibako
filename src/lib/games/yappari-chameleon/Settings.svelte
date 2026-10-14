@@ -27,6 +27,7 @@
   const most = $derived(Math.max(1, players - 1));
   // 保存した人数が今の人数より多くても、見せる数と増減はいまの上限に合わせる
   const hunters = $derived(Math.min(settings.hunters, most));
+  const fixed = $derived(settings.mode === 'double' || settings.mode === 'race');
 </script>
 
 <div class="sheet" role="dialog" aria-label="マップの設定">
@@ -41,22 +42,21 @@
         <button class:on={settings.mode === 'double'} disabled={nodouble} onclick={() => (settings.mode = 'double')}
           >ダブル</button
         >
+        <button class:on={settings.mode === 'race'} disabled={nodouble} onclick={() => (settings.mode = 'race')}
+          >逆算チキンレース</button
+        >
       </span>
     </div>
-    <!-- ダブルは全員が隠れて全員が探すので、ハンターの人数を使わない -->
-    <div class="row" class:dim={settings.mode === 'double'}>
+    <!-- ダブルは全員が隠れて全員が探し、逆算チキンレースのハンターは番で決まるので、ハンターの人数を使わない -->
+    <div class="row" class:dim={fixed}>
       <span>ハンターの人数</span>
       <span class="pick">
-        <button
-          aria-label="減らす"
-          disabled={settings.mode === 'double'}
-          onclick={() => (settings.hunters = Math.max(1, hunters - 1))}>−</button
+        <button aria-label="減らす" disabled={fixed} onclick={() => (settings.hunters = Math.max(1, hunters - 1))}
+          >−</button
         >
         <span class="value">{hunters}</span>
-        <button
-          aria-label="増やす"
-          disabled={settings.mode === 'double'}
-          onclick={() => (settings.hunters = Math.min(most, hunters + 1))}>＋</button
+        <button aria-label="増やす" disabled={fixed} onclick={() => (settings.hunters = Math.min(most, hunters + 1))}
+          >＋</button
         >
       </span>
     </div>

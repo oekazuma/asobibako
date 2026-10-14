@@ -9,7 +9,7 @@
     <li class:me={r.seat === match.me}>
       <span class="num">#{i + 1}</span>
       <span>{match.name(r.seat)}</span>
-      <span class="num">{r.got}/{r.need}</span>
+      <span class="num">{match.race ? `${r.got}点` : `${r.got}/${r.need}`}</span>
     </li>
   {/each}
 </ol>

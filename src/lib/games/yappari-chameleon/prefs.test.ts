@@ -39,6 +39,11 @@ describe('マップの設定', () => {
     expect(readSettings()).toMatchObject({ hide: 30, reveal: 120 });
   });
 
+  it('逆算チキンレースも覚えて読む', () => {
+    saveSettings({ ...DEFAULTS, mode: 'race' });
+    expect(readSettings().mode).toBe('race');
+  });
+
   it('ダブルと見逃しランキングの設定も覚え、前の版の保存は見逃しランキングをオンで読む', () => {
     saveSettings({ ...DEFAULTS, mode: 'double', overlook: false });
     expect(readSettings()).toMatchObject({ mode: 'double', overlook: false });

@@ -109,6 +109,19 @@ describe('Overlay', () => {
     done();
   });
 
+  it('逆算チキンレースの探索と答え合わせでは、左に合計点の順位表を出す', () => {
+    const settings = { ...DEFAULTS, mode: 'race' } as const;
+    const roles = { 1: 'hunter', 2: 'hider' } as const;
+    const { target, done } = show(
+      'hunter',
+      { phase: 'search', settings, roles, hid: [2], order: [1, 2], scores: { 2: 480 } },
+      1
+    );
+    const rows = [...target.querySelectorAll('.ranking li')].map((li) => li.textContent?.replace(/\s+/g, ''));
+    expect(rows).toEqual(['#1プレイヤー2480点', '#2プレイヤー10点']);
+    done();
+  });
+
   it('紹介のモード名は、ダブルのときマゼンタ', () => {
     const { target, done } = show('hider', { phase: 'intro', settings: { ...DEFAULTS, mode: 'double' } });
     expect(['#e8399c', 'rgb(232, 57, 156)']).toContain(target.querySelector<HTMLElement>('.intro .name')?.style.color);

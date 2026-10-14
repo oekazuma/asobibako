@@ -1,6 +1,6 @@
 import type { Seat } from '$lib/net/party.svelte';
 import { placeOf } from './mansion/layout';
-import { newMatch, view, type GameMode, type Role, type View } from './referee';
+import { newMatch, PREVIEW, view, type GameMode, type Role, type View } from './referee';
 
 export const MODES: Record<GameMode, { name: string; lines: [string, string]; color: string }> = {
   normal: { name: '通常', lines: ['鬼と人間に分かれて隠れる。', '1人でも最後まで隠れ切ると勝利'], color: '#7cc243' },
@@ -10,6 +10,12 @@ export const MODES: Record<GameMode, { name: string; lines: [string, string]; co
     name: 'ダブル',
     lines: ['最初に全員で隠れる。', 'その後全員で探索し、最初に全員見つければ勝利'],
     color: '#e8399c'
+  },
+  // 説明の字は本家の字が分からないので仮
+  race: {
+    name: '逆算チキンレース',
+    lines: ['1人ずつ順番に隠れ、その姿を見せてから探す。', '早く見つけるほど高得点。合計点で勝負'],
+    color: '#7cc243'
   }
 };
 
@@ -111,9 +117,22 @@ export class Match {
     return this.view.settings.mode === 'double';
   }
 
-  /** ダブルの順位表。見つけた数の多い順、同じ数なら先にその数に届いた順 */
+  get race(): boolean {
+    return this.view.settings.mode === 'race';
+  }
+
+  /** 逆算チキンレースで、ハンターに隠れた姿を見せている（隠れタイムの終わりの PREVIEW 秒） */
+  get previewing(): boolean {
+    return this.race && this.phase === 'hide' && this.left <= PREVIEW;
+  }
+
+  /** ダブルの順位表（逆算チキンレースでは合計点）。見つけた数の多い順、同じ数なら先にその数に届いた順 */
   get ranking(): { seat: Seat; got: number; need: number }[] {
     const v = this.view;
+    if (v.settings.mode === 'race')
+      return v.order
+        .map((seat) => ({ seat, got: v.scores[seat] ?? 0, need: 0 }))
+        .sort((a, b) => b.got - a.got || a.seat - b.seat);
     const need = Math.max(0, v.hid.length - 1);
     const at = (s: Seat) => v.reached[s] ?? Infinity;
     return v.hid

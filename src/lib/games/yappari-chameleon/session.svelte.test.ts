@@ -9,8 +9,8 @@ import { CHAMELEON_VERSION, DAB_LEN, packDabs, type Me } from './net';
 import type { Dab } from './paint';
 import { Play } from './play.svelte';
 import { AIM, STAND } from './poses';
-import { DEFAULTS, newMatch, SHATTER_SECS, view, type View } from './referee';
-import { Session, type Inbox } from './session.svelte';
+import { DEFAULTS, newMatch, PREVIEW, SHATTER_SECS, view, type View } from './referee';
+import { PREVIEW_AT, Session, type Inbox } from './session.svelte';
 import { capsules, fire, placement } from './shots';
 import { sounds } from './sounds';
 import type { World } from './world3d';
@@ -72,7 +72,7 @@ const made = vi.hoisted(() => ({
     log: unknown[];
     rig: { paint: { rebuild: unknown } };
     dabs: unknown;
-    lastShow: { visible: boolean; shine?: unknown; scale?: number } | null;
+    lastShow: { visible: boolean; pin?: Me | null; shine?: unknown; scale?: number } | null;
   }[],
   guns: [] as { visible: boolean; dispose: unknown }[]
 }));
@@ -663,6 +663,26 @@ describe('Session のロビーと小物', () => {
     tell(at('lobby', { wishes: [] }));
     s.frame(1 / 60, 16);
     expect(play.world.podium).toHaveBeenLastCalledWith(false);
+  });
+});
+
+describe('Session の逆算チキンレース', () => {
+  it('隠れた人の姿を控室のハンターの前に、張り付きを外して同じポーズで立たせ、隠れタイムのあいだだけ見せる', () => {
+    const race = { ...DEFAULTS, mode: 'race' } as const;
+    const roles = { 1: 'hunter', 2: 'hider', 3: 'hunter' } as const;
+    const { tell, frames } = setup(3);
+    tell(meMsg(2, { pos: [4, 2, 6], cling: { kind: 'ceiling' }, pose: 'curl' }));
+    tell(at('hide', { settings: race, roles, first: [1, 3], hid: [2], left: PREVIEW }));
+    const before = made.remotes.length;
+    tell({ t: 'left', seat: 2, body: body({ pos: [4, 2, 6], cling: { kind: 'ceiling' }, pose: 'curl' }) });
+    frames(0.1);
+    const pin = made.remotes[before];
+    expect(pin.lastShow?.visible).toBe(true);
+    expect(pin.lastShow?.shine).toBeNull();
+    expect(pin.lastShow?.pin).toMatchObject({ pos: [...PREVIEW_AT], yaw: Math.PI, cling: null, pose: 'curl' });
+    tell(at('search', { settings: race, roles, first: [1, 3], hid: [2] }));
+    frames(0.1);
+    expect(pin.lastShow?.visible).toBe(false);
   });
 });
 

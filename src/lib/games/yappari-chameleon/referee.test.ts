@@ -19,6 +19,8 @@ import {
   overlooked,
   PETIT,
   pickHunters,
+  PREVIEW,
+  RACE_SEARCH,
   ready,
   scaleOf,
   shoot,
@@ -649,5 +651,90 @@ describe('体型', () => {
     expect(d.phase).toBe('search');
     expect(liveScale(view(d), 1)).toBe(1);
     expect(view(d).bodies[1]).toBe('petit');
+  });
+});
+
+describe('逆算チキンレース', () => {
+  it('1 人ずつ番に隠れ、ほかの全員が探す。台の希望は使わず、探索は 60 秒', () => {
+    const m = begun({ mode: 'race' }, [3]);
+    expect(fit({ ...DEFAULTS, mode: 'race' }, 3).mode).toBe('race');
+    expect(m.roles).toEqual({ 1: 'hider', 2: 'hunter', 3: 'hunter' });
+    expect(m.order).toEqual([1, 2, 3]);
+    expect(m.turn).toBe(0);
+    run(m, 3 + 60);
+    expect(m.phase).toBe('search');
+    expect(m.left).toBeCloseTo(RACE_SEARCH, 0);
+  });
+
+  it('見つけた人には残り時間に応じた点を足す（探索の始めは 500、半分たてば 250 ほど）', () => {
+    const a = begun({ mode: 'race' });
+    run(a, 3 + 60);
+    hit(a, 1, 2);
+    expect(a.scores[2]).toBeGreaterThanOrEqual(499);
+    const b = begun({ mode: 'race' });
+    run(b, 3 + 60 + 30);
+    hit(b, 1, 3);
+    expect(b.scores[3]).toBeCloseTo(250, -1);
+  });
+
+  it('隠れた人には、答え合わせで見落としポイントの合計を切り捨てて足す', () => {
+    const m = begun({ mode: 'race' });
+    run(m, 3 + 60);
+    overlooked(m, 2, 1, 12.7);
+    overlooked(m, 3, 1, 3.6);
+    run(m, RACE_SEARCH + 0.1);
+    expect(m.phase).toBe('reveal');
+    expect(m.scores[1]).toBe(16);
+  });
+
+  it('答え合わせのあと次の番の紹介へ進み、最後の番のあとはロビーへ。最後の答え合わせは合計点のいちばん多い人の勝ち', () => {
+    const m = begun({ mode: 'race', reveal: 10 });
+    run(m, 3 + 60);
+    hit(m, 1, 2);
+    expect(m.winner).toBe('hunter');
+    run(m, 10.1);
+    expect(m.phase).toBe('intro');
+    expect(m.turn).toBe(1);
+    expect(m.roles).toEqual({ 1: 'hunter', 2: 'hider', 3: 'hunter' });
+    expect(m.found).toEqual([]);
+    run(m, 3 + 60 + 30);
+    hit(m, 2, 3);
+    run(m, 10.1);
+    expect(m.roles).toEqual({ 1: 'hunter', 2: 'hunter', 3: 'hider' });
+    run(m, 3 + 60 + 45);
+    hit(m, 3, 1);
+    expect(m.phase).toBe('reveal');
+    expect(m.winner).toBe('double');
+    expect(m.champ).toBe(2);
+    run(m, 10.1);
+    expect(m.phase).toBe('lobby');
+  });
+
+  it('隠れタイムを全員で飛ばしても、隠れた姿を見せる 5 秒は残す', () => {
+    const m = begun({ mode: 'race' });
+    run(m, 3 + 1);
+    for (const s of ALL) ready(m, s, ALL);
+    expect(m.phase).toBe('hide');
+    expect(m.left).toBe(PREVIEW);
+    run(m, PREVIEW + 0.1);
+    expect(m.phase).toBe('search');
+  });
+
+  it('抜けた人の番は飛ばす。今の番の人が抜けたら、次の番は次の人で、抜けた人は観戦', () => {
+    const m = begun({ mode: 'race', reveal: 10 });
+    run(m, 3 + 1);
+    leave(m, 1, [2, 3]);
+    expect(m.order).toEqual([2, 3]);
+    expect(m.phase).toBe('hide');
+    run(m, 59 + RACE_SEARCH + 10 + 0.1);
+    expect(m.phase).toBe('intro');
+    expect(m.roles).toEqual({ 1: 'out', 2: 'hider', 3: 'hunter' });
+  });
+
+  it('ほかのモードの hit は撃った人を渡しても点を付けない', () => {
+    const m = begun({ mode: 'normal' });
+    run(m, 3 + 60);
+    hit(m, 1, 3);
+    expect(m.scores).toEqual({});
   });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Seat } from '$lib/net/party.svelte';
 import { Match, MODES, nameOf, winnerText } from './match.svelte';
-import { DEFAULTS, newMatch, view, type View } from './referee';
+import { DEFAULTS, newMatch, PREVIEW, view, type View } from './referee';
 
 const at = (me: Seat, v: Partial<View>) => {
   const m = new Match(() => me);
@@ -119,5 +119,30 @@ describe('Match', () => {
   it('ダブルの勝者の言葉も CPU の名前で呼ぶ', () => {
     const v = view(newMatch());
     expect(winnerText({ ...v, winner: 'double', champ: 2 }, { 2: 'cpu' })).toBe('勝者 CPU 1!');
+  });
+
+  it('逆算チキンレースの順位は合計点の多い順で、番の順の全員を出す', () => {
+    const m = new Match(() => 1);
+    m.receive({
+      ...view(newMatch()),
+      settings: { ...DEFAULTS, mode: 'race' },
+      phase: 'search',
+      order: [1, 2, 3],
+      scores: { 2: 480, 3: 120 }
+    });
+    expect(m.race).toBe(true);
+    expect(m.ranking.map((r) => [r.seat, r.got])).toEqual([
+      [2, 480],
+      [3, 120],
+      [1, 0]
+    ]);
+  });
+
+  it('逆算チキンレースの隠れタイムの残りが見せる秒になると previewing', () => {
+    const m = new Match(() => 1);
+    m.receive({ ...view(newMatch()), settings: { ...DEFAULTS, mode: 'race' }, phase: 'hide', left: PREVIEW + 1 });
+    expect(m.previewing).toBe(false);
+    m.advance(1.5);
+    expect(m.previewing).toBe(true);
   });
 });

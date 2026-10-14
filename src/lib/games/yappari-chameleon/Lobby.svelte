@@ -41,8 +41,9 @@
   /** CPU と遊ぶでは、マップの設定から始めても、ハンターとモードは CPU の設定の役で決める */
   function begin() {
     if (solo && crew) void crew.play($state.snapshot(choice), $state.snapshot(settings));
-    // CPU はダブルの残した体を探せないので、CPU が座っているあいだは増え鬼で始める
-    else if (cpuSeat && settings.mode === 'double') session.start({ ...settings, mode: 'infect' });
+    // CPU はダブルの残した体も逆算チキンレースの番の回り方も扱えないので、CPU が座っているあいだは増え鬼で始める
+    else if (cpuSeat && (settings.mode === 'double' || settings.mode === 'race'))
+      session.start({ ...settings, mode: 'infect' });
     else session.start(settings);
   }
 

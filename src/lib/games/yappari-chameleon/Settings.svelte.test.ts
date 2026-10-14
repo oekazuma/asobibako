@@ -63,3 +63,26 @@ it('CPU が座っているあいだは、ダブルを押せない', () => {
   expect(double.disabled).toBe(true);
   unmount(app);
 });
+
+it('ゲームモードで逆算チキンレースを選べ、選ぶとハンターの人数を押せない', () => {
+  const { target, settings, done } = show(false);
+  const pick = (text: string) => [...target.querySelectorAll('button')].find((b) => b.textContent === text)!;
+  pick('逆算チキンレース').click();
+  flushSync();
+  expect(settings.mode).toBe('race');
+  expect(target.querySelector<HTMLButtonElement>('[aria-label="増やす"]')!.disabled).toBe(true);
+  done();
+});
+
+it('CPU が座っているあいだは、逆算チキンレースも押せない', () => {
+  const settings = $state<S>({ ...DEFAULTS });
+  const target = document.body.appendChild(document.createElement('div'));
+  const app = mount(Settings, {
+    target,
+    props: { settings, players: 3, nodouble: true, onstart: vi.fn(), onclose: vi.fn() }
+  });
+  flushSync();
+  const race = [...target.querySelectorAll('button')].find((b) => b.textContent === '逆算チキンレース')!;
+  expect(race.disabled).toBe(true);
+  unmount(app);
+});

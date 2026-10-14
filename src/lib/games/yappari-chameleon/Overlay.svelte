@@ -79,7 +79,7 @@
 {#if phase !== 'lobby'}
   <!-- ✕ と重ならないよう、その下に縦に積む。左の操作域の上に載るので、箱そのものは指を受けない（テストが読めるよう style 属性で書く） -->
   <div class="side" style:pointer-events="none">
-    {#if match.double && (phase === 'search' || phase === 'reveal')}<Ranking {match} />{/if}
+    {#if (match.double || match.race) && (phase === 'search' || phase === 'reveal')}<Ranking {match} />{/if}
     {#if phase === 'search' && play.role === 'hunter' && match.view.settings.overlook}<Overlooked {match} />{/if}
     {#if phase === 'reveal'}<Spotted {match} />{/if}
   </div>

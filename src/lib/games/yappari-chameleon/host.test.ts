@@ -8,7 +8,7 @@ import type { Level } from './move';
 import { CHAMELEON_VERSION, DAB_LEN, packDabs, splice, unpackDabs, type Me } from './net';
 import type { Dab } from './paint';
 import { AIM } from './poses';
-import { DEFAULTS, type Settings, type View } from './referee';
+import { DEFAULTS, INTRO, PREVIEW, type Settings, type View } from './referee';
 
 const floor: Level = { boxes: [{ min: [-20, -1, -20], max: [20, 0, 20] }], ramps: [], spawn: [0, 0, 0] };
 
@@ -734,5 +734,48 @@ describe('Host の体型', () => {
     s.host.tick(2.1);
     s.act({ ...SHOT, o: [0, 0.35, 0], ms: 2100 }, 3);
     expect(of(s.told, 'found').map((m) => m.seat)).toEqual([2, 1]);
+  });
+});
+
+describe('Host の逆算チキンレース', () => {
+  it('隠れタイムの残りが見せる秒になると、隠れた人の体と塗りを left で全員へ配り、戻った子へも送り直す', () => {
+    const { act, told, host } = setup([1, 2, 3]);
+    host.start({ ...DEFAULTS, mode: 'race', hide: 60 });
+    act(me(0, [0, 0, 5], { pose: 'curl' }), 1);
+    act({ t: 'dabs', at: 0, d: packDabs(paint(3)) }, 1);
+    for (let i = 0; i < (INTRO + 60 - PREVIEW - 1) * 10; i++) host.tick(0.1);
+    expect(of(told, 'left')).toEqual([]);
+    for (let i = 0; i < 20; i++) host.tick(0.1);
+    expect(of(told, 'left')).toEqual([
+      expect.objectContaining({ seat: 1, body: expect.objectContaining({ pos: [0, 0, 5], pose: 'curl' }) })
+    ]);
+    told.length = 0;
+    host.welcome(2);
+    expect(of(told, 'leftDabs')).toHaveLength(1);
+  });
+
+  it('見つけた人に点を足し、答え合わせの場所は見せたときではなく今の体で、そのあと次の番の紹介へ', () => {
+    const { act, told, host, clock } = setup([1, 2, 3]);
+    host.start({ ...DEFAULTS, mode: 'race', hide: 60, reveal: 10 });
+    act(me(0, [0, 0, 4]), 1);
+    for (let i = 0; i < (INTRO + 60) * 10 + 1; i++) host.tick(0.1);
+    expect(lastView(told).phase).toBe('search');
+    // 親の時計も体の時刻にそろえる（撃った時刻の体を引くので、時刻の同じ 2 つの体を残さない）
+    clock.ms = 1000;
+    act(me(1000, [0, 0, 5]), 1);
+    act(me(1000, [0, 0, 0]), 2);
+    act({ ...SHOT, ms: 1000 }, 2);
+    expect(lastView(told).phase).toBe('reveal');
+    expect(lastView(told).scores[2]).toBeGreaterThan(490);
+    expect(lastView(told).spots[1]).toEqual([0, 0, 5]);
+    for (let i = 0; i < 10 * 10 + 1; i++) host.tick(0.1);
+    expect(lastView(told)).toMatchObject({ phase: 'intro', turn: 1, roles: { 1: 'hunter', 2: 'hider', 3: 'hunter' } });
+  });
+
+  it('逆算チキンレースの前の子（版 5）は迎えない', () => {
+    const { act, told } = setup([1, 2]);
+    act({ t: 'leave' }, 2);
+    act({ t: 'hi', v: 5 }, 2);
+    expect(told.at(-1)).toEqual({ to: 2, m: { t: 'chameleon-mismatch' } });
   });
 });

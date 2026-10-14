@@ -12,10 +12,14 @@
     <p class="name" style:color={mode.color}>{mode.name}</p>
     <p>{mode.lines[0]}</p>
     <p>{mode.lines[1]}</p>
+    {#if match.race}
+      <p>{match.name(match.view.hid[0])}が隠れる番（{match.view.turn + 1}/{match.view.order.length}）</p>
+    {/if}
   </div>
 {:else if match.phase === 'hide'}
   <p class="splash">隠れタイム</p>
 {/if}
+{#if match.previewing && match.role === 'hunter'}<p class="look" role="status">この姿を探せ</p>{/if}
 
 <style>
   .bar {
@@ -69,6 +73,20 @@
     text-shadow: 0 3px 10px #000;
     pointer-events: none;
     animation: splash 1.8s forwards;
+  }
+
+  .look {
+    position: absolute;
+    top: 14cqh;
+    right: 0;
+    left: 0;
+    margin: 0;
+    color: #fff;
+    font-family: 'Hiragino Mincho ProN', serif;
+    font-size: min(7cqh, 5cqw);
+    text-align: center;
+    text-shadow: 0 2px 6px #000;
+    pointer-events: none;
   }
 
   @keyframes splash {

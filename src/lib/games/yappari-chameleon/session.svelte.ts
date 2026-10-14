@@ -31,6 +31,9 @@ import { HEAD_Y, paintColors, Remote, type Show } from './remote';
 import { capsules, fire, placement, type Target } from './shots';
 import { sounds } from './sounds';
 
+/** 逆算チキンレースで隠れた姿を立たせる所。控室（ROOM）の北の壁ぎわで、ハンターの始める場所（北向き）の正面 */
+export const PREVIEW_AT: V3 = [0, 0, -28.4];
+
 /** 頭の上の名前の札（ロビーと答え合わせ） */
 export interface Plate {
   seat: Seat;
@@ -446,12 +449,14 @@ export class Session {
           scale: this.#pinScale(seat)
         });
     }
+    const race = m.view.settings.mode === 'race';
     for (const [seat, body] of this.#lefts)
       this.#pins.get(seat)?.update(dt, now, {
-        pin: body,
-        visible: !this.#caught(seat),
+        // 逆算チキンレースは張り付きを外し、同じポーズで控室のハンターのほう（−z）へ向けて立たせる
+        pin: race ? { ...body, pos: PREVIEW_AT, yaw: Math.PI, cling: null } : body,
+        visible: race ? m.phase === 'hide' : !this.#caught(seat),
         armed: false,
-        shine: this.#leftShine(seat),
+        shine: race ? null : this.#leftShine(seat),
         scale: this.#pinScale(seat)
       });
     if (this.play.role === 'watch' && this.watching !== null && !this.#watchable().includes(this.watching))

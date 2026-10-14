@@ -2,10 +2,10 @@ import type { Seat } from '$lib/net/party.svelte';
 import type { V3 } from '$lib/sculpt';
 
 export type Phase = 'lobby' | 'intro' | 'hide' | 'search' | 'reveal';
-export type GameMode = 'normal' | 'infect' | 'double';
+export type GameMode = 'normal' | 'infect' | 'double' | 'race';
 /** out は試合から抜けたハンターと、試合の途中で来た人（観戦する） */
 export type Role = 'hider' | 'hunter' | 'out';
-/** double はダブルの決着。勝った人は Match.champ（null なら勝者なし） */
+/** double はダブルと逆算チキンレースの最後の番の決着。勝った人は Match.champ（null なら勝者なし） */
 export type Winner = 'chameleon' | 'hunter' | 'double';
 export type BodyType = 'normal' | 'petit';
 export const BODY_TYPES: readonly BodyType[] = ['normal', 'petit'];
@@ -53,6 +53,12 @@ export const SHOT_SLACK = 0.15;
 export const EXPOSE = 5;
 /** 撃たれた人の破片が消えるまで（秒）。増え鬼では、そのあとハンターになる（CPU も同じ間をおく） */
 export const SHATTER_SECS = 1.5;
+/** 逆算チキンレースの探す時間（秒）。本家は 1 分ほど */
+export const RACE_SEARCH = 60;
+/** 逆算チキンレースで見つけた人の点の上限。本家 v2.4.1 の値。残り時間で減らすのは仮 */
+export const RACE_FIND = 500;
+/** 逆算チキンレースで、隠れタイムの終わりに隠れた姿をハンターに見せる秒 */
+export const PREVIEW = 5;
 
 /** 小さな dt を足し重ねたずれで、0 になるはずの時計が 0 の手前に残らないようにする */
 const EPS = 1e-6;
@@ -63,7 +69,7 @@ const clamp = (v: number, [lo, hi]: readonly [number, number]) => Math.min(hi, M
 
 export function fit(s: Settings, players: number): Settings {
   return {
-    mode: s.mode === 'normal' || s.mode === 'double' ? s.mode : 'infect',
+    mode: s.mode === 'normal' || s.mode === 'double' || s.mode === 'race' ? s.mode : 'infect',
     hunters: clamp(s.hunters, [1, Math.max(1, players - 1)]),
     hide: clamp(s.hide, LIMITS.hide),
     search: clamp(s.search, LIMITS.search),
@@ -116,6 +122,12 @@ export interface Match {
    * 子が選び直さなくても選んだ体型に戻る。ロビーの選びなので、試合をまたいで残す
    */
   bodies: Partial<Record<Seat, BodyType>>;
+  /** 逆算チキンレースで隠れる番の順。抜けた人は外す */
+  order: Seat[];
+  /** 逆算チキンレースの今の番（order の番号） */
+  turn: number;
+  /** 逆算チキンレースの合計点 */
+  scores: Partial<Record<Seat, number>>;
 }
 
 export const newMatch = (): Match => ({
@@ -142,7 +154,10 @@ export const newMatch = (): Match => ({
   buried: {},
   overlook: {},
   spots: {},
-  bodies: {}
+  bodies: {},
+  order: [],
+  turn: 0,
+  scores: {}
 });
 
 function shuffle<T>(list: T[], rand: () => number): T[] {
@@ -186,10 +201,17 @@ export function start(
   const s = fit(settings, members.length);
   Object.assign(m.bodies, bodies);
   const double = s.mode === 'double';
+  const race = s.mode === 'race';
   const chosen = (hunters ?? []).filter((seat) => members.includes(seat)).sort((a, b) => a - b);
   const fixed = chosen.length > 0 && chosen.length < members.length;
   // ダブルは全員が隠れてから全員で探すので、最初のハンターはいない
-  const picked = double ? [] : fixed ? chosen : pickHunters(m.wishes, members, s.hunters, rand);
+  const picked = double
+    ? []
+    : race
+      ? members.slice(1)
+      : fixed
+        ? chosen
+        : pickHunters(m.wishes, members, s.hunters, rand);
   const hiders = members.filter((seat) => !picked.includes(seat));
   Object.assign(m, {
     phase: 'intro',
@@ -214,22 +236,27 @@ export function start(
     likes: {},
     buried: {},
     overlook: {},
-    spots: {}
+    spots: {},
+    order: race ? [...members] : [],
+    turn: 0,
+    scores: {}
   } satisfies Partial<Match>);
 }
 
 function enter(m: Match, phase: Phase): void {
   m.phase = phase;
   m.ready = [];
-  if (phase === 'hide') m.left = m.settings.hide;
+  if (phase === 'intro') nextTurn(m);
+  else if (phase === 'hide') m.left = m.settings.hide;
   else if (phase === 'search') {
-    m.left = m.settings.search;
+    m.left = m.settings.mode === 'race' ? RACE_SEARCH : m.settings.search;
     // ダブルでは隠れた体を残して、隠れる人の全員が探す人になる（途中で来た観戦の人はそのまま）
     if (m.settings.mode === 'double') for (const s of seatsOf(m, 'hider')) m.roles[s] = 'hunter';
   } else if (phase === 'reveal') {
     m.left = m.settings.reveal;
     m.buried = {};
-    if (m.settings.mode === 'double') {
+    if (m.settings.mode === 'race') scoreRace(m);
+    else if (m.settings.mode === 'double') {
       m.winner = 'double';
       m.champ ??= leader(m);
     } else m.winner ??= hiding(m).length ? 'chameleon' : 'hunter';
@@ -255,6 +282,50 @@ function enter(m: Match, phase: Phase): void {
   }
 }
 
+/** 逆算チキンレースの次の番。番の順の全員が探し、次の人だけが隠れる（抜けた人と途中で来た人は観戦） */
+function nextTurn(m: Match): void {
+  m.turn += 1;
+  const hider = m.order[m.turn];
+  const roles: Match['roles'] = Object.fromEntries(Object.keys(m.roles).map((s) => [s, 'out']));
+  for (const s of m.order) roles[s] = s === hider ? 'hider' : 'hunter';
+  Object.assign(m, {
+    left: INTRO,
+    roles,
+    first: m.order.filter((s) => s !== hider),
+    found: [],
+    winner: null,
+    taunts: { [hider]: m.settings.taunt },
+    shots: {},
+    toots: {},
+    hid: [hider],
+    caught: {},
+    reached: {},
+    champ: null,
+    likes: {},
+    buried: {},
+    overlook: {},
+    spots: {},
+    misses: {}
+  } satisfies Partial<Match>);
+}
+
+/** 逆算チキンレースの答え合わせ。隠れた人に見落としポイントの合計を足し、最後の番なら合計点のいちばん多い人の勝ち */
+function scoreRace(m: Match): void {
+  for (const h of m.hid) {
+    const pts = Object.values(m.overlook).reduce((n, row) => n + (row?.[h] ?? 0), 0);
+    m.scores[h] = (m.scores[h] ?? 0) + Math.floor(pts);
+  }
+  if (m.turn + 1 < m.order.length) {
+    m.winner ??= hiding(m).length ? 'chameleon' : 'hunter';
+    return;
+  }
+  m.winner = 'double';
+  m.champ = m.order.reduce<Seat | null>(
+    (best, s) => (best === null || (m.scores[s] ?? 0) > (m.scores[best] ?? 0) ? s : best),
+    null
+  );
+}
+
 /** 時間切れのダブルの勝者。見つけた数の多い人、同じ数なら先にその数に届いた人。誰も見つけていなければ null */
 function leader(m: Match): Seat | null {
   let best: Seat | null = null;
@@ -271,6 +342,10 @@ function leader(m: Match): Seat | null {
 
 const NEXT: Record<Phase, Phase> = { lobby: 'lobby', intro: 'hide', hide: 'search', search: 'reveal', reveal: 'lobby' };
 
+/** 逆算チキンレースは、番が残っていれば答え合わせから次の番の紹介へ進む */
+const next = (m: Match): Phase =>
+  m.phase === 'reveal' && m.settings.mode === 'race' && m.turn + 1 < m.order.length ? 'intro' : NEXT[m.phase];
+
 /** 時計を進める。探索のあいだ、強制挑発の時計が 0 になった隠れる人を返す（その人が吹く） */
 export function tick(m: Match, dt: number): Seat[] {
   m.clock += dt;
@@ -286,7 +361,7 @@ export function tick(m: Match, dt: number): Seat[] {
       toots.push(seat);
     }
   m.left = m.left - dt > EPS ? m.left - dt : 0;
-  if (m.left === 0) enter(m, NEXT[m.phase]);
+  if (m.left === 0) enter(m, next(m));
   return toots;
 }
 
@@ -298,8 +373,10 @@ export function ready(m: Match, seat: Seat, present: Seat[]): void {
 }
 
 function settle(m: Match, present: Seat[]): void {
-  if ((m.phase === 'hide' || m.phase === 'reveal') && present.every((s) => m.ready.includes(s)))
-    enter(m, NEXT[m.phase]);
+  if (!((m.phase === 'hide' || m.phase === 'reveal') && present.every((s) => m.ready.includes(s)))) return;
+  // 逆算チキンレースは隠れタイムの終わりに隠れた姿を見せるので、飛ばしても見せる間は残す
+  if (m.phase === 'hide' && m.settings.mode === 'race' && m.left > PREVIEW + EPS) m.left = PREVIEW;
+  else enter(m, next(m));
 }
 
 export function wish(m: Match, seat: Seat, on: boolean): void {
@@ -311,6 +388,14 @@ export function leave(m: Match, seat: Seat, present: Seat[]): void {
   m.wishes = m.wishes.filter((s) => s !== seat);
   m.ready = m.ready.filter((s) => s !== seat);
   if (m.phase === 'lobby') return;
+  if (m.settings.mode === 'race') {
+    const i = m.order.indexOf(seat);
+    // 抜けた人の番は飛ばす。今の番より前（今の番を含む）なら、次の番の位置を 1 つ戻す
+    if (i >= 0) {
+      m.order = m.order.filter((s) => s !== seat);
+      if (i <= m.turn) m.turn -= 1;
+    }
+  }
   // ダブルでは全員が探す人なので、抜けても役を残し、戻れば見つけた数を持ったまま探し続ける
   if (m.roles[seat] === 'hunter' && m.settings.mode !== 'double') m.roles[seat] = 'out';
   // ダブルの隠れタイムまでは、まだ誰も探す人ではない
@@ -360,10 +445,12 @@ export function shoot(m: Match, seat: Seat): boolean {
   return true;
 }
 
-export function hit(m: Match, seat: Seat): boolean {
+export function hit(m: Match, seat: Seat, by?: Seat): boolean {
   if (m.settings.mode === 'double' || m.phase !== 'search' || m.roles[seat] !== 'hider' || m.found.includes(seat))
     return false;
   m.found = [...m.found, seat];
+  if (m.settings.mode === 'race' && by !== undefined)
+    m.scores[by] = (m.scores[by] ?? 0) + Math.ceil((RACE_FIND * m.left) / RACE_SEARCH);
   if (m.settings.mode === 'infect') m.roles[seat] = 'hunter';
   delete m.taunts[seat];
   delete m.buried[seat];
@@ -465,6 +552,12 @@ export interface View {
   bodies: Partial<Record<Seat, BodyType>>;
   /** 弾数制限のあるとき、ハンターごとの残りの弾。制限が無いかダブルなら空 */
   ammo: Partial<Record<Seat, number>>;
+  /** 逆算チキンレースで隠れる番の順 */
+  order: Seat[];
+  /** 逆算チキンレースの今の番（order の番号） */
+  turn: number;
+  /** 逆算チキンレースの合計点 */
+  scores: Partial<Record<Seat, number>>;
 }
 
 export function view(m: Match): View {
@@ -504,6 +597,9 @@ export function view(m: Match): View {
     overlook,
     spots: m.spots,
     bodies: m.settings.petit ? { ...m.bodies } : {},
-    ammo: limited(m) ? Object.fromEntries(seatsOf(m, 'hunter').map((s) => [s, ammoOf(m, s)])) : {}
+    ammo: limited(m) ? Object.fromEntries(seatsOf(m, 'hunter').map((s) => [s, ammoOf(m, s)])) : {},
+    order: m.order,
+    turn: m.turn,
+    scores: m.scores
   };
 }

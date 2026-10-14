@@ -265,4 +265,15 @@ describe('人の試合の空いた席の CPU のロビー', () => {
     expect(start).toHaveBeenCalledWith(expect.objectContaining({ mode: 'infect' }));
     done();
   });
+
+  it('CPU が座っているあいだは、保存が逆算チキンレースでも増え鬼で始める', () => {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...DEFAULTS, mode: 'race' }));
+    const { button, start, done } = showMixed([1, 2, 3], { 3: 'cpu' });
+    button('マップの設定')!.click();
+    flushSync();
+    expect(button('逆算チキンレース')!.disabled).toBe(true);
+    button('ゲームを始める')!.click();
+    expect(start).toHaveBeenCalledWith(expect.objectContaining({ mode: 'infect' }));
+    done();
+  });
 });
