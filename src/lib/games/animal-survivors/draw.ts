@@ -29,6 +29,7 @@ import {
 } from './draw-events';
 import { drawCarry, drawCarryChest } from './draw-carry';
 import { blizzard } from './draw-storm';
+import { drawShallows } from './draw-coast';
 import { drawLava } from './draw-volcano';
 import { EAGLE } from './bosses-forest';
 import { PHOENIX } from './bosses-volcano';
@@ -448,6 +449,7 @@ export function draw(
   ground(ctx, w, cx, cy, v);
   drawShrines(ctx, w, cx, cy, v.w, v.h, q);
   drawLava(ctx, w, now);
+  drawShallows(ctx, w);
   hazardsBelow(ctx, w, q, now);
   zonesBelow(ctx, w, q, now);
   pickups(ctx, w, now, cx, cy, v);

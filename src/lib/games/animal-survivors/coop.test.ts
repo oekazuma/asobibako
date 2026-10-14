@@ -5,6 +5,7 @@ import { CoopGuest, CoopHost } from './coop';
 import { heroRun } from './coop-run';
 import { UPGRADES } from './upgrades';
 import { COOP_VERSION } from './snap';
+import { addShallow, WADE } from './tide';
 import type { Hero } from './heroes';
 import { Prompts } from './prompts.svelte';
 import { ENEMIES } from './enemies';
@@ -106,8 +107,38 @@ describe('協力プレイのつなぎ', () => {
     expect(v.heroes[v.cur].weapons[0].limit).toEqual({ damage: 2, cooldown: 1 });
   });
 
-  it('snap の形を変えたので、つなぎ方の版は 5（古い版の端末とはつながない）', () => {
-    expect(COOP_VERSION).toBe(5);
+  it('snap の形を変えたので、つなぎ方の版は 6（古い版の端末とはつながない）', () => {
+    expect(COOP_VERSION).toBe(6);
+  });
+
+  it('版 5 の子には mismatch を返す', async () => {
+    const { host, guest } = await pair();
+    const h = new CoopHost(host);
+    const told: string[] = [];
+    guest.onTell((m) => told.push(m.t));
+    guest.act({ t: 'hi', v: 5, animal: 'cat', ranks: {}, gear: [] });
+    await settle();
+    expect(h.ready).toBe(false);
+    expect(told).toContain('coop-mismatch');
+  });
+
+  it('子の端末は、届いた浅瀬の中で自分の速さを 5 割にする', async () => {
+    const { g, w, h } = await started();
+    const walk = () => {
+      g.frame(performance.now() + 1000);
+      const p = g.view!.heroes[g.view!.cur].player;
+      const x = p.x;
+      g.move({ x: 1, y: 0 }, 1 / 30);
+      return p.x - x;
+    };
+    h.after(0.06);
+    await settle();
+    const dry = walk();
+    const p = w.heroes[1].player;
+    addShallow(w, p.x + 100, p.y, 200, { grow: 0 });
+    h.after(0.06);
+    await settle();
+    expect(walk()).toBeCloseTo(dry * WADE, 3);
   });
   it('子の押しが親の World で数えられ、親も押すと技が出る', async () => {
     const { g, w, h } = await started();

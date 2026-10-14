@@ -8,11 +8,12 @@ import type { Hazard } from './bosses';
 import type { Gem, Item } from './drops';
 import { ENEMIES, type EnemyDef } from './enemies';
 import type { Lava } from './eruption';
+import type { Shallow } from './tide';
 import type { Storm } from './storm';
 import { addHero, chiefOf, eliteOf, makeEnemy, type GameEvent, type World } from './world';
 
 /** 協力プレイの知らせの形の版。形を変えたら 1 上げる */
-export const COOP_VERSION = 5;
+export const COOP_VERSION = 6;
 
 /** ダメージの数字は子の画面でも 60 個までしか出せない（effects.ts の MAX_NUMBERS）ので、それより多くは送らない */
 export const SNAP_HITS = 60;
@@ -43,6 +44,7 @@ export interface Snap {
   items: Row[];
   hazards: Hazard[];
   lava: Lava[];
+  shallows: Shallow[];
   storm: Storm;
   treasure: number;
   relics: RelicId[];
@@ -193,6 +195,7 @@ export function makeSnap(w: World, events: GameEvent[]): Snap {
     ),
     hazards: w.hazards.filter((h) => h.alive),
     lava: w.lava.filter((l) => l.life > 0),
+    shallows: w.shallows.filter((s) => s.life > 0),
     storm: { ...w.storm },
     treasure: w.treasure ? w.items.indexOf(w.treasure) : -1,
     relics: w.relics,
@@ -329,6 +332,7 @@ export function applySnap(view: World, s: Snap): void {
   );
   view.hazards = s.hazards;
   view.lava = s.lava;
+  view.shallows = s.shallows;
   view.storm = s.storm;
   view.treasure = s.treasure >= 0 ? (view.items[s.treasure] ?? null) : null;
   view.relics = s.relics;

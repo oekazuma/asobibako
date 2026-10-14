@@ -2,7 +2,7 @@ import type { Art } from '../pixels';
 
 /** 地面は上から見ているので、浅瀬と墨だまりは縦につぶした楕円にする（draw-volcano.ts の池と同じ） */
 const SQUASH = 1.6;
-/** にじむ段（0..2）。0.8 秒で 0 → 1 → 2 と進み、2 が満ちた浅瀬 */
+/** にじむ段（0..2）。2 が満ちた浅瀬 */
 const shallows = new Map<string, Art>();
 const inks = new Map<number, Art>();
 
