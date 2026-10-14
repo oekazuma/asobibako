@@ -2,12 +2,13 @@
   import GameShell from '$lib/components/GameShell.svelte';
   import SoloShell from '$lib/components/SoloShell.svelte';
   import type { Net } from '$lib/net/link';
-  import Pairing from '$lib/net/Pairing.svelte';
   import { rememberGame } from '$lib/recent';
 
   let { data } = $props();
 
   let pairing = $state(false);
+  // QR の読み取り（jsqr）が大きいので、2 台で遊ぶと決めたときに初めて読み込む
+  let Pairing = $state.raw<typeof import('$lib/net/Pairing.svelte').default>();
   // 抜けたときに今のつながりと同じものかを比べるので、proxy にしない
   let net = $state.raw<Net>();
 
@@ -19,6 +20,11 @@
     const current = net;
     return () => current?.link.close();
   });
+
+  async function pair() {
+    Pairing ??= (await import('$lib/net/Pairing.svelte')).default;
+    pairing = true;
+  }
 
   function linked(next: Net) {
     pairing = false;
@@ -43,7 +49,7 @@
     <SoloShell meta={data.play.meta} Game={data.play.Game} Howto={data.play.Howto} />
   {:else if data.play.kind === 'party'}
     <data.play.Game />
-  {:else if pairing}
+  {:else if pairing && Pairing}
     <Pairing name={data.play.meta.name} onlink={linked} onback={() => (pairing = false)} />
   {:else}
     {#key net}
@@ -52,7 +58,7 @@
         Game={data.play.Game}
         Howto={data.play.Howto}
         {net}
-        onpair={data.play.meta.net ? () => (pairing = true) : undefined}
+        onpair={data.play.meta.net ? pair : undefined}
       />
     {/key}
   {/if}
