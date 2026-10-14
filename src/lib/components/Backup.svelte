@@ -3,7 +3,7 @@
   import { version } from '$app/environment';
   import Icon from './Icon.svelte';
   import BackupConfirm from './BackupConfirm.svelte';
-  import { backedUpAt, backupFile, backupName, markBackedUp, parseBackup, type Backup } from '$lib/backup';
+  import { backedUpAt, backupFile, backupName, markBackedUp, MAX_BYTES, parseBackup, type Backup } from '$lib/backup';
 
   let pending = $state<Backup | null>(null);
   let error = $state('');
@@ -49,6 +49,8 @@
     error = '';
     pending = null;
     try {
+      // 文字にしてから大きさを見ると、断る前に大きなファイルを全部メモリに読む
+      if (f.size > MAX_BYTES) throw new Error('backup');
       pending = parseBackup(await f.text());
     } catch {
       error = '読み込めませんでした。「記録を書き出す」で保存したファイルを選んでください。';

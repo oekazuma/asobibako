@@ -1,5 +1,6 @@
 import { flushSync, mount, tick, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MAX_BYTES } from '$lib/backup';
 import Backup from './Backup.svelte';
 
 const reload = vi.fn();
@@ -30,6 +31,19 @@ describe('バックアップ', () => {
     document.body.innerHTML = '';
     vi.unstubAllGlobals();
     reload.mockClear();
+  });
+
+  // 数百 MB のファイルを文字にすると、断る前に端末のメモリを使い切りうる
+  it('大きすぎるファイルは中身を読まずに、読み込めないと伝える', async () => {
+    const input = target.querySelector<HTMLInputElement>('input[type=file]')!;
+    const file = new File(['{}'], 'big.json', { type: 'application/json' });
+    Object.defineProperty(file, 'size', { value: MAX_BYTES + 1 });
+    const text = vi.spyOn(file, 'text');
+    Object.defineProperty(input, 'files', { value: [file], configurable: true });
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    await vi.waitFor(() => expect(target.querySelector('.err')).not.toBeNull());
+    expect(target.querySelector('.err')?.textContent).toContain('読み込めませんでした');
+    expect(text).not.toHaveBeenCalled();
   });
 
   it('読み込んだファイルの中身を見せ、計算と確認のあとで置き換えて読み直す', async () => {

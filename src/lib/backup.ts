@@ -18,6 +18,8 @@ const EXCLUDED = new Set([LAST_ERROR_KEY, GATE_KEY, 'asobibako:graphics', RESTOR
 // localStorage そのものが数 MB までなので、それより大きな正規の書き出しはない。キーはゲーム数 + 数個
 const MAX_KEYS = 400;
 const MAX_CHARS = 16 * 1024 * 1024;
+/** UTF-8 は UTF-16 の 1 単位あたり 3 バイトまでなので、これより大きいファイルは文字にすると必ず MAX_CHARS を超える */
+export const MAX_BYTES = MAX_CHARS * 3;
 /** 最後に書き出した日（YYYY-MM-DD）。書き出しにも入るので、別の端末へ移しても「いつの控えか」が残る */
 export const BACKUP_AT_KEY = 'asobibako:backup-at';
 // 書き出しには入れるが「記録がある」とは数えない。ゲームを開くだけ・好みを選ぶだけで書かれるので、これで記録ありとみなすと、
