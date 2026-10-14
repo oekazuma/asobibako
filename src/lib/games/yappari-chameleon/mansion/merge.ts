@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 const ATTRS = ['position', 'normal', 'uv'];
+/** 当たりを分ける升目（m）。屋敷で 0.5〜2m を測って、線 1 本がいちばん速かった大きさ */
+const PICK_CELL = 2;
 const ids = new WeakMap<object, number>();
 let next = 0;
 const idOf = (o: object): number => {
@@ -56,6 +58,41 @@ const mergeable = (o: THREE.Object3D): o is THREE.Mesh => {
     (!Array.isArray(o.material) || !!o.geometry.index)
   );
 };
+
+/**
+ * まとめた Mesh の三角形を、重心のある升目ごとの見えない Mesh に分ける。位置・法線・UV と材質は元と共有する。
+ * 外接の箱と球は升目の三角形の頂点だけから作る（computeBoundingBox と computeBoundingSphere は index を見ずに共有の頂点を全部囲み、何も飛ばせない）
+ */
+export function splitPick(one: THREE.Mesh, cell = PICK_CELL): THREE.Mesh[] {
+  const g = one.geometry;
+  const pos = g.getAttribute('position');
+  const index = g.index!.array;
+  const cells = new Map<string, number[]>();
+  for (let t = 0; t < index.length; t += 3) {
+    const [a, b, c] = [index[t], index[t + 1], index[t + 2]];
+    const key = [
+      Math.floor((pos.getX(a) + pos.getX(b) + pos.getX(c)) / 3 / cell),
+      Math.floor((pos.getY(a) + pos.getY(b) + pos.getY(c)) / 3 / cell),
+      Math.floor((pos.getZ(a) + pos.getZ(b) + pos.getZ(c)) / 3 / cell)
+    ].join(',');
+    const tris = cells.get(key);
+    if (tris) tris.push(a, b, c);
+    else cells.set(key, [a, b, c]);
+  }
+  const v = new THREE.Vector3();
+  return [...cells.values()].map((tris) => {
+    const part = new THREE.BufferGeometry();
+    for (const name of ATTRS) part.setAttribute(name, g.getAttribute(name));
+    part.setIndex(tris);
+    part.boundingBox = new THREE.Box3();
+    for (const i of tris) part.boundingBox.expandByPoint(v.fromBufferAttribute(pos, i));
+    part.boundingSphere = part.boundingBox.getBoundingSphere(new THREE.Sphere());
+    const mesh = new THREE.Mesh(part, one.material);
+    // 元の Mesh の行列をそのまま持つので、動く物の中でまとめた Mesh を置き直しても、同じ所に当たる
+    mesh.matrixWorld = one.matrixWorld;
+    return mesh;
+  });
+}
 
 /**
  * 動かない Mesh を、同じ見た目の材質と影の付け方ごとに 1 つへまとめ、描く回数を減らす（1 枚ごとに影の分も描くので、
@@ -125,6 +162,14 @@ export function mergeStatic(root: THREE.Object3D, keep: (o: THREE.Object3D) => b
     one.castShadow = mesh.castShadow;
     one.receiveShadow = mesh.receiveShadow;
     root.add(one);
+    // まとめた 1 つは屋敷じゅうに広がり、外接の球で線を飛ばせず、線 1 本ごとに全部の三角形を調べてしまう。
+    // 当たりは升目に分けた Mesh で調べ、当たった物は描いている元の Mesh として返す
+    const pieces = splitPick(one);
+    one.raycast = (ray, hits) => {
+      const from = hits.length;
+      for (const p of pieces) p.raycast(ray, hits);
+      for (let i = from; i < hits.length; i++) hits[i].object = one;
+    };
     for (const p of parts) p.mesh.removeFromParent();
   }
 }

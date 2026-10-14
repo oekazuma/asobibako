@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
-import { mergeStatic } from './merge';
+import { mergeStatic, splitPick } from './merge';
 
 const mat = (color = '#336699', o: Partial<THREE.MeshStandardMaterialParameters> = {}) => {
   const m = new THREE.MeshStandardMaterial({ color, roughness: 0.5, ...o });
@@ -100,5 +100,69 @@ describe('mergeStatic', () => {
     const after = meshes(g);
     expect(after).toHaveLength(2);
     expect(after.map((m) => (m.geometry.index!.count / 3) | 0).sort((a, b) => a - b)).toEqual([4, 20]);
+  });
+});
+
+/** 8 つの箱を 20m ほどに散らして 1 つにまとめる */
+function spread() {
+  const g = new THREE.Group();
+  for (let i = 0; i < 8; i++) {
+    const o = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1, 3, 3, 3), mat());
+    o.position.set(i * 2.5, 0, (i % 3) * 3);
+    o.rotation.y = i * 0.3;
+    g.add(o);
+  }
+  mergeStatic(g, () => false);
+  const [one] = meshes(g);
+  return { g, one };
+}
+
+describe('splitPick', () => {
+  it('三角形を升目ごとに 1 度ずつ分け、どの升目も属性と材質を元と共有し、自分の三角形の頂点だけを外接の箱に入れる', () => {
+    const { one } = spread();
+    const parts = splitPick(one);
+    expect(parts.length).toBeGreaterThan(1);
+    const tris = (a: ArrayLike<number>) => {
+      const out: string[] = [];
+      for (let i = 0; i < a.length; i += 3) out.push(`${a[i]},${a[i + 1]},${a[i + 2]}`);
+      return out.sort();
+    };
+    expect(tris(parts.flatMap((p) => Array.from(p.geometry.index!.array)))).toEqual(tris(one.geometry.index!.array));
+    const pos = one.geometry.getAttribute('position');
+    const v = new THREE.Vector3();
+    for (const p of parts) {
+      expect(p.geometry.getAttribute('position')).toBe(pos);
+      expect(p.material).toBe(one.material);
+      const box = p.geometry.boundingBox!;
+      for (const i of p.geometry.index!.array) expect(box.containsPoint(v.fromBufferAttribute(pos, i))).toBe(true);
+      expect(p.geometry.boundingSphere).not.toBeNull();
+    }
+  });
+
+  it('まとめた Mesh に当てると、三角形を全部調べたときと同じ所に当たり、置き直しても付いていく', () => {
+    const { g, one } = spread();
+    const ray = new THREE.Raycaster();
+    let hits = 0;
+    const check = () => {
+      g.updateMatrixWorld(true);
+      for (let x = -2; x < 20; x += 0.37)
+        for (let z = -2; z < 9; z += 0.53) {
+          ray.set(new THREE.Vector3(x, 5, z), new THREE.Vector3(0.1, -1, 0.05).normalize());
+          const now = ray.intersectObject(g, true)[0];
+          const full: THREE.Intersection[] = [];
+          THREE.Mesh.prototype.raycast.call(one, ray, full);
+          full.sort((a, b) => a.distance - b.distance);
+          expect(now?.distance).toBe(full[0]?.distance);
+          expect(now?.point).toEqual(full[0]?.point);
+          expect(now?.uv).toEqual(full[0]?.uv);
+          expect(now?.object).toBe(full[0] ? one : undefined);
+          if (now) hits++;
+        }
+    };
+    check();
+    g.position.set(3, -1, 2);
+    g.rotation.y = 0.4;
+    check();
+    expect(hits).toBeGreaterThan(50);
   });
 });

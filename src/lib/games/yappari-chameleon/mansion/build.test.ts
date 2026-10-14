@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { Pattern } from '../textures';
 import type { Built } from '../world3d';
+import { SPOTS, viewOf } from '../cpu/spots';
 
 /**
  * node には canvas が無いので、描く命令を捨てて空の画素を返す 2D の文脈を渡す。
@@ -68,6 +69,36 @@ describe('組み立てた屋敷', () => {
     );
     const bytes = [...canvases].reduce((n, c) => n + c!.width * c!.height * 4, 0);
     expect(bytes).toBeLessThanOrEqual(32e6);
+  });
+
+  it('まとめた Mesh を升目に分けて当てても、隠れる CPU の線は三角形を全部調べたときと同じ面に当たる', () => {
+    const split = meshes().filter((m) => Object.hasOwn(m, 'raycast'));
+    expect(split.length).toBeGreaterThan(0);
+    const ray = new THREE.Raycaster();
+    const first = () => ray.intersectObject(built.group, true).find((h) => h.object instanceof THREE.Mesh);
+    let hits = 0;
+    for (const sp of SPOTS) {
+      const body = new THREE.Vector3(sp.pos[0], sp.pos[1] + 0.6, sp.pos[2]);
+      const eye = new THREE.Vector3(...viewOf(sp));
+      for (const [o, d] of [
+        [body, new THREE.Vector3(...sp.back)],
+        [eye, body.clone().sub(eye).normalize()]
+      ]) {
+        ray.set(o, d);
+        const now = first();
+        const kept = split.map((m) => m.raycast);
+        for (const m of split) delete (m as { raycast?: unknown }).raycast;
+        const full = first();
+        split.forEach((m, i) => (m.raycast = kept[i]));
+        expect(now?.object).toBe(full?.object);
+        expect(now?.distance).toBe(full?.distance);
+        expect(now?.uv).toEqual(full?.uv);
+        expect(now?.face?.normal).toEqual(full?.face?.normal);
+        expect(now?.face?.materialIndex).toBe(full?.face?.materialIndex);
+        if (now) hits++;
+      }
+    }
+    expect(hits).toBeGreaterThan(SPOTS.length);
   });
 });
 
