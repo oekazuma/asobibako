@@ -9,6 +9,17 @@
 
   let open = $state(false);
   let asking = $state(false);
+  let ready = $state(false);
+
+  // 確かめの ぬける は、いま押した ぬける… とほぼ同じ高さに出るので、2 度たたいた 2 回めで抜けないよう出てすぐは押せなくする
+  $effect(() => {
+    if (!asking) return;
+    const t = setTimeout(() => (ready = true), 350);
+    return () => {
+      clearTimeout(t);
+      ready = false;
+    };
+  });
 
   function close() {
     open = false;
@@ -31,7 +42,7 @@
         <p>{party.host ? 'ぬけると みんなの あそびが おわるよ' : 'ぬけても おやが よびなおせるよ'}</p>
         <div class="row">
           <button class="pill" onclick={() => (asking = false)}>もどる</button>
-          <button class="pill p2 leave" onclick={leave}>ぬける</button>
+          <button class="pill p2 leave" disabled={!ready} onclick={leave}>ぬける</button>
         </div>
       </div>
     {:else}
