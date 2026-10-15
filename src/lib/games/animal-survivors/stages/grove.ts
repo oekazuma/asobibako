@@ -1,7 +1,7 @@
 import { ENEMIES } from '../enemies';
 import { bossRun, FOREST, type Stage } from './forest';
 
-/** 森の時刻の流れのまま、敵を魔法の森の顔ぶれにして、夜の街より一段強くした面 */
+/** 森の時刻の流れのまま、敵を魔法の森の顔ぶれにした面。倍率はボットのクリアの割合を夜の街の 9 割ほどに合わせた値で、夜の街の 1.6 との大小は強さの順を表さない（spec 11 章） */
 const HARDER = 1.5;
 
 const SWAP: Record<string, string> = {

@@ -357,7 +357,7 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
       '虹の大砲',
       '太い虹のビームを画面の端まで放つ',
       'beam',
-      [42, 0.9, 3, 1, 0, 99, 0.25, 80]
+      [52, 0.9, 3, 1, 0, 99, 0.25, 80]
     ),
     sp('tigerClawSp', 'tigerClaw', '雷虎の牙', '4 方向を雷の爪で裂く', 'swipe', [48, 0.6, 4, 1.8, 0, 99, 0.2, 90]),
     sp(
