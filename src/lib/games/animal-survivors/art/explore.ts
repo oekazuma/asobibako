@@ -3,7 +3,7 @@ import type { RelicId } from '../relics';
 import type { ShrineKind } from '../shrines';
 
 /** 遺物（12 ドット）。地面でも図鑑でも同じ絵。黒曜石のかけらだけ、色の表に無い黒を pal で足す */
-export const RELIC_ART: Record<RelicId, Art> = {
+export const RELIC_ART: Record<RelicId | 'torch' | 'luckyCat', Art> = {
   map: {
     w: 12,
     h: 12,
@@ -202,6 +202,46 @@ export const RELIC_ART: Record<RelicId, Art> = {
         '..kpprrppk..',
         '...kkkkkk...',
         '............'
+      ]
+    ]
+  },
+  torch: {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '......y..y.y',
+        '......kk..y.',
+        '.....kssk...',
+        '....ksswwk.y',
+        '....ksswwwk.',
+        '...ksssswSky',
+        '..kusssSSk..',
+        '.kuuusSkk...',
+        'kuuyuUk.....',
+        'kuuuUk......',
+        'kUUUk.......',
+        '.kkk........'
+      ]
+    ]
+  },
+  luckyCat: {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '.....k...k..',
+        '.kk.kwkkkwk.',
+        'kwwkkwpwwpk.',
+        'kwwkwowwwwwk',
+        'kwwwkwkwwkwk',
+        '.kwwkwwpwwwk',
+        '.kwwkwwwwwwk',
+        '..kwkrrYrrwk',
+        '...kwwwyyywk',
+        '...kIowwYyIk',
+        '....kIIIIIk.',
+        '.....kkkkk..'
       ]
     ]
   }

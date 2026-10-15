@@ -2,7 +2,7 @@ import type { Art } from '../pixels';
 import type { ObstacleId } from '../obstacles';
 
 /** 障害物の絵。黒い溶岩の岩と湯気の出る岩だけは、色の表に無い黒と赤茶を pal で足す */
-export const OBSTACLE_ART: Record<ObstacleId, Art> = {
+export const OBSTACLE_ART: Record<ObstacleId | 'vending' | 'trash', Art> = {
   boulder: {
     w: 42,
     h: 32,
@@ -457,6 +457,86 @@ export const OBSTACLE_ART: Record<ObstacleId, Art> = {
         '.........kkkkkkkkkkkkkkkkkkkkkkkkkkkkk..........',
         '................................................',
         '................................................',
+        '................................................'
+      ]
+    ]
+  },
+  vending: {
+    w: 30,
+    h: 38,
+    frames: [
+      [
+        '..............................',
+        '...kkkkkkkkkkkkkkkkkkkkk......',
+        '..krrrrrrrrrrrrrrrrrrrrrkkk...',
+        '..krrrrrrrrrrrrrrrrrrrrrRRRk..',
+        '..krrrrrrrrrrrrrrrrrrrrkRRRk..',
+        '..krrrrrrrrrrrrrrrrrrrrRRRRk..',
+        '..krrwwwwwwwwwwwwwwwwrrRRRRk..',
+        '..krrjjjjjjjjjjjjjjjjrrRwRRk..',
+        '..krrjwojwyjwUjwujwpjrrRwRRk..',
+        '..krrjoojyyjUUjuujppjrrRRRRk..',
+        '..krrjoojyyjUUjuujppjrrRRRRk..',
+        '..krrjyyjyyjyyjyyjyyjrrRRRRk..',
+        '..krrjwljwwjwojwyjwUjrrRRRRk..',
+        '..krrjlljwwjoojyyjUUjrrRRRRk..',
+        '..krrjlljwwjoojyyjUUjrrRRRRk..',
+        '..krrjyyjyyjyyjyyjyyjrrRRRRk..',
+        '..krrjwpjwrjwljwwjwojrrRRRRk..',
+        '..krrjppjrrjlljwwjoojrrRRRRk..',
+        '..krrjppjrrjlljwwjoojrrRRRRk..',
+        '..krrjyyjyyjyyjyyjyyjrrRRRRk..',
+        '..krrrrrrrrrrrrrrrrrrrrRRRRk..',
+        '..krrkkkkkkkkkkkkkkkkrrRRRRk..',
+        '..krrrrrrrrrrrrrrrrrrrrRRRRk..',
+        '..krrwwwwwwwwwwrrykrrrrRRRRk..',
+        '..krrkkkkkkkkkkrrkkrrrrRRRRk..',
+        '..krrrrrrrrrrrrrrskrrrrRRRRk..',
+        '..krrrrrrrrrrrrrrrrrrrrRRRRk..',
+        '..krrrrrrrrrrrrrrrrrrrrRRRRk..',
+        '..krrrrrrrrrrrrrrrrrrrrRRRRk..',
+        '..krrkkkkkkkkkkkkkkkkrrRRRRk..',
+        '..krrkNNNNNNNNNNNNNNkrrRRRRk..',
+        '..krrkNNNNNNNNNNNNNNkrrRRRRk..',
+        '..krrkkkkkkkkkkkkkkkkrrRRRRk..',
+        '..krrrrrrrrrrrrrrrrrrrrRRRRk..',
+        '..kRRRRRRRRRRRRRRRRRRRRRRRRk..',
+        '...kkkkkkkkkkkkkkkkkkkkkkkk...',
+        '..............................',
+        '..............................'
+      ]
+    ]
+  },
+  trash: {
+    w: 48,
+    h: 26,
+    frames: [
+      [
+        '........................................kkkkkkk.',
+        '........................................kwwwwwk.',
+        '.........................kkkkk..........kwUUUwk.',
+        '........................knnUUnk.........kwwUwwk.',
+        '.............kkkkk.......kklUk..........kwwwwwk.',
+        '............knnlGnk....kkkklUkk.........kkkkkkk.',
+        '............kkkllk....kllllllllk...kkkkk...kSk..',
+        '..........kklGGlGGkk.kUUlUUlUUlUk.knnGGnk..kSk..',
+        '.........kGGlGGlGGlGklUUlUUlUUlUUk.kkGGk...kSk..',
+        '........kllllllllllklllluulllllllkkkGGGkk..kSk..',
+        '.......kkkkkSSGlGGlkUlUUuUUlUUlUklGGGGGGkwwkSk..',
+        '......knnlUnkGGlGGlkkkkklUUlUUlkGlGGGGGGkwskSk..',
+        '.......kkllkllllllklllllklllllkklkkSGGGGkkkkSk..',
+        '.....kkkUlUkkGGlGGkkklGklUUlUklnklnkGGGGGGGkSk..',
+        '....kkUUUlUUlkGlkklGGlGGkknlnnkkUkkGGGGGGGnkSk..',
+        '...klkUUUUUUUUyyGGGGGGGGGGkrrkkkUUkkGGGGGnnkSk..',
+        '..kUlkuuUUUUUyYkGGGGGGGGGGkwrkUUUUUUkGnnnnkkSk..',
+        '..kUUUuUUUUUUkGGGGSSGGGGGGkkkkUUUUUUUknnnk.kSk..',
+        '..knUUUUUUUUUkGGGGSGGGGGGkUUUuuUUUUUUUkkk..kSk..',
+        '..knnUUUUUUUUknGGGGGGGGGGkUUUuUUUUUUUUk....kSk..',
+        '...knnnnUUnnnknnGGGGGGGGGknUUUUUUUUUUnk...kkkkk.',
+        '.kkkkkknnnnnnkknnnGGGGGGnknnUUUUUUUUnnk.........',
+        '.ksssskknnkkk..knnnnnnnnnnknnnnnnnnnnk..........',
+        '.kSSSSk.kk......kknnnnnnkk.knnnnnnnnk...........',
+        '.kkkkkk...........kkkkkk....kkkkkkkk............',
         '................................................'
       ]
     ]

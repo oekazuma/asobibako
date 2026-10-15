@@ -35,7 +35,14 @@ export const ENEMY_ART: Record<
   | 'hermit'
   | 'walrus'
   | 'jelly'
-  | 'landshark',
+  | 'landshark'
+  | 'sewerRat'
+  | 'crow'
+  | 'civet'
+  | 'trashGhost'
+  | 'stray'
+  | 'gecko'
+  | 'sewerGator',
   Art
 > = {
   rat: {
@@ -1254,6 +1261,252 @@ export const ENEMY_ART: Record<
         '.kk.kwwwwwwwwwwwwwwwwkwk..',
         '......kSkkkkkSkkkkkkkk....',
         '......kGk...kGk...........'
+      ]
+    ]
+  },
+  sewerRat: {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '............',
+        '............',
+        '......kk....',
+        '..kkkkppkk..',
+        '.ktttttpttk.',
+        'kttttttttktk',
+        'kttttttttttp',
+        'ktttttttttTT',
+        'kpTccccTtTwk',
+        'pkkkTTTkTk..',
+        'pk..kkk.k...',
+        'k...........'
+      ],
+      [
+        '............',
+        '............',
+        '......kk....',
+        '..kkkkppkk..',
+        '.ktttttpttk.',
+        'kttttttttktk',
+        'kttttttttttp',
+        'ktttttttttTT',
+        'kpTccccTTtwk',
+        'pkkTTTTkkTk.',
+        'pk.kkkk..k..',
+        'k...........'
+      ]
+    ]
+  },
+  crow: {
+    w: 14,
+    h: 12,
+    frames: [
+      [
+        '..............',
+        '.kk...........',
+        'kgGk..........',
+        '.kgGk.....kk..',
+        '.kgGGk...kSSk.',
+        '..kgGGk.kSwknk',
+        '...kgGGkSSSSnk',
+        'kk..kSSSSSSSkk',
+        'kSkkSSSSSSSk..',
+        '.kSssssssGk...',
+        '..kkkGGGGk....',
+        '.....g..g.....'
+      ],
+      [
+        '..............',
+        '..............',
+        '..............',
+        '..........kk..',
+        '.........kSSk.',
+        '........kSwknk',
+        '....kkkkSSSSnk',
+        'kk.kSSSSSSSSkk',
+        'kSkSGGGGsSSk..',
+        '.kSkggGGkSk...',
+        '..k.kggGk.....',
+        '.....kgkg.....'
+      ]
+    ]
+  },
+  civet: {
+    w: 14,
+    h: 12,
+    frames: [
+      [
+        '..............',
+        'kk.......k....',
+        'GGk.....kgk...',
+        'GGk.....kggkk.',
+        'nGkkkkkkkgwwgk',
+        'knGggggggMyMwk',
+        '.kggggggggMMMp',
+        '.kSggggggSSSk.',
+        '..kSgSSgSkkk..',
+        '...kMkkMk.....',
+        '...kMkkMk.....',
+        '....k..k......'
+      ],
+      [
+        '..............',
+        'kk.......k....',
+        'GGk.....kgk...',
+        'GGk.....kggkk.',
+        'nGkkkkkkkgwwgk',
+        'knGggggggMyMwk',
+        '.kggggggggMMMp',
+        '.kSggggggSSSk.',
+        '..kgSSSSSkkk..',
+        '..kMkkkkkMk...',
+        '..kMk...kMk...',
+        '...k.....k....'
+      ]
+    ]
+  },
+  trashGhost: {
+    w: 16,
+    h: 12,
+    frames: [
+      [
+        '.......kk.kk....',
+        '......kiikiik...',
+        '.......kkikk....',
+        '....kkkkiiikkk..',
+        '...kiiiiiiiiiik.',
+        '..kiwiiiikiikik.',
+        '.kiiwiiiikiikik.',
+        'kiiiiiiiiiiiiik.',
+        'kjjjjjjjjjkkjjk.',
+        'kIIIIIIIIIIIIIk.',
+        '.kIIIkIIIkIIIkk.',
+        '..kkk.kkk.kkk...'
+      ],
+      [
+        '.......kk.kk....',
+        '......kiikiik...',
+        '.......kkikk....',
+        '....kkkkiiikkk..',
+        '...kiiiiiiiiiik.',
+        '..kiwiiiikiikik.',
+        '.kiiwiiiikiikik.',
+        'kiiiiiiiiiiiiik.',
+        'kjjjjjjjjjkkjjk.',
+        'kIIIIIIIIIIIIIk.',
+        '.kkIIIkIIIkIIIk.',
+        '...kkk.kkk.kkk..'
+      ]
+    ]
+  },
+  stray: {
+    w: 20,
+    h: 14,
+    frames: [
+      [
+        '.............k......',
+        '..k.........kTk.kk..',
+        '.ktk........kTkkttk.',
+        'kttk........kTTtttk.',
+        'kttkkkkkkkkkTTTkktk.',
+        'kTtktttttttttttyktk.',
+        '.kTttttTTtttttttccck',
+        '..ktttttTTTttttTtttk',
+        '..kTttttttttttTkkkr.',
+        '...kTccccccTttkk....',
+        '....kTTTTTTkTTTTk...',
+        '....kTTTTkkkTTTTk...',
+        '.....kkkk...kkkk....',
+        '....................'
+      ],
+      [
+        '.............k......',
+        '..k.........kTk.kk..',
+        '.ktk........kTkkttk.',
+        'kttk........kTTtttk.',
+        'kttkkkkkkkkkTTTkktk.',
+        'kTtktttttttttttyktk.',
+        '.kTttttTTtttttttccck',
+        '..ktttttTTTttttTtttk',
+        '..kTttttttttttTkkkr.',
+        '...ktcccccctTTkk....',
+        '..kTTkkTTTTTkkTTk...',
+        '..kTTkkTTkTTkkTTk...',
+        '...kk..kk.kk..kk....',
+        '....................'
+      ]
+    ]
+  },
+  gecko: {
+    w: 16,
+    h: 14,
+    frames: [
+      [
+        '......kk........',
+        '.....kqqk.......',
+        '.....kqgqk......',
+        '.....kqkgqk.....',
+        '....kkqkkqkkkk..',
+        '...kqqqqqqqqykk.',
+        '..kqqSqqqSqqqqqk',
+        '.kqqqqqSqqqSqqgk',
+        'kqgSqggggSqqykk.',
+        'kqkkqkkkkkgqkk..',
+        'kqkqgk....kqk...',
+        'kgggk.....kqqk..',
+        '.kkk......kggk..',
+        '...........kk...'
+      ],
+      [
+        '...........kk...',
+        '..kk......kqqk..',
+        '.kgqk.....kqgk..',
+        '..kgqk....kqk...',
+        '...kqkkkkkqqkk..',
+        '...kqqqqqqqqykk.',
+        '..kqqSqqqSqqqqqk',
+        '.kqqqqqSqqqSqqgk',
+        'kqgSggqggSggykk.',
+        'kqkkkkqkkqkkkk..',
+        'kqk..kqkqgk.....',
+        'kgk..kqqgk......',
+        '.k...kggk.......',
+        '......kk........'
+      ]
+    ]
+  },
+  sewerGator: {
+    w: 26,
+    h: 12,
+    frames: [
+      [
+        '..........................',
+        '..........................',
+        '...............kkkkk......',
+        '.......kkkkkkkkiikrikkkkk.',
+        '....kkkiiiiiiiiiiiiwiwiiik',
+        '..kkliIiliIiliIiikkkkkkkii',
+        '.kiiiiiiiiiiiiiiiiwiwiwiii',
+        'kiiiiiliiiiiiliiiiiiiiiiii',
+        'kIIIIIiqqqqqqqqqqIiiIIIIII',
+        '.kkkkkIIkIIkkkkIIkIIkkkkkk',
+        '......kk.kk....kk.kk......',
+        '..........................'
+      ],
+      [
+        '..........................',
+        '..........................',
+        '...............kkkkk......',
+        '.......kkkkkkkkiikrikkkkk.',
+        '....kkkiiiiiiiiiiiiwiwiiik',
+        '..kkliIiliIiliIiikkkkkkkii',
+        '.kiiiiiiiiiiiiiiiiwiwiwiii',
+        'kiiiiiliiiiiiliiiiiiiiiiii',
+        'kIIIIiiqqqqqqqqqqIIiiIIIII',
+        '.kkkkIIkkkIIkkIIkkkIIkkkkk',
+        '.....kk...kk..kk...kk.....',
+        '..........................'
       ]
     ]
   }

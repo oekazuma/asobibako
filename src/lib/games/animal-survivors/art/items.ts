@@ -1145,5 +1145,38 @@ export const ITEM_ART: Record<string, Art> = {
         '............'
       ]
     ]
+  },
+  'weapon-junkToss': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '............',
+        '...kkkkk....',
+        '..kswsssSk..',
+        '..kkSSSSkk..',
+        'u.krwrrrRk..',
+        '..krwryrRk..',
+        'u.krwyyyRk..',
+        '..krwkyrRk..',
+        '.ukrrrrrRk..',
+        '..kSsssSSk..',
+        '...kkkkkk...',
+        '............'
+      ]
+    ]
+  },
+  can: {
+    w: 8,
+    h: 8,
+    frames: [['..kkkk..', '.kswsSk.', '.kkkkkk.', '.krwrRk.', '.krwyRk.', '.krwrRk.', '.kSssSk.', '..kkkk..']]
+  },
+  spark: {
+    w: 5,
+    h: 5,
+    frames: [
+      ['..o..', '..y..', 'oywyo', '..y..', '..o..'],
+      ['o...o', '.y.y.', '..w..', '.y.y.', 'o...o']
+    ]
   }
 };

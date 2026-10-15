@@ -11,6 +11,7 @@ import { GRAVE_ART } from './art/graveyard';
 import { ITEM_ART } from './art/items';
 import { SNOW_ART } from './art/snow';
 import { COAST_ART } from './art/coast';
+import { CITY_ART, STREET_LIGHT_ART } from './art/city';
 import { inkArt, shallowArt } from './art/shallows';
 import { OBSTACLE_ART } from './art/obstacles';
 import { RELIC_ART, SHRINE_ART } from './art/explore';
@@ -45,14 +46,18 @@ const all: [string, Art][] = [
   ['shallow.1', shallowArt(12, 1)],
   ['shallow.2', shallowArt(20, 2)],
   ['ink', inkArt(12)],
+  ['city.grass', CITY_ART.grass],
+  ['city.dirt', CITY_ART.dirt],
+  ...Object.entries(CITY_ART.decor),
+  ['streetLight', STREET_LIGHT_ART],
   ...Object.entries(OBSTACLE_ART),
   ...Object.entries(RELIC_ART),
   ...Object.entries(SHRINE_ART)
 ];
 
 describe('ドット絵の格子', () => {
-  it('遺物 10 個と祠 5 つの絵がある', () => {
-    expect(Object.keys(RELIC_ART)).toHaveLength(10);
+  it('遺物 12 個と祠 5 つの絵がある', () => {
+    expect(Object.keys(RELIC_ART)).toHaveLength(12);
     expect(Object.keys(SHRINE_ART)).toHaveLength(5);
   });
 
@@ -61,8 +66,8 @@ describe('ドット絵の格子', () => {
       expect(ITEM_ART[`weapon-${id}`]).toBeDefined();
   });
 
-  it('障害物の絵は 10 枚で、湯気の出る岩だけ 2 コマ', () => {
-    expect(Object.keys(OBSTACLE_ART)).toHaveLength(10);
+  it('障害物の絵は 12 枚で、湯気の出る岩だけ 2 コマ', () => {
+    expect(Object.keys(OBSTACLE_ART)).toHaveLength(12);
     for (const [id, a] of Object.entries(OBSTACLE_ART)) expect(a.frames).toHaveLength(id === 'steamRock' ? 2 : 1);
   });
 
@@ -97,6 +102,8 @@ describe('ドット絵の格子', () => {
     expect(BOSS_ART.bear.frames).toHaveLength(3);
     expect(BOSS_ART.crabKing.frames).toHaveLength(3);
     expect(BOSS_ART.octopus.frames).toHaveLength(2);
+    expect(BOSS_ART.raven.frames).toHaveLength(3);
+    expect(BOSS_ART.gator.frames).toHaveLength(4);
     expect(BOSS_ART.spiderQueen.frames).toHaveLength(2);
     expect(BOSS_ART.spiderling.frames).toHaveLength(2);
     expect(ITEM_ART.web).toBeDefined();
@@ -175,7 +182,7 @@ describe('ドット絵の格子', () => {
     expect(ITEM_ART.seed).toBeDefined();
   });
 
-  it('11 匹ぶんの絵がある', () => {
+  it('12 匹ぶんの絵がある', () => {
     expect(Object.keys(ANIMAL_ART).sort()).toEqual([
       'bear',
       'cat',
@@ -186,9 +193,20 @@ describe('ドット絵の格子', () => {
       'otter',
       'panda',
       'rabbit',
+      'raccoon',
       'tiger',
       'wolf'
     ]);
+  });
+
+  it('夜の街の地面・飾り・街灯・ガラクタ投げの絵がある', () => {
+    expect(CITY_ART.grass.frames).toHaveLength(4);
+    expect(Object.keys(CITY_ART.decor).sort()).toEqual(['can', 'leaf', 'line', 'manhole']);
+    for (const k of ['weapon-junkToss', 'can', 'spark']) expect(ITEM_ART[k]).toBeDefined();
+    expect(ITEM_ART.spark.frames).toHaveLength(2);
+    expect(
+      problems('weapon-junkTossSp', itemArt('weapon-junkTossSp'), { ...PALETTE, ...itemArt('weapon-junkTossSp').pal })
+    ).toEqual([]);
   });
 
   it('装備 18 種と券 3 種の絵がある', () => {
