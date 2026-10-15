@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHARGE, CHARGE_DUST, RING_FAR, RING_NEAR, RING_LIFE, chargeTime, holdInRing, stepFairy } from './fairy';
+import { CHARGE, CHARGE_DUST, RING_FAR, RING_NEAR, chargeTime, holdInRing, stepFairy } from './fairy';
 import { ENEMIES } from './enemies';
 import { obstaclesNear } from './obstacles';
 import { createWorld, makeEnemy, step } from './world';
@@ -37,7 +37,7 @@ describe('妖精の輪', () => {
     expect(d).toBeGreaterThanOrEqual(RING_NEAR);
     expect(d).toBeLessThanOrEqual(RING_FAR);
     expect(obstaclesNear(w.stage.art, ring.x, ring.y, ring.r, []).length).toBe(0);
-    run(w, RING_LIFE + 0.5);
+    run(w, w.stage.rings[0].len + 0.5);
     expect(w.fairy.ring).toBeNull();
   });
 
@@ -103,5 +103,51 @@ describe('妖精の輪', () => {
     const p = { x: ring.x + 200, y: ring.y };
     holdInRing(w, p);
     expect(p.x).toBe(ring.x + 200);
+  });
+
+  it('倒れている動物は、ためている輪のふちでも留めない', () => {
+    const w = quiet();
+    const ring = appear(w);
+    w.fairy.charge = 1;
+    w.heroes[0].down = true;
+    w.player.x = ring.x + ring.r + 4;
+    w.player.y = ring.y;
+    step(w, { x: 0, y: 0 }, 1 / 30);
+    expect(w.player.x).toBe(ring.x + ring.r + 4);
+  });
+
+  it('背水の陣では、月のしずくの回復も半分になる', () => {
+    const w = quiet();
+    w.relics.push('moon');
+    w.arcana.push('last');
+    const ring = appear(w);
+    w.player.x = ring.x;
+    w.player.y = ring.y;
+    w.player.hp = 10;
+    run(w, CHARGE + 0.2);
+    expect(w.player.hp).toBeCloseTo(10 + w.stats.maxHp * 0.15, 0);
+  });
+
+  it('ためはじめたら、輪の残りが尽きても満ちるまで消えない', () => {
+    const w = quiet();
+    const ring = appear(w);
+    w.fairy.left = 0.5;
+    w.player.x = ring.x;
+    w.player.y = ring.y;
+    const grunt = makeEnemy(ENEMIES.shroomling, ring.x + 60, ring.y, 1e6);
+    w.enemies.push(grunt);
+    run(w, 1);
+    expect(w.fairy.ring).not.toBeNull();
+    run(w, CHARGE);
+    expect(grunt.alive).toBe(false);
+    expect(w.fairy.ring).toBeNull();
+  });
+
+  it('満ちた光の残りは、時計の品で止まっているあいだも減る', () => {
+    const w = quiet();
+    w.fairy.burst = 0.6;
+    w.freeze = 5;
+    run(w, 1);
+    expect(w.fairy.burst).toBe(0);
   });
 });

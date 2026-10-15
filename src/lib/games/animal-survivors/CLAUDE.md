@@ -31,7 +31,7 @@ HUD は英数字だけなので同じ canvas に 3×5 のドット字（`font.ts
 
 次の話題は、このフォルダの `docs/` の文書に書いてある。`docs/` の文書は Claude Code が自動では読み込まないので、かっこの中のファイルを直す前に、その話題の文書を開く。
 
-- 面・障害物・遺物・祠・吹雪・噴火・出来事は `docs/stages.md`（`stages/`・`obstacles.ts`・`relics.ts`・`shrines.ts`・`storm.ts`・`eruption.ts`・`tide.ts`・`blackout.ts`・`events.ts`・`carry.ts`・`draw-obstacles.ts`・`draw-storm.ts`・`draw-volcano.ts`・`draw-coast.ts`・`draw-city.ts`・`draw-events.ts`・`draw-carry.ts`）
+- 面・障害物・遺物・祠・吹雪・噴火・出来事は `docs/stages.md`（`stages/`・`obstacles.ts`・`relics.ts`・`shrines.ts`・`storm.ts`・`eruption.ts`・`tide.ts`・`blackout.ts`・`fairy.ts`・`events.ts`・`carry.ts`・`draw-obstacles.ts`・`draw-storm.ts`・`draw-volcano.ts`・`draw-coast.ts`・`draw-city.ts`・`draw-grove.ts`・`draw-events.ts`・`draw-carry.ts`）
 - ボス・ヌシ・強化個体・きらきらハリネズミは `docs/bosses.md`（`bosses.ts`・`bosses-forest.ts`・`bosses-snow.ts`・`bosses-volcano.ts`・`bosses-coast.ts`・`bosses-city.ts`・`enemies.ts`・`draw-boss.ts`・`BossIntro.svelte`・`BossWarning.svelte`）
 - 武器・宝箱・限界突破・落とし物・能力・進化・合体は `docs/weapons.md`（`weapons.ts`・`arms.ts`・`zones.ts`・`chest.ts`・`limit.ts`・`choices.ts`・`choice-view.ts`・`drops.ts`・`passives.ts`・`evolutions.ts`・`unions.ts`・`draw-arms.ts`・`LevelUp.svelte`・`ChestOpen.svelte`・`Evolutions.svelte`・`DamageTable.svelte`）
 - 動物と育ちは `docs/animals.md`（`animals.ts`・`specials.ts`・`grow.ts`・`art/animals.ts`・`art/grown.ts`・`GrowPlate.svelte`）

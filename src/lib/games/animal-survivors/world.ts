@@ -1027,7 +1027,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
     p.x += w.storm.wx * BASE_SPEED * STORM_PUSH * (1 - w.fx.wind) * dt;
     p.y += w.storm.wy * BASE_SPEED * STORM_PUSH * (1 - w.fx.wind) * dt;
   }
-  holdInRing(w, p);
+  if (!w.heroes[0].down) holdInRing(w, p);
   pushOut(w.stage.art, p, PLAYER_R);
   if (p.moving) {
     const len = Math.hypot(input.x, input.y);
@@ -1075,6 +1075,8 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
   spawnProps(w, dt);
   w.freeze = Math.max(0, w.freeze - dt);
   w.rush = Math.max(0, w.rush - dt);
+  // 光は飾りなので、時計の品で止まっているあいだも消える
+  w.fairy.burst = Math.max(0, w.fairy.burst - dt);
   if (w.freeze <= 0) {
     stepEvents(w, dt);
     stepEruption(w, dt);

@@ -1,5 +1,6 @@
+import { healRate } from './arcana';
 import { nextPlacer } from './heroes';
-import { obstaclesNear } from './obstacles';
+import { obstaclesNear, PLAYER_R } from './obstacles';
 import { hasRelic } from './relics';
 import { damageEnemy, type World } from './world';
 
@@ -7,7 +8,6 @@ export const RING_R = 30;
 /** 動物から輪までの距離の幅（ドット） */
 export const RING_NEAR = 60;
 export const RING_FAR = 120;
-export const RING_LIFE = 20;
 export const CHARGE = 3;
 export const CHARGE_DUST = 2;
 /** ヌシとボスに与える、最大 HP に対する割合 */
@@ -46,7 +46,7 @@ export const calmGrove = (): Fairy => ({ next: 0, left: 0, ring: null, charge: 0
 
 export const chargeTime = (w: World): number => (hasRelic(w, 'dust') ? CHARGE_DUST : CHARGE);
 
-function place(w: World): void {
+function place(w: World, life: number): void {
   const p = nextPlacer(w, w.fairy)?.player;
   if (!p) return;
   for (let i = 0; i < TRIES; i++) {
@@ -54,9 +54,10 @@ function place(w: World): void {
     const d = RING_NEAR + w.rand() * (RING_FAR - RING_NEAR);
     const x = p.x + Math.cos(a) * d;
     const y = p.y + Math.sin(a) * d;
-    if (obstaclesNear(w.stage.art, x, y, RING_R, []).length) continue;
+    // 輪の端に立つ動物が障害物に押し出されて輪の外へ出ないよう、動物の半径ぶん余白を取る
+    if (obstaclesNear(w.stage.art, x, y, RING_R + PLAYER_R, []).length) continue;
     w.fairy.ring = { x, y, r: RING_R };
-    w.fairy.left = RING_LIFE;
+    w.fairy.left = life;
     w.events.push({ type: 'swarm', text: '妖精の輪が現れた！' });
     return;
   }
@@ -78,8 +79,9 @@ function burst(w: World, ring: Ring): void {
     w.heroes.forEach((h, i) => {
       if (h.down || h.gone) return;
       const before = h.player.hp;
-      h.player.hp = Math.min(h.stats.maxHp, before + h.stats.maxHp * MOON_HEAL);
-      w.events.push({ type: 'heal', amount: Math.round(h.player.hp - before), hero: i });
+      h.player.hp = Math.min(h.stats.maxHp, before + h.stats.maxHp * MOON_HEAL * healRate(w));
+      const amount = Math.round(h.player.hp - before);
+      if (amount > 0) w.events.push({ type: 'heal', amount, hero: i });
     });
   f.bx = ring.x;
   f.by = ring.y;
@@ -93,18 +95,17 @@ function burst(w: World, ring: Ring): void {
 /** 時刻になったら輪を置き、中に入った動物がいればためる。時計の品で止まるので、呼ぶ側が freeze を見る */
 export function stepFairy(w: World, dt: number): void {
   const f = w.fairy;
-  f.burst = Math.max(0, f.burst - dt);
   const next = w.stage.rings[f.next];
   if (next && w.time >= next.at) {
     f.next += 1;
-    place(w);
+    place(w, next.len);
   }
   const ring = f.ring;
   if (!ring) return;
-  f.left -= dt;
+  // ためはじめたら閉じ込めているので、満ちるまで消さない
+  if (f.charge <= 0) f.left -= dt;
   if (f.left <= 0) {
     f.ring = null;
-    f.charge = 0;
     return;
   }
   // ためはじめたら、中の動物が全員出ても戻さない（閉じ込めるので出られない）

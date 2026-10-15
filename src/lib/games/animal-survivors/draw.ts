@@ -196,7 +196,9 @@ const GROUNDS = {
       [0.94, 'mushroom'],
       [1, 'root']
     ],
-    shadowed: ['mushroom', 'root']
+    shadowed: ['mushroom', 'root'],
+    // 花の群れの地は花の飾りと重なって騒がしいので、控えめにまく
+    dirt: 0.03
   }
 } as const;
 
