@@ -31,7 +31,8 @@ export const TROPHY_GROUPS: [string, string[]][] = [
       'metal',
       'lava300',
       'tide500',
-      'blackout500'
+      'blackout500',
+      'fairy500'
     ]
   ],
   [
@@ -46,7 +47,8 @@ export const TROPHY_GROUPS: [string, string[]][] = [
       'snowBosses',
       'volcanoBosses',
       'coastBosses',
-      'cityBosses'
+      'cityBosses',
+      'groveBosses'
     ]
   ],
   [

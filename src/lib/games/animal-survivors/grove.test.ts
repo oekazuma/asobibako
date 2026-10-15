@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { ACHIEVEMENTS } from './achievements';
 import { ENEMIES } from './enemies';
-import { canPlay, emptyRecords, parseRecords } from './records';
+import { startOvertime, overtimeRun } from './overtime';
+import { canPlay, emptyRecords, parseRecords, record } from './records';
 import { STAGES } from './stages';
 import { CITY } from './stages/city';
 import { FOREST } from './stages/forest';
 import { GROVE } from './stages/grove';
-import { createWorld } from './world';
+import { createWorld, summary } from './world';
 
 describe('魔法の森の表', () => {
   it('夜の街のあとに並び、夜の街をクリアすると選べる', () => {
@@ -61,5 +62,50 @@ describe('魔法の森の表', () => {
     expect(a.coins).toBe(1200);
     expect(a.done(emptyRecords(), null)).toBe(false);
     expect(a.done({ ...emptyRecords(), stages: ['grove'] }, null)).toBe(true);
+  });
+});
+
+describe('魔法の森の実績', () => {
+  const find = (id: string) => ACHIEVEMENTS.find((d) => d.id === id)!;
+
+  it('魔女と森の大ジカの両方を倒すと満ちる', () => {
+    const a = find('groveBosses');
+    expect(a.coins).toBe(700);
+    expect(a.done({ ...emptyRecords(), bosses: ['witch'] }, null)).toBe(false);
+    expect(a.done({ ...emptyRecords(), bosses: ['witch', 'stag'] }, null)).toBe(true);
+  });
+
+  it('妖精の輪で倒した数を回ごとに記録へ足し、合計 500 体で満ちる', () => {
+    const r = emptyRecords();
+    const w = createWorld('dog', 1, { w: 274, h: 394 }, {}, 'grove');
+    w.fairyKills = 200;
+    record(r, summary(w));
+    record(r, summary(w));
+    expect(r.fairyKills).toBe(400);
+    const a = find('fairy500');
+    expect(a.coins).toBe(600);
+    expect(a.done(r, null)).toBe(false);
+    expect(a.progress?.(r)).toEqual([400, 500]);
+    record(r, summary(w));
+    expect(a.done(r, null)).toBe(true);
+  });
+
+  it('古い記録は妖精の輪の数 0 で読める', () => {
+    expect(parseRecords(JSON.stringify({ coins: 3 })).fairyKills).toBe(0);
+  });
+
+  it('延長戦の終わりの記録には、延長戦の妖精の輪で倒した差だけを足す', () => {
+    const r = emptyRecords();
+    const w = createWorld('dog', 1, { w: 274, h: 394 }, {}, 'grove');
+    w.fairyKills = 30;
+    w.time = 600;
+    w.over = 'clear';
+    record(r, summary(w));
+    w.over = null;
+    startOvertime(w);
+    w.fairyKills = 50;
+    w.over = 'dead';
+    record(r, overtimeRun(w));
+    expect(r.fairyKills).toBe(50);
   });
 });

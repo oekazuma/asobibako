@@ -228,6 +228,19 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     progress: (r) => [r.blackoutKills, 500]
   },
   {
+    id: 'groveBosses',
+    name: '魔女と森の大ジカを倒す',
+    coins: 700,
+    done: (r) => r.bosses.includes('witch') && r.bosses.includes('stag')
+  },
+  {
+    id: 'fairy500',
+    name: '妖精の輪で敵を 500 体倒す',
+    coins: 600,
+    done: (r) => r.fairyKills >= 500,
+    progress: (r) => [r.fairyKills, 500]
+  },
+  {
     id: 'lava300',
     name: '溶岩の池で敵を 300 体倒す',
     coins: 300,

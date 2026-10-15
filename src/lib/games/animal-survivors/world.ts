@@ -301,6 +301,7 @@ export interface World {
       lavaKills: number;
       tideKills: number;
       blackoutKills: number;
+      fairyKills: number;
       tickets: number[];
       links: number;
       raises: number[];
@@ -1180,6 +1181,8 @@ export interface RunSummary {
   tideKills?: number;
   /** 停電のあいだに倒した数 */
   blackoutKills?: number;
+  /** 妖精の輪で倒した数 */
+  fairyKills?: number;
   /** 持ち帰るガチャ券と、倒れて失ったガチャ券（銅・銀・金） */
   tickets?: number[];
   lost?: number[];
@@ -1206,6 +1209,7 @@ export function summary(w: World): RunSummary {
     lavaKills: w.lavaKills,
     tideKills: w.tideKills,
     blackoutKills: w.blackoutKills,
+    fairyKills: w.fairyKills,
     tickets: w.over === 'clear' ? [...w.tickets] : [0, 0, 0],
     lost: w.over === 'clear' ? [0, 0, 0] : [...w.tickets],
     gear: [...w.worn],
