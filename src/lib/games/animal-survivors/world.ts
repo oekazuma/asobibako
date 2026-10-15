@@ -676,6 +676,23 @@ export function spawnProps(w: World, dt: number): void {
   if (e) e.hp = 1;
 }
 
+/** 画面の外の片側に、進む向きと直角に帯になって並び、反対側へ抜ける群れを出す。置ける数は入れ物の空き次第（帯の文は呼ぶ側が出す） */
+export function swarm(w: World, def: EnemyDef, count: number): void {
+  const p = w.player;
+  const r = Math.hypot(w.view.w, w.view.h) / 2 + 24;
+  const a = w.rand() * Math.PI * 2;
+  const dx = Math.cos(a);
+  const dy = Math.sin(a);
+  const life = (2 * r + 60) / (def.speed * SWARM_SPEED);
+  for (let i = 0; i < count; i++) {
+    const side = (i / Math.max(1, count - 1) - 0.5) * r * 1.6;
+    const back = w.rand() * 40;
+    const e = addEnemy(w, def, p.x - dx * (r + back) - dy * side, p.y - dy * (r + back) + dx * side);
+    if (!e) break;
+    Object.assign(e, { dx, dy, drift: life });
+  }
+}
+
 /** 時刻になったステージの出来事を出す。群れと輪は同時に出せる数の上限とは別に出す */
 export function spawnEvents(w: World): void {
   const list = w.stage.events;
@@ -712,18 +729,7 @@ export function spawnEvents(w: World): void {
         if (!addEnemy(w, strong, x, y)) break;
       }
     } else {
-      // 画面の外の片側に、進む向きと直角に帯になって並び、反対側へ抜ける
-      const a = w.rand() * Math.PI * 2;
-      const dx = Math.cos(a);
-      const dy = Math.sin(a);
-      const life = (2 * r + 60) / (def.speed * SWARM_SPEED);
-      for (let i = 0; i < ev.count; i++) {
-        const side = (i / Math.max(1, ev.count - 1) - 0.5) * r * 1.6;
-        const back = w.rand() * 40;
-        const e = addEnemy(w, def, p.x - dx * (r + back) - dy * side, p.y - dy * (r + back) + dx * side);
-        if (!e) break;
-        Object.assign(e, { dx, dy, drift: life });
-      }
+      swarm(w, def, ev.count);
     }
     w.events.push({ type: 'swarm', text: ev.text });
   }

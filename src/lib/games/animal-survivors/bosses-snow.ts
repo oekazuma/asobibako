@@ -21,9 +21,9 @@ const STILL = { vx: 0, vy: 0 };
 export const rolled = (life: number) =>
   YETI.ballR[0] + (YETI.ballR[1] - YETI.ballR[0]) * Math.min(1, 1 - life / YETI.ballLife);
 
-/** 飛びかかって宙にいるあいだ（大雪男）と空にいるあいだ（大ワシ・不死鳥）、よみがえっている不死鳥、マンホールに潜っているあいだ（下水の大ワニ）は、武器も体当たりも当たらない */
+/** 飛びかかって宙にいるあいだ（大雪男）と空にいるあいだ（大ワシ・巨大カラス・不死鳥）、よみがえっている不死鳥、マンホールに潜っているあいだ（下水の大ワニ）は、武器も体当たりも当たらない */
 export const airborne = (e: Enemy) =>
-  ((e.def.ai === 'yeti' || e.def.ai === 'eagle' || e.def.ai === 'phoenix') && e.state === 4) ||
+  ((e.def.ai === 'yeti' || e.def.ai === 'eagle' || e.def.ai === 'raven' || e.def.ai === 'phoenix') && e.state === 4) ||
   (e.def.ai === 'phoenix' && e.state === 5) ||
   (e.def.ai === 'gator' && (e.state === 5 || e.state === 6));
 

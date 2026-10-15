@@ -316,7 +316,7 @@ function crown(ctx: CanvasRenderingContext2D, e: Enemy, art: Art, flip: boolean)
 const underground = (e: Enemy) => airborne(e) && e.def.ai === 'gator';
 
 /** 宙にいる大雪男と、空にいる大ワシ・不死鳥が、飛び立ってからの割合 0..1 */
-const soaring = (e: Enemy) => e.def.ai === 'eagle' || e.def.ai === 'phoenix';
+const soaring = (e: Enemy) => e.def.ai === 'eagle' || e.def.ai === 'raven' || e.def.ai === 'phoenix';
 const flight = (e: Enemy) =>
   1 - Math.max(0, e.wait) / (e.def.ai === 'phoenix' ? PHOENIX.warn : soaring(e) ? EAGLE.warn : YETI.pounceWarn);
 

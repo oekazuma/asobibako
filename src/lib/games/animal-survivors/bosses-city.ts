@@ -1,5 +1,7 @@
 import { bear, BEAR, hazard } from './bosses';
-import type { Enemy, World } from './world';
+import { eagle } from './bosses-forest';
+import { ENEMIES } from './enemies';
+import { swarm, type Enemy, type World } from './world';
 
 /** 下水の大ワニ。巨大ベアの突進と地ならしの合間に、マンホールもぐりを使う。出てきたときの強さは巨大ベアの地ならし（BEAR は循環 import で定数の評価時には使えないので、置くときに読む） */
 export const GATOR = { every: 5, dive: 1, warn: 1, surface: 0.4, r: 36 };
@@ -53,4 +55,28 @@ export function gator(w: World, i: number, e: Enemy, ux: number, uy: number, dt:
     }
   }
   return bear(w, i, e, ux, uy, dt);
+}
+
+/** 巨大カラスが群れを呼んでから、カラスが出るまでの秒 */
+export const RAVEN = { callDelay: 1, flock: 8 };
+
+/**
+ * 巨大カラス。動きは大ワシそのままで、急降下 2 回に 1 回、帯を出して 1 秒後にカラスの群れを呼ぶ。
+ * 呼んだあとの待ちは phase に負の値（-残り秒）で持つ。addEnemy が入れる 0 以上の乱数の初期値と区別できる
+ */
+export function raven(w: World, i: number, e: Enemy, ux: number, uy: number, d: number, dt: number) {
+  if (e.phase < 0) {
+    e.phase += dt;
+    if (e.phase >= 0) {
+      e.phase = 0;
+      swarm(w, ENEMIES.crow, RAVEN.flock);
+    }
+  }
+  const diving = e.state === 4;
+  const move = eagle(w, i, e, ux, uy, d, dt);
+  if (diving && e.state === 0 && ++e.turn % 2 === 0) {
+    w.events.push({ type: 'swarm', text: 'カラスの群れが来る！' });
+    e.phase = -RAVEN.callDelay;
+  }
+  return move;
 }

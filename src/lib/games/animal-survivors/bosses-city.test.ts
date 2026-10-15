@@ -140,3 +140,134 @@ describe('下水の大ワニ', () => {
     expect(dives(2)).toBeGreaterThan(dives());
   });
 });
+
+const raven = (w: World, def: Partial<typeof ENEMIES.raven> = {}) => {
+  const e = makeEnemy({ ...ENEMIES.raven, ...def }, 120, 0, 1e6);
+  w.enemies.push(e);
+  return e;
+};
+
+const crows = (w: World) => w.enemies.filter((e) => e.alive && e.def.id === 'crow');
+
+/** 動かしながら出た帯の文を溜める（events は step のたびに空になる） */
+function runLogged(w: World, seconds: number) {
+  const seen: string[] = [];
+  for (let i = 0; i < Math.round(seconds * 60); i++) {
+    step(w, still, 1 / 60);
+    for (const ev of w.events) if (ev.type === 'swarm') seen.push(ev.text);
+  }
+  return seen;
+}
+
+describe('巨大カラス', () => {
+  it('大ワシと同じ影の予告と急降下と羽根を出す', () => {
+    const w = quiet();
+    w.player.invuln = 1e6;
+    raven(w);
+    const kinds = new Set<string>();
+    for (let i = 0; i < 60 * 15; i++) {
+      step(w, still, 1 / 60);
+      for (const h of w.hazards) if (h.alive) kinds.add(h.kind);
+    }
+    expect(kinds.has('pounce')).toBe(true);
+    expect(kinds.has('feather')).toBe(true);
+  });
+
+  it('空にいるあいだは武器も体当たりも当たらない', () => {
+    const w = quiet();
+    const e = raven(w);
+    e.state = 4;
+    e.wait = 1e6;
+    expect(airborne(e)).toBe(true);
+  });
+
+  it('急降下 2 回に 1 回、帯を出して 1 秒たつまで群れは出ず、そのあとカラスが 8 体出る', () => {
+    const w = quiet();
+    w.player.invuln = 1e6;
+    const e = raven(w);
+    e.turn = 1;
+    e.state = 4;
+    e.wait = 0.01;
+    e.dx = 0;
+    e.dy = 0;
+    const seen = runLogged(w, 0.1);
+    expect(e.state).toBe(0);
+    expect(seen).toEqual(['カラスの群れが来る！']);
+    expect(crows(w).length).toBe(0);
+    run(w, 0.8);
+    expect(crows(w).length).toBe(0);
+    run(w, 0.3);
+    const flock = crows(w);
+    expect(flock.length).toBe(8);
+    expect(flock.every((c) => c.drift > 0)).toBe(true);
+  });
+
+  it('1 回目の急降下のあとでは群れを呼ばない', () => {
+    const w = quiet();
+    w.player.invuln = 1e6;
+    const e = raven(w);
+    e.state = 4;
+    e.wait = 0.01;
+    const seen = runLogged(w, 2);
+    expect(e.turn).toBe(1);
+    expect(seen).toEqual([]);
+    expect(crows(w).length).toBe(0);
+  });
+
+  it('帯が出てから 1 秒のあいだに倒すと群れは出ない', () => {
+    const w = quiet();
+    w.player.invuln = 1e6;
+    const e = raven(w);
+    e.turn = 1;
+    e.state = 4;
+    e.wait = 0.01;
+    run(w, 0.5);
+    e.alive = false;
+    run(w, 2);
+    expect(crows(w).length).toBe(0);
+  });
+
+  it('止まっているあいだは 1 秒の時計も止まる', () => {
+    const w = quiet();
+    w.player.invuln = 1e6;
+    const e = raven(w);
+    e.turn = 1;
+    e.state = 4;
+    e.wait = 0.01;
+    run(w, 0.5);
+    w.freeze = 2;
+    run(w, 1.5);
+    expect(crows(w).length).toBe(0);
+    run(w, 1.5);
+    expect(crows(w).length).toBe(8);
+  });
+
+  it('群れのカラスは追わずにまっすぐ進み、抜けたら消える', () => {
+    const w = quiet();
+    w.player.invuln = 1e6;
+    const e = raven(w);
+    e.cd = 1e6;
+    e.turn = 1;
+    e.state = 4;
+    e.wait = 0.01;
+    run(w, 1.3);
+    const flock = crows(w);
+    const [dx, dy] = [flock[0].dx, flock[0].dy];
+    run(w, 1);
+    expect([flock[0].dx, flock[0].dy]).toEqual([dx, dy]);
+    run(w, 20);
+    expect(crows(w).length).toBe(0);
+  });
+
+  it('呼ぶ群れは同時に出せる数の上限（入れ物の 400 体）を越えない', () => {
+    const w = quiet();
+    w.player.invuln = 1e6;
+    for (let i = 0; i < 396; i++) w.enemies.push(makeEnemy(ENEMIES.sewerRat, 5000 + i, 0, 1e6));
+    const e = raven(w);
+    e.turn = 1;
+    e.state = 4;
+    e.wait = 0.01;
+    run(w, 1.3);
+    expect(w.enemies.length).toBeLessThanOrEqual(400);
+  });
+});
