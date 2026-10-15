@@ -5,6 +5,7 @@ import { fire, hits, type Effect, type Shot } from './arms';
 import { moveBoss, slot, spawnBosses, updateHazards, type Hazard } from './bosses';
 import { CRAB } from './bosses-coast';
 import { BOAR } from './bosses-forest';
+import { STAG } from './bosses-grove';
 import { airborne } from './bosses-snow';
 import { bloodPact, healRate, regenRate, takeArcana, type ArcanaId } from './arcana';
 import { atkMul, heatStage, PLAIN, type Heat } from './cauldron';
@@ -913,9 +914,11 @@ function touch(w: World) {
           ? BEAR_DASH_ATK
           : e.state === 2 && e.def.ai === 'boar'
             ? BOAR.dashAtk
-            : e.state === 2 && e.def.ai === 'crab'
-              ? CRAB.dashAtk
-              : e.def.atk
+            : e.state === 2 && e.def.ai === 'stag'
+              ? STAG.dashAtk
+              : e.state === 2 && e.def.ai === 'crab'
+                ? CRAB.dashAtk
+                : e.def.atk
         : e.def.atk * w.stage.fury(w.time);
     if (base <= atk) continue;
     atk = base;

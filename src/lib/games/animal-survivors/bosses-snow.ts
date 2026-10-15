@@ -157,10 +157,10 @@ export function dragon(w: World, i: number, e: Enemy, ux: number, uy: number, d:
   return STILL;
 }
 
-/** 冷たい息。予告のあと吐いているあいだ、扇の中へ breathTick ごとに当てて遅くする */
+/** 冷たい息。予告のあと吐いているあいだ、扇の中へ breathTick ごとに当てて遅くする。森の大ジカの角ふりも同じ扇で、こちらは遅くしない */
 export function breathe(w: World, h: Hazard, dt: number): void {
   const owner = w.enemies[h.owner];
-  if (!(owner?.alive && owner.def.ai === 'dragon')) {
+  if (!(owner?.alive && (owner.def.ai === 'dragon' || owner.def.ai === 'stag'))) {
     h.alive = false;
     return;
   }
@@ -179,7 +179,7 @@ export function breathe(w: World, h: Hazard, dt: number): void {
   eachHero(w, () => {
     const p = w.player;
     if (!inFan(h, p.x, p.y)) return;
-    p.slow = SLOWED;
+    if (owner.def.ai === 'dragon') p.slow = SLOWED;
     if (p.invuln <= 0) hurtPlayer(w, h.dmg, 'boss');
   });
 }

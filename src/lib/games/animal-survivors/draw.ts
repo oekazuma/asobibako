@@ -409,6 +409,7 @@ function enemies(
     // 巨大ベア・下水の大ワニ・溶岩の巨人・巨大ガニは地ならしの予告のあいだ、宙にいるボスは上げたコマにする（よみがえっている不死鳥は羽ばたく）
     const up =
       ((e.def.ai === 'bear' || e.def.ai === 'gator' || e.def.ai === 'giant' || e.def.ai === 'crab') && e.state === 3) ||
+      (e.def.ai === 'stag' && e.state === 6) ||
       (airborne(e) && e.state !== 5);
     const clock = walkClock(e, e.def.boss ? introduced.includes(w.enemies.indexOf(e)) : false, lively);
     // 出てきた大ワニはマンホールから顔を出した絵（4 コマめ）

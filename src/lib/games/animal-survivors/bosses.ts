@@ -3,6 +3,7 @@ import { addLava } from './eruption';
 import { boar, eagle, snake, spawnSegments, tree } from './bosses-forest';
 import { crab, octopus, OCTOPUS } from './bosses-coast';
 import { gator, raven } from './bosses-city';
+import { stag } from './bosses-grove';
 import { addShallow } from './tide';
 import { breathe, dragon, rolled, yeti } from './bosses-snow';
 import { ENEMIES } from './enemies';
@@ -275,6 +276,7 @@ export function moveBoss(w: World, i: number, dt: number): { vx: number; vy: num
   if (e.def.ai === 'octopus') return octopus(w, i, e, dx / d, dy / d, d, dt);
   if (e.def.ai === 'gator') return gator(w, i, e, dx / d, dy / d, dt);
   if (e.def.ai === 'raven') return raven(w, i, e, dx / d, dy / d, d, dt);
+  if (e.def.ai === 'stag') return stag(w, i, e, dx / d, dy / d, dt);
   return queen(w, e, dx / d, dy / d, d, dt);
 }
 
