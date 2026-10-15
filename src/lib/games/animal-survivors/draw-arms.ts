@@ -106,8 +106,8 @@ export function shots(
 export function zonesBelow(ctx: CanvasRenderingContext2D, w: World, q: Snap, now: number): void {
   for (const f of w.effects) {
     if (!f.alive) continue;
-    if (f.kind === 'flame' && kindOf(w, f.slot) === 'junkToss') {
-      // ガラクタの落ちた輪は炎の区域を借りているだけなので、土ぼこりの輪で描く
+    if (f.kind === 'dust') {
+      // ガラクタの落ちた輪。当たりは缶ごとに落ちた瞬間に済んでいて、これは絵だけ
       const t = f.age / f.life;
       ctx.globalAlpha = 0.6 * (1 - t);
       ctx.strokeStyle = isGold(w, f.slot) ? PALETTE.y : PALETTE.w;

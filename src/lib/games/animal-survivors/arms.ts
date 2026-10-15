@@ -7,7 +7,7 @@ import { damageEnemy, type Enemy, type World } from './world';
 import { drainAt } from './unions';
 import { limitStats, type Limit } from './limit';
 import { MIGHT } from './shrines';
-import { dropFlame, FLAME_R, flameAt, growVines, scorch, updateZones, vineAt } from './zones';
+import { dropFlame, flameAt, growVines, scorch, updateZones, vineAt } from './zones';
 
 export interface Shot {
   alive: boolean;
@@ -37,7 +37,7 @@ export interface Shot {
 export interface Effect {
   alive: boolean;
   slot: number;
-  kind: 'swipe' | 'ring' | 'bolt' | 'burst' | 'flame' | 'vine' | 'cone';
+  kind: 'swipe' | 'ring' | 'bolt' | 'burst' | 'flame' | 'vine' | 'cone' | 'dust';
   x: number;
   y: number;
   age: number;
@@ -206,10 +206,12 @@ function nearest(w: World, x: number, y: number): Enemy | undefined {
   return best;
 }
 
-/** 近い順に n 体。敵が足りなければ近い順にくり返す */
+/** 画面の中の敵を近い順に n 体。敵が足りなければ近い順にくり返す（遠すぎる的は缶が速すぎて、落ちる前に画面外として消える） */
 function nearestN(w: World, x: number, y: number, n: number): Enemy[] {
   const d = (e: Enemy) => (e.x - x) ** 2 + (e.y - y) ** 2;
-  const sorted = w.enemies.filter(targetable).sort((a, b) => d(a) - d(b));
+  const sorted = w.enemies
+    .filter((e) => targetable(e) && Math.abs(e.x - x) < w.view.w / 2 && Math.abs(e.y - y) < w.view.h / 2)
+    .sort((a, b) => d(a) - d(b));
   return sorted.length === 0 ? [] : Array.from({ length: n }, (_, i) => sorted[i % sorted.length]);
 }
 
@@ -542,13 +544,14 @@ function bounce(w: World, o: Shot, j: number): void {
   o.life = o.age + (Math.hypot(next.x - o.x, next.y - o.y) + BOUNCE_REACH * 0.25) / o.speed;
 }
 
-/** 落ちた所に輪を置く（炎の区域を借りる。効く時間が ZONE_TICK より短いので 1 回だけ当たる）。打ち上げ花火は輪の縁から火花を 8 方向へ出す */
+/** 缶ごとに、落ちた輪の中の敵へそれぞれ 1 回当てる。火花は輪の縁から出すので、射程 50 でも輪の外へ届く */
 function land(w: World, o: Shot): void {
   const own = weaponAt(w, o.slot);
   const def = own && WEAPONS[own.id];
   if (!own || !def) return;
   const s = limitStats(weaponStats(def, own.level), own.limit);
-  flameAt(w, o.slot, o.x, o.y, o.r / FLAME_R, { ...s, duration: SPLASH_SECS });
+  effect(w, o.slot, 'dust', o.x, o.y, o.r, SPLASH_SECS, 0, 0, 0);
+  for (const j of within(w, o.x, o.y, o.r, targets)) strike(w, j, s.damage, o.x, o.y - 1, s.knockback, o.slot);
   if (!def.special) return;
   const spark = { ...s, damage: s.damage / 2, speed: SPARK_SPEED, duration: SPARK_RANGE / SPARK_SPEED, pierce: 1 };
   for (let k = 0; k < 8; k++) {
@@ -611,7 +614,13 @@ export function hits(w: World, dt: number): void {
     w.cur = heroOf(o.slot);
     o.age += dt;
     if (o.age > o.life) {
-      if (o.kind === 'lob') land(w, o);
+      if (o.kind === 'lob') {
+        // 寿命を越えた最後の 1 フレームぶんも進めて、決めた落ちる点にぴったり落とす
+        const rest = o.life - (o.age - dt);
+        o.x += o.vx * rest;
+        o.y += o.vy * rest;
+        land(w, o);
+      }
       o.alive = false;
       continue;
     }

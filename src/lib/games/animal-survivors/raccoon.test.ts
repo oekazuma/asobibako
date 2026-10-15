@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { ACHIEVEMENTS } from './achievements';
 import { animal } from './animals';
-import { LOB_R, LOB_SECS } from './arms';
+import { LOB_R, LOB_SECS, power } from './arms';
 import { choices } from './choices';
 import { ENEMIES } from './enemies';
 import { emptyRecords, parseRecords } from './records';
 import { greedOf, RELICS } from './relics';
 import { trySpecial } from './specials';
-import { WEAPONS } from './weapons';
-import { createWorld, makeEnemy, step } from './world';
+import { WEAPONS, weaponStats } from './weapons';
+import { coinsOf, createWorld, makeEnemy, step } from './world';
 
 const VIEW = { w: 274, h: 394 };
 const raccoonWorld = () => {
@@ -17,6 +17,7 @@ const raccoonWorld = () => {
   w.propCd = 9999;
   w.metalAt = -1;
   w.weapons[0].cd = 0;
+  w.stats.crit = 0;
   return w;
 };
 const run = (w: ReturnType<typeof raccoonWorld>, secs: number) => {
@@ -85,8 +86,8 @@ describe('アライグマ', () => {
     const w = raccoonWorld();
     w.weapons[0].level = 5;
     const near = still(w, 40);
-    const mid = still(w, 90);
-    still(w, 140);
+    const mid = still(w, 80);
+    still(w, 120);
     run(w, 1 / 30);
     const lobs = w.shots.filter((s) => s.alive && s.kind === 'lob');
     expect(lobs).toHaveLength(3);
@@ -101,6 +102,51 @@ describe('アライグマ', () => {
     for (const s of solo.shots.filter((o) => o.alive && o.kind === 'lob'))
       expect(s.x + s.vx * (s.life - s.age)).toBeCloseTo(only.x, 1);
     expect(solo.shots.filter((o) => o.alive && o.kind === 'lob')).toHaveLength(3);
+  });
+
+  it('画面の外の敵へは投げない', () => {
+    const w = raccoonWorld();
+    still(w, VIEW.w);
+    run(w, 1 / 30);
+    expect(w.shots.some((s) => s.alive && s.kind === 'lob')).toBe(false);
+  });
+
+  it('缶は決めた落ちる点にぴったり落ちる', () => {
+    const w = raccoonWorld();
+    const e = still(w, 100, 30);
+    run(w, 1 / 30);
+    w.weapons[0].cd = 999;
+    let ring: { x: number; y: number } | undefined;
+    for (let i = 0; i < 30 && !ring; i++) {
+      step(w, { x: 0, y: 0 }, 1 / 30);
+      ring = w.effects.find((f) => f.alive && f.kind === 'dust');
+    }
+    expect(ring?.x).toBeCloseTo(e.x, 6);
+    expect(ring?.y).toBeCloseTo(e.y, 6);
+  });
+
+  it('同じ敵に 3 つの缶が重なって落ちると、3 つぶん当たる', () => {
+    const w = raccoonWorld();
+    w.weapons[0].level = 5;
+    const e = still(w, 50);
+    run(w, 1 / 30);
+    w.weapons[0].cd = 999;
+    run(w, LOB_SECS + 0.1);
+    const s = weaponStats(WEAPONS.junkToss, 5);
+    expect(1e6 - e.hp).toBeCloseTo(3 * power(w, s.damage).dmg, 6);
+  });
+
+  it('輪の半径は 24 ドット × 範囲で、敵の大きさまで含めて当たる', () => {
+    const w = raccoonWorld();
+    still(w, 50);
+    run(w, 1 / 30);
+    w.weapons[0].cd = 999;
+    const reach = LOB_R * w.stats.area + ENEMIES.sewerRat.r;
+    const inside = still(w, 50 + reach - 1);
+    const outside = still(w, 50, reach + 1);
+    run(w, LOB_SECS + 0.1);
+    expect(inside.hp).toBeLessThan(1e6);
+    expect(outside.hp).toBe(1e6);
   });
 
   it('敵がいなければ投げない', () => {
@@ -160,5 +206,15 @@ describe('金の招き猫', () => {
     const g = greedOf(w);
     w.relics.push('luckyCat');
     expect(greedOf(w)).toBeCloseTo(g * 1.1);
+  });
+
+  it('その回のコインに 1 割が乗る', () => {
+    const w = raccoonWorld();
+    w.coins = 1000;
+    const before = coinsOf(w);
+    w.relics.push('luckyCat');
+    expect(coinsOf(w)).toBeGreaterThanOrEqual(Math.floor(before * 1.1) - 1);
+    expect(coinsOf(w)).toBeLessThanOrEqual(Math.ceil(before * 1.1) + 1);
+    expect(coinsOf(w)).toBeGreaterThan(before);
   });
 });

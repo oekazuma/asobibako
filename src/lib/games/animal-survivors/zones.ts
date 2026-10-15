@@ -8,7 +8,7 @@ import { damageEnemy, ZONE_HIT, type World } from './world';
 
 /** 炎とツタが中の敵へ当てる間（秒） */
 export const ZONE_TICK = 0.5;
-export const FLAME_R = 10;
+const FLAME_R = 10;
 const VINE_R = 12;
 /** ツタの中にいるあいだ、毎フレームこの秒だけ足止めを延ばす */
 const ROOT = 0.2;
