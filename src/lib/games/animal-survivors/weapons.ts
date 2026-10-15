@@ -250,7 +250,7 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
       '虹のビーム',
       '近い敵から順に虹のビームを放ち、線にかかる敵に当てる',
       'beam',
-      [20, 1.4, 1, 1, 0, 99, 0.25, 50],
+      [24, 1.1, 1, 1, 0, 99, 0.25, 50],
       [{ damage: 5 }, { amount: 1 }, { area: 0.25 }, { damage: 6, amount: 1, cooldown: -0.2 }]
     ),
     evo('woofEvo', 'ホネのあられ', '骨を 4 本ずつ投げ、敵を貫く', 'shot', [18, 0.5, 4, 1.2, 220, 3, 1.4, 50]),
@@ -357,7 +357,7 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
       '虹の大砲',
       '太い虹のビームを画面の端まで放つ',
       'beam',
-      [42, 1.1, 3, 1, 0, 99, 0.25, 80]
+      [42, 0.9, 3, 1, 0, 99, 0.25, 80]
     ),
     sp('tigerClawSp', 'tigerClaw', '雷虎の牙', '4 方向を雷の爪で裂く', 'swipe', [48, 0.6, 4, 1.8, 0, 99, 0.2, 90]),
     sp(

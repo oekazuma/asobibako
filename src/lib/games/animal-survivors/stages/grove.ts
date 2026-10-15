@@ -2,7 +2,7 @@ import { ENEMIES } from '../enemies';
 import { bossRun, FOREST, type Stage } from './forest';
 
 /** 森の時刻の流れのまま、敵を魔法の森の顔ぶれにして、夜の街より一段強くした面 */
-const HARDER = 1.65;
+const HARDER = 1.5;
 
 const SWAP: Record<string, string> = {
   rat: 'shroomling',
