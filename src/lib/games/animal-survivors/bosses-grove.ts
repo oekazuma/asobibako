@@ -1,4 +1,4 @@
-import { hazard } from './bosses';
+import { hazard, queen } from './bosses';
 import { boar } from './bosses-forest';
 import type { Enemy, World } from './world';
 
@@ -48,5 +48,52 @@ export function stag(w: World, i: number, e: Enemy, ux: number, uy: number, dt: 
     dmg: STAG.dmg,
     tick: 0
   });
+  return STILL;
+}
+
+/** 魔女。魔法陣の円は巨大ベアの地ならし（半径 56）より小さく、3 つ並べて逃げ道を残す。dmg は女王グモの糸の玉（6）では 3 つ避ける意味がないので地ならしに寄せた */
+export const WITCH = {
+  every: 6,
+  delays: [1, 1.4, 1.8],
+  r: 40,
+  /** 左右の円の中心を動物の位置から離す距離。r より大きく、魔女から見て手前・奥へ逃げれば 3 つとも外れる */
+  gap: 64,
+  dmg: 24
+};
+
+/**
+ * 女王グモの動きに、魔法陣を合間に挟む。state 0 は女王グモの動き（wait は魔法陣までの経過秒）、state 1 は魔法陣の予告（立ち止まる）。
+ * 女王グモの cd・turn、円運動の phase は queen と circle が読むので触らず、経過秒だけ wait に持つ
+ */
+export function witch(w: World, i: number, e: Enemy, ux: number, uy: number, d: number, dt: number) {
+  if (e.state === 0) {
+    e.wait += dt;
+    if (e.wait < WITCH.every / (e.def.rage ?? 1)) return queen(w, e, ux, uy, d, dt);
+    e.state = 1;
+    e.wait = WITCH.delays[WITCH.delays.length - 1];
+    const p = w.player;
+    // 円の中心は魔女から動物へ向かう線に直角にずらす。最初の円は動物の位置そのもので、置いたあとは動かさない
+    WITCH.delays.forEach((delay, k) => {
+      const side = k === 0 ? 0 : k === 1 ? 1 : -1;
+      hazard(w, {
+        kind: 'slam',
+        owner: i,
+        x: p.x - uy * side * WITCH.gap,
+        y: p.y + ux * side * WITCH.gap,
+        vx: 0,
+        vy: 0,
+        r: WITCH.r,
+        delay,
+        life: 0.3,
+        dmg: WITCH.dmg
+      });
+    });
+    return STILL;
+  }
+  e.wait -= dt;
+  if (e.wait <= 0) {
+    e.state = 0;
+    e.wait = 0;
+  }
   return STILL;
 }
