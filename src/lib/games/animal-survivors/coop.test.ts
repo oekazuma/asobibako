@@ -144,6 +144,7 @@ describe('協力プレイのつなぎ', () => {
     w.fairy.ring = ring;
     w.fairy.left = 10;
     w.fairy.charge = 1;
+    w.fairy.held = 3;
     w.heroes[0].player.x = ring.x;
     w.heroes[0].player.y = ring.y;
     h.after(0.06);

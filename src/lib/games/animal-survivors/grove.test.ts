@@ -20,6 +20,7 @@ describe('魔法の森の表', () => {
   it('時刻は森と同じで、森より 1.5 倍強く、コインは 4 倍、妖精の輪は 4 回', () => {
     expect(GROVE.length).toBe(FOREST.length);
     expect(GROVE.bosses.map((b) => b.at)).toEqual(CITY.bosses.map((b) => b.at));
+    expect(GROVE.bosses.filter((b) => b.at < 300).map((b) => b.id)).toEqual(['witch', 'stag']);
     expect(GROVE.events.map((e) => e.at)).toEqual(FOREST.events.map((e) => e.at));
     expect(GROVE.toughness(300)).toBeCloseTo(FOREST.toughness(300) * 1.5);
     expect(GROVE.fury(300)).toBeCloseTo(FOREST.fury(300) * 1.5);

@@ -16,8 +16,6 @@ export const MOON_HEAL = 0.3;
 export const BURST_SECS = 0.6;
 /** 置き場所が障害物にかかったときにやり直す回数 */
 const TRIES = 12;
-/** ためはじめたときにこれより遠い動物は留めない（遠くの相棒を引き寄せない） */
-const HOLD_REACH = 8;
 
 export interface Ring {
   x: number;
@@ -33,6 +31,8 @@ export interface Fairy {
   ring: Ring | null;
   /** ためた秒。0 ならためていない */
   charge: number;
+  /** ためはじめたときに輪の中にいた動物の印（動物 i は 1 << i）。あとから入った動物は留めない */
+  held: number;
   /** 次に置く動物を選ぶ回数（生きている動物を順に回す） */
   turn: number;
   /** 満ちた光の残り秒 */
@@ -42,7 +42,17 @@ export interface Fairy {
   by: number;
 }
 
-export const calmGrove = (): Fairy => ({ next: 0, left: 0, ring: null, charge: 0, turn: 0, burst: 0, bx: 0, by: 0 });
+export const calmGrove = (): Fairy => ({
+  next: 0,
+  left: 0,
+  ring: null,
+  charge: 0,
+  held: 0,
+  turn: 0,
+  burst: 0,
+  bx: 0,
+  by: 0
+});
 
 export const chargeTime = (w: World): number => (hasRelic(w, 'dust') ? CHARGE_DUST : CHARGE);
 
@@ -63,7 +73,7 @@ function place(w: World, life: number): void {
   }
 }
 
-/** 満ちた輪。画面の半分の範囲のふつうの敵を倒し、ヌシとボスは最大 HP の一部を削る */
+/** 満ちた輪。輪を中心に画面 1 枚ぶんのふつうの敵を倒し、ヌシとボスは最大 HP の一部を削る */
 function burst(w: World, ring: Ring): void {
   const f = w.fairy;
   for (let i = 0; i < w.enemies.length; i++) {
@@ -88,6 +98,7 @@ function burst(w: World, ring: Ring): void {
   f.burst = BURST_SECS;
   f.ring = null;
   f.charge = 0;
+  f.held = 0;
   // 持ち主を付けないので、2 台とも光る
   w.events.push({ type: 'fairy' });
 }
@@ -109,21 +120,24 @@ export function stepFairy(w: World, dt: number): void {
     return;
   }
   // ためはじめたら、中の動物が全員出ても戻さない（閉じ込めるので出られない）
-  const inside = w.heroes.some(
-    (h) => !h.down && !h.gone && Math.hypot(h.player.x - ring.x, h.player.y - ring.y) <= ring.r
-  );
-  if (f.charge > 0 || inside) f.charge += dt;
+  if (f.charge <= 0) {
+    f.held = 0;
+    w.heroes.forEach((h, i) => {
+      if (!h.down && !h.gone && Math.hypot(h.player.x - ring.x, h.player.y - ring.y) <= ring.r) f.held |= 1 << i;
+    });
+  }
+  if (f.charge > 0 || f.held) f.charge += dt;
   if (f.charge >= chargeTime(w)) burst(w, ring);
 }
 
-/** ためているあいだ、輪のそばの動物を輪の内側へ戻す。倒れた動物は呼ぶ側が動かさない */
-export function holdInRing(w: World, p: { x: number; y: number }): void {
+/** ためているあいだ、ためはじめに輪の中にいた動物（hero 番目）を輪の内側へ戻す。倒れた動物は呼ぶ側が動かさない */
+export function holdInRing(w: World, p: { x: number; y: number }, hero: number): void {
   const ring = w.fairy.ring;
-  if (!ring || w.fairy.charge <= 0) return;
+  if (!ring || w.fairy.charge <= 0 || !((w.fairy.held >> hero) & 1)) return;
   const dx = p.x - ring.x;
   const dy = p.y - ring.y;
   const d = Math.hypot(dx, dy);
-  if (d <= ring.r - 2 || d > ring.r + HOLD_REACH) return;
+  if (d <= ring.r - 2) return;
   p.x = ring.x + (dx / d) * (ring.r - 2);
   p.y = ring.y + (dy / d) * (ring.r - 2);
 }

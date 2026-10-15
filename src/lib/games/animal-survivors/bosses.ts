@@ -254,7 +254,9 @@ export function brood(w: World, e: Enemy, n: number): void {
     const at = free >= 0 ? free : w.enemies.length < MAX_ENEMIES ? w.enemies.length : -1;
     if (at < 0) break;
     const a = (k / n) * Math.PI * 2;
-    w.enemies[at] = makeEnemy(def, e.x + Math.cos(a) * 20, e.y + Math.sin(a) * 20, def.hp);
+    const m = makeEnemy(def, e.x + Math.cos(a) * 20, e.y + Math.sin(a) * 20, def.hp);
+    m.phase = w.rand() * Math.PI * 2;
+    w.enemies[at] = m;
   }
 }
 

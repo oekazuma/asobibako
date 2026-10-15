@@ -450,7 +450,7 @@ export class CoopGuest {
       p.x += v.storm.wx * BASE_SPEED * STORM_PUSH * (1 - h.fx.wind) * dt;
       p.y += v.storm.wy * BASE_SPEED * STORM_PUSH * (1 - h.fx.wind) * dt;
     }
-    holdInRing(v, p);
+    holdInRing(v, p, v.cur);
     pushOut(v.stage.art, p, PLAYER_R);
     if (p.moving) {
       const len = Math.hypot(input.x, input.y);

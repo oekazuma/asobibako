@@ -24,10 +24,9 @@ function fan(ctx: CanvasRenderingContext2D, h: Hazard, q: Snap) {
 }
 
 /** 森の大ジカの角ふりは竜の息の扇を使い回すので、氷の青ではなく月夜の紫で描き分ける */
-const fanColors = (w: World, h: Hazard) =>
-  w.enemies[h.owner]?.def.ai === 'stag'
-    ? { warn: '#c78ae6', edge: '#8a4ab8', hit: '#e8b4ff' }
-    : { warn: PALETTE.u, edge: PALETTE.U, hit: PALETTE.j };
+const STAG_FAN = { warn: PALETTE.v, edge: PALETTE.n, hit: PALETTE.q };
+const BREATH_FAN = { warn: PALETTE.u, edge: PALETTE.U, hit: PALETTE.j };
+const fanColors = (w: World, h: Hazard) => (w.enemies[h.owner]?.def.ai === 'stag' ? STAG_FAN : BREATH_FAN);
 
 /** 床に出す予告（地ならしの輪・突進の矢印・氷の柱の円・息の扇）と土ぼこり。敵より先に描く。telegraphsOnly は暗闇の上に予告だけ描き直すとき */
 export function hazardsBelow(

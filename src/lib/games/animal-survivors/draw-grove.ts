@@ -1,11 +1,9 @@
 import { FAIRY_RING_ART } from './art/grove';
 import { PALETTE } from './art/palette';
+import { RING_DY } from './bosses';
 import { BURST_SECS, chargeTime, RING_R } from './fairy';
 import { bake } from './pixels';
 import type { World } from './world';
-
-/** 動物の足は体の中心より下にあるので、絵の輪も同じだけ下げて、輪の端に立つ足が輪の内側に見えるようにする */
-export const RING_DY = 8;
 
 /** 地面の上・敵の下。ためているあいだは輪の内側を下から光で満たす */
 export function drawRing(ctx: CanvasRenderingContext2D, w: World, q: (v: number) => number): void {

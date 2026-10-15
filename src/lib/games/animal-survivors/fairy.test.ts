@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CHARGE, CHARGE_DUST, RING_FAR, RING_NEAR, chargeTime, holdInRing, stepFairy } from './fairy';
 import { ENEMIES } from './enemies';
 import { obstaclesNear } from './obstacles';
-import { createWorld, makeEnemy, step } from './world';
+import { addHero, createWorld, makeEnemy, step } from './world';
 
 const VIEW = { w: 274, h: 394 };
 const quiet = () => {
@@ -101,8 +101,42 @@ describe('妖精の輪', () => {
     const w = quiet();
     const ring = appear(w);
     const p = { x: ring.x + 200, y: ring.y };
-    holdInRing(w, p);
+    holdInRing(w, p, 0);
     expect(p.x).toBe(ring.x + 200);
+  });
+
+  it('ためはじめに輪の中にいた動物だけ留め、あとから輪のふちへ来た動物は留めない', () => {
+    const w = quiet();
+    const ring = appear(w);
+    addHero(w, 'dog');
+    w.heroes[0].player.x = ring.x;
+    w.heroes[0].player.y = ring.y;
+    w.heroes[1].player.x = ring.x + ring.r + 40;
+    w.heroes[1].player.y = ring.y;
+    stepFairy(w, 1 / 30);
+    expect(w.fairy.charge).toBeGreaterThan(0);
+    expect(w.fairy.held).toBe(1);
+    const late = { x: ring.x + ring.r + 4, y: ring.y };
+    holdInRing(w, late, 1);
+    expect(late.x).toBe(ring.x + ring.r + 4);
+    const first = { x: ring.x + ring.r + 4, y: ring.y };
+    holdInRing(w, first, 0);
+    expect(first.x).toBe(ring.x + ring.r - 2);
+  });
+
+  it('ためはじめに輪の中にいた動物は、2 匹とも留める', () => {
+    const w = quiet();
+    const ring = appear(w);
+    addHero(w, 'dog');
+    for (const h of w.heroes) {
+      h.player.x = ring.x;
+      h.player.y = ring.y;
+    }
+    stepFairy(w, 1 / 30);
+    expect(w.fairy.held).toBe(3);
+    const p = { x: ring.x + ring.r + 4, y: ring.y };
+    holdInRing(w, p, 1);
+    expect(p.x).toBe(ring.x + ring.r - 2);
   });
 
   it('倒れている動物は、ためている輪のふちでも留めない', () => {

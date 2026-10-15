@@ -1,7 +1,7 @@
 import { ENEMIES } from '../enemies';
 import { bossRun, FOREST, type Stage } from './forest';
 
-/** 森の時刻の流れのまま、敵を魔法の森の顔ぶれにした面。倍率はボットのクリアの割合を夜の街の 9 割ほどに合わせた値で、夜の街の 1.6 との大小は強さの順を表さない（spec 11 章） */
+/** 森の時刻の流れのまま、敵を魔法の森の顔ぶれにした面。倍率はボットのクリアの割合を夜の街よりやや低く合わせた値で、夜の街の 1.6 との大小は強さの順を表さない（spec 11 章） */
 const HARDER = 1.5;
 
 const SWAP: Record<string, string> = {
@@ -28,7 +28,7 @@ export const GROVE: Stage = {
     return to ? { ...ev, enemy: to, text: ev.text.replace(ENEMIES[ev.enemy].name, ENEMIES[to].name) } : ev;
   }),
   chiefs: FOREST.chiefs.map((c) => ({ ...c, enemy: SWAP[c.enemy] ?? c.enemy, hp: Math.round(c.hp * HARDER) })),
-  bosses: bossRun('stag', 'witch', '魔法の森の主'),
+  bosses: bossRun('witch', 'stag', '魔法の森の主'),
   storms: [],
   eruptions: [],
   tides: [],

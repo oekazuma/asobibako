@@ -1028,7 +1028,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
     p.x += w.storm.wx * BASE_SPEED * STORM_PUSH * (1 - w.fx.wind) * dt;
     p.y += w.storm.wy * BASE_SPEED * STORM_PUSH * (1 - w.fx.wind) * dt;
   }
-  if (!w.heroes[0].down) holdInRing(w, p);
+  if (!w.heroes[0].down) holdInRing(w, p, 0);
   pushOut(w.stage.art, p, PLAYER_R);
   if (p.moving) {
     const len = Math.hypot(input.x, input.y);

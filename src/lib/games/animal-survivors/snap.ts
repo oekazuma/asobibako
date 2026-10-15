@@ -47,7 +47,7 @@ export interface Snap {
   lava: Lava[];
   shallows: Shallow[];
   blackout: { left: number; dark: number };
-  fairy: Pick<Fairy, 'ring' | 'left' | 'charge' | 'burst' | 'bx' | 'by'>;
+  fairy: Pick<Fairy, 'ring' | 'left' | 'charge' | 'held' | 'burst' | 'bx' | 'by'>;
   storm: Storm;
   treasure: number;
   relics: RelicId[];
@@ -204,6 +204,7 @@ export function makeSnap(w: World, events: GameEvent[]): Snap {
       ring: w.fairy.ring && { ...w.fairy.ring },
       left: r1(w.fairy.left),
       charge: Math.round(w.fairy.charge * 100) / 100,
+      held: w.fairy.held,
       burst: Math.round(w.fairy.burst * 100) / 100,
       bx: Math.round(w.fairy.bx),
       by: Math.round(w.fairy.by)
