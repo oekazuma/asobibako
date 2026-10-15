@@ -14,8 +14,8 @@ import { power } from './arms';
 const GROUNDS: Ground[] = ['forest', 'graveyard', 'snow', 'volcano', 'coast', 'city'];
 
 describe('遺物の置き場所', () => {
-  it('ステージごとに 2 つで、全部で 10 こ', () => {
-    expect(RELICS).toHaveLength(10);
+  it('夜の街以外はステージごとに 2 つで、全部で 11 こ', () => {
+    expect(RELICS).toHaveLength(11);
     for (const s of STAGES.filter((o) => o.id !== 'city'))
       expect(RELICS.filter((r) => r.stage === s.id)).toHaveLength(2);
   });

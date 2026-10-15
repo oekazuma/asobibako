@@ -31,6 +31,7 @@ import {
 import { drawCarry, drawCarryChest } from './draw-carry';
 import { blizzard } from './draw-storm';
 import { drawShallows } from './draw-coast';
+import { drawDark } from './draw-city';
 import { drawLava } from './draw-volcano';
 import { EAGLE } from './bosses-forest';
 import { PHOENIX } from './bosses-volcano';
@@ -497,6 +498,9 @@ export function draw(
   hazardsAbove(ctx, w, q);
   if (prompts?.intro) introDust(ctx, w, prompts.intro);
   fx.draw(ctx, S);
+  drawDark(ctx, w, cx, cy, v, prompts?.still ?? false);
+  // 予告を見落とすと避けられないので、暗闇の上にも出す
+  if (w.blackout.dark > 0 || (prompts?.still && w.blackout.left > 0)) hazardsBelow(ctx, w, q, now, true);
   if (ev && grow) {
     // 育つ演出のあいだは、弾や予告も含めてまわりを暗くし、自分だけを照らす
     if (grow.dark) {

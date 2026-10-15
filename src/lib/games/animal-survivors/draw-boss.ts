@@ -23,10 +23,16 @@ function fan(ctx: CanvasRenderingContext2D, h: Hazard, q: Snap) {
   ctx.closePath();
 }
 
-/** 床に出す予告（地ならしの輪・突進の矢印・氷の柱の円・息の扇）。敵より先に描く */
-export function hazardsBelow(ctx: CanvasRenderingContext2D, w: World, q: Snap, now: number): void {
+/** 床に出す予告（地ならしの輪・突進の矢印・氷の柱の円・息の扇）と土ぼこり。敵より先に描く。telegraphsOnly は暗闇の上に予告だけ描き直すとき */
+export function hazardsBelow(
+  ctx: CanvasRenderingContext2D,
+  w: World,
+  q: Snap,
+  now: number,
+  telegraphsOnly = false
+): void {
   for (const h of w.hazards) {
-    if (!h.alive) continue;
+    if (!h.alive || (telegraphsOnly && h.kind === 'mud')) continue;
     if (h.kind === 'pillar' && h.delay > 0) {
       const t = 1 - h.delay / DRAGON.pillarWarn;
       ctx.fillStyle = 'rgb(111 168 217 / 0.3)';

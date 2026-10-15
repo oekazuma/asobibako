@@ -1,4 +1,48 @@
 import { CELL, hash, obstaclesNear, type Ground } from './obstacles';
+import { hasRelic } from './relics';
+import type { World } from './world';
+
+/** 暗くなる・戻るのにかける秒、前もって帯を出す秒 */
+export const FADE = 1;
+export const BLACKOUT_WARN = 3;
+/** 明るい輪の半径（ドット）。動物のまわり、街灯の下 */
+export const HERO_LIGHT = 70;
+export const LAMP_LIGHT = 50;
+/** 輪のふちをぼかす幅（ドット）と、暗いところの濃さ */
+export const EDGE_BLUR = 12;
+export const DARK = 0.85;
+
+export interface Blackout {
+  /** 次の stage.blackouts の番号 */
+  next: number;
+  /** 停電している残り秒 */
+  left: number;
+  warned: boolean;
+  /** 0..1 の暗さ。left > 0 のあいだ 1 へ、そうでなければ 0 へ FADE 秒で寄る */
+  dark: number;
+}
+
+export const lightsOn = (): Blackout => ({ next: 0, left: 0, warned: false, dark: 0 });
+
+export const lightRadius = (w: World): number => (hasRelic(w, 'torch') ? HERO_LIGHT * 1.5 : HERO_LIGHT);
+
+/** 時刻になったら停電にし、3 秒前に帯を出す。暗さの移り変わりもここで進める */
+export function stepBlackout(w: World, dt: number): void {
+  const s = w.blackout;
+  s.left = Math.max(0, s.left - dt);
+  const next = w.stage.blackouts[s.next];
+  if (next && !s.warned && w.time >= next.at - BLACKOUT_WARN) {
+    s.warned = true;
+    w.events.push({ type: 'swarm', text: '停電だ！' });
+  }
+  if (next && w.time >= next.at) {
+    // 途中から始まる回でも、残りの秒だけ暗くする
+    s.left = Math.max(0, next.at + next.len - w.time);
+    s.next += 1;
+    s.warned = false;
+  }
+  s.dark = s.left > 0 ? Math.min(1, s.dark + dt / FADE) : Math.max(0, s.dark - dt / FADE);
+}
 
 export interface StreetLight {
   x: number;

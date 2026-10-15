@@ -31,6 +31,7 @@ import { stageOf } from './stages';
 import { startEvent, stepEvents } from './events';
 import { stepCarry, type Carry } from './carry';
 import { quietEarth, stepEruption, updateLava, type Eruption, type Lava } from './eruption';
+import { lightsOn, stepBlackout, type Blackout } from './blackout';
 import { lowTide, stepTide, updateShallows, wadeFactor, type Shallow, type Tide } from './tide';
 import { PLAYER_R, pushOut } from './obstacles';
 import { flakes, hasRelic, placeRelics, type RelicId } from './relics';
@@ -226,6 +227,10 @@ export interface World {
   shallows: Shallow[];
   /** 満ち潮のあいだに倒した数 */
   tideKills: number;
+  /** 夜の街の停電 */
+  blackout: Blackout;
+  /** 停電のあいだに倒した数 */
+  blackoutKills: number;
   /** 宝の地図の宝箱（無ければ null） */
   treasure: Item | null;
   /** 協力プレイの重い宝箱（2 匹で祭壇まで運ぶ） */
@@ -446,6 +451,8 @@ export function createWorld(
     tide: lowTide(),
     shallows: [],
     tideKills: 0,
+    blackout: lightsOn(),
+    blackoutKills: 0,
     treasure: null,
     carry: null,
     carried: 0,
@@ -570,6 +577,7 @@ export function damageEnemy(
   }
   countKill(w, e);
   if (w.tide.left > 0) w.tideKills += 1;
+  if (w.blackout.left > 0) w.blackoutKills += 1;
   chargeLink(w, e);
   if (e.def.metal) w.metalWon = true;
   if (source) w.dealt[source].kills += 1;
@@ -1051,6 +1059,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
     stepEvents(w, dt);
     stepEruption(w, dt);
     stepTide(w, dt);
+    stepBlackout(w, dt);
   }
   stepCarry(w, dt);
 

@@ -107,19 +107,30 @@ describe('協力プレイのつなぎ', () => {
     expect(v.heroes[v.cur].weapons[0].limit).toEqual({ damage: 2, cooldown: 1 });
   });
 
-  it('snap の形を変えたので、つなぎ方の版は 6（古い版の端末とはつながない）', () => {
-    expect(COOP_VERSION).toBe(6);
+  it('snap の形を変えたので、つなぎ方の版は 7（古い版の端末とはつながない）', () => {
+    expect(COOP_VERSION).toBe(7);
   });
 
-  it('版 5 の子には mismatch を返す', async () => {
+  it('版 6 の子には mismatch を返す', async () => {
     const { host, guest } = await pair();
     const h = new CoopHost(host);
     const told: string[] = [];
     guest.onTell((m) => told.push(m.t));
-    guest.act({ t: 'hi', v: 5, animal: 'cat', ranks: {}, gear: [] });
+    guest.act({ t: 'hi', v: 6, animal: 'cat', ranks: {}, gear: [] });
     await settle();
     expect(h.ready).toBe(false);
     expect(told).toContain('coop-mismatch');
+  });
+
+  it('停電の残りと暗さが子の端末の World にも届く', async () => {
+    const { g, w, h } = await started();
+    w.blackout.left = 12.3;
+    w.blackout.dark = 0.55;
+    h.after(0.06);
+    await settle();
+    g.frame(performance.now() + 1000);
+    expect(g.view!.blackout.left).toBe(12.3);
+    expect(g.view!.blackout.dark).toBe(0.55);
   });
 
   it('子の端末は、届いた浅瀬の中で自分の速さを 5 割にする', async () => {
