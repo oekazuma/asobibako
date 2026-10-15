@@ -95,6 +95,7 @@ describe('世界', () => {
       arcana: [],
       lavaKills: 0,
       tideKills: 0,
+      blackoutKills: 0,
       tickets: [0, 0, 0],
       lost: [0, 0, 0],
       gear: [],

@@ -208,6 +208,19 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     progress: (r) => [r.tideKills, 500]
   },
   {
+    id: 'cityBosses',
+    name: '巨大カラスと下水の大ワニを倒す',
+    coins: 600,
+    done: (r) => r.bosses.includes('raven') && r.bosses.includes('gator')
+  },
+  {
+    id: 'blackout500',
+    name: '停電のあいだに敵を 500 体倒す',
+    coins: 500,
+    done: (r) => r.blackoutKills >= 500,
+    progress: (r) => [r.blackoutKills, 500]
+  },
+  {
     id: 'lava300',
     name: '溶岩の池で敵を 300 体倒す',
     coins: 300,

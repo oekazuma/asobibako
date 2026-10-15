@@ -290,6 +290,7 @@ export interface World {
       bossTimes: number;
       lavaKills: number;
       tideKills: number;
+      blackoutKills: number;
       tickets: number[];
       links: number;
       raises: number[];
@@ -1158,6 +1159,8 @@ export interface RunSummary {
   lavaKills?: number;
   /** 満ち潮のあいだに倒した数 */
   tideKills?: number;
+  /** 停電のあいだに倒した数 */
+  blackoutKills?: number;
   /** 持ち帰るガチャ券と、倒れて失ったガチャ券（銅・銀・金） */
   tickets?: number[];
   lost?: number[];
@@ -1183,6 +1186,7 @@ export function summary(w: World): RunSummary {
     arcana: [...w.arcana],
     lavaKills: w.lavaKills,
     tideKills: w.tideKills,
+    blackoutKills: w.blackoutKills,
     tickets: w.over === 'clear' ? [...w.tickets] : [0, 0, 0],
     lost: w.over === 'clear' ? [0, 0, 0] : [...w.tickets],
     gear: [...w.worn],

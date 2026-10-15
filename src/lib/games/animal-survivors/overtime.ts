@@ -49,6 +49,7 @@ export function startOvertime(w: World): void {
       bossTimes: w.bossTimes.length,
       lavaKills: w.lavaKills,
       tideKills: w.tideKills,
+      blackoutKills: w.blackoutKills,
       tickets: [...w.tickets],
       links: w.link.uses,
       raises: w.heroes.map((h) => h.raises)
@@ -83,6 +84,7 @@ export function overtimeRun(w: World): RunSummary {
     opened: w.opened - base.opened,
     lavaKills: w.lavaKills - base.lavaKills,
     tideKills: w.tideKills - base.tideKills,
+    blackoutKills: w.blackoutKills - base.blackoutKills,
     coins: overtimeCoins(w),
     book: { ...s.book, kills, bosses: s.book.bosses.slice(base.bossTimes) },
     // 記録は 10:00 のクリアで 1 度入れているので、2 度めは延長戦のぶんの差だけにする

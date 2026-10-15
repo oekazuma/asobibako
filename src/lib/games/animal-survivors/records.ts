@@ -60,6 +60,8 @@ export interface Records {
   lavaKills: number;
   /** 満ち潮のあいだに倒した数の合計 */
   tideKills: number;
+  /** 停電のあいだに倒した数の合計 */
+  blackoutKills: number;
   /** 装備の持ち物（品とレア度の組ごとの数）・つけている品・ガチャ券（銅・銀・金）・伝説が出ていない回数 */
   bag: Partial<Record<GearKey, number>>;
   worn: Record<Slot, GearKey | null>;
@@ -110,6 +112,7 @@ export function emptyRecords(): Records {
     heatLast: 2,
     lavaKills: 0,
     tideKills: 0,
+    blackoutKills: 0,
     bag: {},
     worn: { head: null, body: null, charm: null },
     tickets: [0, 0, 0],
@@ -218,6 +221,7 @@ export function parseRecords(text: string | null): Records {
     heatLast: isNum(raw.heatLast) ? snap(raw.heatLast) : 2,
     lavaKills: Math.floor(num(raw.lavaKills)),
     tideKills: Math.floor(num(raw.tideKills)),
+    blackoutKills: Math.floor(num(raw.blackoutKills)),
     byAnimal: byAnimalOf(raw.byAnimal, ids),
     coop: coopOf(raw.coop, ids),
     ...gearRecords(raw)
@@ -314,6 +318,7 @@ export function record(r: Records, run: RunSummary): AchievementDef[] {
   r.chests += run.opened;
   r.lavaKills += run.lavaKills ?? 0;
   r.tideKills += run.tideKills ?? 0;
+  r.blackoutKills += run.blackoutKills ?? 0;
   r.tickets = r.tickets.map((n, i) => n + (run.tickets?.[i] ?? 0)) as Records['tickets'];
   r.coins += run.coins;
   if (run.cleared && !r.stages.includes(run.stage)) r.stages.push(run.stage);

@@ -3,12 +3,13 @@ import { ACHIEVEMENTS } from './achievements';
 import { streetLightAt } from './blackout';
 import { ENEMIES } from './enemies';
 import { CELL, obstaclesNear } from './obstacles';
-import { canPlay, emptyRecords, parseRecords } from './records';
+import { canPlay, emptyRecords, parseRecords, record } from './records';
 import { STAGES } from './stages';
 import { CITY } from './stages/city';
 import { COAST } from './stages/coast';
 import { FOREST } from './stages/forest';
-import { createWorld } from './world';
+import { startOvertime, overtimeRun } from './overtime';
+import { createWorld, summary } from './world';
 
 describe('夜の街の表', () => {
   it('海岸のあとに並び、海岸をクリアすると選べる', () => {
@@ -85,5 +86,49 @@ describe('夜の街の表', () => {
     const a = ACHIEVEMENTS.find((o) => o.id === 'cityClear')!;
     expect(a.done(emptyRecords(), null)).toBe(false);
     expect(a.done({ ...emptyRecords(), stages: ['city'] }, null)).toBe(true);
+  });
+});
+
+describe('夜の街の実績', () => {
+  const VIEW = { w: 274, h: 394 };
+  const find = (id: string) => ACHIEVEMENTS.find((d) => d.id === id)!;
+
+  it('巨大カラスと下水の大ワニの両方を倒すと満ちる', () => {
+    const a = find('cityBosses');
+    expect(a.done({ ...emptyRecords(), bosses: ['raven'] }, null)).toBe(false);
+    expect(a.done({ ...emptyRecords(), bosses: ['raven', 'gator'] }, null)).toBe(true);
+  });
+
+  it('停電で倒した数を回ごとに記録へ足し、合計 500 体で満ちる', () => {
+    const r = emptyRecords();
+    const w = createWorld('dog', 1, VIEW, {}, 'city');
+    w.blackoutKills = 200;
+    record(r, summary(w));
+    record(r, summary(w));
+    expect(r.blackoutKills).toBe(400);
+    const a = find('blackout500');
+    expect(a.done(r, null)).toBe(false);
+    expect(a.progress?.(r)).toEqual([400, 500]);
+    record(r, summary(w));
+    expect(a.done(r, null)).toBe(true);
+  });
+
+  it('古い記録は停電の数 0 で読める', () => {
+    expect(parseRecords(JSON.stringify({ coins: 3 })).blackoutKills).toBe(0);
+  });
+
+  it('延長戦の終わりの記録には、延長戦の停電で倒した差だけを足す', () => {
+    const r = emptyRecords();
+    const w = createWorld('dog', 1, VIEW, {}, 'city');
+    w.blackoutKills = 30;
+    w.time = 600;
+    w.over = 'clear';
+    record(r, summary(w));
+    w.over = null;
+    startOvertime(w);
+    w.blackoutKills = 50;
+    w.over = 'dead';
+    record(r, overtimeRun(w));
+    expect(r.blackoutKills).toBe(50);
   });
 });

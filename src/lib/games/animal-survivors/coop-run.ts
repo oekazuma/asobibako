@@ -82,7 +82,7 @@ function summaryOk(s: unknown): boolean {
     STAGE_IDS.includes(s.stage) &&
     typeof s.cleared === 'boolean' &&
     [s.time, s.level, s.kills, s.coins, s.opened, heat.level, heat.bet].every(n) &&
-    [s.killsBefore, s.lavaKills, s.tideKills, s.shrines].every((v) => opt(v, n)) &&
+    [s.killsBefore, s.lavaKills, s.tideKills, s.blackoutKills, s.shrines].every((v) => opt(v, n)) &&
     strs(s.bosses) &&
     strs(s.evolved) &&
     opt(s.relics, strs) &&

@@ -18,10 +18,35 @@ export const TROPHY_GROUPS: [string, string[]][] = [
       'shrine10'
     ]
   ],
-  ['倒す', ['run100', 'run1000', 'run3000', 'total3000', 'total20000', 'total30000', 'metal', 'lava300', 'tide500']],
+  [
+    '倒す',
+    [
+      'run100',
+      'run1000',
+      'run3000',
+      'total3000',
+      'total20000',
+      'total30000',
+      'metal',
+      'lava300',
+      'tide500',
+      'blackout500'
+    ]
+  ],
   [
     'ボス',
-    ['bear', 'queen', 'forestFinale', 'bothBosses', 'graveBosses', 'yeti', 'snowBosses', 'volcanoBosses', 'coastBosses']
+    [
+      'bear',
+      'queen',
+      'forestFinale',
+      'bothBosses',
+      'graveBosses',
+      'yeti',
+      'snowBosses',
+      'volcanoBosses',
+      'coastBosses',
+      'cityBosses'
+    ]
   ],
   [
     '育てる',
