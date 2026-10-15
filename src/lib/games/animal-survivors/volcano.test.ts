@@ -11,7 +11,7 @@ import { createWorld, summary } from './world';
 
 describe('火山の表', () => {
   it('雪山のあとに並び、雪山をクリアすると選べる', () => {
-    expect(STAGES.map((s) => s.id)).toEqual(['forest', 'graveyard', 'snow', 'volcano', 'coast', 'city']);
+    expect(STAGES.map((s) => s.id)).toEqual(['forest', 'graveyard', 'snow', 'volcano', 'coast', 'city', 'grove']);
     expect(canPlay(emptyRecords(), 'volcano')).toBe(false);
     expect(canPlay({ ...emptyRecords(), stages: ['forest', 'graveyard', 'snow'] }, 'volcano')).toBe(true);
   });

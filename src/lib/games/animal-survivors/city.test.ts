@@ -13,7 +13,7 @@ import { createWorld, summary } from './world';
 
 describe('夜の街の表', () => {
   it('海岸のあとに並び、海岸をクリアすると選べる', () => {
-    expect(STAGES.map((s) => s.id)).toEqual(['forest', 'graveyard', 'snow', 'volcano', 'coast', 'city']);
+    expect(STAGES.map((s) => s.id)).toEqual(['forest', 'graveyard', 'snow', 'volcano', 'coast', 'city', 'grove']);
     expect(canPlay(emptyRecords(), 'city')).toBe(false);
     expect(canPlay({ ...emptyRecords(), stages: ['forest', 'graveyard', 'snow', 'volcano', 'coast'] }, 'city')).toBe(
       true

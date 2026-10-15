@@ -8,6 +8,7 @@
   import { VOLCANO_ART } from './art/volcano';
   import { COAST_ART } from './art/coast';
   import { CITY_ART } from './art/city';
+  import { GROVE_ART } from './art/grove';
   import { heatLabel } from './cauldron';
   import { clock } from './hud';
   import PixelIcon from './PixelIcon.svelte';
@@ -25,7 +26,8 @@
     snow: { tile: SNOW_ART.grass, mark: SNOW_ART.decor.pine },
     volcano: { tile: VOLCANO_ART.grass, mark: VOLCANO_ART.decor.smoke },
     coast: { tile: COAST_ART.grass, mark: COAST_ART.decor.shell },
-    city: { tile: CITY_ART.grass, mark: CITY_ART.decor.manhole }
+    city: { tile: CITY_ART.grass, mark: CITY_ART.decor.manhole },
+    grove: { tile: GROVE_ART.grass, mark: GROVE_ART.decor.mushroom }
   };
 </script>
 

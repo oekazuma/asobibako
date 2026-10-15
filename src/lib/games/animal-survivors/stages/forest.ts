@@ -36,11 +36,11 @@ export interface Stage {
   id: string;
   name: string;
   /** 地面と飾りの絵 */
-  art: 'forest' | 'graveyard' | 'snow' | 'volcano' | 'coast' | 'city';
+  art: 'forest' | 'graveyard' | 'snow' | 'volcano' | 'coast' | 'city' | 'grove';
   /** コインに掛ける倍率 */
   coin: number;
   /** 遊んでいるあいだの曲（songs.ts） */
-  song: 'field' | 'grave' | 'snow' | 'volcano' | 'coast' | 'city';
+  song: 'field' | 'grave' | 'snow' | 'volcano' | 'coast' | 'city' | 'grove';
   /** まだ選べないときに出す、選べる条件 */
   unlock?: string;
   /** 先にクリアしておく面。無ければ最初から選べる */
@@ -53,6 +53,8 @@ export interface Stage {
   tides: { at: number; len: number }[];
   /** 停電の時刻と長さ（夜の街だけ） */
   blackouts: { at: number; len: number }[];
+  /** 妖精の輪が現れる秒と消えるまでの秒（魔法の森だけ） */
+  rings: { at: number; len: number }[];
   /** 秒。ここまで生き延びればクリア */
   length: number;
   waves: Wave[];
@@ -94,6 +96,7 @@ export const FOREST: Stage = {
   eruptions: [],
   tides: [],
   blackouts: [],
+  rings: [],
   events: [
     { at: 30, kind: 'swarm', enemy: 'bat', count: 20, text: 'コウモリの大群！' },
     { at: 47, kind: 'meteor', enemy: '', count: 0, text: '流れ星が降ってくる！' },

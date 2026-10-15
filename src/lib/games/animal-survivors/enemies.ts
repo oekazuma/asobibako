@@ -15,7 +15,9 @@ export type BossId =
   | 'crabKing'
   | 'octopus'
   | 'raven'
-  | 'gator';
+  | 'gator'
+  | 'witch'
+  | 'stag';
 
 export interface EnemyDef {
   id: string;
@@ -210,6 +212,25 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
         ...e('gator', '下水の大ワニ', [700, 28, 20, 15, 0], 'boss', 1, 'gator'),
         ai: 'gator',
         epithet: 'マンホールの主'
+      },
+      e('shroomling', 'キノコぼうや', [6, 40, 5, 5, 1], 'chase', 0),
+      e('pixie', 'いたずら妖精', [4, 58, 4, 5, 1], 'wave', 0),
+      e('vineSnake', 'ツタヘビ', [14, 34, 8, 6, 2], 'snake', 0.2),
+      e('gemSnail', '宝石カタツムリ', [40, 20, 10, 7, 5], 'chase', 0.6),
+      e('thornBoar', 'イバライノシシ', [70, 26, 18, 8, 8], 'charge', 0.8),
+      e('hopFrog', '跳ねガエル', [18, 36, 9, 6, 3], 'leap', 0.2),
+      e('stumpGhost', '切り株おばけ', [120, 16, 16, 9, 10], 'chase', 0.9),
+      {
+        ...e('witch', '魔女', [550, 38, 25, 16, 0], 'boss', 1, 'witch'),
+        epithet: '星くずの魔法使い',
+        ai: 'queen',
+        minion: 'pixie',
+        shot: 'spell'
+      },
+      {
+        ...e('stag', '森の大ジカ', [1400, 30, 24, 17, 0], 'boss', 1, 'stag'),
+        ai: 'boar',
+        epithet: '月夜の角持ち'
       }
     ] satisfies EnemyDef[]
   ).map((d) => [d.id, d])

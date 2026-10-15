@@ -10,7 +10,7 @@ import { createWorld, summary } from './world';
 
 describe('雪山の面の表', () => {
   it('森・墓地・雪山・火山・海岸の順に並び、雪山は墓地のあとでコイン 2 倍', () => {
-    expect(STAGES.map((s) => s.id)).toEqual(['forest', 'graveyard', 'snow', 'volcano', 'coast', 'city']);
+    expect(STAGES.map((s) => s.id)).toEqual(['forest', 'graveyard', 'snow', 'volcano', 'coast', 'city', 'grove']);
     expect(stageOf('snow')).toBe(SNOW);
     expect(SNOW.coin).toBe(2);
     expect(SNOW.after).toBe('graveyard');
@@ -68,13 +68,13 @@ describe('雪山の面の表', () => {
 describe('雪山を選べる条件', () => {
   it('森は最初から、墓地は森のクリアで、雪山は墓地のクリアで、火山は雪山のクリアで、海岸は火山のクリアで選べる', () => {
     const r = emptyRecords();
-    expect(STAGES.map((s) => canPlay(r, s.id))).toEqual([true, false, false, false, false, false]);
+    expect(STAGES.map((s) => canPlay(r, s.id))).toEqual([true, false, false, false, false, false, false]);
     r.stages = ['forest'];
-    expect(STAGES.map((s) => canPlay(r, s.id))).toEqual([true, true, false, false, false, false]);
+    expect(STAGES.map((s) => canPlay(r, s.id))).toEqual([true, true, false, false, false, false, false]);
     r.stages = ['forest', 'graveyard'];
-    expect(STAGES.map((s) => canPlay(r, s.id))).toEqual([true, true, true, false, false, false]);
+    expect(STAGES.map((s) => canPlay(r, s.id))).toEqual([true, true, true, false, false, false, false]);
     r.stages = ['forest', 'graveyard', 'snow'];
-    expect(STAGES.map((s) => canPlay(r, s.id))).toEqual([true, true, true, true, false, false]);
+    expect(STAGES.map((s) => canPlay(r, s.id))).toEqual([true, true, true, true, false, false, false]);
     expect(canPlay(r, 'nope')).toBe(false);
   });
 

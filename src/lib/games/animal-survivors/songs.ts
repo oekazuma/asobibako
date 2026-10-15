@@ -2,7 +2,7 @@ import type { Song } from '$lib/music/tune';
 
 /** 画面ごとの BGM。書き方は $lib/music/tune の Song。効果音が聞こえるよう gain は小さめ */
 export const SONGS: Record<
-  'menu' | 'field' | 'grave' | 'snow' | 'volcano' | 'coast' | 'city' | 'boss',
+  'menu' | 'field' | 'grave' | 'snow' | 'volcano' | 'coast' | 'city' | 'grove' | 'boss',
   { song: Song; bpm: number; gain: number }
 > = {
   /** キャラ選択・店・実績・リザルト。軽く弾む */
@@ -106,6 +106,21 @@ export const SONGS: Record<
         a4 . c5 . e5 . c5 . | d5 . f5 . a5 - f5 . | g4 . b4 . d5 . g5 . | c5 - - - e5 - . . |
         e5 . d5 . c5 . a4 . | f5 . e5 . d5 . b4 . | g5 . f5 . e5 . d5 . | c5 - - - . . . .`,
       chords: 'C Am Dm G Em Am Dm C Am Dm G C Am Dm G C'
+    }
+  },
+  /** 魔法の森。きらきらと上がる分散和音の明るい長調 */
+  grove: {
+    bpm: 112,
+    gain: 0.5,
+    song: {
+      beats: 4,
+      lead: 'bubble',
+      style: 'drive',
+      melody: `c5 . e5 g5 e5 g5 c6 - | a5 - g5 e5 c5 e5 a4 . | a4 c5 f5 a5 f5 c5 a4 . | b4 d5 g5 b5 - g5 d5 . |
+        e5 g5 c6 e6 c6 g5 e5 . | b5 - g5 e5 b4 e5 g5 . | a5 - c6 a5 f5 a5 c5 . | d5 - - - b4 . d5 . |
+        g5 . e5 g5 c6 . g5 e5 | a5 . e5 a5 c6 . a5 e5 | f5 . d5 f5 a5 . f5 d5 | g5 . d5 g5 b5 - g5 d5 |
+        c6 . e6 c6 g5 . e5 c5 | a5 g5 e5 c5 a4 c5 e5 . | f5 a5 c6 a5 f5 d5 c5 . | g5 - - - . . . .`,
+      chords: 'C Am F G C Em F G C Am Dm G C Am F G'
     }
   },
   /** ボス。短調で速い */

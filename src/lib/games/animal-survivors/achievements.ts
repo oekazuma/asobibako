@@ -188,6 +188,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     animal: 'raccoon',
     done: (r) => r.stages.includes('city')
   },
+  { id: 'groveClear', name: '魔法の森をクリア', coins: 1200, done: (r) => r.stages.includes('grove') },
   {
     id: 'volcanoBosses',
     name: '溶岩の巨人と不死鳥を倒す',

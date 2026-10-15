@@ -38,6 +38,7 @@ export const VOLCANO: Stage = {
   ],
   tides: [],
   blackouts: [],
+  rings: [],
   waves: FOREST.waves.map((w) => ({ ...w, enemy: SWAP[w.enemy] ?? w.enemy })),
   cap: (t) => Math.min(400, Math.round(FOREST.cap(t) * 1.2)),
   toughness: (t) => FOREST.toughness(t) * HARDER,

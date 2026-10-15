@@ -11,6 +11,7 @@ import { SNOW_ART } from './art/snow';
 import { VOLCANO_ART } from './art/volcano';
 import { COAST_ART } from './art/coast';
 import { CITY_ART } from './art/city';
+import { GROVE_ART } from './art/grove';
 import { PALETTE } from './art/palette';
 import { shots, swipes, zonesBelow } from './draw-arms';
 import { bossBars, hazardsAbove, hazardsBelow, introDust, introEdge } from './draw-boss';
@@ -183,6 +184,17 @@ const GROUNDS = {
     shadowed: [],
     // 側溝のふたの地は目立つので、ほかの面より控えめにまく
     dirt: 0.02
+  },
+  grove: {
+    art: GROVE_ART,
+    decor: [
+      [0.6, null],
+      [0.74, 'mote'],
+      [0.86, 'flower'],
+      [0.94, 'mushroom'],
+      [1, 'root']
+    ],
+    shadowed: ['mushroom', 'root']
   }
 } as const;
 

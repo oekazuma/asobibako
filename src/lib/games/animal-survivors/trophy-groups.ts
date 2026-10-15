@@ -9,6 +9,7 @@ export const TROPHY_GROUPS: [string, string[]][] = [
       'volcanoClear',
       'coastClear',
       'cityClear',
+      'groveClear',
       'clear3',
       'clear7',
       'heat5',

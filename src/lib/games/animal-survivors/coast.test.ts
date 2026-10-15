@@ -11,7 +11,7 @@ import { createWorld, summary } from './world';
 
 describe('海岸の表', () => {
   it('火山のあとに並び、火山をクリアすると選べる', () => {
-    expect(STAGES.map((s) => s.id)).toEqual(['forest', 'graveyard', 'snow', 'volcano', 'coast', 'city']);
+    expect(STAGES.map((s) => s.id)).toEqual(['forest', 'graveyard', 'snow', 'volcano', 'coast', 'city', 'grove']);
     expect(canPlay(emptyRecords(), 'coast')).toBe(false);
     expect(canPlay({ ...emptyRecords(), stages: ['forest', 'graveyard', 'snow', 'volcano'] }, 'coast')).toBe(true);
   });

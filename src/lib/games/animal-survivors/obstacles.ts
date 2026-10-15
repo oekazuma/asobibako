@@ -1,6 +1,6 @@
 /** 地形の障害物。位置のハッシュで決まるので、毎回同じ場所に出て、協力プレイの 2 台でもそろう */
 
-export type Ground = 'forest' | 'graveyard' | 'snow' | 'volcano' | 'coast' | 'city';
+export type Ground = 'forest' | 'graveyard' | 'snow' | 'volcano' | 'coast' | 'city' | 'grove';
 export type ObstacleId =
   | 'boulder'
   | 'log'
@@ -13,7 +13,9 @@ export type ObstacleId =
   | 'reef'
   | 'boat'
   | 'vending'
-  | 'trash';
+  | 'trash'
+  | 'shroom'
+  | 'runestone';
 export interface Obstacle {
   x: number;
   y: number;
@@ -103,7 +105,9 @@ export const SHAPES: Record<ObstacleId, { circles: readonly (readonly [number, n
       [13, 1, 8]
     ],
     foot: 11
-  }
+  },
+  shroom: { circles: [[0, 0, 12]], foot: 12 },
+  runestone: { circles: [[0, 0, 12]], foot: 12 }
 };
 
 const KINDS: Record<Ground, readonly [ObstacleId, ObstacleId]> = {
@@ -112,7 +116,8 @@ const KINDS: Record<Ground, readonly [ObstacleId, ObstacleId]> = {
   snow: ['icy', 'snowTree'],
   volcano: ['lavaRock', 'steamRock'],
   coast: ['reef', 'boat'],
-  city: ['vending', 'trash']
+  city: ['vending', 'trash'],
+  grove: ['shroom', 'runestone']
 };
 
 const REACH = Math.max(...Object.values(SHAPES).flatMap((s) => s.circles.map(([dx, dy, r]) => Math.hypot(dx, dy) + r)));
