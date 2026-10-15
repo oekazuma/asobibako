@@ -5,7 +5,6 @@ import { fire, hits, type Effect, type Shot } from './arms';
 import { moveBoss, slot, spawnBosses, updateHazards, type Hazard } from './bosses';
 import { CRAB } from './bosses-coast';
 import { BOAR } from './bosses-forest';
-import { STAG } from './bosses-grove';
 import { airborne } from './bosses-snow';
 import { bloodPact, healRate, regenRate, takeArcana, type ArcanaId } from './arcana';
 import { atkMul, heatStage, PLAIN, type Heat } from './cauldron';
@@ -908,18 +907,16 @@ function touch(w: World) {
     if (!e.alive || airborne(e)) continue;
     const r = e.def.r + 5;
     if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 >= r * r) continue;
-    // ボス（と大ヘビの体）は時間で強くならない。突進中の巨大ベア型（下水の大ワニも）・大イノシシ・巨大ガニは強く当たる
+    // ボス（と大ヘビの体）は時間で強くならない。突進中の巨大ベア型（下水の大ワニも）・大イノシシ（森の大ジカも）・巨大ガニは強く当たる
     const base =
       e.def.boss || e.def.part
         ? e.state === 2 && (e.def.ai === 'bear' || e.def.ai === 'gator')
           ? BEAR_DASH_ATK
-          : e.state === 2 && e.def.ai === 'boar'
+          : e.state === 2 && (e.def.ai === 'boar' || e.def.ai === 'stag')
             ? BOAR.dashAtk
-            : e.state === 2 && e.def.ai === 'stag'
-              ? STAG.dashAtk
-              : e.state === 2 && e.def.ai === 'crab'
-                ? CRAB.dashAtk
-                : e.def.atk
+            : e.state === 2 && e.def.ai === 'crab'
+              ? CRAB.dashAtk
+              : e.def.atk
         : e.def.atk * w.stage.fury(w.time);
     if (base <= atk) continue;
     atk = base;

@@ -23,6 +23,12 @@ function fan(ctx: CanvasRenderingContext2D, h: Hazard, q: Snap) {
   ctx.closePath();
 }
 
+/** 森の大ジカの角ふりは竜の息の扇を使い回すので、氷の青ではなく月夜の紫で描き分ける */
+const fanColors = (w: World, h: Hazard) =>
+  w.enemies[h.owner]?.def.ai === 'stag'
+    ? { warn: '#c78ae6', edge: '#8a4ab8', hit: '#e8b4ff' }
+    : { warn: PALETTE.u, edge: PALETTE.U, hit: PALETTE.j };
+
 /** 床に出す予告（地ならしの輪・突進の矢印・氷の柱の円・息の扇）と土ぼこり。敵より先に描く。telegraphsOnly は暗闇の上に予告だけ描き直すとき */
 export function hazardsBelow(
   ctx: CanvasRenderingContext2D,
@@ -82,11 +88,12 @@ export function hazardsBelow(
     }
     if (h.kind === 'breath' && h.delay > 0) {
       ctx.globalAlpha = 0.2 + 0.15 * pulse(now);
-      ctx.fillStyle = PALETTE.u;
+      const c = fanColors(w, h);
+      ctx.fillStyle = c.warn;
       fan(ctx, h, q);
       ctx.fill();
       ctx.globalAlpha = 0.8;
-      ctx.strokeStyle = PALETTE.U;
+      ctx.strokeStyle = c.edge;
       ctx.lineWidth = 1.5;
       fan(ctx, h, q);
       ctx.stroke();
@@ -192,7 +199,7 @@ export function hazardsAbove(ctx: CanvasRenderingContext2D, w: World, q: Snap): 
       ctx.drawImage(bake(ic), q(h.x - ic.w), q(h.y + 8 - ic.h * 2 * rise), ic.w * 2, Math.max(1, ic.h * 2 * rise));
     } else if (h.kind === 'breath' && h.delay <= 0) {
       ctx.globalAlpha = 0.45 + Math.random() * 0.15;
-      ctx.fillStyle = PALETTE.j;
+      ctx.fillStyle = fanColors(w, h).hit;
       fan(ctx, h, q);
       ctx.fill();
       ctx.globalAlpha = 1;

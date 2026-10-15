@@ -2,15 +2,14 @@ import { hazard, queen } from './bosses';
 import { boar } from './bosses-forest';
 import type { Enemy, World } from './world';
 
-/** 大イノシシの数から始める。dashAtk は突進中の体当たりの強さ（BOAR は循環 import で定数の評価時には使えないので数を写す） */
+/** 突進中の体当たりの強さは BOAR.dashAtk を world.ts の touch() が見る */
 export const STAG = {
   every: 2.5,
   warn: 1,
   /** 扇が当たりを出している秒。1 回だけ当てるので breathTick より短くする */
   time: 0.2,
   length: 130,
-  dmg: 24,
-  dashAtk: 34
+  dmg: 24
 };
 
 const STILL = { vx: 0, vy: 0 };
@@ -34,7 +33,7 @@ export function stag(w: World, i: number, e: Enemy, ux: number, uy: number, dt: 
   if (!(resting && e.state === 0)) return move;
   e.state = 6;
   e.wait = STAG.warn + STAG.time;
-  // 竜の息の扇を使い回す。向きは置いたときの動物の向きで、あとで動いても変わらない（遅くしないのは breathe が竜だけに付ける）
+  // 遅くしないのは breathe が竜だけに付けるため
   hazard(w, {
     kind: 'breath',
     owner: i,
@@ -72,7 +71,7 @@ export function witch(w: World, i: number, e: Enemy, ux: number, uy: number, d: 
     e.state = 1;
     e.wait = WITCH.delays[WITCH.delays.length - 1];
     const p = w.player;
-    // 円の中心は魔女から動物へ向かう線に直角にずらす。最初の円は動物の位置そのもので、置いたあとは動かさない
+    // 直角にずらすのは、魔女のほうへ寄るか離れるかで 3 つとも外れるようにするため
     WITCH.delays.forEach((delay, k) => {
       const side = k === 0 ? 0 : k === 1 ? 1 : -1;
       hazard(w, {
