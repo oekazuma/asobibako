@@ -8,12 +8,13 @@ import type { Hazard } from './bosses';
 import type { Gem, Item } from './drops';
 import { ENEMIES, type EnemyDef } from './enemies';
 import type { Lava } from './eruption';
+import type { Fairy } from './fairy';
 import type { Shallow } from './tide';
 import type { Storm } from './storm';
 import { addHero, chiefOf, eliteOf, makeEnemy, type GameEvent, type World } from './world';
 
 /** 協力プレイの知らせの形の版。形を変えたら 1 上げる */
-export const COOP_VERSION = 7;
+export const COOP_VERSION = 8;
 
 /** ダメージの数字は子の画面でも 60 個までしか出せない（effects.ts の MAX_NUMBERS）ので、それより多くは送らない */
 export const SNAP_HITS = 60;
@@ -46,6 +47,7 @@ export interface Snap {
   lava: Lava[];
   shallows: Shallow[];
   blackout: { left: number; dark: number };
+  fairy: Pick<Fairy, 'ring' | 'left' | 'charge' | 'burst' | 'bx' | 'by'>;
   storm: Storm;
   treasure: number;
   relics: RelicId[];
@@ -198,6 +200,14 @@ export function makeSnap(w: World, events: GameEvent[]): Snap {
     lava: w.lava.filter((l) => l.life > 0),
     shallows: w.shallows.filter((s) => s.life > 0),
     blackout: { left: r1(w.blackout.left), dark: Math.round(w.blackout.dark * 100) / 100 },
+    fairy: {
+      ring: w.fairy.ring && { ...w.fairy.ring },
+      left: r1(w.fairy.left),
+      charge: Math.round(w.fairy.charge * 100) / 100,
+      burst: Math.round(w.fairy.burst * 100) / 100,
+      bx: Math.round(w.fairy.bx),
+      by: Math.round(w.fairy.by)
+    },
     storm: { ...w.storm },
     treasure: w.treasure ? w.items.indexOf(w.treasure) : -1,
     relics: w.relics,
@@ -337,6 +347,7 @@ export function applySnap(view: World, s: Snap): void {
   view.shallows = s.shallows;
   view.blackout.left = s.blackout.left;
   view.blackout.dark = s.blackout.dark;
+  Object.assign(view.fairy, s.fairy);
   view.storm = s.storm;
   view.treasure = s.treasure >= 0 ? (view.items[s.treasure] ?? null) : null;
   view.relics = s.relics;

@@ -32,6 +32,7 @@ import { startEvent, stepEvents } from './events';
 import { stepCarry, type Carry } from './carry';
 import { quietEarth, stepEruption, updateLava, type Eruption, type Lava } from './eruption';
 import { lightsOn, stepBlackout, type Blackout } from './blackout';
+import { calmGrove, holdInRing, stepFairy, type Fairy } from './fairy';
 import { lowTide, stepTide, updateShallows, wadeFactor, type Shallow, type Tide } from './tide';
 import { PLAYER_R, pushOut } from './obstacles';
 import { flakes, greedOf, hasRelic, placeRelics, type RelicId } from './relics';
@@ -51,6 +52,8 @@ export interface Enemy {
   kx: number;
   ky: number;
   hp: number;
+  /** 出たときの体力。割合で削る技（妖精の輪）が使う */
+  max: number;
   flash: number;
   t: number;
   phase: number;
@@ -121,6 +124,8 @@ export type GameEvent = { hero?: number } & (
   | { type: 'shrine'; kind: ShrineKind }
   | { type: 'swarm'; text: string }
   | { type: 'cross' }
+  /** 妖精の輪が満ちた */
+  | { type: 'fairy' }
   | { type: 'freeze' }
   | { type: 'grow'; form: 1 | 2 }
   | { type: 'rush' }
@@ -231,6 +236,10 @@ export interface World {
   blackout: Blackout;
   /** 停電のあいだに倒した数 */
   blackoutKills: number;
+  /** 魔法の森の妖精の輪 */
+  fairy: Fairy;
+  /** 妖精の輪で倒した数 */
+  fairyKills: number;
   /** 宝の地図の宝箱（無ければ null） */
   treasure: Item | null;
   /** 協力プレイの重い宝箱（2 匹で祭壇まで運ぶ） */
@@ -454,6 +463,8 @@ export function createWorld(
     tideKills: 0,
     blackout: lightsOn(),
     blackoutKills: 0,
+    fairy: calmGrove(),
+    fairyKills: 0,
     treasure: null,
     carry: null,
     carried: 0,
@@ -507,6 +518,7 @@ export function makeEnemy(def: EnemyDef, x: number, y: number, hp: number): Enem
     kx: 0,
     ky: 0,
     hp,
+    max: hp,
     flash: 0,
     t: 0,
     phase: 0,
@@ -1015,6 +1027,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
     p.x += w.storm.wx * BASE_SPEED * STORM_PUSH * (1 - w.fx.wind) * dt;
     p.y += w.storm.wy * BASE_SPEED * STORM_PUSH * (1 - w.fx.wind) * dt;
   }
+  holdInRing(w, p);
   pushOut(w.stage.art, p, PLAYER_R);
   if (p.moving) {
     const len = Math.hypot(input.x, input.y);
@@ -1067,6 +1080,7 @@ export function step(w: World, input: { x: number; y: number }, dt: number): voi
     stepEruption(w, dt);
     stepTide(w, dt);
     stepBlackout(w, dt);
+    stepFairy(w, dt);
   }
   stepCarry(w, dt);
 

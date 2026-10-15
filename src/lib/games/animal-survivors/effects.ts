@@ -225,7 +225,8 @@ export class Effects {
       else if (e.type === 'cross') {
         this.flash = 0.5;
         sounds.cross();
-      } else if (e.type === 'freeze') sounds.freeze();
+      } else if (e.type === 'fairy') sounds.revive();
+      else if (e.type === 'freeze') sounds.freeze();
       else if (e.type === 'clear') sounds.clear();
       else if (e.type === 'dead') sounds.dead();
     }

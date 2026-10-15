@@ -214,6 +214,31 @@ export function treasureArrow(
   ctx.globalAlpha = 1;
 }
 
+/** 画面の外の妖精の輪への矢印。宝箱の矢印と見分けるよう、輪の印と残り秒を画面の内側へ添える */
+export function ringArrow(
+  ctx: CanvasRenderingContext2D,
+  w: World,
+  vw: number,
+  vh: number,
+  top: number,
+  now: number
+): void {
+  const ring = w.fairy.ring;
+  if (!ring) return;
+  const at = edgeArrow(ctx, w, ring, vw, vh, top);
+  if (!at) return;
+  const s = String(Math.ceil(w.fairy.left));
+  ctx.globalAlpha = w.fairy.left > HURRY ? 1 : 0.45 + 0.55 * pulse(now);
+  const y = at.y > vh / 2 ? at.y - 14 : at.y + 10;
+  ctx.strokeStyle = PALETTE.w;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(at.x, y, 6, 3.5, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  text(ctx, s, at.x - Math.round(textWidth(s) / 2), at.y > vh / 2 ? y - 10 : y + 5, PALETTE.y);
+  ctx.globalAlpha = 1;
+}
+
 /** 画面の外のヌシへの矢印。宝箱の矢印と見分けるよう、残り秒の代わりに王冠を添える */
 export function chiefArrows(ctx: CanvasRenderingContext2D, w: World, vw: number, vh: number, top: number): void {
   const c = ITEM_ART.crown;

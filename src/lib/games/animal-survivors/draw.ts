@@ -27,12 +27,14 @@ import {
   partnerArrows,
   pinchRing,
   relicArrows,
+  ringArrow,
   treasureArrow
 } from './draw-events';
 import { drawCarry, drawCarryChest } from './draw-carry';
 import { blizzard } from './draw-storm';
 import { drawShallows } from './draw-coast';
 import { drawDark } from './draw-city';
+import { drawBurst, drawRing } from './draw-grove';
 import { drawLava } from './draw-volcano';
 import { EAGLE } from './bosses-forest';
 import { PHOENIX } from './bosses-volcano';
@@ -485,6 +487,7 @@ export function draw(
   drawStreetLights(ctx, w, cx, cy, v.w, v.h, q);
   drawLava(ctx, w, now);
   drawShallows(ctx, w);
+  drawRing(ctx, w, q);
   hazardsBelow(ctx, w, q, now);
   zonesBelow(ctx, w, q, now);
   pickups(ctx, w, now, cx, cy, v);
@@ -517,6 +520,7 @@ export function draw(
   hazardsAbove(ctx, w, q);
   if (prompts?.intro) introDust(ctx, w, prompts.intro);
   fx.draw(ctx, S);
+  drawBurst(ctx, w, prompts?.still ?? false);
   const darkened = drawDark(ctx, w, cx, cy, v, prompts?.still ?? false);
   // 予告を見落とすと避けられないので、暗闇の上にも出す
   if (darkened) hazardsBelow(ctx, w, q, now, true);
@@ -567,6 +571,7 @@ export function draw(
     treasureArrow(ctx, w, v.w, v.h, top, now);
     carryArrows(ctx, w, v.w, v.h, top, now);
     chiefArrows(ctx, w, v.w, v.h, top);
+    ringArrow(ctx, w, v.w, v.h, top, now);
     relicArrows(ctx, w, v.w, v.h, top);
     partnerArrows(ctx, w, v.w, v.h, top, now);
   }

@@ -13,6 +13,7 @@ import { applySnap, COOP_VERSION, lerpSnap, makeSnap, type Snap } from './snap';
 import { Timeline } from '$lib/net/timeline';
 import { NEVER, pressLink } from './link';
 import type { Ranks } from './upgrades';
+import { holdInRing } from './fairy';
 import { PLAYER_R, pushOut } from './obstacles';
 import { HASTE } from './shrines';
 import { STORM_PUSH } from './storm';
@@ -449,6 +450,7 @@ export class CoopGuest {
       p.x += v.storm.wx * BASE_SPEED * STORM_PUSH * (1 - h.fx.wind) * dt;
       p.y += v.storm.wy * BASE_SPEED * STORM_PUSH * (1 - h.fx.wind) * dt;
     }
+    holdInRing(v, p);
     pushOut(v.stage.art, p, PLAYER_R);
     if (p.moving) {
       const len = Math.hypot(input.x, input.y);

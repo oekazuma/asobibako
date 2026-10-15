@@ -107,8 +107,8 @@ describe('協力プレイのつなぎ', () => {
     expect(v.heroes[v.cur].weapons[0].limit).toEqual({ damage: 2, cooldown: 1 });
   });
 
-  it('snap の形を変えたので、つなぎ方の版は 7（古い版の端末とはつながない）', () => {
-    expect(COOP_VERSION).toBe(7);
+  it('snap の形を変えたので、つなぎ方の版は 8（古い版の端末とはつながない）', () => {
+    expect(COOP_VERSION).toBe(8);
   });
 
   it('版 6 の子には mismatch を返す', async () => {
@@ -131,6 +131,26 @@ describe('協力プレイのつなぎ', () => {
     g.frame(performance.now() + 1000);
     expect(g.view!.blackout.left).toBe(12.3);
     expect(g.view!.blackout.dark).toBe(0.55);
+  });
+
+  it('子の端末は、親がためている輪の外へ歩いても出られない', async () => {
+    const { g, w, h } = await started();
+    h.after(0.06);
+    await settle();
+    g.frame(performance.now() + 1000);
+    const p = g.view!.heroes[g.view!.cur].player;
+    // 子の位置は子が持つので、輪は子の動物のいる所に置く
+    const ring = { x: p.x, y: p.y, r: 30 };
+    w.fairy.ring = ring;
+    w.fairy.left = 10;
+    w.fairy.charge = 1;
+    w.heroes[0].player.x = ring.x;
+    w.heroes[0].player.y = ring.y;
+    h.after(0.06);
+    await settle();
+    g.frame(performance.now() + 1000);
+    for (let i = 0; i < 60; i++) g.move({ x: 1, y: 0 }, 1 / 30);
+    expect(Math.hypot(p.x - ring.x, p.y - ring.y)).toBeLessThanOrEqual(ring.r);
   });
 
   it('子の端末は、届いた浅瀬の中で自分の速さを 5 割にする', async () => {

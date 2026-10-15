@@ -12,17 +12,15 @@ import { addHero, createWorld, hurtPlayer, spawnProps, step, summary, type World
 import { power } from './arms';
 
 const GROUNDS: Ground[] = ['forest', 'graveyard', 'snow', 'volcano', 'coast', 'city', 'grove'];
-// 魔法の森の遺物は Task 3 で入るまで数えない
-const WITH_RELICS = STAGES.filter((o) => o.id !== 'grove');
 
 describe('遺物の置き場所', () => {
-  it('ステージごとに 2 つで、全部で 12 こ', () => {
-    expect(RELICS).toHaveLength(12);
-    for (const s of WITH_RELICS) expect(RELICS.filter((r) => r.stage === s.id)).toHaveLength(2);
+  it('ステージごとに 2 つで、全部で 14 こ', () => {
+    expect(RELICS).toHaveLength(14);
+    for (const s of STAGES) expect(RELICS.filter((r) => r.stage === s.id)).toHaveLength(2);
   });
 
   it('1 つめは 700 ドット、2 つめは 1500 ドットほど離れ、障害物の中に無い', () => {
-    for (const s of WITH_RELICS) {
+    for (const s of STAGES) {
       const [a, b] = RELICS.filter((r) => r.stage === s.id).map((r) => relicSpot(r, s.art));
       expect(Math.hypot(a.x, a.y)).toBeGreaterThan(650);
       expect(Math.hypot(a.x, a.y)).toBeLessThan(760);

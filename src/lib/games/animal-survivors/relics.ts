@@ -2,7 +2,20 @@ import { pushOut, type Ground } from './obstacles';
 import type { World } from './world';
 
 export type RelicId =
-  'map' | 'lamp' | 'watch' | 'bell' | 'flake' | 'mirror' | 'orb' | 'shard' | 'conch' | 'pearl' | 'torch' | 'luckyCat';
+  | 'map'
+  | 'lamp'
+  | 'watch'
+  | 'bell'
+  | 'flake'
+  | 'mirror'
+  | 'orb'
+  | 'shard'
+  | 'conch'
+  | 'pearl'
+  | 'torch'
+  | 'luckyCat'
+  | 'dust'
+  | 'moon';
 
 export interface RelicDef {
   id: RelicId;
@@ -35,7 +48,9 @@ export const RELICS: RelicDef[] = [
   r('conch', '渦巻き貝', '浅瀬と墨だまりで遅くなる割合が半分になる', 'coast', 1.3, 700),
   r('pearl', '白い真珠', '経験値の玉を引き寄せる範囲が 2 割広がる', 'coast', -2.6, 1500),
   r('torch', '懐中電灯', '停電のとき、自分のまわりの明るい輪が 1.5 倍に広がる', 'city', 0.8, 700),
-  r('luckyCat', '金の招き猫', 'その回のコインが 1 割増える', 'city', -1.4, 1500)
+  r('luckyCat', '金の招き猫', 'その回のコインが 1 割増える', 'city', -1.4, 1500),
+  r('dust', '妖精の粉', '妖精の輪で魔力がたまる時間が 3 秒から 2 秒になる', 'grove', 0.6, 700),
+  r('moon', '月のしずく', '妖精の輪の魔力が満ちたとき、HP が 3 割戻る', 'grove', -1.9, 1500)
 ];
 
 export const RELIC_IDS = RELICS.map((d) => d.id);
