@@ -312,6 +312,9 @@ function crown(ctx: CanvasRenderingContext2D, e: Enemy, art: Art, flip: boolean)
   ctx.drawImage(bake(c), q(x - (c.w * 3) / 2), q(y), c.w * 3, c.h * 3);
 }
 
+/** マンホールに潜っている大ワニ。出てくる場所は予告の円だけで見せる */
+const underground = (e: Enemy) => airborne(e) && e.def.ai === 'gator';
+
 /** 宙にいる大雪男と、空にいる大ワシ・不死鳥が、飛び立ってからの割合 0..1 */
 const soaring = (e: Enemy) => e.def.ai === 'eagle' || e.def.ai === 'phoenix';
 const flight = (e: Enemy) =>
@@ -366,7 +369,7 @@ function enemies(
 ) {
   order.length = 0;
   for (const e of w.enemies) {
-    if (!e.alive) continue;
+    if (!e.alive || underground(e)) continue;
     const g = footing(e);
     if (g.x > cx - 48 && g.x < cx + v.w + 48 && g.y > cy - 48 && g.y < cy + v.h + 48) order.push(e);
   }
@@ -384,12 +387,13 @@ function enemies(
       continue;
     }
     const art = ART[e.def.id];
-    // 巨大ベア・溶岩の巨人・巨大ガニは地ならしの予告のあいだ、宙にいるボスは上げたコマにする（よみがえっている不死鳥は羽ばたく）
+    // 巨大ベア・下水の大ワニ・溶岩の巨人・巨大ガニは地ならしの予告のあいだ、宙にいるボスは上げたコマにする（よみがえっている不死鳥は羽ばたく）
     const up =
-      ((e.def.ai === 'bear' || e.def.ai === 'giant' || e.def.ai === 'crab') && e.state === 3) ||
+      ((e.def.ai === 'bear' || e.def.ai === 'gator' || e.def.ai === 'giant' || e.def.ai === 'crab') && e.state === 3) ||
       (airborne(e) && e.state !== 5);
     const clock = walkClock(e, e.def.boss ? introduced.includes(w.enemies.indexOf(e)) : false, lively);
-    const frame = up ? 2 : frameAt(clock * (e.def.boss ? 4 : 6), 2);
+    // 出てきた大ワニはマンホールから顔を出した絵（4 コマめ）
+    const frame = e.def.ai === 'gator' && e.state === 7 ? 3 : up ? 2 : frameAt(clock * (e.def.boss ? 4 : 6), 2);
     // 敵は追っている動物のほうを向く。逃げるきらきらハリネズミだけは反対を向く
     const flip = !e.def.prop && w.heroes[nearestHero(w, e.x, e.y)].player.x < e.x !== Boolean(e.def.metal);
     const at = airborne(e) ? leap(e) : e;

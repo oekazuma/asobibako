@@ -890,7 +890,7 @@ function touch(w: World) {
     // ボス（と大ヘビの体）は時間で強くならない。突進中の巨大ベアと大イノシシは強く当たる
     const base =
       e.def.boss || e.def.part
-        ? e.state === 2 && e.def.ai === 'bear'
+        ? e.state === 2 && (e.def.ai === 'bear' || e.def.ai === 'gator')
           ? BEAR_DASH_ATK
           : e.state === 2 && e.def.ai === 'boar'
             ? BOAR.dashAtk

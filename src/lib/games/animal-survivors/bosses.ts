@@ -2,6 +2,7 @@ import { giant, phoenix } from './bosses-volcano';
 import { addLava } from './eruption';
 import { boar, eagle, snake, spawnSegments, tree } from './bosses-forest';
 import { crab, octopus, OCTOPUS } from './bosses-coast';
+import { gator } from './bosses-city';
 import { addShallow } from './tide';
 import { breathe, dragon, rolled, yeti } from './bosses-snow';
 import { ENEMIES } from './enemies';
@@ -112,7 +113,7 @@ export function spawnBosses(w: World): void {
   if (fresh.length && !w.overtime) w.events.push({ type: 'bossIntro', ids: fresh });
 }
 
-const BEAR = {
+export const BEAR = {
   every: 3.2,
   dashWarn: 0.7,
   dashTime: 0.9,
@@ -148,7 +149,7 @@ export function hazard(w: World, h: Omit<Hazard, 'alive'>) {
 }
 
 /** 巨大ベア。state 0 追う・1 突進の予告・2 突進・3 地ならしの予告 */
-function bear(w: World, i: number, e: Enemy, ux: number, uy: number, dt: number) {
+export function bear(w: World, i: number, e: Enemy, ux: number, uy: number, dt: number) {
   if (e.state === 0) {
     e.cd -= dt;
     if (e.cd > 0) return { vx: ux * e.def.speed, vy: uy * e.def.speed };
@@ -272,6 +273,7 @@ export function moveBoss(w: World, i: number, dt: number): { vx: number; vy: num
   if (e.def.ai === 'phoenix') return phoenix(w, i, e, dx / d, dy / d, d, dt);
   if (e.def.ai === 'crab') return crab(w, i, e, dx / d, dy / d, dt);
   if (e.def.ai === 'octopus') return octopus(w, i, e, dx / d, dy / d, d, dt);
+  if (e.def.ai === 'gator') return gator(w, i, e, dx / d, dy / d, dt);
   return queen(w, e, dx / d, dy / d, d, dt);
 }
 

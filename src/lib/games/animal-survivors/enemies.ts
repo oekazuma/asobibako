@@ -51,7 +51,8 @@ export interface EnemyDef {
     | 'giant'
     | 'phoenix'
     | 'crab'
-    | 'octopus';
+    | 'octopus'
+    | 'gator';
   /** 女王グモ型が呼ぶ手下の id */
   minion?: string;
   /** 女王グモ型の飛び道具の絵（ITEM_ART の名前） */
@@ -206,7 +207,7 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
       },
       {
         ...e('gator', '下水の大ワニ', [700, 28, 20, 15, 0], 'boss', 1, 'gator'),
-        ai: 'bear',
+        ai: 'gator',
         epithet: 'マンホールの主'
       }
     ] satisfies EnemyDef[]
