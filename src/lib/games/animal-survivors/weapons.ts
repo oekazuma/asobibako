@@ -11,7 +11,8 @@ export type WeaponKind =
   | 'snare'
   | 'cone'
   | 'bounce'
-  | 'lob';
+  | 'lob'
+  | 'beam';
 
 export interface WeaponStats {
   damage: number;
@@ -57,7 +58,7 @@ export type Twist = 'ringBolt' | 'acornVine' | 'dashFlame' | 'clawRoot' | 'fishB
 export const UNION_BOOST = 1.15;
 
 export const MAX_LEVEL = 5;
-const EXCLUSIVE = ['tigerClaw', 'breath', 'fireFeather', 'shellRoll', 'junkToss'];
+const EXCLUSIVE = ['tigerClaw', 'breath', 'fireFeather', 'shellRoll', 'junkToss', 'rainbowBeam'];
 
 const w = (
   id: string,
@@ -244,6 +245,14 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
       [22, 1.6, 1, 1, 0, 99, 0.6, 60],
       [{ damage: 5 }, { amount: 1 }, { area: 0.2 }, { damage: 6, amount: 1, cooldown: -0.2 }]
     ),
+    w(
+      'rainbowBeam',
+      '虹のビーム',
+      '近い敵から順に虹のビームを放ち、線にかかる敵に当てる',
+      'beam',
+      [20, 1.4, 1, 1, 0, 99, 0.25, 50],
+      [{ damage: 5 }, { amount: 1 }, { area: 0.25 }, { damage: 6, amount: 1, cooldown: -0.2 }]
+    ),
     evo('woofEvo', 'ホネのあられ', '骨を 4 本ずつ投げ、敵を貫く', 'shot', [18, 0.5, 4, 1.2, 220, 3, 1.4, 50]),
     evo(
       'pawEvo',
@@ -341,6 +350,14 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
       '大きな缶を 4 つ打ち上げ、落ちた所から火花が 8 方向へ飛ぶ',
       'lob',
       [46, 1.2, 4, 1.5, 0, 99, 0.6, 80]
+    ),
+    sp(
+      'rainbowBeamSp',
+      'rainbowBeam',
+      '虹の大砲',
+      '太い虹のビームを画面の端まで放つ',
+      'beam',
+      [42, 1.1, 3, 1, 0, 99, 0.25, 80]
     ),
     sp('tigerClawSp', 'tigerClaw', '雷虎の牙', '4 方向を雷の爪で裂く', 'swipe', [48, 0.6, 4, 1.8, 0, 99, 0.2, 90]),
     sp(

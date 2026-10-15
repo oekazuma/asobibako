@@ -14,13 +14,13 @@ const joined = (r: ReturnType<typeof emptyRecords>, o: Partial<RunSummary>) =>
   record(r, run(o)).flatMap((a) => (a.animal ? [a.animal] : []));
 
 describe('キャラの段', () => {
-  it('12 匹で、基本 3・中 3・強 2・最強 4', () => {
-    expect(ANIMALS).toHaveLength(12);
+  it('13 匹で、基本 3・中 3・強 2・最強 5', () => {
+    expect(ANIMALS).toHaveLength(13);
     const by = (t: number) => ANIMALS.filter((a) => a.tier === t).map((a) => a.id);
     expect(by(1)).toEqual(['dog', 'cat', 'wolf']);
     expect(by(2).sort()).toEqual(['bear', 'fox', 'rabbit']);
     expect(by(3).sort()).toEqual(['panda', 'tiger']);
-    expect(by(4)).toEqual(['drake', 'chick', 'otter', 'raccoon']);
+    expect(by(4)).toEqual(['drake', 'chick', 'otter', 'raccoon', 'unicorn']);
     expect(emptyRecords().unlocked).toEqual(['dog', 'cat', 'wolf']);
   });
 

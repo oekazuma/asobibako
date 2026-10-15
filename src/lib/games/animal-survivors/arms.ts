@@ -7,6 +7,7 @@ import { damageEnemy, type Enemy, type World } from './world';
 import { drainAt } from './unions';
 import { limitStats, type Limit } from './limit';
 import { MIGHT } from './shrines';
+import { closest } from '$lib/segments';
 import { dropFlame, flameAt, growVines, scorch, updateZones, vineAt } from './zones';
 
 export interface Shot {
@@ -37,7 +38,7 @@ export interface Shot {
 export interface Effect {
   alive: boolean;
   slot: number;
-  kind: 'swipe' | 'ring' | 'bolt' | 'burst' | 'flame' | 'vine' | 'cone' | 'dust';
+  kind: 'swipe' | 'ring' | 'bolt' | 'burst' | 'flame' | 'vine' | 'cone' | 'dust' | 'beam';
   x: number;
   y: number;
   age: number;
@@ -75,6 +76,9 @@ export const SPLASH_SECS = 0.4;
 /** ガラクタが飛ぶ秒と、落ちた所の輪の半径（ドット。範囲の強化を掛ける） */
 export const LOB_SECS = 0.6;
 export const LOB_R = 24;
+export const BEAM_LEN = 120;
+export const BEAM_W = 8;
+export const BEAM_SECS = 0.25;
 /** 打ち上げ花火の火花の速さと射程（ドット）。射程は弾の寿命で決める */
 const SPARK_SPEED = 200;
 const SPARK_RANGE = 50;
@@ -302,6 +306,15 @@ function launch(w: World, def: WeaponDef, s: WeaponStats, slot: number): boolean
         o.vy = (e.y - from.y) / LOB_SECS;
         o.life = LOB_SECS;
       }
+      return true;
+    }
+    case 'beam': {
+      const aimed = nearestN(w, p.x, p.y, s.amount);
+      if (aimed.length === 0) return false;
+      // 虹の大砲は画面の端まで届けるので、長さは範囲の強化を受けず対角線で決める
+      const len = def.special ? Math.hypot(w.view.w, w.view.h) : BEAM_LEN * area;
+      const width = def.special ? BEAM_W * 2 : BEAM_W;
+      for (const e of aimed) beam(w, slot, s, p.x, p.y - 6, Math.atan2(e.y - (p.y - 6), e.x - p.x), len, width);
       return true;
     }
     case 'nova':
@@ -542,6 +555,25 @@ function bounce(w: World, o: Shot, j: number): void {
   o.vy = Math.sin(o.angle) * o.speed;
   // 跳ね返ったあとは次の敵までの距離ぶん（と少しの余白）しか飛ばさない。長く飛ばすと 60 ドットより遠い敵にも当たる
   o.life = o.age + (Math.hypot(next.x - o.x, next.y - o.y) + BOUNCE_REACH * 0.25) / o.speed;
+}
+
+/** 出た瞬間に、線にかかる敵へ 1 回ずつ当てる。絵は効果ひとつで、線の太さは描くときに武器から引く（知らせに載せない） */
+function beam(w: World, slot: number, s: WeaponStats, x: number, y: number, angle: number, len: number, width: number) {
+  effect(w, slot, 'beam', x, y, len, BEAM_SECS, angle, 0, 0);
+  const seg = [x, y, x + Math.cos(angle) * len, y + Math.sin(angle) * len] as const;
+  const found = w.grid.near((seg[0] + seg[2]) / 2, (seg[1] + seg[3]) / 2, len / 2 + MAX_R + width / 2, near);
+  const hit: number[] = [];
+  for (const i of found) {
+    const e = w.enemies[i];
+    if (!e.alive || airborne(e)) continue;
+    const [cx, cy] = closest(seg, e.x, e.y);
+    const r = width / 2 + e.def.r;
+    if ((e.x - cx) ** 2 + (e.y - cy) ** 2 > r * r) continue;
+    // 大ヘビの節は頭として 1 回だけ数える
+    const k = e.def.part ? e.turn : i;
+    if (!hit.includes(k)) hit.push(k);
+  }
+  for (const j of hit) strike(w, j, s.damage, x, y, s.knockback, slot);
 }
 
 /** 缶ごとに、落ちた輪の中の敵へそれぞれ 1 回当てる。火花は輪の縁から出すので、射程 50 でも輪の外へ届く */

@@ -9,10 +9,12 @@ import { baseOf } from './evolutions';
 import { onScreen } from './draw-obstacles';
 import { PART_B, weaponAt } from './heroes';
 import { WEAPONS } from './weapons';
-import type { Shot } from './arms';
+import { BEAM_W, type Shot } from './arms';
 import type { World } from './world';
 
 type Snap = (v: number) => number;
+
+const RAINBOW = ['r', 'o', 'y', 'l', 'u', 'v'];
 
 /** ガラクタの山なりの高さ（ドット） */
 const LOB_ARC = 28;
@@ -199,6 +201,24 @@ export function swipes(ctx: CanvasRenderingContext2D, w: World, q: Snap): void {
         ctx.arc(f.x, f.y, f.r * r, f.angle - 0.95 + t * 0.4, f.angle + 0.95 + t * 0.4);
         ctx.stroke();
       }
+    } else if (f.kind === 'beam') {
+      // 当たりは出た瞬間に済んでいて、これは絵だけ。太さは武器から引くので知らせに載らない
+      const width = WEAPONS[weaponAt(w, f.slot)?.id ?? '']?.special ? BEAM_W * 2 : BEAM_W;
+      const band = (width * (1 - t * 0.7)) / RAINBOW.length;
+      const nx = -Math.sin(f.angle);
+      const ny = Math.cos(f.angle);
+      ctx.globalAlpha = 0.9 * (1 - t);
+      ctx.lineCap = 'butt';
+      ctx.lineWidth = band + 0.5;
+      RAINBOW.forEach((c, k) => {
+        const off = (k - (RAINBOW.length - 1) / 2) * band;
+        ctx.strokeStyle = PALETTE[c];
+        ctx.beginPath();
+        ctx.moveTo(q(f.x + nx * off), q(f.y + ny * off));
+        ctx.lineTo(q(f.x + nx * off + Math.cos(f.angle) * f.r), q(f.y + ny * off + Math.sin(f.angle) * f.r));
+        ctx.stroke();
+      });
+      ctx.lineCap = 'square';
     } else if (f.kind === 'ring') {
       const r = t * f.r;
       ctx.globalAlpha = 0.75 * (1 - t);

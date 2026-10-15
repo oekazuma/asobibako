@@ -5,7 +5,7 @@ import { GROWN } from './grown';
 export type Pose = { walk: Art; attack: Art; hurt: Art };
 
 /** 右向き。左向きは描くときに反転する。歩きは体を 1 ドット上下させ、足の形を入れ替えている */
-const BASE: Record<AnimalId | 'unicorn', Pose> = {
+const BASE: Record<AnimalId, Pose> = {
   dog: {
     walk: {
       w: 16,

@@ -1,7 +1,19 @@
 import type { Stats } from './passives';
 
 export type AnimalId =
-  'dog' | 'cat' | 'wolf' | 'fox' | 'bear' | 'rabbit' | 'panda' | 'tiger' | 'drake' | 'chick' | 'otter' | 'raccoon';
+  | 'dog'
+  | 'cat'
+  | 'wolf'
+  | 'fox'
+  | 'bear'
+  | 'rabbit'
+  | 'panda'
+  | 'tiger'
+  | 'drake'
+  | 'chick'
+  | 'otter'
+  | 'raccoon'
+  | 'unicorn';
 
 export interface Animal {
   id: AnimalId;
@@ -214,6 +226,22 @@ export const ANIMALS: Animal[] = [
     bonus: { area: 0.1 },
     perk: '攻撃の範囲 +10%',
     unlock: '夜の街をクリアすると仲間になる'
+  },
+  {
+    id: 'unicorn',
+    forms: ['子どものユニコーン', '虹のユニコーン', '星のユニコーン'],
+    name: 'ユニコーン',
+    style: '最強',
+    tier: 4,
+    blurb: '角から虹のビームを放ち、線にかかる敵をまとめて貫く。足が速い',
+    hp: 140,
+    speed: 1.1,
+    might: 1.35,
+    weapon: 'rainbowBeam',
+    special: 'rainbowBeamSp',
+    bonus: { speed: 0.1 },
+    perk: '移動の速さ +10%',
+    unlock: '魔法の森をクリアすると仲間になる'
   }
 ];
 
