@@ -2,7 +2,7 @@ import { pushOut, type Ground } from './obstacles';
 import type { World } from './world';
 
 export type RelicId =
-  'map' | 'lamp' | 'watch' | 'bell' | 'flake' | 'mirror' | 'orb' | 'shard' | 'conch' | 'pearl' | 'torch';
+  'map' | 'lamp' | 'watch' | 'bell' | 'flake' | 'mirror' | 'orb' | 'shard' | 'conch' | 'pearl' | 'torch' | 'luckyCat';
 
 export interface RelicDef {
   id: RelicId;
@@ -34,7 +34,8 @@ export const RELICS: RelicDef[] = [
   r('shard', '黒曜石のかけら', '溶岩の池から受けるダメージが半分になる', 'volcano', -0.9, 1500),
   r('conch', '渦巻き貝', '浅瀬と墨だまりで遅くなる割合が半分になる', 'coast', 1.3, 700),
   r('pearl', '白い真珠', '経験値の玉を引き寄せる範囲が 2 割広がる', 'coast', -2.6, 1500),
-  r('torch', '懐中電灯', '停電のとき、自分のまわりの明るい輪が 1.5 倍に広がる', 'city', 0.8, 700)
+  r('torch', '懐中電灯', '停電のとき、自分のまわりの明るい輪が 1.5 倍に広がる', 'city', 0.8, 700),
+  r('luckyCat', '金の招き猫', 'その回のコインが 1 割増える', 'city', -1.4, 1500)
 ];
 
 export const RELIC_IDS = RELICS.map((d) => d.id);
@@ -47,6 +48,9 @@ export function relicSpot(def: RelicDef, g: Ground): { x: number; y: number } {
 }
 
 export const hasRelic = (w: World, id: RelicId) => w.relics.includes(id);
+
+/** 強欲に金の招き猫の 1 割を重ねたコインの倍率 */
+export const greedOf = (w: World) => w.greed * (hasRelic(w, 'luckyCat') ? 1.1 : 1);
 
 /** 道具なしのしばりの回は、雪の結晶でも引き直しをふやさない */
 export const flakes = (w: World) => !w.mods.includes('noTools');

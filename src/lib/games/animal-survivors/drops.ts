@@ -1,6 +1,6 @@
 import { pushOut } from './obstacles';
 import { eachHero, nearestHero } from './heroes';
-import { hasRelic, takeRelic, type RelicId } from './relics';
+import { greedOf, hasRelic, takeRelic, type RelicId } from './relics';
 import { WISDOM } from './shrines';
 import { countKill, damageEnemy, type Enemy, type World } from './world';
 import { has, healRate, hpScaleOf, MAX_ARCANA } from './arcana';
@@ -88,7 +88,7 @@ export function overtimeCoins(w: World): number {
   const o = w.overtime;
   if (!o) return 0;
   const keep = w.over === 'dead' && !o.retreat ? 0.5 : 1;
-  return Math.floor(o.coins * w.greed * w.stage.coin * COIN_RATE * keep + 1e-9);
+  return Math.floor(o.coins * greedOf(w) * w.stage.coin * COIN_RATE * keep + 1e-9);
 }
 
 /** ランタンが壊れたときの品を 1 つ置く */

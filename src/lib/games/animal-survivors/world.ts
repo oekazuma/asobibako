@@ -34,7 +34,7 @@ import { quietEarth, stepEruption, updateLava, type Eruption, type Lava } from '
 import { lightsOn, stepBlackout, type Blackout } from './blackout';
 import { lowTide, stepTide, updateShallows, wadeFactor, type Shallow, type Tide } from './tide';
 import { PLAYER_R, pushOut } from './obstacles';
-import { flakes, hasRelic, placeRelics, type RelicId } from './relics';
+import { flakes, greedOf, hasRelic, placeRelics, type RelicId } from './relics';
 import { limitTotal, type Limit } from './limit';
 import { speedOf, stepBlessing, touchShrines, type ShrineKind } from './shrines';
 import { calm, STORM_PUSH, stepStorm, windFactor, type Storm } from './storm';
@@ -1173,7 +1173,7 @@ export interface RunSummary {
 
 /** 強欲を掛けたこの回のコイン。1 枚ずつ掛けると端数で減るので、合計に掛ける */
 export function coinsOf(w: World): number {
-  return Math.floor(w.coins * w.greed * w.stage.coin * COIN_RATE + 1e-9) + overtimeCoins(w);
+  return Math.floor(w.coins * greedOf(w) * w.stage.coin * COIN_RATE + 1e-9) + overtimeCoins(w);
 }
 
 export function summary(w: World): RunSummary {

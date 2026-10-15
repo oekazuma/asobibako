@@ -24,10 +24,10 @@ function show(records = emptyRecords()) {
 describe('キャラ選択', () => {
   afterEach(() => (document.body.innerHTML = ''));
 
-  it('11 匹の顔のタイルが並び、押すと選ぶだけで、出発のボタンで進む', () => {
+  it('12 匹の顔のタイルが並び、押すと選ぶだけで、出発のボタンで進む', () => {
     const { app, picked, tile, go, card } = show();
     expect(document.querySelectorAll('[data-animal]')).toHaveLength(ANIMALS.length);
-    expect(ANIMALS).toHaveLength(11);
+    expect(ANIMALS).toHaveLength(12);
     tile('cat').click();
     flushSync();
     expect(picked).toEqual([]);

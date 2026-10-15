@@ -7,12 +7,12 @@ import { damageEnemy, type Enemy, type World } from './world';
 import { drainAt } from './unions';
 import { limitStats, type Limit } from './limit';
 import { MIGHT } from './shrines';
-import { dropFlame, flameAt, growVines, scorch, updateZones, vineAt } from './zones';
+import { dropFlame, FLAME_R, flameAt, growVines, scorch, updateZones, vineAt } from './zones';
 
 export interface Shot {
   alive: boolean;
   slot: number;
-  kind: 'shot' | 'boomerang' | 'homing' | 'orbit' | 'bounce';
+  kind: 'shot' | 'boomerang' | 'homing' | 'orbit' | 'bounce' | 'lob';
   x: number;
   y: number;
   vx: number;
@@ -72,6 +72,12 @@ const FAN = (25 * Math.PI) / 180;
 /** 貝ころがしが跳ねる先を探す範囲（ドット） */
 export const BOUNCE_REACH = 60;
 export const SPLASH_SECS = 0.4;
+/** ガラクタが飛ぶ秒と、落ちた所の輪の半径（ドット。範囲の強化を掛ける） */
+export const LOB_SECS = 0.6;
+export const LOB_R = 24;
+/** 打ち上げ花火の火花の速さと射程（ドット）。射程は弾の寿命で決める */
+const SPARK_SPEED = 200;
+const SPARK_RANGE = 50;
 /** 同じ敵へ続けて当てるまでの間（秒） */
 const REHIT = { boomerang: 0.35, orbit: 0.4 };
 /** 芽吹きの森と炎の疾走が、合体武器 1 つにつき同時に置けるツタと炎の数（増やしすぎると端末が重くなる） */
@@ -184,11 +190,13 @@ function effect(
   return o;
 }
 
+const targetable = (e: Enemy) => e.alive && !e.def.prop && !airborne(e);
+
 function nearest(w: World, x: number, y: number): Enemy | undefined {
   let best: Enemy | undefined;
   let bd = Infinity;
   for (const e of w.enemies) {
-    if (!e.alive || e.def.prop || airborne(e)) continue;
+    if (!targetable(e)) continue;
     const d = (e.x - x) ** 2 + (e.y - y) ** 2;
     if (d < bd) {
       bd = d;
@@ -196,6 +204,13 @@ function nearest(w: World, x: number, y: number): Enemy | undefined {
     }
   }
   return best;
+}
+
+/** 近い順に n 体。敵が足りなければ近い順にくり返す */
+function nearestN(w: World, x: number, y: number, n: number): Enemy[] {
+  const d = (e: Enemy) => (e.x - x) ** 2 + (e.y - y) ** 2;
+  const sorted = w.enemies.filter(targetable).sort((a, b) => d(a) - d(b));
+  return sorted.length === 0 ? [] : Array.from({ length: n }, (_, i) => sorted[i % sorted.length]);
 }
 
 /** 当てる。向きは (fx, fy) から敵へ */
@@ -274,6 +289,19 @@ function launch(w: World, def: WeaponDef, s: WeaponStats, slot: number): boolean
       for (let i = 0; i < s.amount; i++)
         shoot(w, slot, 'bounce', s, aim + (i - (s.amount - 1) / 2) * SPREAD, (def.size ?? SIZE.shot) * area);
       return true;
+    case 'lob': {
+      const from = { x: p.x, y: p.y - 6 };
+      const aimed = nearestN(w, p.x, p.y, s.amount);
+      if (aimed.length === 0) return false;
+      for (const e of aimed) {
+        // 落ちる点は投げた時点の敵の位置。途中で敵が動いても倒れても変えない
+        const o = shoot(w, slot, 'lob', s, 0, LOB_R * area);
+        o.vx = (e.x - from.x) / LOB_SECS;
+        o.vy = (e.y - from.y) / LOB_SECS;
+        o.life = LOB_SECS;
+      }
+      return true;
+    }
     case 'nova':
       for (let i = 0; i < s.amount; i++)
         shoot(w, slot, 'shot', s, aim + (i / s.amount) * Math.PI * 2, SIZE.acorn * area);
@@ -514,7 +542,24 @@ function bounce(w: World, o: Shot, j: number): void {
   o.life = o.age + (Math.hypot(next.x - o.x, next.y - o.y) + BOUNCE_REACH * 0.25) / o.speed;
 }
 
+/** 落ちた所に輪を置く（炎の区域を借りる。効く時間が ZONE_TICK より短いので 1 回だけ当たる）。打ち上げ花火は輪の縁から火花を 8 方向へ出す */
+function land(w: World, o: Shot): void {
+  const own = weaponAt(w, o.slot);
+  const def = own && WEAPONS[own.id];
+  if (!own || !def) return;
+  const s = limitStats(weaponStats(def, own.level), own.limit);
+  flameAt(w, o.slot, o.x, o.y, o.r / FLAME_R, { ...s, duration: SPLASH_SECS });
+  if (!def.special) return;
+  const spark = { ...s, damage: s.damage / 2, speed: SPARK_SPEED, duration: SPARK_RANGE / SPARK_SPEED, pierce: 1 };
+  for (let k = 0; k < 8; k++) {
+    const a = (k / 8) * Math.PI * 2;
+    shoot(w, o.slot, 'shot', spark, a, SIZE.acorn, { x: o.x + Math.cos(a) * o.r, y: o.y + Math.sin(a) * o.r });
+  }
+}
+
 function hitShot(w: World, o: Shot) {
+  // ガラクタは飛んでいる途中の敵には当たらない
+  if (o.kind === 'lob') return;
   for (const j of within(w, o.x, o.y, o.r, targets)) {
     const e = w.enemies[j];
     if (o.kind === 'bounce') {
@@ -566,6 +611,7 @@ export function hits(w: World, dt: number): void {
     w.cur = heroOf(o.slot);
     o.age += dt;
     if (o.age > o.life) {
+      if (o.kind === 'lob') land(w, o);
       o.alive = false;
       continue;
     }

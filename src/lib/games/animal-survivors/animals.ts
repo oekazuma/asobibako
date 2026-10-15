@@ -1,7 +1,7 @@
 import type { Stats } from './passives';
 
 export type AnimalId =
-  'dog' | 'cat' | 'wolf' | 'fox' | 'bear' | 'rabbit' | 'panda' | 'tiger' | 'drake' | 'chick' | 'otter';
+  'dog' | 'cat' | 'wolf' | 'fox' | 'bear' | 'rabbit' | 'panda' | 'tiger' | 'drake' | 'chick' | 'otter' | 'raccoon';
 
 export interface Animal {
   id: AnimalId;
@@ -198,6 +198,22 @@ export const ANIMALS: Animal[] = [
     bonus: { luck: 0.1 },
     perk: '運 +0.1',
     unlock: '海岸をクリアすると仲間になる'
+  },
+  {
+    id: 'raccoon',
+    forms: ['アライグマ', '夜回りアライグマ', '街の親分アライグマ'],
+    name: 'アライグマ',
+    style: '最強',
+    tier: 4,
+    blurb: 'ガラクタを山なりに投げ、落ちた所の敵をまとめて叩く。攻撃の範囲が広い',
+    hp: 140,
+    speed: 1.1,
+    might: 1.35,
+    weapon: 'junkToss',
+    special: 'junkTossSp',
+    bonus: { area: 0.1 },
+    perk: '攻撃の範囲 +10%',
+    unlock: '夜の街をクリアすると仲間になる'
   }
 ];
 

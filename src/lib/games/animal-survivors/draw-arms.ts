@@ -9,9 +9,13 @@ import { baseOf } from './evolutions';
 import { onScreen } from './draw-obstacles';
 import { PART_B, weaponAt } from './heroes';
 import { WEAPONS } from './weapons';
+import type { Shot } from './arms';
 import type { World } from './world';
 
 type Snap = (v: number) => number;
+
+/** ガラクタの山なりの高さ（ドット） */
+const LOB_ARC = 28;
 
 /** 進化形と合体武器の弾・炎・ツタ・線は金色で描く */
 const isGold = (w: World, slot: number) => WEAPONS[weaponAt(w, slot)?.id ?? '']?.evolved ?? false;
@@ -54,6 +58,21 @@ function afterimage(ctx: CanvasRenderingContext2D, q: Snap, w: World, x: number,
   ctx.globalAlpha = 1;
 }
 
+/** 山なりのガラクタ。進むのは地面の位置で、缶は sin で上へずらして描き、落ちる点に薄い影を置く */
+function lobbed(ctx: CanvasRenderingContext2D, q: Snap, o: Shot, gold: boolean) {
+  const left = Math.max(0, o.life - o.age);
+  const lx = o.x + o.vx * left;
+  const ly = o.y + o.vy * left;
+  const t = Math.min(1, o.age / o.life);
+  ctx.globalAlpha = 0.15 + 0.25 * t;
+  ctx.fillStyle = PALETTE.k;
+  ctx.beginPath();
+  ctx.ellipse(q(lx), q(ly), o.r * 0.5, o.r * 0.25, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  rotated(ctx, q, ITEM_ART.can, o.x, o.y - Math.sin(Math.PI * t) * LOB_ARC, o.age * 10, 1, gold);
+}
+
 export function shots(
   ctx: CanvasRenderingContext2D,
   w: World,
@@ -69,6 +88,8 @@ export function shots(
     const gold = isGold(w, o.slot);
     if (weapon === 'dash') afterimage(ctx, q, w, o.x, o.y, o.vx, o.vy);
     else if (weapon === 'acorn') rotated(ctx, q, ITEM_ART.acorn, o.x, o.y, o.age * 10, 1, gold);
+    else if (o.kind === 'lob') lobbed(ctx, q, o, gold);
+    else if (weapon === 'junkToss') rotated(ctx, q, ITEM_ART.spark, o.x, o.y, o.age * 10, 1, gold);
     else if (o.kind === 'shot') rotated(ctx, q, ITEM_ART.bone, o.x, o.y, o.age * 14, 1, gold);
     else if (o.kind === 'bounce') rotated(ctx, q, ITEM_ART['weapon-shellRoll'], o.x, o.y, o.age * 12, 0.8, gold);
     else if (weapon === 'fireFeather')
@@ -85,7 +106,16 @@ export function shots(
 export function zonesBelow(ctx: CanvasRenderingContext2D, w: World, q: Snap, now: number): void {
   for (const f of w.effects) {
     if (!f.alive) continue;
-    if (f.kind === 'flame' && kindOf(w, f.slot) === 'shellRoll') {
+    if (f.kind === 'flame' && kindOf(w, f.slot) === 'junkToss') {
+      // ガラクタの落ちた輪は炎の区域を借りているだけなので、土ぼこりの輪で描く
+      const t = f.age / f.life;
+      ctx.globalAlpha = 0.6 * (1 - t);
+      ctx.strokeStyle = isGold(w, f.slot) ? PALETTE.y : PALETTE.w;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(q(f.x), q(f.y), f.r * (0.6 + 0.4 * Math.min(1, t * 3)), 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (f.kind === 'flame' && kindOf(w, f.slot) === 'shellRoll') {
       // 真珠ころがしの水しぶきは炎の区域を借りているだけなので、水面で描く
       const art = shallowArt(Math.max(3, Math.round(f.r)), 2);
       ctx.globalAlpha = Math.min(1, (f.life - f.age) / 0.2);
