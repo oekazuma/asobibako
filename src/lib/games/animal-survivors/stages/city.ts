@@ -2,7 +2,7 @@ import { ENEMIES } from '../enemies';
 import { bossRun, FOREST, type Stage } from './forest';
 
 /** 森の時刻の流れのまま、敵を夜の街の顔ぶれにして、海岸より一段強くした面 */
-const HARDER = 1.55;
+const HARDER = 1.6;
 
 const SWAP: Record<string, string> = {
   rat: 'sewerRat',

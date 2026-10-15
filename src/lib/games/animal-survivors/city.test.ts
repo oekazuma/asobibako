@@ -20,12 +20,12 @@ describe('夜の街の表', () => {
     );
   });
 
-  it('時刻は森と同じで、森より 1.55 倍強く、コインは 3.5 倍、停電は 4 回', () => {
+  it('時刻は森と同じで、森より 1.6 倍強く、コインは 3.5 倍、停電は 4 回', () => {
     expect(CITY.length).toBe(FOREST.length);
     expect(CITY.bosses.map((b) => b.at)).toEqual(COAST.bosses.map((b) => b.at));
     expect(CITY.events.map((e) => e.at)).toEqual(FOREST.events.map((e) => e.at));
-    expect(CITY.toughness(300)).toBeCloseTo(FOREST.toughness(300) * 1.55);
-    expect(CITY.fury(300)).toBeCloseTo(FOREST.fury(300) * 1.55);
+    expect(CITY.toughness(300)).toBeCloseTo(FOREST.toughness(300) * 1.6);
+    expect(CITY.fury(300)).toBeCloseTo(FOREST.fury(300) * 1.6);
     expect(CITY.coin).toBe(3.5);
     expect(CITY.blackouts.map((t) => [t.at, t.len])).toEqual([
       [95, 20],

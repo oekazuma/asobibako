@@ -241,7 +241,7 @@ export const WEAPONS: Record<string, WeaponDef> = Object.fromEntries(
       'ガラクタ投げ',
       '近い敵から順にガラクタを山なりに投げ、落ちた所の敵をまとめて叩く',
       'lob',
-      [20, 1.6, 1, 1, 0, 99, 0.6, 60],
+      [22, 1.6, 1, 1, 0, 99, 0.6, 60],
       [{ damage: 5 }, { amount: 1 }, { area: 0.2 }, { damage: 6, amount: 1, cooldown: -0.2 }]
     ),
     evo('woofEvo', 'ホネのあられ', '骨を 4 本ずつ投げ、敵を貫く', 'shot', [18, 0.5, 4, 1.2, 220, 3, 1.4, 50]),
