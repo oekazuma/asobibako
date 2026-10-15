@@ -5,7 +5,7 @@ import { GROWN } from './grown';
 export type Pose = { walk: Art; attack: Art; hurt: Art };
 
 /** 右向き。左向きは描くときに反転する。歩きは体を 1 ドット上下させ、足の形を入れ替えている */
-const BASE: Record<AnimalId, Pose> = {
+const BASE: Record<AnimalId | 'unicorn', Pose> = {
   dog: {
     walk: {
       w: 16,
@@ -1549,6 +1549,137 @@ const BASE: Record<AnimalId, Pose> = {
           '.....kk..kk.....'
         ]
       ]
+    }
+  },
+  unicorn: {
+    walk: {
+      w: 16,
+      h: 16,
+      frames: [
+        [
+          '................',
+          '.......kk.......',
+          '.....kkyYk......',
+          '..kkkhkYykk.kk..',
+          '.kwwhhkyYkhkwwk.',
+          '.kwpzzkYykhwpik.',
+          'kzzpzzkyYkwwwk..',
+          'kzzppzzwwwwwwk..',
+          'kpzpppwwwwwwwwk.',
+          'kpppkjwwwwkjwwk.',
+          'kpppkkwwwwkkwik.',
+          'kpppwwwkkwwwpk..',
+          'kpppwwwwwwwwk...',
+          'kpppiiwwwwiik...',
+          'kppkkizzizzk....',
+          '.kk..kkkkkk.....'
+        ],
+        [
+          '.......kk.......',
+          '.....kkyYk......',
+          '..kkkhkYykk.kk..',
+          '.kwwhhkyYkhkwwk.',
+          '.kwpzzkYykhwpik.',
+          'kzzpzzkyYkwwwk..',
+          'kzzppzzwwwwwwk..',
+          'kpzpppwwwwwwwwk.',
+          'kpppkjwwwwkjwwk.',
+          'kpppkkwwwwkkwik.',
+          'kpppwwwkkwwwpk..',
+          'kpppwwwwwwwwk...',
+          'kpppiiwwwwiik...',
+          'kppkkwiiiiwk....',
+          '.kk.kzzkkzzk....',
+          '.....kk..kk.....'
+        ],
+        [
+          '................',
+          '.......kk.......',
+          '.....kkyYk......',
+          '..kkkhkYykk.kk..',
+          '.kwwhhkyYkhkwwk.',
+          '.kwpzzkYykhwpik.',
+          'kzzpzzkyYkwwwk..',
+          'kzzppzzwwwwwwk..',
+          'kpzpppwwwwwwwwk.',
+          'kpppkjwwwwkjwwk.',
+          'kpppkkwwwwkkwik.',
+          'kpppwwwkkwwwpk..',
+          'kpppwwwwwwwwk...',
+          'kpppiiwwwwiik...',
+          'kppkkizzizzk....',
+          '.kk..kkkkkk.....'
+        ],
+        [
+          '.......kk.......',
+          '.....kkyYk......',
+          '..kkkhkYykk.kk..',
+          '.kwwhhkyYkhkwwk.',
+          '.kwpzzkYykhwpik.',
+          'kzzpzzkyYkwwwk..',
+          'kzzppzzwwwwwwk..',
+          'kpzpppwwwwwwwwk.',
+          'kpppkjwwwwkjwwk.',
+          'kpppkkwwwwkkwik.',
+          'kpppwwwkkwwwpk..',
+          'kpppwwwwwwwwk...',
+          'kpppiiwwwwiik...',
+          'kppkkiiiiiik....',
+          '.kk..kzzzzk.....',
+          '......kkkk......'
+        ]
+      ],
+      pal: { h: '#9fe8c8', z: '#c6a8f0', x: '#f7c6dc' }
+    },
+    attack: {
+      w: 16,
+      h: 16,
+      frames: [
+        [
+          '..........w.....',
+          '.......kk.......',
+          '.....kkyYk......',
+          '..kkkhkYykk.kk..',
+          '.kwwhhkyYkhkwwk.',
+          '.kwpzzkYykhwpik.',
+          'kzzpzzkyYkwwwk..',
+          'kzzppzzwwwwwwk..',
+          'kpzpppwwwwwwwwk.',
+          'kpppkjwwwwkjwwk.',
+          'kpppkkwwwwkkwik.',
+          'kpppwwwkkwwwpk..',
+          'kpppwwwRRwwwk...',
+          'kpppiiwwwwiik...',
+          'kppkkizzizzk....',
+          '.kk..kkkkkk.....'
+        ]
+      ],
+      pal: { h: '#9fe8c8', z: '#c6a8f0', x: '#f7c6dc' }
+    },
+    hurt: {
+      w: 16,
+      h: 16,
+      frames: [
+        [
+          '................',
+          '.......kk.......',
+          '.....kkyYk.....u',
+          '..kkkhkYykk.kk..',
+          '.kwwhhkyYkhkwwk.',
+          '.kwpzzkYykhwpik.',
+          'kzzpzzkyYkwwwk..',
+          'kzzppzzwwwwwwk..',
+          'kpzpppwwwwwwwwk.',
+          'kppppwwwwwwwwwk.',
+          'kpppkkwwwwkkwik.',
+          'kpppwwwkkwwwpk..',
+          'kpppwwwwwwwwk...',
+          'kpppiiwwwwiik...',
+          'kppkkizzizzk....',
+          '.kk..kkkkkk.....'
+        ]
+      ],
+      pal: { h: '#9fe8c8', z: '#c6a8f0', x: '#f7c6dc' }
     }
   }
 };

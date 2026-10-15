@@ -42,7 +42,14 @@ export const ENEMY_ART: Record<
   | 'trashGhost'
   | 'stray'
   | 'gecko'
-  | 'sewerGator',
+  | 'sewerGator'
+  | 'shroomling'
+  | 'pixie'
+  | 'vineSnake'
+  | 'gemSnail'
+  | 'thornBoar'
+  | 'hopFrog'
+  | 'stumpGhost',
   Art
 > = {
   rat: {
@@ -1507,6 +1514,254 @@ export const ENEMY_ART: Record<
         '.kkkkIIkkkIIkkIIkkkIIkkkkk',
         '.....kk...kk..kk...kk.....',
         '..........................'
+      ]
+    ]
+  },
+  shroomling: {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '...kkkkkk...',
+        '..kvvvvvvkk.',
+        '.kvwvvvvvvvk',
+        'kvvvvvwvvvvv',
+        'kvvvvvwvvwvw',
+        'kvvvvvvvvvvv',
+        'kVVVVVVVVVVk',
+        '.kkkccccckk.',
+        '..kcccckckk.',
+        '...kcccccpk.',
+        '...kccccck..',
+        '....kkkkk...'
+      ],
+      [
+        '..kvvvvvvkk.',
+        '.kvwvvvvvvvk',
+        'kvvvvvwvvvvv',
+        'kvvvvvwvvwvw',
+        'kvvvvvvvvvvv',
+        'kVVVVVVVVVVk',
+        '.kkkccccckk.',
+        '..kcccckckk.',
+        '...kcccccpk.',
+        '...kccccck..',
+        '...kckkkck..',
+        '....k...k...'
+      ]
+    ],
+    pal: { V: '#7d48b8' }
+  },
+  pixie: {
+    w: 14,
+    h: 12,
+    frames: [
+      [
+        '.kjjk.kk.kjjk.',
+        'kjijjkppkjjijk',
+        'jijjppwpppjjij',
+        'jjjjppppppjjjj',
+        'kjjjpccccpjjjk',
+        '.kjjpkcckpjjk.',
+        '..kkppccppkk..',
+        '....kqppqk....',
+        '....kqqqqk....',
+        '....kqqqqk....',
+        '.....kvvk.....',
+        '......kk......'
+      ],
+      [
+        '......kk......',
+        '....kkppkk....',
+        '...kppwpppk...',
+        '...kppppppk...',
+        '...kpccccpk...',
+        'kkkkpkcckpkkkk',
+        'jiijppccppjiij',
+        'jjjjjqppqjjjjj',
+        'kjjjjqqqqjjjjk',
+        '.kkkkqqqqkkkk.',
+        '.....kvvk.....',
+        '......kk......'
+      ]
+    ]
+  },
+  vineSnake: {
+    w: 14,
+    h: 12,
+    frames: [
+      [
+        '.........p....',
+        '........pRpkk.',
+        '........kLlllk',
+        '.......kLllwkL',
+        '.....k..klllLk',
+        '....kLkklllLkr',
+        '..k..klklllk..',
+        'kklkkllkllLk..',
+        'lllllllllLk...',
+        'kLllLLLlllk...',
+        '.kLLkkkLLLk...',
+        '..kk...kkk....'
+      ],
+      [
+        '.........p....',
+        '........pRpkk.',
+        '........kLlllk',
+        '.......kLllwkL',
+        '........klllLk',
+        '..kk..kklllLkr',
+        '.kLlkkLklllk..',
+        '.kllkkkllLLk..',
+        'klllllllllk...',
+        'lLLLLlllLLk...',
+        '.kkkkLLLkk....',
+        '.....kkk......'
+      ]
+    ]
+  },
+  gemSnail: {
+    w: 16,
+    h: 12,
+    frames: [
+      [
+        '......kk........',
+        '...kkkjjkk......',
+        '..kjwjjjjjk.y..y',
+        '.kjwjuujjjjkbkkb',
+        '.kjjuuJujjjkkkck',
+        '.kjjuUJUujjkkcck',
+        '.kjjJuUJujjkcckk',
+        '.kjjuJJujjjkccbk',
+        '.kcjjjjjjjcccck.',
+        'kbcccjjjccccccbk',
+        '.kbbbbbbbbbbbbk.',
+        '..kkkkkkkkkkkk..'
+      ],
+      [
+        '......kk........',
+        '...kkkjjkk......',
+        '..kjwjjjjjk..y..',
+        '.kjwjuujjjjkkbkk',
+        '.kjjuuJujjjk.kkc',
+        '.kjjuUJUujjk.kcc',
+        '.kjjJuUJujjkkcck',
+        '.kjjuJJujjjkkccc',
+        '.kcjjjjjjjcccccc',
+        'kbbccjjjcccccccb',
+        '.kkbbbbbbbbbbbbk',
+        '...kkkkkkkkkkkk.'
+      ]
+    ]
+  },
+  thornBoar: {
+    w: 20,
+    h: 14,
+    frames: [
+      [
+        '....................',
+        '..............k.....',
+        '......pkkpkkpkxk....',
+        '....kLLlLLlLkkxk....',
+        '..LLLlLLlLLlLxxkk...',
+        '..kxxxxxxxxxxxxxxk..',
+        '.kxxxxxxxxxxxxxxxxk.',
+        '.kxxxxxxxxxxxxxxkxxk',
+        '.kXxXXxxXXxxxxxxxppk',
+        '..kXxxxxxxxxxxxxxppk',
+        '...kxXXxxxxxxXXxxwk.',
+        '..kXXkkXXXXXXkkXXk..',
+        '..kXXkkXXkkXXkkXXk..',
+        '...kk..kk..kk..kk...'
+      ],
+      [
+        '....................',
+        '..............k.....',
+        '......pkkpkkpkxk....',
+        '....kLLlLLlLkkxk....',
+        '..LLLlLLlLLlLxxkk...',
+        '..kxxxxxxxxxxxxxxk..',
+        '.kxxxxxxxxxxxxxxxxk.',
+        '.kxxxxxxxxxxxxxxkxxk',
+        '.kXxXXxxXXxxxxxxxppk',
+        '..kXxxxxxxxxxxxxxppk',
+        '...kxxxxxxxxxxxxXwk.',
+        '...kXXXXXXXXXXXXk...',
+        '...kXXXXkkkkXXXXk...',
+        '....kkkk....kkkk....'
+      ]
+    ],
+    pal: { x: '#9c7096', X: '#6c4a6e' }
+  },
+  hopFrog: {
+    w: 16,
+    h: 14,
+    frames: [
+      [
+        '................',
+        '..........kkk...',
+        '.........kuuwk..',
+        '........kuuwkuk.',
+        '....kkkkuuuuuuk.',
+        '...kuuuuuuuuuuUk',
+        '..kuuuuuuuuuukk.',
+        '.kuuuuuuuuuuuUk.',
+        '.kuUuuUuuuuuuk..',
+        '.kuuuuuyyyyuUk..',
+        'kUuuuuuuyyyuk...',
+        '.kUuuUUUUUUUk...',
+        '..kUUkkkkkkk....',
+        '...kk...........'
+      ],
+      [
+        '............kk..',
+        '..........kkuwk.',
+        '........kkuuwkk.',
+        '.....kkkuuuuuuuk',
+        '....kuuuuuuuuukk',
+        '....kuUuuUuuuuUk',
+        '...kuuuuuuuuuUk.',
+        '..kuuuuyyyyuuk..',
+        '.kuuuUUUyyUUuk..',
+        '.kuUUkkkkkkkUuk.',
+        'kuUkk.......kUk.',
+        'UUk..........k..',
+        'UU..............',
+        '................'
+      ]
+    ]
+  },
+  stumpGhost: {
+    w: 26,
+    h: 12,
+    frames: [
+      [
+        '...............kkkkkklL...',
+        '..............klcccccck...',
+        '.......kkkkkkkcbbbbbbbck..',
+        '.....kkiiwwiiitcbcccbctk..',
+        'kkkkwiiiiiiiiittkktkkttk..',
+        'Iiiiiiiiiiiiiittkytkyttk..',
+        'kIIiiiiiiiiiiitttttttttk..',
+        '.kkIIIIIiiiiiittttkktttk..',
+        '...kkkkkIIIiiItTTtTTTTTk..',
+        '........kkkIIkTTTTTTTTTk..',
+        '...........kkkTkkkkkTkk...',
+        '..............k.....k.....'
+      ],
+      [
+        '...............kkkkkklL...',
+        '..............klcccccck...',
+        '.........kkkkkcbbbbbbbck..',
+        '...kkkkkkwwiiitcbcccbctk..',
+        '.kkiwiiiiiiiiittkktkkttk..',
+        'kiiiiiiiiiiiiittkytkyttk..',
+        'IIIIIiiiiiiiiitttttttttk..',
+        'kkkkkIiiiiiiiittttkktttk..',
+        '.....kIIIIIiiiTTttTTTtTTk.',
+        '......kkkkkIITTTTTTTTTTTk.',
+        '...........kkkkkkTkkkkkTk.',
+        '.................k.....k..'
       ]
     ]
   }

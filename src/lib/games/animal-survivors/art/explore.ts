@@ -3,7 +3,7 @@ import type { RelicId } from '../relics';
 import type { ShrineKind } from '../shrines';
 
 /** 遺物（12 ドット）。地面でも図鑑でも同じ絵。黒曜石のかけらだけ、色の表に無い黒を pal で足す */
-export const RELIC_ART: Record<RelicId, Art> = {
+export const RELIC_ART: Record<RelicId | 'dust' | 'moon', Art> = {
   map: {
     w: 12,
     h: 12,
@@ -242,6 +242,46 @@ export const RELIC_ART: Record<RelicId, Art> = {
         '...kIowwYyIk',
         '....kIIIIIk.',
         '.....kkkkk..'
+      ]
+    ]
+  },
+  dust: {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '.......w....',
+        '....kkk.....',
+        '...ktttk.y..',
+        '....kTk.....',
+        '...kiwik....',
+        '..kiwwpik...',
+        '.kiwpypwik..',
+        '.kipwpypik.w',
+        '.kpypwpypk..',
+        '.kIpypwpIk..',
+        '..kIIIIIk...',
+        '...kkkkk....'
+      ]
+    ]
+  },
+  moon: {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '....kkkk....',
+        '..kkyyyyk...',
+        '.kyyykkk....',
+        'kyyyk.......',
+        'kyyk......w.',
+        'kyyk........',
+        'kYyyk...kk..',
+        '.kYyyk.kjjk.',
+        '..kYYyyjwjk.',
+        '...kkkkjjJk.',
+        '.......kJJk.',
+        '........kk..'
       ]
     ]
   }

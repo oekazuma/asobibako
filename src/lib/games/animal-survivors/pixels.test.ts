@@ -12,6 +12,7 @@ import { ITEM_ART } from './art/items';
 import { SNOW_ART } from './art/snow';
 import { COAST_ART } from './art/coast';
 import { CITY_ART, STREET_LIGHT_ART } from './art/city';
+import { FAIRY_RING_ART, GROVE_ART } from './art/grove';
 import { inkArt, shallowArt } from './art/shallows';
 import { OBSTACLE_ART } from './art/obstacles';
 import { RELIC_ART, SHRINE_ART } from './art/explore';
@@ -50,14 +51,18 @@ const all: [string, Art][] = [
   ['city.dirt', CITY_ART.dirt],
   ...Object.entries(CITY_ART.decor),
   ['streetLight', STREET_LIGHT_ART],
+  ['grove.grass', GROVE_ART.grass],
+  ['grove.dirt', GROVE_ART.dirt],
+  ...Object.entries(GROVE_ART.decor),
+  ['fairyRing', FAIRY_RING_ART],
   ...Object.entries(OBSTACLE_ART),
   ...Object.entries(RELIC_ART),
   ...Object.entries(SHRINE_ART)
 ];
 
 describe('ドット絵の格子', () => {
-  it('遺物 12 個と祠 5 つの絵がある', () => {
-    expect(Object.keys(RELIC_ART)).toHaveLength(12);
+  it('遺物 14 個と祠 5 つの絵がある', () => {
+    expect(Object.keys(RELIC_ART)).toHaveLength(14);
     expect(Object.keys(SHRINE_ART)).toHaveLength(5);
   });
 
@@ -66,8 +71,8 @@ describe('ドット絵の格子', () => {
       expect(ITEM_ART[`weapon-${id}`]).toBeDefined();
   });
 
-  it('障害物の絵は 12 枚で、湯気の出る岩だけ 2 コマ', () => {
-    expect(Object.keys(OBSTACLE_ART)).toHaveLength(12);
+  it('障害物の絵は 14 枚で、湯気の出る岩だけ 2 コマ', () => {
+    expect(Object.keys(OBSTACLE_ART)).toHaveLength(14);
     for (const [id, a] of Object.entries(OBSTACLE_ART)) expect(a.frames).toHaveLength(id === 'steamRock' ? 2 : 1);
   });
 
@@ -182,7 +187,7 @@ describe('ドット絵の格子', () => {
     expect(ITEM_ART.seed).toBeDefined();
   });
 
-  it('12 匹ぶんの絵がある', () => {
+  it('13 匹ぶんの絵がある', () => {
     expect(Object.keys(ANIMAL_ART).sort()).toEqual([
       'bear',
       'cat',
@@ -195,6 +200,7 @@ describe('ドット絵の格子', () => {
       'rabbit',
       'raccoon',
       'tiger',
+      'unicorn',
       'wolf'
     ]);
   });
@@ -206,6 +212,22 @@ describe('ドット絵の格子', () => {
     expect(ITEM_ART.spark.frames).toHaveLength(2);
     expect(
       problems('weapon-junkTossSp', itemArt('weapon-junkTossSp'), { ...PALETTE, ...itemArt('weapon-junkTossSp').pal })
+    ).toEqual([]);
+  });
+
+  it('魔法の森の地面・飾り・妖精の輪・ボス・虹のビーム・魔法の弾の絵がある', () => {
+    expect(GROVE_ART.grass.frames).toHaveLength(4);
+    expect(Object.keys(GROVE_ART.decor).sort()).toEqual(['flower', 'mote', 'mushroom', 'root']);
+    expect([FAIRY_RING_ART.w, FAIRY_RING_ART.h]).toEqual([68, 72]);
+    expect(BOSS_ART.witch.frames).toHaveLength(2);
+    expect(BOSS_ART.stag.frames).toHaveLength(3);
+    for (const k of ['weapon-rainbowBeam', 'spell']) expect(ITEM_ART[k]).toBeDefined();
+    expect([ITEM_ART.spell.w, ITEM_ART.spell.h]).toEqual([8, 8]);
+    expect(
+      problems('weapon-rainbowBeamSp', itemArt('weapon-rainbowBeamSp'), {
+        ...PALETTE,
+        ...itemArt('weapon-rainbowBeamSp').pal
+      })
     ).toEqual([]);
   });
 

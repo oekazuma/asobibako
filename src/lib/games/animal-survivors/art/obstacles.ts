@@ -2,7 +2,7 @@ import type { Art } from '../pixels';
 import type { ObstacleId } from '../obstacles';
 
 /** 障害物の絵。黒い溶岩の岩と湯気の出る岩だけは、色の表に無い黒と赤茶を pal で足す */
-export const OBSTACLE_ART: Record<ObstacleId, Art> = {
+export const OBSTACLE_ART: Record<ObstacleId | 'shroom' | 'runestone', Art> = {
   boulder: {
     w: 42,
     h: 32,
@@ -538,6 +538,100 @@ export const OBSTACLE_ART: Record<ObstacleId, Art> = {
         '.kSSSSk.kk......kknnnnnnkk.knnnnnnnnk...........',
         '.kkkkkk...........kkkkkk....kkkkkkkk............',
         '................................................'
+      ]
+    ]
+  },
+  shroom: {
+    w: 40,
+    h: 40,
+    frames: [
+      [
+        '........................................',
+        '........................................',
+        '........................................',
+        '.................kkkkkk.................',
+        '............kkkkkjjjjjjkkkkk............',
+        '.........kkiiijjjjjjjwwjjjjjkkk.........',
+        '.......kkjjjiijjjjjjwwwwjjjjjjjkk.......',
+        '.....kkjjjwwwwjjjjjjwwwwjjjjjjjjjkk.....',
+        '....kjjjjwwwwwwjjjjjjwwjjjjjjjjjjjjk....',
+        '...kjjjjjwwwwwwjjjjjjjjjjjjjjjjjjjjjk...',
+        '..kjjjjjjjwwwwjjjjjjjjjjjjwwwwjjjjjjjk..',
+        '.kjjjjjjjjjjjjjjjjjjjjjjjwwwwwwjjjjjjjk.',
+        '.kjjjjjjjjjjjjjjwwjjjjjjjwwwwwwjjjjjjjk.',
+        '.kjjjjwwjjjjjjjwwwwjjjjjjjwwwwjjjjjjjjk.',
+        'kjjjjwwwwjjjjjjwwwwjjjjjjjjjjjjwwjjjjjjk',
+        'kJjjjwwwwjjjjjjjwwjjjjjjjjjjjjwwwwjjjjJk',
+        '.kjjjjwwjjjJJJJJJJJJJJJJJJJJJjwwwwjjjjk.',
+        '.kjjjjJJJJJJJJJJJJJJJJJJJJJJJJJJJJjjjjk.',
+        '.kJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJk.',
+        '..kkkkkJuJJuJJuJJuJJuJJuJJuJJuJJukkkkk..',
+        '.......kkkkkkJJJJJJJJJJJJJJkkkkkk.......',
+        '.............kkkcccccccbkkk.............',
+        '...............kcbbccbbk................',
+        '...............kcwbccbbk................',
+        '...............kcwcccbbk................',
+        '..............kccwcccbbk................',
+        '..............kccwcbcbbk................',
+        '..............kccwcbbcbbk...............',
+        '..............kccwccccbbk...............',
+        '..............kccwccccbbk...............',
+        '..............kccwccccbbk...............',
+        '..............kccwccccbbk...............',
+        '......kkkk....kccwccccbbk.....kkkk......',
+        '.....kvwvvk...kccwccccbbk....kppwpk.....',
+        '....kvvvvvvk..kccwccccbbk....kpppppk....',
+        '....kvvvvvvk..kccwccccbbk.....kbbkk.....',
+        '.....kkcckk...kccccccccbbk.....bbk......',
+        '......kbbk....kbccccccccbk.....kbk......',
+        '.......kk......kcccccccck.......k.......',
+        '...............kbbbbbbbbk...............'
+      ]
+    ]
+  },
+  runestone: {
+    w: 30,
+    h: 38,
+    frames: [
+      [
+        '.............kkkk.............',
+        '............kssssk............',
+        '..........klLlsssk............',
+        '.........kgLlLLlk.............',
+        '.........kglLSLLlL............',
+        '.........kgLssSLSLk...........',
+        '.........kgLsssSSLSkk.........',
+        '........kggssssssSSSSk........',
+        '........kggssssssSSSSk........',
+        '........kggjjjjjsSSSSk........',
+        '........kgguujuusSSSSk........',
+        '........kggsjwjssSSSSk........',
+        '........kggsujussSSSSk........',
+        '........kggssusssSSSSk........',
+        '........kggssssssSSSSk........',
+        '.......kggssssssssSSSSk.......',
+        '.......kggsjsssjssSSSSk.......',
+        '.......kggsujwjussSSSSk.......',
+        '.......kggsjujujssSSSSk.......',
+        '.......kggsusjsussSSSSk.......',
+        '.......kggsssussssSSSSk.......',
+        '.......kggssssssssSSSSk.......',
+        '.......kggssssssssSSSSk.......',
+        '......kggssjjjjssssSSSSk......',
+        '......kggssjuujssssSSSSk......',
+        '......kggssjwjjssssSSSSk......',
+        '......kggssjsuussssSSSSk......',
+        '......kggssusssssssSSSSk......',
+        '......kggssssssssssSSSSk......',
+        '......kggssssssssssSSSSk......',
+        '......kggssssssssssSSSSk......',
+        '.....kggssssssssssssSSSSk.....',
+        '...kkkggssssssssssssSSSSkkk...',
+        '..kSlLggssssssssssssSSSLlSSk..',
+        '.kSSSLggssssssssssssSSSLSSSSk.',
+        '.kSSSSSSSSSSSSSSSSSSSSSSSSSSk.',
+        '..kkSSSSSSSSSSSSSSSSSSSSSSkk..',
+        '....kkkkkkkSSSSSSSSkkkkkkk....'
       ]
     ]
   }

@@ -1178,5 +1178,31 @@ export const ITEM_ART: Record<string, Art> = {
       ['..o..', '..y..', 'oywyo', '..y..', '..o..'],
       ['o...o', '.y.y.', '..w..', '.y.y.', 'o...o']
     ]
+  },
+  'weapon-rainbowBeam': {
+    w: 12,
+    h: 12,
+    frames: [
+      [
+        '............',
+        '............',
+        '....kkkkkkkk',
+        '.kkkrrrrrrrr',
+        'kwykwooooooo',
+        'kyyywwyyyyyy',
+        'kwyywlllllll',
+        '.kykuuuuuuuu',
+        '..kkvvvvvvvv',
+        '....kkkkkkkk',
+        '............',
+        '............'
+      ]
+    ]
+  },
+  /** 魔女の魔法の弾 */
+  spell: {
+    w: 8,
+    h: 8,
+    frames: [['..kkkk..', '.kpwppk.', 'kpwqpvvk', 'kpqpvvvk', 'kpvvvnvk', 'kvvvnnvk', '.kvnnvk.', '..kkkk..']]
   }
 };
