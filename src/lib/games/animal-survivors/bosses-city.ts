@@ -57,26 +57,22 @@ export function gator(w: World, i: number, e: Enemy, ux: number, uy: number, dt:
   return bear(w, i, e, ux, uy, dt);
 }
 
-/** 巨大カラスが群れを呼んでから、カラスが出るまでの秒 */
 export const RAVEN = { callDelay: 1, flock: 8 };
 
 /**
- * 巨大カラス。動きは大ワシそのままで、急降下 2 回に 1 回、帯を出して 1 秒後にカラスの群れを呼ぶ。
- * 呼んだあとの待ちは phase に負の値（-残り秒）で持つ。addEnemy が入れる 0 以上の乱数の初期値と区別できる
+ * 巨大カラス。群れを呼んだあとの待ちは wait に持つ（地上にいる state 0 のあいだだけ使う。急降下の state 4 は eagle が自分で新しく入れる）。
+ * phase は大ワシの回り込む向き（circle）を決める乱数なので触らない
  */
 export function raven(w: World, i: number, e: Enemy, ux: number, uy: number, d: number, dt: number) {
-  if (e.phase < 0) {
-    e.phase += dt;
-    if (e.phase >= 0) {
-      e.phase = 0;
-      swarm(w, ENEMIES.crow, RAVEN.flock);
-    }
+  if (e.state === 0 && e.wait > 0) {
+    e.wait -= dt;
+    if (e.wait <= 0) swarm(w, ENEMIES.crow, RAVEN.flock);
   }
   const diving = e.state === 4;
   const move = eagle(w, i, e, ux, uy, d, dt);
   if (diving && e.state === 0 && ++e.turn % 2 === 0) {
     w.events.push({ type: 'swarm', text: 'カラスの群れが来る！' });
-    e.phase = -RAVEN.callDelay;
+    e.wait = RAVEN.callDelay;
   }
   return move;
 }

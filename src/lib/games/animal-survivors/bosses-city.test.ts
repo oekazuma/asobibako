@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { airborne } from './bosses-snow';
-import { BEAR } from './bosses';
+import { BEAR, circle } from './bosses';
 import { GATOR } from './bosses-city';
 import { ENEMIES } from './enemies';
 import { createWorld, damageEnemy, makeEnemy, step, type World } from './world';
@@ -269,5 +269,24 @@ describe('巨大カラス', () => {
     e.wait = 0.01;
     run(w, 1.3);
     expect(w.enemies.length).toBeLessThanOrEqual(400);
+    expect(crows(w).length).toBeGreaterThan(0);
+    expect(crows(w).length).toBeLessThan(8);
+  });
+
+  it('群れを呼んでも phase は変わらず、回り込む向きは保たれる', () => {
+    const w = quiet();
+    w.player.invuln = 1e6;
+    const e = raven(w);
+    e.phase = 4;
+    e.cd = 1e6;
+    e.turn = 1;
+    e.state = 4;
+    e.wait = 0.01;
+    const sideAt = () => Math.sign(circle(e, 1, 0, 130, 130).vy);
+    const before = sideAt();
+    run(w, 1.3);
+    expect(crows(w).length).toBe(8);
+    expect(e.phase).toBe(4);
+    expect(sideAt()).toBe(before);
   });
 });

@@ -676,7 +676,7 @@ export function spawnProps(w: World, dt: number): void {
   if (e) e.hp = 1;
 }
 
-/** 画面の外の片側に、進む向きと直角に帯になって並び、反対側へ抜ける群れを出す。置ける数は入れ物の空き次第（帯の文は呼ぶ側が出す） */
+/** 画面の外の片側に、進む向きと直角に帯になって並び、反対側へ抜ける群れを出す。帯の文は出来事とボスで出す時刻が違うので、呼ぶ側が出す */
 export function swarm(w: World, def: EnemyDef, count: number): void {
   const p = w.player;
   const r = Math.hypot(w.view.w, w.view.h) / 2 + 24;
