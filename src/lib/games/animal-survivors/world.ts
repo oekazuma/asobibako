@@ -677,7 +677,7 @@ export function spawnProps(w: World, dt: number): void {
   if (e) e.hp = 1;
 }
 
-/** 画面の外の片側に、進む向きと直角に帯になって並び、反対側へ抜ける群れを出す。帯の文は出来事とボスで出す時刻が違うので、呼ぶ側が出す */
+/** 画面の外の片側に、進む向きと直角に帯になって並び、反対側へ抜ける群れを出す。帯の文は出来事とボスで出す時刻が違うので、呼ぶ側が出す。敵の入れ物（400 体）がいっぱいのときは count より少なくなる */
 export function swarm(w: World, def: EnemyDef, count: number): void {
   const p = w.player;
   const r = Math.hypot(w.view.w, w.view.h) / 2 + 24;
@@ -894,7 +894,7 @@ function touch(w: World) {
     if (!e.alive || airborne(e)) continue;
     const r = e.def.r + 5;
     if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 >= r * r) continue;
-    // ボス（と大ヘビの体）は時間で強くならない。突進中の巨大ベアと大イノシシは強く当たる
+    // ボス（と大ヘビの体）は時間で強くならない。突進中の巨大ベア型（下水の大ワニも）・大イノシシ・巨大ガニは強く当たる
     const base =
       e.def.boss || e.def.part
         ? e.state === 2 && (e.def.ai === 'bear' || e.def.ai === 'gator')

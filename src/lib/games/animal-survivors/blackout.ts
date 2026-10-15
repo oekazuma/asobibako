@@ -49,7 +49,6 @@ export interface StreetLight {
   y: number;
 }
 
-/** 160 ドットの区画 6 個に 1 つほど */
 export const LIGHT_CHANCE = 1 / 6;
 const EDGE = 30;
 const CLEAR = 120;

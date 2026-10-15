@@ -36,7 +36,7 @@ export function drawShrines(
 
 const lights: StreetLight[] = [];
 
-/** 夜の街の街灯。通れるので、奥行きは合わせず敵より先に描く。足もとの台の下の端が立っている場所 */
+/** 夜の街の街灯。通れるので、奥行きは合わせず敵より先に描く */
 export function drawStreetLights(
   ctx: CanvasRenderingContext2D,
   w: World,

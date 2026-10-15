@@ -9,7 +9,7 @@ const STILL = { vx: 0, vy: 0 };
 
 /**
  * 巨大ベアの state（0〜3）に、5 潜っている・6 出てくる場所の予告・7 顔を出す、を足す。
- * もぐりまでの経過秒は phase に持つ（ベアの攻撃が割り込んでも途切れない）。
+ * もぐりまでの経過秒は phase に持つ（state 0 のあいだだけ進み、ベアの攻撃中は止まるだけで戻らない）。
  * 予告の円は始めた瞬間の動物の位置（dx・dy）に置いて動かさず、大ワニはそこへ出てくる
  */
 export function gator(w: World, i: number, e: Enemy, ux: number, uy: number, dt: number) {
