@@ -180,18 +180,21 @@ const GROUNDS = {
       [0.95, 'line'],
       [1, 'manhole']
     ],
-    shadowed: []
+    shadowed: [],
+    // 側溝のふたの地は目立つので、ほかの面より控えめにまく
+    dirt: 0.02
   }
 } as const;
 
 function ground(ctx: CanvasRenderingContext2D, w: World, cx: number, cy: number, v: ViewSize) {
   const g = GROUNDS[w.stage.art];
   const decor: Record<string, Art> = g.art.decor;
+  const dirt = 'dirt' in g ? g.dirt : 0.08;
   const T = 16;
   for (let ty = Math.floor(cy / T); ty * T < cy + v.h; ty++)
     for (let tx = Math.floor(cx / T); tx * T < cx + v.w; tx++) {
       const h = hash(tx, ty);
-      if (h < 0.08) ctx.drawImage(bake(g.art.dirt), tx * T, ty * T);
+      if (h < dirt) ctx.drawImage(bake(g.art.dirt), tx * T, ty * T);
       else ctx.drawImage(bake(g.art.grass, Math.floor(hash(tx + 911, ty) * 4)), tx * T, ty * T);
     }
   const C = 48;
@@ -502,9 +505,9 @@ export function draw(
   hazardsAbove(ctx, w, q);
   if (prompts?.intro) introDust(ctx, w, prompts.intro);
   fx.draw(ctx, S);
-  drawDark(ctx, w, cx, cy, v, prompts?.still ?? false);
+  const darkened = drawDark(ctx, w, cx, cy, v, prompts?.still ?? false);
   // 予告を見落とすと避けられないので、暗闇の上にも出す
-  if (w.blackout.dark > 0 || (prompts?.still && w.blackout.left > 0)) hazardsBelow(ctx, w, q, now, true);
+  if (darkened) hazardsBelow(ctx, w, q, now, true);
   if (ev && grow) {
     // 育つ演出のあいだは、弾や予告も含めてまわりを暗くし、自分だけを照らす
     if (grow.dark) {

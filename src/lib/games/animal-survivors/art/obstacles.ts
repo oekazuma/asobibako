@@ -2,7 +2,7 @@ import type { Art } from '../pixels';
 import type { ObstacleId } from '../obstacles';
 
 /** 障害物の絵。黒い溶岩の岩と湯気の出る岩だけは、色の表に無い黒と赤茶を pal で足す */
-export const OBSTACLE_ART: Record<ObstacleId | 'vending' | 'trash', Art> = {
+export const OBSTACLE_ART: Record<ObstacleId, Art> = {
   boulder: {
     w: 42,
     h: 32,

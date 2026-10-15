@@ -26,9 +26,9 @@ export function drawDark(
   cy: number,
   v: { w: number; h: number },
   still: boolean
-): void {
+): boolean {
   const dark = still ? (w.blackout.left > 0 ? 1 : 0) : w.blackout.dark;
-  if (dark <= 0) return;
+  if (dark <= 0) return false;
   if (!layer || layer.width !== v.w || layer.height !== v.h) {
     layer = document.createElement('canvas');
     layer.width = v.w;
@@ -54,4 +54,5 @@ export function drawDark(
   ctx.globalAlpha = dark;
   ctx.drawImage(layer, cx, cy);
   ctx.globalAlpha = 1;
+  return true;
 }
