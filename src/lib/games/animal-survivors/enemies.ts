@@ -13,7 +13,9 @@ export type BossId =
   | 'lavaGiant'
   | 'phoenix'
   | 'crabKing'
-  | 'octopus';
+  | 'octopus'
+  | 'raven'
+  | 'gator';
 
 export interface EnemyDef {
   id: string;
@@ -189,6 +191,23 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
         minion: 'jelly',
         shot: 'web',
         epithet: '渦をまく大足'
+      },
+      e('sewerRat', 'ドブネズミ', [6, 40, 5, 5, 1], 'chase', 0),
+      e('crow', 'カラス', [4, 58, 4, 5, 1], 'wave', 0),
+      e('civet', 'ハクビシン', [14, 34, 8, 6, 2], 'snake', 0.2),
+      e('trashGhost', 'ゴミ袋おばけ', [40, 20, 10, 7, 5], 'chase', 0.6),
+      e('stray', '野良犬', [70, 26, 18, 8, 8], 'charge', 0.8),
+      e('gecko', 'ヤモリ', [18, 36, 9, 6, 3], 'leap', 0.2),
+      e('sewerGator', '下水ワニ', [120, 16, 16, 9, 10], 'chase', 0.9),
+      {
+        ...e('raven', '巨大カラス', [1400, 40, 24, 18, 0], 'boss', 1, 'raven'),
+        ai: 'eagle',
+        epithet: '夜空の見張り番'
+      },
+      {
+        ...e('gator', '下水の大ワニ', [700, 28, 20, 15, 0], 'boss', 1, 'gator'),
+        ai: 'bear',
+        epithet: 'マンホールの主'
       }
     ] satisfies EnemyDef[]
   ).map((d) => [d.id, d])

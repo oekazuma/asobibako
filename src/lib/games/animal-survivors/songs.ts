@@ -2,7 +2,7 @@ import type { Song } from '$lib/music/tune';
 
 /** 画面ごとの BGM。書き方は $lib/music/tune の Song。効果音が聞こえるよう gain は小さめ */
 export const SONGS: Record<
-  'menu' | 'field' | 'grave' | 'snow' | 'volcano' | 'coast' | 'boss',
+  'menu' | 'field' | 'grave' | 'snow' | 'volcano' | 'coast' | 'city' | 'boss',
   { song: Song; bpm: number; gain: number }
 > = {
   /** キャラ選択・店・実績・リザルト。軽く弾む */
@@ -91,6 +91,21 @@ export const SONGS: Record<
         e5 . g5 . e5 . d5 . | c5 . e5 . g5 - e5 . | d5 . f#5 . a5 . f#5 . | g5 - - - . . . . |
         g5 . e5 . c5 . e5 . | d5 . b4 . g4 - b4 . | c5 . e5 . a4 . c5 . | g4 - - - . . . .`,
       chords: 'G C Am D G D C D C C D G C G Am G'
+    }
+  },
+  /** 夜の街。軽いジャズ風に、跳ねる長調の 8 ビート */
+  city: {
+    bpm: 124,
+    gain: 0.55,
+    song: {
+      beats: 4,
+      lead: 'mallet',
+      style: 'drive',
+      melody: `c5 . e5 . g5 - e5 . | a4 . c5 . e5 . d5 c5 | b4 . d5 . f5 - d5 . | g4 - - - b4 . d5 . |
+        e5 . g5 . b5 - g5 . | a5 . g5 . e5 . c5 . | d5 . f5 . a5 . f5 d5 | e5 - - - . . . . |
+        a4 . c5 . e5 . c5 . | d5 . f5 . a5 - f5 . | g4 . b4 . d5 . g5 . | c5 - - - e5 - . . |
+        e5 . d5 . c5 . a4 . | f5 . e5 . d5 . b4 . | g5 . f5 . e5 . d5 . | c5 - - - . . . .`,
+      chords: 'C Am Dm G Em Am Dm C Am Dm G C Am Dm G C'
     }
   },
   /** ボス。短調で速い */

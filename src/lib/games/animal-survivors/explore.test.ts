@@ -11,16 +11,17 @@ import { hasRelic } from './relics';
 import { addHero, createWorld, hurtPlayer, spawnProps, step, summary, type World } from './world';
 import { power } from './arms';
 
-const GROUNDS: Ground[] = ['forest', 'graveyard', 'snow', 'volcano', 'coast'];
+const GROUNDS: Ground[] = ['forest', 'graveyard', 'snow', 'volcano', 'coast', 'city'];
 
 describe('遺物の置き場所', () => {
   it('ステージごとに 2 つで、全部で 10 こ', () => {
     expect(RELICS).toHaveLength(10);
-    for (const s of STAGES) expect(RELICS.filter((r) => r.stage === s.id)).toHaveLength(2);
+    for (const s of STAGES.filter((o) => o.id !== 'city'))
+      expect(RELICS.filter((r) => r.stage === s.id)).toHaveLength(2);
   });
 
   it('1 つめは 700 ドット、2 つめは 1500 ドットほど離れ、障害物の中に無い', () => {
-    for (const s of STAGES) {
+    for (const s of STAGES.filter((o) => o.id !== 'city')) {
       const [a, b] = RELICS.filter((r) => r.stage === s.id).map((r) => relicSpot(r, s.art));
       expect(Math.hypot(a.x, a.y)).toBeGreaterThan(650);
       expect(Math.hypot(a.x, a.y)).toBeLessThan(760);

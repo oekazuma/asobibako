@@ -12,7 +12,7 @@ import {
 } from './obstacles';
 import { byFeet, covers, feetOf, inView } from './draw-obstacles';
 
-const GROUNDS: Ground[] = ['forest', 'graveyard', 'snow', 'volcano', 'coast'];
+const GROUNDS: Ground[] = ['forest', 'graveyard', 'snow', 'volcano', 'coast', 'city'];
 const inside = (g: Ground, x: number, y: number, r: number) =>
   obstaclesNear(g, x, y, r, []).some((o) =>
     SHAPES[o.kind].circles.some(([dx, dy, cr]) => Math.hypot(x - o.x - dx, (y - o.y - dy) / SQUASH) < r + cr - 0.01)
@@ -43,7 +43,8 @@ describe('障害物の置き方', () => {
       graveyard: ['bigTomb', 'fence'],
       snow: ['icy', 'snowTree'],
       volcano: ['lavaRock', 'steamRock'],
-      coast: ['reef', 'boat']
+      coast: ['reef', 'boat'],
+      city: ['vending', 'trash']
     };
     for (const g of GROUNDS) {
       const seen = new Set<string>();

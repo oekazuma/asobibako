@@ -29,9 +29,9 @@ function quiet(): World {
 }
 
 describe('図鑑の表', () => {
-  it('敵 34・ボス 15・姿 33・品 9', () => {
-    expect(BOOK.enemies).toHaveLength(34);
-    expect(BOOK.bosses).toHaveLength(15);
+  it('敵 41・ボス 17・姿 33・品 9', () => {
+    expect(BOOK.enemies).toHaveLength(41);
+    expect(BOOK.bosses).toHaveLength(17);
     expect(BOOK.bosses).toContain('metal');
     expect(BOOK.forms).toHaveLength(33);
     expect(BOOK.forms).toContain('drake:2');

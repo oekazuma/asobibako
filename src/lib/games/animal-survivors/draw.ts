@@ -10,6 +10,7 @@ import { ITEM_ART } from './art/items';
 import { SNOW_ART } from './art/snow';
 import { VOLCANO_ART } from './art/volcano';
 import { COAST_ART } from './art/coast';
+import { CITY_ART } from './art/city';
 import { PALETTE } from './art/palette';
 import { shots, swipes, zonesBelow } from './draw-arms';
 import { bossBars, hazardsAbove, hazardsBelow, introDust, introEdge } from './draw-boss';
@@ -37,7 +38,7 @@ import { airborne, YETI } from './bosses-snow';
 import { gemTier } from './drops';
 import type { Effects } from './effects';
 import { hud } from './hud';
-import { drawRelic, drawShrines } from './draw-explore';
+import { drawRelic, drawShrines, drawStreetLights } from './draw-explore';
 import { bake, type Art } from './pixels';
 import type { Enemy, World } from './world';
 
@@ -168,6 +169,17 @@ const GROUNDS = {
       [1, 'seaweed']
     ],
     shadowed: ['seaweed']
+  },
+  city: {
+    art: CITY_ART,
+    decor: [
+      [0.66, null],
+      [0.78, 'leaf'],
+      [0.88, 'can'],
+      [0.95, 'line'],
+      [1, 'manhole']
+    ],
+    shadowed: []
   }
 } as const;
 
@@ -450,6 +462,7 @@ export function draw(
   ctx.setTransform(S, 0, 0, S, -devicePx(cx, S), -devicePx(cy, S));
   ground(ctx, w, cx, cy, v);
   drawShrines(ctx, w, cx, cy, v.w, v.h, q);
+  drawStreetLights(ctx, w, cx, cy, v.w, v.h, q);
   drawLava(ctx, w, now);
   drawShallows(ctx, w);
   hazardsBelow(ctx, w, q, now);

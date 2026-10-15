@@ -119,9 +119,9 @@ describe('ボスの登場', () => {
     p.stop();
   });
 
-  it('14 体のボスに二つ名がある', () => {
+  it('16 体のボスに二つ名がある', () => {
     const bosses = Object.values(ENEMIES).filter((d) => d.boss);
-    expect(bosses).toHaveLength(14);
+    expect(bosses).toHaveLength(16);
     for (const d of bosses) expect(d.epithet?.length).toBeGreaterThan(0);
   });
 });

@@ -1,5 +1,7 @@
+import { STREET_LIGHT_ART } from './art/city';
 import { RELIC_ART, SHRINE_ART } from './art/explore';
 import { PALETTE } from './art/palette';
+import { streetLightAt, type StreetLight } from './blackout';
 import { CELL } from './obstacles';
 import { bake } from './pixels';
 import { hasRelic, type RelicId } from './relics';
@@ -29,6 +31,33 @@ export function drawShrines(
     ctx.fillStyle = 'rgb(0 0 0 / 0.22)';
     ctx.fillRect(q(s.x - 9), q(s.y + 1), 18, 2);
     ctx.drawImage(bake(art), q(s.x - art.w / 2), q(s.y + 2 - art.h));
+  }
+}
+
+const lights: StreetLight[] = [];
+
+/** 夜の街の街灯。通れるので、奥行きは合わせず敵より先に描く。足もとの台の下の端が立っている場所 */
+export function drawStreetLights(
+  ctx: CanvasRenderingContext2D,
+  w: World,
+  cx: number,
+  cy: number,
+  vw: number,
+  vh: number,
+  q: (v: number) => number
+): void {
+  if (w.stage.art !== 'city') return;
+  lights.length = 0;
+  const art = STREET_LIGHT_ART;
+  for (let gx = Math.floor((cx - art.w) / CELL); gx <= Math.floor((cx + vw + art.w) / CELL); gx++)
+    for (let gy = Math.floor((cy - 8) / CELL); gy <= Math.floor((cy + vh + art.h) / CELL); gy++) {
+      const s = streetLightAt('city', gx, gy);
+      if (s) lights.push(s);
+    }
+  for (const s of lights) {
+    ctx.fillStyle = 'rgb(0 0 0 / 0.22)';
+    ctx.fillRect(q(s.x - 4), q(s.y), 8, 2);
+    ctx.drawImage(bake(art), q(s.x - art.w / 2), q(s.y - art.h));
   }
 }
 

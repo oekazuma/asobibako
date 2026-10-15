@@ -181,6 +181,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'snowClear', name: '雪山をクリア', coins: 400, animal: 'drake', done: (r) => r.stages.includes('snow') },
   { id: 'volcanoClear', name: '火山をクリア', coins: 600, animal: 'chick', done: (r) => r.stages.includes('volcano') },
   { id: 'coastClear', name: '海岸をクリア', coins: 800, animal: 'otter', done: (r) => r.stages.includes('coast') },
+  { id: 'cityClear', name: '夜の街をクリア', coins: 1000, done: (r) => r.stages.includes('city') },
   {
     id: 'volcanoBosses',
     name: '溶岩の巨人と不死鳥を倒す',
