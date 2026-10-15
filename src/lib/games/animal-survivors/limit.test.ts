@@ -16,6 +16,11 @@ describe('限界突破の能力', () => {
     expect(statsFor(WEAPONS.howl)).toEqual(['damage', 'cooldown', 'area', 'amount']);
   });
 
+  it('虹の大砲は大きさが効かないので、大きさの札を出さない', () => {
+    expect(statsFor(WEAPONS.rainbowBeam)).toContain('area');
+    expect(statsFor(WEAPONS.rainbowBeamSp)).toEqual(['damage', 'cooldown', 'amount']);
+  });
+
   it('合体武器は 2 つの部品の種類から選ぶ', () => {
     // 炎の疾走はダッシュ（動く）と炎（残る）
     expect(statsFor(WEAPONS.flameUn)).toEqual(['damage', 'cooldown', 'area', 'speed', 'duration', 'amount']);

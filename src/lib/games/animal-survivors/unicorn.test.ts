@@ -7,7 +7,7 @@ import { ENEMIES } from './enemies';
 import { emptyRecords, parseRecords } from './records';
 import { trySpecial } from './specials';
 import { WEAPONS } from './weapons';
-import { createWorld, makeEnemy, step } from './world';
+import { addHero, createWorld, makeEnemy, step } from './world';
 
 const VIEW = { w: 274, h: 394 };
 const unicornWorld = () => {
@@ -101,5 +101,24 @@ describe('ユニコーン', () => {
     w.enemies.push(near, far);
     step(w, { x: 0, y: 0 }, 1 / 30);
     expect(far.hp).toBeLessThan(1e6);
+  });
+
+  it('2 匹のとき、2 匹めのビームは 2 匹めの足もとから出る', () => {
+    const w = createWorld('dog', 1, VIEW);
+    w.stage = { ...w.stage, waves: [], bosses: [], events: [], chiefs: [] };
+    w.propCd = 9999;
+    w.metalAt = -1;
+    const k = addHero(w, 'unicorn');
+    const mate = w.heroes[k].player;
+    mate.x += 80;
+    w.heroes[k].weapons[0].cd = 0;
+    const e = makeEnemy(ENEMIES.shroomling, mate.x + 40, mate.y, 1e6);
+    e.root = 99;
+    w.enemies.push(e);
+    step(w, { x: 0, y: 0 }, 1 / 30);
+    const beam = w.effects.find((f) => f.alive && f.kind === 'beam');
+    expect(beam?.x).toBeCloseTo(mate.x);
+    expect(beam?.y).toBeCloseTo(mate.y - 6);
+    expect(e.hp).toBeLessThan(1e6);
   });
 });

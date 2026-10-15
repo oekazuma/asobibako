@@ -210,14 +210,14 @@ export function swipes(ctx: CanvasRenderingContext2D, w: World, q: Snap): void {
       ctx.globalAlpha = 0.9 * (1 - t);
       ctx.lineCap = 'butt';
       ctx.lineWidth = band + 0.5;
-      RAINBOW.forEach((c, k) => {
+      for (let k = 0; k < RAINBOW.length; k++) {
         const off = (k - (RAINBOW.length - 1) / 2) * band;
-        ctx.strokeStyle = PALETTE[c];
+        ctx.strokeStyle = PALETTE[RAINBOW[k]];
         ctx.beginPath();
         ctx.moveTo(q(f.x + nx * off), q(f.y + ny * off));
         ctx.lineTo(q(f.x + nx * off + Math.cos(f.angle) * f.r), q(f.y + ny * off + Math.sin(f.angle) * f.r));
         ctx.stroke();
-      });
+      }
       ctx.lineCap = 'square';
     } else if (f.kind === 'ring') {
       const r = t * f.r;

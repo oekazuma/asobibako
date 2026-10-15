@@ -42,8 +42,11 @@ const LASTING: WeaponKind[] = ['orbit', 'trail', 'snare'];
 
 export function statsFor(def: WeaponDef): LimitStat[] {
   const kinds = def.union ? [partDef(def, 0).kind, partDef(def, 1).kind] : [def.kind];
+  // 虹の大砲は長さが画面の対角線、太さが固定なので、大きさを上げても変わらない
+  const fixedSize = def.special && def.kind === 'beam';
   return LIMIT_STATS.filter(
     (k) =>
+      (k !== 'area' || !fixedSize) &&
       (k !== 'speed' || kinds.some((x) => MOVING.includes(x))) &&
       (k !== 'duration' || kinds.some((x) => LASTING.includes(x)))
   );
