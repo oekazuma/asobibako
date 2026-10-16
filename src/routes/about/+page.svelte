@@ -74,7 +74,7 @@
       <h2>つかわせて もらったもの</h2>
       <ul class="credits">
         <li>Informative Drawings（Caroline Chan、MIT）… ぬりえの AI の線画</li>
-        <li>onnxruntime-web（Microsoft、MIT）… AI を動かす</li>
+        <li>onnxruntime-web（Microsoft、MIT。中に入っている ONNX・protobuf・Eigen ほか）… AI を動かす</li>
         <li>three.js（three.js authors、MIT）… 3D の画面</li>
         <li>jsQR（Cosmo Wolfe ほか、Apache-2.0）… QR を読む</li>
         <li>uqr（Project Nayuki、Anthony Fu、MIT）… QR を作る</li>
