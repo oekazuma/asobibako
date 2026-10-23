@@ -69,7 +69,7 @@
   }
 
   .panel.top {
-    top: 12px;
+    top: max(12px, var(--safe-top));
     bottom: auto;
     flex-direction: column-reverse;
     width: min(62%, 420px);

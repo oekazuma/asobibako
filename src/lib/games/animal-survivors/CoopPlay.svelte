@@ -41,6 +41,7 @@
   let ctx: CanvasRenderingContext2D | null = null;
   let view: ViewSize = { scale: 2, w: 260, h: 380 };
   let top = 24;
+  let edge = 0;
   const fx = new Effects();
   const keys = new Set<string>();
   // svelte-ignore state_referenced_locally
@@ -79,7 +80,9 @@
     const [w, h] = input.px(1, 1);
     view = fitCanvas(canvas, w, h);
     world.view = { w: view.w, h: view.h };
-    top = Math.ceil((probe.offsetHeight * (devicePixelRatio || 1)) / view.scale);
+    const dots = (devicePixelRatio || 1) / view.scale;
+    edge = Math.ceil(probe.offsetTop * dots);
+    top = Math.ceil(probe.offsetHeight * dots);
     ctx = canvas.getContext('2d');
   }
 
@@ -125,7 +128,7 @@
       settle.begin();
     }
     waiting = result || prompts?.busy || paused ? '' : waitText(world, !!guest);
-    if (ctx) draw(ctx, world, fx, view, now, top, prompts ?? undefined);
+    if (ctx) draw(ctx, world, fx, view, now, top, edge, prompts ?? undefined);
   }
 
   onMount(() => {

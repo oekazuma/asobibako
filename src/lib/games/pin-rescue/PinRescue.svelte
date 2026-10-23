@@ -119,7 +119,7 @@
 
   .level {
     position: absolute;
-    top: 18px;
+    top: max(18px, var(--safe-top));
     left: 50%;
     translate: -50% 0;
     font-size: 26px;
@@ -128,7 +128,7 @@
 
   .meter {
     position: absolute;
-    top: 60px;
+    top: calc(max(18px, var(--safe-top)) + 42px);
     left: 50%;
     width: 200px;
     height: 18px;
@@ -140,7 +140,7 @@
 
   .goal {
     position: absolute;
-    top: 56px;
+    top: calc(max(18px, var(--safe-top)) + 38px);
     left: 50%;
     translate: -50% 0;
     font-size: 20px;
@@ -157,7 +157,7 @@
 
   .score {
     position: absolute;
-    top: 14px;
+    top: max(14px, var(--safe-top));
     left: 72px;
     font-size: 26px;
     color: var(--gold-deep);

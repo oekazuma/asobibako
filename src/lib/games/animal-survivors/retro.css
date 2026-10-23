@@ -94,7 +94,7 @@
 
 .as-pause {
   position: absolute;
-  top: max(12px, var(--safe-top));
+  top: calc(var(--safe-top) + 12px);
   left: max(12px, var(--safe-left));
   z-index: 5;
   width: 48px;
@@ -113,11 +113,12 @@
   box-shadow: none;
 }
 
-/* HUD を書きはじめる高さを測る。シェルの隅のボタンの下 */
+/* HUD を書きはじめる高さを測る。シェルの隅のボタンの下。top は時計などの帯の下端 */
 .as-probe {
   position: absolute;
   visibility: hidden;
-  height: max(72px, calc(var(--safe-top) + 60px));
+  top: var(--safe-top);
+  height: calc(var(--safe-top) + 72px);
 }
 
 .as-pick {

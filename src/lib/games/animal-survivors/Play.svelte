@@ -38,6 +38,7 @@
   let view: ViewSize = { scale: 2, w: 260, h: 380 };
   /** HUD を書きはじめる高さ（仮想ドット）。シェルの隅のボタンの下 */
   let top = 24;
+  let edge = 0;
   // svelte-ignore state_referenced_locally
   const world = createWorld(pick.animal, Date.now() % 2 ** 31, view, ranks, pick.stage, pick);
   const fx = new Effects();
@@ -72,7 +73,9 @@
     const [w, h] = input.px(1, 1);
     view = fitCanvas(canvas, w, h);
     world.view = { w: view.w, h: view.h };
-    top = Math.ceil((probe.offsetHeight * (devicePixelRatio || 1)) / view.scale);
+    const dots = (devicePixelRatio || 1) / view.scale;
+    edge = Math.ceil(probe.offsetTop * dots);
+    top = Math.ceil(probe.offsetHeight * dots);
     ctx = canvas.getContext('2d');
   }
 
@@ -99,7 +102,7 @@
       // クリアしたら延長戦へ進むかを聞く。記録はその前に onover で済ませてある
       endTimer = setTimeout(world.over === 'clear' ? () => prompts.ask(stick?.id ?? null) : onend, 1200);
     }
-    if (ctx) draw(ctx, world, fx, view, now, top, prompts);
+    if (ctx) draw(ctx, world, fx, view, now, top, edge, prompts);
   }
 
   $effect(() => onmusic({ song: prompts.boss ? 'boss' : 'field', quiet: menu }));

@@ -475,6 +475,7 @@ export function draw(
   v: ViewSize,
   now: number,
   top: number,
+  edge: number,
   prompts?: Prompts
 ): void {
   S = v.scale;
@@ -568,7 +569,7 @@ export function draw(
   }
   blizzard(ctx, w, v.w, v.h, now);
   confetti(ctx, w, v.w, v.h, now);
-  hud(ctx, w, v, top);
+  hud(ctx, w, v, top, edge);
   // ボスの登場のあいだはカメラが自分から離れるので、自分から測る矢印の向きが合わない
   if (!prompts?.intro) {
     treasureArrow(ctx, w, v.w, v.h, top, now);

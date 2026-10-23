@@ -168,7 +168,7 @@
 
   .level {
     position: absolute;
-    top: 18px;
+    top: max(18px, var(--safe-top));
     left: 50%;
     translate: -50% 0;
     font-size: 26px;
@@ -176,7 +176,7 @@
 
   .foes {
     position: absolute;
-    top: 60px;
+    top: calc(max(18px, var(--safe-top)) + 42px);
     left: 50%;
     translate: -50% 0;
     display: flex;

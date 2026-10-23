@@ -53,9 +53,9 @@ function slots(ctx: CanvasRenderingContext2D, owned: Owned[], prefix: string, x:
   }
 }
 
-/** top は仮想ドットでの上の余白（シェルの隅のボタンの下から書く） */
-export function hud(ctx: CanvasRenderingContext2D, w: World, v: ViewSize, top: number): void {
-  bar(ctx, 1, 1, v.w - 2, 3, w.xp / xpNeed(w.level), PALETTE.u, PALETTE.U);
+/** top は仮想ドットでの上の余白（シェルの隅のボタンの下から書く）。edge は時計などの帯の下端 */
+export function hud(ctx: CanvasRenderingContext2D, w: World, v: ViewSize, top: number, edge: number): void {
+  bar(ctx, 1, edge + 1, v.w - 2, 3, w.xp / xpNeed(w.level), PALETTE.u, PALETTE.U);
 
   text(ctx, `Lv ${w.level}`, 6, top, PALETTE.w);
   const t = clock(w.time);

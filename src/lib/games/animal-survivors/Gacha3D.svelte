@@ -176,8 +176,8 @@
 
   .skip {
     position: absolute;
-    top: 12px;
-    right: 12px;
+    top: max(12px, var(--safe-top));
+    right: max(12px, var(--safe-right));
     font-size: min(4cqw, 2.4cqh, 20px);
   }
 </style>

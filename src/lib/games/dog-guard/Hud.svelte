@@ -26,7 +26,7 @@
 <style>
   .hud {
     position: absolute;
-    top: 14px;
+    top: max(14px, var(--safe-top));
     left: 50%;
     display: flex;
     flex-direction: column;
