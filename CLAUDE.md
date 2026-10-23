@@ -60,6 +60,8 @@ bomb-relay と hockey は物理があるのでループで動かす。ルール�
 
 横向きのタッチ端末では、ゲーム画面の外枠（`.stage`）だけを CSS で時計回りに 90 度回し、盤面を縦長に保つ（`app.css` の `@media (orientation: landscape) and (pointer: coarse)`）。各ゲームは縦長の盤面だけを前提にしてよい。指の座標は `BoardInput` が `.stage` を回す条件と同じメディアクエリ（`TURNED_QUERY`）で回っているかを知って直し（iPad を回しても盤面の大きさは変わらないことがあるので、向きが変わるたびにも測り直す）、描画の位置は盤面そのものの大きさ（`offsetWidth` / `offsetHeight`）で書く。盤面の中の大きさは画面基準の `dvh` ではなく、盤面の高さに対する `%` か、`.stage` を基準にしたコンテナ単位（`cqh` / `cqw`）で指定する（回すと `dvh` は盤面の幅を指してしまうため）。大きな見出しは `min(…cqh, …cqw)` で幅にも合わせ、iPhone のような細長い画面でも折り返さないようにする。
 
+端の安全域は `env(safe-area-inset-*)` を直接書かず、`app.css` の `--safe-top` / `--safe-right` / `--safe-bottom` / `--safe-left` で読む。回した `.stage` の中ではこれが枠から見た上下左右に入れ替わり、180 度回した `.half.p2` は自分の余白を入れ替えて持つ。iPhone Duo のように左右の安全域が違う画面があるので、左右も 1 辺ずつ `max(16px, var(--safe-left))` のように取る。
+
 外枠のクラスを `.board` にすると各ゲームの盤面（`.board`）にも効いて高さが潰れるので、共通のクラスはゲームで使わない名前にする。
 
 ## 更新

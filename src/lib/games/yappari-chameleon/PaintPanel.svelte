@@ -93,8 +93,8 @@
 <style>
   .panel {
     position: absolute;
-    top: max(86px, calc(env(safe-area-inset-top) + 74px));
-    left: max(12px, env(safe-area-inset-left));
+    top: max(86px, calc(var(--safe-top) + 74px));
+    left: max(12px, var(--safe-left));
     display: grid;
     gap: 10px;
     width: 330px;

@@ -50,7 +50,8 @@
     display: flex;
     justify-content: center;
     gap: min(2.4cqw, 16px);
-    padding: min(2.4cqh, 18px) 12px max(min(2.4cqh, 18px), env(safe-area-inset-bottom));
+    padding: min(2.4cqh, 18px) max(12px, var(--safe-right)) max(min(2.4cqh, 18px), var(--safe-bottom))
+      max(12px, var(--safe-left));
     border-top: 4px solid #5b4a42;
     background: #e9dcc4;
   }

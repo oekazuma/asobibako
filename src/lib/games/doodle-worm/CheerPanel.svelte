@@ -58,7 +58,7 @@
 <style>
   .panel {
     position: absolute;
-    bottom: max(12px, env(safe-area-inset-bottom));
+    bottom: max(12px, var(--safe-bottom));
     left: 50%;
     display: flex;
     flex-direction: column;

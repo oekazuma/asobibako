@@ -27,23 +27,23 @@
   }
 
   .pips.p1 {
-    bottom: max(16px, env(safe-area-inset-bottom));
+    bottom: max(16px, var(--safe-bottom));
   }
 
   .pips.p2 {
-    top: max(16px, env(safe-area-inset-top));
+    top: max(16px, var(--safe-top));
     rotate: 180deg;
   }
 
   /* 向かい側は 180 度回しているので、その人から見た左は画面の右になる */
   .corner.p1 {
-    left: max(16px, env(safe-area-inset-left));
+    left: max(16px, var(--safe-left));
     translate: none;
   }
 
   .corner.p2 {
     left: auto;
-    right: max(16px, env(safe-area-inset-right));
+    right: max(16px, var(--safe-right));
     translate: none;
   }
 

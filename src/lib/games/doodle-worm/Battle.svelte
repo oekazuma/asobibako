@@ -151,7 +151,7 @@
     position: absolute;
     inset: 0;
     z-index: 3;
-    padding: 72px 16px max(24px, env(safe-area-inset-bottom));
+    padding: 72px max(16px, var(--safe-right)) max(24px, var(--safe-bottom)) max(16px, var(--safe-left));
     overflow-y: auto;
     touch-action: pan-y;
     background: var(--paper-dots), var(--paper);

@@ -179,8 +179,8 @@
 
   .back {
     position: absolute;
-    top: max(12px, env(safe-area-inset-top));
-    left: max(12px, env(safe-area-inset-left));
+    top: max(12px, var(--safe-top));
+    left: max(12px, var(--safe-left));
     display: grid;
     place-items: center;
     width: 48px;

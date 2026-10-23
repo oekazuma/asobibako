@@ -66,8 +66,8 @@
 
   .column {
     position: absolute;
-    right: max(14px, env(safe-area-inset-right));
-    bottom: max(14px, env(safe-area-inset-bottom));
+    right: max(14px, var(--safe-right));
+    bottom: max(14px, var(--safe-bottom));
     display: grid;
     justify-items: end;
     gap: 10px;
@@ -75,7 +75,7 @@
 
   .ammo {
     position: absolute;
-    bottom: max(14px, env(safe-area-inset-bottom));
+    bottom: max(14px, var(--safe-bottom));
     left: 50%;
     translate: -50% 0;
     margin: 0;

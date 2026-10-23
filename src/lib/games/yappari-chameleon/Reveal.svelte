@@ -60,7 +60,7 @@
 
   .winner {
     position: absolute;
-    top: calc(max(8px, env(safe-area-inset-top)) + 84px);
+    top: calc(max(8px, var(--safe-top)) + 84px);
     left: 50%;
     translate: -50% 0;
     margin: 0;

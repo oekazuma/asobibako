@@ -72,7 +72,7 @@
   .bar {
     pointer-events: auto;
     position: absolute;
-    top: max(12px, env(safe-area-inset-top));
+    top: max(12px, var(--safe-top));
     left: 50%;
     display: flex;
     align-items: center;
@@ -147,7 +147,7 @@
 
   .next {
     position: absolute;
-    bottom: max(24px, env(safe-area-inset-bottom));
+    bottom: max(24px, var(--safe-bottom));
     left: 50%;
     margin: 0;
     padding: 8px 16px;

@@ -84,7 +84,8 @@
     flex-direction: column;
     gap: 12px;
     /* 上の隅の共通の ✕ と ↻ に見出しが重ならないよう空けておく */
-    padding: max(68px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+    padding: max(68px, var(--safe-top)) max(16px, var(--safe-right)) max(16px, var(--safe-bottom))
+      max(16px, var(--safe-left));
     overflow-y: auto;
     touch-action: pan-y;
     background: var(--paper-dots), var(--paper);

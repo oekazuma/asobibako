@@ -47,7 +47,7 @@
 
   .count {
     position: absolute;
-    left: max(18px, env(safe-area-inset-left));
+    left: max(18px, var(--safe-left));
     display: flex;
     align-items: baseline;
     gap: 4px;
@@ -56,14 +56,14 @@
   }
 
   .count.p1 {
-    bottom: max(14px, env(safe-area-inset-bottom));
+    bottom: max(14px, var(--safe-bottom));
   }
 
   /* 向かい側は 180 度回すので、その人から見た左下（画面の右上）に来る */
   .count.p2 {
-    top: max(14px, env(safe-area-inset-top));
+    top: max(14px, var(--safe-top));
     left: auto;
-    right: max(18px, env(safe-area-inset-right));
+    right: max(18px, var(--safe-right));
     rotate: 180deg;
   }
 

@@ -109,8 +109,8 @@
 <style>
   .quit {
     position: absolute;
-    top: max(12px, env(safe-area-inset-top));
-    left: max(12px, env(safe-area-inset-left));
+    top: max(12px, var(--safe-top));
+    left: max(12px, var(--safe-left));
     width: 48px;
     height: 48px;
     border: 2px solid rgb(255 255 255 / 0.85);
@@ -122,16 +122,16 @@
 
   .column {
     position: absolute;
-    right: max(14px, env(safe-area-inset-right));
-    bottom: max(14px, env(safe-area-inset-bottom));
+    right: max(14px, var(--safe-right));
+    bottom: max(14px, var(--safe-bottom));
     display: grid;
     gap: 10px;
   }
 
   .spin {
     position: absolute;
-    right: calc(max(14px, env(safe-area-inset-right)) + 98px);
-    bottom: max(14px, env(safe-area-inset-bottom));
+    right: calc(max(14px, var(--safe-right)) + 98px);
+    bottom: max(14px, var(--safe-bottom));
     display: flex;
     gap: 10px;
   }

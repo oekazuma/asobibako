@@ -13,9 +13,8 @@
     position: absolute;
     inset: 0 0 auto;
     z-index: 6;
-    height: max(68px, calc(env(safe-area-inset-top) + 56px));
-    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 0
-      max(12px, env(safe-area-inset-left));
+    height: max(68px, calc(var(--safe-top) + 56px));
+    padding: max(12px, var(--safe-top)) max(12px, var(--safe-right)) 0 max(12px, var(--safe-left));
     background:
       radial-gradient(circle, rgb(255 255 255 / 0.06) 1.5px, transparent 2px) 0 0 / 18px 18px,
       #1f1530;

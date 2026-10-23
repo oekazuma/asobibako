@@ -24,8 +24,8 @@
   /* 左上の ✕ のすぐ下。札とヒントの吹き出しにはかぶらない */
   .sky {
     position: absolute;
-    top: calc(max(12px, env(safe-area-inset-top)) + 58px);
-    left: max(12px, env(safe-area-inset-left));
+    top: calc(max(12px, var(--safe-top)) + 58px);
+    left: max(12px, var(--safe-left));
     z-index: 2;
     display: flex;
     flex-direction: column;

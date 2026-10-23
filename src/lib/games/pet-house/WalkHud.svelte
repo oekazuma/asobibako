@@ -40,7 +40,7 @@
 
   .bar {
     position: absolute;
-    top: max(12px, env(safe-area-inset-top));
+    top: max(12px, var(--safe-top));
     left: 50%;
     display: flex;
     align-items: center;
@@ -90,8 +90,8 @@
 
   .home {
     position: absolute;
-    bottom: max(16px, env(safe-area-inset-bottom));
-    left: max(14px, env(safe-area-inset-left));
+    bottom: max(16px, var(--safe-bottom));
+    left: max(14px, var(--safe-left));
     display: flex;
     align-items: center;
     gap: 6px;
@@ -99,8 +99,8 @@
 
   .bag {
     position: absolute;
-    right: max(14px, env(safe-area-inset-right));
-    bottom: max(16px, env(safe-area-inset-bottom));
+    right: max(14px, var(--safe-right));
+    bottom: max(16px, var(--safe-bottom));
     display: flex;
     flex-direction: column;
     align-items: center;

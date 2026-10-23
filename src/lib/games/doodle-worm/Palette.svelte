@@ -50,7 +50,7 @@
   .palette {
     --size: clamp(24px, min(4.6cqh, 6.2cqw), 48px);
     position: absolute;
-    bottom: max(16px, env(safe-area-inset-bottom));
+    bottom: max(16px, var(--safe-bottom));
     left: 50%;
     display: flex;
     align-items: center;

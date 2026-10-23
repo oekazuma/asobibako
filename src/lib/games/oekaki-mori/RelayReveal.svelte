@@ -76,7 +76,7 @@
     flex-direction: column;
     align-items: center;
     gap: 12px;
-    padding: max(68px, env(safe-area-inset-top)) 16px 16px;
+    padding: max(68px, var(--safe-top)) max(16px, var(--safe-right)) 16px max(16px, var(--safe-left));
     overflow-y: auto;
     touch-action: pan-y;
     background: var(--paper-dots), var(--paper);

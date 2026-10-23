@@ -20,7 +20,7 @@
 <style>
   .pain {
     position: absolute;
-    top: max(14px, env(safe-area-inset-top));
+    top: max(14px, var(--safe-top));
     left: 50%;
     display: flex;
     align-items: center;

@@ -66,7 +66,7 @@
 
   .bar {
     position: absolute;
-    top: max(12px, env(safe-area-inset-top));
+    top: max(12px, var(--safe-top));
     left: 50%;
     display: flex;
     align-items: center;
@@ -130,7 +130,7 @@
 
   .tip {
     position: absolute;
-    bottom: max(28px, env(safe-area-inset-bottom));
+    bottom: max(28px, var(--safe-bottom));
     left: 50%;
     width: max-content;
     max-width: calc(100% - 32px);
@@ -157,8 +157,8 @@
   .quit {
     pointer-events: auto;
     position: absolute;
-    bottom: max(112px, calc(env(safe-area-inset-bottom) + 96px));
-    left: max(10px, env(safe-area-inset-left));
+    bottom: max(112px, calc(var(--safe-bottom) + 96px));
+    left: max(10px, var(--safe-left));
     display: flex;
     align-items: center;
     gap: 4px;

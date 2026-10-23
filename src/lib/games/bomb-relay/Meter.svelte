@@ -27,11 +27,11 @@
   }
 
   .meter.p1 {
-    bottom: max(14px, env(safe-area-inset-bottom));
+    bottom: max(14px, var(--safe-bottom));
   }
 
   .meter.p2 {
-    top: max(14px, env(safe-area-inset-top));
+    top: max(14px, var(--safe-top));
     rotate: 180deg;
   }
 

@@ -79,7 +79,7 @@
   .lost {
     position: absolute;
     /* 遊んでいるあいだの上の帯（点数の丸）を隠さないよう、その下に出す */
-    top: calc(max(10px, env(safe-area-inset-top)) + 104px);
+    top: calc(max(10px, var(--safe-top)) + 104px);
     left: 50%;
     translate: -50% 0;
     z-index: 4;

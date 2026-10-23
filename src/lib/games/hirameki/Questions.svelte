@@ -38,7 +38,7 @@
   .sheet {
     position: absolute;
     right: 12px;
-    bottom: max(12px, env(safe-area-inset-bottom));
+    bottom: max(12px, var(--safe-bottom));
     left: 12px;
     z-index: 3;
     display: flex;

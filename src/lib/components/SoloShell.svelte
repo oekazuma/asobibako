@@ -129,13 +129,13 @@
 <style>
   .corner {
     position: absolute;
-    top: max(12px, env(safe-area-inset-top));
+    top: max(12px, var(--safe-top));
     z-index: 5;
   }
 
   .back,
   .quit {
-    left: max(12px, env(safe-area-inset-left));
+    left: max(12px, var(--safe-left));
   }
   .quit {
     opacity: 0.7;
@@ -144,7 +144,7 @@
   .mute,
   .retry,
   .skip {
-    right: max(12px, env(safe-area-inset-right));
+    right: max(12px, var(--safe-right));
   }
 
   .retry {
@@ -152,13 +152,13 @@
     font-size: 24px;
   }
   .skip {
-    top: calc(max(12px, env(safe-area-inset-top)) + 60px);
+    top: calc(max(12px, var(--safe-top)) + 60px);
   }
 
   /* いまやることの吹き出し。変わるたびに弾んで出る */
   .hint {
     position: absolute;
-    top: max(72px, calc(env(safe-area-inset-top) + 60px));
+    top: max(72px, calc(var(--safe-top) + 60px));
     left: 50%;
     z-index: 5;
     padding: 8px 20px;

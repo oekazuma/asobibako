@@ -50,7 +50,7 @@
     gap: 4px 12px;
     align-items: center;
     /* 右上の ≡ に重ならないよう空けておく */
-    padding: max(8px, env(safe-area-inset-top)) 72px 8px 12px;
+    padding: max(8px, var(--safe-top)) max(72px, calc(var(--safe-right) + 60px)) 8px max(12px, var(--safe-left));
     border-bottom: 3px solid var(--line);
     background: var(--paper);
     color: var(--line);

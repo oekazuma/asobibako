@@ -87,7 +87,7 @@
   /* 隅の ✕ と ↻ にかからないよう、まん中に細く置く */
   .bar {
     position: absolute;
-    top: max(12px, env(safe-area-inset-top));
+    top: max(12px, var(--safe-top));
     left: 50%;
     padding: 6px 16px;
     box-shadow: var(--soft-shadow);
@@ -99,7 +99,7 @@
   .foot {
     position: absolute;
     right: 12px;
-    bottom: max(20px, env(safe-area-inset-bottom));
+    bottom: max(20px, var(--safe-bottom));
     left: 12px;
     display: flex;
     flex-direction: column;
@@ -135,7 +135,7 @@
   .panel {
     position: absolute;
     right: 12px;
-    bottom: max(12px, env(safe-area-inset-bottom));
+    bottom: max(12px, var(--safe-bottom));
     left: 12px;
     display: flex;
     flex-direction: column;

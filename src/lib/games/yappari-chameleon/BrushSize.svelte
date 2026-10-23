@@ -22,7 +22,7 @@
 <style>
   .size {
     position: absolute;
-    right: max(110px, calc(env(safe-area-inset-right) + 98px));
+    right: max(110px, calc(var(--safe-right) + 98px));
     top: 50%;
     translate: 0 -50%;
     display: grid;

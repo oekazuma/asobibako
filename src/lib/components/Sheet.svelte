@@ -75,7 +75,7 @@
     overflow-y: auto;
     overscroll-behavior: contain;
     touch-action: pan-y;
-    padding: 4px 16px max(16px, env(safe-area-inset-bottom));
+    padding: 4px max(16px, var(--safe-right)) max(16px, var(--safe-bottom)) max(16px, var(--safe-left));
   }
 
   @keyframes rise {

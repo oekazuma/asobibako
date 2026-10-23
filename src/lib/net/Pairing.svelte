@@ -46,7 +46,8 @@
     container-type: size;
     overflow-y: auto;
     touch-action: pan-y;
-    padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+    padding: max(16px, var(--safe-top)) max(16px, var(--safe-right)) max(16px, var(--safe-bottom))
+      max(16px, var(--safe-left));
     background: var(--paper-dots), var(--paper);
     color: var(--line);
     font-weight: 700;

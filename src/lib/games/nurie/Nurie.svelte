@@ -167,14 +167,14 @@
     place-items: center;
     min-height: 0;
     /* 上の隅には共通の ✕ と ↻ があるので、線画の角が重ならないよう空けておく */
-    padding: max(68px, env(safe-area-inset-top)) 12px 12px;
+    padding: max(68px, var(--safe-top)) max(12px, var(--safe-right)) 12px max(12px, var(--safe-left));
     container-type: size;
   }
 
   /* 上の隅の ✕ と ↻ のあいだに置く */
   .relines {
     position: absolute;
-    top: max(12px, env(safe-area-inset-top));
+    top: max(12px, var(--safe-top));
     left: 50%;
     translate: -50% 0;
     padding: 6px 16px;

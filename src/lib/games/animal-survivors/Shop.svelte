@@ -69,7 +69,7 @@
   .stick {
     position: sticky;
     /* sticky の位置は .as-screen の上の余白の内側から測るので、上の「もどる」の帯（Back.svelte）との差だけ上げる */
-    top: calc(max(68px, calc(env(safe-area-inset-top) + 56px)) - max(72px, calc(env(safe-area-inset-top) + 60px)));
+    top: calc(max(68px, calc(var(--safe-top) + 56px)) - max(72px, calc(var(--safe-top) + 60px)));
     z-index: 2;
     padding: 4px 0;
     background: #2b1d3a;

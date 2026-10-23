@@ -28,8 +28,8 @@
 <style>
   .iine {
     position: absolute;
-    top: max(12px, env(safe-area-inset-top));
-    right: max(14px, env(safe-area-inset-right));
+    top: max(12px, var(--safe-top));
+    right: max(14px, var(--safe-right));
     display: grid;
     gap: 6px;
     margin: 0;

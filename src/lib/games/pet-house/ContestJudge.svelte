@@ -60,7 +60,7 @@
 
   .tricks {
     position: absolute;
-    bottom: max(16px, env(safe-area-inset-bottom));
+    bottom: max(16px, var(--safe-bottom));
     left: 50%;
     display: flex;
     flex-wrap: wrap;

@@ -1,4 +1,10 @@
 :root {
+  /* 端の安全域は env() を直接使わずこれで読む。回した .stage の中では、その枠から見た上下左右に入れ替わる */
+  --safe-top: env(safe-area-inset-top);
+  --safe-right: env(safe-area-inset-right);
+  --safe-bottom: env(safe-area-inset-bottom);
+  --safe-left: env(safe-area-inset-left);
+
   /* 地の色と文字 */
   --bg: #fff7e8;
   --ink: #2b2d42;
@@ -194,7 +200,8 @@ button {
   align-items: center;
   justify-content: center;
   gap: clamp(8px, 1.6cqh, 18px);
-  padding: max(12px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
+  padding: max(12px, var(--safe-top)) max(16px, var(--safe-right)) max(12px, var(--safe-bottom))
+    max(16px, var(--safe-left));
   border: none;
   background: var(--bg);
   color: var(--ink);
@@ -205,6 +212,9 @@ button {
 
 .half.p2 {
   transform: rotate(180deg);
+  /* 回した自分の下端が枠の上端に来るので、上下と左右の安全域を入れ替える */
+  padding: max(12px, var(--safe-bottom)) max(16px, var(--safe-left)) max(12px, var(--safe-top))
+    max(16px, var(--safe-right));
 }
 
 button.half {
@@ -226,6 +236,10 @@ button.half {
     height: 100dvw;
     transform-origin: top left;
     transform: rotate(90deg) translateY(-100%);
+    --safe-top: env(safe-area-inset-right);
+    --safe-right: env(safe-area-inset-bottom);
+    --safe-bottom: env(safe-area-inset-left);
+    --safe-left: env(safe-area-inset-top);
   }
 }
 

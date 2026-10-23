@@ -105,7 +105,8 @@
       'answer' auto
       'bar' auto / minmax(0, 1fr);
     gap: clamp(8px, 1.4cqh, 16px);
-    padding: max(72px, calc(env(safe-area-inset-top) + 60px)) 16px max(16px, env(safe-area-inset-bottom));
+    padding: max(72px, calc(var(--safe-top) + 60px)) max(16px, var(--safe-right)) max(16px, var(--safe-bottom))
+      max(16px, var(--safe-left));
     background: var(--paper-dots), var(--paper);
     color: var(--line);
     line-break: strict;

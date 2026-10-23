@@ -25,7 +25,7 @@
 <style>
   .timer {
     position: absolute;
-    top: max(8px, env(safe-area-inset-top));
+    top: max(8px, var(--safe-top));
     left: 50%;
     translate: -50% 0;
     display: grid;

@@ -59,7 +59,7 @@
     place-items: center;
     gap: 10px;
     min-height: clamp(150px, 26cqh, 260px);
-    padding: 12px 12px max(12px, env(safe-area-inset-bottom));
+    padding: 12px max(12px, var(--safe-right)) max(12px, var(--safe-bottom)) max(12px, var(--safe-left));
     border-top: 3px solid var(--line);
     background: var(--paper);
     color: var(--line);

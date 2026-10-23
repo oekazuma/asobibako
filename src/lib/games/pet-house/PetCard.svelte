@@ -46,7 +46,7 @@
   /* ✕ と ↻（12..68px）のあいだに収める。2 段なので、ヒントの吹き出しは札の下へずらす */
   .card {
     position: absolute;
-    top: max(12px, env(safe-area-inset-top));
+    top: max(12px, var(--safe-top));
     left: 72px;
     right: 72px;
     z-index: 2;
@@ -66,7 +66,7 @@
   }
 
   :global(.stage:has(.pet-card) > .hint) {
-    top: calc(max(12px, env(safe-area-inset-top)) + 118px);
+    top: calc(max(12px, var(--safe-top)) + 118px);
   }
 
   .top {

@@ -55,7 +55,7 @@
     display: grid;
     gap: 10px;
     justify-items: center;
-    padding: 10px 10px max(10px, env(safe-area-inset-bottom));
+    padding: 10px max(10px, var(--safe-right)) max(10px, var(--safe-bottom)) max(10px, var(--safe-left));
     border-top: 3px solid var(--line);
     background: var(--paper);
   }

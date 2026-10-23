@@ -71,14 +71,14 @@
 <style>
   .corner {
     position: absolute;
-    top: max(12px, env(safe-area-inset-top));
-    left: max(12px, env(safe-area-inset-left));
+    top: max(12px, var(--safe-top));
+    left: max(12px, var(--safe-left));
     /* 上の「もどる」の帯（Back.svelte）より手前 */
     z-index: 7;
   }
 
   .mute {
-    right: max(12px, env(safe-area-inset-right));
+    right: max(12px, var(--safe-right));
     left: auto;
   }
 

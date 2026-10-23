@@ -86,8 +86,8 @@
 <style>
   .quit {
     position: absolute;
-    top: max(12px, env(safe-area-inset-top));
-    right: max(12px, env(safe-area-inset-right));
+    top: max(12px, var(--safe-top));
+    right: max(12px, var(--safe-right));
     z-index: 6;
     width: auto;
     min-width: 44px;

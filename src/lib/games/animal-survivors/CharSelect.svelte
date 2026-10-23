@@ -92,16 +92,16 @@
 
   .corner {
     position: absolute;
-    top: max(12px, env(safe-area-inset-top));
+    top: max(12px, var(--safe-top));
     z-index: 5;
   }
 
   .back {
-    left: max(12px, env(safe-area-inset-left));
+    left: max(12px, var(--safe-left));
   }
 
   .mute {
-    right: max(12px, env(safe-area-inset-right));
+    right: max(12px, var(--safe-right));
   }
 
   .as-card {

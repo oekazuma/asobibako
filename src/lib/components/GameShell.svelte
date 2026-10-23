@@ -128,11 +128,11 @@
   }
 
   .back {
-    left: max(10px, env(safe-area-inset-left));
+    left: max(10px, var(--safe-left));
   }
 
   .mute {
-    right: max(10px, env(safe-area-inset-right));
+    right: max(10px, var(--safe-right));
   }
 
   /* 1 台で遊ぶ人の邪魔をしないよう境界線の上に置き、見落とさないよう金色にする */

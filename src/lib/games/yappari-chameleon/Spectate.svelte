@@ -34,8 +34,8 @@
 <style>
   .spectate {
     position: absolute;
-    bottom: max(14px, env(safe-area-inset-bottom));
-    left: max(14px, env(safe-area-inset-left));
+    bottom: max(14px, var(--safe-bottom));
+    left: max(14px, var(--safe-left));
     color: #fff;
     font-family: 'Hiragino Mincho ProN', serif;
     text-shadow: 0 2px 4px #000;

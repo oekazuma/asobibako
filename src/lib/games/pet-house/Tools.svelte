@@ -91,7 +91,7 @@
   .tools {
     position: absolute;
     top: 50%;
-    left: max(10px, env(safe-area-inset-left));
+    left: max(10px, var(--safe-left));
     z-index: 2;
     display: flex;
     flex-direction: column;

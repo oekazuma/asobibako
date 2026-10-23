@@ -156,14 +156,14 @@
   }
 
   .room {
-    padding-bottom: calc(max(16px, env(safe-area-inset-bottom)) + min(10cqh, 84px) + 12px);
+    padding-bottom: calc(max(16px, var(--safe-bottom)) + min(10cqh, 84px) + 12px);
   }
 
   .bar {
     position: absolute;
     inset: auto 0 0;
     z-index: 6;
-    padding: 12px 16px max(16px, env(safe-area-inset-bottom));
+    padding: 12px max(16px, var(--safe-right)) max(16px, var(--safe-bottom)) max(16px, var(--safe-left));
     background: #1f1530;
     box-shadow: 0 -3px 0 #160c1f;
   }

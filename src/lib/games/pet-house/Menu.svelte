@@ -50,7 +50,7 @@
 <style>
   .menu {
     position: absolute;
-    bottom: max(10px, env(safe-area-inset-bottom));
+    bottom: max(10px, var(--safe-bottom));
     left: 50%;
     z-index: 2;
     display: flex;

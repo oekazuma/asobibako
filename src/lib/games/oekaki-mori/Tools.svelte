@@ -52,7 +52,7 @@
     display: grid;
     gap: 8px;
     justify-items: center;
-    padding: 8px 8px max(8px, env(safe-area-inset-bottom));
+    padding: 8px max(8px, var(--safe-right)) max(8px, var(--safe-bottom)) max(8px, var(--safe-left));
     border-top: 3px solid var(--line);
     background: var(--paper);
   }

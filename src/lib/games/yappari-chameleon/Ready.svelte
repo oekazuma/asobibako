@@ -17,7 +17,7 @@
 <style>
   .ready {
     position: absolute;
-    bottom: max(14px, env(safe-area-inset-bottom));
+    bottom: max(14px, var(--safe-bottom));
     left: 50%;
     translate: -50% 0;
     padding: 10px 26px;

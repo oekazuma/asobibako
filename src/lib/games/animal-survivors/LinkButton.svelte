@@ -34,7 +34,7 @@
   .link {
     position: absolute;
     top: 50%;
-    right: max(12px, env(safe-area-inset-right));
+    right: max(12px, var(--safe-right));
     z-index: 5;
     flex-direction: column;
     width: min(32cqw, 170px);

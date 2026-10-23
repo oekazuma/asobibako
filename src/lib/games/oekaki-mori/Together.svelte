@@ -173,12 +173,12 @@
     place-items: center;
     min-height: 0;
     /* 上の隅の ✕ などに線画の角が重ならないよう空けておく */
-    padding: max(68px, env(safe-area-inset-top)) 12px 12px;
+    padding: max(68px, var(--safe-top)) max(12px, var(--safe-right)) 12px max(12px, var(--safe-left));
     container-type: size;
   }
 
   .note {
-    padding: max(64px, env(safe-area-inset-top)) 16px 0;
+    padding: max(64px, var(--safe-top)) max(16px, var(--safe-right)) 0 max(16px, var(--safe-left));
     color: var(--p2-deep);
     font-weight: 800;
     text-align: center;

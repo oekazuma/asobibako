@@ -75,7 +75,7 @@
 
   .tag {
     position: absolute;
-    left: max(14px, env(safe-area-inset-left));
+    left: max(14px, var(--safe-left));
     display: flex;
     align-items: center;
     gap: 6px;
@@ -83,14 +83,14 @@
   }
 
   .tag.p1 {
-    bottom: max(14px, env(safe-area-inset-bottom));
+    bottom: max(14px, var(--safe-bottom));
   }
 
   /* 向かい側は 180 度回すので、その人から見た左下（画面の右上）に来る */
   .tag.p2 {
-    top: max(14px, env(safe-area-inset-top));
+    top: max(14px, var(--safe-top));
     left: auto;
-    right: max(14px, env(safe-area-inset-right));
+    right: max(14px, var(--safe-right));
     rotate: 180deg;
   }
 

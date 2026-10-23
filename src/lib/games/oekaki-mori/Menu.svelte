@@ -68,15 +68,15 @@
 <style>
   .menu {
     position: absolute;
-    top: max(10px, env(safe-area-inset-top));
-    right: max(10px, env(safe-area-inset-right));
+    top: max(10px, var(--safe-top));
+    right: max(10px, var(--safe-right));
     z-index: 5;
   }
 
   .sheet {
     position: absolute;
-    top: calc(max(10px, env(safe-area-inset-top)) + 64px);
-    right: max(10px, env(safe-area-inset-right));
+    top: calc(max(10px, var(--safe-top)) + 64px);
+    right: max(10px, var(--safe-right));
     z-index: 5;
     display: grid;
     gap: 10px;

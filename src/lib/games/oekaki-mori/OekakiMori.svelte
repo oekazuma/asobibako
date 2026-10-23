@@ -151,14 +151,14 @@
   .back,
   .mute {
     position: absolute;
-    top: max(10px, env(safe-area-inset-top));
+    top: max(10px, var(--safe-top));
   }
 
   .back {
-    left: max(10px, env(safe-area-inset-left));
+    left: max(10px, var(--safe-left));
   }
 
   .mute {
-    right: max(10px, env(safe-area-inset-right));
+    right: max(10px, var(--safe-right));
   }
 </style>

@@ -37,7 +37,7 @@
 
   .bar {
     position: absolute;
-    top: max(12px, env(safe-area-inset-top));
+    top: max(12px, var(--safe-top));
     left: 50%;
     display: flex;
     align-items: center;
@@ -95,7 +95,7 @@
 
   .quit {
     position: absolute;
-    bottom: max(18px, env(safe-area-inset-bottom));
+    bottom: max(18px, var(--safe-bottom));
     left: 50%;
     display: flex;
     align-items: center;

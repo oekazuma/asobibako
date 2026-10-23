@@ -52,7 +52,7 @@
   .pad {
     display: grid;
     gap: 6px;
-    padding: 8px max(8px, env(safe-area-inset-left)) max(8px, env(safe-area-inset-bottom));
+    padding: 8px max(8px, var(--safe-left)) max(8px, var(--safe-bottom));
     background: var(--paper);
     border-top: 3px solid var(--line);
   }

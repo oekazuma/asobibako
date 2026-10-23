@@ -90,8 +90,8 @@
     height: 100dvh;
     overflow-y: auto;
     touch-action: pan-y;
-    padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
-      max(36px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    padding: max(24px, var(--safe-top)) max(16px, var(--safe-right)) max(36px, var(--safe-bottom))
+      max(16px, var(--safe-left));
     background: var(--paper-dots), var(--paper);
     color: var(--line);
   }

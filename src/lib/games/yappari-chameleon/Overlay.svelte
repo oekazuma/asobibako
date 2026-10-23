@@ -105,8 +105,8 @@
 <style>
   .side {
     position: absolute;
-    top: calc(max(12px, env(safe-area-inset-top)) + 62px);
-    left: max(14px, env(safe-area-inset-left));
+    top: calc(max(12px, var(--safe-top)) + 62px);
+    left: max(14px, var(--safe-left));
     display: grid;
     justify-items: start;
     gap: 14px;
@@ -114,8 +114,8 @@
 
   .quit {
     position: absolute;
-    top: max(12px, env(safe-area-inset-top));
-    left: max(12px, env(safe-area-inset-left));
+    top: max(12px, var(--safe-top));
+    left: max(12px, var(--safe-left));
     width: 48px;
     height: 48px;
     border: 2px solid rgb(255 255 255 / 0.85);

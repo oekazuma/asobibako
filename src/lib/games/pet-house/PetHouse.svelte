@@ -162,7 +162,7 @@
   .faces {
     position: absolute;
     top: 50%;
-    right: max(10px, env(safe-area-inset-right));
+    right: max(10px, var(--safe-right));
     z-index: 2;
     display: flex;
     flex-direction: column;

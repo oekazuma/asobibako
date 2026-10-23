@@ -91,7 +91,7 @@
 <style>
   .bar {
     position: absolute;
-    top: max(10px, env(safe-area-inset-top));
+    top: max(10px, var(--safe-top));
     left: 50%;
     translate: -50% 0;
     display: flex;
