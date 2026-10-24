@@ -16,10 +16,11 @@
 </div>
 
 <style>
+  /* シェルの隅のボタン（z-index 5）より下に置き、読み込みが長引いても ✕ でやめられるようにする */
   .loading {
     position: absolute;
     inset: 0;
-    z-index: 6;
+    z-index: 4;
     display: grid;
     place-content: center;
     justify-items: center;
