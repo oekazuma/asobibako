@@ -126,7 +126,8 @@
     align-items: center;
     justify-content: center;
     gap: 14px;
-    padding: 16px;
+    padding: max(16px, var(--safe-top)) max(16px, var(--safe-right)) max(16px, var(--safe-bottom))
+      max(16px, var(--safe-left));
     background: var(--paper-dots), var(--paper);
     color: var(--line);
     font-weight: 700;
@@ -139,7 +140,7 @@
 
   .card {
     flex-direction: column;
-    width: min(420px, 86cqw);
+    width: min(420px, 86cqw, 100%);
     padding: 18px 16px;
     font-size: clamp(22px, 3.6cqh, 30px);
   }

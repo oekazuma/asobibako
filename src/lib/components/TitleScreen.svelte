@@ -101,6 +101,16 @@
     box-shadow: var(--soft-press);
   }
 
+  @container (max-height: 900px) {
+    .title {
+      font-size: clamp(22px, min(4.6cqh, 9cqw), 56px);
+    }
+
+    .cta {
+      margin-top: 0;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .cta {
       animation: none;

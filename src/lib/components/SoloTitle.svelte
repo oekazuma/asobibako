@@ -103,7 +103,8 @@
     align-items: center;
     justify-content: center;
     gap: 18px;
-    padding: 24px 16px;
+    padding: max(24px, var(--safe-top)) max(16px, var(--safe-right)) max(24px, var(--safe-bottom))
+      max(16px, var(--safe-left));
     background: var(--paper-dots), var(--paper);
     color: var(--line);
     text-align: center;

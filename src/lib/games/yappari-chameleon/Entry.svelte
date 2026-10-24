@@ -106,7 +106,8 @@
     align-items: center;
     justify-content: center;
     gap: 14px;
-    padding: 16px;
+    padding: max(16px, var(--safe-top)) max(16px, var(--safe-right)) max(16px, var(--safe-bottom))
+      max(16px, var(--safe-left));
     overflow: auto;
     background: #1d1a17;
     color: #fff;

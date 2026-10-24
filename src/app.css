@@ -200,8 +200,8 @@ button {
   align-items: center;
   justify-content: center;
   gap: clamp(8px, 1.6cqh, 18px);
-  padding: max(12px, var(--safe-top)) max(16px, var(--safe-right)) max(12px, var(--safe-bottom))
-    max(16px, var(--safe-left));
+  /* 上端は 2 人の境目で画面の端に接しないので、安全域を足さない（足すと 2 つの半面が枠からあふれる） */
+  padding: 12px max(16px, var(--safe-right)) max(12px, var(--safe-bottom)) max(16px, var(--safe-left));
   border: none;
   background: var(--bg);
   color: var(--ink);
@@ -210,11 +210,17 @@ button {
   transition: background-color 160ms;
 }
 
+/* スマホの短い枠では、2 つの半面の中身が枠に収まらず手前の半面が画面の外へ押し出される */
+@container (max-height: 900px) {
+  .half {
+    gap: clamp(4px, 1cqh, 18px);
+  }
+}
+
 .half.p2 {
   transform: rotate(180deg);
-  /* 回した自分の下端が枠の上端に来るので、上下と左右の安全域を入れ替える */
-  padding: max(12px, var(--safe-bottom)) max(16px, var(--safe-left)) max(12px, var(--safe-top))
-    max(16px, var(--safe-right));
+  /* 回した自分の下端が枠の上端に来るので、下端と左右の安全域を入れ替える */
+  padding: 12px max(16px, var(--safe-left)) max(12px, var(--safe-top)) max(16px, var(--safe-right));
 }
 
 button.half {
